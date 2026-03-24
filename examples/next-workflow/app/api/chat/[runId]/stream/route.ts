@@ -1,3 +1,4 @@
+import { createUIMessageChunkTransform } from '@ai-sdk/durable-agent';
 import type { NextRequest } from 'next/server';
 import { getRun } from 'workflow/api';
 
@@ -12,7 +13,9 @@ export async function GET(
     );
 
     const run = await getRun(runId);
-    const readable = run.getReadable({ startIndex });
+    const readable = run
+      .getReadable({ startIndex })
+      .pipeThrough(createUIMessageChunkTransform());
 
     return new Response(readable, {
       headers: {

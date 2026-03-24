@@ -41,8 +41,6 @@ export interface StreamTextIteratorYieldValue {
   step?: StepResult<ToolSet>;
   /** The current experimental context */
   context?: unknown;
-  /** Raw LanguageModelV4StreamPart chunks from this step */
-  rawChunks?: import('@ai-sdk/provider').LanguageModelV4StreamPart[];
   /** Provider-executed tool results (keyed by tool call ID) */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
 }
@@ -51,6 +49,7 @@ export interface StreamTextIteratorYieldValue {
 export async function* streamTextIterator({
   prompt,
   tools = {},
+  writable,
   model,
   stopConditions,
   maxSteps,
@@ -67,6 +66,9 @@ export async function* streamTextIterator({
 }: {
   prompt: LanguageModelV4Prompt;
   tools: ToolSet;
+  writable?: WritableStream<
+    import('@ai-sdk/provider').LanguageModelV4StreamPart
+  >;
   model: string | (() => Promise<CompatibleLanguageModel>);
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
@@ -100,9 +102,6 @@ export async function* streamTextIterator({
   let stepNumber = 0;
   let lastStep: StepResult<any> | undefined;
   let lastStepWasToolCalls = false;
-  let lastStepRawChunks:
-    | import('@ai-sdk/provider').LanguageModelV4StreamPart[]
-    | undefined;
 
   // Default maxSteps to Infinity to preserve backwards compatibility
   // (agent loops until completion unless explicitly limited)
@@ -251,32 +250,27 @@ export async function* streamTextIterator({
           ? filterToolSet(tools, currentActiveTools)
           : tools;
 
-      const {
-        toolCalls,
-        finish,
-        step,
-        chunks: rawChunks,
-        providerExecutedToolResults,
-      } = await doStreamStep(
-        conversationPrompt,
-        currentModel,
-        await toolsToModelTools(effectiveTools),
-        {
-          ...currentGenerationSettings,
-          toolChoice: currentToolChoice,
-          includeRawChunks,
-          experimental_telemetry,
-          transforms,
-          responseFormat,
-        },
-      );
+      const { toolCalls, finish, step, providerExecutedToolResults } =
+        await doStreamStep(
+          conversationPrompt,
+          currentModel,
+          writable,
+          await toolsToModelTools(effectiveTools),
+          {
+            ...currentGenerationSettings,
+            toolChoice: currentToolChoice,
+            includeRawChunks,
+            experimental_telemetry,
+            transforms,
+            responseFormat,
+          },
+        );
 
       isFirstIteration = false;
       stepNumber++;
       steps.push(step);
       lastStep = step;
       lastStepWasToolCalls = false;
-      lastStepRawChunks = rawChunks;
 
       const finishReason = finish?.finishReason?.unified;
 
@@ -314,7 +308,6 @@ export async function* streamTextIterator({
           messages: conversationPrompt,
           step,
           context: currentContext,
-          rawChunks,
           providerExecutedToolResults,
         };
 
@@ -387,7 +380,6 @@ export async function* streamTextIterator({
       messages: conversationPrompt,
       step: lastStep,
       context: currentContext,
-      rawChunks: lastStepRawChunks,
     };
   }
 

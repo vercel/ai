@@ -1,50 +1,8 @@
-import { DurableAgent, toUIMessageChunk } from '@ai-sdk/durable-agent';
+import { DurableAgent } from '@ai-sdk/durable-agent';
 import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
-import {
-  convertToModelMessages,
-  generateId,
-  type UIMessage,
-  type UIMessageChunk,
-} from 'ai';
+import { convertToModelMessages, type UIMessage } from 'ai';
 import { getWritable } from 'workflow';
 import z from 'zod';
-
-// ============================================================================
-// Write raw chunks to the workflow writable as UIMessageChunks
-//
-// DurableAgent.stream() returns raw LanguageModelV4StreamPart chunks without
-// any UI coupling. The workflow runtime expects UIMessageChunks to be written
-// to getWritable() for the HTTP stream response — this step function bridges
-// the two by converting raw chunks to UIMessageChunks using toUIMessageChunk().
-// ============================================================================
-
-async function writeUIChunks(rawChunks: LanguageModelV4StreamPart[][]) {
-  'use step';
-
-  const writable = getWritable<UIMessageChunk>();
-  const writer = writable.getWriter();
-
-  try {
-    await writer.write({ type: 'start', messageId: generateId() });
-
-    for (const stepChunks of rawChunks) {
-      await writer.write({ type: 'start-step' });
-      for (const chunk of stepChunks) {
-        const uiChunk = toUIMessageChunk(chunk) as UIMessageChunk | undefined;
-        if (uiChunk != null) {
-          await writer.write(uiChunk);
-        }
-      }
-      await writer.write({ type: 'finish-step' });
-    }
-
-    await writer.write({ type: 'finish' });
-  } finally {
-    writer.releaseLock();
-  }
-
-  await writable.close();
-}
 
 // ============================================================================
 // Tool step functions — these run as durable steps with full Node.js access
@@ -135,13 +93,13 @@ export async function chat(messages: UIMessage[]) {
     },
   });
 
-  // Stream the agent — returns raw model data, no UI coupling
+  // DurableAgent streams raw LanguageModelV4StreamPart chunks to the writable
+  // in real-time. The route handler converts to UIMessageChunks at the
+  // response boundary using createUIMessageChunkTransform().
   const result = await agent.stream({
     messages: modelMessages,
+    writable: getWritable<LanguageModelV4StreamPart>(),
   });
-
-  // Convert raw chunks to UIMessageChunks and write to the workflow writable
-  await writeUIChunks(result.rawChunks);
 
   return { messages: result.messages };
 }

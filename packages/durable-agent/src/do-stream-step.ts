@@ -88,6 +88,7 @@ function toLanguageModelToolChoice(
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
   modelInit: string | (() => Promise<CompatibleLanguageModel>),
+  writable?: WritableStream<LanguageModelV4StreamPart>,
   tools?: LanguageModelV4CallOptions['tools'],
   options?: DoStreamStepOptions,
 ) {
@@ -207,40 +208,43 @@ export async function doStreamStep(
     }
   }
 
-  // Consume the stream: capture tool calls, finish metadata, and raw chunks
-  const reader = stream.getReader();
-  try {
-    while (true) {
-      const { done, value: chunk } = await reader.read();
-      if (done) break;
-
-      if (chunk.type === 'tool-call') {
-        toolCalls.push({
-          ...chunk,
-          input: chunk.input || '{}',
-        });
-      } else if (chunk.type === 'tool-result') {
-        providerExecutedToolResults.set(chunk.toolCallId, {
-          toolCallId: chunk.toolCallId,
-          toolName: chunk.toolName,
-          result: chunk.result,
-          isError: chunk.isError,
-        });
-      } else if (chunk.type === 'finish') {
-        finish = chunk;
-      }
-      chunks.push(chunk);
-    }
-  } finally {
-    reader.releaseLock();
-  }
+  // Consume the stream: capture data and optionally write raw parts to writable
+  await stream
+    .pipeThrough(
+      new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>(
+        {
+          transform(chunk, controller) {
+            if (chunk.type === 'tool-call') {
+              toolCalls.push({
+                ...chunk,
+                input: chunk.input || '{}',
+              });
+            } else if (chunk.type === 'tool-result') {
+              providerExecutedToolResults.set(chunk.toolCallId, {
+                toolCallId: chunk.toolCallId,
+                toolName: chunk.toolName,
+                result: chunk.result,
+                isError: chunk.isError,
+              });
+            } else if (chunk.type === 'finish') {
+              finish = chunk;
+            }
+            chunks.push(chunk);
+            controller.enqueue(chunk);
+          },
+        },
+      ),
+    )
+    .pipeTo(
+      writable ?? new WritableStream<LanguageModelV4StreamPart>(), // sink when no writable
+      { preventClose: true },
+    );
 
   const step = chunksToStep(chunks, toolCalls, conversationPrompt, finish);
   return {
     toolCalls,
     finish,
     step,
-    chunks,
     providerExecutedToolResults,
   };
 }

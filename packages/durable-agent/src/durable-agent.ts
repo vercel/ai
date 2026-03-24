@@ -473,6 +473,32 @@ export interface DurableAgentStreamOptions<
   system?: string;
 
   /**
+   * A WritableStream that receives raw LanguageModelV4StreamPart chunks in real-time
+   * as the model generates them. This enables streaming to the client without
+   * coupling DurableAgent to UIMessageChunk format.
+   *
+   * Convert to UIMessageChunks at the response boundary using
+   * `createUIMessageChunkTransform()` from `@ai-sdk/durable-agent`.
+   *
+   * @example
+   * ```typescript
+   * // In the workflow:
+   * await agent.stream({
+   *   messages,
+   *   writable: getWritable<LanguageModelV4StreamPart>(),
+   * });
+   *
+   * // In the route handler:
+   * return createUIMessageStreamResponse({
+   *   stream: run.readable.pipeThrough(createUIMessageChunkTransform()),
+   * });
+   * ```
+   */
+  writable?: WritableStream<
+    import('@ai-sdk/provider').LanguageModelV4StreamPart
+  >;
+
+  /**
    * Condition for stopping the generation when there are tool results in the last step.
    * When the condition is an array, any of the conditions can be met to stop the generation.
    */
@@ -693,12 +719,6 @@ export interface DurableAgentStreamResult<
    * Only available when `experimental_output` is specified.
    */
   experimental_output: OUTPUT;
-
-  /**
-   * Raw LanguageModelV4StreamPart chunks from each step, keyed by step index.
-   * Useful for custom stream processing or converting to UIMessageChunks externally.
-   */
-  rawChunks: import('@ai-sdk/provider').LanguageModelV4StreamPart[][];
 }
 
 /**
@@ -927,17 +947,13 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
         toolCalls: [],
         toolResults: [],
         experimental_output: undefined as OUTPUT,
-        rawChunks: [],
       };
     }
-
-    // Collect raw chunks from each step
-    const allRawChunks: import('@ai-sdk/provider').LanguageModelV4StreamPart[][] =
-      [];
 
     const iterator = streamTextIterator({
       model: this.model,
       tools: effectiveTools as ToolSet,
+      writable: options.writable,
       prompt: modelPrompt,
       stopConditions: options.stopWhen,
       maxSteps: options.maxSteps,
@@ -979,7 +995,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
           messages: iterMessages,
           step,
           context,
-          rawChunks,
           providerExecutedToolResults,
         } = result.value;
         if (step) {
@@ -987,9 +1002,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
         }
         if (context !== undefined) {
           experimentalContext = context;
-        }
-        if (rawChunks) {
-          allRawChunks.push(rawChunks);
         }
 
         // Only execute tools if there are tool calls
@@ -1087,7 +1099,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
               toolCalls: allToolCalls,
               toolResults: allToolResults,
               experimental_output: undefined as OUTPUT,
-              rawChunks: allRawChunks,
             };
           }
 
@@ -1235,7 +1246,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
       toolCalls: lastStepToolCalls,
       toolResults: lastStepToolResults,
       experimental_output: experimentalOutput,
-      rawChunks: allRawChunks,
     };
   }
 }
