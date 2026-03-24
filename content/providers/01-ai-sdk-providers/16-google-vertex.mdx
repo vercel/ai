@@ -1429,6 +1429,12 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Reasoning section](#reasoning) for more details.
 
+- `metadata` _object_
+
+  Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
+
+  - `userId` _string_ - An external identifier for the end-user.
+
 ### Reasoning
 
 Anthropic has reasoning support for the `claude-3-7-sonnet@20250219` model.
