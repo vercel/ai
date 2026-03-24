@@ -480,6 +480,18 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
                 )
               : undefined,
         },
+        'ai.response.files': {
+          output: () =>
+            event.files.length > 0
+              ? JSON.stringify(
+                  event.files.map(file => ({
+                    type: 'file',
+                    mediaType: file.mediaType,
+                    data: file.base64,
+                  })),
+                )
+              : undefined,
+        },
         'ai.response.id': event.response.id,
         'ai.response.model': event.response.modelId,
         'ai.response.timestamp': event.response.timestamp.toISOString(),
@@ -567,6 +579,18 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
                     toolCallId: toolCall.toolCallId,
                     toolName: toolCall.toolName,
                     input: toolCall.input,
+                  })),
+                )
+              : undefined,
+        },
+        'ai.response.files': {
+          output: () =>
+            event.files.length > 0
+              ? JSON.stringify(
+                  event.files.map(file => ({
+                    type: 'file',
+                    mediaType: file.mediaType,
+                    data: file.base64,
                   })),
                 )
               : undefined,
