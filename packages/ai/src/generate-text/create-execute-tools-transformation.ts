@@ -9,8 +9,8 @@ import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { ToolSet } from './tool-set';
 import { TypedToolCall } from './tool-call';
+import { ToolSet } from './tool-set';
 
 export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   tools,
