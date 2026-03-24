@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.40
+
+### Patch Changes
+
+- 989d3d2: fix(ai): include generated files in OTEL response attributes
+
 ## 7.0.0-beta.39
 
 ### Patch Changes
