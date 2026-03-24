@@ -56,30 +56,25 @@ describe('uploadFile', () => {
     expect(Array.from(callArg.data as Uint8Array)).toEqual([4, 5, 6]);
   });
 
-  it('should pass URL data through to files.uploadFile', async () => {
+  it('should reject URL data with a clear error message', async () => {
     const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
 
-    const url = new URL('https://example.com/file.pdf');
-    await uploadFile({
-      files: createMockFiles({ uploadFile: uploadFileSpy }),
-      data: url,
-    });
+    await expect(
+      uploadFile({
+        files: createMockFiles({ uploadFile: uploadFileSpy }),
+        data: new Uint8Array([0]),
+      }),
+    ).resolves.toBeDefined();
 
-    const callArg = uploadFileSpy.mock.calls[0][0];
-    expect(callArg.data).toEqual(url);
-  });
-
-  it('should convert string URL to URL object', async () => {
-    const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
-
-    await uploadFile({
-      files: createMockFiles({ uploadFile: uploadFileSpy }),
-      data: 'https://example.com/file.pdf',
-    });
-
-    const callArg = uploadFileSpy.mock.calls[0][0];
-    expect(callArg.data).toBeInstanceOf(URL);
-    expect((callArg.data as URL).href).toBe('https://example.com/file.pdf');
+    await expect(
+      uploadFile({
+        files: createMockFiles({ uploadFile: uploadFileSpy }),
+        // string URLs get converted to URL objects by convertToLanguageModelV4DataContent
+        data: 'https://example.com/file.pdf' as any,
+      }),
+    ).rejects.toThrow(
+      'URL data is not supported for file uploads. Fetch the URL content first and pass the bytes.',
+    );
   });
 
   it('should pass base64 string data through to files.uploadFile', async () => {

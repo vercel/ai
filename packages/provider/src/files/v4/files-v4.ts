@@ -1,4 +1,3 @@
-import { LanguageModelV4DataContent } from '../../language-model/v4/language-model-v4-data-content';
 import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
 import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
 import { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provider-reference';
@@ -39,7 +38,8 @@ export type FilesV4 = {
    * that can be used in subsequent API calls.
    */
   uploadFile(options: {
-    data: LanguageModelV4DataContent;
+    data: Uint8Array | string;
+    mediaType?: string;
     providerOptions?: SharedV4ProviderOptions;
   }): PromiseLike<FilesV4UploadFileResult>;
 };
