@@ -75,16 +75,6 @@ describe('createExecuteToolsTransformation', () => {
             "type": "tool-call",
           },
           {
-            "dynamic": false,
-            "input": {
-              "value": "test",
-            },
-            "output": "test-sync-result",
-            "toolCallId": "call-1",
-            "toolName": "syncTool",
-            "type": "tool-result",
-          },
-          {
             "finishReason": "stop",
             "rawFinishReason": "stop",
             "type": "model-call-finish",
@@ -105,6 +95,16 @@ describe('createExecuteToolsTransformation', () => {
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
+          },
+          {
+            "dynamic": false,
+            "input": {
+              "value": "test",
+            },
+            "output": "test-sync-result",
+            "toolCallId": "call-1",
+            "toolName": "syncTool",
+            "type": "tool-result",
           },
         ]
       `);
@@ -156,6 +156,28 @@ describe('createExecuteToolsTransformation', () => {
           "type": "tool-call",
         },
         {
+          "finishReason": "stop",
+          "rawFinishReason": "stop",
+          "type": "model-call-finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          },
+        },
+        {
           "dynamic": false,
           "input": {
             "value": "test",
@@ -164,112 +186,6 @@ describe('createExecuteToolsTransformation', () => {
           "toolCallId": "call-1",
           "toolName": "syncTool",
           "type": "tool-result",
-        },
-        {
-          "finishReason": "stop",
-          "rawFinishReason": "stop",
-          "type": "model-call-finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
-            },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
-            },
-            "outputTokens": 10,
-            "raw": undefined,
-            "reasoningTokens": undefined,
-            "totalTokens": 13,
-          },
-        },
-      ]
-    `);
-  });
-
-  it('should hold off on sending finish until the delayed tool result is received', async () => {
-    const tools = {
-      delayedTool: tool({
-        inputSchema: z.object({ value: z.string() }),
-        execute: async ({ value }) => {
-          await delay(0); // Simulate delayed execution
-          return `${value}-delayed-result`;
-        },
-      }),
-    };
-
-    const inputStream: ReadableStream<
-      UglyTransformedStreamTextPart<typeof tools>
-    > = convertArrayToReadableStream([
-      {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'delayedTool',
-        input: { value: 'test' },
-      },
-      finishChunk,
-    ]);
-
-    const transformedStream = inputStream.pipeThrough(
-      createExecuteToolsTransformation({
-        generateId: mockId({ prefix: 'id' }),
-        tools,
-        telemetry: undefined,
-        callId: 'test-telemetry-call-id',
-        messages: [],
-        abortSignal: undefined,
-        timeout: undefined,
-        experimental_context: undefined,
-      }),
-    );
-
-    const result = await convertReadableStreamToArray(transformedStream);
-
-    expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "input": {
-            "value": "test",
-          },
-          "toolCallId": "call-1",
-          "toolName": "delayedTool",
-          "type": "tool-call",
-        },
-        {
-          "dynamic": false,
-          "input": {
-            "value": "test",
-          },
-          "output": "test-delayed-result",
-          "toolCallId": "call-1",
-          "toolName": "delayedTool",
-          "type": "tool-result",
-        },
-        {
-          "finishReason": "stop",
-          "rawFinishReason": "stop",
-          "type": "model-call-finish",
-          "usage": {
-            "cachedInputTokens": undefined,
-            "inputTokenDetails": {
-              "cacheReadTokens": undefined,
-              "cacheWriteTokens": undefined,
-              "noCacheTokens": 3,
-            },
-            "inputTokens": 3,
-            "outputTokenDetails": {
-              "reasoningTokens": undefined,
-              "textTokens": 10,
-            },
-            "outputTokens": 10,
-            "raw": undefined,
-            "reasoningTokens": undefined,
-            "totalTokens": 13,
-          },
         },
       ]
     `);
@@ -779,16 +695,6 @@ describe('createExecuteToolsTransformation', () => {
             "type": "tool-call",
           },
           {
-            "dynamic": false,
-            "error": [Error: Tool execution failed!],
-            "input": {
-              "value": "test",
-            },
-            "toolCallId": "call-1",
-            "toolName": "failingTool",
-            "type": "tool-error",
-          },
-          {
             "finishReason": "stop",
             "rawFinishReason": "stop",
             "type": "model-call-finish",
@@ -809,6 +715,16 @@ describe('createExecuteToolsTransformation', () => {
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
+          },
+          {
+            "dynamic": false,
+            "error": [Error: Tool execution failed!],
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "failingTool",
+            "type": "tool-error",
           },
         ]
       `);
@@ -866,16 +782,6 @@ describe('createExecuteToolsTransformation', () => {
             "type": "tool-call",
           },
           {
-            "dynamic": false,
-            "error": [Error: Sync tool failed!],
-            "input": {
-              "value": "test",
-            },
-            "toolCallId": "call-1",
-            "toolName": "failingTool",
-            "type": "tool-error",
-          },
-          {
             "finishReason": "stop",
             "rawFinishReason": "stop",
             "type": "model-call-finish",
@@ -896,6 +802,16 @@ describe('createExecuteToolsTransformation', () => {
               "reasoningTokens": undefined,
               "totalTokens": 13,
             },
+          },
+          {
+            "dynamic": false,
+            "error": [Error: Sync tool failed!],
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "failingTool",
+            "type": "tool-error",
           },
         ]
       `);

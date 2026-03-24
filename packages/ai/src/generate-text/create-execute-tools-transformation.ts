@@ -63,8 +63,10 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
         UglyTransformedStreamTextPart<TOOLS>
       >,
     ) {
-      const chunkType = chunk.type;
+      // immediately forward all chunks
+      controller.enqueue(chunk);
 
+      const chunkType = chunk.type;
       switch (chunkType) {
         case 'model-call-finish': {
           await Promise.all(
@@ -102,16 +104,11 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             }),
           );
 
-          // the finish chunk is delayed until all tool results are received
-          controller.enqueue(chunk);
-
           break;
         }
 
         // process tool call:
         case 'tool-call': {
-          controller.enqueue(chunk);
-
           if (chunk.invalid) {
             break;
           }
@@ -146,11 +143,6 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
           }
 
           break;
-        }
-
-        default: {
-          // forward all other chunks
-          controller.enqueue(chunk);
         }
       }
     },
