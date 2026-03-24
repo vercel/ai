@@ -554,7 +554,7 @@ export async function convertToOpenAIResponsesInput({
             }
 
             case 'custom': {
-              if (part.kind === 'openai-compaction') {
+              if (part.kind === 'openai.compaction') {
                 const providerOpts =
                   part.providerOptions?.[providerOptionsName];
                 const id = providerOpts?.itemId as string | undefined;

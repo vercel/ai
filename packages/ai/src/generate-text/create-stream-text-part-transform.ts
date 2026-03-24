@@ -62,9 +62,9 @@ export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
       providerMetadata?: ProviderMetadata;
     }
 
-  // TODO check if we need to transform these parts?
+  // warnings from the model call initialization
   | {
-      type: 'stream-start';
+      type: 'model-call-init';
       warnings: Array<SharedV4Warning>;
     }
   | ({ type: 'response-metadata' } & LanguageModelV4ResponseMetadata);
@@ -227,6 +227,14 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
             ...chunk,
             dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
             title: tool?.title,
+          });
+          break;
+        }
+
+        case 'stream-start': {
+          controller.enqueue({
+            type: 'model-call-init',
+            warnings: chunk.warnings,
           });
           break;
         }

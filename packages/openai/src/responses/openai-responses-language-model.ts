@@ -995,7 +995,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         case 'compaction': {
           content.push({
             type: 'custom',
-            kind: 'openai-compaction',
+            kind: 'openai.compaction',
             providerMetadata: {
               [providerOptionsName]: {
                 type: 'compaction',
@@ -1814,7 +1814,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               } else if (value.item.type === 'compaction') {
                 controller.enqueue({
                   type: 'custom',
-                  kind: 'openai-compaction',
+                  kind: 'openai.compaction',
                   providerMetadata: {
                     [providerOptionsName]: {
                       type: 'compaction',
@@ -2043,6 +2043,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
+            } else if (isResponseFailedChunk(value)) {
+              const incompleteReason =
+                value.response.incomplete_details?.reason;
+              finishReason = {
+                unified: incompleteReason
+                  ? mapOpenAIResponseFinishReason({
+                      finishReason: incompleteReason,
+                      hasFunctionCall,
+                    })
+                  : 'error',
+                raw: incompleteReason ?? 'error',
+              };
+              usage = value.response.usage ?? undefined;
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
@@ -2160,6 +2173,12 @@ function isResponseFinishedChunk(
   return (
     chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
   );
+}
+
+function isResponseFailedChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.failed' } {
+  return chunk.type === 'response.failed';
 }
 
 function isResponseCreatedChunk(

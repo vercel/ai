@@ -3753,7 +3753,7 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'custom',
-                kind: 'openai-compaction',
+                kind: 'openai.compaction',
                 providerOptions: {
                   openai: {
                     type: 'compaction',
@@ -3789,7 +3789,7 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'custom',
-                kind: 'openai-compaction',
+                kind: 'openai.compaction',
                 providerOptions: {
                   openai: {
                     type: 'compaction',
@@ -3830,7 +3830,7 @@ describe('convertToOpenAIResponsesInput', () => {
             content: [
               {
                 type: 'custom',
-                kind: 'openai-compaction',
+                kind: 'openai.compaction',
                 providerOptions: {
                   openai: {
                     type: 'compaction',
@@ -3881,7 +3881,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
               {
                 type: 'custom',
-                kind: 'openai-compaction',
+                kind: 'openai.compaction',
                 providerOptions: {
                   openai: {
                     type: 'compaction',
@@ -3937,7 +3937,7 @@ describe('convertToOpenAIResponsesInput', () => {
               },
               {
                 type: 'custom',
-                kind: 'openai-compaction',
+                kind: 'openai.compaction',
                 providerOptions: {
                   openai: {
                     type: 'compaction',
