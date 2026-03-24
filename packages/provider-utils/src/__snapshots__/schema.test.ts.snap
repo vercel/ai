@@ -98,7 +98,7 @@ exports[`zodSchema > zod/v4 > json schema conversion > should duplicate referenc
 }
 `;
 
-exports[`zodSchema > zod/v4 > json schema conversion > should generate JSON schema for input when transform is used 1`] = `
+exports[`zodSchema > zod/v4 > json schema conversion > should generate JSON schema for output when transform is used 1`] = `
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
@@ -107,7 +107,7 @@ exports[`zodSchema > zod/v4 > json schema conversion > should generate JSON sche
       "additionalProperties": false,
       "properties": {
         "id": {
-          "type": "string",
+          "type": "number",
         },
         "name": {
           "type": "string",

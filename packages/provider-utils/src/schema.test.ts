@@ -156,7 +156,36 @@ describe('zodSchema', () => {
         expect(schema.jsonSchema).toMatchSnapshot();
       });
 
-      it('should generate JSON schema for input when transform is used', async () => {
+      it('should include default() fields in required array', () => {
+        const schema = zodSchema(
+          z4.object({
+            name: z4.string().optional(),
+            items: z4.array(z4.string()).optional().default([]),
+          }),
+        );
+
+        expect(schema.jsonSchema).toMatchObject({
+          required: expect.arrayContaining(['items']),
+        });
+      });
+
+      it('should include default() fields in required for nullish schemas', () => {
+        const schema = zodSchema(
+          z4.object({
+            email: z4.string().nullish(),
+            certificates: z4
+              .array(z4.object({ title: z4.string().nullish() }))
+              .nullish()
+              .default([]),
+          }),
+        );
+
+        expect(schema.jsonSchema).toMatchObject({
+          required: expect.arrayContaining(['certificates']),
+        });
+      });
+
+      it('should generate JSON schema for output when transform is used', async () => {
         const schema = zodSchema(
           z4.object({
             user: z4.object({

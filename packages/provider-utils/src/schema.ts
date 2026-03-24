@@ -223,7 +223,7 @@ export function zod4Schema<OBJECT>(
       addAdditionalPropertiesToJsonSchema(
         z4.toJSONSchema(zodSchema, {
           target: 'draft-7',
-          io: 'input',
+          io: 'output',
           reused: useReferences ? 'ref' : 'inline',
         }) as JSONSchema7,
       ),
