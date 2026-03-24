@@ -8,10 +8,11 @@
  */
 import type {
   LanguageModelV4Prompt,
+  LanguageModelV4StreamPart,
   LanguageModelV4ToolCall,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type { StepResult, ToolSet, UIMessageChunk } from 'ai';
+import type { StepResult, ToolSet } from 'ai';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // Mock doStreamStep
@@ -27,7 +28,7 @@ import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 /**
  * Helper to create a mock writable stream
  */
-function createMockWritable(): WritableStream<UIMessageChunk> {
+function createMockWritable(): WritableStream<LanguageModelV4StreamPart> {
   return new WritableStream({
     write: vi.fn(),
     close: vi.fn(),
@@ -117,7 +118,7 @@ function createMockDoStreamStepResult({
       finishReason: finishUnified,
       ...stepOverrides,
     }),
-    uiChunks: undefined,
+    chunks: [],
     providerExecutedToolResults: new Map(),
   };
 }
@@ -158,7 +159,7 @@ describe('streamTextIterator', () => {
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _writable, _tools, _options) => {
+          async (prompt, _modelInit, _tools, _options) => {
             // Capture the prompt on the second call to verify providerOptions
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
@@ -240,7 +241,7 @@ describe('streamTextIterator', () => {
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _writable, _tools, _options) => {
+          async (prompt, _modelInit, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
@@ -319,7 +320,7 @@ describe('streamTextIterator', () => {
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _writable, _tools, _options) => {
+          async (prompt, _modelInit, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
@@ -422,7 +423,7 @@ describe('streamTextIterator', () => {
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _writable, _tools, _options) => {
+          async (prompt, _modelInit, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
@@ -511,7 +512,7 @@ describe('streamTextIterator', () => {
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _writable, _tools, _options) => {
+          async (prompt, _modelInit, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
@@ -583,7 +584,7 @@ describe('streamTextIterator', () => {
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _writable, _tools, _options) => {
+          async (prompt, _modelInit, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
@@ -661,7 +662,7 @@ describe('streamTextIterator', () => {
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _writable, _tools, _options) => {
+          async (prompt, _modelInit, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },

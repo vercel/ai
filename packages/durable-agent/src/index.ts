@@ -21,3 +21,8 @@ export {
   type TelemetrySettings,
   type ToolCallRepairFunction,
 } from './durable-agent.js';
+
+export {
+  createUIMessageChunkTransform,
+  toUIMessageChunk,
+} from './to-ui-message-chunk.js';

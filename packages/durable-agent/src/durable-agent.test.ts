@@ -766,13 +766,6 @@ describe('DurableAgent', () => {
       // Server tool should have been executed
       expect(localExecuteFn).toHaveBeenCalledTimes(1);
 
-      // The resolved server tool result should have been written to UI
-      const toolOutputChunks = writtenChunks.filter(
-        (c: any) => c.type === 'tool-output-available',
-      );
-      expect(toolOutputChunks).toHaveLength(1);
-      expect((toolOutputChunks[0] as any).toolCallId).toBe('server-call-id');
-
       // Loop should have stopped
       expect(mockIterator.next).toHaveBeenCalledTimes(1);
 
@@ -2221,7 +2214,7 @@ describe('DurableAgent', () => {
     });
   });
 
-  describe('collectUIMessages', () => {
+  /* collectUIMessages tests removed — DurableAgent no longer handles UIMessageChunks
     it('should return undefined uiMessages when collectUIMessages is false', async () => {
       const mockModel = createMockModel();
 
@@ -2399,5 +2392,5 @@ describe('DurableAgent', () => {
       expect(result.uiMessages).toBeDefined();
       expect(Array.isArray(result.uiMessages)).toBe(true);
     });
-  });
+  */
 });
