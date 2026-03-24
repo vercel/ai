@@ -3,7 +3,10 @@ import {
   LanguageModelV4Message,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
 import {
   XaiResponsesInput,
   XaiResponsesUserMessageContentPart,
@@ -42,7 +45,19 @@ export async function convertToXaiResponsesInput({
             }
 
             case 'file': {
-              if (block.mediaType.startsWith('image/')) {
+              if (
+                typeof block.data === 'object' &&
+                !(block.data instanceof Uint8Array) &&
+                !(block.data instanceof URL)
+              ) {
+                contentParts.push({
+                  type: 'input_file',
+                  file_id: resolveProviderReference({
+                    reference: block.data,
+                    provider: 'xai',
+                  }),
+                });
+              } else if (block.mediaType.startsWith('image/')) {
                 const mediaType =
                   block.mediaType === 'image/*'
                     ? 'image/jpeg'
