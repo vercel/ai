@@ -82,7 +82,6 @@ import type {
   OnToolCallStartEvent,
 } from './core-events';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import { Output, text } from './output';
@@ -100,7 +99,7 @@ import {
   stepCountIs,
   StopCondition,
 } from './stop-condition';
-import { streamModelCall } from './stream-model-call';
+import { ModelCallStreamPart, streamModelCall } from './stream-model-call';
 import {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -1676,7 +1675,7 @@ class DefaultStreamTextResult<
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
-                UglyTransformedStreamTextPart<TOOLS>,
+                ModelCallStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
@@ -1769,7 +1768,7 @@ class DefaultStreamTextResult<
                       break;
                     }
 
-                    case 'response-metadata': {
+                    case 'model-call-response-metadata': {
                       stepResponse = {
                         id: chunk.id ?? stepResponse.id,
                         timestamp: chunk.timestamp ?? stepResponse.timestamp,
