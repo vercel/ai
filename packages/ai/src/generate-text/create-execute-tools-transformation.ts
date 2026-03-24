@@ -2,7 +2,7 @@ import { IdGenerator, ModelMessage } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
+import { ModelCallStreamPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
 import { isApprovalNeeded } from './is-approval-needed';
 import {
@@ -46,22 +46,17 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
-}): TransformStream<
-  UglyTransformedStreamTextPart<TOOLS>,
-  UglyTransformedStreamTextPart<TOOLS>
-> {
+}): TransformStream<ModelCallStreamPart<TOOLS>, ModelCallStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // forward stream
   return new TransformStream<
-    UglyTransformedStreamTextPart<TOOLS>,
-    UglyTransformedStreamTextPart<TOOLS>
+    ModelCallStreamPart<TOOLS>,
+    ModelCallStreamPart<TOOLS>
   >({
     async transform(
-      chunk: UglyTransformedStreamTextPart<TOOLS>,
-      controller: TransformStreamDefaultController<
-        UglyTransformedStreamTextPart<TOOLS>
-      >,
+      chunk: ModelCallStreamPart<TOOLS>,
+      controller: TransformStreamDefaultController<ModelCallStreamPart<TOOLS>>,
     ) {
       // immediately forward all chunks
       controller.enqueue(chunk);

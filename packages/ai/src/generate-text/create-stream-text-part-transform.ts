@@ -1,12 +1,7 @@
-import {
-  getErrorMessage,
-  LanguageModelV4ResponseMetadata,
-  LanguageModelV4StreamPart,
-  SharedV4Warning,
-} from '@ai-sdk/provider';
+import { getErrorMessage, LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
-import { FinishReason } from '../types/language-model';
+import { CallWarning, FinishReason } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { DefaultGeneratedFileWithType } from './generated-file';
@@ -28,7 +23,7 @@ import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
-export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
+export type ModelCallStreamPart<TOOLS extends ToolSet> =
   | Exclude<
       TextStreamPart<TOOLS>,
       {
@@ -59,9 +54,26 @@ export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
     }
   | {
       type: 'model-call-start';
-      warnings: Array<SharedV4Warning>;
+      warnings: Array<CallWarning>;
     }
-  | ({ type: 'response-metadata' } & LanguageModelV4ResponseMetadata);
+  | {
+      type: 'model-call-response-metadata';
+
+      /**
+       * ID for the generated response, if the provider sends one.
+       */
+      id?: string;
+
+      /**
+       * Timestamp for the start of the generated response, if the provider sends one.
+       */
+      timestamp?: Date;
+
+      /**
+       * The ID of the response model that was used to generate the response, if the provider sends one.
+       */
+      modelId?: string;
+    };
 
 export function createStreamTextPartTransform<TOOLS extends ToolSet>({
   tools,
@@ -80,7 +92,7 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
 
   return new TransformStream<
     LanguageModelV4StreamPart,
-    UglyTransformedStreamTextPart<TOOLS>
+    ModelCallStreamPart<TOOLS>
   >({
     async transform(chunk, controller) {
       switch (chunk.type) {
@@ -229,6 +241,16 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
           controller.enqueue({
             type: 'model-call-start',
             warnings: chunk.warnings,
+          });
+          break;
+        }
+
+        case 'response-metadata': {
+          controller.enqueue({
+            type: 'model-call-response-metadata',
+            id: chunk.id,
+            timestamp: chunk.timestamp,
+            modelId: chunk.modelId,
           });
           break;
         }

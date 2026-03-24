@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
+import { ModelCallStreamPart } from './create-stream-text-part-transform';
 import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 
 describe('invokeToolCallbacksFromStream', () => {
@@ -32,7 +32,7 @@ describe('invokeToolCallbacksFromStream', () => {
       }),
     };
 
-    const chunks: Array<UglyTransformedStreamTextPart<typeof tools>> = [
+    const chunks: Array<ModelCallStreamPart<typeof tools>> = [
       { type: 'text-delta', id: 'text-1', text: 'hello' },
       { type: 'tool-input-start', id: 'call-1', toolName: 'test-tool' },
       { type: 'tool-input-delta', id: 'call-1', delta: '{"value":"' },
