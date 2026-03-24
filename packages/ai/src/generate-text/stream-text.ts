@@ -547,9 +547,11 @@ function createOutputTransformStream<
   });
 }
 
-class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
-  implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
-{
+class DefaultStreamTextResult<
+  TOOLS extends ToolSet,
+  OUTPUT,
+  PARTIAL_OUTPUT,
+> implements StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
   private readonly _totalUsage = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
   >();

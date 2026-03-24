@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.101
+
+### Patch Changes
+
+- 316517c: Add `gpt-5.4-mini`, `gpt-5.4-mini-2026-03-17`, `gpt-5.4-nano`, and `gpt-5.4-nano-2026-03-17` models.
+
 ## 2.0.100
 
 ### Patch Changes
@@ -426,15 +432,15 @@
 - 1cfc209: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
 
   ```ts
-  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
-  import { generateText } from 'ai';
+  import { openai, type OpenAIChatLanguageModelOptions } from "@ai-sdk/openai";
+  import { generateText } from "ai";
 
   await generateText({
-    model: openai.chat('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: openai.chat("gpt-4o"),
+    prompt: "Invent a new holiday and describe its traditions.",
     providerOptions: {
       openai: {
-        user: 'user-123',
+        user: "user-123",
       } satisfies OpenAIChatLanguageModelOptions,
     },
   });
@@ -712,7 +718,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -725,7 +731,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -787,10 +793,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -1213,7 +1219,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1226,7 +1232,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1274,10 +1280,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

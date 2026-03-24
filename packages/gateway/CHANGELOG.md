@@ -1,5 +1,23 @@
 # @ai-sdk/gateway
 
+## 2.0.63
+
+### Patch Changes
+
+- 5e55f43: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
+## 2.0.62
+
+### Patch Changes
+
+- 946ef88: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.61
+
+### Patch Changes
+
+- 2e35d03: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.60
 
 ### Patch Changes

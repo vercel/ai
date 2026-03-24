@@ -128,9 +128,9 @@ results that can be fully encapsulated in the provider.
   readonly providerMetadata: ProviderMetadata | undefined;
 };
 
-export class DefaultStepResult<TOOLS extends ToolSet>
-  implements StepResult<TOOLS>
-{
+export class DefaultStepResult<
+  TOOLS extends ToolSet,
+> implements StepResult<TOOLS> {
   readonly content: StepResult<TOOLS>['content'];
   readonly finishReason: StepResult<TOOLS>['finishReason'];
   readonly usage: StepResult<TOOLS>['usage'];
