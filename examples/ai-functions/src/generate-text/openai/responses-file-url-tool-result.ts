@@ -10,8 +10,7 @@ run(async () => {
     execute: async () => ({
       success: true,
       description: 'Successfully loaded PDF document',
-      pdfUrl:
-        'https://github.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf?raw=true',
+      pdfUrl: 'https://www.berkshirehathaway.com/letters/2024ltr.pdf',
     }),
     toModelOutput({ output }) {
       return {
@@ -24,13 +23,6 @@ run(async () => {
           {
             type: 'file-url',
             url: output.pdfUrl,
-            // Note: OpenAI fetches the URL and determines the file type from
-            // the HTTP Content-Type response header, not the file extension.
-            // The URL must be served with the correct Content-Type (e.g.
-            // "application/pdf"). URLs that return "application/octet-stream"
-            // (such as raw GitHub URLs) will be rejected by the API.
-            // Use file-data with base64 encoding as an alternative if you
-            // cannot guarantee the Content-Type of the URL.
           },
         ],
       };
