@@ -136,7 +136,7 @@ export interface ReasoningFilePart {
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the file
    */
-  data: DataContent | URL | ProviderReference;
+  data: DataContent | URL;
 
   /**
    * IANA media type of the file.

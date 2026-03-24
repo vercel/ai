@@ -100,10 +100,9 @@ export interface LanguageModelV4ReasoningFilePart {
   type: 'reasoning-file';
 
   /**
-   * File data. Can be a Uint8Array, base64 encoded data as a string, a URL,
-   * or a provider reference mapping provider names to provider-specific file IDs.
+   * File data. Can be a Uint8Array or base64 encoded data as a string.
    */
-  data: LanguageModelV4DataContent | SharedV4ProviderReference;
+  data: LanguageModelV4DataContent;
 
   /**
    * IANA media type of the file.
