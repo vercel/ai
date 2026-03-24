@@ -23,7 +23,10 @@ import {
 } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { createAsyncIterableStream } from '../util/async-iterable-stream';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
 import { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
@@ -47,7 +50,7 @@ import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
-export type ModelCallStreamPart<TOOLS extends ToolSet> =
+export type ModelCallStreamPart<TOOLS extends ToolSet = ToolSet> =
   | Exclude<
       TextStreamPart<TOOLS>,
       {
@@ -145,7 +148,7 @@ export async function streamModelCall<
   }) => Promise<void> | void;
 } & Prompt &
   CallSettings): Promise<{
-  stream: ReadableStream<ModelCallStreamPart<TOOLS>>;
+  stream: AsyncIterableStream<ModelCallStreamPart<TOOLS>>;
   request?: {
     /**
      * Request HTTP body that was sent to the provider API.
