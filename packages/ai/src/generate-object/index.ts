@@ -1,13 +1,9 @@
 export { generateObject } from './generate-object';
 export type {
-  GenerateObjectOnFinishEvent,
-  GenerateObjectOnStartEvent,
-  GenerateObjectOnStepFinishEvent,
-  GenerateObjectOnStepStartEvent,
-  StreamObjectOnFinishEvent,
-  StreamObjectOnStartEvent,
-  StreamObjectOnStepFinishEvent,
-  StreamObjectOnStepStartEvent,
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
 } from './generate-object-events';
 export type { RepairTextFunction } from './repair-text';
 export type { GenerateObjectResult } from './generate-object-result';

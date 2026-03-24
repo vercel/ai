@@ -40,10 +40,10 @@ import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type {
-  GenerateObjectOnFinishEvent,
-  GenerateObjectOnStartEvent,
-  GenerateObjectOnStepFinishEvent,
-  GenerateObjectOnStepStartEvent,
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
 } from './generate-object-events';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
@@ -199,25 +199,25 @@ export async function generateObject<
        * Callback that is called when the generateObject operation begins,
        * before the LLM call is made.
        */
-      experimental_onStart?: Listener<GenerateObjectOnStartEvent>;
+      experimental_onStart?: Listener<ObjectOnStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
-      experimental_onStepStart?: Listener<GenerateObjectOnStepStartEvent>;
+      experimental_onStepStart?: Listener<ObjectOnStepStartEvent>;
 
       /**
        * Callback that is called when the model call (step) completes,
        * with the raw result before JSON parsing.
        */
-      onStepFinish?: Listener<GenerateObjectOnStepFinishEvent>;
+      onStepFinish?: Listener<ObjectOnStepFinishEvent>;
 
       /**
        * Callback that is called when the entire operation completes
        * with the final parsed and validated object.
        */
-      onFinish?: Listener<GenerateObjectOnFinishEvent<RESULT>>;
+      onFinish?: Listener<ObjectOnFinishEvent<RESULT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -579,6 +579,7 @@ export async function generateObject<
           event: {
             callId,
             object,
+            error: undefined,
             reasoning,
             finishReason,
             usage,

@@ -15,6 +15,7 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
       "testKey": "testValue",
     },
   },
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": undefined,
@@ -52,6 +53,7 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
   "metadata": undefined,
   "object": undefined,
   "providerMetadata": undefined,
+  "reasoning": undefined,
   "request": {},
   "response": {
     "headers": undefined,

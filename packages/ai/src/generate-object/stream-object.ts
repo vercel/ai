@@ -56,10 +56,10 @@ import type { Listener } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import type {
-  StreamObjectOnFinishEvent,
-  StreamObjectOnStartEvent,
-  StreamObjectOnStepFinishEvent,
-  StreamObjectOnStepStartEvent,
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
 } from './generate-object-events';
 import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
@@ -256,19 +256,19 @@ export function streamObject<
        * Callback that is called when the streamObject operation begins,
        * before the LLM call is made.
        */
-      experimental_onStart?: Listener<StreamObjectOnStartEvent>;
+      experimental_onStart?: Listener<ObjectOnStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
-      experimental_onStepStart?: Listener<StreamObjectOnStepStartEvent>;
+      experimental_onStepStart?: Listener<ObjectOnStepStartEvent>;
 
       /**
        * Callback that is called when the model streaming step completes,
        * with the raw accumulated text before final schema validation.
        */
-      onStepFinish?: Listener<StreamObjectOnStepFinishEvent>;
+      onStepFinish?: Listener<ObjectOnStepFinishEvent>;
 
       /**
        * Callback that is invoked when an error occurs during streaming.
@@ -280,7 +280,7 @@ export function streamObject<
       /**
        * Callback that is called when the LLM response and the final object validation are finished.
        */
-      onFinish?: Listener<StreamObjectOnFinishEvent<RESULT>>;
+      onFinish?: Listener<ObjectOnFinishEvent<RESULT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -446,11 +446,11 @@ class DefaultStreamObjectResult<
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
     repairText: RepairTextFunction | undefined;
-    onStart: Listener<StreamObjectOnStartEvent> | undefined;
-    onStepStart: Listener<StreamObjectOnStepStartEvent> | undefined;
-    onStepFinish: Listener<StreamObjectOnStepFinishEvent> | undefined;
+    onStart: Listener<ObjectOnStartEvent> | undefined;
+    onStepStart: Listener<ObjectOnStepStartEvent> | undefined;
+    onStepFinish: Listener<ObjectOnStepFinishEvent> | undefined;
     onError: StreamObjectOnErrorCallback;
-    onFinish: Listener<StreamObjectOnFinishEvent<RESULT>> | undefined;
+    onFinish: Listener<ObjectOnFinishEvent<RESULT>> | undefined;
     download: DownloadFunction | undefined;
     generateId: () => string;
     currentDate: () => Date;
@@ -919,6 +919,7 @@ class DefaultStreamObjectResult<
                       finishReason: finishReason ?? 'other',
                       usage: finalUsage,
                       objectText: accumulatedText,
+                      reasoning: undefined,
                       warnings,
                       request: request ?? {},
                       response: {
@@ -939,6 +940,7 @@ class DefaultStreamObjectResult<
                       callId,
                       object,
                       error,
+                      reasoning: undefined,
                       finishReason: finishReason ?? 'other',
                       usage: finalUsage,
                       warnings,
