@@ -27,6 +27,86 @@ const testUsage: LanguageModelV4Usage = {
 };
 
 describe('createStreamTextPartTransform', () => {
+  describe('stream-start parts', () => {
+    it('should convert stream-start to init-model-call', async () => {
+      const inputStream: ReadableStream<LanguageModelV4StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'stream-start',
+            warnings: [
+              {
+                type: 'compatibility',
+                feature: 'tool-approval',
+                details: 'approval fallback is being used',
+              },
+              {
+                type: 'other',
+                message: 'custom warning',
+              },
+            ],
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = inputStream.pipeThrough(
+        createStreamTextPartTransform({
+          tools: undefined,
+          system: undefined,
+          messages: [],
+          repairToolCall: undefined,
+        }),
+      );
+
+      const result = await convertReadableStreamToArray(transformedStream);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "init-model-call",
+            "warnings": [
+              {
+                "details": "approval fallback is being used",
+                "feature": "tool-approval",
+                "type": "compatibility",
+              },
+              {
+                "message": "custom warning",
+                "type": "other",
+              },
+            ],
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+    });
+  });
+
   describe('text parts', () => {
     it('should convert text to delta', async () => {
       const inputStream: ReadableStream<LanguageModelV4StreamPart> =
