@@ -1,6 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { DataContent } from './data-content';
 import { ProviderOptions } from './provider-options';
+import { ProviderReference } from './provider-reference';
 
 /**
  * Text content part of a prompt. It contains a string of text.
@@ -33,7 +34,7 @@ export interface ImagePart {
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the image
    */
-  image: DataContent | URL;
+  image: DataContent | URL | ProviderReference;
 
   /**
    * Optional IANA media type of the image.
@@ -62,7 +63,7 @@ export interface FilePart {
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the image
    */
-  data: DataContent | URL;
+  data: DataContent | URL | ProviderReference;
 
   /**
    * Optional filename of the file.
@@ -135,7 +136,7 @@ export interface ReasoningFilePart {
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the file
    */
-  data: DataContent | URL;
+  data: DataContent | URL | ProviderReference;
 
   /**
    * IANA media type of the file.
@@ -336,17 +337,13 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
-            type: 'file-id';
+            type: 'file-reference';
 
             /**
-             * ID of the file.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
+             * Provider-specific references for the file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
              */
-            fileId: string | Record<string, string>;
+            providerReference: ProviderReference;
 
             /**
              * Provider-specific options.
@@ -393,19 +390,15 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * Images that are referenced using a provider file id.
+             * Images that are referenced using a provider reference.
              */
-            type: 'image-file-id';
+            type: 'image-file-reference';
 
             /**
-             * Image that is referenced using a provider file id.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
+             * Provider-specific references for the image file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
              */
-            fileId: string | Record<string, string>;
+            providerReference: ProviderReference;
 
             /**
              * Provider-specific options.
