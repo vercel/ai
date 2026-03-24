@@ -285,6 +285,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
       }),
+      ...(anthropicOptions?.metadata?.userId != null && {
+        metadata: { user_id: anthropicOptions.metadata.userId },
+      }),
 
       // structured output:
       ...(useStructuredOutput &&
