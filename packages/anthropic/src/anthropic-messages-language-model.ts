@@ -388,6 +388,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
       }),
+      ...(anthropicOptions?.metadata?.userId != null && {
+        metadata: { user_id: anthropicOptions.metadata.userId },
+      }),
 
       // mcp servers:
       ...(anthropicOptions?.mcpServers &&

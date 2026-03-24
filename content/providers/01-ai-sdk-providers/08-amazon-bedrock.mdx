@@ -1380,6 +1380,16 @@ const { text } = await generateText({
 });
 ```
 
+### Provider Options
+
+The following optional provider options are available for Bedrock Anthropic models:
+
+- `metadata` _object_
+
+  Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
+
+  - `userId` _string_ - An external identifier for the end-user.
+
 ### Cache Control
 
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
