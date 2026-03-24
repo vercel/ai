@@ -13,6 +13,8 @@ describe('UI message chunks type', () => {
       },
     });
 
+    // toMatchTypeOf (not toEqualTypeOf) because passthrough() adds an index
+    // signature to the inferred type, making it wider than the UIMessageChunk union.
     expectTypeOf(chunk).toMatchTypeOf<UIMessageChunk>();
   });
 });

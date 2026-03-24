@@ -39,6 +39,55 @@ describe('uiMessageChunkSchema', () => {
     });
   });
 
+  it('should pass through unknown fields on start-step chunk', async () => {
+    const chunk = await validateTypes({
+      schema: uiMessageChunkSchema,
+      value: {
+        type: 'start-step',
+        futureField: 42,
+      },
+    });
+
+    expect(chunk).toEqual({
+      type: 'start-step',
+      futureField: 42,
+    });
+  });
+
+  it('should pass through unknown fields on finish chunk with enum field', async () => {
+    const chunk = await validateTypes({
+      schema: uiMessageChunkSchema,
+      value: {
+        type: 'finish',
+        finishReason: 'stop',
+        futureField: true,
+      },
+    });
+
+    expect(chunk).toEqual({
+      type: 'finish',
+      finishReason: 'stop',
+      futureField: true,
+    });
+  });
+
+  it('should pass through providerMetadata on error chunk (issue #13733)', async () => {
+    const chunk = await validateTypes({
+      schema: uiMessageChunkSchema,
+      value: {
+        type: 'error',
+        errorText: 'something went wrong',
+        providerMetadata: { anthropic: { cacheControl: 'ephemeral' } },
+      },
+    });
+
+    expect(chunk).toEqual({
+      type: 'error',
+      errorText: 'something went wrong',
+      providerMetadata: { anthropic: { cacheControl: 'ephemeral' } },
+    });
+  });
+
   it('should reject a chunk with an invalid type', async () => {
     await expect(
       validateTypes({
