@@ -11,6 +11,11 @@ import z from 'zod';
 
 // ============================================================================
 // Write raw chunks to the workflow writable as UIMessageChunks
+//
+// DurableAgent.stream() returns raw LanguageModelV4StreamPart chunks without
+// any UI coupling. The workflow runtime expects UIMessageChunks to be written
+// to getWritable() for the HTTP stream response — this step function bridges
+// the two by converting raw chunks to UIMessageChunks using toUIMessageChunk().
 // ============================================================================
 
 async function writeUIChunks(rawChunks: LanguageModelV4StreamPart[][]) {
