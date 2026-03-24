@@ -20,6 +20,7 @@ import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } 
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockTracer } from '../test/mock-tracer';
+import { asLanguageModelUsage } from '../types/usage';
 import { generateObject } from './generate-object';
 
 vi.mock('../version', () => {
@@ -1368,15 +1369,9 @@ describe('generateObject', () => {
           '{ "content": "Hello, world!" }',
         );
         expect(stepFinishEvent.finishReason).toBe('stop');
-        expect(stepFinishEvent.usage).toEqual({
-          inputTokens: 10,
-          outputTokens: 20,
-          totalTokens: 30,
-          reasoningTokens: undefined,
-          cachedInputTokens: undefined,
-          inputTokenDetails: undefined,
-          outputTokenDetails: undefined,
-        });
+        expect(stepFinishEvent.usage).toEqual(
+          asLanguageModelUsage(dummyResponseValues.usage),
+        );
         expect(stepFinishEvent.callId).toBeDefined();
       });
 
@@ -1458,15 +1453,9 @@ describe('generateObject', () => {
 
         expect(finishEvent.object).toEqual({ content: 'Hello, world!' });
         expect(finishEvent.finishReason).toBe('stop');
-        expect(finishEvent.usage).toEqual({
-          inputTokens: 10,
-          outputTokens: 20,
-          totalTokens: 30,
-          reasoningTokens: undefined,
-          cachedInputTokens: undefined,
-          inputTokenDetails: undefined,
-          outputTokenDetails: undefined,
-        });
+        expect(finishEvent.usage).toEqual(
+          asLanguageModelUsage(dummyResponseValues.usage),
+        );
         expect(finishEvent.providerMetadata).toEqual({
           test: { key: 'value' },
         });
