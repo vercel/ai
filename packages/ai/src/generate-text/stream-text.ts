@@ -1682,7 +1682,7 @@ class DefaultStreamTextResult<
                 async transform(chunk, controller): Promise<void> {
                   resetChunkTimeout();
 
-                  if (chunk.type === 'init-model-call') {
+                  if (chunk.type === 'model-call-init') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
                   }

@@ -66,7 +66,7 @@ describe('createStreamTextPartTransform', () => {
       expect(result).toMatchInlineSnapshot(`
         [
           {
-            "type": "init-model-call",
+            "type": "model-call-init",
             "warnings": [
               {
                 "details": "approval fallback is being used",

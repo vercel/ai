@@ -64,7 +64,7 @@ export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
 
   // warnings from the model call initialization
   | {
-      type: 'init-model-call';
+      type: 'model-call-init';
       warnings: Array<SharedV4Warning>;
     }
   | ({ type: 'response-metadata' } & LanguageModelV4ResponseMetadata);
@@ -233,7 +233,7 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
 
         case 'stream-start': {
           controller.enqueue({
-            type: 'init-model-call',
+            type: 'model-call-init',
             warnings: chunk.warnings,
           });
           break;
