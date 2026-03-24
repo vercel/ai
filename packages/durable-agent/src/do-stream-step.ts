@@ -8,12 +8,12 @@ import type {
 } from '@ai-sdk/provider';
 import {
   type FinishReason,
-  gateway,
   type StepResult,
   type StopCondition,
   type ToolChoice,
   type ToolSet,
 } from 'ai';
+import { resolveLanguageModel } from 'ai/internal';
 import type {
   ProviderOptions,
   StreamTextTransform,
@@ -95,7 +95,7 @@ export async function doStreamStep(
 
   let model: CompatibleLanguageModel;
   if (typeof modelInit === 'string') {
-    model = gateway(modelInit) as CompatibleLanguageModel;
+    model = resolveLanguageModel(modelInit) as CompatibleLanguageModel;
   } else if (typeof modelInit === 'function') {
     model = await modelInit();
   } else {
