@@ -137,73 +137,78 @@ export async function doStreamStep(
     | undefined;
   let warnings: Array<any> | undefined;
 
-  for await (const part of modelStream) {
-    switch (part.type) {
-      case 'text-delta':
-        text += part.text;
-        break;
-      case 'reasoning-delta':
-        reasoningParts.push({ text: part.text });
-        break;
-      case 'tool-call':
-        toolCalls.push({
-          type: 'tool-call',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          input: part.input,
-          providerExecuted: part.providerExecuted,
-          providerMetadata: part.providerMetadata as
-            | Record<string, unknown>
-            | undefined,
-          dynamic: (part as any).dynamic,
-          invalid: (part as any).invalid,
-          error: (part as any).error,
-        });
-        break;
-      case 'tool-result':
-        if (part.providerExecuted) {
-          providerExecutedToolResults.set(part.toolCallId, {
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            result: part.output,
-            isError: false,
-          });
-        }
-        break;
-      case 'tool-error':
-        if ((part as any).providerExecuted) {
-          providerExecutedToolResults.set(part.toolCallId, {
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            result: (part as any).error,
-            isError: true,
-          });
-        }
-        break;
-      case 'model-call-end':
-        finish = {
-          finishReason: part.finishReason,
-          rawFinishReason: part.rawFinishReason,
-          usage: part.usage,
-          providerMetadata: part.providerMetadata as
-            | Record<string, unknown>
-            | undefined,
-        };
-        break;
-      case 'model-call-start':
-        warnings = part.warnings;
-        break;
-      case 'model-call-response-metadata':
-        responseMetadata = part;
-        break;
-    }
+  // Acquire writer once before the loop to avoid per-chunk lock overhead
+  const writer = writable?.getWriter();
 
-    // Write to writable in real-time
-    if (writable) {
-      const writer = writable.getWriter();
-      await writer.write(part);
-      writer.releaseLock();
+  try {
+    for await (const part of modelStream) {
+      switch (part.type) {
+        case 'text-delta':
+          text += part.text;
+          break;
+        case 'reasoning-delta':
+          reasoningParts.push({ text: part.text });
+          break;
+        case 'tool-call':
+          toolCalls.push({
+            type: 'tool-call',
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            input: part.input,
+            providerExecuted: part.providerExecuted,
+            providerMetadata: part.providerMetadata as
+              | Record<string, unknown>
+              | undefined,
+            dynamic: (part as any).dynamic,
+            invalid: (part as any).invalid,
+            error: (part as any).error,
+          });
+          break;
+        case 'tool-result':
+          if (part.providerExecuted) {
+            providerExecutedToolResults.set(part.toolCallId, {
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              result: part.output,
+              isError: false,
+            });
+          }
+          break;
+        case 'tool-error':
+          if ((part as any).providerExecuted) {
+            providerExecutedToolResults.set(part.toolCallId, {
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              result: (part as any).error,
+              isError: true,
+            });
+          }
+          break;
+        case 'model-call-end':
+          finish = {
+            finishReason: part.finishReason,
+            rawFinishReason: part.rawFinishReason,
+            usage: part.usage,
+            providerMetadata: part.providerMetadata as
+              | Record<string, unknown>
+              | undefined,
+          };
+          break;
+        case 'model-call-start':
+          warnings = part.warnings;
+          break;
+        case 'model-call-response-metadata':
+          responseMetadata = part;
+          break;
+      }
+
+      // Write to writable in real-time
+      if (writer) {
+        await writer.write(part);
+      }
     }
+  } finally {
+    writer?.releaseLock();
   }
 
   // Build StepResult
