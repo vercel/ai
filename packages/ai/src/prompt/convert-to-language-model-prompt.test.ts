@@ -195,6 +195,42 @@ describe('convertToLanguageModelPrompt', () => {
           },
         ]);
       });
+
+      it('should not download data: URLs and instead extract inline content', async () => {
+        const downloadFn = vi.fn();
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'image',
+                    image:
+                      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: createDefaultDownloadFunction(downloadFn),
+        });
+
+        expect(downloadFn).not.toHaveBeenCalled();
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+              },
+            ],
+          },
+        ]);
+      });
     });
 
     describe('file parts', () => {
@@ -549,6 +585,42 @@ describe('convertToLanguageModelPrompt', () => {
                 type: 'file',
                 mediaType: 'application/pdf',
                 data: new Uint8Array([0, 1, 2, 3]),
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should not download data: URLs in file parts and instead extract inline content', async () => {
+        const downloadFn = vi.fn();
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: 'data:application/pdf;base64,SGVsbG8sIFdvcmxkIQ==',
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: createDefaultDownloadFunction(downloadFn),
+        });
+
+        expect(downloadFn).not.toHaveBeenCalled();
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: 'SGVsbG8sIFdvcmxkIQ==',
               },
             ],
           },
