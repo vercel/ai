@@ -730,6 +730,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         },
       });
 
+      // Remove the message if it ended up with no parts (e.g. transient-only
+      // data streams should not leave an empty message in the array).
+      if (activeResponse.state.message.parts.length === 0) {
+        const last = this.state.messages[this.state.messages.length - 1];
+        if (last?.id === activeResponse.state.message.id) {
+          this.state.popMessage();
+        }
+      }
+
       this.setStatus({ status: 'ready' });
     } catch (err) {
       // Ignore abort errors as they are expected.
