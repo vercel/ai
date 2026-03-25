@@ -1,7 +1,10 @@
 import {
   getErrorMessage,
+  LanguageModelV4FunctionTool,
   LanguageModelV4Prompt,
+  LanguageModelV4ProviderTool,
   LanguageModelV4StreamPart,
+  LanguageModelV4ToolChoice,
   SharedV4Headers,
 } from '@ai-sdk/provider';
 import {
@@ -13,13 +16,11 @@ import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-f
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import {
   CallWarning,
   FinishReason,
   LanguageModel,
-  ToolChoice,
 } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
@@ -46,6 +47,7 @@ import {
 } from './stream-text-result';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { ToolChoiceDescriptor, ToolDescriptor } from './tool-descriptor';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -110,7 +112,6 @@ export async function streamModelCall<
   tools,
   output,
   toolChoice,
-  activeTools,
   prompt,
   system,
   messages,
@@ -125,10 +126,25 @@ export async function streamModelCall<
   ...callSettings
 }: {
   model: LanguageModel;
-  tools?: TOOLS;
+
+  /**
+   * Serializable tool descriptors for the model call.
+   *
+   * These contain only the information the model needs (JSON schema, name,
+   * description) — no Zod schemas or execute functions. This makes them
+   * safe to pass across serialization boundaries (e.g., Workflow steps).
+   *
+   * Obtain them by calling `experimental_prepareToolsAndToolChoice()`.
+   */
+  tools?: ToolDescriptor[];
+
   output?: OUTPUT;
-  toolChoice?: ToolChoice<TOOLS>;
-  activeTools?: Array<keyof NoInfer<TOOLS>>;
+
+  /**
+   * Serializable tool choice descriptor.
+   */
+  toolChoice?: ToolChoiceDescriptor;
+
   download?: DownloadFunction;
   headers?: Record<string, string | undefined>;
   includeRawChunks?: boolean;
@@ -181,12 +197,12 @@ export async function streamModelCall<
     download,
   });
 
-  const { toolChoice: stepToolChoice, tools: stepTools } =
-    await prepareToolsAndToolChoice({
-      tools,
-      toolChoice,
-      activeTools,
-    });
+  // Tools and toolChoice are already in serializable descriptor format.
+  // Cast to V4 types — ToolDescriptor is structurally compatible.
+  const stepTools = tools as
+    | Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>
+    | undefined;
+  const stepToolChoice = toolChoice as LanguageModelV4ToolChoice | undefined;
 
   await notify({
     event: { promptMessages },
@@ -213,7 +229,7 @@ export async function streamModelCall<
 
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelStreamPartToModelCallStreamPartTransform({
-      tools,
+      tools: tools as unknown as TOOLS,
       system: standardizedPrompt.system,
       messages: standardizedPrompt.messages,
       repairToolCall,
