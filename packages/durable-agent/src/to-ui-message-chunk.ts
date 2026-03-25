@@ -115,21 +115,26 @@ export function toUIMessageChunk(
     case 'tool-input-delta':
       return {
         type: 'tool-input-delta',
-        toolCallId: (part as any).id ?? (part as any).toolCallId,
-        inputTextDelta: (part as any).delta ?? (part as any).inputTextDelta,
+        toolCallId: part.id,
+        inputTextDelta: part.delta,
       };
 
     case 'tool-call': {
-      if ((part as any).invalid) {
+      // parseToolCall adds invalid/error at runtime for failed parses
+      const toolCallPart = part as typeof part & {
+        invalid?: boolean;
+        error?: unknown;
+      };
+      if (toolCallPart.invalid) {
         return {
           type: 'tool-input-error',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          input: part.input,
+          toolCallId: toolCallPart.toolCallId,
+          toolName: toolCallPart.toolName,
+          input: toolCallPart.input,
           errorText:
-            (part as any).error instanceof Error
-              ? (part as any).error.message
-              : String((part as any).error ?? 'Invalid tool call'),
+            toolCallPart.error instanceof Error
+              ? toolCallPart.error.message
+              : String(toolCallPart.error ?? 'Invalid tool call'),
         };
       }
       return {

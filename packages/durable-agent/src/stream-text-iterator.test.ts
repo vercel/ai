@@ -23,12 +23,13 @@ vi.mock('./do-stream-step.js', () => ({
 // Import after mocking
 const { streamTextIterator } = await import('./stream-text-iterator.js');
 const { doStreamStep } = await import('./do-stream-step.js');
+import type { ParsedToolCall } from './do-stream-step.js';
 import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 
 /**
  * Helper to create a mock writable stream
  */
-function createMockWritable(): WritableStream<any> {
+function createMockWritable(): WritableStream<unknown> {
   return new WritableStream({
     write: vi.fn(),
     close: vi.fn(),
@@ -109,12 +110,12 @@ function createMockFinish(
 }
 
 function createMockDoStreamStepResult({
-  toolCalls = [] as any[],
+  toolCalls = [] as ParsedToolCall[],
   finishReason = 'stop' as 'stop' | 'tool-calls',
   finishRaw = 'stop',
   stepOverrides = {},
 }: {
-  toolCalls?: any[];
+  toolCalls?: ParsedToolCall[];
   finishReason?: 'stop' | 'tool-calls';
   finishRaw?: string;
   stepOverrides?: Partial<StepResult<ToolSet>>;

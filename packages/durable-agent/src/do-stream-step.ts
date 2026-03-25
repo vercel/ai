@@ -1,9 +1,14 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4CallOptions,
+  LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import {
   type Experimental_ModelCallStreamPart as ModelCallStreamPart,
   experimental_streamModelCall as streamModelCall,
   type FinishReason,
+  type LanguageModel,
   type LanguageModelUsage,
+  type ModelMessage,
   type StepResult,
   type StopCondition,
   type ToolCallRepairFunction,
@@ -48,7 +53,7 @@ export interface DoStreamStepOptions {
   includeRawChunks?: boolean;
   experimental_telemetry?: TelemetrySettings;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
-  responseFormat?: any;
+  responseFormat?: LanguageModelV4CallOptions['responseFormat'];
 }
 
 /**
@@ -101,8 +106,11 @@ export async function doStreamStep(
   // model.doStream(), retry logic, and stream part transformation
   // (tool call parsing, finish reason mapping, file wrapping).
   const { stream: modelStream } = await streamModelCall({
-    model: model as any,
-    messages: conversationPrompt as any,
+    model: model as LanguageModel,
+    // streamModelCall expects Prompt (ModelMessage[]) but we pass the
+    // pre-converted LanguageModelV4Prompt. standardizePrompt inside
+    // streamModelCall handles both formats.
+    messages: conversationPrompt as unknown as ModelMessage[],
     tools,
     toolChoice: options?.toolChoice,
     includeRawChunks: options?.includeRawChunks,
@@ -135,7 +143,7 @@ export async function doStreamStep(
   let responseMetadata:
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
-  let warnings: Array<any> | undefined;
+  let warnings: unknown[] | undefined;
 
   // Acquire writer once before the loop to avoid per-chunk lock overhead
   const writer = writable?.getWriter();
@@ -149,21 +157,24 @@ export async function doStreamStep(
         case 'reasoning-delta':
           reasoningParts.push({ text: part.text });
           break;
-        case 'tool-call':
+        case 'tool-call': {
+          // parseToolCall adds dynamic/invalid/error at runtime
+          const toolCallPart = part as typeof part & Partial<ParsedToolCall>;
           toolCalls.push({
             type: 'tool-call',
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            input: part.input,
-            providerExecuted: part.providerExecuted,
-            providerMetadata: part.providerMetadata as
+            toolCallId: toolCallPart.toolCallId,
+            toolName: toolCallPart.toolName,
+            input: toolCallPart.input,
+            providerExecuted: toolCallPart.providerExecuted,
+            providerMetadata: toolCallPart.providerMetadata as
               | Record<string, unknown>
               | undefined,
-            dynamic: (part as any).dynamic,
-            invalid: (part as any).invalid,
-            error: (part as any).error,
+            dynamic: toolCallPart.dynamic,
+            invalid: toolCallPart.invalid,
+            error: toolCallPart.error,
           });
           break;
+        }
         case 'tool-result':
           if (part.providerExecuted) {
             providerExecutedToolResults.set(part.toolCallId, {
@@ -174,16 +185,20 @@ export async function doStreamStep(
             });
           }
           break;
-        case 'tool-error':
-          if ((part as any).providerExecuted) {
-            providerExecutedToolResults.set(part.toolCallId, {
-              toolCallId: part.toolCallId,
-              toolName: part.toolName,
-              result: (part as any).error,
+        case 'tool-error': {
+          const errorPart = part as typeof part & {
+            providerExecuted?: boolean;
+          };
+          if (errorPart.providerExecuted) {
+            providerExecutedToolResults.set(errorPart.toolCallId, {
+              toolCallId: errorPart.toolCallId,
+              toolName: errorPart.toolName,
+              result: errorPart.error,
               isError: true,
             });
           }
           break;
+        }
         case 'model-call-end':
           finish = {
             finishReason: part.finishReason,
@@ -214,7 +229,7 @@ export async function doStreamStep(
   // Build StepResult
   const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
 
-  const step: StepResult<any> = {
+  const step: StepResult<ToolSet> = {
     callId: 'durable-agent',
     stepNumber: 0,
     model: {
@@ -293,7 +308,7 @@ export async function doStreamStep(
       messages: [],
     },
     providerMetadata: finish?.providerMetadata ?? {},
-  } as StepResult<any>;
+  } as StepResult<ToolSet>;
 
   return {
     toolCalls,
