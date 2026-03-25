@@ -207,6 +207,3 @@ export function createModelCallToUIChunkTransform(): TransformStream<
     },
   });
 }
-
-// Keep backward compat export name
-export { createModelCallToUIChunkTransform as createUIMessageChunkTransform };

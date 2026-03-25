@@ -24,7 +24,6 @@ export {
 
 export {
   createModelCallToUIChunkTransform,
-  createUIMessageChunkTransform,
   toUIMessageChunk,
 } from './to-ui-message-chunk.js';
 
