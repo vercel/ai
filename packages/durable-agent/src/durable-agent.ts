@@ -966,6 +966,8 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
       experimental_context: experimentalContext,
       experimental_telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
+      repairToolCall:
+        options.experimental_repairToolCall as ToolCallRepairFunction<ToolSet>,
       responseFormat: await options.experimental_output?.responseFormat,
     });
 

@@ -6,6 +6,7 @@ import {
   type LanguageModelUsage,
   type StepResult,
   type StopCondition,
+  type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
 } from 'ai';
@@ -46,6 +47,7 @@ export interface DoStreamStepOptions {
   toolChoice?: ToolChoice<ToolSet>;
   includeRawChunks?: boolean;
   experimental_telemetry?: TelemetrySettings;
+  repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: any;
 }
 
@@ -116,6 +118,7 @@ export async function doStreamStep(
     frequencyPenalty: options?.frequencyPenalty,
     stopSequences: options?.stopSequences,
     seed: options?.seed,
+    repairToolCall: options?.repairToolCall,
   });
 
   // Consume the stream: capture data and write to writable in real-time

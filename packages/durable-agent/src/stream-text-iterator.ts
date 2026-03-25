@@ -5,12 +5,13 @@ import type {
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type {
+  Experimental_ModelCallStreamPart as ModelCallStreamPart,
   StepResult,
   StreamTextOnStepFinishCallback,
+  ToolCallRepairFunction,
   ToolChoice,
   ToolSet,
 } from 'ai';
-import type { Experimental_ModelCallStreamPart as ModelCallStreamPart } from 'ai';
 import {
   doStreamStep,
   type ModelStopCondition,
@@ -62,6 +63,7 @@ export async function* streamTextIterator({
   experimental_context,
   experimental_telemetry,
   includeRawChunks = false,
+  repairToolCall,
   responseFormat,
 }: {
   prompt: LanguageModelV4Prompt;
@@ -78,6 +80,7 @@ export async function* streamTextIterator({
   experimental_context?: unknown;
   experimental_telemetry?: TelemetrySettings;
   includeRawChunks?: boolean;
+  repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
@@ -249,6 +252,7 @@ export async function* streamTextIterator({
             toolChoice: currentToolChoice,
             includeRawChunks,
             experimental_telemetry,
+            repairToolCall,
             responseFormat,
           },
         );
