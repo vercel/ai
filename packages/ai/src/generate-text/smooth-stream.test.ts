@@ -72,6 +72,7 @@ describe('smoothStream', () => {
             "text": "Hello, ",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "world!",
@@ -145,6 +146,7 @@ describe('smoothStream', () => {
             "text": "example ",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "text.",
@@ -204,6 +206,7 @@ describe('smoothStream', () => {
           text: 'spaces\n    ',
           type: 'text-delta',
         },
+        'delay 10',
         {
           id: '1',
           text: 'Indented',
@@ -277,6 +280,7 @@ describe('smoothStream', () => {
             "text": "in ",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "London.",
@@ -369,6 +373,7 @@ describe('smoothStream', () => {
             "text": "in ",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "London.",
@@ -404,6 +409,159 @@ describe('smoothStream', () => {
       `);
     });
 
+    it('should smooth-drain buffer with delays before tool call to prevent mid-text side effects', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: "I'll read the file.", type: 'text-delta', id: '1' },
+        {
+          type: 'tool-call',
+          toolCallId: '1',
+          toolName: 'readFile',
+          input: { path: 'hello.txt' },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: '1',
+          toolName: 'readFile',
+          result: 'Sunny',
+          input: { path: 'hello.txt' },
+        },
+        { text: ' Now I can replace it.', type: 'text-delta', id: '1' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      // All text chunks before the tool-call must be emitted with delays,
+      // including the final partial word ("file."). This prevents downstream
+      // tool execution side effects (e.g. console.log) from appearing
+      // mid-text in the consumer's output.
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "I'll ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "read ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "the ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "file.",
+            "type": "text-delta",
+          },
+          {
+            "input": {
+              "path": "hello.txt",
+            },
+            "toolCallId": "1",
+            "toolName": "readFile",
+            "type": "tool-call",
+          },
+          {
+            "input": {
+              "path": "hello.txt",
+            },
+            "result": "Sunny",
+            "toolCallId": "1",
+            "toolName": "readFile",
+            "type": "tool-result",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": " Now ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "I ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "can ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "replace ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "it.",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+        ]
+      `);
+    });
+
+    it('should flush remaining buffer on stream close', async () => {
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { text: 'Hello world', type: 'text-delta', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      // The flush handler ensures "world" (which has no trailing whitespace)
+      // is emitted when the stream closes even without a text-end event.
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          "delay 10",
+          {
+            "id": "1",
+            "text": "Hello ",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "text": "world",
+            "type": "text-delta",
+          },
+        ]
+      `);
+    });
+
     it(`doesn't return chunks with just spaces`, async () => {
       const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
         { type: 'text-start', id: '1' },
@@ -427,6 +585,7 @@ describe('smoothStream', () => {
             "id": "1",
             "type": "text-start",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "   foo",
@@ -534,6 +693,7 @@ describe('smoothStream', () => {
             "id": "1",
             "type": "text-start",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "Text without any line breaks",
@@ -576,6 +736,7 @@ describe('smoothStream', () => {
             "text": "Hello_",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "id": "1",
             "text": ", world!",
@@ -731,6 +892,7 @@ describe('smoothStream', () => {
             "text": "llo, w_",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "orld!",
@@ -809,6 +971,7 @@ describe('smoothStream', () => {
             "text": "Hello, ",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "world!",
@@ -848,6 +1011,7 @@ describe('smoothStream', () => {
             "text": "Hello, ",
             "type": "text-delta",
           },
+          "delay 20",
           {
             "id": "1",
             "text": "world!",
@@ -887,6 +1051,7 @@ describe('smoothStream', () => {
             "text": "Hello, ",
             "type": "text-delta",
           },
+          "delay null",
           {
             "id": "1",
             "text": "world!",
@@ -1009,6 +1174,7 @@ describe('smoothStream', () => {
             "text": "in ",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "id": "2",
             "text": "London.",
@@ -1062,6 +1228,7 @@ describe('smoothStream', () => {
             "text": "me ",
             "type": "reasoning-delta",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "think...",
@@ -1165,6 +1332,7 @@ describe('smoothStream', () => {
             "text": "solve ",
             "type": "reasoning-delta",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "it.",
@@ -1229,6 +1397,7 @@ describe('smoothStream', () => {
             "text": "the ",
             "type": "reasoning-delta",
           },
+          "delay 10",
           {
             "id": "1",
             "text": "weather",
@@ -1351,6 +1520,7 @@ describe('smoothStream', () => {
             "text": "me ",
             "type": "reasoning-delta",
           },
+          "delay 10",
           {
             "id": "2",
             "text": "think",
@@ -1426,6 +1596,7 @@ describe('smoothStream', () => {
             "text": "is ",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "id": "2",
             "text": "42",
