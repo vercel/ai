@@ -331,7 +331,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       expect(doStreamOptions?.abortSignal).toBeDefined();
     });
 
-    it.fails('should pass string instructions', async () => {
+    it('should pass string instructions', async () => {
       // GAP: DurableAgent uses `system` (string only) instead of `instructions`
       // (which can be string | SystemModelMessage | SystemModelMessage[])
       const agent = new DurableAgent({
@@ -356,6 +356,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
@@ -363,20 +364,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             "providerOptions": undefined,
             "role": "user",
           },
-          {
-            "content": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
-          },
         ]
       `);
     });
 
-    it.fails('should pass system message instructions', async () => {
+    it('should pass system message instructions', async () => {
       // GAP: DurableAgent only supports string system prompts, not SystemModelMessage objects
       const agent = new DurableAgent({
         model: asModelFactory(mockModel),
@@ -408,6 +400,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
@@ -415,20 +408,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             "providerOptions": undefined,
             "role": "user",
           },
-          {
-            "content": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
-          },
         ]
       `);
     });
 
-    it.fails('should pass array of system message instructions', async () => {
+    it('should pass array of system message instructions', async () => {
       // GAP: DurableAgent doesn't support array of SystemModelMessage
       const agent = new DurableAgent({
         model: asModelFactory(mockModel),
@@ -476,21 +460,13 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
             ],
             "providerOptions": undefined,
             "role": "user",
-          },
-          {
-            "content": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
           },
         ]
       `);
