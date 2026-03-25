@@ -67,18 +67,11 @@ export function toUIMessageChunk(
 
     case 'file': {
       const file = part.file;
-      let url: string;
-      if (file.base64) {
-        url = `data:${file.mediaType};base64,${file.base64}`;
-      } else if ((file as any).url) {
-        url = (file as any).url;
-      } else {
-        url = `data:${file.mediaType};base64,`;
-      }
+      // GeneratedFile.base64 always has data (lazy-converted from Uint8Array if needed)
       return {
         type: 'file',
         mediaType: file.mediaType,
-        url,
+        url: `data:${file.mediaType};base64,${file.base64}`,
       };
     }
 
