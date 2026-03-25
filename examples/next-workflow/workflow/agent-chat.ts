@@ -1,5 +1,4 @@
-import { DurableAgent } from '@ai-sdk/durable-agent';
-import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import { DurableAgent, type ModelCallStreamPart } from '@ai-sdk/durable-agent';
 import { convertToModelMessages, type UIMessage } from 'ai';
 import { getWritable } from 'workflow';
 import z from 'zod';
@@ -93,12 +92,12 @@ export async function chat(messages: UIMessage[]) {
     },
   });
 
-  // DurableAgent streams raw LanguageModelV4StreamPart chunks to the writable
+  // DurableAgent streams ModelCallStreamPart chunks to the writable
   // in real-time. The route handler converts to UIMessageChunks at the
   // response boundary using createUIMessageChunkTransform().
   const result = await agent.stream({
     messages: modelMessages,
-    writable: getWritable<LanguageModelV4StreamPart>(),
+    writable: getWritable<ModelCallStreamPart>(),
   });
 
   return { messages: result.messages };

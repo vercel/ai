@@ -1,24 +1,12 @@
-import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
-import { generateId, type UIMessageChunk } from 'ai';
+import { generateId, type ToolSet, type UIMessageChunk } from 'ai';
+import type { ModelCallStreamPart } from 'ai/internal';
 
 /**
- * Convert a Uint8Array to a base64 string safely.
- * Uses a loop instead of spread operator to avoid stack overflow on large arrays.
- */
-export function uint8ArrayToBase64(data: Uint8Array): string {
-  let binary = '';
-  for (let i = 0; i < data.length; i++) {
-    binary += String.fromCharCode(data[i]);
-  }
-  return btoa(binary);
-}
-
-/**
- * Convert a single LanguageModelV4StreamPart to a UIMessageChunk.
- * Returns undefined for parts that don't map to UI chunks (e.g., stream-start, response-metadata, finish).
+ * Convert a single ModelCallStreamPart to a UIMessageChunk.
+ * Returns undefined for parts that don't map to UI chunks.
  */
 export function toUIMessageChunk(
-  part: LanguageModelV4StreamPart,
+  part: ModelCallStreamPart<ToolSet>,
 ): UIMessageChunk | undefined {
   switch (part.type) {
     case 'text-start':
@@ -34,7 +22,7 @@ export function toUIMessageChunk(
       return {
         type: 'text-delta',
         id: part.id,
-        delta: part.delta,
+        delta: part.text,
         ...(part.providerMetadata != null
           ? { providerMetadata: part.providerMetadata }
           : {}),
@@ -62,7 +50,7 @@ export function toUIMessageChunk(
       return {
         type: 'reasoning-delta',
         id: part.id,
-        delta: part.delta,
+        delta: part.text,
         ...(part.providerMetadata != null
           ? { providerMetadata: part.providerMetadata }
           : {}),
@@ -78,25 +66,18 @@ export function toUIMessageChunk(
       };
 
     case 'file': {
+      const file = part.file;
       let url: string;
-      const fileData = part.data as Uint8Array | string | URL;
-      if (fileData instanceof Uint8Array) {
-        const base64 = uint8ArrayToBase64(fileData);
-        url = `data:${part.mediaType};base64,${base64}`;
-      } else if (fileData instanceof URL) {
-        url = fileData.href;
-      } else if (
-        fileData.startsWith('data:') ||
-        fileData.startsWith('http:') ||
-        fileData.startsWith('https:')
-      ) {
-        url = fileData;
+      if (file.base64) {
+        url = `data:${file.mediaType};base64,${file.base64}`;
+      } else if ((file as any).url) {
+        url = (file as any).url;
       } else {
-        url = `data:${part.mediaType};base64,${fileData}`;
+        url = `data:${file.mediaType};base64,`;
       }
       return {
         type: 'file',
-        mediaType: part.mediaType,
+        mediaType: file.mediaType,
         url,
       };
     }
@@ -141,16 +122,28 @@ export function toUIMessageChunk(
     case 'tool-input-delta':
       return {
         type: 'tool-input-delta',
-        toolCallId: part.id,
-        inputTextDelta: part.delta,
+        toolCallId: (part as any).id ?? (part as any).toolCallId,
+        inputTextDelta: (part as any).delta ?? (part as any).inputTextDelta,
       };
 
-    case 'tool-call':
+    case 'tool-call': {
+      if ((part as any).invalid) {
+        return {
+          type: 'tool-input-error',
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+          errorText:
+            (part as any).error instanceof Error
+              ? (part as any).error.message
+              : String((part as any).error ?? 'Invalid tool call'),
+        };
+      }
       return {
         type: 'tool-input-available',
         toolCallId: part.toolCallId,
         toolName: part.toolName,
-        input: JSON.parse(part.input || '{}'),
+        input: part.input,
         ...(part.providerExecuted != null
           ? { providerExecuted: part.providerExecuted }
           : {}),
@@ -158,12 +151,21 @@ export function toUIMessageChunk(
           ? { providerMetadata: part.providerMetadata }
           : {}),
       };
+    }
 
     case 'tool-result':
       return {
         type: 'tool-output-available',
         toolCallId: part.toolCallId,
-        output: part.result,
+        output: part.output,
+      };
+
+    case 'tool-error':
+      return {
+        type: 'tool-output-error',
+        toolCallId: part.toolCallId,
+        errorText:
+          part.error instanceof Error ? part.error.message : String(part.error),
       };
 
     case 'error': {
@@ -176,9 +178,9 @@ export function toUIMessageChunk(
 
     // These don't produce UI chunks
     case 'tool-input-end':
-    case 'stream-start':
-    case 'response-metadata':
-    case 'finish':
+    case 'model-call-start':
+    case 'model-call-response-metadata':
+    case 'model-call-end':
     case 'raw':
       return undefined;
 
@@ -188,28 +190,21 @@ export function toUIMessageChunk(
 }
 
 /**
- * Create a TransformStream that converts LanguageModelV4StreamPart to UIMessageChunk.
+ * Create a TransformStream that converts ModelCallStreamPart to UIMessageChunk.
  * Wraps toUIMessageChunk with start/start-step/finish-step lifecycle chunks.
  */
-export function createUIMessageChunkTransform(options?: {
-  sendStart?: boolean;
-}): TransformStream<LanguageModelV4StreamPart, UIMessageChunk> {
-  return new TransformStream<LanguageModelV4StreamPart, UIMessageChunk>({
+export function createModelCallToUIChunkTransform(): TransformStream<
+  ModelCallStreamPart<ToolSet>,
+  UIMessageChunk
+> {
+  return new TransformStream<ModelCallStreamPart<ToolSet>, UIMessageChunk>({
     start: controller => {
-      if (options?.sendStart) {
-        controller.enqueue({
-          type: 'start',
-          messageId: generateId(),
-        });
-      }
-      controller.enqueue({
-        type: 'start-step',
-      });
+      controller.enqueue({ type: 'start', messageId: generateId() });
+      controller.enqueue({ type: 'start-step' });
     },
     flush: controller => {
-      controller.enqueue({
-        type: 'finish-step',
-      });
+      controller.enqueue({ type: 'finish-step' });
+      controller.enqueue({ type: 'finish' });
     },
     transform: (part, controller) => {
       const uiChunk = toUIMessageChunk(part);
@@ -219,3 +214,6 @@ export function createUIMessageChunkTransform(options?: {
     },
   });
 }
+
+// Keep backward compat export name
+export { createModelCallToUIChunkTransform as createUIMessageChunkTransform };

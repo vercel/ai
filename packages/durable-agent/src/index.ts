@@ -23,6 +23,9 @@ export {
 } from './durable-agent.js';
 
 export {
+  createModelCallToUIChunkTransform,
   createUIMessageChunkTransform,
   toUIMessageChunk,
 } from './to-ui-message-chunk.js';
+
+export type { ModelCallStreamPart } from './do-stream-step.js';
