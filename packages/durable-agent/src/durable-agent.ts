@@ -3,7 +3,6 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
-  LanguageModelV4ToolCall,
   LanguageModelV4ToolResultPart,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
@@ -19,6 +18,7 @@ import {
   type StopCondition,
   type StreamTextOnStepFinishCallback,
   type SystemModelMessage,
+  type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
   type UIMessage,
@@ -135,13 +135,9 @@ export type StreamTextTransform<TTools extends ToolSet> = (options: {
 
 /**
  * Function to repair a tool call that failed to parse.
+ * Re-exported from the AI SDK core.
  */
-export type ToolCallRepairFunction<TTools extends ToolSet> = (options: {
-  toolCall: LanguageModelV4ToolCall;
-  tools: TTools;
-  error: unknown;
-  messages: LanguageModelV4Prompt;
-}) => Promise<LanguageModelV4ToolCall | null> | LanguageModelV4ToolCall | null;
+export type { ToolCallRepairFunction } from 'ai';
 
 /**
  * Custom download function for URLs.
