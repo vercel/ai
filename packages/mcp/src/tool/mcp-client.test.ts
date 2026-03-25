@@ -896,6 +896,34 @@ describe('MCPClient', () => {
     await client.close();
   });
 
+  it('should expose server capabilities and instructions from initialize', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          initializeResult: {
+            protocolVersion: '2025-11-25',
+            serverInfo: {
+              name: 'mock-mcp-server',
+              version: '1.0.0',
+            },
+            capabilities: {
+              tools: { listChanged: true },
+            },
+            instructions: 'Follow tool safety rules.',
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(client.serverCapabilities).toMatchObject({
+      tools: { listChanged: true },
+    });
+    expect(client.serverInstructions).toBe('Follow tool safety rules.');
+  });
+
   it('should accept server responding with older supported protocol versions', async () => {
     for (const version of ['2025-06-18', '2025-03-26', '2024-11-05']) {
       createMockTransport.mockImplementation(
