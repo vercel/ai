@@ -1,4 +1,8 @@
-import { phota } from '@ai-sdk/phota';
+import {
+  getPhotaStatusResult,
+  getPhotaTrainResult,
+  phota,
+} from '@ai-sdk/phota';
 import { generateImage } from 'ai';
 import { run } from '../../lib/run';
 
@@ -16,10 +20,7 @@ run(async () => {
     },
   });
 
-  const photaTrainMeta = trainResult.providerMetadata!.phota as {
-    profileId: string;
-  };
-  const profileId = photaTrainMeta.profileId;
+  const { profileId } = getPhotaTrainResult(trainResult.providerMetadata);
   console.log('Profile created:', profileId);
 
   // Step 2: Poll training status
@@ -29,10 +30,7 @@ run(async () => {
     providerOptions: { phota: { profileId } },
   });
 
-  const photaStatusMeta = statusResult.providerMetadata!.phota as {
-    status: string;
-  };
-  const status = photaStatusMeta.status;
+  const { status } = getPhotaStatusResult(statusResult.providerMetadata);
   console.log('Training status:', status);
 
   // Step 3: Once READY, generate images using the profile
