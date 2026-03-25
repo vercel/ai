@@ -24,7 +24,6 @@ import type {
   StreamTextOnErrorCallback,
   TelemetrySettings,
 } from './durable-agent.js';
-// StreamTextTransform removed — streamModelCall doesn't support custom transforms
 import type { CompatibleLanguageModel } from './types.js';
 
 // Re-export for consumers
