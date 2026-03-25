@@ -24,6 +24,7 @@ vi.mock('./stream-text-iterator.js', () => ({
 // Import after mocking
 const { DurableAgent } = await import('./durable-agent.js');
 
+import type { ParsedToolCall } from './do-stream-step.js';
 import type {
   PrepareStepCallback,
   ToolCallRepairFunction,
@@ -658,9 +659,9 @@ describe('DurableAgent', () => {
               {
                 toolCallId: 'ask-user-call-id',
                 toolName: 'askUser',
-                input: '{"question":"What is your name?"}',
+                input: { question: 'What is your name?' },
                 providerExecuted: false,
-              } as LanguageModelV4ToolCall,
+              } as ParsedToolCall,
             ],
             messages: mockMessages,
           },
@@ -740,15 +741,15 @@ describe('DurableAgent', () => {
               {
                 toolCallId: 'server-call-id',
                 toolName: 'serverTool',
-                input: '{}',
+                input: {},
                 providerExecuted: false,
-              } as LanguageModelV4ToolCall,
+              } as ParsedToolCall,
               {
                 toolCallId: 'client-call-id',
                 toolName: 'clientTool',
-                input: '{"prompt":"confirm action"}',
+                input: { prompt: 'confirm action' },
                 providerExecuted: false,
-              } as LanguageModelV4ToolCall,
+              } as ParsedToolCall,
             ],
             messages: mockMessages,
           },
@@ -2022,28 +2023,14 @@ describe('DurableAgent', () => {
   });
 
   describe('tool call repair', () => {
-    it('should use repair function when tool call fails to parse', async () => {
-      const repairFn: ToolCallRepairFunction<ToolSet> = vi
-        .fn()
-        .mockReturnValue({
-          toolCallId: 'test-call-id',
-          toolName: 'testTool',
-          input: '{"name":"repaired"}', // Fixed input with valid schema
-        });
-
-      const tools: ToolSet = {
-        testTool: {
-          description: 'A test tool',
-          inputSchema: z.object({ name: z.string() }),
-          execute: async () => ({ result: 'success' }),
-        },
-      };
+    it('should pass repairToolCall through to streamTextIterator', async () => {
+      const repairFn: ToolCallRepairFunction<ToolSet> = vi.fn();
 
       const mockModel = createMockModel();
 
       const agent = new DurableAgent({
         model: async () => mockModel,
-        tools,
+        tools: {},
       });
 
       const mockWritable = new WritableStream({
@@ -2051,28 +2038,9 @@ describe('DurableAgent', () => {
         close: vi.fn(),
       });
 
-      const mockMessages: LanguageModelV4Prompt = [
-        { role: 'user', content: [{ type: 'text', text: 'test' }] },
-      ];
-
       const { streamTextIterator } = await import('./stream-text-iterator.js');
       const mockIterator = {
-        next: vi
-          .fn()
-          .mockResolvedValueOnce({
-            done: false,
-            value: {
-              toolCalls: [
-                {
-                  toolCallId: 'test-call-id',
-                  toolName: 'testTool',
-                  input: 'invalid json', // This will fail to parse
-                } as LanguageModelV4ToolCall,
-              ],
-              messages: mockMessages,
-            },
-          })
-          .mockResolvedValueOnce({ done: true, value: [] }),
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       };
       vi.mocked(streamTextIterator).mockReturnValue(
         mockIterator as unknown as MockIterator,
@@ -2084,16 +2052,11 @@ describe('DurableAgent', () => {
         experimental_repairToolCall: repairFn,
       });
 
-      // Verify repair function was called
-      expect(repairFn).toHaveBeenCalledWith(
+      // Verify repairToolCall is passed through to streamTextIterator
+      // (streamModelCall inside doStreamStep will use it for tool call repair)
+      expect(streamTextIterator).toHaveBeenCalledWith(
         expect.objectContaining({
-          toolCall: expect.objectContaining({
-            toolCallId: 'test-call-id',
-            toolName: 'testTool',
-          }),
-          tools,
-          error: expect.any(Error),
-          messages: mockMessages,
+          repairToolCall: repairFn,
         }),
       );
     });

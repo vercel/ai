@@ -28,8 +28,8 @@ import { LanguageModelV4StreamPart } from '@ai-sdk/provider';
  * DIVERGENCE: DurableAgent requires a writable stream; ToolLoopAgent does not.
  */
 function createMockWritable() {
-  const chunks: LanguageModelV4StreamPart[] = [];
-  const writable = new WritableStream<LanguageModelV4StreamPart>({
+  const chunks: unknown[] = [];
+  const writable = new WritableStream<unknown>({
     write(chunk) {
       chunks.push(chunk);
     },
@@ -350,26 +350,19 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         [
           {
             "content": "INSTRUCTIONS",
+            "providerOptions": undefined,
             "role": "system",
           },
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
             ],
             "providerOptions": undefined,
             "role": "user",
-          },
-          {
-            "content": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
           },
         ]
       `);
@@ -407,21 +400,13 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
             ],
             "providerOptions": undefined,
             "role": "user",
-          },
-          {
-            "content": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
           },
         ]
       `);
@@ -475,21 +460,13 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
             ],
             "providerOptions": undefined,
             "role": "user",
-          },
-          {
-            "content": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
           },
         ]
       `);

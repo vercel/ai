@@ -5,24 +5,25 @@ import type {
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type {
+  Experimental_ModelCallStreamPart as ModelCallStreamPart,
   StepResult,
   StreamTextOnStepFinishCallback,
+  ToolCallRepairFunction,
   ToolChoice,
   ToolSet,
 } from 'ai';
 import {
   doStreamStep,
   type ModelStopCondition,
+  type ParsedToolCall,
   type ProviderExecutedToolResult,
 } from './do-stream-step.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
   StreamTextOnErrorCallback,
-  StreamTextTransform,
   TelemetrySettings,
 } from './durable-agent.js';
-import { toolsToModelTools } from './tools-to-model-tools.js';
 import type { CompatibleLanguageModel } from './types.js';
 
 // Re-export for consumers
@@ -33,8 +34,8 @@ export type { ProviderExecutedToolResult } from './do-stream-step.js';
  * Contains both the tool calls and the current conversation messages.
  */
 export interface StreamTextIteratorYieldValue {
-  /** The tool calls requested by the model */
-  toolCalls: LanguageModelV4ToolCall[];
+  /** The tool calls requested by the model (parsed with typed inputs) */
+  toolCalls: ParsedToolCall[];
   /** The conversation messages up to (and including) the tool call request */
   messages: LanguageModelV4Prompt;
   /** The step result from the current step */
@@ -61,14 +62,12 @@ export async function* streamTextIterator({
   experimental_context,
   experimental_telemetry,
   includeRawChunks = false,
-  experimental_transform,
+  repairToolCall,
   responseFormat,
 }: {
   prompt: LanguageModelV4Prompt;
   tools: ToolSet;
-  writable?: WritableStream<
-    import('@ai-sdk/provider').LanguageModelV4StreamPart
-  >;
+  writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
   model: string | (() => Promise<CompatibleLanguageModel>);
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
@@ -80,9 +79,7 @@ export async function* streamTextIterator({
   experimental_context?: unknown;
   experimental_telemetry?: TelemetrySettings;
   includeRawChunks?: boolean;
-  experimental_transform?:
-    | StreamTextTransform<ToolSet>
-    | Array<StreamTextTransform<ToolSet>>;
+  repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
@@ -106,13 +103,6 @@ export async function* streamTextIterator({
   // Default maxSteps to Infinity to preserve backwards compatibility
   // (agent loops until completion unless explicitly limited)
   const effectiveMaxSteps = maxSteps ?? Infinity;
-
-  // Convert transforms to array
-  const transforms = experimental_transform
-    ? Array.isArray(experimental_transform)
-      ? experimental_transform
-      : [experimental_transform]
-    : [];
 
   while (!done) {
     // Check if we've exceeded the maximum number of steps
@@ -255,13 +245,13 @@ export async function* streamTextIterator({
           conversationPrompt,
           currentModel,
           writable,
-          await toolsToModelTools(effectiveTools),
+          effectiveTools,
           {
             ...currentGenerationSettings,
             toolChoice: currentToolChoice,
             includeRawChunks,
             experimental_telemetry,
-            transforms,
+            repairToolCall,
             responseFormat,
           },
         );
@@ -272,7 +262,7 @@ export async function* streamTextIterator({
       lastStep = step;
       lastStepWasToolCalls = false;
 
-      const finishReason = finish?.finishReason?.unified;
+      const finishReason = finish?.finishReason;
 
       if (finishReason === 'tool-calls') {
         lastStepWasToolCalls = true;
@@ -292,7 +282,7 @@ export async function* streamTextIterator({
               type: 'tool-call',
               toolCallId: toolCall.toolCallId,
               toolName: toolCall.toolName,
-              input: JSON.parse(toolCall.input),
+              input: toolCall.input,
               ...(sanitizedMetadata != null
                 ? { providerOptions: sanitizedMetadata }
                 : {}),

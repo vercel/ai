@@ -23,12 +23,13 @@ vi.mock('./do-stream-step.js', () => ({
 // Import after mocking
 const { streamTextIterator } = await import('./stream-text-iterator.js');
 const { doStreamStep } = await import('./do-stream-step.js');
+import type { ParsedToolCall } from './do-stream-step.js';
 import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 
 /**
  * Helper to create a mock writable stream
  */
-function createMockWritable(): WritableStream<LanguageModelV4StreamPart> {
+function createMockWritable(): WritableStream<unknown> {
   return new WritableStream({
     write: vi.fn(),
     close: vi.fn(),
@@ -83,42 +84,49 @@ function createMockStepResult(
 }
 
 const mockUsage = {
-  inputTokens: {
-    total: 10,
-    noCache: undefined,
-    cacheRead: undefined,
-    cacheWrite: undefined,
+  inputTokens: 10,
+  inputTokenDetails: {
+    noCacheTokens: undefined,
+    cacheReadTokens: undefined,
+    cacheWriteTokens: undefined,
   },
-  outputTokens: { total: 5, text: undefined, reasoning: undefined },
+  outputTokens: 5,
+  outputTokenDetails: {
+    textTokens: undefined,
+    reasoningTokens: undefined,
+  },
+  totalTokens: 15,
 };
 
-function createMockFinish(unified: 'stop' | 'tool-calls', raw: string) {
+function createMockFinish(
+  finishReason: 'stop' | 'tool-calls' = 'stop',
+  rawFinishReason: string = 'stop',
+) {
   return {
-    type: 'finish' as const,
+    finishReason,
+    rawFinishReason,
     usage: mockUsage,
-    finishReason: { unified, raw },
   };
 }
 
 function createMockDoStreamStepResult({
-  toolCalls = [] as LanguageModelV4ToolCall[],
-  finishUnified = 'stop' as 'stop' | 'tool-calls',
+  toolCalls = [] as ParsedToolCall[],
+  finishReason = 'stop' as 'stop' | 'tool-calls',
   finishRaw = 'stop',
   stepOverrides = {},
 }: {
-  toolCalls?: LanguageModelV4ToolCall[];
-  finishUnified?: 'stop' | 'tool-calls';
+  toolCalls?: ParsedToolCall[];
+  finishReason?: 'stop' | 'tool-calls';
   finishRaw?: string;
   stepOverrides?: Partial<StepResult<ToolSet>>;
 } = {}) {
   return {
     toolCalls,
-    finish: createMockFinish(finishUnified, finishRaw),
+    finish: createMockFinish(finishReason, finishRaw),
     step: createMockStepResult({
-      finishReason: finishUnified,
+      finishReason,
       ...stepOverrides,
     }),
-    chunks: [],
     providerExecutedToolResults: new Map(),
   };
 }
@@ -154,12 +162,12 @@ describe('streamTextIterator', () => {
         .mockResolvedValueOnce(
           createMockDoStreamStepResult({
             toolCalls: [toolCallWithMetadata],
-            finishUnified: 'tool-calls',
+            finishReason: 'tool-calls',
             finishRaw: 'tool_calls',
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _tools, _options) => {
+          async (prompt, _modelInit, _writable, _tools, _options) => {
             // Capture the prompt on the second call to verify providerOptions
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
@@ -236,12 +244,12 @@ describe('streamTextIterator', () => {
         .mockResolvedValueOnce(
           createMockDoStreamStepResult({
             toolCalls: [toolCallWithoutMetadata],
-            finishUnified: 'tool-calls',
+            finishReason: 'tool-calls',
             finishRaw: 'tool_calls',
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _tools, _options) => {
+          async (prompt, _modelInit, _writable, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
@@ -315,12 +323,12 @@ describe('streamTextIterator', () => {
         .mockResolvedValueOnce(
           createMockDoStreamStepResult({
             toolCalls,
-            finishUnified: 'tool-calls',
+            finishReason: 'tool-calls',
             finishRaw: 'tool_calls',
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _tools, _options) => {
+          async (prompt, _modelInit, _writable, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
@@ -418,12 +426,12 @@ describe('streamTextIterator', () => {
         .mockResolvedValueOnce(
           createMockDoStreamStepResult({
             toolCalls,
-            finishUnified: 'tool-calls',
+            finishReason: 'tool-calls',
             finishRaw: 'tool_calls',
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _tools, _options) => {
+          async (prompt, _modelInit, _writable, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
@@ -507,12 +515,12 @@ describe('streamTextIterator', () => {
         .mockResolvedValueOnce(
           createMockDoStreamStepResult({
             toolCalls: [toolCallWithOpenAIMetadata],
-            finishUnified: 'tool-calls',
+            finishReason: 'tool-calls',
             finishRaw: 'tool_calls',
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _tools, _options) => {
+          async (prompt, _modelInit, _writable, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
@@ -579,12 +587,12 @@ describe('streamTextIterator', () => {
         .mockResolvedValueOnce(
           createMockDoStreamStepResult({
             toolCalls: [toolCallWithMixedOpenAIMetadata],
-            finishUnified: 'tool-calls',
+            finishReason: 'tool-calls',
             finishRaw: 'tool_calls',
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _tools, _options) => {
+          async (prompt, _modelInit, _writable, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
@@ -657,12 +665,12 @@ describe('streamTextIterator', () => {
         .mockResolvedValueOnce(
           createMockDoStreamStepResult({
             toolCalls: [toolCallWithMixedProviders],
-            finishUnified: 'tool-calls',
+            finishReason: 'tool-calls',
             finishRaw: 'tool_calls',
           }),
         )
         .mockImplementationOnce(
-          async (prompt, _modelInit, _tools, _options) => {
+          async (prompt, _modelInit, _writable, _tools, _options) => {
             capturedPrompt = prompt;
             return createMockDoStreamStepResult();
           },
