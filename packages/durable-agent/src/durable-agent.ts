@@ -9,6 +9,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asSchema,
+  type Experimental_ModelCallStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,
@@ -494,9 +495,7 @@ export interface DurableAgentStreamOptions<
    * });
    * ```
    */
-  writable?: WritableStream<
-    import('ai').Experimental_ModelCallStreamPart<import('ai').ToolSet>
-  >;
+  writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
 
   /**
    * Condition for stopping the generation when there are tool results in the last step.
