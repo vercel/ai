@@ -495,7 +495,7 @@ export interface DurableAgentStreamOptions<
    * ```
    */
   writable?: WritableStream<
-    import('ai/internal').ModelCallStreamPart<import('ai').ToolSet>
+    import('ai').Experimental_ModelCallStreamPart<import('ai').ToolSet>
   >;
 
   /**

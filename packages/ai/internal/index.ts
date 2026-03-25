@@ -9,7 +9,3 @@ export { prepareCallSettings } from '../src/prompt/prepare-call-settings';
 export { prepareRetries } from '../src/util/prepare-retries';
 export { asLanguageModelUsage } from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
-export {
-  streamModelCall,
-  type ModelCallStreamPart,
-} from '../src/generate-text/stream-model-call';

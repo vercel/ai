@@ -1,5 +1,7 @@
 import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
+  type Experimental_ModelCallStreamPart as ModelCallStreamPart,
+  experimental_streamModelCall as streamModelCall,
   type FinishReason,
   type LanguageModelUsage,
   type StepResult,
@@ -7,15 +9,11 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
-import {
-  type ModelCallStreamPart,
-  resolveLanguageModel,
-  streamModelCall,
-} from 'ai/internal';
+import { resolveLanguageModel } from 'ai/internal';
 import type { ProviderOptions, TelemetrySettings } from './durable-agent.js';
 import type { CompatibleLanguageModel } from './types.js';
 
-export type { ModelCallStreamPart } from 'ai/internal';
+export type { Experimental_ModelCallStreamPart as ModelCallStreamPart } from 'ai';
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>>;
 

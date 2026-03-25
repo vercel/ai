@@ -10,7 +10,7 @@ import type {
   ToolChoice,
   ToolSet,
 } from 'ai';
-import type { ModelCallStreamPart } from 'ai/internal';
+import type { Experimental_ModelCallStreamPart as ModelCallStreamPart } from 'ai';
 import {
   doStreamStep,
   type ModelStopCondition,
