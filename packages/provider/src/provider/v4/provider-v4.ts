@@ -78,5 +78,11 @@ export interface ProviderV4 {
    */
   rerankingModel?(modelId: string): RerankingModelV4;
 
+  /**
+   * Returns the files interface for uploading files to the provider.
+   * The returned interface can be passed to the `uploadFile` function.
+   *
+   * @returns {FilesV4} The files interface for this provider.
+   */
   files?(): FilesV4;
 }
