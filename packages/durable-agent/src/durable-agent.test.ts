@@ -24,6 +24,7 @@ vi.mock('./stream-text-iterator.js', () => ({
 // Import after mocking
 const { DurableAgent } = await import('./durable-agent.js');
 
+import type { ParsedToolCall } from './do-stream-step.js';
 import type {
   PrepareStepCallback,
   ToolCallRepairFunction,
@@ -660,7 +661,7 @@ describe('DurableAgent', () => {
                 toolName: 'askUser',
                 input: { question: 'What is your name?' },
                 providerExecuted: false,
-              } as any,
+              } as ParsedToolCall,
             ],
             messages: mockMessages,
           },
@@ -742,13 +743,13 @@ describe('DurableAgent', () => {
                 toolName: 'serverTool',
                 input: {},
                 providerExecuted: false,
-              } as any,
+              } as ParsedToolCall,
               {
                 toolCallId: 'client-call-id',
                 toolName: 'clientTool',
                 input: { prompt: 'confirm action' },
                 providerExecuted: false,
-              } as any,
+              } as ParsedToolCall,
             ],
             messages: mockMessages,
           },
