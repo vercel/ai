@@ -1,7 +1,10 @@
 import {
   getErrorMessage,
+  LanguageModelV4FunctionTool,
   LanguageModelV4Prompt,
+  LanguageModelV4ProviderTool,
   LanguageModelV4StreamPart,
+  LanguageModelV4ToolChoice,
   SharedV4Headers,
 } from '@ai-sdk/provider';
 import {
@@ -46,6 +49,7 @@ import {
 } from './stream-text-result';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
+import type { ToolChoiceDescriptor, ToolDescriptor } from './tool-descriptor';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -111,6 +115,8 @@ export async function streamModelCall<
   output,
   toolChoice,
   activeTools,
+  preparedTools,
+  preparedToolChoice,
   prompt,
   system,
   messages,
@@ -129,6 +135,25 @@ export async function streamModelCall<
   output?: OUTPUT;
   toolChoice?: ToolChoice<TOOLS>;
   activeTools?: Array<keyof NoInfer<TOOLS>>;
+
+  /**
+   * Pre-prepared serializable tool descriptors. When provided, skips
+   * `prepareToolsAndToolChoice` and uses these directly.
+   *
+   * Use this when tools need to cross a serialization boundary (e.g.,
+   * Workflow step functions) where `ToolSet` (with Zod schemas and
+   * execute functions) cannot be serialized.
+   *
+   * Obtain these by calling `prepareToolsAndToolChoice()` from `ai/internal`
+   * before the serialization boundary.
+   */
+  preparedTools?: ToolDescriptor[];
+
+  /**
+   * Pre-prepared serializable tool choice. Used together with `preparedTools`.
+   */
+  preparedToolChoice?: ToolChoiceDescriptor;
+
   download?: DownloadFunction;
   headers?: Record<string, string | undefined>;
   includeRawChunks?: boolean;
@@ -181,12 +206,23 @@ export async function streamModelCall<
     download,
   });
 
-  const { toolChoice: stepToolChoice, tools: stepTools } =
-    await prepareToolsAndToolChoice({
-      tools,
-      toolChoice,
-      activeTools,
-    });
+  // Use pre-prepared tools if provided (for serialization boundary scenarios),
+  // otherwise prepare from the ToolSet.
+  const { toolChoice: stepToolChoice, tools: stepTools } = preparedTools
+    ? {
+        // ToolDescriptor is structurally compatible with V4 tool types
+        tools: preparedTools as Array<
+          LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+        >,
+        toolChoice: (preparedToolChoice ?? {
+          type: 'auto' as const,
+        }) as LanguageModelV4ToolChoice,
+      }
+    : await prepareToolsAndToolChoice({
+        tools,
+        toolChoice,
+        activeTools,
+      });
 
   await notify({
     event: { promptMessages },
