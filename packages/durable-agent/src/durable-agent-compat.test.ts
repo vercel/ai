@@ -28,8 +28,8 @@ import { LanguageModelV4StreamPart } from '@ai-sdk/provider';
  * DIVERGENCE: DurableAgent requires a writable stream; ToolLoopAgent does not.
  */
 function createMockWritable() {
-  const chunks: LanguageModelV4StreamPart[] = [];
-  const writable = new WritableStream<LanguageModelV4StreamPart>({
+  const chunks: any[] = [];
+  const writable = new WritableStream<any>({
     write(chunk) {
       chunks.push(chunk);
     },

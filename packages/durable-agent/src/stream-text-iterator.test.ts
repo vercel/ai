@@ -28,7 +28,7 @@ import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 /**
  * Helper to create a mock writable stream
  */
-function createMockWritable(): WritableStream<LanguageModelV4StreamPart> {
+function createMockWritable(): WritableStream<any> {
   return new WritableStream({
     write: vi.fn(),
     close: vi.fn(),
@@ -83,13 +83,18 @@ function createMockStepResult(
 }
 
 const mockUsage = {
-  inputTokens: {
-    total: 10,
-    noCache: undefined,
-    cacheRead: undefined,
-    cacheWrite: undefined,
+  inputTokens: 10,
+  inputTokenDetails: {
+    noCacheTokens: undefined,
+    cacheReadTokens: undefined,
+    cacheWriteTokens: undefined,
   },
-  outputTokens: { total: 5, text: undefined, reasoning: undefined },
+  outputTokens: 5,
+  outputTokenDetails: {
+    textTokens: undefined,
+    reasoningTokens: undefined,
+  },
+  totalTokens: 15,
 };
 
 function createMockFinish(
