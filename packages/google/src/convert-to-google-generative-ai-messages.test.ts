@@ -590,7 +590,7 @@ describe('user messages', () => {
         },
       ]),
     ).toThrow(
-      "No reference found for provider 'google'. Available providers: openai",
+      "No provider reference found for provider 'google'. Available providers: openai",
     );
   });
 });
@@ -1280,7 +1280,7 @@ describe('assistant messages', () => {
         },
       ]),
     ).toThrow(
-      "No reference found for provider 'google'. Available providers: openai",
+      "No provider reference found for provider 'google'. Available providers: openai",
     );
   });
 });

@@ -162,7 +162,7 @@ describe('convertToXaiChatMessages', () => {
         },
       ]);
     }).toThrow(
-      "No reference found for provider 'xai'. Available providers: openai",
+      "No provider reference found for provider 'xai'. Available providers: openai",
     );
   });
 

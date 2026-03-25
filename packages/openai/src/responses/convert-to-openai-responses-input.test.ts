@@ -605,7 +605,7 @@ describe('convertToOpenAIResponsesInput', () => {
             store: true,
           }),
         ).rejects.toThrow(
-          "No reference found for provider 'openai'. Available providers: anthropic",
+          "No provider reference found for provider 'openai'. Available providers: anthropic",
         );
       });
 

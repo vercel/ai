@@ -1,4 +1,7 @@
-import { SharedV4ProviderReference } from '@ai-sdk/provider';
+import {
+  NoSuchProviderReferenceError,
+  SharedV4ProviderReference,
+} from '@ai-sdk/provider';
 
 export function resolveProviderReference({
   reference,
@@ -12,8 +15,8 @@ export function resolveProviderReference({
     return id;
   }
 
-  const availableProviders = Object.keys(reference).join(', ');
-  throw new Error(
-    `No reference found for provider '${provider}'. Available providers: ${availableProviders}`,
-  );
+  throw new NoSuchProviderReferenceError({
+    provider,
+    availableProviders: Object.keys(reference),
+  });
 }

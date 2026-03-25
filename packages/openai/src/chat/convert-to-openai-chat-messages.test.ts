@@ -392,7 +392,7 @@ describe('user messages', () => {
           ],
         }),
       ).toThrow(
-        "No reference found for provider 'openai'. Available providers: anthropic",
+        "No provider reference found for provider 'openai'. Available providers: anthropic",
       );
     });
 

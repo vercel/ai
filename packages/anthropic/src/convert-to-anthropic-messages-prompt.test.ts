@@ -516,7 +516,7 @@ describe('user messages', () => {
         toolNameMapping: defaultToolNameMapping,
       }),
     ).rejects.toThrow(
-      "No reference found for provider 'anthropic'. Available providers: openai",
+      "No provider reference found for provider 'anthropic'. Available providers: openai",
     );
   });
 });

@@ -1,3 +1,4 @@
+import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
 import { resolveProviderReference } from './resolve-provider-reference';
 import { describe, it, expect } from 'vitest';
 
@@ -18,26 +19,36 @@ describe('resolveProviderReference', () => {
     expect(result).toBe('file-xyz');
   });
 
-  it('should throw a descriptive error when no entry exists for the given provider', () => {
-    expect(() =>
+  it('should throw NoSuchProviderReferenceError when no entry exists for the given provider', () => {
+    try {
       resolveProviderReference({
         reference: { anthropic: 'file-xyz', google: 'file-123' },
         provider: 'openai',
-      }),
-    ).toThrow(
-      "No reference found for provider 'openai'. Available providers: anthropic, google",
-    );
+      });
+      expect.unreachable('should have thrown');
+    } catch (error) {
+      expect(NoSuchProviderReferenceError.isInstance(error)).toBe(true);
+      expect((error as NoSuchProviderReferenceError).provider).toBe('openai');
+      expect(
+        (error as NoSuchProviderReferenceError).availableProviders,
+      ).toStrictEqual(['anthropic', 'google']);
+    }
   });
 
-  it('should throw when reference is empty', () => {
-    expect(() =>
+  it('should throw NoSuchProviderReferenceError when reference is empty', () => {
+    try {
       resolveProviderReference({
         reference: {},
         provider: 'openai',
-      }),
-    ).toThrow(
-      "No reference found for provider 'openai'. Available providers: ",
-    );
+      });
+      expect.unreachable('should have thrown');
+    } catch (error) {
+      expect(NoSuchProviderReferenceError.isInstance(error)).toBe(true);
+      expect((error as NoSuchProviderReferenceError).provider).toBe('openai');
+      expect(
+        (error as NoSuchProviderReferenceError).availableProviders,
+      ).toStrictEqual([]);
+    }
   });
 
   it('should work with a single-provider reference', () => {
