@@ -79,7 +79,14 @@ export type LanguageModelV4StreamPart =
   | LanguageModelV4ReasoningFile
   | LanguageModelV4Source
 
-  // stream start event with warnings for the call, e.g. unsupported settings:
+  // Stream start event with warnings for the call, e.g. unsupported settings.
+  //
+  // The stream-start part is returned immediately by the provider,
+  // even before the first LLM chunk is received.
+  // This is required to receive warnings from remote models
+  // when streaming.
+  //
+  // TODO rename to init
   | {
       type: 'stream-start';
       warnings: Array<SharedV4Warning>;
