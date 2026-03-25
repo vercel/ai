@@ -14,6 +14,7 @@ import type { Experimental_ModelCallStreamPart as ModelCallStreamPart } from 'ai
 import {
   doStreamStep,
   type ModelStopCondition,
+  type ParsedToolCall,
   type ProviderExecutedToolResult,
 } from './do-stream-step.js';
 import type {
@@ -34,7 +35,7 @@ export type { ProviderExecutedToolResult } from './do-stream-step.js';
  */
 export interface StreamTextIteratorYieldValue {
   /** The tool calls requested by the model (parsed with typed inputs) */
-  toolCalls: import('./do-stream-step.js').ParsedToolCall[];
+  toolCalls: ParsedToolCall[];
   /** The conversation messages up to (and including) the tool call request */
   messages: LanguageModelV4Prompt;
   /** The step result from the current step */
