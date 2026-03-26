@@ -1,19 +1,19 @@
 import {
-  SharedV3Warning,
-  LanguageModelV3Prompt,
+  SharedV4Warning,
+  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 
 export async function convertToHuggingFaceResponsesMessages({
   prompt,
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
 }): Promise<{
   input: string | Array<any>;
-  warnings: Array<SharedV3Warning>;
+  warnings: Array<SharedV4Warning>;
 }> {
   const messages: Array<any> = [];
-  const warnings: Array<SharedV3Warning> = [];
+  const warnings: Array<SharedV4Warning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {

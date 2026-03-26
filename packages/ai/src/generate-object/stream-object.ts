@@ -1,10 +1,10 @@
 import {
   JSONValue,
-  LanguageModelV3FinishReason,
-  LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4FinishReason,
+  LanguageModelV4StreamPart,
+  LanguageModelV4Usage,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
@@ -173,11 +173,8 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  */
 export function streamObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
-  OUTPUT extends
-    | 'object'
-    | 'array'
-    | 'enum'
-    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+  OUTPUT extends 'object' | 'array' | 'enum' | 'no-schema' =
+    InferSchema<SCHEMA> extends string ? 'enum' : 'object',
   RESULT = OUTPUT extends 'array'
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
@@ -353,9 +350,11 @@ export function streamObject<
   });
 }
 
-class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-{
+class DefaultStreamObjectResult<
+  PARTIAL,
+  RESULT,
+  ELEMENT_STREAM,
+> implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   private readonly _object = new DelayedPromise<RESULT>();
   private readonly _usage = new DelayedPromise<LanguageModelUsage>();
   private readonly _providerMetadata = new DelayedPromise<
@@ -508,7 +507,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         };
 
         const transformer: Transformer<
-          LanguageModelV3StreamPart,
+          LanguageModelV4StreamPart,
           ObjectStreamInputPart
         > = {
           transform: (chunk, controller) => {
@@ -570,7 +569,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         self._request.resolve(request ?? {});
 
         // store information for onFinish callback:
-        let warnings: SharedV3Warning[] | undefined;
+        let warnings: SharedV4Warning[] | undefined;
         let usage: LanguageModelUsage = createNullLanguageModelUsage();
         let finishReason: FinishReason | undefined;
         let providerMetadata: ProviderMetadata | undefined;
@@ -965,7 +964,7 @@ export type ObjectStreamInputPart =
   | string
   | {
       type: 'stream-start';
-      warnings: SharedV3Warning[];
+      warnings: SharedV4Warning[];
     }
   | {
       type: 'error';
@@ -979,7 +978,7 @@ export type ObjectStreamInputPart =
     }
   | {
       type: 'finish';
-      finishReason: LanguageModelV3FinishReason;
-      usage: LanguageModelV3Usage;
-      providerMetadata?: SharedV3ProviderMetadata;
+      finishReason: LanguageModelV4FinishReason;
+      usage: LanguageModelV4Usage;
+      providerMetadata?: SharedV4ProviderMetadata;
     };

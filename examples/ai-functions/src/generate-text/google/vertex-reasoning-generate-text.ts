@@ -5,13 +5,13 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: vertex('gemini-2.5-flash-preview-04-17'),
+    model: vertex('gemini-2.5-flash'),
     prompt:
       "Describe the most unusual or striking architectural feature you've ever seen in a building or structure.",
+    reasoning: 'medium',
     providerOptions: {
       google: {
         thinkingConfig: {
-          thinkingBudget: 2048,
           includeThoughts: true,
         },
       } satisfies GoogleLanguageModelOptions,

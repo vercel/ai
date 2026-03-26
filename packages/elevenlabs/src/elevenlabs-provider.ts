@@ -1,7 +1,7 @@
 import {
-  TranscriptionModelV3,
-  SpeechModelV3,
-  ProviderV3,
+  TranscriptionModelV4,
+  SpeechModelV4,
+  ProviderV4,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
@@ -15,7 +15,7 @@ import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
 import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { VERSION } from './version';
 
-export interface ElevenLabsProvider extends ProviderV3 {
+export interface ElevenLabsProvider extends ProviderV4 {
   (
     modelId: 'scribe_v1',
     settings?: {},
@@ -26,12 +26,12 @@ export interface ElevenLabsProvider extends ProviderV3 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV3;
+  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -98,7 +98,7 @@ export function createElevenLabs(
     };
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;

@@ -81,7 +81,7 @@ You can then use that enhanced model in functions like `generateText` and `strea
 The `extractReasoningMiddleware` function also includes a `startWithReasoning` option.
 When set to `true`, the reasoning tag will be prepended to the generated text.
 This is useful for models that do not include the reasoning tag at the beginning of the response.
-For more details, see the [DeepSeek R1 guide](/docs/guides/r1#deepseek-r1-middleware).
+For more details, see the [DeepSeek R1 guide](/cookbook/guides/r1#deepseek-r1-middleware).
 
 ### Extract JSON
 
@@ -297,11 +297,11 @@ This example shows how to log the parameters and generated text of a language mo
 
 ```ts
 import type {
-  LanguageModelV3Middleware,
-  LanguageModelV3StreamPart,
+  LanguageModelV4Middleware,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 
-export const yourLogMiddleware: LanguageModelV3Middleware = {
+export const yourLogMiddleware: LanguageModelV4Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     console.log('doGenerate called');
     console.log(`params: ${JSON.stringify(params, null, 2)}`);
@@ -324,8 +324,8 @@ export const yourLogMiddleware: LanguageModelV3Middleware = {
     const textBlocks = new Map<string, string>();
 
     const transformStream = new TransformStream<
-      LanguageModelV3StreamPart,
-      LanguageModelV3StreamPart
+      LanguageModelV4StreamPart,
+      LanguageModelV4StreamPart
     >({
       transform(chunk, controller) {
         switch (chunk.type) {
@@ -370,11 +370,11 @@ export const yourLogMiddleware: LanguageModelV3Middleware = {
 This example shows how to build a simple cache for the generated text of a language model call.
 
 ```ts
-import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
+import type { LanguageModelV4Middleware } from '@ai-sdk/provider';
 
 const cache = new Map<string, any>();
 
-export const yourCacheMiddleware: LanguageModelV3Middleware = {
+export const yourCacheMiddleware: LanguageModelV4Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify(params);
 
@@ -404,9 +404,9 @@ This example shows how to use RAG as middleware.
 </Note>
 
 ```ts
-import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
+import type { LanguageModelV4Middleware } from '@ai-sdk/provider';
 
-export const yourRagMiddleware: LanguageModelV3Middleware = {
+export const yourRagMiddleware: LanguageModelV4Middleware = {
   transformParams: async ({ params }) => {
     const lastUserMessageText = getLastUserMessageText({
       prompt: params.prompt,
@@ -433,9 +433,9 @@ Guard rails are a way to ensure that the generated text of a language model call
 is safe and appropriate. This example shows how to use guardrails as middleware.
 
 ```ts
-import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
+import type { LanguageModelV4Middleware } from '@ai-sdk/provider';
 
-export const yourGuardrailMiddleware: LanguageModelV3Middleware = {
+export const yourGuardrailMiddleware: LanguageModelV4Middleware = {
   wrapGenerate: async ({ doGenerate }) => {
     const { text, ...rest } = await doGenerate();
 
@@ -458,9 +458,9 @@ To send and access custom metadata in Middleware, you can use `providerOptions`.
 ```ts
 import { generateText, wrapLanguageModel } from 'ai';
 __PROVIDER_IMPORT__;
-import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
+import type { LanguageModelV4Middleware } from '@ai-sdk/provider';
 
-export const yourLogMiddleware: LanguageModelV3Middleware = {
+export const yourLogMiddleware: LanguageModelV4Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     console.log('METADATA', params?.providerMetadata?.yourLogMiddleware);
     const result = await doGenerate();

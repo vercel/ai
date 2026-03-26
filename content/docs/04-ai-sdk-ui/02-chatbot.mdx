@@ -902,8 +902,8 @@ Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more 
 
 ## Reasoning
 
-Some models such as as DeepSeek `deepseek-r1`
-and Anthropic `claude-3-7-sonnet-20250219` support reasoning tokens.
+Some models such as DeepSeek `deepseek-r1`
+and Anthropic `claude-sonnet-4-5-20250929` support reasoning tokens.
 These tokens are typically sent before the message content.
 You can forward them to the client with the `sendReasoning` option:
 
@@ -946,6 +946,10 @@ messages.map(message => (
   </div>
 ));
 ```
+
+Some models may also produce files as part of reasoning (e.g. images).
+These are available as `reasoning-file` parts (`ReasoningFileUIPart`) with
+`mediaType` and `url` properties, similar to regular file parts.
 
 ## Sources
 
@@ -1204,6 +1208,9 @@ export default function Page() {
   );
 }
 ```
+
+Files generated as part of model reasoning are available as `reasoning-file`
+parts (`ReasoningFileUIPart`) with the same `mediaType` and `url` properties.
 
 ## Type Inference for Tools
 

@@ -1,23 +1,16 @@
-import {
-  bedrock,
-  type AmazonBedrockLanguageModelOptions,
-} from '@ai-sdk/amazon-bedrock';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+    model: bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     tools: {
       weather: weatherTool,
     },
     prompt: 'What is the weather in San Francisco?',
-    providerOptions: {
-      bedrock: {
-        reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
-      } satisfies AmazonBedrockLanguageModelOptions,
-    },
+    reasoning: 'low',
     stopWhen: stepCountIs(5),
     maxRetries: 5,
   });

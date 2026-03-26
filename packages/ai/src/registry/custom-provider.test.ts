@@ -1,18 +1,18 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
-import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
-import { MockImageModelV3 } from '../test/mock-image-model-v3';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
-import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
-import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
+import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
+import { MockImageModelV4 } from '../test/mock-image-model-v4';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
+import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
+import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
 import { customProvider } from './custom-provider';
 
-const mockLanguageModel = new MockLanguageModelV3();
-const mockEmbeddingModel = new MockEmbeddingModelV3();
-const mockRerankingModel = new MockRerankingModelV3();
+const mockLanguageModel = new MockLanguageModelV4();
+const mockEmbeddingModel = new MockEmbeddingModelV4();
+const mockRerankingModel = new MockRerankingModelV4();
 const mockFallbackProvider = {
-  specificationVersion: 'v3' as const,
+  specificationVersion: 'v4' as const,
   languageModel: vi.fn(),
   embeddingModel: vi.fn(),
   imageModel: vi.fn(),
@@ -83,7 +83,7 @@ describe('embeddingModel', () => {
 });
 
 describe('imageModel', () => {
-  const mockImageModel = new MockImageModelV3();
+  const mockImageModel = new MockImageModelV4();
 
   it('should return the image model if it exists', () => {
     const provider = customProvider({
@@ -112,7 +112,7 @@ describe('imageModel', () => {
 });
 
 describe('transcriptionModel', () => {
-  const mockTranscriptionModel = new MockTranscriptionModelV3();
+  const mockTranscriptionModel = new MockTranscriptionModelV4();
 
   it('should return the transcription model if it exists', () => {
     const provider = customProvider({
@@ -151,7 +151,7 @@ describe('transcriptionModel', () => {
 });
 
 describe('speechModel', () => {
-  const mockSpeechModel = new MockSpeechModelV3();
+  const mockSpeechModel = new MockSpeechModelV4();
 
   it('should return the speech model if it exists', () => {
     const provider = customProvider({

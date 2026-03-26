@@ -639,6 +639,14 @@ The following gateway provider options are available:
 
   Restricts routing requests to providers that have zero data retention policies.
 
+- **providerTimeouts** _object_
+
+  Per-provider timeouts for BYOK credentials in milliseconds. Controls how long to wait for a provider to start responding before falling back to the next available provider.
+
+  Example: `providerTimeouts: { byok: { openai: 5000, anthropic: 2000 } }`
+
+  For full details, see [Provider Timeouts](https://vercel.com/docs/ai-gateway/models-and-providers/provider-timeouts).
+
 You can combine these options to have fine-grained control over routing and tracking:
 
 ```ts

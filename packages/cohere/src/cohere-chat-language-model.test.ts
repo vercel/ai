@@ -1,4 +1,4 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import { createCohere } from './cohere-provider';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   {
     role: 'system',
     content: 'you are a friendly bot!',
@@ -162,6 +162,59 @@ describe('doGenerate', () => {
       });
 
       expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('top-level reasoning', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('cohere-text');
+    });
+
+    it('should map top-level reasoning to thinking enabled with budget', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.thinking).toBeDefined();
+      expect(body.thinking.type).toBe('enabled');
+      expect(body.thinking.token_budget).toBeTypeOf('number');
+      expect(body.thinking.token_budget).toBeGreaterThan(0);
+    });
+
+    it('should map top-level reasoning none to thinking disabled', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.thinking).toStrictEqual({ type: 'disabled' });
+    });
+
+    it('should prefer providerOptions over top-level reasoning', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+        providerOptions: {
+          cohere: {
+            thinking: { type: 'enabled' },
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.thinking.type).toBe('enabled');
+    });
+
+    it('should not set thinking when reasoning is not specified', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.thinking).toBeUndefined();
     });
   });
 
