@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.81
+
+### Patch Changes
+
+- e69062d: chore(provider/gateway): rename GatewayLanguageModelOptions back to GatewayProviderOptions
+
 ## 3.0.80
 
 ### Patch Changes
