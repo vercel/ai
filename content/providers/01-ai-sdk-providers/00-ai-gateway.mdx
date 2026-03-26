@@ -242,6 +242,8 @@ The `getCredits()` method returns your team's credit information based on the au
 
 Look up detailed information about a specific generation by its ID, including cost, token usage, latency, and provider details. Generation IDs are available in `providerMetadata.gateway.generationId` on both `generateText` and `streamText` responses.
 
+When streaming, the generation ID is injected on the first content chunk, so you can capture it early in the stream without waiting for completion. This is especially useful in cases where a network interruption or mid-stream error could prevent you from receiving the final response — since the gateway records the final status server-side, you can use the generation ID to look up the results (including cost, token usage, and finish reason) later via `getGenerationInfo()`.
+
 ```ts
 import { gateway, generateText } from 'ai';
 
@@ -262,6 +264,33 @@ console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
 console.log(`Latency: ${generation.latency}ms`);
 console.log(`Prompt tokens: ${generation.promptTokens}`);
 console.log(`Completion tokens: ${generation.completionTokens}`);
+```
+
+With `streamText`, you can capture the generation ID from the first chunk via `fullStream`:
+
+```ts
+import { gateway, streamText } from 'ai';
+
+const result = streamText({
+  model: gateway('anthropic/claude-sonnet-4'),
+  prompt: 'Explain quantum entanglement briefly',
+});
+
+let generationId: string | undefined;
+
+for await (const part of result.fullStream) {
+  if (!generationId && part.providerMetadata?.gateway?.generationId) {
+    generationId = part.providerMetadata.gateway.generationId as string;
+    console.log(`Generation ID (early): ${generationId}`);
+  }
+}
+
+// Look up cost and usage after the stream completes
+if (generationId) {
+  const generation = await gateway.getGenerationInfo({ id: generationId });
+  console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
+  console.log(`Finish reason: ${generation.finishReason}`);
+}
 ```
 
 The `getGenerationInfo()` method accepts:
