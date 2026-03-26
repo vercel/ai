@@ -260,8 +260,8 @@ const generation = await gateway.getGenerationInfo({ id: generationId });
 console.log(`Model: ${generation.model}`);
 console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
 console.log(`Latency: ${generation.latency}ms`);
-console.log(`Prompt tokens: ${generation.tokensPrompt}`);
-console.log(`Completion tokens: ${generation.tokensCompletion}`);
+console.log(`Prompt tokens: ${generation.promptTokens}`);
+console.log(`Completion tokens: ${generation.completionTokens}`);
 ```
 
 The `getGenerationInfo()` method accepts:
@@ -282,13 +282,11 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 - **finishReason** _string_ - Finish reason (e.g. `'stop'`)
 - **latency** _number_ - Time to first token in milliseconds
 - **generationTime** _number_ - Total generation time in milliseconds
-- **tokensPrompt** _number_ - Number of prompt tokens
-- **tokensCompletion** _number_ - Number of completion tokens
-- **nativeTokensPrompt** _number_ - Native prompt tokens (provider-specific)
-- **nativeTokensCompletion** _number_ - Native completion tokens (provider-specific)
-- **nativeTokensReasoning** _number_ - Reasoning tokens used (if applicable)
-- **nativeTokensCached** _number_ - Cached tokens used (if applicable)
-- **nativeTokensCacheCreation** _number_ - Cache creation input tokens
+- **promptTokens** _number_ - Number of prompt tokens
+- **completionTokens** _number_ - Number of completion tokens
+- **reasoningTokens** _number_ - Reasoning tokens used (if applicable)
+- **cachedTokens** _number_ - Cached tokens used (if applicable)
+- **cacheCreationTokens** _number_ - Cache creation input tokens
 - **billableWebSearchCalls** _number_ - Number of billable web search calls
 
 ## Examples

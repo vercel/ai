@@ -41,19 +41,15 @@ export interface GatewayGenerationInfo {
   /** Total generation time in milliseconds */
   generationTime: number;
   /** Number of prompt tokens */
-  tokensPrompt: number;
+  promptTokens: number;
   /** Number of completion tokens */
-  tokensCompletion: number;
-  /** Native prompt tokens (provider-specific) */
-  nativeTokensPrompt: number;
-  /** Native completion tokens (provider-specific) */
-  nativeTokensCompletion: number;
+  completionTokens: number;
   /** Reasoning tokens used */
-  nativeTokensReasoning: number;
+  reasoningTokens: number;
   /** Cached tokens used */
-  nativeTokensCached: number;
+  cachedTokens: number;
   /** Cache creation input tokens */
-  nativeTokensCacheCreation: number;
+  cacheCreationTokens: number;
   /** Billable web search calls */
   billableWebSearchCalls: number;
 }
@@ -105,8 +101,6 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
             finish_reason: z.string(),
             latency: z.number(),
             generation_time: z.number(),
-            tokens_prompt: z.number(),
-            tokens_completion: z.number(),
             native_tokens_prompt: z.number(),
             native_tokens_completion: z.number(),
             native_tokens_reasoning: z.number(),
@@ -123,8 +117,6 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
               provider_name,
               finish_reason,
               generation_time,
-              tokens_prompt,
-              tokens_completion,
               native_tokens_prompt,
               native_tokens_completion,
               native_tokens_reasoning,
@@ -141,13 +133,11 @@ const gatewayGenerationInfoResponseSchema = lazySchema(() =>
               providerName: provider_name,
               finishReason: finish_reason,
               generationTime: generation_time,
-              tokensPrompt: tokens_prompt,
-              tokensCompletion: tokens_completion,
-              nativeTokensPrompt: native_tokens_prompt,
-              nativeTokensCompletion: native_tokens_completion,
-              nativeTokensReasoning: native_tokens_reasoning,
-              nativeTokensCached: native_tokens_cached,
-              nativeTokensCacheCreation: native_tokens_cache_creation,
+              promptTokens: native_tokens_prompt,
+              completionTokens: native_tokens_completion,
+              reasoningTokens: native_tokens_reasoning,
+              cachedTokens: native_tokens_cached,
+              cacheCreationTokens: native_tokens_cache_creation,
               billableWebSearchCalls: billable_web_search_calls,
             }),
           ),
