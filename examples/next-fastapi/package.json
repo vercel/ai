@@ -10,8 +10,8 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/react": "3.0.140",
-    "ai": "6.0.138",
+    "@ai-sdk/react": "3.0.141",
+    "ai": "6.0.139",
     "geist": "^1.3.1",
     "next": "^15.5.9",
     "react": "^18",
