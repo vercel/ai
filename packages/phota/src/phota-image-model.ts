@@ -97,8 +97,7 @@ export class PhotaImageModel implements ImageModelV4 {
       warnings: [],
       providerMetadata: {
         phota: {
-          images: [],
-          profileId: value.profile_id,
+          images: [{ profileId: value.profile_id }],
         },
       },
       response: {
@@ -151,10 +150,13 @@ export class PhotaImageModel implements ImageModelV4 {
       warnings: [],
       providerMetadata: {
         phota: {
-          images: [],
-          profileId: value.profile_id,
-          status: value.status,
-          ...(value.message != null && { message: value.message }),
+          images: [
+            {
+              profileId: value.profile_id,
+              status: value.status,
+              ...(value.message != null && { message: value.message }),
+            },
+          ],
         },
       },
       response: {
@@ -257,10 +259,11 @@ export class PhotaImageModel implements ImageModelV4 {
       warnings,
       providerMetadata: {
         phota: {
-          images: value.images.map(() => ({})),
-          ...(value.known_subjects != null && {
-            knownSubjects: value.known_subjects,
-          }),
+          images: value.images.map(() => ({
+            ...(value.known_subjects != null && {
+              knownSubjects: value.known_subjects,
+            }),
+          })),
         },
       },
       response: {

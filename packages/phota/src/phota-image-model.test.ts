@@ -157,9 +157,13 @@ describe('PhotaImageModel', () => {
       });
 
       expect(result.providerMetadata?.phota).toMatchObject({
-        knownSubjects: {
-          counts: { 'profile-abc': 1 },
-        },
+        images: [
+          {
+            knownSubjects: {
+              counts: { 'profile-abc': 1 },
+            },
+          },
+        ],
       });
     });
 
@@ -366,7 +370,7 @@ describe('PhotaImageModel', () => {
       });
 
       expect(result.providerMetadata?.phota).toMatchObject({
-        profileId: 'trained-profile-abc',
+        images: [{ profileId: 'trained-profile-abc' }],
       });
       // Placeholder image returned so generateImage does not throw
       expect(result.images).toHaveLength(1);
@@ -436,9 +440,13 @@ describe('PhotaImageModel', () => {
       );
 
       expect(result.providerMetadata?.phota).toMatchObject({
-        profileId: 'my-profile-id',
-        status: 'READY',
-        message: 'Training complete',
+        images: [
+          {
+            profileId: 'my-profile-id',
+            status: 'READY',
+            message: 'Training complete',
+          },
+        ],
       });
       expect(result.images).toHaveLength(1);
     });

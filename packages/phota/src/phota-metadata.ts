@@ -14,14 +14,23 @@ export interface PhotaImageMetadata {
   };
 }
 
-function extractPhotaMeta(
+function extractFirstImageMeta(
   providerMetadata: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
-  const meta = (providerMetadata as Record<string, unknown> | undefined)?.phota;
-  if (meta == null || typeof meta !== 'object') {
+  const phota = (providerMetadata as Record<string, unknown> | undefined)
+    ?.phota;
+  if (phota == null || typeof phota !== 'object') {
     throw new Error('Missing Phota provider metadata.');
   }
-  return meta as Record<string, unknown>;
+  const images = (phota as Record<string, unknown>).images;
+  if (!Array.isArray(images) || images.length === 0) {
+    throw new Error('Missing Phota provider metadata images.');
+  }
+  const first = images[0];
+  if (first == null || typeof first !== 'object') {
+    throw new Error('Missing Phota provider metadata in images[0].');
+  }
+  return first as Record<string, unknown>;
 }
 
 /**
@@ -35,7 +44,7 @@ function extractPhotaMeta(
 export function getPhotaTrainResult(
   providerMetadata: Record<string, unknown> | undefined,
 ): PhotaTrainMetadata {
-  const meta = extractPhotaMeta(providerMetadata);
+  const meta = extractFirstImageMeta(providerMetadata);
   const profileId = meta.profileId;
   if (typeof profileId !== 'string') {
     throw new Error('Missing profileId in Phota train metadata.');
@@ -54,7 +63,7 @@ export function getPhotaTrainResult(
 export function getPhotaStatusResult(
   providerMetadata: Record<string, unknown> | undefined,
 ): PhotaStatusMetadata {
-  const meta = extractPhotaMeta(providerMetadata);
+  const meta = extractFirstImageMeta(providerMetadata);
   const profileId = meta.profileId;
   const status = meta.status;
   if (typeof profileId !== 'string' || typeof status !== 'string') {
@@ -78,7 +87,7 @@ export function getPhotaStatusResult(
 export function getPhotaImageMetadata(
   providerMetadata: Record<string, unknown> | undefined,
 ): PhotaImageMetadata {
-  const meta = extractPhotaMeta(providerMetadata);
+  const meta = extractFirstImageMeta(providerMetadata);
   const knownSubjects = meta.knownSubjects as
     | { counts: Record<string, number> }
     | undefined;

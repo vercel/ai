@@ -11,12 +11,10 @@ run(async () => {
   const trainResult = await generateImage({
     model: phota.image('train'),
     prompt: {
-      images: [
-        'https://example.com/photo1.jpg',
-        'https://example.com/photo2.jpg',
-        'https://example.com/photo3.jpg',
-        // Phota requires 30-100 publicly accessible image URLs
-      ],
+      images: Array.from(
+        { length: 30 },
+        (_, i) => `https://picsum.photos/id/${i + 10}/512/512`,
+      ),
     },
   });
 
