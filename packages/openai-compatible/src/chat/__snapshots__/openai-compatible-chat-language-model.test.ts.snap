@@ -48,7 +48,7 @@ So, my response will be: Grok",
     },
   },
   "request": {
-    "body": "{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}]}",
+    "body": "{"model":"grok-3","messages":[{"role":"user","content":"Hello"}]}",
   },
   "response": {
     "body": {
@@ -193,7 +193,7 @@ Finally, structure it as: <function_call>{"action": "weather", "action_input": {
     },
   },
   "request": {
-    "body": "{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}]}",
+    "body": "{"model":"grok-3","messages":[{"role":"user","content":"Hello"}]}",
   },
   "response": {
     "body": {

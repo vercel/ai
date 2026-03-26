@@ -945,6 +945,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -960,7 +961,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -1028,7 +1029,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
-                        reasoningEncryptedContent: null,
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1044,7 +1045,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: null,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -1072,6 +1073,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1087,7 +1089,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [],
             },
           ]);
@@ -1154,6 +1156,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1169,7 +1172,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -1182,7 +1185,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toMatchInlineSnapshot(`
             [
               {
-                "message": "Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: {"type":"reasoning","text":"","providerOptions":{"openai":{"itemId":"reasoning_001"}}}.",
+                "message": "Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: {"type":"reasoning","text":"","providerOptions":{"openai":{"itemId":"reasoning_001","reasoningEncryptedContent":"encrypted_content_001"}}}.",
                 "type": "other",
               },
             ]
@@ -1249,6 +1252,51 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.warnings).toHaveLength(0);
         });
 
+        it('should drop reasoning parts without encrypted content when store is false', async () => {
+          const result = await convertToOpenAIResponsesInput({
+            toolNameMapping: testToolNameMapping,
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'First reasoning step',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_001',
+                      },
+                    },
+                  },
+                  {
+                    type: 'reasoning',
+                    text: 'Second reasoning step',
+                    providerOptions: {
+                      openai: {
+                        itemId: 'reasoning_001',
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: false,
+          });
+
+          expect(result.input).toMatchInlineSnapshot(`[]`);
+
+          expect(result.warnings).toMatchInlineSnapshot(`
+            [
+              {
+                "message": "Reasoning parts without encrypted content are not supported when store is false. Skipping reasoning parts.",
+                "type": "other",
+              },
+            ]
+          `);
+        });
+
         it('should create separate messages for different reasoning IDs', async () => {
           const result = await convertToOpenAIResponsesInput({
             toolNameMapping: testToolNameMapping,
@@ -1262,6 +1310,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1271,6 +1320,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_002',
+                        reasoningEncryptedContent: 'encrypted_content_002',
                       },
                     },
                   },
@@ -1286,7 +1336,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_001',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_001',
               summary: [
                 {
                   type: 'summary_text',
@@ -1297,7 +1347,7 @@ describe('convertToOpenAIResponsesInput', () => {
             {
               type: 'reasoning',
               id: 'reasoning_002',
-              encrypted_content: undefined,
+              encrypted_content: 'encrypted_content_002',
               summary: [
                 {
                   type: 'summary_text',
@@ -1447,6 +1497,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_001',
+                        reasoningEncryptedContent: 'encrypted_content_001',
                       },
                     },
                   },
@@ -1466,6 +1517,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     providerOptions: {
                       openai: {
                         itemId: 'reasoning_002',
+                        reasoningEncryptedContent: 'encrypted_content_002',
                       },
                     },
                   },
@@ -1478,50 +1530,74 @@ describe('convertToOpenAIResponsesInput', () => {
             store: false,
           });
 
-          expect(result.input).toEqual([
-            {
-              role: 'user',
-              content: [{ type: 'input_text', text: 'First user question' }],
-            },
-            {
-              type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: undefined,
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First reasoning step (message 1)',
-                },
-                {
-                  type: 'summary_text',
-                  text: 'Second reasoning step (message 1)',
-                },
-              ],
-            },
-            {
-              role: 'assistant',
-              content: [{ type: 'output_text', text: 'First response' }],
-            },
-            {
-              role: 'user',
-              content: [{ type: 'input_text', text: 'Second user question' }],
-            },
-            {
-              type: 'reasoning',
-              id: 'reasoning_002',
-              encrypted_content: undefined,
-              summary: [
-                {
-                  type: 'summary_text',
-                  text: 'First reasoning step (message 2)',
-                },
-              ],
-            },
-            {
-              role: 'assistant',
-              content: [{ type: 'output_text', text: 'Second response' }],
-            },
-          ]);
+          expect(result.input).toMatchInlineSnapshot(`
+            [
+              {
+                "content": [
+                  {
+                    "text": "First user question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "encrypted_content": "encrypted_content_001",
+                "id": "reasoning_001",
+                "summary": [
+                  {
+                    "text": "First reasoning step (message 1)",
+                    "type": "summary_text",
+                  },
+                  {
+                    "text": "Second reasoning step (message 1)",
+                    "type": "summary_text",
+                  },
+                ],
+                "type": "reasoning",
+              },
+              {
+                "content": [
+                  {
+                    "text": "First response",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Second user question",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+              {
+                "encrypted_content": "encrypted_content_002",
+                "id": "reasoning_002",
+                "summary": [
+                  {
+                    "text": "First reasoning step (message 2)",
+                    "type": "summary_text",
+                  },
+                ],
+                "type": "reasoning",
+              },
+              {
+                "content": [
+                  {
+                    "text": "Second response",
+                    "type": "output_text",
+                  },
+                ],
+                "id": undefined,
+                "role": "assistant",
+              },
+            ]
+          `);
 
           expect(result.warnings).toHaveLength(0);
         });
@@ -2292,6 +2368,286 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should reconstruct hosted tool search call and output with store: false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { paths: ['get_weather'] },
+                  call_id: null,
+                }),
+                providerExecuted: true,
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_hosted_123',
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        defer_loading: true,
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: {
+                    itemId: 'tso_hosted_456',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'tool_search_call',
+            id: 'tsc_hosted_123',
+            execution: 'server',
+            call_id: null,
+            status: 'completed',
+            arguments: { paths: ['get_weather'] },
+          },
+          {
+            type: 'tool_search_output',
+            id: 'tso_hosted_456',
+            execution: 'server',
+            call_id: null,
+            status: 'completed',
+            tools: [
+              {
+                type: 'function',
+                name: 'get_weather',
+                defer_loading: true,
+              },
+            ],
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should use distinct item references for hosted tool search call and output with store: true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { paths: ['get_weather'] },
+                  call_id: null,
+                }),
+                providerExecuted: true,
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_hosted_123',
+                  },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'tsc_hosted_123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: {
+                    itemId: 'tso_hosted_456',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'item_reference',
+            id: 'tsc_hosted_123',
+          },
+          {
+            type: 'item_reference',
+            id: 'tso_hosted_456',
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should serialize client tool search output with call_id from tool role', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_abc123',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { goal: 'Find weather tools' },
+                  call_id: 'call_abc123',
+                }),
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_client_1',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_abc123',
+                toolName: 'tool_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        description: 'Get weather',
+                        defer_loading: true,
+                        parameters: {
+                          type: 'object',
+                          properties: {
+                            location: { type: 'string' },
+                          },
+                          required: ['location'],
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            type: 'tool_search_call',
+            id: 'tsc_client_1',
+            execution: 'client',
+            call_id: 'call_abc123',
+            status: 'completed',
+            arguments: { goal: 'Find weather tools' },
+          },
+          {
+            type: 'tool_search_output',
+            execution: 'client',
+            call_id: 'call_abc123',
+            status: 'completed',
+            tools: [
+              {
+                type: 'function',
+                name: 'get_weather',
+                description: 'Get weather',
+                defer_loading: true,
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    location: { type: 'string' },
+                  },
+                  required: ['location'],
+                },
+              },
+            ],
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should use call_id (not item id) for client tool search call serialization', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_xyz789',
+                toolName: 'tool_search',
+                input: JSON.stringify({
+                  arguments: { goal: 'Find tools' },
+                  call_id: 'call_xyz789',
+                }),
+                providerOptions: {
+                  openai: {
+                    itemId: 'tsc_item_id',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      const toolSearchCall = result.input.find(
+        (item: any) => item.type === 'tool_search_call',
+      ) as any;
+
+      expect(toolSearchCall.call_id).toBe('call_xyz789');
+      expect(toolSearchCall.id).toBe('tsc_item_id');
+      expect(toolSearchCall.execution).toBe('client');
     });
 
     it('should exclude provider-executed tool calls and results from prompt with store: false', async () => {
@@ -3404,6 +3760,232 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
+  describe('compaction', () => {
+    it('should convert compaction to item_reference when store is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_123',
+                    encryptedContent: 'encrypted_data_here',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "cmp_123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should convert compaction to full compaction item when store is false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_456',
+                    encryptedContent: 'encrypted_compaction_state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "encrypted_content": "encrypted_compaction_state",
+            "id": "cmp_456",
+            "type": "compaction",
+          },
+        ]
+      `);
+    });
+
+    it('should skip compaction when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_789',
+                    encryptedContent: 'encrypted_data',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should handle compaction alongside regular text content', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Here is my response.',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_001',
+                  },
+                },
+              },
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_001',
+                    encryptedContent: 'encrypted_state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Here is my response.",
+                "type": "output_text",
+              },
+            ],
+            "id": "msg_001",
+            "role": "assistant",
+          },
+          {
+            "encrypted_content": "encrypted_state",
+            "id": "cmp_001",
+            "type": "compaction",
+          },
+        ]
+      `);
+    });
+
+    it('should handle compaction with store: true alongside other content', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Response text',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_002',
+                  },
+                },
+              },
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_002',
+                    encryptedContent: 'encrypted_data',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_002",
+            "type": "item_reference",
+          },
+          {
+            "id": "cmp_002",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('custom tool calls', () => {
     const customProviderToolNames = new Set(['write_sql']);
 
@@ -3581,46 +4163,6 @@ describe('convertToOpenAIResponsesInput', () => {
             "call_id": "call_custom_002",
             "output": "{"rows":42,"status":"ok"}",
             "type": "custom_tool_call_output",
-          },
-        ]
-      `);
-    });
-
-    it('should convert aliased tool name to provider custom tool name', async () => {
-      const result = await convertToOpenAIResponsesInput({
-        toolNameMapping: {
-          toProviderToolName: name =>
-            name === 'alias_name' ? 'write_sql' : name,
-          toCustomToolName: name =>
-            name === 'write_sql' ? 'alias_name' : name,
-        },
-        prompt: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                toolCallId: 'call_custom_004',
-                toolName: 'alias_name',
-                input: 'SELECT 1',
-              },
-            ],
-          },
-        ],
-        systemMessageMode: 'system',
-        providerOptionsName: 'openai',
-        store: true,
-        customProviderToolNames,
-      });
-
-      expect(result.input).toMatchInlineSnapshot(`
-        [
-          {
-            "call_id": "call_custom_004",
-            "id": undefined,
-            "input": "SELECT 1",
-            "name": "write_sql",
-            "type": "custom_tool_call",
           },
         ]
       `);

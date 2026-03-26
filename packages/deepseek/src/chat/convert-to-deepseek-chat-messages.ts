@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3CallOptions,
-  LanguageModelV3Prompt,
-  SharedV3Warning,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Prompt,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
 
@@ -9,14 +9,14 @@ export function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
 }: {
-  prompt: LanguageModelV3Prompt;
-  responseFormat: LanguageModelV3CallOptions['responseFormat'];
+  prompt: LanguageModelV4Prompt;
+  responseFormat: LanguageModelV4CallOptions['responseFormat'];
 }): {
   messages: DeepSeekChatPrompt;
-  warnings: Array<SharedV3Warning>;
+  warnings: Array<SharedV4Warning>;
 } {
   const messages: DeepSeekChatPrompt = [];
-  const warnings: Array<SharedV3Warning> = [];
+  const warnings: Array<SharedV4Warning> = [];
 
   // Inject system message if response format is JSON
   if (responseFormat?.type === 'json') {

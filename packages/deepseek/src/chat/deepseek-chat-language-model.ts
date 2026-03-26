@@ -1,13 +1,13 @@
 import {
   APICallError,
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,6 +17,7 @@ import {
   FetchFunction,
   generateId,
   InferSchema,
+  isCustomReasoning,
   isParsableJson,
   parseProviderOptions,
   ParseResult,
@@ -46,8 +47,8 @@ export type DeepSeekChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class DeepSeekChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class DeepSeekChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: DeepSeekChatModelId;
   readonly supportedUrls = {};
@@ -82,13 +83,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     providerOptions,
     stopSequences,
     responseFormat,
     seed,
     toolChoice,
     tools,
-  }: LanguageModelV3CallOptions) {
+  }: LanguageModelV4CallOptions) {
     const deepseekOptions =
       (await parseProviderOptions({
         provider: this.providerOptionsName,
@@ -135,15 +137,17 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
         thinking:
           deepseekOptions.thinking?.type != null
             ? { type: deepseekOptions.thinking.type }
-            : undefined,
+            : isCustomReasoning(reasoning)
+              ? { type: reasoning === 'none' ? 'disabled' : 'enabled' }
+              : undefined,
       },
       warnings: [...warnings, ...toolWarnings],
     };
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
     const {
@@ -166,7 +170,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = responseBody.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // reasoning content (before text):
     const reasoning = choice.message.reasoning_content;
@@ -219,8 +223,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
     const body = {
@@ -254,7 +258,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -268,7 +272,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<InferSchema<typeof deepseekChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

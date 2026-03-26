@@ -1,8 +1,8 @@
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3ProviderOptions,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4ProviderOptions,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -33,8 +33,8 @@ export type OpenAICompatibleImageModelConfig = {
   };
 };
 
-export class OpenAICompatibleImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAICompatibleImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 10;
 
   get provider(): string {
@@ -55,7 +55,7 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 
   // TODO: deprecate non-camelCase keys and remove in future major version
   private getArgs(
-    providerOptions: SharedV3ProviderOptions,
+    providerOptions: SharedV4ProviderOptions,
   ): Record<string, unknown> {
     return {
       ...providerOptions[this.providerOptionsKey],
@@ -74,10 +74,10 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -187,7 +187,7 @@ type OpenAICompatibleFormDataInput = {
   [key: string]: unknown;
 };
 
-async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
+async function fileToBlob(file: ImageModelV4File): Promise<Blob> {
   if (file.type === 'url') {
     return downloadBlob(file.url);
   }

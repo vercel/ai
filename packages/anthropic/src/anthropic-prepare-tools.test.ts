@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { prepareTools } from './anthropic-prepare-tools';
 import { CacheControlValidator } from './get-cache-control';
+import { webFetch_20260209OutputSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
+import { webSearch_20260209OutputSchema } from './tool/web-search_20260209';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 import {
   anthropicMessagesChunkSchema,
@@ -14,6 +16,7 @@ describe('prepareTools', () => {
       tools: undefined,
       toolChoice: undefined,
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
     });
     expect(result).toEqual({
       tools: undefined,
@@ -28,6 +31,7 @@ describe('prepareTools', () => {
       tools: [],
       toolChoice: undefined,
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
     });
     expect(result).toEqual({
       tools: undefined,
@@ -45,10 +49,14 @@ describe('prepareTools', () => {
           name: 'testFunction',
           description: 'A test function',
           inputSchema: { type: 'object', properties: {} },
+          providerOptions: {
+            anthropic: { eagerInputStreaming: true },
+          },
         },
       ],
       toolChoice: undefined,
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
     });
     expect(result.tools).toEqual([
       {
@@ -56,6 +64,7 @@ describe('prepareTools', () => {
         name: 'testFunction',
         description: 'A test function',
         input_schema: { type: 'object', properties: {} },
+        eager_input_streaming: true,
       },
     ]);
     expect(result.toolChoice).toBeUndefined();
@@ -78,6 +87,7 @@ describe('prepareTools', () => {
       ],
       toolChoice: undefined,
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -129,6 +139,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -166,6 +177,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -190,7 +202,7 @@ describe('prepareTools', () => {
       `);
     });
 
-    it('should not include strict or beta when supportsStructuredOutput is false', async () => {
+    it('should not include strict, emit warning, and not add beta when both supportsStructuredOutput and supportsStrictTools are false', async () => {
       const result = await prepareTools({
         tools: [
           {
@@ -203,6 +215,49 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: false,
+        supportsStrictTools: false,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [
+            {
+              "details": "Tool 'testFunction' has strict: true, but strict mode is not supported by this provider. The strict property will be ignored.",
+              "feature": "strict",
+              "type": "unsupported",
+            },
+          ],
+          "tools": [
+            {
+              "cache_control": undefined,
+              "description": "A test function",
+              "input_schema": {
+                "properties": {},
+                "type": "object",
+              },
+              "name": "testFunction",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should include strict but not beta when supportsStructuredOutput is false but supportsStrictTools is true', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: false,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -219,6 +274,7 @@ describe('prepareTools', () => {
                 "type": "object",
               },
               "name": "testFunction",
+              "strict": true,
             },
           ],
         }
@@ -238,6 +294,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -282,6 +339,7 @@ describe('prepareTools', () => {
           ],
           toolChoice: undefined,
           supportsStructuredOutput: true,
+          supportsStrictTools: true,
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -323,6 +381,7 @@ describe('prepareTools', () => {
           ],
           toolChoice: undefined,
           supportsStructuredOutput: true,
+          supportsStrictTools: true,
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -364,6 +423,7 @@ describe('prepareTools', () => {
           ],
           toolChoice: undefined,
           supportsStructuredOutput: true,
+          supportsStrictTools: true,
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -405,6 +465,7 @@ describe('prepareTools', () => {
           ],
           toolChoice: undefined,
           supportsStructuredOutput: true,
+          supportsStrictTools: true,
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -446,6 +507,7 @@ describe('prepareTools', () => {
           ],
           toolChoice: undefined,
           supportsStructuredOutput: true,
+          supportsStrictTools: true,
         });
 
         expect(result).toMatchInlineSnapshot(`
@@ -484,6 +546,7 @@ describe('prepareTools', () => {
           ],
           toolChoice: undefined,
           supportsStructuredOutput: true,
+          supportsStrictTools: true,
         });
         expect(result).toMatchInlineSnapshot(`
           {
@@ -516,6 +579,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -548,6 +612,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -578,6 +643,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -612,6 +678,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
       expect(result).toMatchInlineSnapshot(`
         {
@@ -628,6 +695,51 @@ describe('prepareTools', () => {
               "max_uses": 10,
               "name": "web_search",
               "type": "web_search_20250305",
+              "user_location": {
+                "city": "New York",
+                "type": "approximate",
+              },
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should correctly prepare web_search_20260209', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.web_search_20260209',
+            name: 'web_search',
+            args: {
+              maxUses: 10,
+              allowedDomains: ['https://www.google.com'],
+              userLocation: { type: 'approximate', city: 'New York' },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+        supportsStrictTools: true,
+      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "code-execution-web-tools-2026-02-09",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_domains": [
+                "https://www.google.com",
+              ],
+              "blocked_domains": undefined,
+              "cache_control": undefined,
+              "max_uses": 10,
+              "name": "web_search",
+              "type": "web_search_20260209",
               "user_location": {
                 "city": "New York",
                 "type": "approximate",
@@ -655,6 +767,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -684,6 +797,53 @@ describe('prepareTools', () => {
       `);
     });
 
+    it('should correctly prepare web_fetch_20260209', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'anthropic.web_fetch_20260209',
+            name: 'web_fetch',
+            args: {
+              maxUses: 10,
+              allowedDomains: ['https://www.google.com'],
+              citations: { enabled: true },
+              maxContentTokens: 1000,
+            },
+          },
+        ],
+        toolChoice: undefined,
+        supportsStructuredOutput: true,
+        supportsStrictTools: true,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {
+            "code-execution-web-tools-2026-02-09",
+          },
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "allowed_domains": [
+                "https://www.google.com",
+              ],
+              "blocked_domains": undefined,
+              "cache_control": undefined,
+              "citations": {
+                "enabled": true,
+              },
+              "max_content_tokens": 1000,
+              "max_uses": 10,
+              "name": "web_fetch",
+              "type": "web_fetch_20260209",
+            },
+          ],
+        }
+      `);
+    });
+
     it('should correctly prepare tool_search_regex_20251119', async () => {
       const result = await prepareTools({
         tools: [
@@ -696,13 +856,12 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {
-            "advanced-tool-use-2025-11-20",
-          },
+          "betas": Set {},
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -727,6 +886,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -756,13 +916,12 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "betas": Set {
-            "advanced-tool-use-2025-11-20",
-          },
+          "betas": Set {},
           "toolChoice": undefined,
           "toolWarnings": [],
           "tools": [
@@ -792,6 +951,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -832,6 +992,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -869,6 +1030,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result.tools?.[0]).not.toHaveProperty('defer_loading');
@@ -896,6 +1058,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -940,6 +1103,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result.tools?.[0]).not.toHaveProperty('allowed_callers');
@@ -966,6 +1130,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result.tools?.[0]).toHaveProperty('defer_loading', true);
@@ -995,6 +1160,7 @@ describe('prepareTools', () => {
         ],
         toolChoice: undefined,
         supportsStructuredOutput: true,
+        supportsStrictTools: true,
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -1040,6 +1206,7 @@ describe('prepareTools', () => {
       ],
       toolChoice: undefined,
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
     });
 
     expect(result.tools).toEqual([]);
@@ -1066,6 +1233,7 @@ describe('prepareTools', () => {
       ],
       toolChoice: { type: 'auto' },
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
     });
 
     expect(result.toolChoice).toEqual({ type: 'auto' });
@@ -1083,6 +1251,7 @@ describe('prepareTools', () => {
       ],
       toolChoice: { type: 'required' },
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
     });
 
     expect(result.toolChoice).toEqual({ type: 'any' });
@@ -1100,6 +1269,7 @@ describe('prepareTools', () => {
       ],
       toolChoice: { type: 'none' },
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
     });
     expect(result.tools).toBeUndefined();
     expect(result.toolChoice).toBeUndefined();
@@ -1117,6 +1287,7 @@ describe('prepareTools', () => {
       ],
       toolChoice: { type: 'tool', toolName: 'testFunction' },
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
     });
     expect(result.toolChoice).toEqual({ type: 'tool', name: 'testFunction' });
   });
@@ -1138,6 +1309,7 @@ describe('prepareTools', () => {
       ],
       toolChoice: undefined,
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
     });
 
     expect(result.tools).toMatchInlineSnapshot(`
@@ -1206,6 +1378,7 @@ describe('prepareTools', () => {
       ],
       toolChoice: undefined,
       supportsStructuredOutput: true,
+      supportsStrictTools: true,
       cacheControlValidator,
     });
 
@@ -1285,6 +1458,31 @@ describe('webFetch_20250910OutputSchema', () => {
   });
 });
 
+describe('webFetch_20260209OutputSchema', () => {
+  it('should not fail validation when title is null', async () => {
+    const problematicResponse = {
+      type: 'web_fetch_result',
+      url: 'https://test.com',
+      retrievedAt: '2025-12-08T20:46:31.114158',
+      content: {
+        type: 'document',
+        title: null,
+        source: {
+          type: 'text',
+          mediaType: 'text/plain',
+          data: '',
+        },
+      },
+    };
+
+    const schema = webFetch_20260209OutputSchema();
+
+    const result = await schema.validate!(problematicResponse);
+
+    expect(result.success).toBe(true);
+  });
+});
+
 describe('webSearch_20250305OutputSchema', () => {
   it('should not fail validation when title is null', async () => {
     const problematicResponse = [
@@ -1319,6 +1517,27 @@ describe('webSearch_20250305OutputSchema', () => {
 
     const schema = webSearch_20250305OutputSchema();
     const result = await schema.validate!(validResponse);
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('webSearch_20260209OutputSchema', () => {
+  it('should not fail validation when title is null', async () => {
+    const problematicResponse = [
+      {
+        url: 'https://test.com',
+        title: null,
+        pageAge: 'April 30, 2025',
+        encryptedContent:
+          'EqgfCioIARgBIiQ3YTAwMjY1Mi1mZjM5LTQ1NGUtODgxNC1kNjNjNTk1ZWI3Y...',
+        type: 'web_search_result',
+      },
+    ];
+
+    const schema = webSearch_20260209OutputSchema();
+
+    const result = await schema.validate!(problematicResponse);
 
     expect(result.success).toBe(true);
   });

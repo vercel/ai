@@ -1,6 +1,6 @@
 import type {
-  EmbeddingModelV3,
-  SharedV3ProviderMetadata,
+  EmbeddingModelV4,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,8 +17,8 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 
-export class GatewayEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class GatewayEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
@@ -39,8 +39,8 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     const resolvedHeaders = await resolve(this.config.headers());
     try {
@@ -75,7 +75,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3 {
         embeddings: responseBody.embeddings,
         usage: responseBody.usage ?? undefined,
         providerMetadata:
-          responseBody.providerMetadata as unknown as SharedV3ProviderMetadata,
+          responseBody.providerMetadata as unknown as SharedV4ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
         warnings: [],
       };
@@ -90,7 +90,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV3 {
 
   private getModelConfigHeaders() {
     return {
-      'ai-embedding-model-specification-version': '3',
+      'ai-embedding-model-specification-version': '4',
       'ai-model-id': this.modelId,
     };
   }

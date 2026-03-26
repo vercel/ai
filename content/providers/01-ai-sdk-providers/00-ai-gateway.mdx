@@ -533,9 +533,11 @@ for await (const part of result.fullStream) {
 }
 ```
 
-### Usage Tracking with User and Tags
+### Custom Reporting
 
-Track usage per end-user and categorize requests with tags:
+Track usage per end-user and categorize requests with tags, then query the data through the reporting API.
+
+#### Usage Tracking with User and Tags
 
 ```ts
 import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
@@ -558,6 +560,12 @@ This allows you to:
 - View usage and costs broken down by end-user in your analytics
 - Filter and analyze spending by feature or use case using tags
 - Track which users or features are driving the most AI usage
+
+#### Reporting API
+
+You can query usage data programmatically using the [Custom Reporting API](https://vercel.com/docs/ai-gateway/capabilities/custom-reporting). The reporting API is only available for Vercel Pro and Enterprise plans. The API supports grouping by `model`, `user`, `tag`, `provider`, or `credential_type`, and filtering by date range, user, model, tags, and more.
+
+For pricing, see the [Custom Reporting docs](https://vercel.com/docs/ai-gateway/capabilities/custom-reporting).
 
 ## Provider Options
 
@@ -630,6 +638,14 @@ The following gateway provider options are available:
 - **zeroDataRetention** _boolean_
 
   Restricts routing requests to providers that have zero data retention policies.
+
+- **providerTimeouts** _object_
+
+  Per-provider timeouts for BYOK credentials in milliseconds. Controls how long to wait for a provider to start responding before falling back to the next available provider.
+
+  Example: `providerTimeouts: { byok: { openai: 5000, anthropic: 2000 } }`
+
+  For full details, see [Provider Timeouts](https://vercel.com/docs/ai-gateway/models-and-providers/provider-timeouts).
 
 You can combine these options to have fine-grained control over routing and tracking:
 
