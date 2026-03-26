@@ -605,7 +605,7 @@ Each row in `results` contains a grouping field (matching your `groupBy` choice)
 You can combine tracking and querying to analyze spend by tags you defined:
 
 ```ts
-import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { gateway, streamText } from 'ai';
 
 // 1. Make requests with tags
@@ -615,7 +615,7 @@ const result = streamText({
   providerOptions: {
     gateway: {
       tags: ['team:finance', 'feature:summaries'],
-    } satisfies GatewayLanguageModelOptions,
+    } satisfies GatewayProviderOptions,
   },
 });
 
