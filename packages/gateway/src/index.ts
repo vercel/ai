@@ -16,9 +16,9 @@ export type {
   GatewayProviderSettings,
 } from './gateway-provider';
 export type {
-  GatewayLanguageModelOptions,
-  /** @deprecated Use `GatewayLanguageModelOptions` instead. */
-  GatewayLanguageModelOptions as GatewayProviderOptions,
+  GatewayProviderOptions,
+  /** @deprecated Use `GatewayProviderOptions` instead. */
+  GatewayProviderOptions as GatewayLanguageModelOptions,
 } from './gateway-provider-options';
 export {
   GatewayError,
