@@ -559,6 +559,77 @@ This allows you to:
 - Filter and analyze spending by feature or use case using tags
 - Track which users or features are driving the most AI usage
 
+#### Querying Spend Reports
+
+Use the `getSpendReport()` method to query usage data programmatically. The reporting API is only available for Vercel Pro and Enterprise plans. For pricing, see the [Custom Reporting docs](https://vercel.com/docs/ai-gateway/capabilities/custom-reporting).
+
+```ts
+import { gateway } from 'ai';
+
+const report = await gateway.getSpendReport({
+  startDate: '2026-03-01',
+  endDate: '2026-03-25',
+  groupBy: 'model',
+});
+
+for (const row of report.results) {
+  console.log(`${row.model}: $${row.totalCost.toFixed(4)}`);
+}
+```
+
+The `getSpendReport()` method accepts the following parameters:
+
+- **startDate** _string_ - Start date in `YYYY-MM-DD` format (inclusive, required)
+- **endDate** _string_ - End date in `YYYY-MM-DD` format (inclusive, required)
+- **groupBy** _string_ - Aggregation dimension: `'day'` (default), `'user'`, `'model'`, `'tag'`, `'provider'`, or `'credential_type'`
+- **datePart** _string_ - Time granularity when `groupBy` is `'day'`: `'day'` or `'hour'`
+- **userId** _string_ - Filter to a specific user
+- **model** _string_ - Filter to a specific model (e.g. `'anthropic/claude-sonnet-4.5'`)
+- **provider** _string_ - Filter to a specific provider (e.g. `'anthropic'`)
+- **credentialType** _string_ - Filter by `'byok'` or `'system'` credentials
+- **tags** _string[]_ - Filter to requests matching these tags
+
+Each row in `results` contains a grouping field (matching your `groupBy` choice) and metrics:
+
+- **totalCost** _number_ - Total cost in USD
+- **marketCost** _number_ - Market cost in USD
+- **inputTokens** _number_ - Number of input tokens
+- **outputTokens** _number_ - Number of output tokens
+- **cachedInputTokens** _number_ - Number of cached input tokens
+- **cacheCreationInputTokens** _number_ - Number of cache creation input tokens
+- **reasoningTokens** _number_ - Number of reasoning tokens
+- **requestCount** _number_ - Number of requests
+
+You can combine tracking and querying to analyze spend by tags you defined:
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { gateway, streamText } from 'ai';
+
+// 1. Make requests with tags
+const result = streamText({
+  model: gateway('anthropic/claude-haiku-4.5'),
+  prompt: 'Summarize this quarter's results',
+  providerOptions: {
+    gateway: {
+      tags: ['team:finance', 'feature:summaries'],
+    } satisfies GatewayProviderOptions,
+  },
+});
+
+// 2. Later, query spend filtered by those tags
+const report = await gateway.getSpendReport({
+  startDate: '2026-03-01',
+  endDate: '2026-03-31',
+  groupBy: 'tag',
+  tags: ['team:finance'],
+});
+
+for (const row of report.results) {
+  console.log(`${row.tag}: $${row.totalCost.toFixed(4)} (${row.requestCount} requests)`);
+}
+```
+
 ## Provider Options
 
 The AI Gateway provider accepts provider options that control routing behavior and provider-specific configurations.
