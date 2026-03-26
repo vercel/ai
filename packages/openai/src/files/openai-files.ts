@@ -41,12 +41,6 @@ export function createOpenAIFiles({
         schema: openaiFilesOptionsSchema,
       })) as OpenAIFilesOptions | undefined;
 
-      if (!openaiOptions?.purpose) {
-        throw new Error(
-          'OpenAI file upload requires a "purpose" provider option.',
-        );
-      }
-
       const fileBytes =
         data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
 
@@ -60,9 +54,9 @@ export function createOpenAIFiles({
       } else {
         formData.append('file', blob);
       }
-      formData.append('purpose', openaiOptions.purpose);
+      formData.append('purpose', openaiOptions?.purpose ?? 'assistants');
 
-      if (openaiOptions.expiresAfter != null) {
+      if (openaiOptions?.expiresAfter != null) {
         formData.append('expires_after', String(openaiOptions.expiresAfter));
       }
 

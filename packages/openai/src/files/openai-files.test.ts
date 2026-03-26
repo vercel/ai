@@ -94,34 +94,20 @@ describe('OpenAI Files - uploadFile', () => {
     });
   });
 
-  it('should throw when purpose is missing from providerOptions', async () => {
+  it('should default purpose to assistants when not provided', async () => {
     prepareFileResponse();
 
     const provider = createOpenAI({ apiKey: 'test-api-key' });
     const files = provider.files();
 
-    await expect(
-      files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
-        providerOptions: {
-          openai: {},
-        },
-      }),
-    ).rejects.toThrow(/invalid openai provider options/i);
-  });
+    await files.uploadFile({
+      data: new Uint8Array([1, 2, 3]),
+    });
 
-  it('should throw when openai providerOptions are not provided', async () => {
-    prepareFileResponse();
-
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-    const files = provider.files();
-
-    await expect(
-      files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
-        providerOptions: {},
-      }),
-    ).rejects.toThrow(/purpose/i);
+    const multipart = await server.calls[0].requestBodyMultipart;
+    expect(multipart).toMatchObject({
+      purpose: 'assistants',
+    });
   });
 
   it('should pass expires_after when provided', async () => {

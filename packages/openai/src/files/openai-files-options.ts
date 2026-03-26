@@ -4,7 +4,12 @@ import { z } from 'zod/v4';
 export const openaiFilesOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      purpose: z.string(),
+      /*
+       * Required by the OpenAI API, but optional here because
+       * the SDK defaults to "assistants" — by far the most common
+       * purpose when uploading files in this context.
+       */
+      purpose: z.string().optional(),
       expiresAfter: z.number().optional(),
     }),
   ),
