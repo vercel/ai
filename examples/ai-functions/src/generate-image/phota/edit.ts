@@ -7,8 +7,8 @@ run(async () => {
   const { images } = await generateImage({
     model: phota.image('edit'),
     prompt: {
-      text: 'Make the sun shine through the trees',
-      images: ['https://avatars.githubusercontent.com/in/1765080'],
+      text: 'Add a sunset sky in the background',
+      images: ['https://picsum.photos/id/16/512/512'],
     },
     providerOptions: {
       phota: {
