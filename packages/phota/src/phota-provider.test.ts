@@ -63,12 +63,12 @@ describe('Phota provider', () => {
     expect(server.calls[0].requestUserAgent).toContain('ai-sdk/phota/');
   });
 
-  it('sets maxImagesPerCall based on model ID', () => {
+  it('sets maxImagesPerCall to 1 for all models', () => {
     const provider = createPhota();
 
-    expect(provider.image('generate').maxImagesPerCall).toBe(4);
-    expect(provider.image('edit').maxImagesPerCall).toBe(4);
-    expect(provider.image('enhance').maxImagesPerCall).toBe(4);
+    expect(provider.image('generate').maxImagesPerCall).toBe(1);
+    expect(provider.image('edit').maxImagesPerCall).toBe(1);
+    expect(provider.image('enhance').maxImagesPerCall).toBe(1);
     expect(provider.image('train').maxImagesPerCall).toBe(1);
     expect(provider.image('status').maxImagesPerCall).toBe(1);
   });

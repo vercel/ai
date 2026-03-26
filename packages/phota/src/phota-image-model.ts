@@ -32,7 +32,7 @@ const PLACEHOLDER_IMAGE =
 
 export class PhotaImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
-  readonly maxImagesPerCall: number;
+  readonly maxImagesPerCall: number = 1;
 
   get provider(): string {
     return this.config.provider;
@@ -42,7 +42,7 @@ export class PhotaImageModel implements ImageModelV4 {
     readonly modelId: PhotaImageModelId,
     private readonly config: PhotaImageModelConfig,
   ) {
-    this.maxImagesPerCall = modelId === 'train' || modelId === 'status' ? 1 : 4;
+    
   }
 
   async doGenerate(

@@ -514,16 +514,6 @@ describe('PhotaImageModel', () => {
       expect(model.provider).toBe('phota.image');
       expect(model.modelId).toBe('generate');
       expect(model.specificationVersion).toBe('v4');
-      expect(model.maxImagesPerCall).toBe(4);
-    });
-
-    it('sets maxImagesPerCall to 1 for train model', () => {
-      const model = createBasicModel({ modelId: 'train' });
-      expect(model.maxImagesPerCall).toBe(1);
-    });
-
-    it('sets maxImagesPerCall to 1 for status model', () => {
-      const model = createBasicModel({ modelId: 'status' });
       expect(model.maxImagesPerCall).toBe(1);
     });
   });
