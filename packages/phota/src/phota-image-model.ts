@@ -41,9 +41,7 @@ export class PhotaImageModel implements ImageModelV4 {
   constructor(
     readonly modelId: PhotaImageModelId,
     private readonly config: PhotaImageModelConfig,
-  ) {
-    
-  }
+  ) {}
 
   async doGenerate(
     options: Parameters<ImageModelV4['doGenerate']>[0],
