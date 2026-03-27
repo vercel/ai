@@ -133,7 +133,7 @@ export class PhotaImageModel implements ImageModelV4 {
     }
 
     const { value, responseHeaders } = await getFromApi({
-      url: `${this.config.baseURL}/profiles/${profileId}/status`,
+      url: `${this.config.baseURL}/profiles/${encodeURIComponent(profileId)}/status`,
       headers: combinedHeaders,
       failedResponseHandler: photaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
