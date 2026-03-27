@@ -1320,6 +1320,12 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
       z.object({
         type: z.literal('ping'),
       }),
+      // Vertex AI returns a vertex_event with usage metadata that should be ignored
+      // by clients streaming through the Anthropic API proxy.
+      z.object({
+        type: z.literal('vertex_event'),
+        usage: z.looseObject({}).optional(),
+      }),
     ]),
   ),
 );
