@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.83
+
+### Patch Changes
+
+- 768a9d6: feat (provider/gateway): add get-generation support
+
 ## 3.0.82
 
 ### Patch Changes
