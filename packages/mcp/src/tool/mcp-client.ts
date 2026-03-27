@@ -119,6 +119,9 @@ export async function createMCPClient(
 }
 
 export interface MCPClient {
+  readonly serverCapabilities: ServerCapabilities;
+  readonly serverInstructions?: string;
+
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
@@ -200,11 +203,20 @@ class DefaultMCPClient implements MCPClient {
     number,
     (response: JSONRPCResponse | Error) => void
   > = new Map();
-  private serverCapabilities: ServerCapabilities = {};
+  private _serverCapabilities: ServerCapabilities = {};
+  private _serverInstructions: string | undefined;
   private isClosed = true;
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
   ) => Promise<ElicitResult> | ElicitResult;
+
+  get serverCapabilities(): ServerCapabilities {
+    return this._serverCapabilities;
+  }
+
+  get serverInstructions(): string | undefined {
+    return this._serverInstructions;
+  }
 
   constructor({
     transport: transportConfig,
@@ -276,7 +288,8 @@ class DefaultMCPClient implements MCPClient {
         });
       }
 
-      this.serverCapabilities = result.capabilities;
+      this._serverCapabilities = result.capabilities;
+      this._serverInstructions = result.instructions;
 
       // Complete initialization handshake:
       await this.notification({
@@ -302,7 +315,7 @@ class DefaultMCPClient implements MCPClient {
         break;
       case 'tools/list':
       case 'tools/call':
-        if (!this.serverCapabilities.tools) {
+        if (!this._serverCapabilities.tools) {
           throw new MCPClientError({
             message: `Server does not support tools`,
           });
@@ -311,7 +324,7 @@ class DefaultMCPClient implements MCPClient {
       case 'resources/list':
       case 'resources/read':
       case 'resources/templates/list':
-        if (!this.serverCapabilities.resources) {
+        if (!this._serverCapabilities.resources) {
           throw new MCPClientError({
             message: `Server does not support resources`,
           });
@@ -319,7 +332,7 @@ class DefaultMCPClient implements MCPClient {
         break;
       case 'prompts/list':
       case 'prompts/get':
-        if (!this.serverCapabilities.prompts) {
+        if (!this._serverCapabilities.prompts) {
           throw new MCPClientError({
             message: `Server does not support prompts`,
           });
