@@ -34,6 +34,7 @@ import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
+import { sanitizeTelemetryAttributeValue } from './sanitize-telemetry-attribute-value';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
 import { TelemetrySettings } from './telemetry-settings';
 import type { TelemetryIntegration } from './telemetry-integration';
@@ -86,7 +87,8 @@ function selectAttributes(
     ) {
       if (telemetry?.recordInputs === false) continue;
       const resolved = value.input();
-      if (resolved != null) result[key] = resolved;
+      const sanitizedResolved = sanitizeTelemetryAttributeValue(resolved);
+      if (sanitizedResolved != null) result[key] = sanitizedResolved;
       continue;
     }
 
@@ -97,11 +99,17 @@ function selectAttributes(
     ) {
       if (telemetry?.recordOutputs === false) continue;
       const resolved = value.output();
-      if (resolved != null) result[key] = resolved;
+      const sanitizedResolved = sanitizeTelemetryAttributeValue(resolved);
+      if (sanitizedResolved != null) result[key] = sanitizedResolved;
       continue;
     }
 
-    result[key] = value as AttributeValue;
+    const sanitizedValue = sanitizeTelemetryAttributeValue(
+      value as AttributeValue,
+    );
+    if (sanitizedValue != null) {
+      result[key] = sanitizedValue;
+    }
   }
 
   return result;
@@ -831,8 +839,11 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
 
     const attributes = Object.fromEntries(
       Object.entries(
-        (chunk.attributes as Record<string, unknown>) ?? {},
-      ).filter(([, value]) => value != null),
+        (chunk.attributes as Record<string, AttributeValue>) ?? {},
+      ).flatMap(([key, value]) => {
+        const sanitizedValue = sanitizeTelemetryAttributeValue(value);
+        return sanitizedValue == null ? [] : [[key, sanitizedValue]];
+      }),
     ) as Attributes;
 
     state.stepSpan.addEvent(chunk.type, attributes);

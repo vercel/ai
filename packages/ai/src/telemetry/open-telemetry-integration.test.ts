@@ -628,6 +628,39 @@ describe('OpenTelemetryIntegration', () => {
       expect(setAttrsCall['gen_ai.usage.output_tokens']).toBe(20);
     });
 
+    it('omits non-finite usage attributes', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({
+          usage: {
+            inputTokens: Number.NaN,
+            outputTokens: Number.POSITIVE_INFINITY,
+            totalTokens: Number.NaN,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+            inputTokenDetails: {
+              noCacheTokens: undefined,
+              cacheReadTokens: undefined,
+              cacheWriteTokens: undefined,
+            },
+            outputTokenDetails: {
+              textTokens: undefined,
+              reasoningTokens: undefined,
+            },
+          },
+        }),
+      );
+
+      const stepSpan = tracer.spans[1];
+      const setAttrsCall = getSetAttributesArg(stepSpan);
+      expect(setAttrsCall['ai.usage.inputTokens']).toBeUndefined();
+      expect(setAttrsCall['ai.usage.outputTokens']).toBeUndefined();
+      expect(setAttrsCall['ai.usage.totalTokens']).toBeUndefined();
+      expect(setAttrsCall['gen_ai.usage.input_tokens']).toBeUndefined();
+      expect(setAttrsCall['gen_ai.usage.output_tokens']).toBeUndefined();
+    });
+
     it('includes text in output attributes', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
@@ -886,6 +919,32 @@ describe('OpenTelemetryIntegration', () => {
       expect(stepSpan.setAttributes).toHaveBeenCalledWith(
         expect.objectContaining({ 'ai.stream.msToFirstChunk': 42 }),
       );
+    });
+
+    it('omits non-finite chunk attributes', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+
+      otelIntegration.onChunk!(
+        makeChunkEvent({
+          type: 'ai.stream.firstChunk',
+          callId,
+          stepNumber: 0,
+          attributes: {
+            'ai.stream.msToFirstChunk': Number.NaN,
+            'ai.stream.msToFinish': Number.POSITIVE_INFINITY,
+            'ai.stream.valid': 42,
+          },
+        }),
+      );
+
+      const stepSpan = tracer.spans[1];
+      expect(stepSpan.addEvent).toHaveBeenCalledWith('ai.stream.firstChunk', {
+        'ai.stream.valid': 42,
+      });
+      expect(stepSpan.setAttributes).toHaveBeenCalledWith({
+        'ai.stream.valid': 42,
+      });
     });
 
     it('ignores chunks without callId in the chunk body', () => {
