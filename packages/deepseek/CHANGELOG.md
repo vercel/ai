@@ -1,5 +1,19 @@
 # @ai-sdk/deepseek
 
+## 3.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 3.0.0-beta.8
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+
 ## 3.0.0-beta.7
 
 ### Patch Changes

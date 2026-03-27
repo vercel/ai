@@ -1,5 +1,106 @@
 # @ai-sdk/react
 
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- ai@7.0.0-beta.44
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- ai@7.0.0-beta.43
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [a3fd75b]
+  - ai@7.0.0-beta.42
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- ai@7.0.0-beta.41
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [989d3d2]
+  - ai@7.0.0-beta.40
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [f4cfccd]
+  - ai@7.0.0-beta.39
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - ai@7.0.0-beta.38
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- ai@7.0.0-beta.37
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [118b953]
+  - ai@7.0.0-beta.36
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [99bf941]
+  - ai@7.0.0-beta.35
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- ai@7.0.0-beta.34
+
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [caf1b6f]
+  - ai@7.0.0-beta.33
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [4b46062]
+  - ai@7.0.0-beta.32
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [e79e644]
+  - ai@7.0.0-beta.31
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [f5a6f89]
+  - ai@7.0.0-beta.30
+
 ## 4.0.0-beta.29
 
 ### Patch Changes

@@ -16,6 +16,8 @@ import {
   createJsonResponseHandler,
   extractResponseHeaders,
   FetchFunction,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -71,6 +73,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
     presencePenalty,
     stopSequences,
     seed,
+    reasoning,
     responseFormat,
     providerOptions,
     tools,
@@ -133,7 +136,23 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
       temperature,
       top_p: topP,
       seed,
-      reasoning_effort: options.reasoningEffort,
+      reasoning_effort:
+        options.reasoningEffort ??
+        (isCustomReasoning(reasoning)
+          ? reasoning === 'none'
+            ? undefined
+            : mapReasoningToProviderEffort({
+                reasoning,
+                effortMap: {
+                  minimal: 'low',
+                  low: 'low',
+                  medium: 'low',
+                  high: 'high',
+                  xhigh: 'high',
+                },
+                warnings,
+              })
+          : undefined),
 
       // parallel function calling
       parallel_function_calling: options.parallel_function_calling,

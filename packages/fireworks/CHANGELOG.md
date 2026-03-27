@@ -1,5 +1,22 @@
 # @ai-sdk/fireworks
 
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+  - @ai-sdk/openai-compatible@3.0.0-beta.10
+
+## 3.0.0-beta.9
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+- Updated dependencies [74d520f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.9
+
 ## 3.0.0-beta.8
 
 ### Patch Changes

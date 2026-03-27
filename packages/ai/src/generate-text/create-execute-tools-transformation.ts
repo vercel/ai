@@ -2,15 +2,15 @@ import { IdGenerator, ModelMessage } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
 import { isApprovalNeeded } from './is-approval-needed';
 import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { ToolSet } from './tool-set';
 import { TypedToolCall } from './tool-call';
+import { ToolSet } from './tool-set';
+import { ModelCallStreamPart } from './stream-model-call';
 
 export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   tools,
@@ -46,27 +46,61 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
-}): TransformStream<
-  UglyTransformedStreamTextPart<TOOLS>,
-  UglyTransformedStreamTextPart<TOOLS>
-> {
+}): TransformStream<ModelCallStreamPart<TOOLS>, ModelCallStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // forward stream
   return new TransformStream<
-    UglyTransformedStreamTextPart<TOOLS>,
-    UglyTransformedStreamTextPart<TOOLS>
+    ModelCallStreamPart<TOOLS>,
+    ModelCallStreamPart<TOOLS>
   >({
     async transform(
-      chunk: UglyTransformedStreamTextPart<TOOLS>,
-      controller: TransformStreamDefaultController<
-        UglyTransformedStreamTextPart<TOOLS>
-      >,
+      chunk: ModelCallStreamPart<TOOLS>,
+      controller: TransformStreamDefaultController<ModelCallStreamPart<TOOLS>>,
     ) {
-      const chunkType = chunk.type;
+      // immediately forward all chunks
+      controller.enqueue(chunk);
 
+      const chunkType = chunk.type;
       switch (chunkType) {
-        case 'finish': {
+        case 'tool-call': {
+          if (chunk.invalid) {
+            break;
+          }
+
+          const tool = tools?.[chunk.toolName];
+
+          if (tool == null) {
+            // ignore tool calls for tools that are not available,
+            // e.g. provider-executed dynamic tools
+            break;
+          }
+
+          if (
+            await isApprovalNeeded({
+              tool,
+              toolCall: chunk,
+              messages,
+              experimental_context,
+            })
+          ) {
+            controller.enqueue({
+              type: 'tool-approval-request',
+              approvalId: generateId(),
+              toolCall: chunk,
+            });
+            break;
+          }
+
+          // Only execute tools that are not provider-executed:
+          if (tool.execute != null && chunk.providerExecuted !== true) {
+            toolCallsToExecute.push(chunk);
+          }
+
+          break;
+        }
+
+        case 'model-call-end': {
           await Promise.all(
             toolCallsToExecute.map(async toolCall => {
               try {
@@ -102,65 +136,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             }),
           );
 
-          // the finish chunk is delayed until all tool results are received
-          controller.enqueue(chunk);
-
           break;
-        }
-
-        // process tool call:
-        case 'tool-call': {
-          controller.enqueue(chunk);
-
-          if (chunk.invalid) {
-            break;
-          }
-
-          const tool = tools?.[chunk.toolName];
-
-          if (tool == null) {
-            // ignore tool calls for tools that are not available,
-            // e.g. provider-executed dynamic tools
-            break;
-          }
-
-          if (tool.onInputAvailable != null) {
-            await tool.onInputAvailable({
-              input: chunk.input,
-              toolCallId: chunk.toolCallId,
-              messages,
-              abortSignal,
-              experimental_context,
-            });
-          }
-
-          if (
-            await isApprovalNeeded({
-              tool,
-              toolCall: chunk,
-              messages,
-              experimental_context,
-            })
-          ) {
-            controller.enqueue({
-              type: 'tool-approval-request',
-              approvalId: generateId(),
-              toolCall: chunk,
-            });
-            break;
-          }
-
-          // Only execute tools that are not provider-executed:
-          if (tool.execute != null && chunk.providerExecuted !== true) {
-            toolCallsToExecute.push(chunk);
-          }
-
-          break;
-        }
-
-        default: {
-          // forward all other chunks
-          controller.enqueue(chunk);
         }
       }
     },

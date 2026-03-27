@@ -1,5 +1,49 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- d30466c: feat (provider/gateway): add spend reporting support
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- 4ec78cd: chore(provider/gateway): rename GatewayLanguageModelOptions back to GatewayProviderOptions
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 7ceff62: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- 4f91b5d: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- 72889f8: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 165b97a: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-beta.17
 
 ### Patch Changes

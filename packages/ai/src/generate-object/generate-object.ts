@@ -118,7 +118,7 @@ export async function generateObject<
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<CallSettings<any>, 'stopSequences'> &
+  options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
     (OUTPUT extends 'enum'
       ? {

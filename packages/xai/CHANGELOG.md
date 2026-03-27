@@ -1,5 +1,28 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+  - @ai-sdk/openai-compatible@3.0.0-beta.10
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 4f91b5d: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+- Updated dependencies [74d520f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.9
+
 ## 4.0.0-beta.14
 
 ### Patch Changes

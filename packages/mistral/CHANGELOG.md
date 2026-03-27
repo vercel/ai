@@ -1,5 +1,25 @@
 # @ai-sdk/mistral
 
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 737b8f4: feat(provider/mistral): add support for reasoning configuration (mistral-small-latest)
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 5259a95: chore: add warning for providers that do not support new reasoning parameter
+
 ## 4.0.0-beta.6
 
 ### Patch Changes

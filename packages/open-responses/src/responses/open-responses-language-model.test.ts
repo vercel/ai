@@ -150,6 +150,66 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+    describe('top-level reasoning', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+      });
+
+      it('should map top-level reasoning to reasoning effort', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'high' },
+        );
+      });
+
+      it('should coerce top-level reasoning minimal to low', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'low' },
+        );
+      });
+
+      it('should map top-level reasoning none to none', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'none' },
+        );
+      });
+
+      it('should pass xhigh directly', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'xhigh' },
+        );
+      });
+
+      it('should not set reasoning when not specified', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).reasoning,
+        ).toBeUndefined();
+      });
+    });
+
     describe('tool call parsing', () => {
       let result: LanguageModelV4GenerateResult;
 
