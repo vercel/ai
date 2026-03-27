@@ -24,7 +24,8 @@ do {
      filter raw chunks when not enabled
      add finish-step
      add finish
-   bookkeeping
+   bookkeeping:
+     keep track of tool calls/outputs/errors, active tools
    timeout mgmt
    events:
      telemetry, tool input delta
