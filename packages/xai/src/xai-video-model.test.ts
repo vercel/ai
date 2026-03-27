@@ -68,6 +68,12 @@ describe('XaiVideoModel', () => {
         body: createVideoResponse,
       },
     },
+    [`${TEST_BASE_URL}/videos/extensions`]: {
+      response: {
+        type: 'json-value',
+        body: createVideoResponse,
+      },
+    },
     [`${TEST_BASE_URL}/videos/req-123`]: {
       response: {
         type: 'json-value',
@@ -626,6 +632,33 @@ describe('XaiVideoModel', () => {
       };
     });
 
+    it('should throw when status is failed', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'failed',
+          video: { url: '', duration: 0, respect_moderation: true },
+          model: '',
+          error: {
+            code: 'failed_precondition',
+            message: 'Unsupported video content-type.',
+          },
+        },
+      };
+
+      const model = createModel();
+
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        'failed_precondition: Unsupported video content-type.',
+      );
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
     it('should throw when no request_id is returned', async () => {
       server.urls[`${TEST_BASE_URL}/videos/generations`].response = {
         type: 'json-value',
@@ -721,6 +754,402 @@ describe('XaiVideoModel', () => {
         type: 'json-value',
         body: doneStatusResponse,
       };
+    });
+  });
+
+  describe('video extension', () => {
+    it('should POST to /videos/extensions endpoint', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            extensionVideoUrl: 'https://example.com/source.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestMethod).toBe('POST');
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/extensions`,
+      );
+    });
+
+    it('should send video object in extension request body', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            extensionVideoUrl: 'https://example.com/source.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        model: 'grok-imagine-video',
+        prompt,
+        video: { url: 'https://example.com/source.mp4' },
+      });
+    });
+
+    it('should include duration in extension request body', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        duration: 8,
+        providerOptions: {
+          xai: {
+            extensionVideoUrl: 'https://example.com/source.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ duration: 8 });
+    });
+
+    it('should warn about aspectRatio in extension mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: '16:9',
+        providerOptions: {
+          xai: {
+            extensionVideoUrl: 'https://example.com/source.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'aspectRatio',
+        }),
+      );
+    });
+
+    it('should warn about resolution in extension mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1280x720',
+        providerOptions: {
+          xai: {
+            extensionVideoUrl: 'https://example.com/source.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should omit aspect_ratio and resolution from extension body', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        providerOptions: {
+          xai: {
+            extensionVideoUrl: 'https://example.com/source.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('aspect_ratio');
+      expect(body).not.toHaveProperty('resolution');
+    });
+
+    it('should handle extension response with nested response object', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          response: {
+            video: {
+              url: 'https://vidgen.x.ai/output/extended-001.mp4',
+              duration: 16,
+              respect_moderation: true,
+            },
+            model: 'grok-imagine-video',
+            usage: { cost_in_usd_ticks: 5200000000 },
+          },
+        },
+      };
+
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            extensionVideoUrl: 'https://example.com/source.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(result.videos[0]).toStrictEqual({
+        type: 'url',
+        url: 'https://vidgen.x.ai/output/extended-001.mp4',
+        mediaType: 'video/mp4',
+      });
+
+      expect(result.providerMetadata).toStrictEqual({
+        xai: {
+          requestId: 'req-123',
+          videoUrl: 'https://vidgen.x.ai/output/extended-001.mp4',
+          duration: 16,
+          costInUsdTicks: 5200000000,
+        },
+      });
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+  });
+
+  describe('reference-to-video (R2V)', () => {
+    it('should POST to /videos/generations with reference_images', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceImages: ['https://example.com/ref1.jpg'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        model: 'grok-imagine-video',
+        prompt,
+        reference_images: [{ url: 'https://example.com/ref1.jpg' }],
+      });
+    });
+
+    it('should send multiple reference images', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceImages: [
+              'https://example.com/cat1.jpg',
+              'https://example.com/cat2.jpg',
+            ],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [
+          { url: 'https://example.com/cat1.jpg' },
+          { url: 'https://example.com/cat2.jpg' },
+        ],
+      });
+    });
+
+    it('should support data URIs in reference images', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceImages: ['data:image/jpeg;base64,abc123'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'data:image/jpeg;base64,abc123' }],
+      });
+    });
+
+    it('should include duration, aspect_ratio, and resolution in R2V body', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        duration: 10,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        providerOptions: {
+          xai: {
+            referenceImages: ['https://example.com/ref1.jpg'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        duration: 10,
+        aspect_ratio: '16:9',
+        resolution: '720p',
+      });
+    });
+
+    it('should not include image field in body for R2V', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceImages: ['https://example.com/ref1.jpg'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('image');
+    });
+  });
+
+  describe('conflict validation', () => {
+    it('should throw when combining videoUrl and extensionVideoUrl', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              videoUrl: 'https://example.com/edit.mp4',
+              extensionVideoUrl: 'https://example.com/extend.mp4',
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow('Cannot combine videoUrl');
+    });
+
+    it('should throw when combining referenceImages and image', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          image: {
+            type: 'url',
+            url: 'https://example.com/image.png',
+          },
+          providerOptions: {
+            xai: {
+              referenceImages: ['https://example.com/ref1.jpg'],
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow('Cannot combine referenceImages');
+    });
+
+    it('should throw when combining referenceImages and videoUrl', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              referenceImages: ['https://example.com/ref1.jpg'],
+              videoUrl: 'https://example.com/edit.mp4',
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow('Cannot combine referenceImages');
+    });
+
+    it('should throw when combining referenceImages and extensionVideoUrl', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              referenceImages: ['https://example.com/ref1.jpg'],
+              extensionVideoUrl: 'https://example.com/extend.mp4',
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow('Cannot combine referenceImages');
+    });
+
+    it('should throw when combining extensionVideoUrl and image', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          image: {
+            type: 'url',
+            url: 'https://example.com/image.png',
+          },
+          providerOptions: {
+            xai: {
+              extensionVideoUrl: 'https://example.com/extend.mp4',
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow('Cannot combine extensionVideoUrl');
     });
   });
 });

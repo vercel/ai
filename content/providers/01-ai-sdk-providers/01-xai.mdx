@@ -584,7 +584,7 @@ const { images } = await generateImage({
 You can create xAI video models using the `.video()` factory method.
 For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
 
-This provider supports three video generation modes: text-to-video, image-to-video, and video editing.
+This provider supports five video generation modes: text-to-video, image-to-video, video editing, video extension, and reference-to-video.
 
 ### Text-to-Video
 
@@ -654,6 +654,89 @@ const { videos } = await generateVideo({
   Video editing accepts input videos up to 8.7 seconds long. The `duration`,
   `aspectRatio`, and `resolution` parameters are not supported for editing - the
   output matches the input video's properties (capped at 720p).
+</Note>
+
+### Video Extension
+
+Extend an existing video by generating a seamless continuation from its last frame.
+Provide a source video URL via `extensionVideoUrl` and a prompt describing what should happen next:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'The camera slowly zooms out to reveal the city skyline at sunset',
+  duration: 6,
+  providerOptions: {
+    xai: {
+      extensionVideoUrl: 'https://example.com/source-video.mp4',
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+<Note>
+  The input video must be MP4 format (H.264, H.265, or AV1 codec) with a
+  duration of 2–15 seconds. The extension duration can be 2–10 seconds. The
+  output is the original video stitched together with the generated extension.
+  The `aspectRatio` and `resolution` parameters are not supported for extension
+  — the output matches the input video.
+</Note>
+
+### Reference-to-Video
+
+Generate videos guided by one or more reference images as style and content references.
+Unlike image-to-video (where the image is the starting frame), reference-to-video uses
+the images to influence the overall look and subject of the generated video:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt:
+    'A golden retriever running through a sunlit meadow, cinematic slow motion',
+  duration: 8,
+  aspectRatio: '16:9',
+  providerOptions: {
+    xai: {
+      referenceImages: ['https://example.com/my-dog-photo.jpg'],
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+You can provide multiple reference images:
+
+```ts
+const { videos } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'Two cats playing together on a cozy sofa, warm lighting',
+  duration: 10,
+  aspectRatio: '16:9',
+  providerOptions: {
+    xai: {
+      referenceImages: [
+        'https://example.com/cat1.jpg',
+        'https://example.com/cat2.jpg',
+      ],
+      pollTimeoutMs: 600000,
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+<Note>
+  Reference-to-video supports `duration`, `aspectRatio`, and `resolution` just
+  like text-to-video. Reference images can be HTTPS URLs or base64-encoded data
+  URIs (e.g., `data:image/jpeg;base64,...`). You cannot combine
+  `referenceImages` with the `image` parameter (image-to-video) or `videoUrl`
+  (video editing).
 </Note>
 
 ### Chaining and Concurrent Edits
@@ -726,6 +809,18 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   URL of a source video for video editing. When provided, the prompt is used
   to describe the desired edits to the video.
 
+- **extensionVideoUrl** _string_
+
+  URL of a source video to extend. The model generates a seamless continuation
+  from the last frame of the input video. The input must be MP4 format,
+  2–15 seconds long.
+
+- **referenceImages** _string[]_
+
+  Array of reference image URLs (HTTPS or `data:` URIs) for reference-to-video
+  generation. The images guide the style and content of the generated video
+  rather than serving as a starting frame.
+
 <Note>
   Video generation is an asynchronous process that can take several minutes.
   Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
@@ -747,11 +842,18 @@ resolution. Custom `duration`, `aspectRatio`, and `resolution` are not
 supported - the output resolution is capped at 720p (e.g., a 1080p input
 will be downsized to 720p).
 
+For **video extension**, the output matches the input video's aspect ratio and
+resolution. Custom `aspectRatio` and `resolution` are not supported, but you
+can specify `duration` (2–10 seconds) for the extension length.
+
+For **reference-to-video**, you can specify `duration`, `aspectRatio`, and
+`resolution` just like text-to-video.
+
 ### Video Model Capabilities
 
-| Model                | Duration | Aspect Ratios                                     | Resolution     | Image-to-Video      | Video Editing       |
-| -------------------- | -------- | ------------------------------------------------- | -------------- | ------------------- | ------------------- |
-| `grok-imagine-video` | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p` | <Check size={18} /> | <Check size={18} /> |
+| Model                | Duration | Aspect Ratios                                     | Resolution     | Image-to-Video      | Video Editing       | Video Extension     | Reference-to-Video  |
+| -------------------- | -------- | ------------------------------------------------- | -------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `grok-imagine-video` | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   You can also pass any available provider model ID as a string if needed.

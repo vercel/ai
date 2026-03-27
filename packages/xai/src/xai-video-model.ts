@@ -63,6 +63,51 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
     })) as XaiVideoModelOptions | undefined;
 
     const isEdit = xaiOptions?.videoUrl != null;
+    const isExtension = xaiOptions?.extensionVideoUrl != null;
+    const isR2V =
+      xaiOptions?.referenceImages != null &&
+      xaiOptions.referenceImages.length > 0;
+
+    // Conflict validation
+    if (isEdit && isExtension) {
+      throw new AISDKError({
+        name: 'XAI_VIDEO_GENERATION_ERROR',
+        message:
+          'Cannot combine videoUrl (edit mode) with extensionVideoUrl (extension mode). Use one or the other.',
+      });
+    }
+
+    if (isR2V && options.image != null) {
+      throw new AISDKError({
+        name: 'XAI_VIDEO_GENERATION_ERROR',
+        message:
+          'Cannot combine referenceImages (R2V mode) with image (I2V mode). Use one or the other.',
+      });
+    }
+
+    if (isR2V && isEdit) {
+      throw new AISDKError({
+        name: 'XAI_VIDEO_GENERATION_ERROR',
+        message:
+          'Cannot combine referenceImages (R2V mode) with videoUrl (edit mode). Use one or the other.',
+      });
+    }
+
+    if (isR2V && isExtension) {
+      throw new AISDKError({
+        name: 'XAI_VIDEO_GENERATION_ERROR',
+        message:
+          'Cannot combine referenceImages (R2V mode) with extensionVideoUrl (extension mode). Use one or the other.',
+      });
+    }
+
+    if (isExtension && options.image != null) {
+      throw new AISDKError({
+        name: 'XAI_VIDEO_GENERATION_ERROR',
+        message:
+          'Cannot combine extensionVideoUrl (extension mode) with image (I2V mode). Use one or the other.',
+      });
+    }
 
     if (options.fps != null) {
       warnings.push({
@@ -117,22 +162,44 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
+    if (isExtension && options.aspectRatio != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details: 'xAI video extension does not support custom aspect ratio.',
+      });
+    }
+
+    if (
+      isExtension &&
+      (xaiOptions?.resolution != null || options.resolution != null)
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'resolution',
+        details: 'xAI video extension does not support custom resolution.',
+      });
+    }
+
     const body: Record<string, unknown> = {
       model: this.modelId,
       prompt: options.prompt,
     };
 
+    // Duration: supported for generation, extension, and R2V — not edit
     if (!isEdit && options.duration != null) {
       body.duration = options.duration;
     }
 
-    if (!isEdit && options.aspectRatio != null) {
+    // Aspect ratio: supported for generation and R2V — not edit or extension
+    if (!isEdit && !isExtension && options.aspectRatio != null) {
       body.aspect_ratio = options.aspectRatio;
     }
 
-    if (!isEdit && xaiOptions?.resolution != null) {
+    // Resolution: supported for generation and R2V — not edit or extension
+    if (!isEdit && !isExtension && xaiOptions?.resolution != null) {
       body.resolution = xaiOptions.resolution;
-    } else if (!isEdit && options.resolution != null) {
+    } else if (!isEdit && !isExtension && options.resolution != null) {
       const mapped = RESOLUTION_MAP[options.resolution];
       if (mapped != null) {
         body.resolution = mapped;
@@ -147,9 +214,21 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
-    // Video editing: pass source video URL (nested object like image)
+    // Video editing: pass source video URL
     if (xaiOptions?.videoUrl != null) {
       body.video = { url: xaiOptions.videoUrl };
+    }
+
+    // Video extension: pass source video URL
+    if (xaiOptions?.extensionVideoUrl != null) {
+      body.video = { url: xaiOptions.extensionVideoUrl };
+    }
+
+    // Reference-to-video: pass reference images
+    if (isR2V) {
+      body.reference_images = xaiOptions!.referenceImages!.map(url => ({
+        url,
+      }));
     }
 
     // Image-to-video: convert SDK image to nested image object
@@ -175,6 +254,8 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
             'pollTimeoutMs',
             'resolution',
             'videoUrl',
+            'extensionVideoUrl',
+            'referenceImages',
           ].includes(key)
         ) {
           body[key] = value;
@@ -184,9 +265,16 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
-    // Step 1: Create video generation/edit request
+    // Determine endpoint based on mode
+    const endpoint = isEdit
+      ? 'edits'
+      : isExtension
+        ? 'extensions'
+        : 'generations';
+
+    // Step 1: Create video generation/edit/extension request
     const { value: createResponse } = await postJsonToApi({
-      url: `${baseURL}/videos/${isEdit ? 'edits' : 'generations'}`,
+      url: `${baseURL}/videos/${endpoint}`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
@@ -235,11 +323,16 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
 
       responseHeaders = pollHeaders;
 
+      // Extension API nests video/usage inside a `response` object;
+      // generation/edit APIs have them at the top level. Normalize here.
+      const videoData = statusResponse.video ?? statusResponse.response?.video;
+      const usageData = statusResponse.usage ?? statusResponse.response?.usage;
+
       if (
         statusResponse.status === 'done' ||
-        (statusResponse.status == null && statusResponse.video?.url)
+        (statusResponse.status == null && videoData?.url)
       ) {
-        if (statusResponse.video?.respect_moderation === false) {
+        if (videoData?.respect_moderation === false) {
           throw new AISDKError({
             name: 'XAI_VIDEO_MODERATION_ERROR',
             message:
@@ -247,7 +340,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
           });
         }
 
-        if (!statusResponse.video?.url) {
+        if (!videoData?.url) {
           throw new AISDKError({
             name: 'XAI_VIDEO_GENERATION_ERROR',
             message:
@@ -259,7 +352,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
           videos: [
             {
               type: 'url' as const,
-              url: statusResponse.video.url,
+              url: videoData.url,
               mediaType: 'video/mp4',
             },
           ],
@@ -272,12 +365,12 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
           providerMetadata: {
             xai: {
               requestId,
-              videoUrl: statusResponse.video.url,
-              ...(statusResponse.video.duration != null
-                ? { duration: statusResponse.video.duration }
+              videoUrl: videoData.url,
+              ...(videoData.duration != null
+                ? { duration: videoData.duration }
                 : {}),
-              ...(statusResponse.usage?.cost_in_usd_ticks != null
-                ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
+              ...(usageData?.cost_in_usd_ticks != null
+                ? { costInUsdTicks: usageData.cost_in_usd_ticks }
                 : {}),
             },
           },
@@ -291,6 +384,17 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
         });
       }
 
+      if (statusResponse.status === 'failed') {
+        const errorInfo = statusResponse.error;
+        const errorMessage = errorInfo
+          ? `${errorInfo.code ?? 'unknown'}: ${errorInfo.message ?? 'unknown error'}`
+          : 'Unknown failure';
+        throw new AISDKError({
+          name: 'XAI_VIDEO_GENERATION_ERROR',
+          message: `Video generation failed: ${errorMessage}`,
+        });
+      }
+
       // 'pending' → continue polling
     }
   }
@@ -300,19 +404,35 @@ const xaiCreateVideoResponseSchema = z.object({
   request_id: z.string().nullish(),
 });
 
+const xaiVideoDataSchema = z.object({
+  url: z.string(),
+  duration: z.number().nullish(),
+  respect_moderation: z.boolean().nullish(),
+});
+
+const xaiUsageSchema = z.object({
+  cost_in_usd_ticks: z.number().nullish(),
+});
+
 const xaiVideoStatusResponseSchema = z.object({
   status: z.string().nullish(),
-  video: z
+  // Generation/edit APIs: video and usage at top level
+  video: xaiVideoDataSchema.nullish(),
+  model: z.string().nullish(),
+  usage: xaiUsageSchema.nullish(),
+  // Extension API: video and usage nested under response
+  response: z
     .object({
-      url: z.string(),
-      duration: z.number().nullish(),
-      respect_moderation: z.boolean().nullish(),
+      video: xaiVideoDataSchema.nullish(),
+      model: z.string().nullish(),
+      usage: xaiUsageSchema.nullish(),
     })
     .nullish(),
-  model: z.string().nullish(),
-  usage: z
+  // Error details returned when status is "failed"
+  error: z
     .object({
-      cost_in_usd_ticks: z.number().nullish(),
+      code: z.string().nullish(),
+      message: z.string().nullish(),
     })
     .nullish(),
 });
