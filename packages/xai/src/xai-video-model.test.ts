@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { XaiVideoModel } from './xai-video-model';
@@ -18,6 +19,7 @@ const doneStatusResponse = {
     respect_moderation: true,
   },
   model: 'grok-imagine-video',
+  progress: 100,
 };
 
 const defaultOptions = {
@@ -63,6 +65,12 @@ describe('XaiVideoModel', () => {
       },
     },
     [`${TEST_BASE_URL}/videos/edits`]: {
+      response: {
+        type: 'json-value',
+        body: createVideoResponse,
+      },
+    },
+    [`${TEST_BASE_URL}/videos/extensions`]: {
       response: {
         type: 'json-value',
         body: createVideoResponse,
@@ -561,7 +569,7 @@ describe('XaiVideoModel', () => {
   });
 
   describe('providerMetadata', () => {
-    it('should include requestId, videoUrl, and duration', async () => {
+    it('should include requestId, videoUrl, duration, and progress', async () => {
       const model = createModel();
 
       const result = await model.doGenerate({ ...defaultOptions });
@@ -571,6 +579,7 @@ describe('XaiVideoModel', () => {
           requestId: 'req-123',
           videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
           duration: 5,
+          progress: 100,
         },
       });
     });
@@ -592,6 +601,7 @@ describe('XaiVideoModel', () => {
           requestId: 'req-123',
           videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
           duration: 5,
+          progress: 100,
           costInUsdTicks: 4000000000,
         },
       });
@@ -721,6 +731,572 @@ describe('XaiVideoModel', () => {
         type: 'json-value',
         body: doneStatusResponse,
       };
+    });
+
+    it('should throw when status is failed', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'failed',
+          model: 'grok-imagine-video',
+          progress: 0,
+        },
+      };
+
+      const model = createModel();
+
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        'failed',
+      );
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+  });
+
+  describe('invalid option combinations', () => {
+    it('should throw when videoUrl and extensionUrl are both set', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              videoUrl: 'https://example.com/video.mp4',
+              extensionUrl: 'https://example.com/video.mp4',
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            } as any,
+          },
+        }),
+      ).rejects.toThrow('mutually exclusive');
+    });
+
+    it('should throw when videoUrl and referenceImageUrls are both set', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              videoUrl: 'https://example.com/video.mp4',
+              referenceImageUrls: ['https://example.com/ref.jpg'],
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            } as any,
+          },
+        }),
+      ).rejects.toThrow('mutually exclusive');
+    });
+
+    it('should throw when extensionUrl and referenceImageUrls are both set', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              extensionUrl: 'https://example.com/video.mp4',
+              referenceImageUrls: ['https://example.com/ref.jpg'],
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            } as any,
+          },
+        }),
+      ).rejects.toThrow('mutually exclusive');
+    });
+
+    it('should throw when image and videoUrl are both set', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          image: { type: 'url', url: 'https://example.com/img.png' },
+          providerOptions: {
+            xai: {
+              videoUrl: 'https://example.com/video.mp4',
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow('mutually exclusive');
+    });
+
+    it('should throw when image and referenceImageUrls are both set', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          image: { type: 'url', url: 'https://example.com/img.png' },
+          providerOptions: {
+            xai: {
+              referenceImageUrls: ['https://example.com/ref.jpg'],
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow('mutually exclusive');
+    });
+
+    it('should throw when image and extensionUrl are both set', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          image: { type: 'url', url: 'https://example.com/img.png' },
+          providerOptions: {
+            xai: {
+              extensionUrl: 'https://example.com/video.mp4',
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow('mutually exclusive');
+    });
+  });
+
+  describe('reference images (R2V)', () => {
+    it('should send reference_images array to /videos/generations', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceImageUrls: [
+              'https://example.com/ref1.jpg',
+              'https://example.com/ref2.jpg',
+            ],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestMethod).toBe('POST');
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/generations`,
+      );
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [
+          { url: 'https://example.com/ref1.jpg' },
+          { url: 'https://example.com/ref2.jpg' },
+        ],
+      });
+    });
+
+    it('should reject empty referenceImageUrls arrays', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              referenceImageUrls: [],
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+  });
+
+  describe('video extension', () => {
+    it('should send video object to /videos/extensions for extension mode', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            extensionUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(server.calls[0].requestMethod).toBe('POST');
+      expect(server.calls[0].requestUrl).toBe(
+        `${TEST_BASE_URL}/videos/extensions`,
+      );
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        video: { url: 'https://example.com/source-video.mp4' },
+      });
+    });
+
+    it('should allow duration in extension mode', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        duration: 6,
+        providerOptions: {
+          xai: {
+            extensionUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ duration: 6 });
+    });
+
+    it('should warn about aspectRatio in extension mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: '16:9',
+        providerOptions: {
+          xai: {
+            extensionUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'aspectRatio',
+        }),
+      );
+    });
+
+    it('should warn about resolution in extension mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '1280x720',
+        providerOptions: {
+          xai: {
+            extensionUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+
+    it('should omit aspect_ratio and resolution from body in extension mode', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        providerOptions: {
+          xai: {
+            extensionUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('aspect_ratio');
+      expect(body).not.toHaveProperty('resolution');
+    });
+
+    it('should not warn about duration in extension mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        duration: 6,
+        providerOptions: {
+          xai: {
+            extensionUrl: 'https://example.com/source-video.mp4',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'duration' }),
+      );
+    });
+
+    it('should warn about provider-level resolution in extension mode', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            extensionUrl: 'https://example.com/source-video.mp4',
+            resolution: '720p',
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('resolution');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'resolution',
+        }),
+      );
+    });
+  });
+
+  describe('resolution mapping', () => {
+    it('should map SDK resolution 640x480 to 480p', async () => {
+      const model = createModel();
+
+      await model.doGenerate({ ...defaultOptions, resolution: '640x480' });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ resolution: '480p' });
+    });
+
+    it('should warn and omit body resolution for completely unknown format', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        resolution: '3840x2160',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).not.toHaveProperty('resolution');
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ type: 'unsupported', feature: 'resolution' }),
+      );
+    });
+  });
+
+  describe('polling behaviour', () => {
+    it('should retry polling on pending before resolving done', async () => {
+      // callNumber is global across all URLs in the test.
+      // Call 0 = POST /generations. Polls start at callNumber 1.
+      // Return pending for polls 1 and 2, done for poll 3.
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = ({
+        callNumber,
+      }) => {
+        if (callNumber < 3) {
+          return {
+            type: 'json-value',
+            body: { status: 'pending', model: 'grok-imagine-video' },
+          };
+        }
+        return { type: 'json-value', body: doneStatusResponse };
+      };
+
+      const model = createModel();
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: { pollIntervalMs: 10, pollTimeoutMs: 5000 },
+        },
+      });
+
+      // 1 POST + 3 GETs = 4 total calls; video resolves on 3rd poll
+      expect(server.calls.length).toBe(4);
+      const video = result.videos[0];
+      expect(video.type).toBe('url');
+      if (video.type === 'url') {
+        expect(video.url).toBe('https://vidgen.x.ai/output/video-001.mp4');
+      }
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+  });
+
+  describe('providerMetadata edge cases', () => {
+    it('should omit duration from metadata when absent in response', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: {
+            url: 'https://vidgen.x.ai/output/video-001.mp4',
+            respect_moderation: true,
+            // duration intentionally absent
+          },
+          model: 'grok-imagine-video',
+        },
+      };
+
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.providerMetadata?.xai).not.toHaveProperty('duration');
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should omit progress from metadata when absent in response', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: {
+            url: 'https://vidgen.x.ai/output/video-001.mp4',
+            duration: 5,
+            respect_moderation: true,
+          },
+          model: 'grok-imagine-video',
+          // progress intentionally absent
+        },
+      };
+
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.providerMetadata?.xai).not.toHaveProperty('progress');
+
+      // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+  });
+
+  describe('reference images (R2V) edge cases', () => {
+    it('should reject more than 7 reference images', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              referenceImageUrls: Array.from(
+                { length: 8 },
+                (_, index) => `https://example.com/ref-${index + 1}.jpg`,
+              ),
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('should reject empty-string reference image URLs', async () => {
+      const model = createModel();
+
+      await expect(
+        model.doGenerate({
+          ...defaultOptions,
+          providerOptions: {
+            xai: {
+              referenceImageUrls: ['https://example.com/ref-1.jpg', ''],
+              pollIntervalMs: 10,
+              pollTimeoutMs: 5000,
+            },
+          },
+        }),
+      ).rejects.toThrow(InvalidArgumentError);
+    });
+
+    it('should handle a single reference image', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceImageUrls: ['https://example.com/only-one.jpg'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'https://example.com/only-one.jpg' }],
+      });
+    });
+
+    it('should forward reference image data URIs unchanged', async () => {
+      const model = createModel();
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          xai: {
+            referenceImageUrls: ['data:image/png;base64,iVBORw=='],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        reference_images: [{ url: 'data:image/png;base64,iVBORw==' }],
+      });
+    });
+
+    it('should allow duration and aspectRatio with reference images', async () => {
+      const model = createModel();
+
+      const result = await model.doGenerate({
+        ...defaultOptions,
+        duration: 8,
+        aspectRatio: '16:9',
+        providerOptions: {
+          xai: {
+            referenceImageUrls: ['https://example.com/ref.jpg'],
+            pollIntervalMs: 10,
+            pollTimeoutMs: 5000,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ duration: 8, aspect_ratio: '16:9' });
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'duration' }),
+      );
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'aspectRatio' }),
+      );
     });
   });
 });
