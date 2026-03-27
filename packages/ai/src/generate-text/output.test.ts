@@ -69,14 +69,14 @@ describe('Output.text', () => {
   });
 
   describe('parsePartialOutput', () => {
-    it('should return the string as partial', async () => {
+    it('should return undefined (no structured partial output for plain text)', async () => {
       const result = await text1.parsePartialOutput({ text: 'partial text' });
-      expect(result).toEqual({ partial: 'partial text' });
+      expect(result).toBeUndefined();
     });
 
-    it('should handle empty string partial', async () => {
+    it('should return undefined for empty string', async () => {
       const result = await text1.parsePartialOutput({ text: '' });
-      expect(result).toEqual({ partial: '' });
+      expect(result).toBeUndefined();
     });
   });
 });
