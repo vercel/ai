@@ -1688,6 +1688,52 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
       });
 
+      it('should enable server-side web search when using anthropic.tools.webSearch_20260209', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'text',
+                text: 'Here are the latest quantum computing breakthroughs.',
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.web_search_20260209',
+              name: 'web_search',
+              args: {
+                maxUses: 3,
+                allowedDomains: ['arxiv.org', 'nature.com', 'mit.edu'],
+              },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(1);
+
+        expect(requestBody.tools[0]).toEqual({
+          type: 'web_search_20260209',
+          name: 'web_search',
+          max_uses: 3,
+          allowed_domains: ['arxiv.org', 'nature.com', 'mit.edu'],
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'code-execution-web-tools-2026-02-09',
+        );
+      });
+
       it('should pass web search configuration with blocked domains', async () => {
         prepareJsonResponse({
           type: 'message',
@@ -2111,6 +2157,86 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
 
         it('should include web fetch tool call and result in content', async () => {
+          expect(result.content).toMatchSnapshot();
+        });
+      });
+
+      it('should use web_fetch_20260209 for anthropic.tools.webFetch_20260209', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [{ type: 'text', text: 'Fetched result.' }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'anthropic.web_fetch_20260209',
+              name: 'web_fetch',
+              args: { maxUses: 1 },
+            },
+          ],
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.tools).toHaveLength(1);
+        expect(requestBody.tools[0]).toEqual({
+          type: 'web_fetch_20260209',
+          name: 'web_fetch',
+          max_uses: 1,
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'code-execution-web-tools-2026-02-09',
+        );
+      });
+
+      describe('20260209 text response', () => {
+        let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
+
+        beforeEach(async () => {
+          prepareJsonFixtureResponse('anthropic-web-fetch-tool-20260209.1');
+
+          result = await model.doGenerate({
+            prompt: TEST_PROMPT,
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'anthropic.web_fetch_20260209',
+                name: 'web_fetch',
+                args: {},
+              },
+              {
+                type: 'provider-defined',
+                id: 'anthropic.code_execution_20260120',
+                name: 'code_execution',
+                args: {},
+              },
+            ],
+          });
+        });
+
+        it('should include web fetch tool call with input in content', async () => {
+          const webFetchToolCall = result.content.find(
+            (part: any) =>
+              part.type === 'tool-call' && part.toolName === 'web_fetch',
+          );
+          expect(webFetchToolCall).toBeDefined();
+          expect(webFetchToolCall).toMatchObject({
+            type: 'tool-call',
+            toolName: 'web_fetch',
+            input: '{"url":"https://example.com"}',
+            providerExecuted: true,
+          });
+        });
+
+        it('should include web fetch 20260209 tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
         });
       });
@@ -5381,6 +5507,57 @@ describe('AnthropicMessagesLanguageModel', () => {
           });
 
           it('should stream web search tool results', async () => {
+            expect(
+              await convertReadableStreamToArray(result.stream),
+            ).toMatchSnapshot();
+          });
+        });
+      });
+
+      describe('web fetch 20260209 tool', () => {
+        describe('input provided in content_block_start', () => {
+          let result: Awaited<ReturnType<LanguageModelV2['doStream']>>;
+
+          beforeEach(async () => {
+            prepareChunksFixtureResponse('anthropic-web-fetch-tool-20260209.1');
+
+            result = await model.doStream({
+              prompt: TEST_PROMPT,
+              tools: [
+                {
+                  type: 'provider-defined',
+                  id: 'anthropic.web_fetch_20260209',
+                  name: 'web_fetch',
+                  args: {},
+                },
+                {
+                  type: 'provider-defined',
+                  id: 'anthropic.code_execution_20260120',
+                  name: 'code_execution',
+                  args: {},
+                },
+              ],
+            });
+          });
+
+          it('should include input from content_block_start in web_fetch tool call', async () => {
+            const streamArray = await convertReadableStreamToArray(
+              result.stream,
+            );
+
+            const toolCallEnd = streamArray.find(
+              (part: any) =>
+                part.type === 'tool-call' && part.toolName === 'web_fetch',
+            );
+            expect(toolCallEnd).toBeDefined();
+            expect(toolCallEnd).toMatchObject({
+              type: 'tool-call',
+              toolName: 'web_fetch',
+              input: '{"url":"https://example.com"}',
+            });
+          });
+
+          it('should stream web fetch 20260209 tool results', async () => {
             expect(
               await convertReadableStreamToArray(result.stream),
             ).toMatchSnapshot();

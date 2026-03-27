@@ -33,6 +33,7 @@ import {
   anthropicMessagesChunkSchema,
   anthropicMessagesResponseSchema,
   AnthropicReasoningMetadata,
+  AnthropicTool,
   Citation,
 } from './anthropic-messages-api';
 import {
@@ -614,6 +615,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
 
+    const markCodeExecutionDynamic = hasWebTool20260209WithoutCodeExecution(
+      args.tools,
+    );
+
     const {
       responseHeaders,
       value: response,
@@ -736,6 +741,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               toolName: part.name,
               input: JSON.stringify(part.input),
               providerExecuted: true,
+              ...(markCodeExecutionDynamic && part.name === 'code_execution'
+                ? { dynamic: true }
+                : {}),
             });
           }
 
@@ -837,6 +845,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 stdout: part.content.stdout,
                 stderr: part.content.stderr,
                 return_code: part.content.return_code,
+              },
+              providerExecuted: true,
+            });
+          } else if (part.content.type === 'encrypted_code_execution_result') {
+            content.push({
+              type: 'tool-result',
+              toolCallId: part.tool_use_id,
+              toolName: 'code_execution',
+              result: {
+                type: part.content.type,
+                encrypted_stdout: part.content.encrypted_stdout,
+                stderr: part.content.stderr,
+                return_code: part.content.return_code,
+                content: part.content.content ?? [],
               },
               providerExecuted: true,
             });
@@ -1006,6 +1028,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     // Extract citation documents for response processing
     const citationDocuments = this.extractCitationDocuments(options.prompt);
 
+    const markCodeExecutionDynamic = hasWebTool20260209WithoutCodeExecution(
+      args.tools,
+    );
+
     const body = { ...args, stream: true };
 
     const url = this.buildRequestUrl(true);
@@ -1172,6 +1198,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 }
 
                 case 'server_tool_use': {
+                  const part = value.content_block;
                   if (
                     [
                       'web_fetch',
@@ -1182,30 +1209,44 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       'text_editor_code_execution',
                       // code execution 20250825 bash:
                       'bash_code_execution',
-                    ].includes(value.content_block.name)
+                    ].includes(part.name)
                   ) {
+                    const finalInput =
+                      part.input != null &&
+                      typeof part.input === 'object' &&
+                      Object.keys(part.input).length > 0
+                        ? JSON.stringify(part.input)
+                        : '';
+
                     contentBlocks[value.index] = {
                       type: 'tool-call',
-                      toolCallId: value.content_block.id,
-                      toolName: value.content_block.name,
-                      input: '',
+                      toolCallId: part.id,
+                      toolName: part.name,
+                      input: finalInput,
                       providerExecuted: true,
+                      ...(markCodeExecutionDynamic &&
+                      part.name === 'code_execution'
+                        ? { dynamic: true }
+                        : {}),
                       firstDelta: true,
                     };
 
                     // map tool names for the code execution 20250825 tool:
                     const mappedToolName =
-                      value.content_block.name ===
-                        'text_editor_code_execution' ||
-                      value.content_block.name === 'bash_code_execution'
+                      part.name === 'text_editor_code_execution' ||
+                      part.name === 'bash_code_execution'
                         ? 'code_execution'
-                        : value.content_block.name;
+                        : part.name;
 
                     controller.enqueue({
                       type: 'tool-input-start',
-                      id: value.content_block.id,
+                      id: part.id,
                       toolName: mappedToolName,
                       providerExecuted: true,
+                      ...(markCodeExecutionDynamic &&
+                      part.name === 'code_execution'
+                        ? { dynamic: true }
+                        : {}),
                     });
                   }
 
@@ -1322,6 +1363,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       providerExecuted: true,
                     });
                   } else if (
+                    part.content.type === 'encrypted_code_execution_result'
+                  ) {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.tool_use_id,
+                      toolName: 'code_execution',
+                      result: {
+                        type: part.content.type,
+                        encrypted_stdout: part.content.encrypted_stdout,
+                        stderr: part.content.stderr,
+                        return_code: part.content.return_code,
+                        content: part.content.content ?? [],
+                      },
+                      providerExecuted: true,
+                    });
+                  } else if (
                     part.content.type === 'code_execution_tool_result_error'
                   ) {
                     controller.enqueue({
@@ -1409,6 +1466,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         input:
                           contentBlock.input === '' ? '{}' : contentBlock.input,
                         providerExecuted: contentBlock.providerExecuted,
+                        ...(markCodeExecutionDynamic &&
+                        contentBlock.toolName === 'code_execution'
+                          ? { dynamic: true }
+                          : {}),
                       });
                     }
                     break;
@@ -1846,4 +1907,29 @@ function getModelCapabilities(modelId: string): {
       isKnownModel: false,
     };
   }
+}
+
+function hasWebTool20260209WithoutCodeExecution(
+  tools: AnthropicTool[] | undefined,
+): boolean {
+  if (!tools) {
+    return false;
+  }
+  let hasWebTool20260209 = false;
+  let hasCodeExecutionTool = false;
+  for (const tool of tools) {
+    if (
+      'type' in tool &&
+      (tool.type === 'web_fetch_20260209' ||
+        tool.type === 'web_search_20260209')
+    ) {
+      hasWebTool20260209 = true;
+      continue;
+    }
+    if (tool.name === 'code_execution') {
+      hasCodeExecutionTool = true;
+      break;
+    }
+  }
+  return hasWebTool20260209 && !hasCodeExecutionTool;
 }

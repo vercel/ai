@@ -23,6 +23,7 @@ import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
+import { codeExecution_20260120OutputSchema } from './tool/code-execution_20260120';
 import { webFetch_20250910OutputSchema } from './tool/web-fetch-20250910';
 import { webSearch_20250305OutputSchema } from './tool/web-search_20250305';
 
@@ -543,8 +544,9 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  // to distinguish between code execution 20250522 and 20250825,
-                  // we check if a type property is present in the output.value
+                  // to distinguish between code execution 20250522, 20250825,
+                  // and encrypted results (from web_fetch_20260209/web_search_20260209 injection),
+                  // we check the type property in output.value
                   if (output.value.type === 'code_execution_result') {
                     // code execution 20250522
                     const codeExecutionOutput = await validateTypes({
@@ -563,6 +565,33 @@ export async function convertToAnthropicMessagesPrompt({
                       },
                       cache_control: cacheControl,
                     });
+                  } else if (
+                    output.value.type === 'encrypted_code_execution_result'
+                  ) {
+                    // code execution 20260120 encrypted result
+                    const codeExecutionOutput = await validateTypes({
+                      value: output.value,
+                      schema: codeExecution_20260120OutputSchema,
+                    });
+
+                    if (
+                      codeExecutionOutput.type ===
+                      'encrypted_code_execution_result'
+                    ) {
+                      anthropicContent.push({
+                        type: 'code_execution_tool_result',
+                        tool_use_id: part.toolCallId,
+                        content: {
+                          type: codeExecutionOutput.type,
+                          encrypted_stdout:
+                            codeExecutionOutput.encrypted_stdout,
+                          stderr: codeExecutionOutput.stderr,
+                          return_code: codeExecutionOutput.return_code,
+                          content: codeExecutionOutput.content ?? [],
+                        },
+                        cache_control: cacheControl,
+                      });
+                    }
                   } else {
                     // code execution 20250825
                     const codeExecutionOutput = await validateTypes({
@@ -604,6 +633,11 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
+                  /*
+                   * Ideally we'd switch schema based on the tool version (e.g.
+                   * web_fetch_20260209 vs web_fetch_20250910), but since both
+                   * versions share an identical output schema, we use one here.
+                   */
                   const webFetchOutput = await validateTypes({
                     value: output.value,
                     schema: webFetch_20250910OutputSchema,
@@ -645,6 +679,11 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
+                  /*
+                   * Ideally we'd switch schema based on the tool version (e.g.
+                   * web_search_20260209 vs web_search_20250305), but since both
+                   * versions share an identical output schema, we use one here.
+                   */
                   const webSearchOutput = await validateTypes({
                     value: output.value,
                     schema: webSearch_20250305OutputSchema,
