@@ -279,7 +279,7 @@ export async function generateText<
   onStepFinish,
   onFinish,
   ...settings
-}: CallSettings &
+}: CallSettings<TOOLS> &
   Prompt & {
     /**
      * The language model to use.
@@ -981,8 +981,8 @@ export async function generateText<
           metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           experimental_context,
           content: stepContent,
-          finishReason: currentModelResponse.finishReason.unified,
-          rawFinishReason: currentModelResponse.finishReason.raw,
+          finishReason: currentModelResponse.finishReason?.unified,
+          rawFinishReason: currentModelResponse.finishReason?.raw,
           usage: asLanguageModelUsage(currentModelResponse.usage),
           warnings: currentModelResponse.warnings,
           providerMetadata: currentModelResponse.providerMetadata,
