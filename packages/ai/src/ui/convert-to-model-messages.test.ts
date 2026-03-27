@@ -285,6 +285,42 @@ describe('convertToModelMessages', () => {
   });
 
   describe('assistant message', () => {
+    it('should convert custom assistant parts', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'custom',
+              kind: 'test-provider.compaction',
+              providerMetadata: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'test-provider.compaction',
+              providerOptions: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+      ] satisfies ModelMessage[]);
+    });
+
     it('should convert a simple assistant text message', async () => {
       const result = await convertToModelMessages([
         {
@@ -870,6 +906,72 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should prefer result provider metadata over call provider metadata for provider-executed tool-result', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-calculator',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: { operation: 'multiply', numbers: [3, 4] },
+              output: '12',
+              providerExecuted: true,
+              callProviderMetadata: {
+                testProvider: {
+                  itemId: 'call-item',
+                },
+              },
+              resultProviderMetadata: {
+                testProvider: {
+                  itemId: 'result-item',
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'calculator',
+              input: {
+                operation: 'multiply',
+                numbers: [3, 4],
+              },
+              providerExecuted: true,
+              providerOptions: {
+                testProvider: {
+                  itemId: 'call-item',
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call1',
+              toolName: 'calculator',
+              output: {
+                type: 'text',
+                value: '12',
+              },
+              providerOptions: {
+                testProvider: {
+                  itemId: 'result-item',
+                },
+              },
+            },
+          ],
+        },
+      ]);
     });
 
     it('should handle assistant message with tool invocations that have multi-part responses', async () => {

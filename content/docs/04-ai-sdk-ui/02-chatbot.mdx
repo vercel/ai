@@ -947,6 +947,10 @@ messages.map(message => (
 ));
 ```
 
+Some models may also produce files as part of reasoning (e.g. images).
+These are available as `reasoning-file` parts (`ReasoningFileUIPart`) with
+`mediaType` and `url` properties, similar to regular file parts.
+
 ## Sources
 
 Some providers such as [Perplexity](/providers/ai-sdk-providers/perplexity#sources) and
@@ -1204,6 +1208,9 @@ export default function Page() {
   );
 }
 ```
+
+Files generated as part of model reasoning are available as `reasoning-file`
+parts (`ReasoningFileUIPart`) with the same `mediaType` and `url` properties.
 
 ## Type Inference for Tools
 

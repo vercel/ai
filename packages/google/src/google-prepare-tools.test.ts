@@ -1,4 +1,4 @@
-import { LanguageModelV3ProviderTool } from '@ai-sdk/provider';
+import { LanguageModelV4ProviderTool } from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
@@ -129,7 +129,7 @@ it('should add warnings for unsupported tools', () => {
 });
 
 it('should add warnings for file search on unsupported models', () => {
-  const tool: LanguageModelV3ProviderTool = {
+  const tool: LanguageModelV4ProviderTool = {
     type: 'provider' as const,
     id: 'google.file_search',
     name: 'file_search',

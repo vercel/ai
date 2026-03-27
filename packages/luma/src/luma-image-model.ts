@@ -1,7 +1,7 @@
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4Warning,
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
 import {
@@ -35,8 +35,8 @@ interface LumaImageModelConfig {
   };
 }
 
-export class LumaImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class LumaImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
   readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
   readonly maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS;
@@ -61,10 +61,10 @@ export class LumaImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (seed != null) {
       warnings.push({
@@ -206,8 +206,8 @@ export class LumaImageModel implements ImageModelV3 {
   }
 
   private getEditingOptions(
-    files: ImageModelV3File[] | undefined,
-    mask: ImageModelV3File | undefined,
+    files: ImageModelV4File[] | undefined,
+    mask: ImageModelV4File | undefined,
     referenceType: LumaReferenceType = 'image',
     imageConfigs: Array<{ weight?: number | null; id?: string | null }> = [],
   ): Record<string, unknown> {
