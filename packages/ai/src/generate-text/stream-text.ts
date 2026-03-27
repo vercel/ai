@@ -2201,6 +2201,7 @@ class DefaultStreamTextResult<
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onStepFinish,
     onFinish,
     messageMetadata,
     sendReasoning = true,
@@ -2583,6 +2584,7 @@ class DefaultStreamTextResult<
         stream: baseStream,
         messageId: responseMessageId ?? generateMessageId?.(),
         originalMessages,
+        onStepFinish,
         onFinish,
         onError,
       }),
@@ -2594,6 +2596,7 @@ class DefaultStreamTextResult<
     {
       originalMessages,
       generateMessageId,
+      onStepFinish,
       onFinish,
       messageMetadata,
       sendReasoning,
@@ -2609,6 +2612,7 @@ class DefaultStreamTextResult<
       stream: this.toUIMessageStream({
         originalMessages,
         generateMessageId,
+        onStepFinish,
         onFinish,
         messageMetadata,
         sendReasoning,
@@ -2632,6 +2636,7 @@ class DefaultStreamTextResult<
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>({
     originalMessages,
     generateMessageId,
+    onStepFinish,
     onFinish,
     messageMetadata,
     sendReasoning,
@@ -2646,6 +2651,7 @@ class DefaultStreamTextResult<
       stream: this.toUIMessageStream({
         originalMessages,
         generateMessageId,
+        onStepFinish,
         onFinish,
         messageMetadata,
         sendReasoning,
