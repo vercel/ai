@@ -12433,7 +12433,6 @@ describe('streamText', () => {
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
-              "dynamic": true,
               "input": {
                 "value": "value",
               },
@@ -12473,7 +12472,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
-                "dynamic": true,
+                "dynamic": false,
                 "id": "call-1",
                 "title": undefined,
                 "toolName": "dynamicTool",
@@ -12489,7 +12488,6 @@ describe('streamText', () => {
                 "type": "tool-input-end",
               },
               {
-                "dynamic": true,
                 "input": {
                   "value": "value",
                 },
@@ -18274,49 +18272,15 @@ describe('streamText', () => {
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
-              "dynamic": true,
-              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
-          Error message: [
-            {
-              "expected": "string",
-              "code": "invalid_type",
-              "path": [
-                "city"
-              ],
-              "message": "Invalid input: expected string, received undefined"
-            }
-          ]],
               "input": {
                 "cities": "San Francisco",
               },
-              "invalid": true,
               "providerExecuted": undefined,
               "providerMetadata": undefined,
               "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
-            },
-            {
-              "dynamic": true,
-              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
-          Error message: [
-            {
-              "expected": "string",
-              "code": "invalid_type",
-              "path": [
-                "city"
-              ],
-              "message": "Invalid input: expected string, received undefined"
-            }
-          ]",
-              "input": {
-                "cities": "San Francisco",
-              },
-              "title": undefined,
-              "toolCallId": "call-1",
-              "toolName": "cityAttractions",
-              "type": "tool-error",
             },
           ]
         `);
@@ -18351,49 +18315,15 @@ describe('streamText', () => {
                 "type": "tool-input-end",
               },
               {
-                "dynamic": true,
-                "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
-            Error message: [
-              {
-                "expected": "string",
-                "code": "invalid_type",
-                "path": [
-                  "city"
-                ],
-                "message": "Invalid input: expected string, received undefined"
-              }
-            ]],
                 "input": {
                   "cities": "San Francisco",
                 },
-                "invalid": true,
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
                 "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-call",
-              },
-              {
-                "dynamic": true,
-                "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
-            Error message: [
-              {
-                "expected": "string",
-                "code": "invalid_type",
-                "path": [
-                  "city"
-                ],
-                "message": "Invalid input: expected string, received undefined"
-              }
-            ]",
-                "input": {
-                  "cities": "San Francisco",
-                },
-                "title": undefined,
-                "toolCallId": "call-1",
-                "toolName": "cityAttractions",
-                "type": "tool-error",
               },
               {
                 "finishReason": "stop",
@@ -18470,38 +18400,12 @@ describe('streamText', () => {
                 "type": "tool-input-delta",
               },
               {
-                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
-            Error message: [
-              {
-                "expected": "string",
-                "code": "invalid_type",
-                "path": [
-                  "city"
-                ],
-                "message": "Invalid input: expected string, received undefined"
-              }
-            ]",
                 "input": {
                   "cities": "San Francisco",
                 },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
-                "type": "tool-input-error",
-              },
-              {
-                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
-            Error message: [
-              {
-                "expected": "string",
-                "code": "invalid_type",
-                "path": [
-                  "city"
-                ],
-                "message": "Invalid input: expected string, received undefined"
-              }
-            ]",
-                "toolCallId": "call-1",
-                "type": "tool-output-error",
+                "type": "tool-input-available",
               },
               {
                 "type": "finish-step",
@@ -19625,6 +19529,7 @@ describe('streamText', () => {
                   {
                     "input": {
                       "code": "game_loop()",
+                      "type": "programmatic-tool-call",
                     },
                     "providerExecuted": true,
                     "providerOptions": undefined,
@@ -19690,6 +19595,7 @@ describe('streamText', () => {
                   {
                     "input": {
                       "code": "game_loop()",
+                      "type": "programmatic-tool-call",
                     },
                     "providerExecuted": true,
                     "providerOptions": undefined,
@@ -19797,6 +19703,7 @@ describe('streamText', () => {
                   {
                     "input": {
                       "code": "game_loop()",
+                      "type": "programmatic-tool-call",
                     },
                     "providerExecuted": true,
                     "providerOptions": undefined,
@@ -20318,6 +20225,7 @@ describe('streamText', () => {
                 {
                   "input": {
                     "code": "game_loop()",
+                    "type": "programmatic-tool-call",
                   },
                   "providerExecuted": true,
                   "providerMetadata": undefined,

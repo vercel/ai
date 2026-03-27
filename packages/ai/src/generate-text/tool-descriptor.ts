@@ -17,6 +17,7 @@ export interface FunctionToolDescriptor {
   type: 'function';
   name: string;
   description?: string;
+  title?: string;
   inputSchema: JSONSchema7;
   inputExamples?: Array<Record<string, unknown>>;
   providerOptions?: ProviderOptions;

@@ -8,6 +8,7 @@ import {
   SharedV4Headers,
 } from '@ai-sdk/provider';
 import {
+  jsonSchema,
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
@@ -227,9 +228,39 @@ export async function streamModelCall<
     }),
   );
 
+  // Build a ToolSet-like Record from descriptors for the stream transform.
+  // The transform needs tools[toolName] to look up title, type, and inputSchema
+  // for parseToolCall validation. Wrap JSON schemas with jsonSchema() so
+  // asSchema() can handle them (plain objects aren't FlexibleSchema).
+  const toolsRecord = tools
+    ? (Object.fromEntries(
+        tools.map(t =>
+          t.type === 'function'
+            ? [
+                t.name,
+                {
+                  description: t.description,
+                  title: t.title,
+                  inputSchema: jsonSchema(t.inputSchema),
+                  providerOptions: t.providerOptions,
+                  strict: t.strict,
+                },
+              ]
+            : [
+                t.name,
+                {
+                  type: 'provider' as const,
+                  id: t.id,
+                  args: t.args,
+                },
+              ],
+        ),
+      ) as unknown as TOOLS)
+    : (undefined as unknown as TOOLS);
+
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelStreamPartToModelCallStreamPartTransform({
-      tools: tools as unknown as TOOLS,
+      tools: toolsRecord,
       system: standardizedPrompt.system,
       messages: standardizedPrompt.messages,
       repairToolCall,
