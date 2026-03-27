@@ -45,14 +45,12 @@ async function streamModelCallResult<TOOLS extends ToolSet>({
     }),
   });
 
-  const {
-    tools: preparedTools,
-    toolChoice: preparedToolChoice,
-  } = await prepareToolsAndToolChoice({
-    tools,
-    toolChoice: undefined,
-    activeTools: undefined,
-  });
+  const { tools: preparedTools, toolChoice: preparedToolChoice } =
+    await prepareToolsAndToolChoice({
+      tools,
+      toolChoice: undefined,
+      activeTools: undefined,
+    });
 
   const { stream } = await streamModelCall({
     model,

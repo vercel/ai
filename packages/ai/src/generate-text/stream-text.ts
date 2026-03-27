@@ -1550,19 +1550,15 @@ class DefaultStreamTextResult<
 
           const stepStartTimestampMs = now();
 
-          const stepActiveTools =
-            prepareStepResult?.activeTools ?? activeTools;
-          const stepToolChoice =
-            prepareStepResult?.toolChoice ?? toolChoice;
+          const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+          const stepToolChoice = prepareStepResult?.toolChoice ?? toolChoice;
 
-          const {
-            toolChoice: preparedToolChoice,
-            tools: preparedTools,
-          } = await prepareToolsAndToolChoice({
-            tools,
-            toolChoice: stepToolChoice,
-            activeTools: stepActiveTools,
-          });
+          const { toolChoice: preparedToolChoice, tools: preparedTools } =
+            await prepareToolsAndToolChoice({
+              tools,
+              toolChoice: stepToolChoice,
+              activeTools: stepActiveTools,
+            });
 
           const {
             stream: languageModelStream,
