@@ -1,0 +1,169 @@
+---
+title: Inception
+description: Learn how to use the Inception provider with the AI SDK.
+---
+
+# Inception Provider
+
+[inception-ai-provider](https://github.com/welidev/inception-ai-provider) is a community provider that uses the [Inception](https://inceptionlabs.ai) API to provide access to the Mercury diffusion language model. It supports chat completions with streaming, tool calling, structured outputs, and reasoning effort control.
+
+## Setup
+
+The Inception provider is available via the `inception-ai-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add inception-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install inception-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add inception-ai-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `inception` from `inception-ai-provider`:
+
+```ts
+import { inception } from 'inception-ai-provider';
+```
+
+If you need to customize the configuration, use the `createInception` function:
+
+```ts
+import { createInception } from 'inception-ai-provider';
+
+const inception = createInception({
+  apiKey: process.env.INCEPTION_API_KEY,
+});
+```
+
+### Configuration Options
+
+- **apiKey** _string_
+
+  API key for the Inception API. Defaults to the `INCEPTION_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Custom base URL for API calls. Defaults to `https://api.inceptionlabs.ai`.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Extra headers to include in every request.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+The Inception provider offers chat models:
+
+```ts
+const model = inception('mercury-2');
+```
+
+### Reasoning Effort
+
+Mercury 2 is a reasoning model that supports configurable reasoning effort:
+
+```ts
+// Near-instant responses (skips reasoning)
+const fast = inception('mercury-2', { reasoningEffort: 'instant' });
+
+// Deep reasoning
+const deep = inception('mercury-2', { reasoningEffort: 'high' });
+```
+
+Available levels: `instant`, `low`, `medium`, `high`
+
+### Model Capabilities
+
+| Model | Text Generation | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| ------------ | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `mercury-2` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+## Examples
+
+### generateText
+
+```ts
+import { generateText } from 'ai';
+import { inception } from 'inception-ai-provider';
+
+const { text } = await generateText({
+  model: inception('mercury-2'),
+  prompt: 'What is a diffusion model?',
+});
+
+console.log(text);
+```
+
+### streamText
+
+```ts
+import { streamText } from 'ai';
+import { inception } from 'inception-ai-provider';
+
+const result = streamText({
+  model: inception('mercury-2'),
+  prompt: 'Write a short poem.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Tool Calling
+
+```ts
+import { generateText } from 'ai';
+import { inception } from 'inception-ai-provider';
+import { z } from 'zod';
+
+const { text, toolCalls } = await generateText({
+  model: inception('mercury-2'),
+  prompt: "What's the weather in San Francisco?",
+  tools: {
+    getWeather: {
+      description: 'Get the current weather in a given location',
+      parameters: z.object({
+        location: z
+          .string()
+          .describe("City and state, e.g. 'San Francisco, CA'"),
+      }),
+      execute: async ({ location }) => `72°F and sunny in ${location}`,
+    },
+  },
+});
+```
+
+### Structured Output
+
+```ts
+import { generateObject } from 'ai';
+import { inception } from 'inception-ai-provider';
+import { z } from 'zod';
+
+const { object } = await generateObject({
+  model: inception('mercury-2'),
+  prompt: "Analyze the sentiment of: 'I love this product!'",
+  schema: z.object({
+    sentiment: z.enum(['positive', 'negative', 'neutral']),
+    confidence: z.number().min(0).max(1),
+  }),
+});
+```
+
+## Compatibility
+
+| inception-ai-provider | ai (peer dep) | Specification   |
+| --------------------- | ------------- | --------------- |
+| `0.3.x`               | `^6.0.0`     | LanguageModelV3 |
+| `0.2.x`               | `^5.0.0`     | LanguageModelV2 |
+| `0.1.x`               | —             | LanguageModelV1 |
