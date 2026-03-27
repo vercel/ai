@@ -44,9 +44,11 @@ Create the compression middleware. It uses `transformParams` to compress message
 
 ```ts filename='ai/compression-middleware.ts'
 import { compress } from 'headroom-ai';
-import type { LanguageModelV3Middleware } from '@ai-sdk/provider';
+import {
+  type LanguageModelV4Middleware,
+} from 'ai';
 
-export const compressionMiddleware: LanguageModelV3Middleware = {
+export const compressionMiddleware: LanguageModelV4Middleware = {
   transformParams: async ({ params }) => {
     const prompt = params.prompt;
     if (!prompt || prompt.length === 0) return params;
