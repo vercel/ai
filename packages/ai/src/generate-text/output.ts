@@ -70,8 +70,8 @@ export const text = (): Output<string, string, never> => ({
     return text;
   },
 
-  async parsePartialOutput({ text }: { text: string }) {
-    return { partial: text };
+  async parsePartialOutput() {
+    return undefined; // plain text has no structured partial output to parse
   },
 
   createElementStreamTransform() {
