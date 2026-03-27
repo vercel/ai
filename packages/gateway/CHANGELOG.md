@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.65
+
+### Patch Changes
+
+- 4e8bdc7: feat (provider/gateway): add spend reporting support
+
 ## 2.0.64
 
 ### Patch Changes
