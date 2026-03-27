@@ -2,6 +2,8 @@ import { type XaiVideoModelOptions, xai } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 import { run } from '../../lib/run';
 
+// Demonstrates that aspectRatio and resolution are silently ignored
+// (with a warning) when using extension mode.
 run(async () => {
   console.log('Step 1: generating a source video...');
   const source = await generateVideo({
@@ -22,20 +24,21 @@ run(async () => {
 
   console.log('Source video URL:', sourceUrl);
 
-  console.log('\nStep 2: editing with unsupported params...');
+  console.log('\nStep 2: extending with unsupported params...');
   const result = await generateVideo({
     model: xai.video('grok-imagine-video'),
-    prompt: 'Add sunglasses to the cat',
-    duration: 10,
+    prompt: 'The cat stretches and jumps off the windowsill.',
+    duration: 5,
     aspectRatio: '16:9',
     resolution: '1280x720',
     providerOptions: {
       xai: {
-        videoUrl: sourceUrl,
+        extensionUrl: sourceUrl,
         pollTimeoutMs: 600000,
       } satisfies XaiVideoModelOptions,
     },
   });
 
-  console.log('\nWarnings:', JSON.stringify(result.warnings, null, 2));
+  console.log('\nWarnings (aspectRatio and resolution are unsupported):');
+  console.log(JSON.stringify(result.warnings, null, 2));
 });

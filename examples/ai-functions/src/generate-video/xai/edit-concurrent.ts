@@ -24,7 +24,12 @@ run(async () => {
   await presentVideos(step1.videos);
 
   // Use the xAI-hosted URL from step 1 as input for the next two edits
-  const step1VideoUrl = step1.providerMetadata?.xai?.videoUrl as string;
+  const step1VideoUrl = step1.providerMetadata?.xai?.videoUrl as
+    | string
+    | undefined;
+  if (step1VideoUrl == null) {
+    throw new Error('xAI provider metadata did not include a step-1 videoUrl.');
+  }
 
   // Step 2: Apply two more edits concurrently, building on step 1
   const edits = [
