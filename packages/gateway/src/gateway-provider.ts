@@ -54,13 +54,6 @@ Returns credit information for the authenticated user.
   getCredits(): Promise<GatewayCreditsResponse>;
 
   /**
-<<<<<<< HEAD
-Creates a model for generating text embeddings.
-*/
-  textEmbeddingModel(
-    modelId: GatewayEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
-=======
    * Returns a spend report with cost, token, and request count data,
    * aggregated by the specified dimension.
    */
@@ -69,10 +62,11 @@ Creates a model for generating text embeddings.
   ): Promise<GatewaySpendReportResponse>;
 
   /**
-   * Creates a model for generating text embeddings.
-   */
-  embedding(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
->>>>>>> 95fedf020 (Backport: feat (provider/gateway): add spend reporting support (#13859))
+Creates a model for generating text embeddings.
+*/
+  textEmbeddingModel(
+    modelId: GatewayEmbeddingModelId,
+  ): EmbeddingModelV2<string>;
 
   /**
 Creates a model for generating images.

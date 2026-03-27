@@ -1050,7 +1050,7 @@ describe('GatewayProvider', () => {
       expect(report).toEqual(mockResults);
       expect(GatewaySpendReport).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v3/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v1/ai',
           headers: expect.any(Function),
           fetch: undefined,
         }),
