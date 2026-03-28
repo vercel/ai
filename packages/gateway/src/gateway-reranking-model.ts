@@ -75,7 +75,6 @@ export class GatewayRerankingModel implements RerankingModelV4 {
 
       return {
         ranking: responseBody.ranking,
-        usage: responseBody.usage ?? undefined,
         providerMetadata:
           responseBody.providerMetadata as unknown as SharedV4ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
@@ -107,7 +106,6 @@ const gatewayRerankingResponseSchema = lazySchema(() =>
           relevanceScore: z.number(),
         }),
       ),
-      usage: z.object({ tokens: z.number() }).nullish(),
       providerMetadata: z
         .record(z.string(), z.record(z.string(), z.unknown()))
         .optional(),
