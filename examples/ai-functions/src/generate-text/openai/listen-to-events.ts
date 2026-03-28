@@ -22,8 +22,8 @@ async function main() {
     stopWhen: stepCountIs(3),
     experimental_onStart: event => {
       console.log('\n--- onStart ---');
-      console.log('Provider:', event.model.provider);
-      console.log('Model:', event.model.modelId);
+      console.log('Provider:', event.provider);
+      console.log('Model:', event.modelId);
       console.log('Temperature:', event.temperature);
     },
     experimental_onStepStart: event => {

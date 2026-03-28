@@ -25,6 +25,11 @@ export * from './is-abort-error';
 export { isNonNullable } from './is-non-nullable';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
+export {
+  isCustomReasoning,
+  mapReasoningToProviderBudget,
+  mapReasoningToProviderEffort,
+} from './map-reasoning-to-provider';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
 export { type MaybePromiseLike } from './maybe-promise-like';
@@ -54,7 +59,9 @@ export {
   type Schema,
   type ValidationResult,
 } from './schema';
+export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
+export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';
 export { VERSION } from './version';
 export { withUserAgentSuffix } from './with-user-agent-suffix';

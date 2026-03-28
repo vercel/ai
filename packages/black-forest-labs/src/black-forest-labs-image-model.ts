@@ -1,4 +1,4 @@
-import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import type { InferSchema, Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -40,8 +40,8 @@ interface BlackForestLabsImageModelConfig {
   };
 }
 
-export class BlackForestLabsImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class BlackForestLabsImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -61,8 +61,8 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     aspectRatio,
     seed,
     providerOptions,
-  }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<SharedV3Warning> = [];
+  }: Parameters<ImageModelV4['doGenerate']>[0]) {
+    const warnings: Array<SharedV4Warning> = [];
 
     const finalAspectRatio =
       aspectRatio ?? (size ? convertSizeToAspectRatio(size) : undefined);
@@ -161,8 +161,8 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
     const { body, warnings } = await this.getArgs({
       prompt,
@@ -175,7 +175,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       n: 1,
       headers,
       abortSignal,
-    } as Parameters<ImageModelV3['doGenerate']>[0]);
+    } as Parameters<ImageModelV4['doGenerate']>[0]);
 
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',

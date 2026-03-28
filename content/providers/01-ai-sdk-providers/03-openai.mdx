@@ -257,6 +257,11 @@ The following provider options are available:
 - **forceReasoning** _boolean_
   Force treating this model as a reasoning model. This is useful for "stealth" reasoning models (e.g. via a custom baseURL) where the model ID is not recognized by the SDK's allowlist. When enabled, the SDK applies reasoning-model parameter compatibility rules and defaults `systemMessageMode` to `developer` unless overridden.
 
+- **contextManagement** _Array&lt;object&gt;_
+  Enable server-side context management (compaction). When configured, the server automatically compresses conversation context when token usage crosses a specified threshold. Each object in the array should have:
+  - `type`: `'compaction'`
+  - `compactThreshold`: _number_ — the token count at which compaction is triggered
+
 The OpenAI responses provider also returns provider-specific metadata:
 
 For Responses models, you can type this metadata using `OpenaiResponsesProviderMetadata`:
@@ -958,6 +963,220 @@ Your execute function must return:
 - **status** _'completed' | 'failed'_ - Whether the patch was applied successfully
 - **output** _string_ (optional) - Human-readable log text (e.g., results or error messages)
 
+#### Tool Search
+
+Tool search allows the model to dynamically search for and load tools into context as needed,
+rather than loading all tool definitions up front. This can reduce token usage, cost, and latency
+when you have many tools. Mark the tools you want to make searchable with `deferLoading: true`
+in their `providerOptions`.
+
+There are two execution modes:
+
+- **Server-executed (hosted):** OpenAI searches across the deferred tools declared in the request and returns the loaded subset in the same response. No extra round-trip is needed.
+- **Client-executed:** The model emits a `tool_search_call`, your application performs the lookup, and you return the matching tools via the `execute` callback.
+
+##### Server-Executed (Hosted) Tool Search
+
+Use hosted tool search when the candidate tools are already known at request time.
+Add `openai.tools.toolSearch()` with no arguments and mark your tools with `deferLoading: true`:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  prompt: 'What is the weather in San Francisco?',
+  stopWhen: stepCountIs(10),
+  tools: {
+    toolSearch: openai.tools.toolSearch(),
+
+    get_weather: tool({
+      description: 'Get the current weather at a specific location',
+      inputSchema: z.object({
+        location: z.string(),
+        unit: z.enum(['celsius', 'fahrenheit']),
+      }),
+      execute: async ({ location, unit }) => ({
+        location,
+        temperature: unit === 'celsius' ? 18 : 64,
+      }),
+      providerOptions: {
+        openai: { deferLoading: true },
+      },
+    }),
+
+    search_files: tool({
+      description: 'Search through files in the workspace',
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) => ({
+        results: [`Found 3 files matching "${query}"`],
+      }),
+      providerOptions: {
+        openai: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+In hosted mode, the model internally searches the deferred tools, loads the relevant ones, and
+proceeds to call them — all within a single response. The `tool_search_call` and
+`tool_search_output` items appear in the response with `execution: 'server'` and `call_id: null`.
+
+##### Client-Executed Tool Search
+
+Use client-executed tool search when tool discovery depends on runtime state — for example,
+tools that vary per tenant, project, or external system. Pass `execution: 'client'` along with
+a `description`, `parameters` schema, and an `execute` callback:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  prompt: 'What is the weather in San Francisco?',
+  stopWhen: stepCountIs(10),
+  tools: {
+    toolSearch: openai.tools.toolSearch({
+      execution: 'client',
+      description: 'Search for available tools based on what the user needs.',
+      parameters: {
+        type: 'object',
+        properties: {
+          goal: {
+            type: 'string',
+            description: 'What the user is trying to accomplish',
+          },
+        },
+        required: ['goal'],
+        additionalProperties: false,
+      },
+      execute: async ({ arguments: args }) => {
+        // Your custom tool discovery logic here.
+        // Return the tools that match the search goal.
+        return {
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the current weather at a specific location',
+              deferLoading: true,
+              parameters: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                },
+                required: ['location'],
+                additionalProperties: false,
+              },
+            },
+          ],
+        };
+      },
+    }),
+
+    get_weather: tool({
+      description: 'Get the current weather at a specific location',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 64,
+        condition: 'Partly cloudy',
+      }),
+      providerOptions: {
+        openai: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+In client mode, the flow spans two steps:
+
+1. **Step 1:** The model emits a `tool_search_call` with `execution: 'client'` and a non-null `call_id`. The SDK calls your `execute` callback with the search arguments. Your callback returns the discovered tools.
+2. **Step 2:** The SDK sends the `tool_search_output` (with the matching `call_id`) back to the model. The model can now call the loaded tools as normal function calls.
+
+For more details, see the [OpenAI Tool Search documentation](https://platform.openai.com/docs/guides/tools-tool-search).
+
+#### Custom Tool
+
+The OpenAI Responses API supports
+[custom tools](https://developers.openai.com/api/docs/guides/function-calling/#custom-tools)
+through the `openai.tools.customTool` tool.
+Custom tools return a raw string instead of JSON, optionally constrained to a grammar
+(regex or Lark syntax). This makes them useful for generating structured text like
+SQL queries, code snippets, or any output that must match a specific pattern.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, stepCountIs } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.2-codex'),
+  tools: {
+    write_sql: openai.tools.customTool({
+      description: 'Write a SQL SELECT query to answer the user question.',
+      format: {
+        type: 'grammar',
+        syntax: 'regex',
+        definition: 'SELECT .+',
+      },
+      execute: async input => {
+        // input is a raw string matching the grammar, e.g. "SELECT * FROM users WHERE age > 25"
+        const rows = await db.query(input);
+        return JSON.stringify(rows);
+      },
+    }),
+  },
+  toolChoice: 'required',
+  prompt: 'Write a SQL query to get all users older than 25.',
+  stopWhen: stepCountIs(3),
+});
+```
+
+Custom tools also work with `streamText`:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai.responses('gpt-5.2-codex'),
+  tools: {
+    write_sql: openai.tools.customTool({
+      description: 'Write a SQL SELECT query to answer the user question.',
+      format: {
+        type: 'grammar',
+        syntax: 'regex',
+        definition: 'SELECT .+',
+      },
+    }),
+  },
+  toolChoice: 'required',
+  prompt: 'Write a SQL query to get all users older than 25.',
+});
+
+for await (const chunk of result.fullStream) {
+  if (chunk.type === 'tool-call') {
+    console.log(`Tool: ${chunk.toolName}`);
+    console.log(`Input: ${chunk.input}`);
+  }
+}
+```
+
+The custom tool can be configured with:
+
+- **description** _string_ (optional) - A description of what the tool does, to help the model understand when to use it.
+- **format** _object_ (optional) - The output format constraint. Omit for unconstrained text output.
+  - **type** _'grammar' | 'text'_ - The format type. Use `'grammar'` for constrained output or `'text'` for explicit unconstrained text.
+  - **syntax** _'regex' | 'lark'_ - (grammar only) The grammar syntax. Use `'regex'` for regular expression patterns or `'lark'` for [Lark parser grammar](https://lark-parser.readthedocs.io/).
+  - **definition** _string_ - (grammar only) The grammar definition string (a regex pattern or Lark grammar).
+- **execute** _function_ (optional) - An async function that receives the raw string input and returns a string result. Enables multi-turn tool calling.
+
 #### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
@@ -1297,6 +1516,125 @@ for (const part of result.content) {
   are fields like `filename` that are directly available on the source object.
 </Note>
 
+#### Compaction
+
+The OpenAI Responses API supports server-side context compaction. When enabled, the server automatically compresses conversation context when token usage crosses a configured threshold. This is useful for long-running conversations or agent loops where you want to stay within token limits without manually managing context.
+
+The compaction item returned by the server is opaque and encrypted — it carries forward key prior state and reasoning into the next turn using fewer tokens. The AI SDK handles this automatically: compaction items are returned as text parts with special `providerMetadata`, and when passed back in subsequent requests they are sent as compaction input items.
+
+```ts highlight="7-11"
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.2'),
+  messages: conversationHistory,
+  providerOptions: {
+    openai: {
+      store: false,
+      contextManagement: [{ type: 'compaction', compactThreshold: 50000 }],
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+```
+
+**Configuration:**
+
+- **type** — Must be `'compaction'`
+- **compactThreshold** — The token count at which compaction is triggered. When the rendered input token count crosses this threshold, the server runs a compaction pass before continuing inference.
+
+<Note>
+  Server-side compaction is ZDR-friendly when you set `store: false` on your
+  requests.
+</Note>
+
+##### Detecting Compaction in Streams
+
+When using `streamText`, you can detect compaction by checking the `providerMetadata` on `text-start` and `text-end` events:
+
+```ts
+import {
+  openai,
+  type OpenAILanguageModelResponsesOptions,
+} from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai.responses('gpt-5.2'),
+  messages: conversationHistory,
+  providerOptions: {
+    openai: {
+      store: false,
+      contextManagement: [{ type: 'compaction', compactThreshold: 50000 }],
+    } satisfies OpenAILanguageModelResponsesOptions,
+  },
+});
+
+for await (const part of result.fullStream) {
+  switch (part.type) {
+    case 'text-start': {
+      const isCompaction = part.providerMetadata?.openai?.type === 'compaction';
+      if (isCompaction) {
+        // ... your logic
+      }
+      break;
+    }
+    case 'text-end': {
+      const isCompaction = part.providerMetadata?.openai?.type === 'compaction';
+      if (isCompaction) {
+        // ... your logic
+      }
+      break;
+    }
+    case 'text-delta': {
+      process.stdout.write(part.text);
+      break;
+    }
+  }
+}
+```
+
+##### Compaction in UI Applications
+
+When using `useChat` or other UI hooks, compaction items appear as text parts with `providerMetadata`. You can detect and style them differently in your UI:
+
+```tsx
+{
+  message.parts.map((part, index) => {
+    if (part.type === 'text') {
+      const isCompaction =
+        (part.providerMetadata?.openai as { type?: string } | undefined)
+          ?.type === 'compaction';
+
+      if (isCompaction) {
+        return (
+          <div
+            key={index}
+            className="bg-yellow-100 border-l-4 border-yellow-500 p-2"
+          >
+            <span className="font-bold">[Context Compacted]</span>
+            <p className="text-sm text-yellow-700">
+              The server compressed the conversation context to reduce token
+              usage.
+            </p>
+          </div>
+        );
+      }
+      return <div key={index}>{part.text}</div>;
+    }
+  });
+}
+```
+
+The metadata includes the following fields:
+
+- **type** — Always `'compaction'`
+- **itemId** _string_ — The ID of the compaction item in the Responses API
+- **encryptedContent** _string_ (optional) — The encrypted compaction state. This is automatically sent back to the API when the message is included in subsequent requests.
+
 ### Chat Models
 
 You can create models that call the [OpenAI chat API](https://platform.openai.com/docs/api-reference/chat) using the `.chat()` factory method.
@@ -1429,7 +1767,7 @@ The following optional provider options are available for OpenAI chat models:
 
 OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
 Currently, `o4-mini`, `o3`, `o3-mini`, and `o1` are available via both the chat and responses APIs. The
-models `codex-mini-latest` and `computer-use-preview` are available only via the [responses API](#responses-models).
+model `gpt-5.1-codex-mini` is available only via the [responses API](#responses-models).
 
 Reasoning models currently only generate text, have several limitations, and are only supported using `generateText` and `streamText`.
 
@@ -1963,6 +2301,11 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model                 | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
 | --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-5.4-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.4`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.4-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.4-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.3-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.2-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.2-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.2`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |

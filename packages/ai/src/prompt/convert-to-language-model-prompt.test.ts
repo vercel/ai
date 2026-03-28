@@ -1190,6 +1190,42 @@ describe('convertToLanguageModelMessage', () => {
   });
 
   describe('assistant message', () => {
+    it('should include custom parts', () => {
+      const result = convertToLanguageModelMessage({
+        message: {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'test-provider.compaction',
+              providerOptions: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+        downloadedAssets: {},
+      });
+
+      expect(result).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'custom',
+            kind: 'test-provider.compaction',
+            providerOptions: {
+              openai: {
+                itemId: 'cmp_123',
+              },
+            },
+          },
+        ],
+        providerOptions: undefined,
+      });
+    });
+
     describe('text parts', () => {
       it('should ignore empty text parts when there are no provider options', async () => {
         const result = convertToLanguageModelMessage({
@@ -1368,6 +1404,89 @@ describe('convertToLanguageModelMessage', () => {
             },
           ],
         });
+      });
+    });
+
+    describe('reasoning-file parts', () => {
+      it('should convert reasoning-file part with base64 data', () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning-file',
+                data: 'iVBORw0KGgo=',
+                mediaType: 'image/png',
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                  },
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "data": "iVBORw0KGgo=",
+                "mediaType": "image/png",
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                  },
+                },
+                "type": "reasoning-file",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          }
+        `);
+      });
+
+      it('should convert reasoning-file part with Uint8Array data', () => {
+        const data = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning-file',
+                data,
+                mediaType: 'image/png',
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "data": Uint8Array [
+                  137,
+                  80,
+                  78,
+                  71,
+                  13,
+                  10,
+                  26,
+                  10,
+                ],
+                "mediaType": "image/png",
+                "providerOptions": undefined,
+                "type": "reasoning-file",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          }
+        `);
       });
     });
 

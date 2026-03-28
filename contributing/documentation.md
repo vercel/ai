@@ -10,7 +10,7 @@ Note: There is currently no way to preview documentation changes locally before 
 
 All documentation PRs should be prefixed with `docs:` in the title.
 
-Run `npm run prettier-fix` to solve formatting issues.
+Run `npm run fix` to solve formatting issues.
 
 ## Update Schedule
 

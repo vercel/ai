@@ -1,6 +1,6 @@
 import {
-  EmbeddingModelV3,
-  SharedV3Warning,
+  EmbeddingModelV4,
+  SharedV4Warning,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -39,8 +39,8 @@ type OpenAICompatibleEmbeddingConfig = {
   errorStructure?: ProviderErrorStructure<any>;
 };
 
-export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: OpenAICompatibleEmbeddingModelId;
 
   private readonly config: OpenAICompatibleEmbeddingConfig;
@@ -74,10 +74,10 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options - check for deprecated 'openai-compatible' key
     const deprecatedOptions = await parseProviderOptions({

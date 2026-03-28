@@ -1,5 +1,241 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 1f509d4: fix(ai): force template check on 'kind' param
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 365da1a: Add `gpt-5.4-mini`, `gpt-5.4-mini-2026-03-17`, `gpt-5.4-nano`, and `gpt-5.4-nano-2026-03-17` models.
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- e6376c2: fix(openai): preserve raw finish reason for failed responses stream events
+
+  Handle `response.failed` chunks in Responses API streaming so `finishReason.raw` is preserved from `incomplete_details.reason` (e.g. `max_output_tokens`), and map failed-without-reason cases to unified `error` instead of `other`.
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- d9a1e9a: feat(openai): add server side compaction for openai
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 4.0.0-beta.10
+
+### Major Changes
+
+- 61753c3: ### `@ai-sdk/openai`: remove redundant `name` argument from `openai.tools.customTool()`
+
+  `openai.tools.customTool()` no longer accepts a `name` field. the tool name is now derived from the sdk tool key (the object key in the `tools` object).
+
+  migration: remove the `name` property from `customTool()` calls. the object key is now used as the tool name sent to the openai api.
+
+  before:
+
+  ```ts
+  tools: {
+    write_sql: openai.tools.customTool({
+      name: 'write_sql',
+      description: '...',
+    }),
+  }
+  ```
+
+  after:
+
+  ```ts
+  tools: {
+    write_sql: openai.tools.customTool({
+      description: '...',
+    }),
+  }
+  ```
+
+  ### `@ai-sdk/provider-utils`: `createToolNameMapping()` no longer accepts the `resolveProviderToolName` parameter
+
+  before: tool name can be set dynamically
+
+  ```ts
+  const toolNameMapping = createToolNameMapping({
+    tools,
+    providerToolNames: {
+      "openai.code_interpreter": "code_interpreter",
+      "openai.file_search": "file_search",
+      "openai.image_generation": "image_generation",
+      "openai.local_shell": "local_shell",
+      "openai.shell": "shell",
+      "openai.web_search": "web_search",
+      "openai.web_search_preview": "web_search_preview",
+      "openai.mcp": "mcp",
+      "openai.apply_patch": "apply_patch",
+    },
+    resolveProviderToolName: (tool) =>
+      tool.id === "openai.custom"
+        ? (tool.args as { name?: string }).name
+        : undefined,
+  });
+  ```
+
+  after: tool name is static based on `tools` keys
+
+  ```
+  const toolNameMapping = createToolNameMapping({
+    tools,
+    providerToolNames: {
+      'openai.code_interpreter': 'code_interpreter',
+      'openai.file_search': 'file_search',
+      'openai.image_generation': 'image_generation',
+      'openai.local_shell': 'local_shell',
+      'openai.shell': 'shell',
+      'openai.web_search': 'web_search',
+      'openai.web_search_preview': 'web_search_preview',
+      'openai.mcp': 'mcp',
+      'openai.apply_patch': 'apply_patch',
+    }
+  });
+  ```
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- 156cdf0: feat(openai): add new tool search tool
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- ac18f89: feat(provider/openai): add `gpt-5.3-chat-latest`
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- a71d345: fix(provider/openai): drop reasoning parts without encrypted content when store: false
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- 45b3d76: fix(security): prevent streaming tool calls from finalizing on parsable partial JSON
+
+  Streaming tool call arguments were finalized using `isParsableJson()` as a heuristic for completion. If partial accumulated JSON happened to be valid JSON before all chunks arrived, the tool call would be executed with incomplete arguments. Tool call finalization now only occurs in `flush()` after the stream is fully consumed.
+
+- f7295cb: revert incorrect fix https://github.com/vercel/ai/pull/13172
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 7afaece: feat(provider/openai): add GPT-5.4 model support
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.38
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+
+## 3.0.37
+
+### Patch Changes
+
+- 58bc42d: feat(provider/openai): support custom tools with alias mapping
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
 ## 3.0.36
 
 ### Patch Changes
@@ -300,13 +536,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 60f4775: fix: remove code for unsuported o1-mini and o1-preview models
@@ -316,15 +552,15 @@
 - 2e86082: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
 
   ```ts
-  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
-  import { generateText } from 'ai';
+  import { openai, type OpenAIChatLanguageModelOptions } from "@ai-sdk/openai";
+  import { generateText } from "ai";
 
   await generateText({
-    model: openai.chat('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: openai.chat("gpt-4o"),
+    prompt: "Invent a new holiday and describe its traditions.",
     providerOptions: {
       openai: {
-        user: 'user-123',
+        user: "user-123",
       } satisfies OpenAIChatLanguageModelOptions,
     },
   });
@@ -725,13 +961,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1201,15 +1437,15 @@
 - 2e86082: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
 
   ```ts
-  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
-  import { generateText } from 'ai';
+  import { openai, type OpenAIChatLanguageModelOptions } from "@ai-sdk/openai";
+  import { generateText } from "ai";
 
   await generateText({
-    model: openai.chat('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: openai.chat("gpt-4o"),
+    prompt: "Invent a new holiday and describe its traditions.",
     providerOptions: {
       openai: {
-        user: 'user-123',
+        user: "user-123",
       } satisfies OpenAIChatLanguageModelOptions,
     },
   });
@@ -1505,7 +1741,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1518,7 +1754,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1580,10 +1816,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -1882,7 +2118,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1895,7 +2131,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1940,10 +2176,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

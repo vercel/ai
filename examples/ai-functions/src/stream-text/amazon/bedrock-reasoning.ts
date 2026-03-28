@@ -1,23 +1,16 @@
-import {
-  bedrock,
-  type AmazonBedrockLanguageModelOptions,
-} from '@ai-sdk/amazon-bedrock';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { stepCountIs, streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+    model: bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     temperature: 0.5, // should get ignored (warning)
     onError: error => {
       console.error(error);
     },
-    providerOptions: {
-      bedrock: {
-        reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
-      } satisfies AmazonBedrockLanguageModelOptions,
-    },
+    reasoning: 'low',
     maxRetries: 0,
     stopWhen: stepCountIs(5),
   });

@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV3,
-  SharedV3Warning,
+  TranscriptionModelV4,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -333,8 +333,8 @@ interface GladiaTranscriptionModelConfig extends GladiaConfig {
   };
 }
 
-export class GladiaTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class GladiaTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -347,8 +347,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV3 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const gladiaOptions = await parseProviderOptions({
@@ -487,8 +487,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     // Create form data with base fields

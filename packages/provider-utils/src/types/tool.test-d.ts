@@ -1,4 +1,4 @@
-import { LanguageModelV3ToolResultPart } from '@ai-sdk/provider';
+import { LanguageModelV4ToolResultPart } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import { FlexibleSchema } from '../schema';
