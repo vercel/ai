@@ -71,7 +71,7 @@ export const text = (): Output<string, string, never> => ({
   },
 
   async parsePartialOutput({ text }: { text: string }) {
-    return { partial: text };
+    return undefined;
   },
 
   createElementStreamTransform() {
