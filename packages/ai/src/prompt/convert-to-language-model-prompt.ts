@@ -38,10 +38,12 @@ export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
   download = createDefaultDownloadFunction(),
+  provider,
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
+  provider?: string;
 }): Promise<LanguageModelV4Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
@@ -92,7 +94,7 @@ export async function convertToLanguageModelPrompt({
           }))
       : []),
     ...prompt.messages.map(message =>
-      convertToLanguageModelMessage({ message, downloadedAssets }),
+      convertToLanguageModelMessage({ message, downloadedAssets, provider }),
     ),
   ];
 
@@ -176,12 +178,14 @@ export async function convertToLanguageModelPrompt({
 export function convertToLanguageModelMessage({
   message,
   downloadedAssets,
+  provider,
 }: {
   message: ModelMessage;
   downloadedAssets: Record<
     string,
     { mediaType: string | undefined; data: Uint8Array }
   >;
+  provider?: string;
 }): LanguageModelV4Message {
   const role = message.role;
   switch (role) {
@@ -319,7 +323,10 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: mapToolResultOutput(part.output),
+                  output: mapToolResultOutput({
+                    output: part.output,
+                    provider,
+                  }),
                   providerOptions,
                 };
               }
@@ -345,7 +352,10 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: mapToolResultOutput(part.output),
+                  output: mapToolResultOutput({
+                    output: part.output,
+                    provider,
+                  }),
                   providerOptions: part.providerOptions,
                 };
               }
@@ -534,9 +544,13 @@ function convertPartToLanguageModelPart(
   }
 }
 
-function mapToolResultOutput(
-  output: ToolResultOutput,
-): LanguageModelV4ToolResultOutput {
+function mapToolResultOutput({
+  output,
+  provider,
+}: {
+  output: ToolResultOutput;
+  provider?: string;
+}): LanguageModelV4ToolResultOutput {
   if (output.type !== 'content') {
     return output;
   }
@@ -544,25 +558,66 @@ function mapToolResultOutput(
   return {
     type: 'content',
     value: output.value.map(item => {
-      if (item.type !== 'media') {
-        return item;
-      }
+      switch (item.type) {
+        case 'media': {
+          if (item.mediaType.startsWith('image/')) {
+            return {
+              type: 'image-data' as const,
+              data: item.data,
+              mediaType: item.mediaType,
+            };
+          }
 
-      // AI SDK 5 tool backwards compatibility:
-      // map media type to image-data or file-data
-      if (item.mediaType.startsWith('image/')) {
-        return {
-          type: 'image-data' as const,
-          data: item.data,
-          mediaType: item.mediaType,
-        };
+          return {
+            type: 'file-data' as const,
+            data: item.data,
+            mediaType: item.mediaType,
+          };
+        }
+        case 'file-id': {
+          return {
+            type: 'file-reference' as const,
+            providerReference: convertFileIdToProviderReference({
+              fileId: item.fileId,
+              provider,
+            }),
+            providerOptions: item.providerOptions,
+          };
+        }
+        case 'image-file-id': {
+          return {
+            type: 'image-file-reference' as const,
+            providerReference: convertFileIdToProviderReference({
+              fileId: item.fileId,
+              provider,
+            }),
+            providerOptions: item.providerOptions,
+          };
+        }
+        default:
+          return item;
       }
-
-      return {
-        type: 'file-data' as const,
-        data: item.data,
-        mediaType: item.mediaType,
-      };
     }),
   };
+}
+
+function convertFileIdToProviderReference({
+  fileId,
+  provider,
+}: {
+  fileId: string | Record<string, string>;
+  provider?: string;
+}): Record<string, string> {
+  if (typeof fileId === 'object') {
+    return fileId;
+  }
+
+  if (provider == null) {
+    throw new Error(
+      'Cannot convert string fileId to provider reference without a provider ID. ' +
+        'Use a Record<string, string> fileId or switch to the file-reference type.',
+    );
+  }
+
+  return { [provider]: fileId };
 }

@@ -183,6 +183,11 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            type: z.literal('file-id'),
+            fileId: z.union([z.string(), z.record(z.string(), z.string())]),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
             type: z.literal('file-reference'),
             providerReference: z.record(z.string(), z.string()),
             providerOptions: providerMetadataSchema.optional(),
@@ -196,6 +201,11 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
           z.object({
             type: z.literal('image-url'),
             url: z.string(),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            type: z.literal('image-file-id'),
+            fileId: z.union([z.string(), z.record(z.string(), z.string())]),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({

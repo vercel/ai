@@ -179,6 +179,7 @@ export async function streamModelCall<
     },
     supportedUrls: await resolvedModel.supportedUrls,
     download,
+    provider: resolvedModel.provider,
   });
 
   const { toolChoice: stepToolChoice, tools: stepTools } =
