@@ -9,6 +9,7 @@ export {
   LoadSettingError,
   NoContentGeneratedError,
   NoSuchModelError,
+  NoSuchProviderReferenceError,
   TooManyEmbeddingValuesForCallError,
   TypeValidationError,
   UnsupportedFunctionalityError,

@@ -33,6 +33,16 @@ export function convertToCohereChatPrompt(prompt: LanguageModelV4Prompt): {
                   return part.text;
                 }
                 case 'file': {
+                  if (
+                    typeof part.data === 'object' &&
+                    !(part.data instanceof Uint8Array) &&
+                    !(part.data instanceof URL)
+                  ) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality: 'file parts with provider references',
+                    });
+                  }
+
                   // Extract documents for RAG
                   let textContent: string;
 

@@ -1,4 +1,8 @@
-import { LanguageModelV4Prompt, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  LanguageModelV4Prompt,
+  SharedV4Warning,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 import {
   FunctionCallItemParam,
@@ -43,6 +47,16 @@ export async function convertToOpenResponsesInput({
               break;
             }
             case 'file': {
+              if (
+                typeof part.data === 'object' &&
+                !(part.data instanceof Uint8Array) &&
+                !(part.data instanceof URL)
+              ) {
+                throw new UnsupportedFunctionalityError({
+                  functionality: 'file parts with provider references',
+                });
+              }
+
               if (!part.mediaType.startsWith('image/')) {
                 warnings.push({
                   type: 'other',

@@ -499,6 +499,7 @@ class DefaultStreamObjectResult<
             prompt: standardizedPrompt,
             supportedUrls: await model.supportedUrls,
             download,
+            provider: model.provider,
           }),
           providerOptions,
           abortSignal,

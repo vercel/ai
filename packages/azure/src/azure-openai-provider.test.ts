@@ -64,7 +64,6 @@ function createModel(modelId: string) {
       `https://test-resource.openai.azure.com/openai/v1${path}`,
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
-    fileIdPrefixes: ['assistant-'],
   });
 }
 
@@ -888,72 +887,6 @@ describe('responses', () => {
       expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
         `"https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1"`,
       );
-    });
-
-    it('should handle Azure file IDs with assistant- prefix', async () => {
-      prepareJsonFixtureResponse('azure-text.1');
-
-      const TEST_PROMPT_WITH_AZURE_FILE: LanguageModelV4Prompt = [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Analyze this image' },
-            {
-              type: 'file',
-              mediaType: 'image/jpeg',
-              data: 'assistant-abc123',
-            },
-          ],
-        },
-      ];
-
-      await provider.responses('test-deployment').doGenerate({
-        prompt: TEST_PROMPT_WITH_AZURE_FILE,
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.input).toEqual([
-        {
-          role: 'user',
-          content: [
-            { type: 'input_text', text: 'Analyze this image' },
-            { type: 'input_image', file_id: 'assistant-abc123' },
-          ],
-        },
-      ]);
-    });
-
-    it('should handle PDF files with assistant- prefix', async () => {
-      prepareJsonFixtureResponse('azure-text.1');
-
-      const TEST_PROMPT_WITH_AZURE_PDF: LanguageModelV4Prompt = [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Analyze this PDF' },
-            {
-              type: 'file',
-              mediaType: 'application/pdf',
-              data: 'assistant-pdf123',
-            },
-          ],
-        },
-      ];
-
-      await provider.responses('test-deployment').doGenerate({
-        prompt: TEST_PROMPT_WITH_AZURE_PDF,
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.input).toEqual([
-        {
-          role: 'user',
-          content: [
-            { type: 'input_text', text: 'Analyze this PDF' },
-            { type: 'input_file', file_id: 'assistant-pdf123' },
-          ],
-        },
-      ]);
     });
 
     it('should fall back to base64 for non-assistant file IDs', async () => {

@@ -46,6 +46,7 @@ export {
   type ProviderToolFactoryWithOutputSchema,
 } from './provider-tool-factory';
 export * from './remove-undefined-entries';
+export { resolveProviderReference } from './resolve-provider-reference';
 export * from './resolve';
 export * from './response-handler';
 export {

@@ -9,6 +9,7 @@ import {
   isNonNullable,
   parseJSON,
   parseProviderOptions,
+  resolveProviderReference,
   ToolNameMapping,
   validateTypes,
 } from '@ai-sdk/provider-utils';
@@ -34,21 +35,11 @@ import {
   toolSearchOutputSchema,
 } from '../tool/tool-search';
 
-/**
- * Check if a string is a file ID based on the given prefixes
- * Returns false if prefixes is undefined (disables file ID detection)
- */
-function isFileId(data: string, prefixes?: readonly string[]): boolean {
-  if (!prefixes) return false;
-  return prefixes.some(prefix => data.startsWith(prefix));
-}
-
 export async function convertToOpenAIResponsesInput({
   prompt,
   toolNameMapping,
   systemMessageMode,
   providerOptionsName,
-  fileIdPrefixes,
   store,
   hasConversation = false,
   hasLocalShellTool = false,
@@ -60,7 +51,6 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
-  fileIdPrefixes?: readonly string[];
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
   hasLocalShellTool?: boolean;
@@ -113,6 +103,32 @@ export async function convertToOpenAIResponsesInput({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
+                if (
+                  typeof part.data === 'object' &&
+                  !(part.data instanceof Uint8Array) &&
+                  !(part.data instanceof URL)
+                ) {
+                  const fileId = resolveProviderReference({
+                    reference: part.data,
+                    provider: providerOptionsName,
+                  });
+
+                  if (part.mediaType.startsWith('image/')) {
+                    return {
+                      type: 'input_image',
+                      file_id: fileId,
+                      detail:
+                        part.providerOptions?.[providerOptionsName]
+                          ?.imageDetail,
+                    };
+                  }
+
+                  return {
+                    type: 'input_file',
+                    file_id: fileId,
+                  };
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -123,12 +139,9 @@ export async function convertToOpenAIResponsesInput({
                     type: 'input_image',
                     ...(part.data instanceof URL
                       ? { image_url: part.data.toString() }
-                      : typeof part.data === 'string' &&
-                          isFileId(part.data, fileIdPrefixes)
-                        ? { file_id: part.data }
-                        : {
-                            image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                          }),
+                      : {
+                          image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                        }),
                     detail:
                       part.providerOptions?.[providerOptionsName]?.imageDetail,
                   };
@@ -141,13 +154,8 @@ export async function convertToOpenAIResponsesInput({
                   }
                   return {
                     type: 'input_file',
-                    ...(typeof part.data === 'string' &&
-                    isFileId(part.data, fileIdPrefixes)
-                      ? { file_id: part.data }
-                      : {
-                          filename: part.filename ?? `part-${index}.pdf`,
-                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
-                        }),
+                    filename: part.filename ?? `part-${index}.pdf`,
+                    file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
