@@ -5,29 +5,26 @@ import type { RealtimeToolsExecuteRequestBody } from 'ai';
 import { z } from 'zod';
 
 const tools = {
-  getLocation: tool({
-    description: 'Get the current location of the user.',
-    inputSchema: z.object({}),
-    execute: async () => {
-      const cities = ['New York', 'London', 'Tokyo', 'Paris', 'Berlin'];
+  getWeather: tool({
+    description: 'Get the current weather for a city',
+    inputSchema: z.object({
+      city: z.string().describe('The city to get weather for'),
+    }),
+    execute: async ({ city }) => {
+      const conditions = ['sunny', 'cloudy', 'rainy', 'snowy', 'windy'];
       return {
-        location: cities[Math.floor(Math.random() * cities.length)],
+        city,
+        temperature: Math.floor(Math.random() * 35) + 5,
+        condition: conditions[Math.floor(Math.random() * conditions.length)],
       };
     },
   }),
-  getWeather: tool({
-    description: 'Get the weather for a given location.',
-    inputSchema: z.object({
-      location: z.string().describe('The city to get weather for'),
+  rollDice: tool({
+    description: 'Roll a six-sided die and return the result',
+    inputSchema: z.object({}),
+    execute: async () => ({
+      result: Math.floor(Math.random() * 6) + 1,
     }),
-    execute: async ({ location }) => {
-      const conditions = ['sunny', 'cloudy', 'rainy', 'snowy'];
-      return {
-        location,
-        condition: conditions[Math.floor(Math.random() * conditions.length)],
-        temperature: Math.floor(Math.random() * 35) + 5,
-      };
-    },
   }),
 };
 
