@@ -2,24 +2,34 @@ import { openai } from '@ai-sdk/openai';
 import { tool, ToolExecutionOptions } from 'ai';
 import { prepareToolsAndToolChoice } from 'ai/internal';
 import type { RealtimeToolsExecuteRequestBody } from 'ai';
-import { weatherTool } from '../../tools/weather-tool';
-import z from 'zod';
+import { z } from 'zod';
 
 const tools = {
-  currentLocation: tool({
-    description: 'Get the current location.',
+  getLocation: tool({
+    description: 'Get the current location of the user.',
     inputSchema: z.object({}),
     execute: async () => {
-      const locations = ['New York', 'London', 'Paris'];
+      const cities = ['New York', 'London', 'Tokyo', 'Paris', 'Berlin'];
       return {
-        location: locations[Math.floor(Math.random() * locations.length)],
+        location: cities[Math.floor(Math.random() * cities.length)],
       };
     },
   }),
-  weather: weatherTool,
+  getWeather: tool({
+    description: 'Get the weather for a given location.',
+    inputSchema: z.object({
+      location: z.string().describe('The city to get weather for'),
+    }),
+    execute: async ({ location }) => {
+      const conditions = ['sunny', 'cloudy', 'rainy', 'snowy'];
+      return {
+        location,
+        condition: conditions[Math.floor(Math.random() * conditions.length)],
+        temperature: Math.floor(Math.random() * 35) + 5,
+      };
+    },
+  }),
 };
-
-// --- Server Route Handler (e.g. app/api/realtime/[...path]/route.ts) ---
 
 export async function POST(
   request: Request,
