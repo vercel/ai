@@ -1,9 +1,9 @@
 import {
-  type Experimental_VideoModelV3,
-  ImageModelV3,
-  LanguageModelV3,
+  type Experimental_VideoModelV4,
+  ImageModelV4,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -23,46 +23,43 @@ import { VERSION } from './version';
 import { XaiVideoModel } from './xai-video-model';
 import { XaiVideoModelId } from './xai-video-settings';
 
-export interface XaiProvider extends ProviderV3 {
-  /**
-   * Creates an Xai chat model for text generation.
-   */
-  (modelId: XaiChatModelId): LanguageModelV3;
+export interface XaiProvider extends ProviderV4 {
+  (modelId: XaiResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an Xai language model for text generation.
    */
-  languageModel(modelId: XaiChatModelId): LanguageModelV3;
+  languageModel(modelId: XaiResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an Xai chat model for text generation.
    */
-  chat: (modelId: XaiChatModelId) => LanguageModelV3;
+  chat: (modelId: XaiChatModelId) => LanguageModelV4;
 
   /**
-   * Creates an Xai responses model for agentic tool calling.
+   * Creates an Xai responses model for text generation.
    */
-  responses: (modelId: XaiResponsesModelId) => LanguageModelV3;
-
-  /**
-   * Creates an Xai image model for image generation.
-   */
-  image(modelId: XaiImageModelId): ImageModelV3;
+  responses: (modelId: XaiResponsesModelId) => LanguageModelV4;
 
   /**
    * Creates an Xai image model for image generation.
    */
-  imageModel(modelId: XaiImageModelId): ImageModelV3;
+  image(modelId: XaiImageModelId): ImageModelV4;
+
+  /**
+   * Creates an Xai image model for image generation.
+   */
+  imageModel(modelId: XaiImageModelId): ImageModelV4;
 
   /**
    * Creates an Xai video model for video generation.
    */
-  video(modelId: XaiVideoModelId): Experimental_VideoModelV3;
+  video(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates an Xai video model for video generation.
    */
-  videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Server-side agentic tools for use with the responses API.
@@ -153,11 +150,11 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const provider = (modelId: XaiChatModelId) =>
-    createChatLanguageModel(modelId);
+  const provider = (modelId: XaiResponsesModelId) =>
+    createResponsesLanguageModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
-  provider.languageModel = createChatLanguageModel;
+  provider.specificationVersion = 'v4' as const;
+  provider.languageModel = createResponsesLanguageModel;
   provider.chat = createChatLanguageModel;
   provider.responses = createResponsesLanguageModel;
   provider.embeddingModel = (modelId: string) => {

@@ -1,4 +1,4 @@
-import { LanguageModelV3Prompt, SharedV3Warning } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt, SharedV4Warning } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 import {
   FunctionCallItemParam,
@@ -14,14 +14,14 @@ import {
 export async function convertToOpenResponsesInput({
   prompt,
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
-  warnings: Array<SharedV3Warning>;
+  warnings: Array<SharedV4Warning>;
 }> {
   const input: OpenResponsesRequestBody['input'] = [];
-  const warnings: Array<SharedV3Warning> = [];
+  const warnings: Array<SharedV4Warning> = [];
   const systemMessages: string[] = [];
 
   for (const { role, content } of prompt) {

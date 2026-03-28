@@ -75,7 +75,7 @@ describe('ByteDanceVideoModel', () => {
 
       expect(model.provider).toBe('bytedance.video');
       expect(model.modelId).toBe('seedance-1-0-pro-250528');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
     });
 

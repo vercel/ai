@@ -1,7 +1,7 @@
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -29,8 +29,8 @@ type BedrockImageModelConfig = {
   };
 };
 
-export class BedrockImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class BedrockImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
 
   get maxImagesPerCall(): number {
@@ -58,10 +58,10 @@ export class BedrockImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
     const [width, height] = size ? size.split('x').map(Number) : [];
 
     const hasFiles = files != null && files.length > 0;
@@ -265,7 +265,7 @@ export class BedrockImageModel implements ImageModelV3 {
   }
 }
 
-function getBase64Data(file: ImageModelV3File): string {
+function getBase64Data(file: ImageModelV4File): string {
   if (file.type === 'url') {
     throw new Error(
       'URL-based images are not supported for Amazon Bedrock image editing. ' +

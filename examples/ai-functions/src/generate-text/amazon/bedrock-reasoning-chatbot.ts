@@ -1,7 +1,4 @@
-import {
-  bedrock,
-  type AmazonBedrockLanguageModelOptions,
-} from '@ai-sdk/amazon-bedrock';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { ModelMessage, generateText, stepCountIs } from 'ai';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../../tools/weather-tool';
@@ -20,16 +17,12 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const { steps, response } = await generateText({
-      model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+      model: bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
       stopWhen: stepCountIs(5),
-      providerOptions: {
-        bedrock: {
-          reasoningConfig: { type: 'enabled', budgetTokens: 2048 },
-        } satisfies AmazonBedrockLanguageModelOptions,
-      },
+      reasoning: 'medium',
     });
 
     for (const step of steps) {
