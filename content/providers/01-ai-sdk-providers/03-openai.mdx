@@ -203,6 +203,14 @@ The following provider options are available:
   'xhigh' with unsupported models will result in an error.
 </Note>
 
+<Note type="warning">
+  If you set `reasoningEffort` on a non-reasoning model, the AI SDK will strip
+  the setting and log a console warning instead of throwing an error. This means
+  the option can be silently ignored. See [Unsupported Feature
+  Warnings](/docs/ai-sdk-ui/error-handling#unsupported-feature-warnings) to
+  learn how to detect this during development.
+</Note>
+
 - **reasoningSummary** _'auto' | 'detailed'_
   Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
 
@@ -1710,6 +1718,14 @@ The following optional provider options are available for OpenAI chat models:
   `providerOptions` to set the `reasoningEffort` option, this
   model setting will be ignored.
 
+<Note type="warning">
+  If you set `reasoningEffort` on a non-reasoning model, the AI SDK will strip
+  the setting and log a console warning instead of throwing an error. This means
+  the option can be silently ignored. See [Unsupported Feature
+  Warnings](/docs/ai-sdk-ui/error-handling#unsupported-feature-warnings) to
+  learn how to detect this during development.
+</Note>
+
 - **maxCompletionTokens** _number_
 
   Maximum number of completion tokens to generate. Useful for reasoning models.
@@ -1803,6 +1819,15 @@ console.log('Usage:', {
 <Note>
   System messages are automatically converted to OpenAI developer messages for
   reasoning models when supported.
+</Note>
+
+<Note type="warning">
+  If you set `reasoningEffort` on a non-reasoning model (or a model the SDK does
+  not recognize as a reasoning model), the setting will be silently stripped and
+  a console warning logged. This can be a gotcha when testing private or early
+  access models. See [Unsupported Feature
+  Warnings](/docs/ai-sdk-ui/error-handling#unsupported-feature-warnings) for how
+  to catch this during development.
 </Note>
 
 - You can control how system messages are handled by providerOptions `systemMessageMode`:
