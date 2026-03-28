@@ -2,14 +2,162 @@
 
 import { useRealtime } from '@ai-sdk/react';
 import { openaiRealtime } from '@ai-sdk/openai/realtime';
-import { useState, useRef, useEffect } from 'react';
+import { xaiRealtime } from '@ai-sdk/xai/realtime';
+import { useState, useRef, useEffect, useMemo } from 'react';
+
+type Provider = 'openai' | 'xai';
+
+const PROVIDER_CONFIG: Record<
+  Provider,
+  {
+    label: string;
+    defaultModel: string;
+    voices: string[];
+    createModel: (modelId: string) => ReturnType<typeof openaiRealtime>;
+  }
+> = {
+  openai: {
+    label: 'OpenAI',
+    defaultModel: 'gpt-4o-realtime-preview',
+    voices: [
+      'alloy',
+      'ash',
+      'ballad',
+      'coral',
+      'echo',
+      'fable',
+      'marin',
+      'sage',
+      'shimmer',
+      'verse',
+    ],
+    createModel: modelId => openaiRealtime(modelId),
+  },
+  xai: {
+    label: 'xAI',
+    defaultModel: 'grok-3',
+    voices: ['Eve', 'Ara', 'Rex', 'Sal', 'Leo'],
+    createModel: modelId => xaiRealtime(modelId),
+  },
+};
 
 export default function RealtimePage() {
+  const [provider, setProvider] = useState<Provider>('xai');
+  const [voice, setVoice] = useState(PROVIDER_CONFIG.xai.voices[0]);
+
+  const handleProviderChange = (next: Provider) => {
+    setProvider(next);
+    setVoice(PROVIDER_CONFIG[next].voices[0]);
+  };
+
+  return (
+    <div
+      style={{
+        maxWidth: 720,
+        margin: '2rem auto',
+        padding: '0 1rem',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+      }}
+    >
+      <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 4 }}>
+        Realtime Voice Chat
+      </h1>
+      <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>
+        AI SDK Realtime API with tool calling — multi-provider
+      </p>
+
+      {/* ── Provider & voice selectors ──────────────────────────── */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          marginBottom: 16,
+          alignItems: 'center',
+        }}
+      >
+        <label style={{ fontSize: 13, fontWeight: 500, color: '#475569' }}>
+          Provider
+          <select
+            value={provider}
+            onChange={e => handleProviderChange(e.target.value as Provider)}
+            style={{
+              marginLeft: 8,
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #e2e8f0',
+              fontSize: 13,
+              background: 'white',
+            }}
+          >
+            {Object.entries(PROVIDER_CONFIG).map(([key, cfg]) => (
+              <option key={key} value={key}>
+                {cfg.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label style={{ fontSize: 13, fontWeight: 500, color: '#475569' }}>
+          Voice
+          <select
+            value={voice}
+            onChange={e => setVoice(e.target.value)}
+            style={{
+              marginLeft: 8,
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #e2e8f0',
+              fontSize: 13,
+              background: 'white',
+            }}
+          >
+            {PROVIDER_CONFIG[provider].voices.map(v => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <span
+          style={{
+            fontSize: 12,
+            color: '#94a3b8',
+            marginLeft: 'auto',
+            fontFamily: 'monospace',
+          }}
+        >
+          {PROVIDER_CONFIG[provider].defaultModel}
+        </span>
+      </div>
+
+      <RealtimeChat
+        key={`${provider}-${voice}`}
+        provider={provider}
+        voice={voice}
+      />
+    </div>
+  );
+}
+
+function RealtimeChat({
+  provider,
+  voice,
+}: {
+  provider: Provider;
+  voice: string;
+}) {
   const [textInput, setTextInput] = useState('');
   const [showEvents, setShowEvents] = useState(false);
   const [expandedEvent, setExpandedEvent] = useState<number | null>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
+
+  const config = PROVIDER_CONFIG[provider];
+  const model = useMemo(
+    () => config.createModel(config.defaultModel),
+    [config],
+  );
 
   const {
     status,
@@ -24,25 +172,25 @@ export default function RealtimePage() {
     stopAudioCapture,
     stopPlayback,
   } = useRealtime({
-    model: openaiRealtime('gpt-4o-realtime-preview'),
+    model,
     api: {
-      token: '/api/realtime/token',
+      token: `/api/realtime/token?provider=${provider}`,
       tools: '/api/realtime/tools',
     },
     sessionConfig: {
       instructions:
         'You are a helpful assistant. Be concise. ' +
         'You have access to tools for weather and dice rolling.',
-      voice: 'marin',
+      voice,
       turnDetection: { type: 'server-vad' },
     },
     onEvent: event => {
       if (event.type !== 'audio-delta') {
-        console.log(`[realtime] ${event.type}`, event);
+        console.log(`[realtime:${provider}] ${event.type}`, event);
       }
     },
     onError: error => {
-      console.error('[realtime] error:', error.message);
+      console.error(`[realtime:${provider}] error:`, error.message);
     },
   });
 
@@ -83,21 +231,7 @@ export default function RealtimePage() {
   };
 
   return (
-    <div
-      style={{
-        maxWidth: 720,
-        margin: '2rem auto',
-        padding: '0 1rem',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-      }}
-    >
-      <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 4 }}>
-        Realtime Voice Chat
-      </h1>
-      <p style={{ color: '#64748b', fontSize: 14, marginBottom: 24 }}>
-        OpenAI Realtime API with tool calling via AI SDK
-      </p>
-
+    <>
       {/* ── Connection bar ─────────────────────────────────────── */}
       <div
         style={{
@@ -381,6 +515,6 @@ export default function RealtimePage() {
           50% { opacity: 0.6; }
         }
       `}</style>
-    </div>
+    </>
   );
 }
