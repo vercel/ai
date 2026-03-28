@@ -3,7 +3,13 @@ import {
   Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4ProviderTool,
+  LanguageModelV4ToolChoice,
   ProviderV4,
+  RealtimeModelV4,
+  RealtimeModelV4SessionConfig,
+  RealtimeModelV4ToolDefinition,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -26,6 +32,7 @@ import {
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
 import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+import { GoogleRealtimeModel } from './realtime/google-realtime-model';
 
 export interface GoogleGenerativeAIProvider extends ProviderV4 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV4;
@@ -81,7 +88,26 @@ export interface GoogleGenerativeAIProvider extends ProviderV4 {
     modelId: GoogleGenerativeAIVideoModelId,
   ): Experimental_VideoModelV4;
 
+  realtime: GoogleRealtimeFactory;
+
   tools: typeof googleTools;
+}
+
+export interface GoogleRealtimeFactory {
+  (modelId: string): RealtimeModelV4;
+
+  getToken(options: {
+    model: string;
+    tools?: Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>;
+    toolChoice?: LanguageModelV4ToolChoice;
+    sessionConfig?: RealtimeModelV4SessionConfig;
+    expiresAfterSeconds?: number;
+  }): Promise<{
+    token: string;
+    url: string;
+    expiresAt?: number;
+    tools: RealtimeModelV4ToolDefinition[];
+  }>;
 }
 
 export interface GoogleGenerativeAIProviderSettings {
@@ -194,6 +220,61 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
     });
 
+  const createRealtimeModel = (modelId: string) =>
+    new GoogleRealtimeModel(modelId, {
+      provider: `${providerName}.realtime`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const realtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: {
+        model: string;
+        tools?: Array<
+          LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+        >;
+        toolChoice?: LanguageModelV4ToolChoice;
+        sessionConfig?: RealtimeModelV4SessionConfig;
+        expiresAfterSeconds?: number;
+      }) => {
+        const model = createRealtimeModel(tokenOptions.model);
+
+        const realtimeTools: RealtimeModelV4ToolDefinition[] = (
+          tokenOptions.tools ?? []
+        )
+          .filter(
+            (t): t is LanguageModelV4FunctionTool => t.type === 'function',
+          )
+          .map(t => ({
+            type: 'function' as const,
+            name: t.name,
+            description: t.description,
+            parameters: t.inputSchema,
+          }));
+
+        const sessionConfig: RealtimeModelV4SessionConfig = {
+          ...tokenOptions.sessionConfig,
+          tools: realtimeTools,
+        };
+
+        const secret = await model.doCreateClientSecret({
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+          sessionConfig,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+          tools: realtimeTools,
+        };
+      },
+    },
+  ) as GoogleRealtimeFactory;
+
   const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
@@ -216,6 +297,7 @@ export function createGoogleGenerativeAI(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.realtime = realtimeFactory;
   provider.tools = googleTools;
 
   return provider as GoogleGenerativeAIProvider;
