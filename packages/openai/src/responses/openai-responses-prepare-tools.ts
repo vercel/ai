@@ -10,6 +10,7 @@ import { imageGenerationArgsSchema } from '../tool/image-generation';
 import { customArgsSchema } from '../tool/custom';
 import { mcpArgsSchema } from '../tool/mcp';
 import { shellArgsSchema } from '../tool/shell';
+import { namespaceArgsSchema } from '../tool/namespace';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
@@ -270,6 +271,21 @@ export async function prepareResponsesTools({
               ...(args.parameters != null
                 ? { parameters: args.parameters }
                 : {}),
+            });
+            break;
+          }
+          case 'openai.namespace': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: namespaceArgsSchema,
+            });
+            openaiTools.push({
+              type: 'namespace',
+              name: args.name,
+              ...(args.description != null
+                ? { description: args.description }
+                : {}),
+              tools: args.tools,
             });
             break;
           }
