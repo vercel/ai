@@ -1,5 +1,11 @@
 export { createOpenAI, openai } from './openai-provider';
-export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
+export type {
+  OpenAIProvider,
+  OpenAIProviderSettings,
+  OpenAIRealtimeFactory,
+} from './openai-provider';
+export { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
+export type { OpenAIRealtimeModelConfig } from './realtime/openai-realtime-model';
 export type {
   OpenAILanguageModelResponsesOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */

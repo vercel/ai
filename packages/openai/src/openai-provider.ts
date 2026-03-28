@@ -2,7 +2,12 @@ import {
   EmbeddingModelV4,
   ImageModelV4,
   LanguageModelV4,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4ProviderTool,
+  LanguageModelV4ToolChoice,
   ProviderV4,
+  RealtimeModelV4,
+  RealtimeModelV4ToolDefinition,
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
@@ -22,6 +27,7 @@ import { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
 import { OpenAIImageModel } from './image/openai-image-model';
 import { OpenAIImageModelId } from './image/openai-image-options';
 import { openaiTools } from './openai-tools';
+import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
@@ -94,9 +100,40 @@ export interface OpenAIProvider extends ProviderV4 {
   speech(modelId: OpenAISpeechModelId): SpeechModelV4;
 
   /**
+   * Creates a realtime model for bidirectional audio/text
+   * communication over WebSocket.
+   */
+  realtime: OpenAIRealtimeFactory;
+
+  /**
    * OpenAI-specific tools.
    */
   tools: typeof openaiTools;
+}
+
+export interface OpenAIRealtimeFactory {
+  /**
+   * Creates a realtime model instance. Works in both server and browser
+   * environments. In the browser, only event mapping and WebSocket config
+   * methods are available; `doCreateClientSecret` requires an API key.
+   */
+  (modelId: string): RealtimeModelV4;
+
+  /**
+   * Server-side method to create an ephemeral client token for
+   * authenticating browser WebSocket connections.
+   */
+  getToken(options: {
+    model: string;
+    tools?: Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>;
+    toolChoice?: LanguageModelV4ToolChoice;
+    expiresAfterSeconds?: number;
+  }): Promise<{
+    token: string;
+    url: string;
+    expiresAt?: number;
+    tools: RealtimeModelV4ToolDefinition[];
+  }>;
 }
 
 export interface OpenAIProviderSettings {
@@ -236,6 +273,53 @@ export function createOpenAI(
     });
   };
 
+  const createRealtimeModel = (modelId: string) =>
+    new OpenAIRealtimeModel(modelId, {
+      provider: `${providerName}.realtime`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const realtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: {
+        model: string;
+        tools?: Array<
+          LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+        >;
+        toolChoice?: LanguageModelV4ToolChoice;
+        expiresAfterSeconds?: number;
+      }) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        const realtimeTools: RealtimeModelV4ToolDefinition[] = (
+          tokenOptions.tools ?? []
+        )
+          .filter(
+            (t): t is LanguageModelV4FunctionTool => t.type === 'function',
+          )
+          .map(t => ({
+            type: 'function' as const,
+            name: t.name,
+            description: t.description,
+            parameters: t.inputSchema,
+          }));
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+          tools: realtimeTools,
+        };
+      },
+    },
+  ) as OpenAIRealtimeFactory;
+
   const provider = function (modelId: OpenAIResponsesModelId) {
     return createLanguageModel(modelId);
   };
@@ -258,6 +342,8 @@ export function createOpenAI(
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+
+  provider.realtime = realtimeFactory;
 
   provider.tools = openaiTools;
 
