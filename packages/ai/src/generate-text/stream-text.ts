@@ -1537,15 +1537,6 @@ class DefaultStreamTextResult<
             prepareStepResult?.model ?? model,
           );
 
-          const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
-
-          const { toolChoice: stepToolChoice, tools: stepTools } =
-            await prepareToolsAndToolChoice({
-              tools,
-              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              activeTools: stepActiveTools,
-            });
-
           experimental_context =
             prepareStepResult?.experimental_context ?? experimental_context;
 
@@ -1559,15 +1550,24 @@ class DefaultStreamTextResult<
 
           const stepStartTimestampMs = now();
 
+          const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+          const stepToolChoice = prepareStepResult?.toolChoice ?? toolChoice;
+
+          const { toolChoice: preparedToolChoice, tools: preparedTools } =
+            await prepareToolsAndToolChoice({
+              tools,
+              toolChoice: stepToolChoice,
+              activeTools: stepActiveTools,
+            });
+
           const {
             stream: languageModelStream,
             request,
             response,
           } = await streamModelCall({
             model: prepareStepResult?.model ?? model,
-            tools,
-            activeTools: prepareStepResult?.activeTools ?? activeTools,
-            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            tools: preparedTools,
+            toolChoice: preparedToolChoice,
             system: stepSystem,
             messages: stepMessages,
             repairToolCall,
@@ -1588,7 +1588,7 @@ class DefaultStreamTextResult<
                   system: stepSystem,
                   messages: stepMessages,
                   tools,
-                  toolChoice: stepToolChoice,
+                  toolChoice: preparedToolChoice,
                   activeTools: stepActiveTools,
                   steps: [...recordedSteps],
                   providerOptions: stepProviderOptions,
@@ -1601,8 +1601,8 @@ class DefaultStreamTextResult<
                   ...callbackTelemetryProps,
                   experimental_context,
                   promptMessages,
-                  stepTools,
-                  stepToolChoice,
+                  stepTools: preparedTools,
+                  stepToolChoice: preparedToolChoice,
                 },
                 callbacks: [
                   onStepStart,

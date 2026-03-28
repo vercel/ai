@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import z from 'zod';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { streamModelCall } from './stream-model-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolSet } from './tool-set';
@@ -44,9 +45,17 @@ async function streamModelCallResult<TOOLS extends ToolSet>({
     }),
   });
 
+  const { tools: preparedTools, toolChoice: preparedToolChoice } =
+    await prepareToolsAndToolChoice({
+      tools,
+      toolChoice: undefined,
+      activeTools: undefined,
+    });
+
   const { stream } = await streamModelCall({
     model,
-    tools,
+    tools: preparedTools,
+    toolChoice: preparedToolChoice,
     prompt: 'test prompt',
     system: undefined,
     repairToolCall,

@@ -57,6 +57,7 @@ describe('prepareToolsAndToolChoice', () => {
         "tools": [
           {
             "description": "Tool 1 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -65,10 +66,12 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool1",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
           {
             "description": "Tool 2 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -84,6 +87,7 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool2",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
         ],
@@ -106,6 +110,7 @@ describe('prepareToolsAndToolChoice', () => {
         "tools": [
           {
             "description": "Tool 1 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -114,6 +119,7 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool1",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
         ],
@@ -136,6 +142,7 @@ describe('prepareToolsAndToolChoice', () => {
         "tools": [
           {
             "description": "Tool 1 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -144,10 +151,12 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool1",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
           {
             "description": "Tool 2 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -163,6 +172,7 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool2",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
         ],
@@ -186,6 +196,7 @@ describe('prepareToolsAndToolChoice', () => {
         "tools": [
           {
             "description": "Tool 1 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -194,10 +205,12 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool1",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
           {
             "description": "Tool 2 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -213,6 +226,7 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool2",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
         ],
@@ -235,6 +249,7 @@ describe('prepareToolsAndToolChoice', () => {
         "tools": [
           {
             "description": "Tool 1 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -243,10 +258,12 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool1",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
           {
             "description": "Tool 2 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -262,6 +279,7 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool2",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
         ],
@@ -284,6 +302,7 @@ describe('prepareToolsAndToolChoice', () => {
         "tools": [
           {
             "description": "Tool 1 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -292,10 +311,12 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool1",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
           {
             "description": "Tool 2 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -311,6 +332,7 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool2",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
           {
@@ -351,6 +373,7 @@ describe('prepareToolsAndToolChoice', () => {
         "tools": [
           {
             "description": "Tool 1 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -363,6 +386,7 @@ describe('prepareToolsAndToolChoice', () => {
                 "aSetting": "aValue",
               },
             },
+            "title": undefined,
             "type": "function",
           },
         ],
@@ -391,6 +415,7 @@ describe('prepareToolsAndToolChoice', () => {
         "tools": [
           {
             "description": "Tool 1 description",
+            "hasExecuteFunction": false,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -400,6 +425,7 @@ describe('prepareToolsAndToolChoice', () => {
             "name": "tool1",
             "providerOptions": undefined,
             "strict": true,
+            "title": undefined,
             "type": "function",
           },
         ],
@@ -430,6 +456,7 @@ describe('prepareToolsAndToolChoice', () => {
         "tools": [
           {
             "description": "Tool 1 description",
+            "hasExecuteFunction": false,
             "inputExamples": [
               {
                 "input": {
@@ -452,6 +479,7 @@ describe('prepareToolsAndToolChoice', () => {
             },
             "name": "tool1",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
         ],

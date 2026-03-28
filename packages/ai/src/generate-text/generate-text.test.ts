@@ -490,6 +490,7 @@ describe('generateText', () => {
                 type: 'function',
                 name: 'tool1',
                 description: undefined,
+                title: undefined,
                 inputSchema: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
@@ -498,11 +499,13 @@ describe('generateText', () => {
                   type: 'object',
                 },
                 providerOptions: undefined,
+                hasExecuteFunction: false,
               },
               {
                 type: 'function',
                 name: 'tool2',
                 description: undefined,
+                title: undefined,
                 inputSchema: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
@@ -511,6 +514,7 @@ describe('generateText', () => {
                   type: 'object',
                 },
                 providerOptions: undefined,
+                hasExecuteFunction: false,
               },
             ]);
 
@@ -587,6 +591,7 @@ describe('generateText', () => {
                 type: 'function',
                 name: 'tool1',
                 description: undefined,
+                title: undefined,
                 inputSchema: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
@@ -595,6 +600,7 @@ describe('generateText', () => {
                   type: 'object',
                 },
                 providerOptions: undefined,
+                hasExecuteFunction: true,
               },
             ]);
 
@@ -2539,6 +2545,7 @@ describe('generateText', () => {
                       type: 'function',
                       name: 'tool1',
                       description: undefined,
+                      title: 'Tool One',
                       inputSchema: {
                         $schema: 'http://json-schema.org/draft-07/schema#',
                         additionalProperties: false,
@@ -2547,6 +2554,7 @@ describe('generateText', () => {
                         type: 'object',
                       },
                       providerOptions: undefined,
+                      hasExecuteFunction: true,
                     },
                   ]);
 
@@ -3327,6 +3335,7 @@ describe('generateText', () => {
               "tools": [
                 {
                   "description": undefined,
+                  "hasExecuteFunction": true,
                   "inputSchema": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "additionalProperties": false,
@@ -3342,6 +3351,7 @@ describe('generateText', () => {
                   },
                   "name": "tool1",
                   "providerOptions": undefined,
+                  "title": undefined,
                   "type": "function",
                 },
               ],
@@ -4231,28 +4241,30 @@ describe('generateText', () => {
       });
 
       expect(tools).toMatchInlineSnapshot(`
-      [
-        {
-          "description": undefined,
-          "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "additionalProperties": false,
-            "properties": {
-              "value": {
-                "type": "string",
+        [
+          {
+            "description": undefined,
+            "hasExecuteFunction": true,
+            "inputSchema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
               },
+              "required": [
+                "value",
+              ],
+              "type": "object",
             },
-            "required": [
-              "value",
-            ],
-            "type": "object",
+            "name": "tool1",
+            "providerOptions": undefined,
+            "title": undefined,
+            "type": "function",
           },
-          "name": "tool1",
-          "providerOptions": undefined,
-          "type": "function",
-        },
-      ]
-    `);
+        ]
+      `);
     });
   });
 
@@ -4387,7 +4399,7 @@ describe('generateText', () => {
               "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
               "ai.prompt.toolChoice": "{"type":"auto"}",
               "ai.prompt.tools": [
-                "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
+                "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false},"hasExecuteFunction":true}",
               ],
               "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
@@ -4815,6 +4827,7 @@ describe('generateText', () => {
                 type: 'function',
                 name: 'tool1',
                 description: undefined,
+                title: undefined,
                 inputSchema: {
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
@@ -4822,11 +4835,13 @@ describe('generateText', () => {
                   type: 'object',
                 },
                 providerOptions: undefined,
+                hasExecuteFunction: false,
               },
               {
                 type: 'function',
                 name: 'tool2',
                 description: undefined,
+                title: undefined,
                 inputSchema: {
                   additionalProperties: false,
                   properties: { somethingElse: { type: 'string' } },
@@ -4834,6 +4849,7 @@ describe('generateText', () => {
                   type: 'object',
                 },
                 providerOptions: undefined,
+                hasExecuteFunction: false,
               },
             ]);
 
@@ -6063,6 +6079,7 @@ describe('generateText', () => {
               },
               {
                 "description": "Roll a die and return the result.",
+                "hasExecuteFunction": true,
                 "inputSchema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -6088,6 +6105,7 @@ describe('generateText', () => {
                     ],
                   },
                 },
+                "title": undefined,
                 "type": "function",
               },
             ]
