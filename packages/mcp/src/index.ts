@@ -18,6 +18,7 @@ export type {
   ElicitResult,
   ListToolsResult,
   ClientCapabilities as MCPClientCapabilities,
+  Implementation as MCPServerInfo,
 } from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';
 export type { OAuthClientProvider } from './tool/oauth';

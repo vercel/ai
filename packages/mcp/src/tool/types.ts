@@ -56,9 +56,10 @@ export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
 const ClientOrServerImplementationSchema = z.looseObject({
   name: z.string(),
   version: z.string(),
+  title: z.optional(z.string()),
 });
 
-export type Configuration = z.infer<typeof ClientOrServerImplementationSchema>;
+export type Implementation = z.infer<typeof ClientOrServerImplementationSchema>;
 
 export const BaseParamsSchema = z.looseObject({
   _meta: z.optional(z.object({}).loose()),
