@@ -617,6 +617,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
     messageId?: string;
   } & ChatRequestOptions) {
+    const abortController = new AbortController();
+
     // For resume-stream, check if there's an active stream before
     // changing status. This avoids a brief flash of 'submitted' status
     // when there is no stream to resume (e.g. on page load).
@@ -625,6 +627,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       try {
         const reconnect = await this.transport.reconnectToStream({
           chatId: this.id,
+          abortSignal: abortController.signal,
           metadata,
           headers,
           body,
@@ -658,7 +661,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           lastMessage: this.state.snapshot(lastMessage),
           messageId: this.generateId(),
         }),
-        abortController: new AbortController(),
+        abortController,
       } as ActiveResponse<UI_MESSAGE>;
 
       activeResponse.abortController.signal.addEventListener('abort', () => {
@@ -675,7 +678,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream = await this.transport.sendMessages({
           chatId: this.id,
           messages: this.state.messages,
-          abortSignal: activeResponse.abortController.signal,
+          abortSignal: abortController.signal,
           metadata,
           headers,
           body,
