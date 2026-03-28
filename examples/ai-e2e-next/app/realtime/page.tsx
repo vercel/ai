@@ -281,7 +281,7 @@ function RealtimeChat({
           {status === 'connected'
             ? 'Disconnect'
             : status === 'connecting'
-              ? 'Connecting\u2026'
+              ? 'Connecting…'
               : 'Connect'}
         </button>
       </div>
@@ -303,7 +303,7 @@ function RealtimeChat({
               animation: isCapturing ? 'pulse 1.5s infinite' : 'none',
             }}
           >
-            {isCapturing ? '\u23f9 Stop Mic' : '\ud83c\udf99 Start Mic'}
+            {isCapturing ? '⏹ Stop Mic' : '🎙 Start Mic'}
           </button>
           {isPlaying && (
             <button
@@ -319,7 +319,7 @@ function RealtimeChat({
                 color: '#92400e',
               }}
             >
-              {'\u23f8'} Stop Playback
+              ⏸ Stop Playback
             </button>
           )}
           <div style={{ flex: 1 }} />
@@ -350,7 +350,7 @@ function RealtimeChat({
           <input
             value={textInput}
             onChange={e => setTextInput(e.target.value)}
-            placeholder="Type a message\u2026"
+            placeholder="Type a message…"
             style={{
               flex: 1,
               padding: '10px 14px',
@@ -394,7 +394,7 @@ function RealtimeChat({
         {messages.length === 0 && (
           <p style={{ color: '#94a3b8', textAlign: 'center', fontSize: 14 }}>
             {status === 'connected'
-              ? 'Start talking or type a message\u2026'
+              ? 'Start talking or type a message…'
               : 'Connect to start a conversation'}
           </p>
         )}
@@ -457,20 +457,18 @@ function RealtimeChat({
                       >
                         {part.state === 'input-streaming' && (
                           <span style={{ color: '#a78bfa' }}>
-                            {'\u2699'} Calling {part.toolName || 'tool'}
-                            {'\u2026'}
+                            ⚙ Calling {part.toolName || 'tool'}
+                            {'…'}
                           </span>
                         )}
                         {part.state === 'input-available' && (
                           <span style={{ color: '#f59e0b' }}>
-                            {'\u25b6'} {part.toolName}(
-                            {JSON.stringify(part.input)})
+                            ▶ {part.toolName}({JSON.stringify(part.input)})
                           </span>
                         )}
                         {part.state === 'output-available' && (
                           <span style={{ color: '#22c55e' }}>
-                            {'\u2713'} {part.toolName}:{' '}
-                            {JSON.stringify(part.output)}
+                            ✓ {part.toolName}: {JSON.stringify(part.output)}
                           </span>
                         )}
                       </div>
