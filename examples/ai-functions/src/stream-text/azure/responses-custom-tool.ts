@@ -7,7 +7,6 @@ run(async () => {
     model: azure.responses('gpt-5.3-codex'),
     tools: {
       write_sql: azure.tools.customTool({
-        name: 'write_sql',
         description: 'Write a SQL SELECT query to answer the user question.',
         format: {
           type: 'grammar',
