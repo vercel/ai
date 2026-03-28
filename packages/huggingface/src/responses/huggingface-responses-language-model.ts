@@ -1,13 +1,13 @@
 import {
   APICallError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -30,8 +30,8 @@ import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
 import { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
 import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 
-export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: HuggingFaceResponsesModelId;
 
@@ -64,8 +64,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
     tools,
     toolChoice,
     responseFormat,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -150,8 +150,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -192,7 +192,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // Process output array
     for (const part of response.output) {
@@ -331,8 +331,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -355,7 +355,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -366,7 +366,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof huggingfaceResponsesChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

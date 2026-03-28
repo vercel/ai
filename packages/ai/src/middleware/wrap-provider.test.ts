@@ -1,18 +1,18 @@
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { MockImageModelV3 } from '../test/mock-image-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { MockImageModelV4 } from '../test/mock-image-model-v4';
 import { MockProviderV2 } from '../test/mock-provider-v2';
-import { MockProviderV3 } from '../test/mock-provider-v3';
+import { MockProviderV4 } from '../test/mock-provider-v4';
 import { wrapProvider } from './wrap-provider';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('wrapProvider', () => {
   it('should wrap all language models in the provider', () => {
-    const model1 = new MockLanguageModelV3({ modelId: 'model-1' });
-    const model2 = new MockLanguageModelV3({ modelId: 'model-2' });
-    const model3 = new MockLanguageModelV3({ modelId: 'model-3' });
+    const model1 = new MockLanguageModelV4({ modelId: 'model-1' });
+    const model2 = new MockLanguageModelV4({ modelId: 'model-2' });
+    const model3 = new MockLanguageModelV4({ modelId: 'model-3' });
 
-    const provider = new MockProviderV3({
+    const provider = new MockProviderV4({
       languageModels: {
         'model-1': model1,
         'model-2': model2,
@@ -27,7 +27,7 @@ describe('wrapProvider', () => {
     const wrappedProvider = wrapProvider({
       provider,
       languageModelMiddleware: {
-        specificationVersion: 'v3',
+        specificationVersion: 'v4',
         overrideModelId,
       },
     });
@@ -43,9 +43,9 @@ describe('wrapProvider', () => {
     );
 
     expect(overrideModelId).toHaveBeenCalledTimes(3);
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model1 });
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model2 });
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model3 });
+    expect(overrideModelId.mock.calls[0][0].model.modelId).toBe('model-1');
+    expect(overrideModelId.mock.calls[1][0].model.modelId).toBe('model-2');
+    expect(overrideModelId.mock.calls[2][0].model.modelId).toBe('model-3');
   });
 
   it('should work when the provider is a ProviderV2', () => {
@@ -62,7 +62,7 @@ describe('wrapProvider', () => {
     const wrapped = wrapProvider({
       provider: providerV2,
       languageModelMiddleware: {
-        specificationVersion: 'v3',
+        specificationVersion: 'v4',
         overrideModelId: ({ model }) => `override-${model.modelId}`,
       },
     });
@@ -72,13 +72,13 @@ describe('wrapProvider', () => {
   });
 
   it('should wrap all image models in the provider when image middleware is provided', () => {
-    const model1 = new MockImageModelV3({ modelId: 'model-1' });
-    const model2 = new MockImageModelV3({ modelId: 'model-2' });
-    const model3 = new MockImageModelV3({ modelId: 'model-3' });
+    const model1 = new MockImageModelV4({ modelId: 'model-1' });
+    const model2 = new MockImageModelV4({ modelId: 'model-2' });
+    const model3 = new MockImageModelV4({ modelId: 'model-3' });
 
-    const provider = new MockProviderV3({
+    const provider = new MockProviderV4({
       languageModels: {
-        'language-model': new MockLanguageModelV3({
+        'language-model': new MockLanguageModelV4({
           modelId: 'language-model',
         }),
       },
@@ -95,9 +95,9 @@ describe('wrapProvider', () => {
 
     const wrappedProvider = wrapProvider({
       provider,
-      languageModelMiddleware: { specificationVersion: 'v3' },
+      languageModelMiddleware: { specificationVersion: 'v4' },
       imageModelMiddleware: {
-        specificationVersion: 'v3',
+        specificationVersion: 'v4',
         overrideModelId,
       },
     });
@@ -113,8 +113,8 @@ describe('wrapProvider', () => {
     );
 
     expect(overrideModelId).toHaveBeenCalledTimes(3);
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model1 });
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model2 });
-    expect(overrideModelId).toHaveBeenCalledWith({ model: model3 });
+    expect(overrideModelId.mock.calls[0][0].model.modelId).toBe('model-1');
+    expect(overrideModelId.mock.calls[1][0].model.modelId).toBe('model-2');
+    expect(overrideModelId.mock.calls[2][0].model.modelId).toBe('model-3');
   });
 });

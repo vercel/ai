@@ -1,9 +1,9 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 
 export function getLastUserMessageText({
   prompt,
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
 }): string | undefined {
   const lastMessage = prompt.at(-1);
 
