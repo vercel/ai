@@ -2,23 +2,58 @@
 
 import { useRealtime } from '@ai-sdk/react';
 import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
 import { useState, useRef, useEffect, useMemo } from 'react';
 
-export default function RealtimePage() {
-  const [voice, setVoice] = useState('alloy');
+type Provider = 'openai' | 'google';
 
-  const voices = [
-    'alloy',
-    'ash',
-    'ballad',
-    'coral',
-    'echo',
-    'fable',
-    'marin',
-    'sage',
-    'shimmer',
-    'verse',
-  ];
+const PROVIDER_CONFIG: Record<
+  Provider,
+  {
+    label: string;
+    defaultModel: string;
+    voices: string[];
+    createModel: (modelId: string) => ReturnType<typeof openai.realtime>;
+    sessionConfigOverrides?: Record<string, unknown>;
+  }
+> = {
+  openai: {
+    label: 'OpenAI',
+    defaultModel: 'gpt-4o-realtime-preview',
+    voices: [
+      'alloy',
+      'ash',
+      'ballad',
+      'coral',
+      'echo',
+      'fable',
+      'marin',
+      'sage',
+      'shimmer',
+      'verse',
+    ],
+    createModel: modelId => openai.realtime(modelId),
+  },
+  google: {
+    label: 'Google',
+    defaultModel: 'gemini-3.1-flash-live-preview',
+    voices: ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'],
+    createModel: modelId => google.realtime(modelId),
+    sessionConfigOverrides: {
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    },
+  },
+};
+
+export default function RealtimePage() {
+  const [provider, setProvider] = useState<Provider>('openai');
+  const [voice, setVoice] = useState(PROVIDER_CONFIG.openai.voices[0]);
+
+  const handleProviderChange = (next: Provider) => {
+    setProvider(next);
+    setVoice(PROVIDER_CONFIG[next].voices[0]);
+  };
 
   return (
     <div
@@ -36,7 +71,7 @@ export default function RealtimePage() {
         AI SDK Realtime API with tool calling
       </p>
 
-      {/* Voice selector */}
+      {/* Provider & voice selectors */}
       <div
         style={{
           display: 'flex',
@@ -45,6 +80,28 @@ export default function RealtimePage() {
           alignItems: 'center',
         }}
       >
+        <label style={{ fontSize: 13, fontWeight: 500, color: '#475569' }}>
+          Provider
+          <select
+            value={provider}
+            onChange={e => handleProviderChange(e.target.value as Provider)}
+            style={{
+              marginLeft: 8,
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #e2e8f0',
+              fontSize: 13,
+              background: 'white',
+            }}
+          >
+            {Object.entries(PROVIDER_CONFIG).map(([key, cfg]) => (
+              <option key={key} value={key}>
+                {cfg.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <label style={{ fontSize: 13, fontWeight: 500, color: '#475569' }}>
           Voice
           <select
@@ -59,7 +116,7 @@ export default function RealtimePage() {
               background: 'white',
             }}
           >
-            {voices.map(v => (
+            {PROVIDER_CONFIG[provider].voices.map(v => (
               <option key={v} value={v}>
                 {v}
               </option>
@@ -75,23 +132,37 @@ export default function RealtimePage() {
             fontFamily: 'monospace',
           }}
         >
-          gpt-4o-realtime-preview
+          {PROVIDER_CONFIG[provider].defaultModel}
         </span>
       </div>
 
-      <RealtimeChat key={voice} voice={voice} />
+      <RealtimeChat
+        key={`${provider}-${voice}`}
+        provider={provider}
+        voice={voice}
+      />
     </div>
   );
 }
 
-function RealtimeChat({ voice }: { voice: string }) {
+function RealtimeChat({
+  provider,
+  voice,
+}: {
+  provider: Provider;
+  voice: string;
+}) {
   const [textInput, setTextInput] = useState('');
   const [showEvents, setShowEvents] = useState(false);
   const [expandedEvent, setExpandedEvent] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
 
-  const model = useMemo(() => openai.realtime('gpt-4o-realtime-preview'), []);
+  const config = PROVIDER_CONFIG[provider];
+  const model = useMemo(
+    () => config.createModel(config.defaultModel),
+    [config],
+  );
 
   const {
     status,
@@ -108,7 +179,7 @@ function RealtimeChat({ voice }: { voice: string }) {
   } = useRealtime({
     model,
     api: {
-      token: '/api/realtime/setup',
+      token: `/api/realtime/setup?provider=${provider}`,
       tools: '/api/realtime/execute-tools',
     },
     sessionConfig: {
@@ -117,14 +188,15 @@ function RealtimeChat({ voice }: { voice: string }) {
         'You have access to tools for weather and dice rolling.',
       voice,
       turnDetection: { type: 'server-vad' },
+      ...config.sessionConfigOverrides,
     },
     onEvent: event => {
       if (event.type !== 'audio-delta') {
-        console.log(`[realtime] ${event.type}`, event);
+        console.log(`[realtime:${provider}] ${event.type}`, event);
       }
     },
     onError: error => {
-      console.error('[realtime] error:', error.message);
+      console.error(`[realtime:${provider}] error:`, error.message);
     },
   });
 

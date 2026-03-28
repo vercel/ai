@@ -1,4 +1,5 @@
 import { openai } from '@ai-sdk/openai';
+import { google } from '@ai-sdk/google';
 import { tool, ToolExecutionOptions } from 'ai';
 import { prepareToolsAndToolChoice } from 'ai/internal';
 import type { RealtimeToolsExecuteRequestBody } from 'ai';
@@ -28,6 +29,32 @@ const tools = {
   }),
 };
 
+const providerConfig = {
+  openai: {
+    getToken: async (opts: {
+      preparedTools: Awaited<ReturnType<typeof prepareToolsAndToolChoice>>;
+      sessionConfig?: Record<string, unknown>;
+    }) =>
+      openai.realtime.getToken({
+        model: 'gpt-4o-realtime-preview',
+        tools: opts.preparedTools.tools,
+        toolChoice: opts.preparedTools.toolChoice,
+      }),
+  },
+  google: {
+    getToken: async (opts: {
+      preparedTools: Awaited<ReturnType<typeof prepareToolsAndToolChoice>>;
+      sessionConfig?: Record<string, unknown>;
+    }) =>
+      google.realtime.getToken({
+        model: 'gemini-3.1-flash-live-preview',
+        tools: opts.preparedTools.tools,
+        toolChoice: opts.preparedTools.toolChoice,
+        sessionConfig: opts.sessionConfig,
+      }),
+  },
+};
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ path?: string[] }> },
@@ -36,16 +63,25 @@ export async function POST(
   const route = path.join('/');
 
   if (route === 'setup') {
+    const { searchParams } = new URL(request.url);
+    const provider = searchParams.get('provider') ?? 'openai';
+
+    const body = await request.json().catch(() => ({}));
+    const sessionConfig = body.sessionConfig ?? undefined;
+
     const preparedTools = await prepareToolsAndToolChoice({
       tools,
       toolChoice: undefined,
       activeTools: undefined,
     });
 
-    const tokenResult = await openai.realtime.getToken({
-      model: 'gpt-4o-realtime-preview',
-      tools: preparedTools.tools,
-      toolChoice: preparedTools.toolChoice,
+    const config =
+      providerConfig[provider as keyof typeof providerConfig] ??
+      providerConfig.openai;
+
+    const tokenResult = await config.getToken({
+      preparedTools,
+      sessionConfig,
     });
 
     return Response.json(tokenResult);
