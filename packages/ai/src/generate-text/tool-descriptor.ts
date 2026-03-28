@@ -1,4 +1,4 @@
-import type { JSONSchema7 } from '@ai-sdk/provider';
+import type { JSONObject, JSONSchema7 } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 
 /**
@@ -19,9 +19,10 @@ export interface FunctionToolDescriptor {
   description?: string;
   title?: string;
   inputSchema: JSONSchema7;
-  inputExamples?: Array<Record<string, unknown>>;
+  inputExamples?: Array<{ input: JSONObject }>;
   providerOptions?: ProviderOptions;
   strict?: boolean;
+  hasExecuteFunction: boolean;
 }
 
 /**
@@ -30,8 +31,8 @@ export interface FunctionToolDescriptor {
 export interface ProviderToolDescriptor {
   type: 'provider';
   name: string;
-  id: string;
-  args?: Record<string, unknown>;
+  id: `${string}.${string}`;
+  args: Record<string, unknown>;
 }
 
 /**

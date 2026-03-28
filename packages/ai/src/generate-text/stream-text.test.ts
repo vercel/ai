@@ -1503,6 +1503,7 @@ describe('streamText', () => {
                 type: 'function',
                 name: 'tool1',
                 description: undefined,
+                title: 'Tool 1',
                 inputSchema: {
                   $schema: 'http://json-schema.org/draft-07/schema#',
                   additionalProperties: false,
@@ -1511,6 +1512,7 @@ describe('streamText', () => {
                   type: 'object',
                 },
                 providerOptions: undefined,
+                hasExecuteFunction: false,
               },
             ]);
 
@@ -8153,6 +8155,7 @@ describe('streamText', () => {
               "tools": [
                 {
                   "description": undefined,
+                  "hasExecuteFunction": true,
                   "inputSchema": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "additionalProperties": false,
@@ -8168,6 +8171,7 @@ describe('streamText', () => {
                   },
                   "name": "tool1",
                   "providerOptions": undefined,
+                  "title": undefined,
                   "type": "function",
                 },
               ],
@@ -8228,6 +8232,7 @@ describe('streamText', () => {
               "tools": [
                 {
                   "description": undefined,
+                  "hasExecuteFunction": true,
                   "inputSchema": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "additionalProperties": false,
@@ -8243,6 +8248,7 @@ describe('streamText', () => {
                   },
                   "name": "tool1",
                   "providerOptions": undefined,
+                  "title": undefined,
                   "type": "function",
                 },
               ],
@@ -9505,6 +9511,7 @@ describe('streamText', () => {
               "tools": [
                 {
                   "description": undefined,
+                  "hasExecuteFunction": true,
                   "inputSchema": {
                     "$schema": "http://json-schema.org/draft-07/schema#",
                     "additionalProperties": false,
@@ -9520,6 +9527,7 @@ describe('streamText', () => {
                   },
                   "name": "tool1",
                   "providerOptions": undefined,
+                  "title": undefined,
                   "type": "function",
                 },
               ],
@@ -11198,7 +11206,7 @@ describe('streamText', () => {
                 "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
                 "ai.prompt.toolChoice": "{"type":"auto"}",
                 "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
+                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false},"hasExecuteFunction":true}",
                 ],
                 "ai.response.avgOutputTokensPerSecond": 20,
                 "ai.response.finishReason": "tool-calls",
@@ -11264,7 +11272,7 @@ describe('streamText', () => {
                 "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"text","value":"RESULT1"}}]}]",
                 "ai.prompt.toolChoice": "{"type":"auto"}",
                 "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
+                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false},"hasExecuteFunction":true}",
                 ],
                 "ai.response.avgOutputTokensPerSecond": 25,
                 "ai.response.finishReason": "stop",
@@ -13914,6 +13922,7 @@ describe('streamText', () => {
                 type: 'function',
                 name: 'tool1',
                 description: undefined,
+                title: 'Tool 1',
                 inputSchema: {
                   additionalProperties: false,
                   properties: { value: { type: 'string' } },
@@ -13921,6 +13930,7 @@ describe('streamText', () => {
                   type: 'object',
                 },
                 providerOptions: undefined,
+                hasExecuteFunction: false,
               },
             ]);
             expect(toolChoice).toStrictEqual({ type: 'required' });
@@ -16807,6 +16817,7 @@ describe('streamText', () => {
         [
           {
             "description": undefined,
+            "hasExecuteFunction": true,
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,
@@ -16822,6 +16833,7 @@ describe('streamText', () => {
             },
             "name": "tool1",
             "providerOptions": undefined,
+            "title": undefined,
             "type": "function",
           },
         ]
@@ -19474,6 +19486,7 @@ describe('streamText', () => {
               },
               {
                 "description": "Roll a die and return the result.",
+                "hasExecuteFunction": true,
                 "inputSchema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -19499,6 +19512,7 @@ describe('streamText', () => {
                     ],
                   },
                 },
+                "title": undefined,
                 "type": "function",
               },
             ]
