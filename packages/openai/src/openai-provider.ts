@@ -3,6 +3,7 @@ import {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  RealtimeModelV1,
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
@@ -22,6 +23,7 @@ import { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
 import { OpenAIImageModel } from './image/openai-image-model';
 import { OpenAIImageModelId } from './image/openai-image-options';
 import { openaiTools } from './openai-tools';
+import { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-options';
 import { OpenAISpeechModel } from './speech/openai-speech-model';
@@ -92,6 +94,12 @@ export interface OpenAIProvider extends ProviderV4 {
    * Creates a model for speech generation.
    */
   speech(modelId: OpenAISpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a realtime model for bidirectional audio/text
+   * communication over WebSocket.
+   */
+  realtime(modelId: string): RealtimeModelV1;
 
   /**
    * OpenAI-specific tools.
@@ -226,6 +234,14 @@ export function createOpenAI(
     return createResponsesModel(modelId);
   };
 
+  const createRealtimeModel = (modelId: string) =>
+    new OpenAIRealtimeModel(modelId, {
+      provider: `${providerName}.realtime`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
     return new OpenAIResponsesLanguageModel(modelId, {
       provider: `${providerName}.responses`,
@@ -258,6 +274,8 @@ export function createOpenAI(
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+
+  provider.realtime = createRealtimeModel;
 
   provider.tools = openaiTools;
 
