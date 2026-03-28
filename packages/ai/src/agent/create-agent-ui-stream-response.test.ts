@@ -194,6 +194,7 @@ describe('createAgentUIStreamResponse', () => {
             "tools": [
               {
                 "description": "Example tool",
+                "hasExecuteFunction": false,
                 "inputSchema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -209,6 +210,7 @@ describe('createAgentUIStreamResponse', () => {
                 },
                 "name": "example",
                 "providerOptions": undefined,
+                "title": undefined,
                 "type": "function",
               },
             ],
