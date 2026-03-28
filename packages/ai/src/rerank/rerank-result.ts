@@ -34,11 +34,6 @@ export interface RerankResult<VALUE> {
   }>;
 
   /**
-   * Token usage (input only).
-   */
-  readonly usage?: { tokens: number };
-
-  /**
    * Optional provider-specific metadata.
    */
   readonly providerMetadata?: ProviderMetadata;

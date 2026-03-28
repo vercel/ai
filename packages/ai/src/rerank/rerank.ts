@@ -212,8 +212,8 @@ export async function rerank<VALUE extends JSONObject | string>({
   });
 
   try {
-    const { ranking, response, providerMetadata, warnings, usage } =
-      await retry(async () => {
+    const { ranking, response, providerMetadata, warnings } = await retry(
+      async () => {
         await notify({
           event: {
             callId,
@@ -258,12 +258,12 @@ export async function rerank<VALUE extends JSONObject | string>({
 
         return {
           ranking,
-          usage: modelResponse.usage,
           providerMetadata: modelResponse.providerMetadata,
           response: modelResponse.response,
           warnings: modelResponse.warnings,
         };
-      });
+      },
+    );
 
     logWarnings({
       warnings: warnings ?? [],
@@ -309,7 +309,6 @@ export async function rerank<VALUE extends JSONObject | string>({
         score: ranking.relevanceScore,
         document: documents[ranking.index],
       })),
-      usage,
       providerMetadata,
       response: {
         id: response?.id,
@@ -328,20 +327,17 @@ export async function rerank<VALUE extends JSONObject | string>({
 class DefaultRerankResult<VALUE> implements RerankResult<VALUE> {
   readonly originalDocuments: RerankResult<VALUE>['originalDocuments'];
   readonly ranking: RerankResult<VALUE>['ranking'];
-  readonly usage: RerankResult<VALUE>['usage'];
   readonly response: RerankResult<VALUE>['response'];
   readonly providerMetadata: RerankResult<VALUE>['providerMetadata'];
 
   constructor(options: {
     originalDocuments: RerankResult<VALUE>['originalDocuments'];
     ranking: RerankResult<VALUE>['ranking'];
-    usage?: RerankResult<VALUE>['usage'];
     providerMetadata?: RerankResult<VALUE>['providerMetadata'];
     response: RerankResult<VALUE>['response'];
   }) {
     this.originalDocuments = options.originalDocuments;
     this.ranking = options.ranking;
-    this.usage = options.usage;
     this.response = options.response;
     this.providerMetadata = options.providerMetadata;
   }
