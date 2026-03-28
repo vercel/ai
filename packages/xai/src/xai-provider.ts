@@ -2,8 +2,13 @@ import {
   type Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4ProviderTool,
+  LanguageModelV4ToolChoice,
   NoSuchModelError,
   ProviderV4,
+  RealtimeModelV4,
+  RealtimeModelV4ToolDefinition,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -18,6 +23,7 @@ import { XaiImageModel } from './xai-image-model';
 import { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import { XaiResponsesModelId } from './responses/xai-responses-options';
+import { XaiRealtimeModel } from './realtime/xai-realtime-model';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
 import { XaiVideoModel } from './xai-video-model';
@@ -61,6 +67,8 @@ export interface XaiProvider extends ProviderV4 {
    */
   videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
+  realtime: XaiRealtimeFactory;
+
   /**
    * Server-side agentic tools for use with the responses API.
    */
@@ -70,6 +78,21 @@ export interface XaiProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
+}
+
+export interface XaiRealtimeFactory {
+  (modelId: string): RealtimeModelV4;
+  getToken(options: {
+    model: string;
+    tools?: Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>;
+    toolChoice?: LanguageModelV4ToolChoice;
+    expiresAfterSeconds?: number;
+  }): Promise<{
+    token: string;
+    url: string;
+    expiresAt?: number;
+    tools: RealtimeModelV4ToolDefinition[];
+  }>;
 }
 
 export interface XaiProviderSettings {
@@ -150,6 +173,54 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
+  const createRealtimeModel = (modelId: string) => {
+    return new XaiRealtimeModel(modelId, {
+      provider: 'xai.realtime',
+      baseURL: baseURL ?? 'https://api.x.ai/v1',
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
+  const realtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: {
+        model: string;
+        tools?: Array<
+          LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+        >;
+        toolChoice?: LanguageModelV4ToolChoice;
+        expiresAfterSeconds?: number;
+      }) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        const realtimeTools: RealtimeModelV4ToolDefinition[] = (
+          tokenOptions.tools ?? []
+        )
+          .filter(
+            (t): t is LanguageModelV4FunctionTool => t.type === 'function',
+          )
+          .map(t => ({
+            type: 'function' as const,
+            name: t.name,
+            description: t.description,
+            parameters: t.inputSchema,
+          }));
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+          tools: realtimeTools,
+        };
+      },
+    },
+  ) as XaiRealtimeFactory;
+
   const provider = (modelId: XaiResponsesModelId) =>
     createResponsesLanguageModel(modelId);
 
@@ -165,6 +236,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.image = createImageModel;
   provider.videoModel = createVideoModel;
   provider.video = createVideoModel;
+  provider.realtime = realtimeFactory;
   provider.tools = xaiTools;
 
   return provider;

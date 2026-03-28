@@ -43,6 +43,12 @@ export type RealtimeModelV4FunctionCallOutput = {
   callId: string;
 
   /**
+   * The name of the function that was called.
+   * Required by some providers (e.g. Google) for tool response routing.
+   */
+  name?: string;
+
+  /**
    * JSON string containing the function call result.
    */
   output: string;

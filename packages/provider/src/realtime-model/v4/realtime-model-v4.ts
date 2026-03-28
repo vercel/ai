@@ -55,7 +55,9 @@ export type RealtimeModelV4 = {
    * and returns a normalized event. Providers map their native event
    * format to the common RealtimeModelV4ServerEvent union.
    */
-  parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent;
+  parseServerEvent(
+    raw: unknown,
+  ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[];
 
   /**
    * Browser-side: Serializes a normalized client event into the

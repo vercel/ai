@@ -143,7 +143,10 @@ export abstract class AbstractRealtimeSession {
         if (!parseResult.success) return;
 
         const normalized = this.model.parseServerEvent(parseResult.value);
-        this.handleServerEvent(normalized);
+        const events = Array.isArray(normalized) ? normalized : [normalized];
+        for (const event of events) {
+          this.handleServerEvent(event);
+        }
       };
 
       ws.onerror = () => {

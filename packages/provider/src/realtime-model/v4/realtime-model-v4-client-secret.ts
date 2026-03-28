@@ -7,6 +7,12 @@ export type RealtimeModelV4ClientSecretOptions = {
    * Number of seconds until the client secret expires.
    */
   expiresAfterSeconds?: number;
+
+  /**
+   * Optional session configuration to include in the token request.
+   * Some providers (e.g. Google) require session config at token creation time.
+   */
+  sessionConfig?: Record<string, unknown>;
 };
 
 /**
