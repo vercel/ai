@@ -1,9 +1,10 @@
-import {
-  RealtimeModelV4,
-  RealtimeModelV4ServerEvent,
-  RealtimeModelV4SessionConfig,
-} from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
+import {
+  RealtimeClientEvent,
+  RealtimeModel,
+  RealtimeServerEvent,
+  RealtimeSessionConfig,
+} from '../types/realtime-model';
 import { decodeRealtimeAudio, encodeAudioForRealtime } from './audio-utils';
 
 export type RealtimeStatus =
@@ -21,34 +22,34 @@ export type TranscriptEntry = {
 };
 
 export type RealtimeSessionOptions = {
-  model: RealtimeModelV4;
+  model: RealtimeModel;
   api: {
     token: string;
     tools?: string;
   };
-  sessionConfig?: Partial<RealtimeModelV4SessionConfig>;
+  sessionConfig?: Partial<RealtimeSessionConfig>;
   sampleRate?: number;
   maxEvents?: number;
-  onEvent?: (event: RealtimeModelV4ServerEvent) => void;
+  onEvent?: (event: RealtimeServerEvent) => void;
   onError?: (error: Error) => void;
 };
 
 export interface RealtimeState {
   status: RealtimeStatus;
   transcript: TranscriptEntry[];
-  events: RealtimeModelV4ServerEvent[];
+  events: RealtimeServerEvent[];
   isCapturing: boolean;
   isPlaying: boolean;
 }
 
 export abstract class AbstractRealtimeSession {
-  protected model: RealtimeModelV4;
+  protected model: RealtimeModel;
   protected api: RealtimeSessionOptions['api'];
-  protected sessionConfig: Partial<RealtimeModelV4SessionConfig> | undefined;
+  protected sessionConfig: Partial<RealtimeSessionConfig> | undefined;
   protected sampleRate: number;
   protected maxEvents: number;
 
-  onEvent: ((event: RealtimeModelV4ServerEvent) => void) | undefined;
+  onEvent: ((event: RealtimeServerEvent) => void) | undefined;
   onError: ((error: Error) => void) | undefined;
 
   private ws: WebSocket | null = null;
@@ -72,7 +73,7 @@ export abstract class AbstractRealtimeSession {
     value: RealtimeState[K],
   ): void;
   protected abstract pushTranscript(entry: TranscriptEntry): void;
-  protected abstract pushEvent(event: RealtimeModelV4ServerEvent): void;
+  protected abstract pushEvent(event: RealtimeServerEvent): void;
 
   constructor(options: RealtimeSessionOptions) {
     this.model = options.model;
@@ -124,9 +125,9 @@ export abstract class AbstractRealtimeSession {
         this.ws = ws;
         this.setState('status', 'connected');
 
-        const config: RealtimeModelV4SessionConfig = {
+        const config: RealtimeSessionConfig = {
           ...this.sessionConfig,
-          tools: toolDefinitions as RealtimeModelV4SessionConfig['tools'],
+          tools: toolDefinitions as RealtimeSessionConfig['tools'],
         };
 
         this.sendRaw(
@@ -177,9 +178,7 @@ export abstract class AbstractRealtimeSession {
 
   // ── Sending events ─────────────────────────────────────────────────
 
-  sendEvent(
-    event: Parameters<RealtimeModelV4['serializeClientEvent']>[0],
-  ): void {
+  sendEvent(event: RealtimeClientEvent): void {
     this.sendRaw(this.model.serializeClientEvent(event));
   }
 
@@ -401,7 +400,7 @@ export abstract class AbstractRealtimeSession {
     }
   }
 
-  private handleServerEvent(event: RealtimeModelV4ServerEvent): void {
+  private handleServerEvent(event: RealtimeServerEvent): void {
     this.pushEvent(event);
     this.onEvent?.(event);
 

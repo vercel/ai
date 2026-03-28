@@ -13,10 +13,10 @@ export type {
   RealtimeStatus,
   TranscriptEntry,
 } from './realtime-session';
-
 export type {
-  RealtimeModelV4,
-  RealtimeModelV4ClientEvent,
-  RealtimeModelV4ServerEvent,
-  RealtimeModelV4SessionConfig,
-} from '@ai-sdk/provider';
+  RealtimeClientEvent,
+  RealtimeModel,
+  RealtimeServerEvent,
+  RealtimeSessionConfig,
+  RealtimeToolDefinition,
+} from '../types/realtime-model';
