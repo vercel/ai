@@ -52,10 +52,16 @@ export type RealtimeModelV4 = {
 
   /**
    * Browser-side: Parses a raw JSON event received over the WebSocket
-   * and returns a normalized event. Providers map their native event
-   * format to the common RealtimeModelV4ServerEvent union.
+   * and returns one or more normalized events. Providers map their native
+   * event format to the common RealtimeModelV4ServerEvent union.
+   *
+   * Returns an array when a single provider message maps to multiple
+   * normalized events (e.g. Google's serverContent can contain audio,
+   * text, and turn-complete data in one message).
    */
-  parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent;
+  parseServerEvent(
+    raw: unknown,
+  ): RealtimeModelV4ServerEvent | RealtimeModelV4ServerEvent[];
 
   /**
    * Browser-side: Serializes a normalized client event into the

@@ -4,6 +4,7 @@ import {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  RealtimeModelV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -26,6 +27,7 @@ import {
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
 import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+import { GoogleRealtimeModel } from './realtime/google-realtime-model';
 
 export interface GoogleGenerativeAIProvider extends ProviderV4 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV4;
@@ -80,6 +82,11 @@ export interface GoogleGenerativeAIProvider extends ProviderV4 {
   videoModel(
     modelId: GoogleGenerativeAIVideoModelId,
   ): Experimental_VideoModelV4;
+
+  /**
+   * Creates a realtime model for voice conversations.
+   */
+  realtime(modelId: string): RealtimeModelV4;
 
   tools: typeof googleTools;
 }
@@ -194,6 +201,14 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
     });
 
+  const createRealtimeModel = (modelId: string) =>
+    new GoogleRealtimeModel(modelId, {
+      provider: `${providerName}.realtime`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
@@ -216,6 +231,7 @@ export function createGoogleGenerativeAI(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.realtime = createRealtimeModel;
   provider.tools = googleTools;
 
   return provider as GoogleGenerativeAIProvider;

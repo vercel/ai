@@ -3,9 +3,10 @@
 import { useRealtime } from '@ai-sdk/react';
 import { openaiRealtime } from '@ai-sdk/openai/realtime';
 import { xaiRealtime } from '@ai-sdk/xai/realtime';
+import { googleRealtime } from '@ai-sdk/google/realtime';
 import { useState, useRef, useEffect, useMemo } from 'react';
 
-type Provider = 'openai' | 'xai';
+type Provider = 'openai' | 'xai' | 'google';
 
 const PROVIDER_CONFIG: Record<
   Provider,
@@ -14,6 +15,7 @@ const PROVIDER_CONFIG: Record<
     defaultModel: string;
     voices: string[];
     createModel: (modelId: string) => ReturnType<typeof openaiRealtime>;
+    sessionConfigOverrides?: Record<string, unknown>;
   }
 > = {
   openai: {
@@ -38,6 +40,16 @@ const PROVIDER_CONFIG: Record<
     defaultModel: 'grok-3',
     voices: ['Eve', 'Ara', 'Rex', 'Sal', 'Leo'],
     createModel: modelId => xaiRealtime(modelId),
+  },
+  google: {
+    label: 'Google',
+    defaultModel: 'gemini-3.1-flash-live-preview',
+    voices: ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'],
+    createModel: modelId => googleRealtime(modelId),
+    sessionConfigOverrides: {
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+    },
   },
 };
 
@@ -183,6 +195,7 @@ function RealtimeChat({
         'You have access to tools for weather and dice rolling.',
       voice,
       turnDetection: { type: 'server-vad' },
+      ...config.sessionConfigOverrides,
     },
     onEvent: event => {
       if (event.type !== 'audio-delta') {

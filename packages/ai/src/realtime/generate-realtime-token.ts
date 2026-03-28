@@ -1,4 +1,4 @@
-import { RealtimeModel } from '../types/realtime-model';
+import { RealtimeModel, RealtimeSessionConfig } from '../types/realtime-model';
 
 /**
  * Server-side helper that creates an ephemeral client secret for
@@ -22,9 +22,11 @@ import { RealtimeModel } from '../types/realtime-model';
 export async function generateRealtimeToken({
   model,
   expiresAfterSeconds,
+  sessionConfig,
 }: {
   model: RealtimeModel;
   expiresAfterSeconds?: number;
+  sessionConfig?: RealtimeSessionConfig;
 }): Promise<{
   token: string;
   url: string;
@@ -32,6 +34,7 @@ export async function generateRealtimeToken({
 }> {
   const result = await model.doCreateClientSecret({
     expiresAfterSeconds,
+    sessionConfig,
   });
 
   return {

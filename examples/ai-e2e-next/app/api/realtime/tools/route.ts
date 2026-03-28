@@ -1,7 +1,7 @@
 import { getRealtimeToolDefinitions, executeRealtimeTool, tool } from 'ai';
 import { z } from 'zod';
 
-const tools = {
+export const tools = {
   getWeather: tool({
     description: 'Get the current weather for a city',
     inputSchema: z.object({
