@@ -20,10 +20,10 @@ export function getOpenAILanguageModelCapabilities(
 
   const supportsPriorityProcessing =
     modelId.startsWith('gpt-4') ||
-    modelId.startsWith('gpt-5-mini') ||
     (modelId.startsWith('gpt-5') &&
       !modelId.startsWith('gpt-5-nano') &&
-      !modelId.startsWith('gpt-5-chat')) ||
+      !modelId.startsWith('gpt-5-chat') &&
+      !modelId.startsWith('gpt-5.4-nano')) ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini');
 
@@ -33,14 +33,15 @@ export function getOpenAILanguageModelCapabilities(
     modelId.startsWith('o1') ||
     modelId.startsWith('o3') ||
     modelId.startsWith('o4-mini') ||
-    modelId.startsWith('codex-mini') ||
-    modelId.startsWith('computer-use-preview') ||
     (modelId.startsWith('gpt-5') && !modelId.startsWith('gpt-5-chat'));
 
   // https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
-  // GPT-5.1 and GPT-5.2 support temperature, topP, logProbs when reasoningEffort is none
+  // GPT-5.1, GPT-5.2, and GPT-5.4 support temperature, topP, logProbs when reasoningEffort is none
   const supportsNonReasoningParameters =
-    modelId.startsWith('gpt-5.1') || modelId.startsWith('gpt-5.2');
+    modelId.startsWith('gpt-5.1') ||
+    modelId.startsWith('gpt-5.2') ||
+    modelId.startsWith('gpt-5.3') ||
+    modelId.startsWith('gpt-5.4');
 
   const systemMessageMode = isReasoningModel ? 'developer' : 'system';
 

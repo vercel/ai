@@ -1,4 +1,4 @@
-import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -108,8 +108,8 @@ interface FireworksImageModelConfig {
   };
 }
 
-export class FireworksImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class FireworksImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -132,10 +132,10 @@ export class FireworksImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     const backendConfig = modelToBackendConfig[this.modelId];
     if (!backendConfig?.supportsSize && size != null) {
@@ -244,9 +244,9 @@ export class FireworksImageModel implements ImageModelV3 {
     body: Record<string, unknown>;
     headers: Record<string, string | undefined>;
     abortSignal: AbortSignal | undefined;
-    warnings: Array<SharedV3Warning>;
+    warnings: Array<SharedV4Warning>;
     currentDate: Date;
-  }): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+  }): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     // Submit the generation request
     const { value: submitResponse } = await postJsonToApi({
       url: getUrlForModel(this.config.baseURL, this.modelId),

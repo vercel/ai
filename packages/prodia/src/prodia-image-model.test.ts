@@ -616,7 +616,7 @@ describe('ProdiaImageModel', () => {
 
       expect(model.provider).toBe('prodia.image');
       expect(model.modelId).toBe('inference.flux-fast.schnell.txt2img.v2');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

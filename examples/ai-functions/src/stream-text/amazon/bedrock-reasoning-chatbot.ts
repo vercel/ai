@@ -30,7 +30,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+      model: bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
       messages,
       tools: {
         weather: tool({
@@ -48,11 +48,7 @@ run(async () => {
       },
       stopWhen: stepCountIs(5),
       maxRetries: 0,
-      providerOptions: {
-        bedrock: {
-          reasoningConfig: { type: 'enabled', budgetTokens: 2048 },
-        },
-      },
+      reasoning: 'low',
       onError: error => {
         console.error(error);
       },

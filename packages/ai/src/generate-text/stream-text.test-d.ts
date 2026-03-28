@@ -2,7 +2,7 @@ import { JSONValue } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output, streamText } from '../generate-text';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { AsyncIterableStream } from '../util';
 import { DeepPartial } from '../util/deep-partial';
 
@@ -10,7 +10,7 @@ describe('streamText types', () => {
   describe('output', () => {
     it('should infer text output type (default)', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
       });
 
@@ -19,7 +19,7 @@ describe('streamText types', () => {
 
     it('should infer text output type', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.text(),
       });
@@ -29,7 +29,7 @@ describe('streamText types', () => {
 
     it('should infer object output type', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.object({ schema: z.object({ value: z.string() }) }),
       });
@@ -41,7 +41,7 @@ describe('streamText types', () => {
 
     it('should infer array output type', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.array({ element: z.string() }),
       });
@@ -53,7 +53,7 @@ describe('streamText types', () => {
 
     it('should infer choice output type', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.choice({ options: ['a', 'b', 'c'] as const }),
       });
@@ -65,7 +65,7 @@ describe('streamText types', () => {
 
     it('should infer json output type', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.json(),
       });
@@ -79,7 +79,7 @@ describe('streamText types', () => {
   describe('partialOutputStream', () => {
     it('should infer text partial output type (default)', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
       });
 
@@ -90,7 +90,7 @@ describe('streamText types', () => {
 
     it('should infer text partial output type', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.text(),
       });
@@ -102,7 +102,7 @@ describe('streamText types', () => {
 
     it('should infer object partial output type', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.object({ schema: z.object({ value: z.string() }) }),
       });
@@ -114,7 +114,7 @@ describe('streamText types', () => {
 
     it('should infer array partial output type', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.array({ element: z.string() }),
       });
@@ -126,7 +126,7 @@ describe('streamText types', () => {
 
     it('should infer choice partial output type', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.choice({ options: ['a', 'b', 'c'] as const }),
       });
@@ -138,7 +138,7 @@ describe('streamText types', () => {
 
     it('should infer json partial output type', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.json(),
       });
@@ -152,7 +152,7 @@ describe('streamText types', () => {
   describe('elementStream', () => {
     it('should infer element type for array output', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.array({ element: z.object({ value: z.string() }) }),
       });
@@ -164,7 +164,7 @@ describe('streamText types', () => {
 
     it('should infer never for text output', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.text(),
       });
@@ -176,7 +176,7 @@ describe('streamText types', () => {
 
     it('should infer never for object output', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.object({ schema: z.object({ value: z.string() }) }),
       });
@@ -188,7 +188,7 @@ describe('streamText types', () => {
 
     it('should infer never for default output', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
       });
 

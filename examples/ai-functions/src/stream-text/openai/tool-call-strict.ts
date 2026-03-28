@@ -1,4 +1,4 @@
-import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
 import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -15,11 +15,7 @@ run(async () => {
   const result = streamText({
     model: openai('gpt-5-nano'),
     stopWhen: stepCountIs(5),
-    providerOptions: {
-      openai: {
-        reasoningEffort: 'medium',
-      } satisfies OpenAILanguageModelResponsesOptions,
-    },
+    reasoning: 'medium',
     tools: {
       weather: tool({
         description: 'Get the weather in a location',

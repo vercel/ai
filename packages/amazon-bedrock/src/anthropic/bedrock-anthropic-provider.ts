@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -49,16 +49,16 @@ const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
   computer_20241022: 'computer-use-2024-10-22',
 };
 
-export interface BedrockAnthropicProvider extends ProviderV3 {
+export interface BedrockAnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: BedrockAnthropicModelId): LanguageModelV3;
+  (modelId: BedrockAnthropicModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: BedrockAnthropicModelId): LanguageModelV3;
+  languageModel(modelId: BedrockAnthropicModelId): LanguageModelV4;
 
   /**
    * Anthropic-specific computer use tool.
@@ -256,7 +256,7 @@ export function createBedrockAnthropic(
           isStreaming ? 'invoke-with-response-stream' : 'invoke'
         }`,
 
-      transformRequestBody: args => {
+      transformRequestBody: (args, betas) => {
         const { model, stream, tool_choice, tools, ...rest } = args;
 
         const transformedToolChoice =
@@ -267,7 +267,7 @@ export function createBedrockAnthropic(
               }
             : undefined;
 
-        const requiredBetas = new Set<string>();
+        const requiredBetas = new Set<string>(betas);
         const transformedTools = tools?.map((tool: Record<string, unknown>) => {
           const toolType = tool.type as string | undefined;
 
@@ -333,7 +333,7 @@ export function createBedrockAnthropic(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;

@@ -2,17 +2,13 @@ import { z } from 'zod/v4';
 
 // https://docs.claude.com/en/docs/about-claude/models/overview
 export type AnthropicMessagesModelId =
-  | 'claude-3-5-haiku-20241022'
-  | 'claude-3-5-haiku-latest'
-  | 'claude-3-7-sonnet-20250219'
-  | 'claude-3-7-sonnet-latest'
   | 'claude-3-haiku-20240307'
   | 'claude-haiku-4-5-20251001'
   | 'claude-haiku-4-5'
   | 'claude-opus-4-0'
+  | 'claude-opus-4-20250514'
   | 'claude-opus-4-1-20250805'
   | 'claude-opus-4-1'
-  | 'claude-opus-4-20250514'
   | 'claude-opus-4-5'
   | 'claude-opus-4-5-20251101'
   | 'claude-sonnet-4-0'
@@ -117,6 +113,23 @@ export const anthropicLanguageModelOptions = z.object({
     .optional(),
 
   /**
+   * Metadata to include with the request.
+   *
+   * See https://platform.claude.com/docs/en/api/messages/create for details.
+   */
+  metadata: z
+    .object({
+      /**
+       * An external identifier for the user associated with the request.
+       *
+       * Should be a UUID, hash value, or other opaque identifier.
+       * Must not contain PII (name, email, phone number, etc.).
+       */
+      userId: z.string().optional(),
+    })
+    .optional(),
+
+  /**
    * MCP servers to be utilized in this request.
    */
   mcpServers: z
@@ -176,6 +189,12 @@ export const anthropicLanguageModelOptions = z.object({
    * Only supported with claude-opus-4-6.
    */
   speed: z.enum(['fast', 'standard']).optional(),
+
+  /**
+   * A set of beta features to enable.
+   * Allow a provider to receive the full `betas` set if it needs it.
+   */
+  anthropicBeta: z.array(z.string()).optional(),
 
   contextManagement: z
     .object({

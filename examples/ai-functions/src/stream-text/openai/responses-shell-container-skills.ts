@@ -10,7 +10,7 @@ const skillZip = readFileSync('data/island-rescue-skill.zip').toString(
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5.2'),
+    model: openai.responses('gpt-5.4'),
     tools: {
       shell: openai.tools.shell({
         environment: {

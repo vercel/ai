@@ -1,4 +1,4 @@
-import { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
+import { EmbeddingModelV4Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { createGoogleGenerativeAI } from './google-provider';
@@ -29,7 +29,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     embeddings = dummyEmbeddings,
     headers,
   }: {
-    embeddings?: EmbeddingModelV3Embedding[];
+    embeddings?: EmbeddingModelV4Embedding[];
     headers?: Record<string, string>;
   } = {}) {
     server.urls[URL].response = {
@@ -45,7 +45,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     embeddings = dummyEmbeddings,
     headers,
   }: {
-    embeddings?: EmbeddingModelV3Embedding[];
+    embeddings?: EmbeddingModelV4Embedding[];
     headers?: Record<string, string>;
   } = {}) {
     server.urls[URL].response = {
@@ -285,6 +285,167 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
 
     expect(server.calls[0].requestUrl).toBe(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent',
+    );
+  });
+
+  it('should merge multimodal content for single embedding', async () => {
+    prepareSingleJsonResponse();
+
+    await model.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        google: {
+          content: [
+            [{ inlineData: { mimeType: 'image/png', data: 'abc123' } }],
+          ],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "content": {
+          "parts": [
+            {
+              "text": "sunny day at the beach",
+            },
+            {
+              "inlineData": {
+                "data": "abc123",
+                "mimeType": "image/png",
+              },
+            },
+          ],
+        },
+        "model": "models/gemini-embedding-001",
+      }
+    `);
+  });
+
+  it('should merge per-value multimodal content for batch embedding', async () => {
+    prepareBatchJsonResponse();
+
+    await model.doEmbed({
+      values: testValues,
+      providerOptions: {
+        google: {
+          content: [
+            [{ inlineData: { mimeType: 'image/png', data: 'img1' } }],
+            [{ inlineData: { mimeType: 'image/jpeg', data: 'img2' } }],
+          ],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "requests": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "sunny day at the beach",
+                },
+                {
+                  "inlineData": {
+                    "data": "img1",
+                    "mimeType": "image/png",
+                  },
+                },
+              ],
+              "role": "user",
+            },
+            "model": "models/gemini-embedding-001",
+          },
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "rainy day in the city",
+                },
+                {
+                  "inlineData": {
+                    "data": "img2",
+                    "mimeType": "image/jpeg",
+                  },
+                },
+              ],
+              "role": "user",
+            },
+            "model": "models/gemini-embedding-001",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should handle null entries as text-only in batch embedding', async () => {
+    prepareBatchJsonResponse();
+
+    await model.doEmbed({
+      values: testValues,
+      providerOptions: {
+        google: {
+          content: [
+            [{ inlineData: { mimeType: 'image/png', data: 'img1' } }],
+            null,
+          ],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "requests": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "sunny day at the beach",
+                },
+                {
+                  "inlineData": {
+                    "data": "img1",
+                    "mimeType": "image/png",
+                  },
+                },
+              ],
+              "role": "user",
+            },
+            "model": "models/gemini-embedding-001",
+          },
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "rainy day in the city",
+                },
+              ],
+              "role": "user",
+            },
+            "model": "models/gemini-embedding-001",
+          },
+        ],
+      }
+    `);
+  });
+
+  it('should throw error when content length does not match values length', async () => {
+    prepareBatchJsonResponse();
+
+    await expect(
+      model.doEmbed({
+        values: testValues,
+        providerOptions: {
+          google: {
+            content: [
+              [{ inlineData: { mimeType: 'image/png', data: 'img1' } }],
+            ],
+          },
+        },
+      }),
+    ).rejects.toThrow(
+      'The number of multimodal content entries (1) must match the number of values (2).',
     );
   });
 });
