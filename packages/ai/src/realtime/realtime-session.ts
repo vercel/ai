@@ -43,6 +43,8 @@ export abstract class AbstractRealtimeSession {
   protected api: RealtimeSessionOptions['api'];
   protected sessionConfig: Partial<RealtimeSessionConfig> | undefined;
   protected sampleRate: number;
+  private captureSampleRate: number;
+  private playbackSampleRate: number;
   protected maxEvents: number;
 
   onToolCall: RealtimeSessionOptions['onToolCall'];
@@ -88,6 +90,10 @@ export abstract class AbstractRealtimeSession {
     this.api = options.api;
     this.sessionConfig = options.sessionConfig;
     this.sampleRate = options.sampleRate ?? 24000;
+    this.captureSampleRate =
+      options.sessionConfig?.inputAudioFormat?.rate ?? this.sampleRate;
+    this.playbackSampleRate =
+      options.sessionConfig?.outputAudioFormat?.rate ?? this.sampleRate;
     this.maxEvents = options.maxEvents ?? 500;
     this.onToolCall = options.onToolCall;
     this.onEvent = options.onEvent;
@@ -100,16 +106,25 @@ export abstract class AbstractRealtimeSession {
     this.setState('status', 'connecting');
 
     try {
-      const response = await fetch(this.api.token, { method: 'POST' });
+      const response = await fetch(this.api.token, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionConfig: this.sessionConfig }),
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch realtime setup: ${response.status}`);
       }
       const setupData = await response.json();
       const { token, url, tools: toolDefinitions } = setupData;
 
+      const config: RealtimeSessionConfig = {
+        ...this.sessionConfig,
+        tools: toolDefinitions as RealtimeSessionConfig['tools'],
+      };
+
       if (this.playbackContext == null) {
         this.playbackContext = new AudioContext({
-          sampleRate: this.sampleRate,
+          sampleRate: this.playbackSampleRate,
         });
       }
 
@@ -118,32 +133,31 @@ export abstract class AbstractRealtimeSession {
 
       ws.onopen = () => {
         this.ws = ws;
-        this.setState('status', 'connected');
 
-        const config: RealtimeSessionConfig = {
-          ...this.sessionConfig,
-          tools: toolDefinitions as RealtimeSessionConfig['tools'],
-        };
-
-        this.sendRaw(
-          this.model.serializeClientEvent({
-            type: 'session-update',
-            config,
-          }),
-        );
+        this.sendEvent({
+          type: 'session-update',
+          config,
+        });
       };
 
       ws.onmessage = async messageEvent => {
-        const text =
-          typeof messageEvent.data === 'string'
-            ? messageEvent.data
-            : new TextDecoder().decode(messageEvent.data);
+        let text: string;
+        if (typeof messageEvent.data === 'string') {
+          text = messageEvent.data;
+        } else if (messageEvent.data instanceof Blob) {
+          text = await messageEvent.data.text();
+        } else {
+          text = new TextDecoder().decode(messageEvent.data);
+        }
 
         const parseResult = await safeParseJSON({ text });
         if (!parseResult.success) return;
 
-        const normalized = this.model.parseServerEvent(parseResult.value);
-        this.handleServerEvent(normalized);
+        const result = this.model.parseServerEvent(parseResult.value);
+        const events = Array.isArray(result) ? result : [result];
+        for (const event of events) {
+          this.handleServerEvent(event);
+        }
       };
 
       ws.onerror = () => {
@@ -174,7 +188,10 @@ export abstract class AbstractRealtimeSession {
   // ── Sending events ─────────────────────────────────────────────────
 
   sendEvent(event: RealtimeClientEvent): void {
-    this.sendRaw(this.model.serializeClientEvent(event));
+    const serialized = this.model.serializeClientEvent(event);
+    if (serialized != null) {
+      this.sendRaw(serialized);
+    }
   }
 
   sendTextMessage(text: string): void {
@@ -235,7 +252,7 @@ export abstract class AbstractRealtimeSession {
   // ── Audio capture ──────────────────────────────────────────────────
 
   startAudioCapture(stream: MediaStream): void {
-    const targetRate = this.sampleRate;
+    const targetRate = this.captureSampleRate;
     const ctx = new AudioContext({ sampleRate: targetRate });
     this.captureContext = ctx;
 
@@ -333,7 +350,11 @@ export abstract class AbstractRealtimeSession {
 
     while (this.playbackQueue.length > 0) {
       const samples = this.playbackQueue.shift()!;
-      const buffer = ctx.createBuffer(1, samples.length, this.sampleRate);
+      const buffer = ctx.createBuffer(
+        1,
+        samples.length,
+        this.playbackSampleRate,
+      );
       buffer.getChannelData(0).set(samples);
 
       const source = ctx.createBufferSource();
@@ -543,6 +564,14 @@ export abstract class AbstractRealtimeSession {
     this.onEvent?.(event);
 
     switch (event.type) {
+      case 'session-created':
+      case 'session-updated': {
+        if (this.state.status === 'connecting') {
+          this.setState('status', 'connected');
+        }
+        break;
+      }
+
       case 'audio-delta': {
         const float32 = decodeRealtimeAudio(event.delta);
         this.currentResponseItemId = event.itemId;

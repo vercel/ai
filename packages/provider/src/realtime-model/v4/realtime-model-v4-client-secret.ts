@@ -1,3 +1,5 @@
+import { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
+
 /**
  * Options for creating an ephemeral client secret for browser-side
  * WebSocket connections to a realtime model.
@@ -7,6 +9,13 @@ export type RealtimeModelV4ClientSecretOptions = {
    * Number of seconds until the client secret expires.
    */
   expiresAfterSeconds?: number;
+
+  /**
+   * Optional session configuration to embed in the client secret.
+   * Some providers (e.g. Google) require the full session config
+   * (tools, voice, instructions) at token creation time.
+   */
+  sessionConfig?: RealtimeModelV4SessionConfig;
 };
 
 /**
