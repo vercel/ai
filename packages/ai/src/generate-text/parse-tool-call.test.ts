@@ -191,6 +191,43 @@ describe('parseToolCall', () => {
     `);
   });
 
+  it('should parse tool calls that only provide the legacy parameters field', async () => {
+    const result = await parseToolCall({
+      toolCall: {
+        type: 'tool-call',
+        toolName: 'testTool',
+        toolCallId: '123',
+        input: '{"param1": "test", "param2": 42}',
+      },
+      tools: {
+        testTool: {
+          parameters: z.object({
+            param1: z.string(),
+            param2: z.number(),
+          }),
+        } as any,
+      } as const,
+      repairToolCall: undefined,
+      messages: [],
+      system: undefined,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "input": {
+          "param1": "test",
+          "param2": 42,
+        },
+        "providerExecuted": undefined,
+        "providerMetadata": undefined,
+        "title": undefined,
+        "toolCallId": "123",
+        "toolName": "testTool",
+        "type": "tool-call",
+      }
+    `);
+  });
+
   it('should throw NoSuchToolError when tools is null', async () => {
     const result = await parseToolCall({
       toolCall: {
