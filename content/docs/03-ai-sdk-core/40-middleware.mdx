@@ -266,6 +266,39 @@ const model = wrapLanguageModel({
 
 Find more examples at this [link](https://github.com/minpeter/ai-sdk-tool-call-middleware/tree/main/examples/core/src).
 
+### EU AI Act Audit Logging
+
+The [aiact-audit-log](https://github.com/systima-ai/aiact-audit-log) middleware provides structured, tamper-evident audit logging for AI systems targeting EU AI Act Article 12 compliance. It automatically captures every `generateText`, `streamText`, and `generateObject` call with schema fields mapped to specific Article 12 paragraphs, SHA-256 hash chains for tamper evidence, and configurable storage (S3-compatible or local filesystem).
+
+The `@systima/aiact-audit-log` package wraps any AI SDK model:
+
+```ts
+import { AuditLogger } from '@systima/aiact-audit-log';
+import { auditMiddleware } from '@systima/aiact-audit-log/ai-sdk/middleware';
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const logger = new AuditLogger({
+  systemId: 'my-ai-system',
+  storage: { type: 'filesystem', directory: './audit-logs' },
+});
+
+const model = auditMiddleware(anthropic('claude-sonnet-4-5-20250929'), {
+  logger,
+  captureInputs: true,
+  captureOutputs: true,
+  captureToolCalls: true,
+});
+
+// Every call through the wrapped model is automatically logged
+const result = await generateText({
+  model,
+  prompt: 'Assess the risk for application #12345',
+});
+```
+
+The middleware logs all AI SDK calls automatically. Human interventions, session lifecycle events, and custom business logic events require manual `logger.log()` calls. See the [aiact-audit-log documentation](https://github.com/systima-ai/aiact-audit-log) for the full API reference and CLI tooling.
+
 ## Implementing Language Model Middleware
 
 <Note>
