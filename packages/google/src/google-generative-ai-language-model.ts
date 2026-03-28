@@ -1,4 +1,5 @@
 import {
+  JSONValue,
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -42,8 +43,12 @@ import {
   googleLanguageModelOptions,
 } from './google-generative-ai-options';
 import {
+  GoogleGenerativeAICodeExecutionResultPart,
   GoogleGenerativeAIContentPart,
+  GoogleGenerativeAIExecutableCodePart,
   GoogleGenerativeAIProviderMetadata,
+  GoogleGenerativeAIServerSideToolCall,
+  GoogleGenerativeAIServerSideToolResponse,
 } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -124,7 +129,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     if (
       tools?.some(
-        tool =>
+        (tool: NonNullable<LanguageModelV4CallOptions['tools']>[number]) =>
           tool.type === 'provider' && tool.id === 'google.vertex_rag_store',
       ) &&
       !this.config.provider.startsWith('google.vertex.')
@@ -159,6 +164,29 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       toolChoice,
       modelId: this.modelId,
     });
+    const hasServerSideToolContext = prompt.some(
+      (message: LanguageModelV4CallOptions['prompt'][number]) =>
+        message.role === 'assistant' &&
+        message.content.some(
+          (
+            part: LanguageModelV4CallOptions['prompt'][number] extends {
+              role: 'assistant';
+              content: infer T;
+            }
+              ? T extends Array<infer U>
+                ? U
+                : never
+              : never,
+          ) =>
+            ((part.type === 'tool-call' && part.providerExecuted === true) ||
+              part.type === 'tool-result') &&
+            part.providerOptions != null &&
+            (part.providerOptions.google?.serverSideToolCall != null ||
+              part.providerOptions.vertex?.serverSideToolCall != null ||
+              part.providerOptions.google?.serverSideToolResponse != null ||
+              part.providerOptions.vertex?.serverSideToolResponse != null),
+        ),
+    );
 
     const resolvedThinking = resolveThinkingConfig({
       reasoning,
@@ -213,12 +241,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
         safetySettings: googleOptions?.safetySettings,
         tools: googleTools,
-        toolConfig: googleOptions?.retrievalConfig
-          ? {
-              ...googleToolConfig,
-              retrievalConfig: googleOptions.retrievalConfig,
-            }
-          : googleToolConfig,
+        toolConfig:
+          googleOptions?.retrievalConfig != null || hasServerSideToolContext
+            ? {
+                ...googleToolConfig,
+                ...(googleOptions?.retrievalConfig != null
+                  ? { retrievalConfig: googleOptions.retrievalConfig }
+                  : {}),
+                ...(hasServerSideToolContext
+                  ? { includeServerSideToolInvocations: true }
+                  : {}),
+              }
+            : googleToolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
       },
@@ -267,7 +301,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     // Build content array from all parts
     for (const part of parts) {
       if ('executableCode' in part && part.executableCode?.code) {
-        const toolCallId = this.config.generateId();
+        const toolCallId = part.executableCode.id ?? this.config.generateId();
         lastCodeExecutionToolCallId = toolCallId;
 
         content.push({
@@ -276,28 +310,61 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
           toolName: 'code_execution',
           input: JSON.stringify(part.executableCode),
           providerExecuted: true,
+          providerMetadata: getExecutableCodeMetadata({
+            providerOptionsName,
+            executableCode: part.executableCode,
+            thoughtSignature: part.thoughtSignature,
+          }),
         });
       } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
         content.push({
           type: 'tool-result',
           // Assumes a result directly follows its corresponding call part.
-          toolCallId: lastCodeExecutionToolCallId!,
+          toolCallId:
+            part.codeExecutionResult.id ?? lastCodeExecutionToolCallId!,
           toolName: 'code_execution',
           result: {
             outcome: part.codeExecutionResult.outcome,
             output: part.codeExecutionResult.output ?? '',
           },
+          providerMetadata: getCodeExecutionResultMetadata({
+            providerOptionsName,
+            codeExecutionResult: part.codeExecutionResult,
+            thoughtSignature: part.thoughtSignature,
+          }),
         });
         // Clear the ID after use to avoid accidental reuse.
         lastCodeExecutionToolCallId = undefined;
+      } else if ('toolCall' in part && part.toolCall) {
+        content.push({
+          type: 'tool-call',
+          toolCallId: part.toolCall.id,
+          toolName: part.toolCall.toolType,
+          input: JSON.stringify(part.toolCall.args ?? {}),
+          providerExecuted: true,
+          providerMetadata: getServerSideToolCallMetadata({
+            providerOptionsName,
+            toolCall: part.toolCall,
+            thoughtSignature: part.thoughtSignature,
+          }),
+        });
+      } else if ('toolResponse' in part && part.toolResponse) {
+        content.push({
+          type: 'tool-result',
+          toolCallId: part.toolResponse.id,
+          toolName: part.toolResponse.toolType,
+          result: (part.toolResponse.response ?? {}) as NonNullable<JSONValue>,
+          providerMetadata: getServerSideToolResponseMetadata({
+            providerOptionsName,
+            toolResponse: part.toolResponse,
+            thoughtSignature: part.thoughtSignature,
+          }),
+        });
       } else if ('text' in part && part.text != null) {
-        const thoughtSignatureMetadata = part.thoughtSignature
-          ? {
-              [providerOptionsName]: {
-                thoughtSignature: part.thoughtSignature,
-              },
-            }
-          : undefined;
+        const thoughtSignatureMetadata = getThoughtSignatureMetadata({
+          providerOptionsName,
+          thoughtSignature: part.thoughtSignature,
+        });
 
         if (part.text.length === 0) {
           if (thoughtSignatureMetadata != null && content.length > 0) {
@@ -314,16 +381,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       } else if ('functionCall' in part) {
         content.push({
           type: 'tool-call' as const,
-          toolCallId: this.config.generateId(),
+          toolCallId: part.functionCall.id ?? this.config.generateId(),
           toolName: part.functionCall.name,
           input: JSON.stringify(part.functionCall.args),
-          providerMetadata: part.thoughtSignature
-            ? {
-                [providerOptionsName]: {
-                  thoughtSignature: part.thoughtSignature,
-                },
-              }
-            : undefined,
+          providerMetadata: getThoughtSignatureMetadata({
+            providerOptionsName,
+            thoughtSignature: part.thoughtSignature,
+          }),
         });
       } else if ('inlineData' in part) {
         const hasThought = part.thought === true;
@@ -495,22 +559,28 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
               const parts = content.parts ?? [];
               for (const part of parts) {
                 if ('executableCode' in part && part.executableCode?.code) {
-                  const toolCallId = generateId();
+                  const toolCallId = part.executableCode.id ?? generateId();
                   lastCodeExecutionToolCallId = toolCallId;
 
-                  controller.enqueue({
-                    type: 'tool-call',
+                  emitToolCallEvents({
+                    controller,
                     toolCallId,
                     toolName: 'code_execution',
                     input: JSON.stringify(part.executableCode),
                     providerExecuted: true,
+                    providerMetadata: getExecutableCodeMetadata({
+                      providerOptionsName,
+                      executableCode: part.executableCode,
+                      thoughtSignature: part.thoughtSignature,
+                    }),
                   });
                 } else if (
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult
                 ) {
                   // Assumes a result directly follows its corresponding call part.
-                  const toolCallId = lastCodeExecutionToolCallId;
+                  const toolCallId =
+                    part.codeExecutionResult.id ?? lastCodeExecutionToolCallId;
 
                   if (toolCallId) {
                     controller.enqueue({
@@ -521,18 +591,46 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                         outcome: part.codeExecutionResult.outcome,
                         output: part.codeExecutionResult.output ?? '',
                       },
+                      providerMetadata: getCodeExecutionResultMetadata({
+                        providerOptionsName,
+                        codeExecutionResult: part.codeExecutionResult,
+                        thoughtSignature: part.thoughtSignature,
+                      }),
                     });
                     // Clear the ID after use.
                     lastCodeExecutionToolCallId = undefined;
                   }
+                } else if ('toolCall' in part && part.toolCall) {
+                  emitToolCallEvents({
+                    controller,
+                    toolCallId: part.toolCall.id,
+                    toolName: part.toolCall.toolType,
+                    input: JSON.stringify(part.toolCall.args ?? {}),
+                    providerExecuted: true,
+                    providerMetadata: getServerSideToolCallMetadata({
+                      providerOptionsName,
+                      toolCall: part.toolCall,
+                      thoughtSignature: part.thoughtSignature,
+                    }),
+                  });
+                } else if ('toolResponse' in part && part.toolResponse) {
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId: part.toolResponse.id,
+                    toolName: part.toolResponse.toolType,
+                    result: (part.toolResponse.response ??
+                      {}) as NonNullable<JSONValue>,
+                    providerMetadata: getServerSideToolResponseMetadata({
+                      providerOptionsName,
+                      toolResponse: part.toolResponse,
+                      thoughtSignature: part.thoughtSignature,
+                    }),
+                  });
                 } else if ('text' in part && part.text != null) {
-                  const thoughtSignatureMetadata = part.thoughtSignature
-                    ? {
-                        [providerOptionsName]: {
-                          thoughtSignature: part.thoughtSignature,
-                        },
-                      }
-                    : undefined;
+                  const thoughtSignatureMetadata = getThoughtSignatureMetadata({
+                    providerOptionsName,
+                    thoughtSignature: part.thoughtSignature,
+                  });
 
                   if (part.text.length === 0) {
                     if (
@@ -630,45 +728,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                     data: part.inlineData.data,
                     providerMetadata: fileMeta,
                   });
-                }
-              }
-
-              const toolCallDeltas = getToolCallsFromParts({
-                parts: content.parts,
-                generateId,
-                providerOptionsName,
-              });
-
-              if (toolCallDeltas != null) {
-                for (const toolCall of toolCallDeltas) {
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    providerMetadata: toolCall.providerMetadata,
+                } else if ('functionCall' in part) {
+                  emitToolCallEvents({
+                    controller,
+                    toolCallId: part.functionCall.id ?? generateId(),
+                    toolName: part.functionCall.name,
+                    input: JSON.stringify(part.functionCall.args),
+                    providerMetadata: getThoughtSignatureMetadata({
+                      providerOptionsName,
+                      thoughtSignature: part.thoughtSignature,
+                    }),
                   });
-
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCall.toolCallId,
-                    delta: toolCall.args,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.toolCallId,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    input: toolCall.args,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
-
                   hasToolCalls = true;
                 }
               }
@@ -828,39 +898,134 @@ function resolveGemini25ThinkingConfig({
   return { thinkingBudget };
 }
 
-function getToolCallsFromParts({
-  parts,
-  generateId,
+function getThoughtSignatureMetadata({
   providerOptionsName,
+  thoughtSignature,
 }: {
-  parts: ContentSchema['parts'];
-  generateId: () => string;
   providerOptionsName: string;
+  thoughtSignature?: string | null;
 }) {
-  const functionCallParts = parts?.filter(
-    part => 'functionCall' in part,
-  ) as Array<
-    GoogleGenerativeAIContentPart & {
-      functionCall: { name: string; args: unknown };
-      thoughtSignature?: string | null;
-    }
-  >;
+  return thoughtSignature
+    ? {
+        [providerOptionsName]: {
+          thoughtSignature,
+        },
+      }
+    : undefined;
+}
 
-  return functionCallParts == null || functionCallParts.length === 0
-    ? undefined
-    : functionCallParts.map(part => ({
-        type: 'tool-call' as const,
-        toolCallId: generateId(),
-        toolName: part.functionCall.name,
-        args: JSON.stringify(part.functionCall.args),
-        providerMetadata: part.thoughtSignature
-          ? {
-              [providerOptionsName]: {
-                thoughtSignature: part.thoughtSignature,
-              },
-            }
-          : undefined,
-      }));
+function getServerSideToolCallMetadata({
+  providerOptionsName,
+  toolCall,
+  thoughtSignature,
+}: {
+  providerOptionsName: string;
+  toolCall: GoogleGenerativeAIServerSideToolCall;
+  thoughtSignature?: string | null;
+}) {
+  return {
+    [providerOptionsName]: {
+      ...(thoughtSignature != null ? { thoughtSignature } : {}),
+      serverSideToolCall: toolCall,
+    },
+  };
+}
+
+function getServerSideToolResponseMetadata({
+  providerOptionsName,
+  toolResponse,
+  thoughtSignature,
+}: {
+  providerOptionsName: string;
+  toolResponse: GoogleGenerativeAIServerSideToolResponse;
+  thoughtSignature?: string | null;
+}) {
+  return {
+    [providerOptionsName]: {
+      ...(thoughtSignature != null ? { thoughtSignature } : {}),
+      serverSideToolResponse: toolResponse,
+    },
+  };
+}
+
+function getExecutableCodeMetadata({
+  providerOptionsName,
+  executableCode,
+  thoughtSignature,
+}: {
+  providerOptionsName: string;
+  executableCode: GoogleGenerativeAIExecutableCodePart;
+  thoughtSignature?: string | null;
+}) {
+  return {
+    [providerOptionsName]: {
+      ...(thoughtSignature != null ? { thoughtSignature } : {}),
+      executableCode,
+    },
+  };
+}
+
+function getCodeExecutionResultMetadata({
+  providerOptionsName,
+  codeExecutionResult,
+  thoughtSignature,
+}: {
+  providerOptionsName: string;
+  codeExecutionResult: GoogleGenerativeAICodeExecutionResultPart;
+  thoughtSignature?: string | null;
+}) {
+  return {
+    [providerOptionsName]: {
+      ...(thoughtSignature != null ? { thoughtSignature } : {}),
+      codeExecutionResult,
+    },
+  };
+}
+
+function emitToolCallEvents({
+  controller,
+  toolCallId,
+  toolName,
+  input,
+  providerMetadata,
+  providerExecuted,
+}: {
+  controller: TransformStreamDefaultController<LanguageModelV4StreamPart>;
+  toolCallId: string;
+  toolName: string;
+  input: string;
+  providerMetadata?: SharedV4ProviderMetadata;
+  providerExecuted?: boolean;
+}) {
+  controller.enqueue({
+    type: 'tool-input-start',
+    id: toolCallId,
+    toolName,
+    providerMetadata,
+    providerExecuted,
+  });
+
+  controller.enqueue({
+    type: 'tool-input-delta',
+    id: toolCallId,
+    delta: input,
+    providerMetadata,
+  });
+
+  controller.enqueue({
+    type: 'tool-input-end',
+    id: toolCallId,
+    providerMetadata,
+  });
+
+  controller.enqueue({
+    type: 'tool-call',
+    toolCallId,
+    toolName,
+    input,
+    providerMetadata,
+    providerExecuted,
+  });
 }
 
 function extractSources({
@@ -1050,7 +1215,28 @@ const getContentSchema = () =>
             functionCall: z.object({
               name: z.string(),
               args: z.unknown(),
+              id: z.string().nullish(),
             }),
+            thoughtSignature: z.string().nullish(),
+          }),
+          z.object({
+            toolCall: z
+              .object({
+                id: z.string(),
+                toolType: z.string(),
+                args: z.unknown().nullish(),
+              })
+              .passthrough(),
+            thoughtSignature: z.string().nullish(),
+          }),
+          z.object({
+            toolResponse: z
+              .object({
+                id: z.string(),
+                toolType: z.string(),
+                response: z.unknown().nullish(),
+              })
+              .passthrough(),
             thoughtSignature: z.string().nullish(),
           }),
           z.object({
@@ -1066,12 +1252,14 @@ const getContentSchema = () =>
               .object({
                 language: z.string(),
                 code: z.string(),
+                id: z.string().nullish(),
               })
               .nullish(),
             codeExecutionResult: z
               .object({
                 outcome: z.string(),
                 output: z.string().nullish(),
+                id: z.string().nullish(),
               })
               .nullish(),
             text: z.string().nullish(),

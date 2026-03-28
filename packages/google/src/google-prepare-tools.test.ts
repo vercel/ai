@@ -2,23 +2,23 @@ import { LanguageModelV4ProviderTool } from '@ai-sdk/provider';
 import { expect, it } from 'vitest';
 import { prepareTools } from './google-prepare-tools';
 
-it('should return undefined tools and tool_choice when tools are null', () => {
+it('should return undefined tools and toolConfig when tools are null', () => {
   const result = prepareTools({
     tools: undefined,
     modelId: 'gemini-2.5-flash',
   });
   expect(result).toEqual({
     tools: undefined,
-    tool_choice: undefined,
+    toolConfig: undefined,
     toolWarnings: [],
   });
 });
 
-it('should return undefined tools and tool_choice when tools are empty', () => {
+it('should return undefined tools and toolConfig when tools are empty', () => {
   const result = prepareTools({ tools: [], modelId: 'gemini-2.5-flash' });
   expect(result).toEqual({
     tools: undefined,
-    tool_choice: undefined,
+    toolConfig: undefined,
     toolWarnings: [],
   });
 });
@@ -297,7 +297,7 @@ it('should handle tool choice "tool"', () => {
   });
 });
 
-it('should warn when mixing function and provider-defined tools', () => {
+it('should combine function and provider-defined tools on Gemini 3', () => {
   const result = prepareTools({
     tools: [
       {
@@ -313,24 +313,29 @@ it('should warn when mixing function and provider-defined tools', () => {
         args: {},
       },
     ],
-    modelId: 'gemini-2.5-flash',
+    modelId: 'gemini-3.1-pro-preview',
   });
 
-  expect(result.tools).toEqual([{ googleSearch: {} }]);
-
-  expect(result.toolWarnings).toMatchInlineSnapshot(`
-    [
-      {
-        "feature": "combination of function and provider-defined tools",
-        "type": "unsupported",
-      },
-    ]
-  `);
-
-  expect(result.toolConfig).toBeUndefined();
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: undefined,
+        },
+      ],
+    },
+    { googleSearch: {} },
+  ]);
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+    includeServerSideToolInvocations: true,
+  });
+  expect(result.toolWarnings).toEqual([]);
 });
 
-it('should handle tool choice with mixed tools (provider-defined tools only)', () => {
+it('should use combo-aware tool choice for mixed tools', () => {
   const result = prepareTools({
     tools: [
       {
@@ -347,21 +352,50 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
       },
     ],
     toolChoice: { type: 'auto' },
-    modelId: 'gemini-2.5-flash',
+    modelId: 'gemini-3.1-pro-preview',
   });
 
-  expect(result.tools).toEqual([{ googleSearch: {} }]);
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: undefined,
+        },
+      ],
+    },
+    { googleSearch: {} },
+  ]);
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+    includeServerSideToolInvocations: true,
+  });
+  expect(result.toolWarnings).toEqual([]);
+});
 
-  expect(result.toolConfig).toEqual(undefined);
-
-  expect(result.toolWarnings).toMatchInlineSnapshot(`
-    [
-      {
-        "feature": "combination of function and provider-defined tools",
-        "type": "unsupported",
-      },
-    ]
-  `);
+it('should reject mixed tools on unsupported models', () => {
+  expect(() =>
+    prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'A test function',
+          inputSchema: { type: 'object', properties: {} },
+        },
+        {
+          type: 'provider',
+          id: 'google.google_search',
+          name: 'google_search',
+          args: {},
+        },
+      ],
+      modelId: 'gemini-2.5-flash',
+    }),
+  ).toThrow(
+    'Gemini built-in tool and function combinations require a Gemini 3 model',
+  );
 });
 
 it('should handle latest modelId for provider-defined tools correctly', () => {
@@ -573,6 +607,35 @@ it('should use VALIDATED mode when any function tool has strict: true', () => {
     functionCallingConfig: { mode: 'VALIDATED' },
   });
   expect(result.toolWarnings).toEqual([]);
+});
+
+it('should keep allowed function names in combo mode', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'tool', toolName: 'testFunction' },
+    modelId: 'gemini-3.1-pro-preview',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: {
+      mode: 'VALIDATED',
+      allowedFunctionNames: ['testFunction'],
+    },
+    includeServerSideToolInvocations: true,
+  });
 });
 
 it('should use VALIDATED mode with toolChoice auto when strict: true', () => {
