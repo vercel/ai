@@ -46,7 +46,7 @@ export type RerankingModelV4 = {
     }>;
 
     /**
-     * Token usage. We only have input tokens for reranking.
+     * Token usage (input only).
      */
     usage?: { tokens: number };
 
