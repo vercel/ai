@@ -51,7 +51,7 @@ class OpenAIRealtimeBrowserModel implements RealtimeModelV4 {
   }
 
   serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
-    return serializeOpenAIRealtimeClientEvent(event, this.modelId);
+    return serializeOpenAIRealtimeClientEvent(event);
   }
 
   buildSessionConfig(

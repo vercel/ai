@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   let sessionConfig: RealtimeSessionConfig | undefined =
     body.sessionConfig ?? undefined;
 
-  if (provider === 'google' && sessionConfig != null) {
+  if (sessionConfig != null) {
     const toolDefs = await getRealtimeToolDefinitions({ tools });
     sessionConfig = { ...sessionConfig, tools: toolDefs };
   }

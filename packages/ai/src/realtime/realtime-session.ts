@@ -139,12 +139,10 @@ export abstract class AbstractRealtimeSession {
       ws.onopen = () => {
         this.ws = ws;
 
-        this.sendRaw(
-          this.model.serializeClientEvent({
-            type: 'session-update',
-            config,
-          }),
-        );
+        this.sendEvent({
+          type: 'session-update',
+          config,
+        });
       };
 
       ws.onmessage = async messageEvent => {

@@ -212,14 +212,10 @@ export function parseOpenAIRealtimeServerEvent(
  */
 export function serializeOpenAIRealtimeClientEvent(
   event: RealtimeModelV4ClientEvent,
-  modelId: string,
 ): unknown {
   switch (event.type) {
     case 'session-update':
-      return {
-        type: 'session.update',
-        session: buildOpenAISessionConfig(event.config, modelId),
-      };
+      return null;
 
     case 'input-audio-append':
       return {
