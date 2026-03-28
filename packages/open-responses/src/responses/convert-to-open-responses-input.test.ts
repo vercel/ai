@@ -1,48 +1,48 @@
-import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
-import { describe, it, expect } from 'vitest';
+import { convertToOpenResponsesInput } from "./convert-to-open-responses-input";
+import { describe, it, expect } from "vitest";
 
-describe('convertToOpenResponsesInput', () => {
-  describe('system messages', () => {
-    it('should convert a single system message to instructions', async () => {
+describe("convertToOpenResponsesInput", () => {
+  describe("system messages", () => {
+    it("should convert a single system message to instructions", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'system',
-            content: 'You are a helpful assistant.',
+            role: "system",
+            content: "You are a helpful assistant.",
           },
         ],
       });
 
-      expect(result.instructions).toBe('You are a helpful assistant.');
+      expect(result.instructions).toBe("You are a helpful assistant.");
       expect(result.input).toEqual([]);
     });
 
-    it('should join multiple system messages with newlines', async () => {
+    it("should join multiple system messages with newlines", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'system',
-            content: 'You are a helpful assistant.',
+            role: "system",
+            content: "You are a helpful assistant.",
           },
           {
-            role: 'system',
-            content: 'Always be concise.',
+            role: "system",
+            content: "Always be concise.",
           },
         ],
       });
 
       expect(result.instructions).toBe(
-        'You are a helpful assistant.\nAlways be concise.',
+        "You are a helpful assistant.\nAlways be concise."
       );
       expect(result.input).toEqual([]);
     });
 
-    it('should return undefined instructions when no system messages', async () => {
+    it("should return undefined instructions when no system messages", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'user',
-            content: [{ type: 'text', text: 'Hello' }],
+            role: "user",
+            content: [{ type: "text", text: "Hello" }],
           },
         ],
       });
@@ -50,25 +50,25 @@ describe('convertToOpenResponsesInput', () => {
       expect(result.instructions).toBeUndefined();
     });
 
-    it('should handle system message with user and assistant messages', async () => {
+    it("should handle system message with user and assistant messages", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'system',
-            content: 'You are a helpful assistant.',
+            role: "system",
+            content: "You are a helpful assistant.",
           },
           {
-            role: 'user',
-            content: [{ type: 'text', text: 'Hello' }],
+            role: "user",
+            content: [{ type: "text", text: "Hello" }],
           },
           {
-            role: 'assistant',
-            content: [{ type: 'text', text: 'Hi there!' }],
+            role: "assistant",
+            content: [{ type: "text", text: "Hi there!" }],
           },
         ],
       });
 
-      expect(result.instructions).toBe('You are a helpful assistant.');
+      expect(result.instructions).toBe("You are a helpful assistant.");
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
@@ -96,13 +96,13 @@ describe('convertToOpenResponsesInput', () => {
     });
   });
 
-  describe('user messages', () => {
-    it('should convert messages with only a text part to a string content', async () => {
+  describe("user messages", () => {
+    it("should convert messages with only a text part to a string content", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'user',
-            content: [{ type: 'text', text: 'Hello' }],
+            role: "user",
+            content: [{ type: "text", text: "Hello" }],
           },
         ],
       });
@@ -123,16 +123,16 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert image file parts with base64 data to input_image', async () => {
+    it("should convert image file parts with base64 data to input_image", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'user',
+            role: "user",
             content: [
               {
-                type: 'file',
-                data: 'ZmFrZS1kYXRh',
-                mediaType: 'image/png',
+                type: "file",
+                data: "ZmFrZS1kYXRh",
+                mediaType: "image/png",
               },
             ],
           },
@@ -155,16 +155,16 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert image file parts with URL data to input_image', async () => {
+    it("should convert image file parts with URL data to input_image", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'user',
+            role: "user",
             content: [
               {
-                type: 'file',
-                data: new URL('https://example.com/image.png'),
-                mediaType: 'image/png',
+                type: "file",
+                data: new URL("https://example.com/image.png"),
+                mediaType: "image/png",
               },
             ],
           },
@@ -187,17 +187,18 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should warn when non-image file parts are provided', async () => {
+    it("should convert non-image file parts with base64 data to input_file", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'user',
+            role: "user",
             content: [
-              { type: 'text', text: 'Here is an image id.' },
+              { type: "text", text: "Here is an image id." },
               {
-                type: 'file',
-                data: 'UERGREFUQQ==',
-                mediaType: 'application/pdf',
+                type: "file",
+                data: "UERGREFUQQ==",
+                mediaType: "application/pdf",
+                filename: "document.pdf",
               },
             ],
           },
@@ -212,28 +213,66 @@ describe('convertToOpenResponsesInput', () => {
                 "text": "Here is an image id.",
                 "type": "input_text",
               },
+              {
+                "file_data": "data:application/pdf;base64,UERGREFUQQ==",
+                "filename": "document.pdf",
+                "type": "input_file",
+              },
             ],
             "role": "user",
             "type": "message",
           },
         ]
       `);
-      expect(result.warnings).toEqual([
-        {
-          message: 'unsupported file content type: application/pdf',
-          type: 'other',
-        },
-      ]);
+      expect(result.warnings).toEqual([]);
     });
-  });
 
-  describe('assistant messages', () => {
-    it('should convert messages with only a text part to output_text content', async () => {
+    it("should convert non-image file parts with URL data to input_file", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'assistant',
-            content: [{ type: 'text', text: 'Hello from assistant' }],
+            role: "user",
+            content: [
+              { type: "text", text: "Summarize this document." },
+              {
+                type: "file",
+                data: new URL("https://example.com/document.pdf"),
+                mediaType: "application/pdf",
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Summarize this document.",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/document.pdf",
+                "type": "input_file",
+              },
+            ],
+            "role": "user",
+            "type": "message",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+  });
+
+  describe("assistant messages", () => {
+    it("should convert messages with only a text part to output_text content", async () => {
+      const result = await convertToOpenResponsesInput({
+        prompt: [
+          {
+            role: "assistant",
+            content: [{ type: "text", text: "Hello from assistant" }],
           },
         ],
       });
@@ -254,14 +293,14 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert messages with multiple text parts', async () => {
+    it("should convert messages with multiple text parts", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'assistant',
+            role: "assistant",
             content: [
-              { type: 'text', text: 'First part' },
-              { type: 'text', text: 'Second part' },
+              { type: "text", text: "First part" },
+              { type: "text", text: "Second part" },
             ],
           },
         ],
@@ -288,18 +327,18 @@ describe('convertToOpenResponsesInput', () => {
     });
   });
 
-  describe('assistant messages with tool calls', () => {
-    it('should convert assistant message with a single tool-call', async () => {
+  describe("assistant messages with tool calls", () => {
+    it("should convert assistant message with a single tool-call", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'assistant',
+            role: "assistant",
             content: [
               {
-                type: 'tool-call',
-                toolCallId: 'call_123',
-                toolName: 'get_weather',
-                input: { location: 'San Francisco' },
+                type: "tool-call",
+                toolCallId: "call_123",
+                toolName: "get_weather",
+                input: { location: "San Francisco" },
               },
             ],
           },
@@ -318,16 +357,16 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should pass through tool-call string input', async () => {
+    it("should pass through tool-call string input", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'assistant',
+            role: "assistant",
             content: [
               {
-                type: 'tool-call',
-                toolCallId: 'call_124',
-                toolName: 'get_weather',
+                type: "tool-call",
+                toolCallId: "call_124",
+                toolName: "get_weather",
                 input: '{"location":"Berlin"}',
               },
             ],
@@ -347,18 +386,18 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert assistant message with text and tool-call', async () => {
+    it("should convert assistant message with text and tool-call", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'assistant',
+            role: "assistant",
             content: [
-              { type: 'text', text: 'Let me check the weather for you.' },
+              { type: "text", text: "Let me check the weather for you." },
               {
-                type: 'tool-call',
-                toolCallId: 'call_456',
-                toolName: 'get_weather',
-                input: { location: 'New York' },
+                type: "tool-call",
+                toolCallId: "call_456",
+                toolName: "get_weather",
+                input: { location: "New York" },
               },
             ],
           },
@@ -387,23 +426,23 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert assistant message with multiple tool-calls', async () => {
+    it("should convert assistant message with multiple tool-calls", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'assistant',
+            role: "assistant",
             content: [
               {
-                type: 'tool-call',
-                toolCallId: 'call_001',
-                toolName: 'get_weather',
-                input: { location: 'Paris' },
+                type: "tool-call",
+                toolCallId: "call_001",
+                toolName: "get_weather",
+                input: { location: "Paris" },
               },
               {
-                type: 'tool-call',
-                toolCallId: 'call_002',
-                toolName: 'get_time',
-                input: { timezone: 'Europe/Paris' },
+                type: "tool-call",
+                toolCallId: "call_002",
+                toolName: "get_time",
+                input: { timezone: "Europe/Paris" },
               },
             ],
           },
@@ -429,20 +468,20 @@ describe('convertToOpenResponsesInput', () => {
     });
   });
 
-  describe('tool messages', () => {
-    it('should convert tool message with json output', async () => {
+  describe("tool messages", () => {
+    it("should convert tool message with json output", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'tool',
+            role: "tool",
             content: [
               {
-                type: 'tool-result',
-                toolCallId: 'call_123',
-                toolName: 'get_weather',
+                type: "tool-result",
+                toolCallId: "call_123",
+                toolName: "get_weather",
                 output: {
-                  type: 'json',
-                  value: { temperature: 72, condition: 'sunny' },
+                  type: "json",
+                  value: { temperature: 72, condition: "sunny" },
                 },
               },
             ],
@@ -461,19 +500,19 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert tool message with text output', async () => {
+    it("should convert tool message with text output", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'tool',
+            role: "tool",
             content: [
               {
-                type: 'tool-result',
-                toolCallId: 'call_456',
-                toolName: 'search',
+                type: "tool-result",
+                toolCallId: "call_456",
+                toolName: "search",
                 output: {
-                  type: 'text',
-                  value: 'Search results: Found 5 items',
+                  type: "text",
+                  value: "Search results: Found 5 items",
                 },
               },
             ],
@@ -492,19 +531,19 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert tool message with error-text output', async () => {
+    it("should convert tool message with error-text output", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'tool',
+            role: "tool",
             content: [
               {
-                type: 'tool-result',
-                toolCallId: 'call_789',
-                toolName: 'api_call',
+                type: "tool-result",
+                toolCallId: "call_789",
+                toolName: "api_call",
                 output: {
-                  type: 'error-text',
-                  value: 'API request failed: timeout',
+                  type: "error-text",
+                  value: "API request failed: timeout",
                 },
               },
             ],
@@ -523,19 +562,19 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert tool message with execution-denied output', async () => {
+    it("should convert tool message with execution-denied output", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'tool',
+            role: "tool",
             content: [
               {
-                type: 'tool-result',
-                toolCallId: 'call_denied',
-                toolName: 'dangerous_action',
+                type: "tool-result",
+                toolCallId: "call_denied",
+                toolName: "dangerous_action",
                 output: {
-                  type: 'execution-denied',
-                  reason: 'User declined the action',
+                  type: "execution-denied",
+                  reason: "User declined the action",
                 },
               },
             ],
@@ -554,21 +593,21 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert tool message with content output containing text', async () => {
+    it("should convert tool message with content output containing text", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'tool',
+            role: "tool",
             content: [
               {
-                type: 'tool-result',
-                toolCallId: 'call_content',
-                toolName: 'multi_output',
+                type: "tool-result",
+                toolCallId: "call_content",
+                toolName: "multi_output",
                 output: {
-                  type: 'content',
+                  type: "content",
                   value: [
-                    { type: 'text', text: 'First result' },
-                    { type: 'text', text: 'Second result' },
+                    { type: "text", text: "First result" },
+                    { type: "text", text: "Second result" },
                   ],
                 },
               },
@@ -597,22 +636,22 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert tool message with content output containing image-url', async () => {
+    it("should convert tool message with content output containing image-url", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'tool',
+            role: "tool",
             content: [
               {
-                type: 'tool-result',
-                toolCallId: 'call_image',
-                toolName: 'screenshot',
+                type: "tool-result",
+                toolCallId: "call_image",
+                toolName: "screenshot",
                 output: {
-                  type: 'content',
+                  type: "content",
                   value: [
                     {
-                      type: 'image-url',
-                      url: 'https://example.com/image.png',
+                      type: "image-url",
+                      url: "https://example.com/image.png",
                     },
                   ],
                 },
@@ -638,23 +677,23 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert tool message with multiple tool results', async () => {
+    it("should convert tool message with multiple tool results", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'tool',
+            role: "tool",
             content: [
               {
-                type: 'tool-result',
-                toolCallId: 'call_001',
-                toolName: 'get_weather',
-                output: { type: 'json', value: { temp: 72 } },
+                type: "tool-result",
+                toolCallId: "call_001",
+                toolName: "get_weather",
+                output: { type: "json", value: { temp: 72 } },
               },
               {
-                type: 'tool-result',
-                toolCallId: 'call_002',
-                toolName: 'get_time',
-                output: { type: 'text', value: '3:00 PM' },
+                type: "tool-result",
+                toolCallId: "call_002",
+                toolName: "get_time",
+                output: { type: "text", value: "3:00 PM" },
               },
             ],
           },
@@ -678,23 +717,23 @@ describe('convertToOpenResponsesInput', () => {
     });
   });
 
-  describe('message chains', () => {
-    it('should convert user - assistant - user message chain', async () => {
+  describe("message chains", () => {
+    it("should convert user - assistant - user message chain", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'user',
-            content: [{ type: 'text', text: 'What is the capital of France?' }],
+            role: "user",
+            content: [{ type: "text", text: "What is the capital of France?" }],
           },
           {
-            role: 'assistant',
+            role: "assistant",
             content: [
-              { type: 'text', text: 'The capital of France is Paris.' },
+              { type: "text", text: "The capital of France is Paris." },
             ],
           },
           {
-            role: 'user',
-            content: [{ type: 'text', text: 'And what about Germany?' }],
+            role: "user",
+            content: [{ type: "text", text: "And what about Germany?" }],
           },
         ],
       });
@@ -735,34 +774,34 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert user - assistant (tool call) - tool message chain', async () => {
+    it("should convert user - assistant (tool call) - tool message chain", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'user',
-            content: [{ type: 'text', text: 'What is the weather in Tokyo?' }],
+            role: "user",
+            content: [{ type: "text", text: "What is the weather in Tokyo?" }],
           },
           {
-            role: 'assistant',
+            role: "assistant",
             content: [
               {
-                type: 'tool-call',
-                toolCallId: 'call_weather',
-                toolName: 'get_weather',
-                input: { location: 'Tokyo' },
+                type: "tool-call",
+                toolCallId: "call_weather",
+                toolName: "get_weather",
+                input: { location: "Tokyo" },
               },
             ],
           },
           {
-            role: 'tool',
+            role: "tool",
             content: [
               {
-                type: 'tool-result',
-                toolCallId: 'call_weather',
-                toolName: 'get_weather',
+                type: "tool-result",
+                toolCallId: "call_weather",
+                toolName: "get_weather",
                 output: {
-                  type: 'json',
-                  value: { temperature: 25, condition: 'cloudy' },
+                  type: "json",
+                  value: { temperature: 25, condition: "cloudy" },
                 },
               },
             ],
@@ -797,44 +836,44 @@ describe('convertToOpenResponsesInput', () => {
       `);
     });
 
-    it('should convert a tool roundtrip with follow-up assistant message', async () => {
+    it("should convert a tool roundtrip with follow-up assistant message", async () => {
       const result = await convertToOpenResponsesInput({
         prompt: [
           {
-            role: 'user',
-            content: [{ type: 'text', text: 'What is the weather in Tokyo?' }],
+            role: "user",
+            content: [{ type: "text", text: "What is the weather in Tokyo?" }],
           },
           {
-            role: 'assistant',
+            role: "assistant",
             content: [
               {
-                type: 'tool-call',
-                toolCallId: 'call_weather',
-                toolName: 'get_weather',
+                type: "tool-call",
+                toolCallId: "call_weather",
+                toolName: "get_weather",
                 input: '{"location":"Tokyo"}',
               },
             ],
           },
           {
-            role: 'tool',
+            role: "tool",
             content: [
               {
-                type: 'tool-result',
-                toolCallId: 'call_weather',
-                toolName: 'get_weather',
+                type: "tool-result",
+                toolCallId: "call_weather",
+                toolName: "get_weather",
                 output: {
-                  type: 'json',
-                  value: { temperature: 25, condition: 'cloudy' },
+                  type: "json",
+                  value: { temperature: 25, condition: "cloudy" },
                 },
               },
             ],
           },
           {
-            role: 'assistant',
+            role: "assistant",
             content: [
               {
-                type: 'text',
-                text: 'It is 25 C and cloudy in Tokyo.',
+                type: "text",
+                text: "It is 25 C and cloudy in Tokyo.",
               },
             ],
           },
