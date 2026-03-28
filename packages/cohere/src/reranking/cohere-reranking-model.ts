@@ -91,14 +91,11 @@ export class CohereRerankingModel implements RerankingModelV4 {
       fetch: this.config.fetch,
     });
 
-    const searchUnits = response.meta?.billed_units?.search_units;
-
     return {
       ranking: response.results.map(result => ({
         index: result.index,
         relevanceScore: result.relevance_score,
       })),
-      usage: searchUnits != null ? { tokens: searchUnits } : undefined,
       warnings,
       response: {
         id: response.id ?? undefined,
