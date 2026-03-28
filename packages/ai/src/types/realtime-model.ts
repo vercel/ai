@@ -1,0 +1,17 @@
+import {
+  RealtimeModelV4,
+  RealtimeModelV4ClientEvent,
+  RealtimeModelV4ServerEvent,
+  RealtimeModelV4SessionConfig,
+  RealtimeModelV4ToolDefinition,
+} from '@ai-sdk/provider';
+
+export type RealtimeModel = RealtimeModelV4;
+
+export type RealtimeClientEvent = RealtimeModelV4ClientEvent;
+
+export type RealtimeServerEvent = RealtimeModelV4ServerEvent;
+
+export type RealtimeSessionConfig = RealtimeModelV4SessionConfig;
+
+export type RealtimeToolDefinition = RealtimeModelV4ToolDefinition;
