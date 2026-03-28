@@ -694,7 +694,7 @@ export async function generateText<
           },
           supportedUrls: await stepModel.supportedUrls,
           download,
-          provider: stepModel.provider,
+          provider: stepModel.provider.split('.')[0],
         });
 
         experimental_context =

@@ -179,7 +179,7 @@ export async function streamModelCall<
     },
     supportedUrls: await resolvedModel.supportedUrls,
     download,
-    provider: resolvedModel.provider,
+    provider: resolvedModel.provider.split('.')[0],
   });
 
   const { toolChoice: stepToolChoice, tools: stepTools } =
