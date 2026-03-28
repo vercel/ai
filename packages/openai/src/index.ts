@@ -21,4 +21,6 @@ export type {
   OpenaiResponsesTextProviderMetadata,
   OpenaiResponsesSourceDocumentProviderMetadata,
 } from './responses/openai-responses-provider-metadata';
+export { OpenAIRealtimeModel } from './realtime/openai-realtime-model';
+export type { OpenAIRealtimeModelConfig } from './realtime/openai-realtime-model';
 export { VERSION } from './version';

@@ -46,6 +46,12 @@
       "import": "./dist/internal/index.mjs",
       "module": "./dist/internal/index.mjs",
       "require": "./dist/internal/index.js"
+    },
+    "./realtime": {
+      "types": "./dist/realtime/index.d.ts",
+      "import": "./dist/realtime/index.mjs",
+      "module": "./dist/realtime/index.mjs",
+      "require": "./dist/realtime/index.js"
     }
   },
   "dependencies": {
