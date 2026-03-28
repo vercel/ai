@@ -46,6 +46,11 @@ export type RerankingModelV4 = {
     }>;
 
     /**
+     * Token usage. We only have input tokens for reranking.
+     */
+    usage?: { tokens: number };
+
+    /**
      * Additional provider-specific metadata. They are passed through
      * to the provider from the AI SDK and enable provider-specific
      * functionality that can be fully encapsulated in the provider.

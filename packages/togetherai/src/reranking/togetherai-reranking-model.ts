@@ -90,6 +90,7 @@ export class TogetherAIRerankingModel implements RerankingModelV4 {
         index: result.index,
         relevanceScore: result.relevance_score,
       })),
+      usage: { tokens: response.usage.total_tokens },
       response: {
         id: response.id ?? undefined,
         modelId: response.model ?? undefined,
