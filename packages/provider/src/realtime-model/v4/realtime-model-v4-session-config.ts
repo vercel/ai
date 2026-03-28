@@ -1,10 +1,10 @@
-import { RealtimeModelV1ToolDefinition } from './realtime-model-v1-tool-definition';
+import { RealtimeModelV4ToolDefinition } from './realtime-model-v4-tool-definition';
 
 /**
  * Provider-neutral configuration for a realtime session.
  * Each provider maps this to their specific session.update payload.
  */
-export type RealtimeModelV1SessionConfig = {
+export type RealtimeModelV4SessionConfig = {
   /**
    * System instructions for the model.
    */
@@ -84,7 +84,7 @@ export type RealtimeModelV1SessionConfig = {
   /**
    * Tool definitions available to the model in this session.
    */
-  tools?: RealtimeModelV1ToolDefinition[];
+  tools?: RealtimeModelV4ToolDefinition[];
 
   /**
    * Provider-specific options that are passed through to the provider.

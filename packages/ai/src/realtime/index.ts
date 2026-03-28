@@ -15,8 +15,8 @@ export type {
 } from './realtime-session';
 
 export type {
-  RealtimeModelV1,
-  RealtimeModelV1ClientEvent,
-  RealtimeModelV1ServerEvent,
-  RealtimeModelV1SessionConfig,
+  RealtimeModelV4,
+  RealtimeModelV4ClientEvent,
+  RealtimeModelV4ServerEvent,
+  RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';

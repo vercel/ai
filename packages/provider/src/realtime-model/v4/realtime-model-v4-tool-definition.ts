@@ -4,7 +4,7 @@ import { JSONSchema7 } from 'json-schema';
  * A tool definition for realtime models. Sent as part of the session
  * configuration so the model knows which functions it can call.
  */
-export type RealtimeModelV1ToolDefinition = {
+export type RealtimeModelV4ToolDefinition = {
   /**
    * The type of the tool (always 'function').
    */

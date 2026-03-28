@@ -3,7 +3,7 @@ import {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
-  RealtimeModelV1,
+  RealtimeModelV4,
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
@@ -99,7 +99,7 @@ export interface OpenAIProvider extends ProviderV4 {
    * Creates a realtime model for bidirectional audio/text
    * communication over WebSocket.
    */
-  realtime(modelId: string): RealtimeModelV1;
+  realtime(modelId: string): RealtimeModelV4;
 
   /**
    * OpenAI-specific tools.

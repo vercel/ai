@@ -1,9 +1,9 @@
 import {
-  RealtimeModelV1,
-  RealtimeModelV1ClientEvent,
-  RealtimeModelV1ClientSecretResult,
-  RealtimeModelV1ServerEvent,
-  RealtimeModelV1SessionConfig,
+  RealtimeModelV4,
+  RealtimeModelV4ClientEvent,
+  RealtimeModelV4ClientSecretResult,
+  RealtimeModelV4ServerEvent,
+  RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import {
   buildOpenAISessionConfig,
@@ -20,8 +20,8 @@ export type OpenAIRealtimeModelId = string;
  * Use `doCreateClientSecret` only on the server side via the full
  * `openai.realtime()` model.
  */
-class OpenAIRealtimeBrowserModel implements RealtimeModelV1 {
-  readonly specificationVersion = 'v1' as const;
+class OpenAIRealtimeBrowserModel implements RealtimeModelV4 {
+  readonly specificationVersion = 'v4' as const;
   readonly provider = 'openai.realtime';
   readonly modelId: string;
 
@@ -29,7 +29,7 @@ class OpenAIRealtimeBrowserModel implements RealtimeModelV1 {
     this.modelId = modelId;
   }
 
-  async doCreateClientSecret(): Promise<RealtimeModelV1ClientSecretResult> {
+  async doCreateClientSecret(): Promise<RealtimeModelV4ClientSecretResult> {
     throw new Error(
       'doCreateClientSecret is not available in the browser. ' +
         'Use the server-side openai.realtime() model with generateRealtimeToken() instead.',
@@ -46,16 +46,16 @@ class OpenAIRealtimeBrowserModel implements RealtimeModelV1 {
     };
   }
 
-  parseServerEvent(raw: unknown): RealtimeModelV1ServerEvent {
+  parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
     return parseOpenAIRealtimeServerEvent(raw);
   }
 
-  serializeClientEvent(event: RealtimeModelV1ClientEvent): unknown {
+  serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
     return serializeOpenAIRealtimeClientEvent(event, this.modelId);
   }
 
   buildSessionConfig(
-    config: RealtimeModelV1SessionConfig,
+    config: RealtimeModelV4SessionConfig,
   ): Record<string, unknown> {
     return buildOpenAISessionConfig(config, this.modelId);
   }
@@ -77,6 +77,6 @@ class OpenAIRealtimeBrowserModel implements RealtimeModelV1 {
  */
 export function openaiRealtime(
   modelId: OpenAIRealtimeModelId,
-): RealtimeModelV1 {
+): RealtimeModelV4 {
   return new OpenAIRealtimeBrowserModel(modelId);
 }

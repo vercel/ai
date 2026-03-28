@@ -1,10 +1,10 @@
 import {
-  RealtimeModelV1,
-  RealtimeModelV1ClientEvent,
-  RealtimeModelV1ClientSecretOptions,
-  RealtimeModelV1ClientSecretResult,
-  RealtimeModelV1ServerEvent,
-  RealtimeModelV1SessionConfig,
+  RealtimeModelV4,
+  RealtimeModelV4ClientEvent,
+  RealtimeModelV4ClientSecretOptions,
+  RealtimeModelV4ClientSecretResult,
+  RealtimeModelV4ServerEvent,
+  RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import {
@@ -20,8 +20,8 @@ export type OpenAIRealtimeModelConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAIRealtimeModel implements RealtimeModelV1 {
-  readonly specificationVersion = 'v1' as const;
+export class OpenAIRealtimeModel implements RealtimeModelV4 {
+  readonly specificationVersion = 'v4' as const;
   readonly provider: string;
   readonly modelId: string;
 
@@ -34,8 +34,8 @@ export class OpenAIRealtimeModel implements RealtimeModelV1 {
   }
 
   async doCreateClientSecret(
-    options: RealtimeModelV1ClientSecretOptions,
-  ): Promise<RealtimeModelV1ClientSecretResult> {
+    options: RealtimeModelV4ClientSecretOptions,
+  ): Promise<RealtimeModelV4ClientSecretResult> {
     const fetchFn = this.config.fetch ?? fetch;
     const url = `${this.config.baseURL}/realtime/client_secrets`;
 
@@ -85,16 +85,16 @@ export class OpenAIRealtimeModel implements RealtimeModelV1 {
     };
   }
 
-  parseServerEvent(raw: unknown): RealtimeModelV1ServerEvent {
+  parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
     return parseOpenAIRealtimeServerEvent(raw);
   }
 
-  serializeClientEvent(event: RealtimeModelV1ClientEvent): unknown {
+  serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
     return serializeOpenAIRealtimeClientEvent(event, this.modelId);
   }
 
   buildSessionConfig(
-    config: RealtimeModelV1SessionConfig,
+    config: RealtimeModelV4SessionConfig,
   ): Record<string, unknown> {
     return buildOpenAISessionConfig(config, this.modelId);
   }

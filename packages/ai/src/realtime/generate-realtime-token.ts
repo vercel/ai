@@ -1,4 +1,4 @@
-import { RealtimeModelV1 } from '@ai-sdk/provider';
+import { RealtimeModelV4 } from '@ai-sdk/provider';
 
 /**
  * Server-side helper that creates an ephemeral client secret for
@@ -23,7 +23,7 @@ export async function generateRealtimeToken({
   model,
   expiresAfterSeconds,
 }: {
-  model: RealtimeModelV1;
+  model: RealtimeModelV4;
   expiresAfterSeconds?: number;
 }): Promise<{
   token: string;

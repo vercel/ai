@@ -1,6 +1,6 @@
 import {
   AbstractRealtimeSession,
-  type RealtimeModelV1ServerEvent,
+  type RealtimeModelV4ServerEvent,
   type RealtimeSessionOptions,
   type RealtimeState,
   type RealtimeStatus,
@@ -39,7 +39,7 @@ class RealtimeStore extends AbstractRealtimeSession {
     return this.state.transcript;
   }
 
-  get events(): RealtimeModelV1ServerEvent[] {
+  get events(): RealtimeModelV4ServerEvent[] {
     return this.state.events;
   }
 
@@ -75,7 +75,7 @@ class RealtimeStore extends AbstractRealtimeSession {
     this.callbacks.transcript.forEach(callback => callback());
   }
 
-  protected pushEvent(event: RealtimeModelV1ServerEvent): void {
+  protected pushEvent(event: RealtimeModelV4ServerEvent): void {
     const nextEvents = [...this.state.events, event];
     this.state = {
       ...this.state,
@@ -91,7 +91,7 @@ class RealtimeStore extends AbstractRealtimeSession {
 export type UseRealtimeReturn = {
   status: RealtimeStatus;
   transcript: TranscriptEntry[];
-  events: RealtimeModelV1ServerEvent[];
+  events: RealtimeModelV4ServerEvent[];
   isCapturing: boolean;
   isPlaying: boolean;
 

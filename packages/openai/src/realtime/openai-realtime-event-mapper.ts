@@ -1,7 +1,7 @@
 import {
-  RealtimeModelV1ClientEvent,
-  RealtimeModelV1ServerEvent,
-  RealtimeModelV1SessionConfig,
+  RealtimeModelV4ClientEvent,
+  RealtimeModelV4ServerEvent,
+  RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 
 /**
@@ -9,7 +9,7 @@ import {
  */
 export function parseOpenAIRealtimeServerEvent(
   raw: unknown,
-): RealtimeModelV1ServerEvent {
+): RealtimeModelV4ServerEvent {
   const event = raw as Record<string, any>;
   const type = event.type as string;
 
@@ -211,7 +211,7 @@ export function parseOpenAIRealtimeServerEvent(
  * Serializes a normalized client event into OpenAI's Realtime API format.
  */
 export function serializeOpenAIRealtimeClientEvent(
-  event: RealtimeModelV1ClientEvent,
+  event: RealtimeModelV4ClientEvent,
   modelId: string,
 ): unknown {
   switch (event.type) {
@@ -304,7 +304,7 @@ export function serializeOpenAIRealtimeClientEvent(
  * Builds an OpenAI-specific session configuration from a normalized config.
  */
 export function buildOpenAISessionConfig(
-  config: RealtimeModelV1SessionConfig,
+  config: RealtimeModelV4SessionConfig,
   modelId: string,
 ): Record<string, unknown> {
   const session: Record<string, unknown> = {

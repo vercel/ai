@@ -2,15 +2,15 @@
  * A conversation item that can be created by the client and sent to
  * the model via the conversation.item.create event.
  */
-export type RealtimeModelV1ConversationItem =
-  | RealtimeModelV1TextMessage
-  | RealtimeModelV1AudioMessage
-  | RealtimeModelV1FunctionCallOutput;
+export type RealtimeModelV4ConversationItem =
+  | RealtimeModelV4TextMessage
+  | RealtimeModelV4AudioMessage
+  | RealtimeModelV4FunctionCallOutput;
 
 /**
  * A text message from the user.
  */
-export type RealtimeModelV1TextMessage = {
+export type RealtimeModelV4TextMessage = {
   type: 'text-message';
   role: 'user';
   text: string;
@@ -19,7 +19,7 @@ export type RealtimeModelV1TextMessage = {
 /**
  * An audio message from the user (complete audio, not streamed).
  */
-export type RealtimeModelV1AudioMessage = {
+export type RealtimeModelV4AudioMessage = {
   type: 'audio-message';
   role: 'user';
 
@@ -33,7 +33,7 @@ export type RealtimeModelV1AudioMessage = {
  * The output of a function call, sent back to the model so it can
  * continue generating a response using the tool result.
  */
-export type RealtimeModelV1FunctionCallOutput = {
+export type RealtimeModelV4FunctionCallOutput = {
   type: 'function-call-output';
 
   /**

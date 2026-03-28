@@ -1,4 +1,4 @@
-import { RealtimeModelV1ToolDefinition } from '@ai-sdk/provider';
+import { RealtimeModelV4ToolDefinition } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text/tool-set';
 
@@ -32,8 +32,8 @@ export async function getRealtimeToolDefinitions({
   tools,
 }: {
   tools: ToolSet;
-}): Promise<RealtimeModelV1ToolDefinition[]> {
-  const definitions: RealtimeModelV1ToolDefinition[] = [];
+}): Promise<RealtimeModelV4ToolDefinition[]> {
+  const definitions: RealtimeModelV4ToolDefinition[] = [];
 
   for (const [name, tool] of Object.entries(tools)) {
     const toolType = tool.type;

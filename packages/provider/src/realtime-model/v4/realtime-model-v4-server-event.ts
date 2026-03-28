@@ -5,7 +5,7 @@
  * Every event includes a `raw` field with the original provider-specific
  * event data for debugging and provider-specific access.
  */
-export type RealtimeModelV1ServerEvent =
+export type RealtimeModelV4ServerEvent =
   // ── Session lifecycle ──────────────────────────────────────────────
 
   | {
