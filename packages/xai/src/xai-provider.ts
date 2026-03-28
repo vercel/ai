@@ -4,6 +4,7 @@ import {
   LanguageModelV4,
   NoSuchModelError,
   ProviderV4,
+  RealtimeModelV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -18,6 +19,7 @@ import { XaiImageModel } from './xai-image-model';
 import { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import { XaiResponsesModelId } from './responses/xai-responses-options';
+import { XaiRealtimeModel } from './realtime/xai-realtime-model';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
 import { XaiVideoModel } from './xai-video-model';
@@ -62,6 +64,11 @@ export interface XaiProvider extends ProviderV4 {
   videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
   /**
+   * Creates an Xai realtime model for voice conversations.
+   */
+  realtime(modelId: string): RealtimeModelV4;
+
+  /**
    * Server-side agentic tools for use with the responses API.
    */
   tools: typeof xaiTools;
@@ -96,9 +103,8 @@ export interface XaiProviderSettings {
 }
 
 export function createXai(options: XaiProviderSettings = {}): XaiProvider {
-  const baseURL = withoutTrailingSlash(
-    options.baseURL ?? 'https://api.x.ai/v1',
-  );
+  const baseURL =
+    withoutTrailingSlash(options.baseURL) ?? 'https://api.x.ai/v1';
   const getHeaders = () =>
     withUserAgentSuffix(
       {
@@ -150,6 +156,15 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
+  const createRealtimeModel = (modelId: string) => {
+    return new XaiRealtimeModel(modelId, {
+      provider: 'xai.realtime',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
   const provider = (modelId: XaiResponsesModelId) =>
     createResponsesLanguageModel(modelId);
 
@@ -165,6 +180,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.image = createImageModel;
   provider.videoModel = createVideoModel;
   provider.video = createVideoModel;
+  provider.realtime = createRealtimeModel;
   provider.tools = xaiTools;
 
   return provider;
