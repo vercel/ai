@@ -24,7 +24,6 @@ import {
   getTotalTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -72,6 +71,8 @@ import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { collectToolApprovals } from './collect-tool-approvals';
+import { ContentPart } from './content-part';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -80,14 +81,9 @@ import type {
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
 } from './core-events';
-import { collectToolApprovals } from './collect-tool-approvals';
-import { ContentPart } from './content-part';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import {
-  createStreamTextPartTransform,
-  UglyTransformedStreamTextPart,
-} from './create-stream-text-part-transform';
 import { executeToolCall } from './execute-tool-call';
+import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 import { Output, text } from './output';
 import {
   InferCompleteOutput,
@@ -103,6 +99,7 @@ import {
   stepCountIs,
   StopCondition,
 } from './stop-condition';
+import { ModelCallStreamPart, streamModelCall } from './stream-model-call';
 import {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -115,7 +112,6 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
-import { invokeToolCallbacksFromStream } from './invoke-tool-callbacks-from-stream';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1225,6 +1221,19 @@ class DefaultStreamTextResult<
       },
     });
 
+    // introduce a gate that prevent further tokens from
+    // being emitted after a transform calls stopStream
+    let isRunning = true;
+    stream = stream.pipeThrough(
+      new TransformStream({
+        async transform(chunk, controller) {
+          if (isRunning) {
+            controller.enqueue(chunk);
+          }
+        },
+      }),
+    );
+
     // transform the stream before output parsing
     // to enable replacement of stream segments:
     for (const transform of transforms) {
@@ -1233,6 +1242,7 @@ class DefaultStreamTextResult<
           tools: tools as TOOLS,
           stopStream() {
             stitchableStream.terminate();
+            isRunning = false;
           },
         }),
       );
@@ -1242,7 +1252,7 @@ class DefaultStreamTextResult<
       .pipeThrough(createOutputTransformStream(output ?? text()))
       .pipeThrough(eventProcessor);
 
-    const { maxRetries, retry } = prepareRetries({
+    const { maxRetries } = prepareRetries({
       maxRetries: maxRetriesArg,
       abortSignal,
     });
@@ -1527,15 +1537,6 @@ class DefaultStreamTextResult<
             prepareStepResult?.model ?? model,
           );
 
-          const promptMessages = await convertToLanguageModelPrompt({
-            prompt: {
-              system: prepareStepResult?.system ?? initialPrompt.system,
-              messages: prepareStepResult?.messages ?? stepInputMessages,
-            },
-            supportedUrls: await stepModel.supportedUrls,
-            download,
-          });
-
           const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
@@ -1549,7 +1550,6 @@ class DefaultStreamTextResult<
             prepareStepResult?.experimental_context ?? experimental_context;
 
           const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
-
           const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
 
           const stepProviderOptions = mergeObjects(
@@ -1557,69 +1557,66 @@ class DefaultStreamTextResult<
             prepareStepResult?.providerOptions,
           );
 
-          await notify({
-            event: {
-              callId,
-              stepNumber: recordedSteps.length,
-              provider: stepModel.provider,
-              modelId: stepModel.modelId,
-              system: stepSystem,
-              messages: stepMessages,
-              tools,
-              toolChoice: stepToolChoice,
-              activeTools: stepActiveTools,
-              steps: [...recordedSteps],
-              providerOptions: stepProviderOptions,
-              timeout,
-              headers,
-              stopWhen,
-              output,
-              abortSignal: originalAbortSignal,
-              include,
-              ...callbackTelemetryProps,
-              experimental_context,
-              promptMessages,
-              stepTools,
-              stepToolChoice,
-            },
-            callbacks: [
-              onStepStart,
-              globalTelemetry.onStepStart as
-                | undefined
-                | StreamTextOnStepStartCallback<TOOLS, OUTPUT>,
-            ],
-          });
-
           const stepStartTimestampMs = now();
+
           const {
             stream: languageModelStream,
-            response,
             request,
-          } = await retry(async () =>
-            stepModel.doStream({
-              ...callSettings,
-              tools: stepTools,
-              toolChoice: stepToolChoice,
-              responseFormat: await output?.responseFormat,
-              prompt: promptMessages,
-              providerOptions: stepProviderOptions,
-              abortSignal,
-              headers,
-              includeRawChunks,
-            }),
-          );
-
-          const stream1 = languageModelStream.pipeThrough(
-            createStreamTextPartTransform({
-              tools,
-              system,
-              messages: stepInputMessages,
-              repairToolCall,
-            }),
-          );
+            response,
+          } = await streamModelCall({
+            model: prepareStepResult?.model ?? model,
+            tools,
+            activeTools: prepareStepResult?.activeTools ?? activeTools,
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            system: stepSystem,
+            messages: stepMessages,
+            repairToolCall,
+            abortSignal,
+            headers,
+            includeRawChunks,
+            providerOptions: stepProviderOptions,
+            download,
+            maxRetries,
+            output,
+            onStart: async ({ promptMessages }) => {
+              await notify({
+                event: {
+                  callId,
+                  stepNumber: recordedSteps.length,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  system: stepSystem,
+                  messages: stepMessages,
+                  tools,
+                  toolChoice: stepToolChoice,
+                  activeTools: stepActiveTools,
+                  steps: [...recordedSteps],
+                  providerOptions: stepProviderOptions,
+                  timeout,
+                  headers,
+                  stopWhen,
+                  output,
+                  abortSignal: originalAbortSignal,
+                  include,
+                  ...callbackTelemetryProps,
+                  experimental_context,
+                  promptMessages,
+                  stepTools,
+                  stepToolChoice,
+                },
+                callbacks: [
+                  onStepStart,
+                  globalTelemetry.onStepStart as
+                    | undefined
+                    | StreamTextOnStepStartCallback<TOOLS, OUTPUT>,
+                ],
+              });
+            },
+            ...callSettings,
+          });
 
           const stream2 = invokeToolCallbacksFromStream({
-            stream: stream1,
+            stream: languageModelStream,
             tools,
             stepInputMessages,
             abortSignal,
@@ -1678,13 +1675,13 @@ class DefaultStreamTextResult<
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
-                UglyTransformedStreamTextPart<TOOLS>,
+                ModelCallStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
                   resetChunkTimeout();
 
-                  if (chunk.type === 'stream-start') {
+                  if (chunk.type === 'model-call-start') {
                     warnings = chunk.warnings;
                     return; // stream start chunks are sent immediately and do not count as first chunk
                   }
@@ -1771,7 +1768,7 @@ class DefaultStreamTextResult<
                       break;
                     }
 
-                    case 'response-metadata': {
+                    case 'model-call-response-metadata': {
                       stepResponse = {
                         id: chunk.id ?? stepResponse.id,
                         timestamp: chunk.timestamp ?? stepResponse.timestamp,
@@ -1780,7 +1777,7 @@ class DefaultStreamTextResult<
                       break;
                     }
 
-                    case 'finish': {
+                    case 'model-call-end': {
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;

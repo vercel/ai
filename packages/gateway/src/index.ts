@@ -5,6 +5,15 @@ export type {
   GatewayLanguageModelSpecification,
 } from './gateway-model-entry';
 export type { GatewayCreditsResponse } from './gateway-fetch-metadata';
+export type {
+  GatewaySpendReportParams,
+  GatewaySpendReportRow,
+  GatewaySpendReportResponse,
+} from './gateway-spend-report';
+export type {
+  GatewayGenerationInfoParams,
+  GatewayGenerationInfo,
+} from './gateway-generation-info';
 export type { GatewayLanguageModelEntry as GatewayModelEntry } from './gateway-model-entry';
 export {
   createGatewayProvider,
@@ -16,9 +25,9 @@ export type {
   GatewayProviderSettings,
 } from './gateway-provider';
 export type {
-  GatewayLanguageModelOptions,
-  /** @deprecated Use `GatewayLanguageModelOptions` instead. */
-  GatewayLanguageModelOptions as GatewayProviderOptions,
+  GatewayProviderOptions,
+  /** @deprecated Use `GatewayProviderOptions` instead. */
+  GatewayProviderOptions as GatewayLanguageModelOptions,
 } from './gateway-provider-options';
 export {
   GatewayError,
