@@ -829,9 +829,10 @@ The following optional provider options are available for Google Vertex AI embed
 
 #### Model Capabilities
 
-| Model                | Max Values Per Call | Parallel Calls      |
-| -------------------- | ------------------- | ------------------- |
-| `text-embedding-005` | 2048                | <Check size={18} /> |
+| Model                        | Max Values Per Call | Parallel Calls      | Multimodal          |
+| ---------------------------- | ------------------- | ------------------- | ------------------- |
+| `text-embedding-005`         | 2048                | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-embedding-2-preview` | 2048                | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   The table above lists popular models. You can also pass any available provider
@@ -1428,6 +1429,12 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Reasoning section](#reasoning) for more details.
 
+- `metadata` _object_
+
+  Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
+
+  - `userId` _string_ - An external identifier for the end-user.
+
 ### Reasoning
 
 Anthropic has reasoning support for the `claude-3-7-sonnet@20250219` model.
@@ -1545,6 +1552,12 @@ Google Vertex Anthropic supports a subset of Anthropic's built-in tools. The fol
   Only a subset of Anthropic tools are supported on Google Vertex. Tools like
   Code Execution, Memory, and Web Fetch are not available. Use the regular
   `@ai-sdk/anthropic` provider if you need access to all Anthropic tools.
+</Note>
+
+<Note>
+  Google Vertex Anthropic does not support strict mode on tool definitions.
+  Setting `strict: true` on a tool will be ignored and a warning will be
+  emitted.
 </Note>
 
 For more background on Anthropic tools, see [Anthropic's documentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview).

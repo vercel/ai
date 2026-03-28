@@ -62,8 +62,8 @@ const createSearchGroundedModel = (
 });
 
 const createModelObject = (
-  imageModel: ImageModelV3,
-): { model: ImageModelV3; modelId: string } => ({
+  imageModel: ImageModelV4,
+): { model: ImageModelV4; modelId: string } => ({
   model: imageModel,
   modelId: imageModel.modelId,
 });
@@ -71,7 +71,7 @@ const createModelObject = (
 const createImageModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-  additionalTests: ((model: ImageModelV3) => void)[] = [],
+  additionalTests: ((model: ImageModelV4) => void)[] = [],
 ): ModelWithCapabilities<ImageModelV3 | ImageModelV4> => {
   const model = vertex.image(modelId);
 
@@ -155,7 +155,7 @@ function detectImageMediaType(
   return undefined;
 }
 
-const imageTest = (model: ImageModelV3) => {
+const imageTest = (model: ImageModelV4) => {
   vi.setConfig({ testTimeout: 10000 });
 
   it('should generate an image with correct dimensions and format', async () => {

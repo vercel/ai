@@ -3,8 +3,10 @@ export type {
   AssistantModelMessage,
 } from './assistant-model-message';
 export type {
+  CustomPart,
   FilePart,
   ImagePart,
+  ReasoningFilePart,
   ReasoningPart,
   TextPart,
   ToolCallPart,
