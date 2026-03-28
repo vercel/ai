@@ -29,7 +29,8 @@ export type OpenAICompatibleContentPart =
   | OpenAICompatibleContentPartText
   | OpenAICompatibleContentPartImage
   | OpenAICompatibleContentPartInputAudio
-  | OpenAICompatibleContentPartFile;
+  | OpenAICompatibleContentPartFile
+  | OpenAICompatibleContentPartVideoUrl;
 
 export interface OpenAICompatibleContentPartText extends JsonRecord {
   type: 'text';
@@ -51,6 +52,13 @@ export interface OpenAICompatibleContentPartInputAudio extends JsonRecord {
 export interface OpenAICompatibleContentPartFile extends JsonRecord {
   type: 'file';
   file: { filename: string; file_data: string };
+}
+
+// video_url: vLLM extension for video input (not part of the official OpenAI spec)
+// Reference: https://docs.vllm.ai/en/stable/serving/multimodal_inputs.html
+export interface OpenAICompatibleContentPartVideoUrl extends JsonRecord {
+  type: 'video_url';
+  video_url: { url: string };
 }
 
 export interface OpenAICompatibleAssistantMessage extends JsonRecord<OpenAICompatibleMessageToolCall> {
