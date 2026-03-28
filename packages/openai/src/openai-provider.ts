@@ -6,8 +6,8 @@ import {
   LanguageModelV4ProviderTool,
   LanguageModelV4ToolChoice,
   ProviderV4,
-  RealtimeModelV4,
-  RealtimeModelV4ToolDefinition,
+  Experimental_RealtimeModelV4 as RealtimeModelV4,
+  Experimental_RealtimeModelV4ToolDefinition as RealtimeModelV4ToolDefinition,
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';

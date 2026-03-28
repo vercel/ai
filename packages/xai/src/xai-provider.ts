@@ -7,8 +7,8 @@ import {
   LanguageModelV4ToolChoice,
   NoSuchModelError,
   ProviderV4,
-  RealtimeModelV4,
-  RealtimeModelV4ToolDefinition,
+  Experimental_RealtimeModelV4 as RealtimeModelV4,
+  Experimental_RealtimeModelV4ToolDefinition as RealtimeModelV4ToolDefinition,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
