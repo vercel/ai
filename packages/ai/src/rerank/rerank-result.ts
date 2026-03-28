@@ -34,7 +34,7 @@ export interface RerankResult<VALUE> {
   }>;
 
   /**
-   * Token usage. We only have input tokens for reranking.
+   * Token usage (input only).
    */
   readonly usage?: { tokens: number };
 
