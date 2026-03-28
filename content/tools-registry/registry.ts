@@ -516,4 +516,39 @@ await browserbase.closeSession();`,
     websiteUrl: 'https://www.browserbase.com',
     npmUrl: 'https://www.npmjs.com/package/@browserbasehq/ai-sdk',
   },
+  {
+    slug: 'you-search',
+    name: 'You.com',
+    description:
+      "Real-time web search, deep research with cited sources, and webpage content extraction powered by You.com. Search current information with advanced filtering (dates, sites, file types), research topics with configurable effort (lite to exhaustive), and extract full page content in markdown or HTML. Built on You.com's enterprise search API with zero server setup.",
+    packageName: '@youdotcom-oss/ai-sdk-plugin',
+    tags: ['search', 'web', 'extraction', 'research'],
+    apiKeyEnvName: 'YDC_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @youdotcom-oss/ai-sdk-plugin',
+      npm: 'npm install @youdotcom-oss/ai-sdk-plugin',
+      yarn: 'yarn add @youdotcom-oss/ai-sdk-plugin',
+      bun: 'bun add @youdotcom-oss/ai-sdk-plugin',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4-5-20250929',
+  prompt: 'Research the latest developments in quantum computing',
+  tools: {
+    search: youSearch(),
+    research: youResearch(),
+    extract: youContents(),
+  },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/youdotcom-oss/dx-toolkit/tree/main/packages/ai-sdk-plugin#readme',
+    apiKeyUrl: 'https://you.com/platform/api-keys',
+    websiteUrl: 'https://you.com',
+    npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
+  },
 ];
