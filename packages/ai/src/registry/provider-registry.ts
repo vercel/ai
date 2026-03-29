@@ -136,8 +136,7 @@ export const experimental_createProviderRegistry = createProviderRegistry;
 class DefaultProviderRegistry<
   PROVIDERS extends Record<string, ProviderV4>,
   SEPARATOR extends string,
-> implements ProviderRegistryProvider<PROVIDERS, SEPARATOR>
-{
+> implements ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
   private providers: PROVIDERS = {} as PROVIDERS;
   private separator: SEPARATOR;
   private languageModelMiddleware?:

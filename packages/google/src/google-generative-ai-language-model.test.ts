@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3Prompt,
-  LanguageModelV3ProviderTool,
+  LanguageModelV4Prompt,
+  LanguageModelV4ProviderTool,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -22,7 +22,7 @@ vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -355,12 +355,32 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
+  const TEST_URL_GEMINI_3_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent';
+
+  const TEST_URL_GEMINI_3_1_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent';
+
+  const TEST_URL_GEMINI_2_5_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
+
+  const TEST_URL_GEMINI_2_5_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+  const TEST_URL_GEMINI_2_5_FLASH_LITE =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
+    [TEST_URL_GEMINI_3_PRO]: {},
+    [TEST_URL_GEMINI_3_1_PRO]: {},
+    [TEST_URL_GEMINI_2_5_PRO]: {},
+    [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
+    [TEST_URL_GEMINI_2_5_FLASH]: {},
   });
 
   function prepareJsonFixtureResponse(
@@ -509,6 +529,50 @@ describe('doGenerate', () => {
         "unified": "error",
       }
     `);
+  });
+
+  it('should expose finishMessage in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {},
+            finishReason: 'MALFORMED_FUNCTION_CALL',
+            finishMessage:
+              "Malformed function call: print(default_api.create(name='test'))",
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 130,
+          totalTokenCount: 130,
+          promptTokensDetails: [
+            {
+              modality: 'TEXT',
+              tokenCount: 130,
+            },
+          ],
+        },
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBe(
+      "Malformed function call: print(default_api.create(name='test'))",
+    );
+  });
+
+  it('should expose null finishMessage in provider metadata when not present', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBeNull();
   });
 
   describe('tool-call', () => {
@@ -2299,6 +2363,70 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should preserve thought flag on file parts in providerMetadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'image/png',
+                    data: 'thoughtimagedata',
+                  },
+                  thought: true,
+                  thoughtSignature: 'img_sig1',
+                },
+                {
+                  inlineData: {
+                    mimeType: 'image/jpeg',
+                    data: 'regularimagedata',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "thoughtimagedata",
+          "mediaType": "image/png",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "img_sig1",
+            },
+          },
+          "type": "reasoning-file",
+        },
+        {
+          "data": "regularimagedata",
+          "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
+          "type": "file",
+        },
+      ]
+    `);
+  });
+
   it('should pass responseModalities in provider options', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -2837,6 +2965,344 @@ describe('doGenerate', () => {
           thinkingLevel: 'medium',
         },
       },
+    });
+  });
+
+  describe('top-level reasoning option', () => {
+    const simpleResponseBody = {
+      candidates: [
+        {
+          content: { parts: [{ text: 'response' }], role: 'model' },
+          finishReason: 'STOP',
+          safetyRatings: SAFETY_RATINGS,
+        },
+      ],
+      usageMetadata: {
+        promptTokenCount: 1,
+        candidatesTokenCount: 2,
+        totalTokenCount: 3,
+      },
+    };
+
+    describe('Gemini 3 models (thinkingLevel)', () => {
+      const gemini3Model = provider.chat('gemini-3-pro-preview');
+
+      it('should map reasoning "minimal" to thinkingLevel "minimal"', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'minimal' },
+          },
+        });
+      });
+
+      it('should map reasoning "low" to thinkingLevel "low"', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'low' },
+          },
+        });
+      });
+
+      it('should map reasoning "medium" to thinkingLevel "medium"', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'medium' },
+          },
+        });
+      });
+
+      it('should map reasoning "high" to thinkingLevel "high"', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'high' },
+          },
+        });
+      });
+
+      it('should map reasoning "none" to thinkingLevel "minimal"', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'minimal' },
+          },
+        });
+      });
+
+      it('should coerce reasoning "xhigh" to "high" with compatibility warning', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'high' },
+          },
+        });
+
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
+        });
+      });
+
+      it('should also detect gemini-3.1 models as Gemini 3', async () => {
+        const gemini31Model = provider.chat('gemini-3.1-pro-preview');
+
+        server.urls[TEST_URL_GEMINI_3_1_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini31Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'medium' },
+          },
+        });
+      });
+    });
+
+    describe('Gemini 2.5 models (thinkingBudget)', () => {
+      const gemini25ProModel = provider.chat('gemini-2.5-pro');
+      const gemini25FlashLiteModel = provider.chat('gemini-2.5-flash-lite');
+
+      it('should map reasoning "none" to thinkingBudget 0', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini25ProModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: 0 },
+          },
+        });
+      });
+
+      it('should map reasoning "minimal" to ~2% of maxOutputTokens', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini25ProModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: Math.round(65536 * 0.02) },
+          },
+        });
+      });
+
+      it('should map reasoning "low" to ~10% of maxOutputTokens', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini25ProModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'low',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: Math.round(65536 * 0.1) },
+          },
+        });
+      });
+
+      it('should map reasoning "medium" to ~30% of maxOutputTokens', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini25ProModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: Math.round(65536 * 0.3) },
+          },
+        });
+      });
+
+      it('should map reasoning "high" to ~60% of maxOutputTokens', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini25ProModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: 32768 },
+          },
+        });
+      });
+
+      it('should map reasoning "xhigh" to ~90% of maxOutputTokens', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini25ProModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: 32768 },
+          },
+        });
+      });
+
+      it('should use lower maxOutputTokens for flash-lite models', async () => {
+        server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        await gemini25FlashLiteModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'medium',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: Math.round(65536 * 0.3) },
+          },
+        });
+      });
+    });
+
+    describe('providerOptions precedence', () => {
+      it('should use providerOptions thinkingConfig when both reasoning and providerOptions are set', async () => {
+        prepareJsonFixtureResponse('google-text');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            google: {
+              thinkingConfig: {
+                thinkingBudget: 999,
+              },
+            },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingBudget: 999 },
+          },
+        });
+        expect(
+          body.generationConfig.thinkingConfig.thinkingLevel,
+        ).toBeUndefined();
+      });
+
+      it('should not set thinkingConfig when neither reasoning nor providerOptions are set', async () => {
+        prepareJsonFixtureResponse('google-text');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.generationConfig.thinkingConfig).toBeUndefined();
+      });
+
+      it('should not set thinkingConfig when reasoning is "provider-default"', async () => {
+        prepareJsonFixtureResponse('google-text');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'provider-default',
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.generationConfig.thinkingConfig).toBeUndefined();
+      });
     });
   });
 
@@ -3585,6 +4051,57 @@ describe('doStream', () => {
     `);
   });
 
+  it('should expose finishMessage in provider metadata on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {},
+              finishReason: 'MALFORMED_FUNCTION_CALL',
+              finishMessage:
+                "Malformed function call: print(default_api.create(name='test'))",
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 130,
+            totalTokenCount: 130,
+            promptTokensDetails: [{ modality: 'TEXT', tokenCount: 130 }],
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.finishMessage,
+    ).toBe("Malformed function call: print(default_api.create(name='test'))");
+  });
+
+  it('should expose null finishMessage in provider metadata on finish when not present', async () => {
+    prepareStreamResponse({ content: ['test'] });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.finishMessage,
+    ).toBeNull();
+  });
+
   it('should stream code execution tool calls and results', async () => {
     server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
       type: 'stream-chunks',
@@ -4173,6 +4690,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": [
@@ -4194,6 +4712,7 @@ describe('doStream', () => {
                 },
               ],
               "urlContextMetadata": null,
+              "usageMetadata": null,
             },
           },
           "type": "finish",
@@ -4215,6 +4734,75 @@ describe('doStream', () => {
               "totalTokenCount": 527,
             },
           },
+        },
+      ]
+    `);
+  });
+
+  it('should stream file parts with thought flag in providerMetadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: { data: 'thoughtimg', mimeType: 'image/png' },
+                    thought: true,
+                    thoughtSignature: 'stream_sig',
+                  },
+                  {
+                    inlineData: {
+                      data: 'regularimg',
+                      mimeType: 'image/jpeg',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const fileEvents = events.filter(
+      e => e.type === 'file' || e.type === 'reasoning-file',
+    );
+    expect(fileEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "thoughtimg",
+          "mediaType": "image/png",
+          "providerMetadata": {
+            "google": {
+              "thoughtSignature": "stream_sig",
+            },
+          },
+          "type": "reasoning-file",
+        },
+        {
+          "data": "regularimg",
+          "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
+          "type": "file",
         },
       ]
     `);
@@ -4581,6 +5169,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": null,
@@ -4725,6 +5314,7 @@ describe('doStream', () => {
           },
           "providerMetadata": {
             "google": {
+              "finishMessage": null,
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": [
@@ -4746,6 +5336,7 @@ describe('doStream', () => {
                 },
               ],
               "urlContextMetadata": null,
+              "usageMetadata": null,
             },
           },
           "type": "finish",
@@ -4961,7 +5552,7 @@ describe('doStream', () => {
 });
 
 describe('GEMMA Model System Instruction Fix', () => {
-  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV3Prompt = [
+  const TEST_PROMPT_WITH_SYSTEM: LanguageModelV4Prompt = [
     { role: 'system', content: 'You are a helpful assistant.' },
     { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
   ];
@@ -5099,7 +5690,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       generateId: () => 'test-id',
     });
 
-    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV3Prompt = [
+    const TEST_PROMPT_WITHOUT_SYSTEM: LanguageModelV4Prompt = [
       { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
     ];
 

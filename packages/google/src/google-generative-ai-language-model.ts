@@ -1,14 +1,14 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Source,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Source,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,7 +17,10 @@ import {
   FetchFunction,
   generateId,
   InferSchema,
+  isCustomReasoning,
   lazySchema,
+  mapReasoningToProviderBudget,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -38,7 +41,10 @@ import {
   GoogleGenerativeAIModelId,
   googleLanguageModelOptions,
 } from './google-generative-ai-options';
-import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
+import {
+  GoogleGenerativeAIContentPart,
+  GoogleGenerativeAIProviderMetadata,
+} from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
@@ -52,11 +58,11 @@ type GoogleGenerativeAIConfig = {
   /**
    * The supported URLs for the model.
    */
-  supportedUrls?: () => LanguageModelV3['supportedUrls'];
+  supportedUrls?: () => LanguageModelV4['supportedUrls'];
 };
 
-export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: GoogleGenerativeAIModelId;
 
@@ -93,9 +99,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     seed,
     tools,
     toolChoice,
+    reasoning,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const providerOptionsName = this.config.provider.includes('vertex')
       ? 'vertex'
@@ -132,10 +139,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+    const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
-      { isGemmaModel, providerOptionsName },
+      {
+        isGemmaModel,
+        providerOptionsName,
+        supportsFunctionResponseParts,
+      },
     );
 
     const {
@@ -147,6 +159,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       toolChoice,
       modelId: this.modelId,
     });
+
+    const resolvedThinking = resolveThinkingConfig({
+      reasoning,
+      modelId: this.modelId,
+      warnings,
+    });
+    const thinkingConfig =
+      googleOptions?.thinkingConfig || resolvedThinking
+        ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
+        : undefined;
 
     return {
       args: {
@@ -179,7 +201,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
 
           // provider options:
           responseModalities: googleOptions?.responseModalities,
-          thinkingConfig: googleOptions?.thinkingConfig,
+          thinkingConfig,
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
           }),
@@ -206,8 +228,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
@@ -232,7 +254,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     });
 
     const candidate = response.candidates[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // map ordered parts to content:
     const parts = candidate.content?.parts ?? [];
@@ -304,11 +326,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
             : undefined,
         });
       } else if ('inlineData' in part) {
+        const hasThought = part.thought === true;
+        const hasThoughtSignature = !!part.thoughtSignature;
         content.push({
-          type: 'file' as const,
+          type: hasThought ? 'reasoning-file' : 'file',
           data: part.inlineData.data,
           mediaType: part.inlineData.mimeType,
-          providerMetadata: part.thoughtSignature
+          providerMetadata: hasThoughtSignature
             ? {
                 [providerOptionsName]: {
                   thoughtSignature: part.thoughtSignature,
@@ -349,7 +373,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
-        },
+          finishMessage: candidate.finishMessage ?? null,
+        } satisfies GoogleGenerativeAIProviderMetadata,
       },
       request: { body: args },
       response: {
@@ -361,8 +386,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const headers = combineHeaders(
@@ -382,12 +407,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
     let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
-    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
+    let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
 
@@ -408,7 +433,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<ChunkSchema>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -590,8 +615,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                     currentReasoningBlockId = null;
                   }
 
-                  // Process file parts inline to preserve order with text
-                  const thoughtSignatureMetadata = part.thoughtSignature
+                  const hasThought = part.thought === true;
+                  const hasThoughtSignature = !!part.thoughtSignature;
+                  const fileMeta = hasThoughtSignature
                     ? {
                         [providerOptionsName]: {
                           thoughtSignature: part.thoughtSignature,
@@ -599,10 +625,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       }
                     : undefined;
                   controller.enqueue({
-                    type: 'file',
+                    type: hasThought ? 'reasoning-file' : 'file',
                     mediaType: part.inlineData.mimeType,
                     data: part.inlineData.data,
-                    providerMetadata: thoughtSignatureMetadata,
+                    providerMetadata: fileMeta,
                   });
                 }
               }
@@ -663,16 +689,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                   groundingMetadata: lastGroundingMetadata,
                   urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
-                },
+                  usageMetadata: usageMetadata ?? null,
+                  finishMessage: candidate.finishMessage ?? null,
+                } satisfies GoogleGenerativeAIProviderMetadata,
               };
-              if (usageMetadata != null) {
-                (
-                  providerMetadata[providerOptionsName] as Record<
-                    string,
-                    unknown
-                  >
-                ).usageMetadata = usageMetadata;
-              }
             }
           },
 
@@ -703,6 +723,109 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       request: { body: args },
     };
   }
+}
+
+function isGemini3Model(modelId: string): boolean {
+  return /gemini-3[\.\-]/i.test(modelId) || /gemini-3$/i.test(modelId);
+}
+
+function getMaxOutputTokensForGemini25Model(): number {
+  return 65536;
+}
+
+function getMaxThinkingTokensForGemini25Model(modelId: string): number {
+  const id = modelId.toLowerCase();
+  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
+    return 32768;
+  }
+  return 24576;
+}
+
+type GoogleThinkingConfig = NonNullable<
+  InferSchema<typeof googleLanguageModelOptions>['thinkingConfig']
+>;
+
+function resolveThinkingConfig({
+  reasoning,
+  modelId,
+  warnings,
+}: {
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  modelId: string;
+  warnings: SharedV4Warning[];
+}): Omit<GoogleThinkingConfig, 'includeThoughts'> | undefined {
+  if (!isCustomReasoning(reasoning)) {
+    return undefined;
+  }
+
+  if (isGemini3Model(modelId) && !modelId.includes('gemini-3-pro-image')) {
+    return resolveGemini3ThinkingConfig({ reasoning, warnings });
+  }
+
+  return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
+}
+
+function resolveGemini3ThinkingConfig({
+  reasoning,
+  warnings,
+}: {
+  reasoning: Exclude<
+    LanguageModelV4CallOptions['reasoning'],
+    'provider-default' | undefined
+  >;
+  warnings: SharedV4Warning[];
+}): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
+  if (reasoning === 'none') {
+    // It's not possible to fully disable thinking with Gemini 3.
+    return { thinkingLevel: 'minimal' };
+  }
+
+  const thinkingLevel = mapReasoningToProviderEffort({
+    reasoning,
+    effortMap: {
+      minimal: 'minimal',
+      low: 'low',
+      medium: 'medium',
+      high: 'high',
+      xhigh: 'high',
+    },
+    warnings,
+  });
+
+  if (thinkingLevel == null) {
+    return undefined;
+  }
+
+  return { thinkingLevel };
+}
+
+function resolveGemini25ThinkingConfig({
+  reasoning,
+  modelId,
+  warnings,
+}: {
+  reasoning: Exclude<
+    LanguageModelV4CallOptions['reasoning'],
+    'provider-default' | undefined
+  >;
+  modelId: string;
+  warnings: SharedV4Warning[];
+}): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
+  if (reasoning === 'none') {
+    return { thinkingBudget: 0 };
+  }
+
+  const thinkingBudget = mapReasoningToProviderBudget({
+    reasoning,
+    maxOutputTokens: getMaxOutputTokensForGemini25Model(),
+    maxReasoningBudget: getMaxThinkingTokensForGemini25Model(modelId),
+    minReasoningBudget: 0,
+    warnings,
+  });
+  if (thinkingBudget == null) {
+    return undefined;
+  }
+  return { thinkingBudget };
 }
 
 function getToolCallsFromParts({
@@ -746,12 +869,12 @@ function extractSources({
 }: {
   groundingMetadata: GroundingMetadataSchema | undefined | null;
   generateId: () => string;
-}): undefined | LanguageModelV3Source[] {
+}): undefined | LanguageModelV4Source[] {
   if (!groundingMetadata?.groundingChunks) {
     return undefined;
   }
 
-  const sources: LanguageModelV3Source[] = [];
+  const sources: LanguageModelV4Source[] = [];
 
   for (const chunk of groundingMetadata.groundingChunks) {
     if (chunk.web != null) {
@@ -935,6 +1058,7 @@ const getContentSchema = () =>
               mimeType: z.string(),
               data: z.string(),
             }),
+            thought: z.boolean().nullish(),
             thoughtSignature: z.string().nullish(),
           }),
           z.object({
@@ -1000,6 +1124,7 @@ const responseSchema = lazySchema(() =>
         z.object({
           content: getContentSchema().nullish().or(z.object({}).strict()),
           finishReason: z.string().nullish(),
+          finishMessage: z.string().nullish(),
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
           groundingMetadata: getGroundingMetadataSchema().nullish(),
           urlContextMetadata: getUrlContextMetadataSchema().nullish(),
@@ -1035,6 +1160,14 @@ export type SafetyRatingSchema = NonNullable<
   InferSchema<typeof responseSchema>['candidates'][number]['safetyRatings']
 >[number];
 
+export type PromptFeedbackSchema = NonNullable<
+  InferSchema<typeof responseSchema>['promptFeedback']
+>;
+
+export type UsageMetadataSchema = NonNullable<
+  InferSchema<typeof responseSchema>['usageMetadata']
+>;
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const chunkSchema = lazySchema(() =>
@@ -1045,6 +1178,7 @@ const chunkSchema = lazySchema(() =>
           z.object({
             content: getContentSchema().nullish(),
             finishReason: z.string().nullish(),
+            finishMessage: z.string().nullish(),
             safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
             groundingMetadata: getGroundingMetadataSchema().nullish(),
             urlContextMetadata: getUrlContextMetadataSchema().nullish(),

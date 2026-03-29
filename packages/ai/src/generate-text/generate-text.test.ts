@@ -1,10 +1,10 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3Prompt,
-  LanguageModelV3ProviderTool,
-  LanguageModelV3Usage,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4Prompt,
+  LanguageModelV4ProviderTool,
+  LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import {
   dynamicTool,
@@ -28,7 +28,7 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockTracer } from '../test/mock-tracer';
 import {
   generateText,
@@ -42,6 +42,7 @@ import {
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 import { stepCountIs } from './stop-condition';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 
 vi.mock('../version', () => {
   return {
@@ -49,7 +50,7 @@ vi.mock('../version', () => {
   };
 });
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 3,
     noCache: 3,
@@ -69,7 +70,7 @@ const dummyResponseValues = {
   warnings: [],
 };
 
-const modelWithSources = new MockLanguageModelV3({
+const modelWithSources = new MockLanguageModelV4({
   doGenerate: {
     ...dummyResponseValues,
     content: [
@@ -94,7 +95,7 @@ const modelWithSources = new MockLanguageModelV3({
   },
 });
 
-const modelWithFiles = new MockLanguageModelV3({
+const modelWithFiles = new MockLanguageModelV4({
   doGenerate: {
     ...dummyResponseValues,
     content: [
@@ -113,7 +114,7 @@ const modelWithFiles = new MockLanguageModelV3({
   },
 });
 
-const modelWithReasoning = new MockLanguageModelV3({
+const modelWithReasoning = new MockLanguageModelV4({
   doGenerate: {
     ...dummyResponseValues,
     content: [
@@ -159,7 +160,7 @@ describe('generateText', () => {
   describe('result.content', () => {
     it('should generate content', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: {
             ...dummyResponseValues,
             content: [
@@ -265,12 +266,131 @@ describe('generateText', () => {
         ]
       `);
     });
+
+    it('should include custom parts in content', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'Hello' },
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerMetadata: {
+                  openai: { itemId: 'cmp_123' },
+                },
+              },
+              {
+                type: 'custom',
+                kind: 'openai.other',
+              },
+            ],
+          },
+        }),
+        prompt: 'prompt',
+      });
+
+      expect(result.content).toStrictEqual([
+        { type: 'text', text: 'Hello' },
+        {
+          type: 'custom',
+          kind: 'openai.compaction',
+          providerMetadata: {
+            openai: { itemId: 'cmp_123' },
+          },
+        },
+        {
+          type: 'custom',
+          kind: 'openai.other',
+        },
+      ]);
+    });
+
+    it('should include reasoning-file in content and exclude from files', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [
+              { type: 'text', text: 'Here is a thought image:' },
+              {
+                type: 'reasoning-file',
+                data: new Uint8Array([10, 20, 30]),
+                mediaType: 'image/png',
+                providerMetadata: {
+                  google: { thoughtSignature: 'sig123' },
+                },
+              },
+              {
+                type: 'file',
+                data: new Uint8Array([40, 50, 60]),
+                mediaType: 'image/jpeg',
+              },
+            ],
+          },
+        }),
+        prompt: 'prompt',
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Here is a thought image:",
+            "type": "text",
+          },
+          {
+            "file": DefaultGeneratedFile {
+              "base64Data": "ChQe",
+              "mediaType": "image/png",
+              "uint8ArrayData": Uint8Array [
+                10,
+                20,
+                30,
+              ],
+            },
+            "providerMetadata": {
+              "google": {
+                "thoughtSignature": "sig123",
+              },
+            },
+            "type": "reasoning-file",
+          },
+          {
+            "file": DefaultGeneratedFile {
+              "base64Data": "KDI8",
+              "mediaType": "image/jpeg",
+              "uint8ArrayData": Uint8Array [
+                40,
+                50,
+                60,
+              ],
+            },
+            "type": "file",
+          },
+        ]
+      `);
+
+      expect(result.files).toMatchInlineSnapshot(`
+        [
+          DefaultGeneratedFile {
+            "base64Data": "KDI8",
+            "mediaType": "image/jpeg",
+            "uint8ArrayData": Uint8Array [
+              40,
+              50,
+              60,
+            ],
+          },
+        ]
+      `);
+    });
   });
 
   describe('result.text', () => {
     it('should generate text', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: {
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -326,6 +446,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -338,6 +459,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -350,6 +472,7 @@ describe('generateText', () => {
         prompt: 'prompt',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -360,7 +483,7 @@ describe('generateText', () => {
   describe('result.toolCalls', () => {
     it('should contain tool calls', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -457,7 +580,7 @@ describe('generateText', () => {
   describe('result.toolResults', () => {
     it('should contain tool results', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -539,7 +662,7 @@ describe('generateText', () => {
   describe('result.providerMetadata', () => {
     it('should contain provider metadata', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [],
@@ -566,7 +689,7 @@ describe('generateText', () => {
   describe('result.response.messages', () => {
     it('should contain assistant response message when there are no tool calls', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -580,7 +703,7 @@ describe('generateText', () => {
 
     it('should contain assistant response message and tool message when there are tool calls with results', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -626,7 +749,7 @@ describe('generateText', () => {
   describe('result.request', () => {
     it('should contain request body by default', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -645,7 +768,7 @@ describe('generateText', () => {
 
     it('should exclude request body when retention.requestBody is false', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -667,7 +790,7 @@ describe('generateText', () => {
   describe('result.response', () => {
     it('should contain response body and headers', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -695,7 +818,7 @@ describe('generateText', () => {
       let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello, World!' }],
             ...dummyResponseValues,
@@ -705,6 +828,10 @@ describe('generateText', () => {
         experimental_telemetry: {
           functionId: 'test-function',
           metadata: { customKey: 'customValue' },
+        },
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
         experimental_onStart: async event => {
           startEvent = event;
@@ -718,7 +845,7 @@ describe('generateText', () => {
       let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,
@@ -741,7 +868,7 @@ describe('generateText', () => {
       let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,
@@ -756,10 +883,8 @@ describe('generateText', () => {
         },
       });
 
-      expect(startEvent.model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
+      expect(startEvent.provider).toBe('mock-provider');
+      expect(startEvent.modelId).toBe('mock-model-id');
       expect(startEvent.system).toBe('you are a helpful assistant');
       expect(startEvent.prompt).toBeUndefined();
       expect(startEvent.messages).toEqual([
@@ -774,7 +899,7 @@ describe('generateText', () => {
       const callOrder: string[] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             callOrder.push('doGenerate');
             return {
@@ -794,7 +919,7 @@ describe('generateText', () => {
 
     it('should not break generation when callback throws', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello, World!' }],
             ...dummyResponseValues,
@@ -817,7 +942,7 @@ describe('generateText', () => {
       >[0];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,
@@ -830,10 +955,8 @@ describe('generateText', () => {
       });
 
       expect(stepStartEvent.stepNumber).toBe(0);
-      expect(stepStartEvent.model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
+      expect(stepStartEvent.provider).toBe('mock-provider');
+      expect(stepStartEvent.modelId).toBe('mock-model-id');
       expect(stepStartEvent.messages).toEqual([
         {
           role: 'user',
@@ -850,7 +973,7 @@ describe('generateText', () => {
       let responseCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             switch (responseCount++) {
               case 0:
@@ -898,7 +1021,7 @@ describe('generateText', () => {
       const callOrder: string[] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             callOrder.push('doGenerate');
             return {
@@ -918,7 +1041,7 @@ describe('generateText', () => {
 
     it('should not break generation when callback throws', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello, World!' }],
             ...dummyResponseValues,
@@ -939,7 +1062,7 @@ describe('generateText', () => {
       >[0][] = [];
       let responseCount = 0;
 
-      const alternateModel = new MockLanguageModelV3({
+      const alternateModel = new MockLanguageModelV4({
         provider: 'alternate-provider',
         modelId: 'alternate-model-id',
         doGenerate: async () => ({
@@ -949,7 +1072,7 @@ describe('generateText', () => {
       });
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             responseCount++;
             return {
@@ -986,14 +1109,10 @@ describe('generateText', () => {
         },
       });
 
-      expect(stepStartEvents[0].model).toEqual({
-        provider: 'mock-provider',
-        modelId: 'mock-model-id',
-      });
-      expect(stepStartEvents[1].model).toEqual({
-        provider: 'alternate-provider',
-        modelId: 'alternate-model-id',
-      });
+      expect(stepStartEvents[0].provider).toBe('mock-provider');
+      expect(stepStartEvents[0].modelId).toBe('mock-model-id');
+      expect(stepStartEvents[1].provider).toBe('alternate-provider');
+      expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
     });
 
     it('should provide empty steps array on first step', async () => {
@@ -1002,7 +1121,7 @@ describe('generateText', () => {
       >[0];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,
@@ -1025,7 +1144,7 @@ describe('generateText', () => {
       let responseCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             switch (responseCount++) {
               case 0:
@@ -1109,7 +1228,7 @@ describe('generateText', () => {
       let responseCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             switch (responseCount++) {
               case 0:
@@ -1161,7 +1280,7 @@ describe('generateText', () => {
       >[0];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,
@@ -1187,7 +1306,7 @@ describe('generateText', () => {
       let responseCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             switch (responseCount++) {
               case 0:
@@ -1253,7 +1372,7 @@ describe('generateText', () => {
       >[0];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,
@@ -1273,7 +1392,7 @@ describe('generateText', () => {
       let responseCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             switch (responseCount++) {
               case 0:
@@ -1335,7 +1454,7 @@ describe('generateText', () => {
       let responseCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             switch (responseCount++) {
               case 0:
@@ -1388,7 +1507,7 @@ describe('generateText', () => {
       >[0][] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1410,6 +1529,10 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
+        },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
@@ -1425,7 +1548,7 @@ describe('generateText', () => {
       >[0][] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1468,7 +1591,7 @@ describe('generateText', () => {
       const callOrder: string[] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1505,7 +1628,7 @@ describe('generateText', () => {
 
     it('should not break generation when callback throws', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1542,7 +1665,7 @@ describe('generateText', () => {
       >[0][] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1577,7 +1700,7 @@ describe('generateText', () => {
       >[0][] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1620,7 +1743,7 @@ describe('generateText', () => {
       >[0][] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1665,7 +1788,7 @@ describe('generateText', () => {
       const toolError = new Error('tool execution failed');
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1708,7 +1831,7 @@ describe('generateText', () => {
       >[0][] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1741,7 +1864,7 @@ describe('generateText', () => {
 
     it('should not break generation when callback throws', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1778,7 +1901,7 @@ describe('generateText', () => {
       >[0][] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1813,7 +1936,7 @@ describe('generateText', () => {
       >[0][] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1856,7 +1979,7 @@ describe('generateText', () => {
       const toolError = new Error('Tool execution failed');
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1900,7 +2023,7 @@ describe('generateText', () => {
       const callOrder: string[] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1937,7 +2060,7 @@ describe('generateText', () => {
       const callOrder: string[] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -1987,7 +2110,7 @@ describe('generateText', () => {
       let responseCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             switch (responseCount++) {
               case 0:
@@ -2061,7 +2184,7 @@ describe('generateText', () => {
       let result!: Parameters<GenerateTextOnFinishCallback<any>>[0];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [
               { type: 'text', text: 'Hello, World!' },
@@ -2092,6 +2215,10 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           },
         },
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
+        },
         onFinish: async event => {
           result = event as unknown as typeof result;
         },
@@ -2100,6 +2227,7 @@ describe('generateText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-telemetry-call-id",
           "content": [
             {
               "text": "Hello, World!",
@@ -2217,6 +2345,7 @@ describe('generateText', () => {
           "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "text": "Hello, World!",
@@ -2401,7 +2530,7 @@ describe('generateText', () => {
       beforeEach(async () => {
         let responseCount = 0;
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async ({ prompt, tools, toolChoice }) => {
               switch (responseCount++) {
                 case 0:
@@ -2496,6 +2625,10 @@ describe('generateText', () => {
             }),
           },
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
           },
@@ -2583,7 +2716,7 @@ describe('generateText', () => {
     describe('2 steps: initial, tool-result with prepareStep', () => {
       let result: GenerateTextResult<any, any>;
       let onStepFinishResults: StepResult<any>[];
-      let doGenerateCalls: Array<LanguageModelV3CallOptions>;
+      let doGenerateCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
@@ -2599,7 +2732,7 @@ describe('generateText', () => {
 
         let responseCount = 0;
 
-        const trueModel = new MockLanguageModelV3({
+        const trueModel = new MockLanguageModelV4({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             doGenerateCalls.push({ prompt, tools, toolChoice });
 
@@ -2671,6 +2804,10 @@ describe('generateText', () => {
           },
           experimental_context: { context: 'state1' },
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
           stopWhen: stepCountIs(3),
           onStepFinish: async event => {
             onStepFinishResults.push(event);
@@ -2740,6 +2877,7 @@ describe('generateText', () => {
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -2835,6 +2973,7 @@ describe('generateText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "text": "Hello, world!",
@@ -2969,6 +3108,7 @@ describe('generateText', () => {
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -3064,6 +3204,7 @@ describe('generateText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "text": "Hello, world!",
@@ -3354,7 +3495,7 @@ describe('generateText', () => {
 
         let responseCount = 0;
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => {
               switch (responseCount++) {
                 case 0:
@@ -3409,6 +3550,10 @@ describe('generateText', () => {
             }),
           },
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
           stopWhen: [
             ({ steps }) => {
               stopConditionCalls.push({ number: 0, steps });
@@ -3433,6 +3578,7 @@ describe('generateText', () => {
               "number": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -3531,6 +3677,7 @@ describe('generateText', () => {
               "number": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -3634,7 +3781,7 @@ describe('generateText', () => {
   describe('options.headers', () => {
     it('should pass headers to model', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ headers }) => {
             assert.equal(
               headers?.['custom-request-header'],
@@ -3658,7 +3805,7 @@ describe('generateText', () => {
   describe('options.providerOptions', () => {
     it('should pass provider options to model', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ providerOptions }) => {
             expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
@@ -3680,13 +3827,49 @@ describe('generateText', () => {
     });
   });
 
+  describe('options.reasoning', () => {
+    it('should pass reasoning to model doGenerate call', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'test' }],
+        },
+      });
+
+      await generateText({
+        model,
+        prompt: 'test-input',
+        reasoning: 'high',
+      });
+
+      expect(model.doGenerateCalls[0].reasoning).toBe('high');
+    });
+
+    it('should pass through provider-default', async () => {
+      const model = new MockLanguageModelV4({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'test' }],
+        },
+      });
+
+      await generateText({
+        model,
+        prompt: 'test-input',
+        reasoning: 'provider-default',
+      });
+
+      expect(model.doGenerateCalls[0].reasoning).toBe('provider-default');
+    });
+  });
+
   describe('options.abortSignal', () => {
     it('should forward abort signal to tool execution', async () => {
       const abortController = new AbortController();
       const toolExecuteMock = vi.fn().mockResolvedValue('tool result');
 
       const generateTextPromise = generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -3731,7 +3914,7 @@ describe('generateText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -3752,7 +3935,7 @@ describe('generateText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -3775,7 +3958,7 @@ describe('generateText', () => {
       let receivedAbortSignal: AbortSignal | undefined = 'not-set' as any;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -3794,7 +3977,7 @@ describe('generateText', () => {
       const toolExecuteMock = vi.fn().mockResolvedValue('tool result');
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -3832,7 +4015,7 @@ describe('generateText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -3853,7 +4036,7 @@ describe('generateText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -3876,7 +4059,7 @@ describe('generateText', () => {
       let receivedAbortSignal: AbortSignal | undefined = 'not-set' as any;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -3896,7 +4079,7 @@ describe('generateText', () => {
       const receivedAbortSignals: (AbortSignal | undefined)[] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ abortSignal }) => {
             receivedAbortSignals.push(abortSignal);
             return {
@@ -3918,7 +4101,7 @@ describe('generateText', () => {
       let stepCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ abortSignal }) => {
             receivedAbortSignals.push(abortSignal);
             stepCount++;
@@ -3964,7 +4147,7 @@ describe('generateText', () => {
       let toolAbortSignal: AbortSignal | undefined;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -3998,7 +4181,7 @@ describe('generateText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -4018,11 +4201,11 @@ describe('generateText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderTool)[]
+        | (LanguageModelV4FunctionTool | LanguageModelV4ProviderTool)[]
         | undefined;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ tools: toolsArg }) => {
             tools = toolsArg;
 
@@ -4082,14 +4265,16 @@ describe('generateText', () => {
 
     it('should not record any telemetry data when not explicitly enabled', async () => {
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
           }),
         }),
         prompt: 'prompt',
-        experimental_telemetry: { tracer },
+        experimental_telemetry: {
+          integrations: new OpenTelemetryIntegration({ tracer }),
+        },
       });
 
       expect(tracer.jsonSpans).toMatchSnapshot();
@@ -4097,7 +4282,7 @@ describe('generateText', () => {
 
     it('should record telemetry data when enabled', async () => {
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -4131,7 +4316,7 @@ describe('generateText', () => {
             test1: 'value1',
             test2: false,
           },
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
       });
 
@@ -4140,7 +4325,7 @@ describe('generateText', () => {
 
     it('should record successful tool call', async () => {
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [
@@ -4163,10 +4348,11 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4180,7 +4366,8 @@ describe('generateText', () => {
               "ai.prompt": "{"prompt":"test-input"}",
               "ai.request.headers.user-agent": "ai/0.0.0-test",
               "ai.response.finishReason": "stop",
-              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+              "ai.response.text": "",
+              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
               "ai.settings.maxRetries": 2,
               "ai.usage.inputTokenDetails.noCacheTokens": 3,
               "ai.usage.inputTokens": 3,
@@ -4206,8 +4393,9 @@ describe('generateText', () => {
               "ai.response.finishReason": "stop",
               "ai.response.id": "test-id",
               "ai.response.model": "mock-model-id",
+              "ai.response.text": "",
               "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":"{ \\"value\\": \\"value\\" }"}]",
+              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
               "ai.settings.maxRetries": 2,
               "ai.usage.inputTokenDetails.noCacheTokens": 3,
               "ai.usage.inputTokens": 3,
@@ -4246,7 +4434,7 @@ describe('generateText', () => {
 
     it('should record error on tool call', async () => {
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [
@@ -4271,10 +4459,11 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4307,7 +4496,7 @@ describe('generateText', () => {
 
     it('should not record telemetry inputs / outputs when disabled', async () => {
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
             content: [
@@ -4332,10 +4521,11 @@ describe('generateText', () => {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: false,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4348,7 +4538,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
       });
 
@@ -4371,7 +4561,7 @@ describe('generateText', () => {
     it('should record total usage across steps in root span', async () => {
       let responseCount = 0;
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             switch (responseCount++) {
               case 0:
@@ -4440,7 +4630,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
       });
 
@@ -4452,6 +4642,99 @@ describe('generateText', () => {
       expect(rootSpan?.attributes['ai.usage.outputTokens']).toBe(35);
       expect(rootSpan?.attributes['ai.usage.totalTokens']).toBe(50);
     });
+
+    it('should execute subagent generateText inside executeToolCall context', async () => {
+      let activeContext: string | undefined;
+      let capturedContext: string | undefined;
+      const otelIntegration = new OpenTelemetryIntegration({ tracer });
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'researchTool',
+                input: '{ "city": "Tokyo" }',
+              },
+            ],
+          }),
+        }),
+        tools: {
+          researchTool: tool({
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => {
+              capturedContext = activeContext;
+
+              const subResult = await generateText({
+                model: new MockLanguageModelV4({
+                  doGenerate: async () => ({
+                    ...dummyResponseValues,
+                    content: [
+                      { type: 'text', text: `Weather in ${city}: sunny` },
+                    ],
+                  }),
+                }),
+                prompt: `Weather for ${city}`,
+                experimental_telemetry: {
+                  isEnabled: true,
+                  functionId: `sub-agent-${city.toLowerCase()}`,
+                  integrations: otelIntegration,
+                },
+              });
+              return subResult.text;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'weather-agent',
+          integrations: [
+            otelIntegration,
+            {
+              executeTool: async ({ callId, toolCallId, execute }) => {
+                activeContext = `${callId}:${toolCallId}`;
+                try {
+                  return await execute();
+                } finally {
+                  activeContext = undefined;
+                }
+              },
+            },
+          ],
+        },
+        _internal: {
+          generateId: () => 'outer-test-id',
+          generateCallId: () => 'outer-test-call-id',
+        },
+      });
+
+      expect(capturedContext).toBe('outer-test-call-id:call-1');
+
+      expect(tracer.spans.map(s => s.name)).toEqual([
+        'ai.generateText',
+        'ai.generateText.doGenerate',
+        'ai.toolCall',
+        'ai.generateText',
+        'ai.generateText.doGenerate',
+      ]);
+
+      const toolCallSpan = tracer.spans[2];
+      expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
+
+      const innerRootSpan = tracer.spans[3];
+      expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
+        'sub-agent-tokyo',
+      );
+
+      const innerStepSpan = tracer.spans[4];
+      expect(innerStepSpan.attributes['ai.response.text']).toBe(
+        'Weather in Tokyo: sunny',
+      );
+    });
   });
 
   describe('tool callbacks', () => {
@@ -4459,7 +4742,7 @@ describe('generateText', () => {
       const recordedCalls: unknown[] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             return {
               ...dummyResponseValues,
@@ -4525,7 +4808,7 @@ describe('generateText', () => {
   describe('tools with custom schema', () => {
     it('should contain tool calls', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -4601,6 +4884,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: () => 'test-id',
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4636,7 +4920,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [
@@ -4813,7 +5097,7 @@ describe('generateText', () => {
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV3 {
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV4 {
         constructor() {
           super({
             supportedUrls() {
@@ -4855,7 +5139,7 @@ describe('generateText', () => {
     describe('text output (default)', () => {
       it('should throw error when accessing output', async () => {
         const result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [{ type: 'text', text: `Hello, world!` }],
@@ -4871,7 +5155,7 @@ describe('generateText', () => {
     describe('text output', () => {
       it('should forward text as output', async () => {
         const result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [{ type: 'text', text: `Hello, world!` }],
@@ -4885,10 +5169,10 @@ describe('generateText', () => {
       });
 
       it('should set responseFormat to text and not change the prompt', async () => {
-        let callOptions: LanguageModelV3CallOptions;
+        let callOptions: LanguageModelV4CallOptions;
 
         await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async args => {
               callOptions = args;
               return {
@@ -4923,6 +5207,7 @@ describe('generateText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": {
               "type": "text",
             },
@@ -4941,7 +5226,7 @@ describe('generateText', () => {
     describe('object output', () => {
       it('should parse the output', async () => {
         const result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [{ type: 'text', text: `{ "value": "test-value" }` }],
@@ -4957,10 +5242,10 @@ describe('generateText', () => {
       });
 
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-        let callOptions: LanguageModelV3CallOptions;
+        let callOptions: LanguageModelV4CallOptions;
 
         await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async args => {
               callOptions = args;
               return {
@@ -4997,6 +5282,7 @@ describe('generateText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5027,7 +5313,7 @@ describe('generateText', () => {
 
     describe('array output', () => {
       it('should generate an array with 3 elements', async () => {
-        const model = new MockLanguageModelV3({
+        const model = new MockLanguageModelV4({
           doGenerate: {
             ...dummyResponseValues,
             content: [
@@ -5117,7 +5403,7 @@ describe('generateText', () => {
 
     describe('choice output', () => {
       it('should generate a choice value', async () => {
-        const model = new MockLanguageModelV3({
+        const model = new MockLanguageModelV4({
           doGenerate: {
             ...dummyResponseValues,
             content: [
@@ -5180,7 +5466,7 @@ describe('generateText', () => {
 
     it('should not parse output when finish reason is tool-calls', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             finishReason: { unified: 'tool-calls', raw: undefined },
@@ -5223,7 +5509,7 @@ describe('generateText', () => {
 
     beforeEach(async () => {
       result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -5319,7 +5605,7 @@ describe('generateText', () => {
       let toolExecuted = false;
 
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -5413,7 +5699,7 @@ describe('generateText', () => {
       let result: GenerateTextResult<any, any>;
       let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
       let onStepFinishResults: StepResult<any>[];
-      let doGenerateCalls: Array<LanguageModelV3CallOptions>;
+      let doGenerateCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
@@ -5436,7 +5722,7 @@ describe('generateText', () => {
         let responseCount = 0;
 
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async options => {
               doGenerateCalls.push(options);
 
@@ -6596,7 +6882,7 @@ describe('generateText', () => {
       let toolExecuted = false;
 
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -6663,7 +6949,7 @@ describe('generateText', () => {
       let recordedContext: unknown | undefined;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [
@@ -6703,7 +6989,7 @@ describe('generateText', () => {
       let capturedContext: unknown;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -6724,7 +7010,7 @@ describe('generateText', () => {
       let recordedContext: unknown | undefined;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -6752,7 +7038,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               warnings: [],
               usage: {
@@ -6895,7 +7181,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               warnings: [],
               usage: {
@@ -6926,6 +7212,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -6983,6 +7270,7 @@ describe('generateText', () => {
         expect(result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "input": {
@@ -7104,7 +7392,7 @@ describe('generateText', () => {
       ];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: {
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -7135,7 +7423,7 @@ describe('generateText', () => {
       let callCount = 0;
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => {
             switch (callCount++) {
               case 0:
@@ -7189,7 +7477,7 @@ describe('generateText', () => {
 
     it('should call logWarnings with empty array when no warnings are present', async () => {
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: {
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello, world!' }],
@@ -7214,7 +7502,7 @@ describe('generateText', () => {
 
       beforeEach(async () => {
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [
@@ -7240,6 +7528,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -7320,7 +7609,7 @@ describe('generateText', () => {
       beforeEach(async () => {
         needsApprovalCalls = [];
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               ...dummyResponseValues,
               content: [
@@ -7356,6 +7645,7 @@ describe('generateText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -7513,14 +7803,14 @@ describe('generateText', () => {
 
     describe('when a call from a single tool that needs approval is approved', () => {
       let result: GenerateTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
+      let prompts: LanguageModelV4Prompt[];
       let executeFunction: ToolExecuteFunction<any, any>;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -7545,6 +7835,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7678,12 +7969,12 @@ describe('generateText', () => {
 
     describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
       let result: GenerateTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
+      let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
         prompts = [];
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -7792,14 +8083,14 @@ describe('generateText', () => {
 
     describe('when a call from a single tool that needs approval is denied', () => {
       let result: GenerateTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
+      let prompts: LanguageModelV4Prompt[];
       let executeFunction: ToolExecuteFunction<any, any>;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -7824,6 +8115,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -7950,14 +8242,14 @@ describe('generateText', () => {
 
     describe('when two calls from a single tool that needs approval are approved', () => {
       let result: GenerateTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
+      let prompts: LanguageModelV4Prompt[];
       let executeFunction: ToolExecuteFunction<any, any>;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = await generateText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -7982,6 +8274,7 @@ describe('generateText', () => {
           stopWhen: stepCountIs(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -8157,7 +8450,7 @@ describe('generateText', () => {
 
         beforeEach(async () => {
           result = await generateText({
-            model: new MockLanguageModelV3({
+            model: new MockLanguageModelV4({
               doGenerate: async () => ({
                 ...dummyResponseValues,
                 content: [
@@ -8189,6 +8482,7 @@ describe('generateText', () => {
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
           });
         });
@@ -8264,13 +8558,13 @@ describe('generateText', () => {
 
       describe('when a provider-executed tool approval is approved', () => {
         let result: GenerateTextResult<any, any>;
-        let prompts: LanguageModelV3Prompt[];
+        let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
           prompts = [];
           let callCount = 0;
           result = await generateText({
-            model: new MockLanguageModelV3({
+            model: new MockLanguageModelV4({
               doGenerate: async ({ prompt }) => {
                 prompts.push(prompt);
                 callCount++;
@@ -8321,6 +8615,7 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
             messages: [
               {
@@ -8449,12 +8744,12 @@ describe('generateText', () => {
 
       describe('when a provider-executed tool approval is denied', () => {
         let result: GenerateTextResult<any, any>;
-        let prompts: LanguageModelV3Prompt[];
+        let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
           prompts = [];
           result = await generateText({
-            model: new MockLanguageModelV3({
+            model: new MockLanguageModelV4({
               doGenerate: async ({ prompt }) => {
                 prompts.push(prompt);
                 return {
@@ -8480,6 +8775,7 @@ describe('generateText', () => {
             stopWhen: stepCountIs(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
             messages: [
               {
@@ -8608,9 +8904,9 @@ describe('generateText', () => {
     it('should use the prepareStep model supportedUrls for download decision', async () => {
       const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
         [];
-      const languageModelCalls: Array<LanguageModelV3CallOptions> = [];
+      const languageModelCalls: Array<LanguageModelV4CallOptions> = [];
 
-      const modelWithImageUrlSupport = new MockLanguageModelV3({
+      const modelWithImageUrlSupport = new MockLanguageModelV4({
         provider: 'with-image-url-support',
         modelId: 'with-image-url-support',
         supportedUrls: {
@@ -8627,7 +8923,7 @@ describe('generateText', () => {
         },
       });
 
-      const modelWithoutImageUrlSupport = new MockLanguageModelV3({
+      const modelWithoutImageUrlSupport = new MockLanguageModelV4({
         provider: 'without-image-url-support',
         modelId: 'without-image-url-support',
         supportedUrls: {},
@@ -8718,6 +9014,7 @@ describe('generateText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": undefined,
             "seed": undefined,
             "stopSequences": undefined,
@@ -8743,7 +9040,7 @@ describe('generateText', () => {
       const events: string[] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [
               {
@@ -8815,7 +9112,7 @@ describe('generateText', () => {
       ];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,
@@ -8843,7 +9140,7 @@ describe('generateText', () => {
       ];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,
@@ -8866,7 +9163,7 @@ describe('generateText', () => {
       const events: string[] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,
@@ -8909,7 +9206,7 @@ describe('generateText', () => {
 
     it('should not break generation when an integration listener throws', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,
@@ -8938,7 +9235,7 @@ describe('generateText', () => {
       const events: string[] = [];
 
       await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             content: [{ type: 'text', text: 'Hello!' }],
             ...dummyResponseValues,

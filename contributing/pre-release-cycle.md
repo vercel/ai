@@ -118,7 +118,7 @@ Update the following files to accept `V2 | V3 | V4` models at their public bound
 
 - `packages/ai/src/middleware/wrap-language-model.ts` — accept `LanguageModelV2 | V3 | V4`
 - `packages/ai/src/middleware/wrap-image-model.ts` — accept `ImageModelV2 | V3 | V4`
-- `packages/ai/src/middleware/wrap-embedding-model.ts` — accept `EmbeddingModelV3 | V4` (V2 is generic, not included)
+- `packages/ai/src/middleware/wrap-embedding-model.ts` — accept `EmbeddingModelV3 | V4` (V2 is generic, not included; V3 kept for backward compatibility)
 - `packages/ai/src/registry/custom-provider.ts` — accept V2/V3/V4 models in all model maps
 - `packages/ai/src/registry/provider-registry.ts` — accept `ProviderV2 | V3 | V4`, convert with `asProviderV4`
 - `packages/ai/src/types/language-model-middleware.ts` — relax to accept both V3 and V4 middleware

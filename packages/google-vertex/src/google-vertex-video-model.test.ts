@@ -134,7 +134,7 @@ describe('GoogleVertexVideoModel', () => {
 
       expect(model.provider).toBe('google-vertex');
       expect(model.modelId).toBe('veo-2.0-generate-001');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(4);
     });
 

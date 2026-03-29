@@ -1,8 +1,4 @@
-import {
-  type AnthropicLanguageModelOptions,
-  anthropic,
-  createAnthropic,
-} from '@ai-sdk/anthropic';
+import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
 import { generateText, stepCountIs } from 'ai';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -22,7 +18,7 @@ run(async () => {
 
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5-20250929'),
-    prompt: 'How many "r"s are in the word "strawberry?',
+    prompt: 'what is the weather in Tokyo?',
     tools: {
       getWeather: {
         description: 'Get the weather for a given city',
@@ -37,11 +33,7 @@ run(async () => {
         },
       },
     },
-    providerOptions: {
-      anthropic: {
-        thinking: { type: 'enabled', budgetTokens: 12000 },
-      } satisfies AnthropicLanguageModelOptions,
-    },
+    reasoning: 'medium',
     stopWhen: stepCountIs(5),
     experimental_telemetry: {
       isEnabled: true,

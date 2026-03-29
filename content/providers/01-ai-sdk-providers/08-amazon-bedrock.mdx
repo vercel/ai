@@ -546,6 +546,11 @@ Via Anthropic, Amazon Bedrock provides three provider-defined tools that can be 
 
 They are available via the `tools` property of the provider instance.
 
+<Note>
+  Amazon Bedrock does not support strict mode on tool definitions. Setting
+  `strict: true` on a tool will be ignored and a warning will be emitted.
+</Note>
+
 ### Bash Tool
 
 The Bash Tool allows running bash commands. Here's how to create and use it:
@@ -1374,6 +1379,16 @@ const { text } = await generateText({
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
+
+### Provider Options
+
+The following optional provider options are available for Bedrock Anthropic models:
+
+- `metadata` _object_
+
+  Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
+
+  - `userId` _string_ - An external identifier for the end-user.
 
 ### Cache Control
 

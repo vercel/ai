@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
+  LanguageModelV4CallOptions,
+  SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
@@ -26,26 +26,32 @@ export async function prepareTools({
   disableParallelToolUse,
   cacheControlValidator,
   supportsStructuredOutput,
+  supportsStrictTools,
 }: {
-  tools: LanguageModelV3CallOptions['tools'];
-  toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
+  tools: LanguageModelV4CallOptions['tools'];
+  toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
   disableParallelToolUse?: boolean;
   cacheControlValidator?: CacheControlValidator;
 
   /**
-   * Whether the model supports structured output.
+   * Whether the model supports native structured output response format.
    */
   supportsStructuredOutput: boolean;
+
+  /**
+   * Whether the model supports strict mode on tool definitions.
+   */
+  supportsStrictTools: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
-  toolWarnings: SharedV3Warning[];
+  toolWarnings: SharedV4Warning[];
   betas: Set<string>;
 }> {
   // when the tools array is empty, change it to undefined to prevent errors:
   tools = tools?.length ? tools : undefined;
 
-  const toolWarnings: SharedV3Warning[] = [];
+  const toolWarnings: SharedV4Warning[] = [];
   const betas = new Set<string>();
   const validator = cacheControlValidator || new CacheControlValidator();
 
@@ -72,13 +78,21 @@ export async function prepareTools({
         const deferLoading = anthropicOptions?.deferLoading;
         const allowedCallers = anthropicOptions?.allowedCallers;
 
+        if (!supportsStrictTools && tool.strict != null) {
+          toolWarnings.push({
+            type: 'unsupported',
+            feature: 'strict',
+            details: `Tool '${tool.name}' has strict: ${tool.strict}, but strict mode is not supported by this provider. The strict property will be ignored.`,
+          });
+        }
+
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
           ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
-          ...(supportsStructuredOutput === true && tool.strict != null
+          ...(supportsStrictTools === true && tool.strict != null
             ? { strict: tool.strict }
             : {}),
           ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
@@ -308,7 +322,6 @@ export async function prepareTools({
           }
 
           case 'anthropic.tool_search_regex_20251119': {
-            betas.add('advanced-tool-use-2025-11-20');
             anthropicTools.push({
               type: 'tool_search_tool_regex_20251119',
               name: 'tool_search_tool_regex',
@@ -317,7 +330,6 @@ export async function prepareTools({
           }
 
           case 'anthropic.tool_search_bm25_20251119': {
-            betas.add('advanced-tool-use-2025-11-20');
             anthropicTools.push({
               type: 'tool_search_tool_bm25_20251119',
               name: 'tool_search_tool_bm25',

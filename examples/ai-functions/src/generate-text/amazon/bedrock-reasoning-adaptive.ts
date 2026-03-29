@@ -1,7 +1,4 @@
-import {
-  bedrock,
-  type AmazonBedrockLanguageModelOptions,
-} from '@ai-sdk/amazon-bedrock';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText, stepCountIs } from 'ai';
 import { run } from '../../lib/run';
 
@@ -9,11 +6,7 @@ run(async () => {
   const result = await generateText({
     model: bedrock('us.anthropic.claude-opus-4-6-v1'),
     prompt: 'How many "r"s are in the word "strawberry"?',
-    providerOptions: {
-      bedrock: {
-        reasoningConfig: { type: 'adaptive', maxReasoningEffort: 'max' },
-      } satisfies AmazonBedrockLanguageModelOptions,
-    },
+    reasoning: 'xhigh',
     maxRetries: 0,
     stopWhen: stepCountIs(5),
   });
