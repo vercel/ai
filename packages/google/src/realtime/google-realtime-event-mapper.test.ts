@@ -211,7 +211,7 @@ describe('GoogleRealtimeEventMapper', () => {
       ]);
     });
 
-    it('maps toolCall to function-call-arguments-done events', () => {
+    it('maps toolCall to function-call-arguments-delta and done events', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = {
         toolCall: {
@@ -226,12 +226,28 @@ describe('GoogleRealtimeEventMapper', () => {
       expect(Array.isArray(result)).toBe(true);
       expect(result).toEqual([
         {
+          type: 'function-call-arguments-delta',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          callId: 'call_1',
+          delta: '{"city":"NYC"}',
+          raw,
+        },
+        {
           type: 'function-call-arguments-done',
           responseId: 'google-resp-0',
           itemId: 'google-item-0',
           callId: 'call_1',
           name: 'getWeather',
           arguments: '{"city":"NYC"}',
+          raw,
+        },
+        {
+          type: 'function-call-arguments-delta',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          callId: 'call_2',
+          delta: '{}',
           raw,
         },
         {

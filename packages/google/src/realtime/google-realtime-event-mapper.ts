@@ -45,16 +45,29 @@ export class GoogleRealtimeEventMapper {
 
     if (data.toolCall != null) {
       const functionCalls = data.toolCall.functionCalls ?? [];
-      return functionCalls.map(
-        (fc: { id: string; name: string; args?: Record<string, unknown> }) => ({
-          type: 'function-call-arguments-done' as const,
-          responseId: this.responseId,
-          itemId: this.itemId,
-          callId: fc.id,
-          name: fc.name,
-          arguments: JSON.stringify(fc.args ?? {}),
-          raw,
-        }),
+      return functionCalls.flatMap(
+        (fc: { id: string; name: string; args?: Record<string, unknown> }) => {
+          const args = JSON.stringify(fc.args ?? {});
+          return [
+            {
+              type: 'function-call-arguments-delta' as const,
+              responseId: this.responseId,
+              itemId: this.itemId,
+              callId: fc.id,
+              delta: args,
+              raw,
+            },
+            {
+              type: 'function-call-arguments-done' as const,
+              responseId: this.responseId,
+              itemId: this.itemId,
+              callId: fc.id,
+              name: fc.name,
+              arguments: args,
+              raw,
+            },
+          ];
+        },
       );
     }
 
