@@ -1,11 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
-import {
-  tool,
-  getRealtimeToolDefinitions,
-  executeRealtimeTool,
-} from 'ai';
+import { tool, getRealtimeToolDefinitions, executeRealtimeTool } from 'ai';
 import type {
   RealtimeFactory,
   RealtimeSessionConfig,
@@ -37,18 +33,17 @@ const tools = {
   }),
 };
 
-const providers: Record<string, { factory: RealtimeFactory; model: string }> =
-  {
-    openai: { factory: openai.realtime, model: 'gpt-4o-realtime-preview' },
-    google: {
-      factory: google.realtime,
-      model: 'gemini-3.1-flash-live-preview',
-    },
-    xai: {
-      factory: xai.realtime,
-      model: 'grok-3',
-    },
-  };
+const providers: Record<string, { factory: RealtimeFactory; model: string }> = {
+  openai: { factory: openai.realtime, model: 'gpt-4o-realtime-preview' },
+  google: {
+    factory: google.realtime,
+    model: 'gemini-3.1-flash-live-preview',
+  },
+  xai: {
+    factory: xai.realtime,
+    model: 'grok-3',
+  },
+};
 
 export async function POST(
   request: Request,
@@ -89,7 +84,9 @@ export async function POST(
         arguments: (toolData.inputs as Record<string, unknown>) || {},
         callId: key,
       });
-      toolResults[key] = result.success ? result.result : { error: result.error };
+      toolResults[key] = result.success
+        ? result.result
+        : { error: result.error };
     }
 
     return Response.json(toolResults);
