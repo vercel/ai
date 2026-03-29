@@ -1,4 +1,8 @@
 import {
+  anthropicTools,
+  AnthropicMessagesLanguageModel,
+} from '@ai-sdk/anthropic/internal';
+import {
   LanguageModelV4,
   NoSuchModelError,
   ProviderV4,
@@ -13,17 +17,13 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import {
-  anthropicTools,
-  AnthropicMessagesLanguageModel,
-} from '@ai-sdk/anthropic/internal';
-import {
   BedrockCredentials,
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
 } from '../bedrock-sigv4-fetch';
+import { VERSION } from '../version';
 import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
 import { BedrockAnthropicModelId } from './bedrock-anthropic-options';
-import { VERSION } from '../version';
 
 // Bedrock requires newer tool versions than the default Anthropic SDK versions
 const BEDROCK_TOOL_VERSION_MAP = {
@@ -37,6 +37,9 @@ const BEDROCK_TOOL_NAME_MAP: Record<string, string> = {
   text_editor_20250728: 'str_replace_based_edit_tool',
 };
 
+// Betas unsupported by Bedrock that must be stripped from upstream Anthropic SDK
+const BEDROCK_UNSUPPORTED_BETAS = ['advanced-tool-use-2025-11-20'] as const;
+
 // Map tool types to required anthropic_beta values for Bedrock
 const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
   bash_20250124: 'computer-use-2025-01-24',
@@ -47,6 +50,8 @@ const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
   text_editor_20250728: 'computer-use-2025-01-24',
   computer_20250124: 'computer-use-2025-01-24',
   computer_20241022: 'computer-use-2024-10-22',
+  tool_search_tool_regex_20251119: 'tool-search-tool-2025-10-19',
+  tool_search_tool_bm25_20251119: 'tool-search-tool-2025-10-19',
 };
 
 export interface BedrockAnthropicProvider extends ProviderV4 {
@@ -160,10 +165,7 @@ export function createBedrockAnthropic(
         // If a credential provider is provided, use it to get the credentials.
         if (options.credentialProvider) {
           try {
-            return {
-              ...(await options.credentialProvider()),
-              region,
-            };
+            return { ...(await options.credentialProvider()), region };
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : String(error);
@@ -268,6 +270,9 @@ export function createBedrockAnthropic(
             : undefined;
 
         const requiredBetas = new Set<string>(betas);
+        for (const beta of BEDROCK_UNSUPPORTED_BETAS) {
+          requiredBetas.delete(beta);
+        }
         const transformedTools = tools?.map((tool: Record<string, unknown>) => {
           const toolType = tool.type as string | undefined;
 
@@ -283,11 +288,7 @@ export function createBedrockAnthropic(
               newType in BEDROCK_TOOL_NAME_MAP
                 ? BEDROCK_TOOL_NAME_MAP[newType]
                 : tool.name;
-            return {
-              ...tool,
-              type: newType,
-              name: newName,
-            };
+            return { ...tool, type: newType, name: newName };
           }
 
           if (toolType && toolType in BEDROCK_TOOL_BETA_MAP) {
@@ -295,10 +296,7 @@ export function createBedrockAnthropic(
           }
 
           if (toolType && toolType in BEDROCK_TOOL_NAME_MAP) {
-            return {
-              ...tool,
-              name: BEDROCK_TOOL_NAME_MAP[toolType],
-            };
+            return { ...tool, name: BEDROCK_TOOL_NAME_MAP[toolType] };
           }
 
           return tool;
