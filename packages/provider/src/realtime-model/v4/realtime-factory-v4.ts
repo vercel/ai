@@ -1,11 +1,9 @@
 import { RealtimeModelV4 } from './realtime-model-v4';
-import { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
+import { RealtimeModelV4ClientSecretOptions } from './realtime-model-v4-client-secret';
 
 export type RealtimeFactoryV4GetTokenOptions = {
   model: string;
-  sessionConfig?: RealtimeModelV4SessionConfig;
-  expiresAfterSeconds?: number;
-};
+} & RealtimeModelV4ClientSecretOptions;
 
 export type RealtimeFactoryV4GetTokenResult = {
   token: string;
