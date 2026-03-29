@@ -70,6 +70,10 @@ export function createXaiFiles({
       return {
         warnings: [],
         providerReference: { xai: response.id },
+        ...((response.filename ?? filename)
+          ? { filename: response.filename ?? filename }
+          : {}),
+        ...(mediaType != null ? { mediaType } : {}),
         providerMetadata: {
           xai: {
             ...(response.filename != null

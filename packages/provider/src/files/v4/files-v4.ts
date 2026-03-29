@@ -13,6 +13,16 @@ export type FilesV4UploadFileResult = {
   providerReference: SharedV4ProviderReference;
 
   /**
+   * The IANA media type of the uploaded file, if available from the provider.
+   */
+  mediaType?: string;
+
+  /**
+   * The filename of the uploaded file, if available from the provider.
+   */
+  filename?: string;
+
+  /**
    * Additional provider-specific metadata. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.

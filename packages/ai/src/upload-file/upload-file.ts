@@ -84,6 +84,8 @@ export async function uploadFile({
 
   return new DefaultUploadFileResult({
     providerReference: result.providerReference,
+    mediaType: result.mediaType,
+    filename: result.filename,
     providerMetadata: result.providerMetadata,
     warnings: result.warnings,
   });
@@ -91,15 +93,21 @@ export async function uploadFile({
 
 class DefaultUploadFileResult implements UploadFileResult {
   readonly providerReference: ProviderReference;
+  readonly mediaType?: string;
+  readonly filename?: string;
   readonly providerMetadata?: ProviderMetadata;
   readonly warnings: Array<Warning>;
 
   constructor(options: {
     providerReference: ProviderReference;
+    mediaType?: string;
+    filename?: string;
     providerMetadata?: ProviderMetadata;
     warnings: Array<Warning>;
   }) {
     this.providerReference = options.providerReference;
+    this.mediaType = options.mediaType;
+    this.filename = options.filename;
     this.providerMetadata = options.providerMetadata;
     this.warnings = options.warnings;
   }

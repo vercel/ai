@@ -4,12 +4,15 @@ import fs from 'node:fs';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { providerReference, providerMetadata } = await uploadFile({
-    files: google.files(),
-    data: fs.readFileSync('./data/comic-cat.png'),
-  });
+  const { providerReference, mediaType, filename, providerMetadata } =
+    await uploadFile({
+      files: google.files(),
+      data: fs.readFileSync('./data/comic-cat.png'),
+    });
 
   console.log('Provider reference:', providerReference);
+  console.log('Media type:', mediaType);
+  console.log('Filename:', filename);
   console.log('Provider metadata:', providerMetadata);
 
   const result = await generateText({

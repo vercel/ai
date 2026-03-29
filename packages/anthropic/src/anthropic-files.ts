@@ -85,6 +85,8 @@ export function createAnthropicFiles({
       return {
         warnings: [],
         providerReference: { anthropic: response.id },
+        mediaType: response.mime_type ?? resolvedMediaType,
+        filename: response.filename ?? filename,
         providerMetadata: {
           anthropic: {
             filename: response.filename,

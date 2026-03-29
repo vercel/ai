@@ -74,6 +74,10 @@ export function createOpenAIFiles({
       return {
         warnings: [],
         providerReference: { openai: response.id },
+        ...((response.filename ?? filename)
+          ? { filename: response.filename ?? filename }
+          : {}),
+        ...(mediaType != null ? { mediaType } : {}),
         providerMetadata: {
           openai: {
             ...(response.filename != null

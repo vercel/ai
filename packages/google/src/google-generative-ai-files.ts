@@ -166,6 +166,7 @@ export class GoogleGenerativeAIFiles implements FilesV4 {
     return {
       warnings,
       providerReference: { google: file.uri },
+      mediaType: file.mimeType ?? options.mediaType,
       providerMetadata: {
         google: {
           name: file.name,
