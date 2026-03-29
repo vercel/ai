@@ -3,9 +3,10 @@
 import { useRealtime } from '@ai-sdk/react';
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
+import { xai } from '@ai-sdk/xai';
 import { useState, useRef, useEffect, useMemo } from 'react';
 
-type Provider = 'openai' | 'google';
+type Provider = 'openai' | 'google' | 'xai';
 
 const PROVIDER_CONFIG: Record<
   Provider,
@@ -43,6 +44,12 @@ const PROVIDER_CONFIG: Record<
       inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
       outputAudioFormat: { type: 'audio/pcm', rate: 24000 },
     },
+  },
+  xai: {
+    label: 'xAI',
+    defaultModel: 'grok-3',
+    voices: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer'],
+    createModel: modelId => xai.realtime(modelId),
   },
 };
 

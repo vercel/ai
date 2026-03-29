@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
+import { xai } from '@ai-sdk/xai';
 import {
   tool,
   getRealtimeToolDefinitions,
@@ -42,6 +43,10 @@ const providers: Record<string, { factory: RealtimeFactory; model: string }> =
     google: {
       factory: google.realtime,
       model: 'gemini-3.1-flash-live-preview',
+    },
+    xai: {
+      factory: xai.realtime,
+      model: 'grok-3',
     },
   };
 

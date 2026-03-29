@@ -2,13 +2,10 @@ import {
   type Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4ProviderTool,
-  LanguageModelV4ToolChoice,
   NoSuchModelError,
   ProviderV4,
-  Experimental_RealtimeModelV4 as RealtimeModelV4,
-  Experimental_RealtimeModelV4ToolDefinition as RealtimeModelV4ToolDefinition,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -80,20 +77,7 @@ export interface XaiProvider extends ProviderV4 {
   textEmbeddingModel(modelId: string): never;
 }
 
-export interface XaiRealtimeFactory {
-  (modelId: string): RealtimeModelV4;
-  getToken(options: {
-    model: string;
-    tools?: Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>;
-    toolChoice?: LanguageModelV4ToolChoice;
-    expiresAfterSeconds?: number;
-  }): Promise<{
-    token: string;
-    url: string;
-    expiresAt?: number;
-    tools: RealtimeModelV4ToolDefinition[];
-  }>;
-}
+export interface XaiRealtimeFactory extends RealtimeFactoryV4 {}
 
 export interface XaiProviderSettings {
   /**
@@ -185,37 +169,17 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   const realtimeFactory = Object.assign(
     (modelId: string) => createRealtimeModel(modelId),
     {
-      getToken: async (tokenOptions: {
-        model: string;
-        tools?: Array<
-          LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
-        >;
-        toolChoice?: LanguageModelV4ToolChoice;
-        expiresAfterSeconds?: number;
-      }) => {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
         const model = createRealtimeModel(tokenOptions.model);
         const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
           expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
         });
-
-        const realtimeTools: RealtimeModelV4ToolDefinition[] = (
-          tokenOptions.tools ?? []
-        )
-          .filter(
-            (t): t is LanguageModelV4FunctionTool => t.type === 'function',
-          )
-          .map(t => ({
-            type: 'function' as const,
-            name: t.name,
-            description: t.description,
-            parameters: t.inputSchema,
-          }));
 
         return {
           token: secret.token,
           url: secret.url,
           expiresAt: secret.expiresAt,
-          tools: realtimeTools,
         };
       },
     },
