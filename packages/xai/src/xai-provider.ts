@@ -64,7 +64,7 @@ export interface XaiProvider extends ProviderV4 {
    */
   videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
-  realtime: XaiRealtimeFactory;
+  realtime: RealtimeFactoryV4;
 
   /**
    * Server-side agentic tools for use with the responses API.
@@ -76,8 +76,6 @@ export interface XaiProvider extends ProviderV4 {
    */
   textEmbeddingModel(modelId: string): never;
 }
-
-export interface XaiRealtimeFactory extends RealtimeFactoryV4 {}
 
 export interface XaiProviderSettings {
   /**
@@ -183,7 +181,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
         };
       },
     },
-  ) as XaiRealtimeFactory;
+  ) as RealtimeFactoryV4;
 
   const provider = (modelId: XaiResponsesModelId) =>
     createResponsesLanguageModel(modelId);

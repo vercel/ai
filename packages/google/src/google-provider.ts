@@ -84,12 +84,10 @@ export interface GoogleGenerativeAIProvider extends ProviderV4 {
     modelId: GoogleGenerativeAIVideoModelId,
   ): Experimental_VideoModelV4;
 
-  realtime: GoogleRealtimeFactory;
+  realtime: RealtimeFactoryV4;
 
   tools: typeof googleTools;
 }
-
-export interface GoogleRealtimeFactory extends RealtimeFactoryV4 {}
 
 export interface GoogleGenerativeAIProviderSettings {
   /**
@@ -226,7 +224,7 @@ export function createGoogleGenerativeAI(
         };
       },
     },
-  ) as GoogleRealtimeFactory;
+  ) as RealtimeFactoryV4;
 
   const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {

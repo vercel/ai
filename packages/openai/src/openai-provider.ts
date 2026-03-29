@@ -100,15 +100,13 @@ export interface OpenAIProvider extends ProviderV4 {
    * Creates a realtime model for bidirectional audio/text
    * communication over WebSocket.
    */
-  realtime: OpenAIRealtimeFactory;
+  realtime: RealtimeFactoryV4;
 
   /**
    * OpenAI-specific tools.
    */
   tools: typeof openaiTools;
 }
-
-export interface OpenAIRealtimeFactory extends RealtimeFactoryV4 {}
 
 export interface OpenAIProviderSettings {
   /**
@@ -272,7 +270,7 @@ export function createOpenAI(
         };
       },
     },
-  ) as OpenAIRealtimeFactory;
+  ) as RealtimeFactoryV4;
 
   const provider = function (modelId: OpenAIResponsesModelId) {
     return createLanguageModel(modelId);
