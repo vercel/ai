@@ -39,6 +39,11 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
     const fetchFn = this.config.fetch ?? fetch;
     const url = `${this.config.baseURL}/realtime/client_secrets`;
 
+    const session =
+      options.sessionConfig != null
+        ? buildOpenAISessionConfig(options.sessionConfig, this.modelId)
+        : { type: 'realtime', model: this.modelId };
+
     const response = await fetchFn(url, {
       method: 'POST',
       headers: {
@@ -46,10 +51,7 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        session: {
-          type: 'realtime',
-          model: this.modelId,
-        },
+        session,
         ...(options.expiresAfterSeconds != null
           ? { expires_after: { seconds: options.expiresAfterSeconds } }
           : {}),

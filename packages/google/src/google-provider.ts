@@ -3,13 +3,9 @@ import {
   Experimental_VideoModelV4,
   ImageModelV4,
   LanguageModelV4,
-  LanguageModelV4FunctionTool,
-  LanguageModelV4ProviderTool,
-  LanguageModelV4ToolChoice,
   ProviderV4,
-  RealtimeModelV4,
-  RealtimeModelV4SessionConfig,
-  RealtimeModelV4ToolDefinition,
+  RealtimeFactoryV4,
+  RealtimeFactoryV4GetTokenOptions,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -93,22 +89,7 @@ export interface GoogleGenerativeAIProvider extends ProviderV4 {
   tools: typeof googleTools;
 }
 
-export interface GoogleRealtimeFactory {
-  (modelId: string): RealtimeModelV4;
-
-  getToken(options: {
-    model: string;
-    tools?: Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>;
-    toolChoice?: LanguageModelV4ToolChoice;
-    sessionConfig?: RealtimeModelV4SessionConfig;
-    expiresAfterSeconds?: number;
-  }): Promise<{
-    token: string;
-    url: string;
-    expiresAt?: number;
-    tools: RealtimeModelV4ToolDefinition[];
-  }>;
-}
+export interface GoogleRealtimeFactory extends RealtimeFactoryV4 {}
 
 export interface GoogleGenerativeAIProviderSettings {
   /**
@@ -231,45 +212,17 @@ export function createGoogleGenerativeAI(
   const realtimeFactory = Object.assign(
     (modelId: string) => createRealtimeModel(modelId),
     {
-      getToken: async (tokenOptions: {
-        model: string;
-        tools?: Array<
-          LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
-        >;
-        toolChoice?: LanguageModelV4ToolChoice;
-        sessionConfig?: RealtimeModelV4SessionConfig;
-        expiresAfterSeconds?: number;
-      }) => {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
         const model = createRealtimeModel(tokenOptions.model);
-
-        const realtimeTools: RealtimeModelV4ToolDefinition[] = (
-          tokenOptions.tools ?? []
-        )
-          .filter(
-            (t): t is LanguageModelV4FunctionTool => t.type === 'function',
-          )
-          .map(t => ({
-            type: 'function' as const,
-            name: t.name,
-            description: t.description,
-            parameters: t.inputSchema,
-          }));
-
-        const sessionConfig: RealtimeModelV4SessionConfig = {
-          ...tokenOptions.sessionConfig,
-          tools: realtimeTools,
-        };
-
         const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
           expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
-          sessionConfig,
         });
 
         return {
           token: secret.token,
           url: secret.url,
           expiresAt: secret.expiresAt,
-          tools: realtimeTools,
         };
       },
     },

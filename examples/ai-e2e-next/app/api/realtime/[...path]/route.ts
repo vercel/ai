@@ -1,8 +1,15 @@
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
-import { tool, ToolExecutionOptions } from 'ai';
-import { prepareToolsAndToolChoice } from 'ai/internal';
-import type { RealtimeToolsExecuteRequestBody } from 'ai';
+import {
+  tool,
+  getRealtimeToolDefinitions,
+  executeRealtimeTool,
+} from 'ai';
+import type {
+  RealtimeFactory,
+  RealtimeSessionConfig,
+  RealtimeToolsExecuteRequestBody,
+} from 'ai';
 import { z } from 'zod';
 
 const tools = {
@@ -29,31 +36,14 @@ const tools = {
   }),
 };
 
-const providerConfig = {
-  openai: {
-    getToken: async (opts: {
-      preparedTools: Awaited<ReturnType<typeof prepareToolsAndToolChoice>>;
-      sessionConfig?: Record<string, unknown>;
-    }) =>
-      openai.realtime.getToken({
-        model: 'gpt-4o-realtime-preview',
-        tools: opts.preparedTools.tools,
-        toolChoice: opts.preparedTools.toolChoice,
-      }),
-  },
-  google: {
-    getToken: async (opts: {
-      preparedTools: Awaited<ReturnType<typeof prepareToolsAndToolChoice>>;
-      sessionConfig?: Record<string, unknown>;
-    }) =>
-      google.realtime.getToken({
-        model: 'gemini-3.1-flash-live-preview',
-        tools: opts.preparedTools.tools,
-        toolChoice: opts.preparedTools.toolChoice,
-        sessionConfig: opts.sessionConfig,
-      }),
-  },
-};
+const providers: Record<string, { factory: RealtimeFactory; model: string }> =
+  {
+    openai: { factory: openai.realtime, model: 'gpt-4o-realtime-preview' },
+    google: {
+      factory: google.realtime,
+      model: 'gemini-3.1-flash-live-preview',
+    },
+  };
 
 export async function POST(
   request: Request,
@@ -67,24 +57,18 @@ export async function POST(
     const provider = searchParams.get('provider') ?? 'openai';
 
     const body = await request.json().catch(() => ({}));
-    const sessionConfig = body.sessionConfig ?? undefined;
+    const sessionConfig: RealtimeSessionConfig | undefined =
+      body.sessionConfig ?? undefined;
 
-    const preparedTools = await prepareToolsAndToolChoice({
-      tools,
-      toolChoice: undefined,
-      activeTools: undefined,
+    const toolDefs = await getRealtimeToolDefinitions({ tools });
+
+    const { factory, model } = providers[provider] ?? providers.openai;
+    const tokenResult = await factory.getToken({
+      model,
+      sessionConfig: { ...sessionConfig, tools: toolDefs },
     });
 
-    const config =
-      providerConfig[provider as keyof typeof providerConfig] ??
-      providerConfig.openai;
-
-    const tokenResult = await config.getToken({
-      preparedTools,
-      sessionConfig,
-    });
-
-    return Response.json(tokenResult);
+    return Response.json({ ...tokenResult, tools: toolDefs });
   }
 
   if (route === 'execute-tools') {
@@ -94,20 +78,13 @@ export async function POST(
     const toolResults: Record<string, unknown> = {};
 
     for (const [key, toolData] of Object.entries(toolsToExecute)) {
-      if (toolData.name in tools) {
-        const toolFn = tools[toolData.name as keyof typeof tools];
-        if (toolFn?.execute) {
-          const result = await toolFn.execute(
-            (toolData.inputs as any) || {},
-            {} as ToolExecutionOptions,
-          );
-          toolResults[key] = result;
-        } else {
-          toolResults[key] = { error: 'Tool execute not found' };
-        }
-      } else {
-        toolResults[key] = { error: 'Tool not found' };
-      }
+      const result = await executeRealtimeTool({
+        tools,
+        name: toolData.name,
+        arguments: (toolData.inputs as Record<string, unknown>) || {},
+        callId: key,
+      });
+      toolResults[key] = result.success ? result.result : { error: result.error };
     }
 
     return Response.json(toolResults);

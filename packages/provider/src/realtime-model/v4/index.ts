@@ -1,3 +1,8 @@
+export type {
+  RealtimeFactoryV4,
+  RealtimeFactoryV4GetTokenOptions,
+  RealtimeFactoryV4GetTokenResult,
+} from './realtime-factory-v4';
 export type { RealtimeModelV4 } from './realtime-model-v4';
 export type { RealtimeModelV4ClientEvent } from './realtime-model-v4-client-event';
 export type {

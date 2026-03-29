@@ -3,6 +3,8 @@ export {
   decodeRealtimeAudio,
   resampleAudio,
 } from './audio-utils';
+export { executeRealtimeTool } from './execute-realtime-tool';
+export { getRealtimeToolDefinitions } from './get-realtime-tool-definitions';
 export { AbstractRealtimeSession } from './realtime-session';
 export type {
   RealtimeSessionOptions,
@@ -16,6 +18,9 @@ export type {
 } from './realtime-types';
 export type {
   RealtimeClientEvent,
+  RealtimeFactory,
+  RealtimeFactoryGetTokenOptions,
+  RealtimeFactoryGetTokenResult,
   RealtimeModel,
   RealtimeServerEvent,
   RealtimeSessionConfig,

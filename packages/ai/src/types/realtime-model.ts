@@ -1,10 +1,19 @@
 import {
+  RealtimeFactoryV4,
+  RealtimeFactoryV4GetTokenOptions,
+  RealtimeFactoryV4GetTokenResult,
   RealtimeModelV4,
   RealtimeModelV4ClientEvent,
   RealtimeModelV4ServerEvent,
   RealtimeModelV4SessionConfig,
   RealtimeModelV4ToolDefinition,
 } from '@ai-sdk/provider';
+
+export type RealtimeFactory = RealtimeFactoryV4;
+
+export type RealtimeFactoryGetTokenOptions = RealtimeFactoryV4GetTokenOptions;
+
+export type RealtimeFactoryGetTokenResult = RealtimeFactoryV4GetTokenResult;
 
 export type RealtimeModel = RealtimeModelV4;
 
