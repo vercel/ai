@@ -1,8 +1,4 @@
 import {
-  anthropicTools,
-  AnthropicMessagesLanguageModel,
-} from '@ai-sdk/anthropic/internal';
-import {
   LanguageModelV4,
   NoSuchModelError,
   ProviderV4,
@@ -17,13 +13,17 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import {
+  anthropicTools,
+  AnthropicMessagesLanguageModel,
+} from '@ai-sdk/anthropic/internal';
+import {
   BedrockCredentials,
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
 } from '../bedrock-sigv4-fetch';
-import { VERSION } from '../version';
 import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
 import { BedrockAnthropicModelId } from './bedrock-anthropic-options';
+import { VERSION } from '../version';
 
 // Bedrock requires newer tool versions than the default Anthropic SDK versions
 const BEDROCK_TOOL_VERSION_MAP = {
@@ -165,7 +165,10 @@ export function createBedrockAnthropic(
         // If a credential provider is provided, use it to get the credentials.
         if (options.credentialProvider) {
           try {
-            return { ...(await options.credentialProvider()), region };
+            return {
+              ...(await options.credentialProvider()),
+              region,
+            };
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : String(error);
@@ -288,7 +291,11 @@ export function createBedrockAnthropic(
               newType in BEDROCK_TOOL_NAME_MAP
                 ? BEDROCK_TOOL_NAME_MAP[newType]
                 : tool.name;
-            return { ...tool, type: newType, name: newName };
+            return {
+              ...tool,
+              type: newType,
+              name: newName,
+            };
           }
 
           if (toolType && toolType in BEDROCK_TOOL_BETA_MAP) {
@@ -296,7 +303,10 @@ export function createBedrockAnthropic(
           }
 
           if (toolType && toolType in BEDROCK_TOOL_NAME_MAP) {
-            return { ...tool, name: BEDROCK_TOOL_NAME_MAP[toolType] };
+            return {
+              ...tool,
+              name: BEDROCK_TOOL_NAME_MAP[toolType],
+            };
           }
 
           return tool;
