@@ -193,9 +193,8 @@ export class GoogleRealtimeEventMapper {
         switch (item.type) {
           case 'text-message':
             return {
-              clientContent: {
-                turns: [{ role: 'user', parts: [{ text: item.text }] }],
-                turnComplete: true,
+              realtimeInput: {
+                text: item.text,
               },
             };
           case 'function-call-output': {

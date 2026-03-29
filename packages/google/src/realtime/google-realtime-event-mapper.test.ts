@@ -325,7 +325,7 @@ describe('GoogleRealtimeEventMapper', () => {
       ).toBeNull();
     });
 
-    it('serializes text message as clientContent', () => {
+    it('serializes text message as realtimeInput', () => {
       const result = mapper.serializeClientEvent(
         {
           type: 'conversation-item-create',
@@ -335,9 +335,8 @@ describe('GoogleRealtimeEventMapper', () => {
       );
 
       expect(result).toEqual({
-        clientContent: {
-          turns: [{ role: 'user', parts: [{ text: 'hello' }] }],
-          turnComplete: true,
+        realtimeInput: {
+          text: 'hello',
         },
       });
     });
