@@ -1,4 +1,4 @@
-import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
+import { ModelCallStreamPart } from './stream-model-call';
 import { ToolSet } from './tool-set';
 import { ModelMessage } from '@ai-sdk/provider-utils';
 
@@ -9,12 +9,12 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
   abortSignal,
   experimental_context,
 }: {
-  stream: ReadableStream<UglyTransformedStreamTextPart<TOOLS>>;
+  stream: ReadableStream<ModelCallStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
   experimental_context: unknown;
-}): ReadableStream<UglyTransformedStreamTextPart<TOOLS>> {
+}): ReadableStream<ModelCallStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
   const ongoingToolCallToolNames: Record<string, string> = {};

@@ -33,7 +33,10 @@ export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';
 export { hasToolCall, stepCountIs, type StopCondition } from './stop-condition';
-export { streamModelCall as experimental_streamModelCall } from './stream-model-call';
+export {
+  streamModelCall as experimental_streamModelCall,
+  type ModelCallStreamPart as Experimental_ModelCallStreamPart,
+} from './stream-model-call';
 export {
   streamText,
   type StreamTextOnChunkCallback,
