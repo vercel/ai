@@ -44,7 +44,7 @@ export type RealtimeModelV4FunctionCallOutput = {
 
   /**
    * The name of the function that was called.
-   * Required by some providers (e.g. Google) in the tool response.
+   * Required by some providers (e.g. Google) in the tool response routing.
    */
   name?: string;
 

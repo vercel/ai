@@ -8,26 +8,26 @@ import {
 } from '@ai-sdk/provider';
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import {
-  buildOpenAISessionConfig,
-  parseOpenAIRealtimeServerEvent,
-  serializeOpenAIRealtimeClientEvent,
-} from './openai-realtime-event-mapper';
+  buildXaiSessionConfig,
+  parseXaiRealtimeServerEvent,
+  serializeXaiRealtimeClientEvent,
+} from './xai-realtime-event-mapper';
 
-export type OpenAIRealtimeModelConfig = {
+export type XaiRealtimeModelConfig = {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 };
 
-export class OpenAIRealtimeModel implements RealtimeModelV4 {
+export class XaiRealtimeModel implements RealtimeModelV4 {
   readonly specificationVersion = 'v4' as const;
   readonly provider: string;
   readonly modelId: string;
 
-  private readonly config: OpenAIRealtimeModelConfig;
+  private readonly config: XaiRealtimeModelConfig;
 
-  constructor(modelId: string, config: OpenAIRealtimeModelConfig) {
+  constructor(modelId: string, config: XaiRealtimeModelConfig) {
     this.modelId = modelId;
     this.provider = config.provider;
     this.config = config;
@@ -39,10 +39,10 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
     const fetchFn = this.config.fetch ?? fetch;
     const url = `${this.config.baseURL}/realtime/client_secrets`;
 
-    const session =
-      options.sessionConfig != null
-        ? buildOpenAISessionConfig(options.sessionConfig, this.modelId)
-        : { type: 'realtime', model: this.modelId };
+    const body: Record<string, unknown> = {};
+    if (options.expiresAfterSeconds != null) {
+      body.expires_after = { seconds: options.expiresAfterSeconds };
+    }
 
     const response = await fetchFn(url, {
       method: 'POST',
@@ -50,18 +50,13 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
         ...this.config.headers(),
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        session,
-        ...(options.expiresAfterSeconds != null
-          ? { expires_after: { seconds: options.expiresAfterSeconds } }
-          : {}),
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
       const text = await response.text();
       throw new Error(
-        `OpenAI realtime client secret request failed: ${response.status} ${text}`,
+        `xAI realtime client secret request failed: ${response.status} ${text}`,
       );
     }
 
@@ -72,7 +67,7 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
 
     return {
       token: data.value,
-      url: `wss://${new URL(this.config.baseURL).host}/v1/realtime?model=${encodeURIComponent(this.modelId)}`,
+      url: `wss://${new URL(this.config.baseURL).host}/v1/realtime`,
       expiresAt: data.expires_at,
     };
   }
@@ -83,21 +78,21 @@ export class OpenAIRealtimeModel implements RealtimeModelV4 {
   } {
     return {
       url: options.url,
-      protocols: ['realtime', `openai-insecure-api-key.${options.token}`],
+      protocols: [`xai-client-secret.${options.token}`],
     };
   }
 
   parseServerEvent(raw: unknown): RealtimeModelV4ServerEvent {
-    return parseOpenAIRealtimeServerEvent(raw);
+    return parseXaiRealtimeServerEvent(raw);
   }
 
   serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {
-    return serializeOpenAIRealtimeClientEvent(event, this.modelId);
+    return serializeXaiRealtimeClientEvent(event);
   }
 
   buildSessionConfig(
     config: RealtimeModelV4SessionConfig,
   ): Record<string, unknown> {
-    return buildOpenAISessionConfig(config, this.modelId);
+    return buildXaiSessionConfig(config);
   }
 }

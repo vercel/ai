@@ -11,9 +11,8 @@ export type RealtimeModelV4ClientSecretOptions = {
   expiresAfterSeconds?: number;
 
   /**
-   * Optional session configuration to embed in the client secret.
-   * Some providers (e.g. Google) require the full session config
-   * (tools, voice, instructions) at token creation time.
+   * Optional session configuration to embed in the token request.
+   * Some providers (e.g. Google) require the full session config at token creation time.
    */
   sessionConfig?: RealtimeModelV4SessionConfig;
 };

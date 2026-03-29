@@ -4,17 +4,13 @@ import {
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
 
-/**
- * Parses a raw OpenAI Realtime API server event into a normalized event.
- */
-export function parseOpenAIRealtimeServerEvent(
+export function parseXaiRealtimeServerEvent(
   raw: unknown,
 ): RealtimeModelV4ServerEvent {
   const event = raw as Record<string, any>;
   const type = event.type as string;
 
   switch (type) {
-    // ── Session lifecycle ──────────────────────────────────────────
     case 'session.created':
       return {
         type: 'session-created',
@@ -25,7 +21,9 @@ export function parseOpenAIRealtimeServerEvent(
     case 'session.updated':
       return { type: 'session-updated', raw };
 
-    // ── Input audio buffer ─────────────────────────────────────────
+    case 'conversation.created':
+      return { type: 'unknown', rawType: type, raw };
+
     case 'input_audio_buffer.speech_started':
       return {
         type: 'speech-started',
@@ -48,7 +46,6 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    // ── Conversation items ─────────────────────────────────────────
     case 'conversation.item.added':
       return {
         type: 'conversation-item-added',
@@ -65,7 +62,6 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    // ── Response lifecycle ──────────────────────────────────────────
     case 'response.created':
       return {
         type: 'response-created',
@@ -81,7 +77,6 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    // ── Output item lifecycle ───────────────────────────────────────
     case 'response.output_item.added':
       return {
         type: 'output-item-added',
@@ -114,7 +109,6 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    // ── Audio output ────────────────────────────────────────────────
     case 'response.output_audio.delta':
       return {
         type: 'audio-delta',
@@ -132,7 +126,6 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    // ── Audio transcript output ─────────────────────────────────────
     case 'response.output_audio_transcript.delta':
       return {
         type: 'audio-transcript-delta',
@@ -151,8 +144,7 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    // ── Text output ─────────────────────────────────────────────────
-    case 'response.output_text.delta':
+    case 'response.text.delta':
       return {
         type: 'text-delta',
         responseId: event.response_id,
@@ -161,7 +153,7 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    case 'response.output_text.done':
+    case 'response.text.done':
       return {
         type: 'text-done',
         responseId: event.response_id,
@@ -170,7 +162,6 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    // ── Function calling ────────────────────────────────────────────
     case 'response.function_call_arguments.delta':
       return {
         type: 'function-call-arguments-delta',
@@ -192,7 +183,16 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    // ── Error ───────────────────────────────────────────────────────
+    case 'mcp_list_tools.in_progress':
+    case 'mcp_list_tools.completed':
+    case 'mcp_list_tools.failed':
+    case 'response.mcp_call_arguments.delta':
+    case 'response.mcp_call_arguments.done':
+    case 'response.mcp_call.in_progress':
+    case 'response.mcp_call.completed':
+    case 'response.mcp_call.failed':
+      return { type: 'unknown', rawType: type, raw };
+
     case 'error':
       return {
         type: 'error',
@@ -201,24 +201,19 @@ export function parseOpenAIRealtimeServerEvent(
         raw,
       };
 
-    // ── Pass-through ────────────────────────────────────────────────
     default:
       return { type: 'unknown', rawType: type, raw };
   }
 }
 
-/**
- * Serializes a normalized client event into OpenAI's Realtime API format.
- */
-export function serializeOpenAIRealtimeClientEvent(
+export function serializeXaiRealtimeClientEvent(
   event: RealtimeModelV4ClientEvent,
-  modelId: string,
 ): unknown {
   switch (event.type) {
     case 'session-update':
       return {
         type: 'session.update',
-        session: buildOpenAISessionConfig(event.config, modelId),
+        session: buildXaiSessionConfig(event.config),
       };
 
     case 'input-audio-append':
@@ -282,13 +277,10 @@ export function serializeOpenAIRealtimeClientEvent(
           ? {
               response: {
                 ...(event.options.modalities != null
-                  ? { output_modalities: event.options.modalities }
+                  ? { modalities: event.options.modalities }
                   : {}),
                 ...(event.options.instructions != null
                   ? { instructions: event.options.instructions }
-                  : {}),
-                ...(event.options.metadata != null
-                  ? { metadata: event.options.metadata }
                   : {}),
               },
             }
@@ -300,87 +292,65 @@ export function serializeOpenAIRealtimeClientEvent(
   }
 }
 
-/**
- * Builds an OpenAI-specific session configuration from a normalized config.
- */
-export function buildOpenAISessionConfig(
+export function buildXaiSessionConfig(
   config: RealtimeModelV4SessionConfig,
-  modelId: string,
 ): Record<string, unknown> {
-  const session: Record<string, unknown> = {
-    type: 'realtime',
-    model: modelId,
-  };
+  const session: Record<string, unknown> = {};
 
   if (config.instructions != null) {
     session.instructions = config.instructions;
   }
 
-  if (config.outputModalities != null) {
-    session.output_modalities = config.outputModalities;
+  if (config.voice != null) {
+    session.voice = config.voice;
   }
 
   const audio: Record<string, unknown> = {};
 
-  if (config.inputAudioFormat != null || config.turnDetection != null) {
-    const input: Record<string, unknown> = {};
-
-    if (config.inputAudioFormat != null) {
-      input.format = {
+  if (config.inputAudioFormat != null) {
+    audio.input = {
+      format: {
         type: config.inputAudioFormat.type,
         ...(config.inputAudioFormat.rate != null
           ? { rate: config.inputAudioFormat.rate }
           : {}),
-      };
-    }
-
-    if (config.turnDetection != null) {
-      if (config.turnDetection.type === 'disabled') {
-        input.turn_detection = null;
-      } else {
-        const td: Record<string, unknown> = {
-          type:
-            config.turnDetection.type === 'server-vad'
-              ? 'server_vad'
-              : 'semantic_vad',
-        };
-        if (config.turnDetection.threshold != null) {
-          td.threshold = config.turnDetection.threshold;
-        }
-        if (config.turnDetection.silenceDurationMs != null) {
-          td.silence_duration_ms = config.turnDetection.silenceDurationMs;
-        }
-        if (config.turnDetection.prefixPaddingMs != null) {
-          td.prefix_padding_ms = config.turnDetection.prefixPaddingMs;
-        }
-        input.turn_detection = td;
-      }
-    }
-
-    audio.input = input;
+      },
+    };
   }
 
-  if (config.outputAudioFormat != null || config.voice != null) {
-    const output: Record<string, unknown> = {};
-
-    if (config.outputAudioFormat != null) {
-      output.format = {
+  if (config.outputAudioFormat != null) {
+    audio.output = {
+      format: {
         type: config.outputAudioFormat.type,
         ...(config.outputAudioFormat.rate != null
           ? { rate: config.outputAudioFormat.rate }
           : {}),
-      };
-    }
-
-    if (config.voice != null) {
-      output.voice = config.voice;
-    }
-
-    audio.output = output;
+      },
+    };
   }
 
   if (Object.keys(audio).length > 0) {
     session.audio = audio;
+  }
+
+  if (config.turnDetection != null) {
+    if (config.turnDetection.type === 'disabled') {
+      session.turn_detection = null;
+    } else {
+      const td: Record<string, unknown> = {
+        type: 'server_vad',
+      };
+      if (config.turnDetection.threshold != null) {
+        td.threshold = config.turnDetection.threshold;
+      }
+      if (config.turnDetection.silenceDurationMs != null) {
+        td.silence_duration_ms = config.turnDetection.silenceDurationMs;
+      }
+      if (config.turnDetection.prefixPaddingMs != null) {
+        td.prefix_padding_ms = config.turnDetection.prefixPaddingMs;
+      }
+      session.turn_detection = td;
+    }
   }
 
   if (config.tools != null && config.tools.length > 0) {
@@ -390,11 +360,21 @@ export function buildOpenAISessionConfig(
       description: tool.description,
       parameters: tool.parameters,
     }));
-    session.tool_choice = 'auto';
   }
 
   if (config.providerOptions != null) {
-    Object.assign(session, config.providerOptions);
+    const xaiOptions = config.providerOptions as Record<string, unknown>;
+
+    if (Array.isArray(xaiOptions.tools)) {
+      const existingTools = (session.tools as unknown[]) ?? [];
+      session.tools = [...existingTools, ...xaiOptions.tools];
+    }
+
+    for (const [key, value] of Object.entries(xaiOptions)) {
+      if (key !== 'tools') {
+        session[key] = value;
+      }
+    }
   }
 
   return session;

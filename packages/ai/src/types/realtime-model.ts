@@ -3,10 +3,10 @@ import {
   RealtimeFactoryV4GetTokenOptions,
   RealtimeFactoryV4GetTokenResult,
   RealtimeModelV4,
-  RealtimeModelV4ClientEvent,
-  RealtimeModelV4ServerEvent,
-  RealtimeModelV4SessionConfig,
-  RealtimeModelV4ToolDefinition,
+  Experimental_RealtimeModelV4ClientEvent,
+  Experimental_RealtimeModelV4ServerEvent,
+  Experimental_RealtimeModelV4SessionConfig,
+  Experimental_RealtimeModelV4ToolDefinition,
 } from '@ai-sdk/provider';
 
 export type RealtimeFactory = RealtimeFactoryV4;
@@ -17,10 +17,10 @@ export type RealtimeFactoryGetTokenResult = RealtimeFactoryV4GetTokenResult;
 
 export type RealtimeModel = RealtimeModelV4;
 
-export type RealtimeClientEvent = RealtimeModelV4ClientEvent;
+export type RealtimeClientEvent = Experimental_RealtimeModelV4ClientEvent;
 
-export type RealtimeServerEvent = RealtimeModelV4ServerEvent;
+export type RealtimeServerEvent = Experimental_RealtimeModelV4ServerEvent;
 
-export type RealtimeSessionConfig = RealtimeModelV4SessionConfig;
+export type RealtimeSessionConfig = Experimental_RealtimeModelV4SessionConfig;
 
-export type RealtimeToolDefinition = RealtimeModelV4ToolDefinition;
+export type RealtimeToolDefinition = Experimental_RealtimeModelV4ToolDefinition;
