@@ -3,8 +3,8 @@ import {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
-  RealtimeFactoryV4,
-  RealtimeFactoryV4GetTokenOptions,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';

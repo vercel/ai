@@ -1,7 +1,7 @@
 import {
-  RealtimeFactoryV4,
-  RealtimeFactoryV4GetTokenOptions,
-  RealtimeFactoryV4GetTokenResult,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
+  Experimental_RealtimeFactoryV4GetTokenResult as RealtimeFactoryV4GetTokenResult,
   Experimental_RealtimeModelV4 as RealtimeModelV4,
   Experimental_RealtimeModelV4ClientEvent as RealtimeModelV4ClientEvent,
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
