@@ -190,14 +190,14 @@ describe('GatewayRerankingModel', () => {
   describe('error handling', () => {
     it('should throw GatewayInvalidRequestError on 400', async () => {
       server.urls['https://api.test.com/reranking-model'].response = {
-        type: 'json-value',
+        type: 'error',
         status: 400,
-        body: {
+        body: JSON.stringify({
           error: {
             message: 'Invalid documents format',
             type: 'invalid_request_error',
           },
-        },
+        }),
       };
 
       await expect(
@@ -205,19 +205,22 @@ describe('GatewayRerankingModel', () => {
           documents: testDocuments,
           query: testQuery,
         }),
-      ).rejects.toThrow(GatewayInvalidRequestError);
+      ).rejects.toSatisfy(
+        err =>
+          GatewayInvalidRequestError.isInstance(err) && err.statusCode === 400,
+      );
     });
 
     it('should throw GatewayInternalServerError on 500', async () => {
       server.urls['https://api.test.com/reranking-model'].response = {
-        type: 'json-value',
+        type: 'error',
         status: 500,
-        body: {
+        body: JSON.stringify({
           error: {
             message: 'Internal server error',
             type: 'internal_server_error',
           },
-        },
+        }),
       };
 
       await expect(
@@ -225,7 +228,10 @@ describe('GatewayRerankingModel', () => {
           documents: testDocuments,
           query: testQuery,
         }),
-      ).rejects.toThrow(GatewayInternalServerError);
+      ).rejects.toSatisfy(
+        err =>
+          GatewayInternalServerError.isInstance(err) && err.statusCode === 500,
+      );
     });
   });
 
