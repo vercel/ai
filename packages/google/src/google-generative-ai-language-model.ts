@@ -121,13 +121,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       });
     }
 
-    // Add warning if Vertex rag tools are used with a non-Vertex Google provider
+    const isVertexProvider = this.config.provider.startsWith('google.vertex.');
+
     if (
       tools?.some(
         tool =>
           tool.type === 'provider' && tool.id === 'google.vertex_rag_store',
       ) &&
-      !this.config.provider.startsWith('google.vertex.')
+      !isVertexProvider
     ) {
       warnings.push({
         type: 'other',
@@ -135,6 +136,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
           "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
           'and might not be supported or could behave unexpectedly with the current Google provider ' +
           `(${this.config.provider}).`,
+      });
+    }
+
+    if (googleOptions?.streamFunctionCallArguments && !isVertexProvider) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'streamFunctionCallArguments' is only supported on the Vertex AI API " +
+          'and will be ignored with the current Google provider ' +
+          `(${this.config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
       });
     }
 
@@ -213,12 +224,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
         safetySettings: googleOptions?.safetySettings,
         tools: googleTools,
-        toolConfig: googleOptions?.retrievalConfig
-          ? {
-              ...googleToolConfig,
-              retrievalConfig: googleOptions.retrievalConfig,
-            }
-          : googleToolConfig,
+        toolConfig: mergeToolConfig({
+          toolConfig: googleToolConfig,
+          retrievalConfig: googleOptions?.retrievalConfig,
+          streamFunctionCallArguments: isVertexProvider
+            ? googleOptions?.streamFunctionCallArguments
+            : undefined,
+        }),
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
       },
@@ -311,7 +323,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
             providerMetadata: thoughtSignatureMetadata,
           });
         }
-      } else if ('functionCall' in part) {
+      } else if (
+        'functionCall' in part &&
+        part.functionCall.name != null &&
+        part.functionCall.args != null
+      ) {
         content.push({
           type: 'tool-call' as const,
           toolCallId: this.config.generateId(),
@@ -428,6 +444,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     const emittedSourceUrls = new Set<string>();
     // Associates a code execution result with its preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
+
+    // Track streaming function call arguments across chunks
+    const activeStreamingToolCalls: ActiveStreamingToolCall[] = [];
 
     return {
       stream: response.pipeThrough(
@@ -633,14 +652,28 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                 }
               }
 
-              const toolCallDeltas = getToolCallsFromParts({
+              // Handle streaming partial function call args
+              if (
+                processStreamingFunctionCallParts({
+                  parts: content.parts,
+                  activeStreamingToolCalls,
+                  generateId,
+                  providerOptionsName,
+                  controller,
+                })
+              ) {
+                hasToolCalls = true;
+              }
+
+              // Handle complete (non-streaming) function calls
+              const completeCalls = getCompleteFunctionCallsFromParts({
                 parts: content.parts,
                 generateId,
                 providerOptionsName,
               });
 
-              if (toolCallDeltas != null) {
-                for (const toolCall of toolCallDeltas) {
+              if (completeCalls != null) {
+                for (const toolCall of completeCalls) {
                   controller.enqueue({
                     type: 'tool-input-start',
                     id: toolCall.toolCallId,
@@ -723,6 +756,33 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       request: { body: args },
     };
   }
+}
+
+function mergeToolConfig({
+  toolConfig,
+  retrievalConfig,
+  streamFunctionCallArguments,
+}: {
+  toolConfig: ReturnType<typeof prepareTools>['toolConfig'];
+  retrievalConfig?: { latLng?: { latitude: number; longitude: number } };
+  streamFunctionCallArguments?: boolean;
+}) {
+  if (!retrievalConfig && !streamFunctionCallArguments) {
+    return toolConfig;
+  }
+
+  const functionCallingConfig = streamFunctionCallArguments
+    ? {
+        ...toolConfig?.functionCallingConfig,
+        streamFunctionCallArguments: true as const,
+      }
+    : toolConfig?.functionCallingConfig;
+
+  return {
+    ...toolConfig,
+    ...(functionCallingConfig && { functionCallingConfig }),
+    ...(retrievalConfig && { retrievalConfig }),
+  };
 }
 
 function isGemini3Model(modelId: string): boolean {
@@ -828,7 +888,7 @@ function resolveGemini25ThinkingConfig({
   return { thinkingBudget };
 }
 
-function getToolCallsFromParts({
+function getCompleteFunctionCallsFromParts({
   parts,
   generateId,
   providerOptionsName,
@@ -837,18 +897,23 @@ function getToolCallsFromParts({
   generateId: () => string;
   providerOptionsName: string;
 }) {
-  const functionCallParts = parts?.filter(
-    part => 'functionCall' in part,
-  ) as Array<
-    GoogleGenerativeAIContentPart & {
-      functionCall: { name: string; args: unknown };
-      thoughtSignature?: string | null;
-    }
-  >;
+  if (parts == null) return undefined;
 
-  return functionCallParts == null || functionCallParts.length === 0
+  const completeCalls = parts.filter(
+    (
+      part,
+    ): part is typeof part & {
+      functionCall: { name: string; args: unknown };
+    } =>
+      'functionCall' in part &&
+      part.functionCall.name != null &&
+      part.functionCall.args != null &&
+      part.functionCall.partialArgs == null,
+  );
+
+  return completeCalls.length === 0
     ? undefined
-    : functionCallParts.map(part => ({
+    : completeCalls.map(part => ({
         type: 'tool-call' as const,
         toolCallId: generateId(),
         toolName: part.functionCall.name,
@@ -861,6 +926,168 @@ function getToolCallsFromParts({
             }
           : undefined,
       }));
+}
+
+type ActiveStreamingToolCall = {
+  toolCallId: string;
+  toolName: string;
+  accumulatedArgs: Record<string, unknown>;
+  providerMetadata?: SharedV4ProviderMetadata;
+};
+
+function processStreamingFunctionCallParts({
+  parts,
+  activeStreamingToolCalls,
+  generateId,
+  providerOptionsName,
+  controller,
+}: {
+  parts: ContentSchema['parts'];
+  activeStreamingToolCalls: ActiveStreamingToolCall[];
+  generateId: () => string;
+  providerOptionsName: string;
+  controller: TransformStreamDefaultController<LanguageModelV4StreamPart>;
+}): boolean {
+  if (parts == null) return false;
+
+  let hasToolCalls = false;
+
+  for (const part of parts) {
+    if (!('functionCall' in part)) continue;
+
+    const fc = part.functionCall;
+    const providerMeta = part.thoughtSignature
+      ? {
+          [providerOptionsName]: {
+            thoughtSignature: part.thoughtSignature,
+          },
+        }
+      : undefined;
+
+    const isStreamingChunk =
+      fc.partialArgs != null || (fc.name != null && fc.willContinue === true);
+    const isTerminalChunk =
+      'functionCall' in part &&
+      fc.name == null &&
+      fc.args == null &&
+      fc.partialArgs == null &&
+      fc.willContinue == null;
+
+    if (isStreamingChunk) {
+      if (fc.name != null && fc.willContinue === true) {
+        const toolCallId = generateId();
+        activeStreamingToolCalls.push({
+          toolCallId,
+          toolName: fc.name,
+          accumulatedArgs: {},
+          providerMetadata: providerMeta,
+        });
+
+        controller.enqueue({
+          type: 'tool-input-start',
+          id: toolCallId,
+          toolName: fc.name,
+          providerMetadata: providerMeta,
+        });
+
+        if (fc.partialArgs != null) {
+          const delta = applyPartialArgs(
+            activeStreamingToolCalls[activeStreamingToolCalls.length - 1],
+            fc.partialArgs,
+          );
+          if (delta.length > 0) {
+            controller.enqueue({
+              type: 'tool-input-delta',
+              id: toolCallId,
+              delta,
+              providerMetadata: providerMeta,
+            });
+          }
+        }
+      } else if (
+        fc.partialArgs != null &&
+        activeStreamingToolCalls.length > 0
+      ) {
+        const active =
+          activeStreamingToolCalls[activeStreamingToolCalls.length - 1];
+        const delta = applyPartialArgs(active, fc.partialArgs);
+        if (delta.length > 0) {
+          controller.enqueue({
+            type: 'tool-input-delta',
+            id: active.toolCallId,
+            delta,
+            providerMetadata: providerMeta,
+          });
+        }
+      }
+    } else if (isTerminalChunk && activeStreamingToolCalls.length > 0) {
+      const active = activeStreamingToolCalls.pop()!;
+      const finalArgs = JSON.stringify(active.accumulatedArgs);
+
+      controller.enqueue({
+        type: 'tool-input-end',
+        id: active.toolCallId,
+        providerMetadata: active.providerMetadata,
+      });
+
+      controller.enqueue({
+        type: 'tool-call',
+        toolCallId: active.toolCallId,
+        toolName: active.toolName,
+        input: finalArgs,
+        providerMetadata: active.providerMetadata,
+      });
+
+      hasToolCalls = true;
+    }
+  }
+
+  return hasToolCalls;
+}
+
+function applyPartialArgs(
+  active: ActiveStreamingToolCall,
+  partialArgs: Array<{
+    jsonPath: string;
+    stringValue?: string | null;
+    numberValue?: number | null;
+    boolValue?: boolean | null;
+    nullValue?: unknown;
+    willContinue?: boolean | null;
+  }>,
+): string {
+  let delta = '';
+
+  for (const arg of partialArgs) {
+    const key = arg.jsonPath.replace(/^\$\./, '');
+    if (!key) continue;
+
+    let value: unknown;
+    if (arg.stringValue != null) {
+      const existingValue = active.accumulatedArgs[key];
+      if (typeof existingValue === 'string') {
+        active.accumulatedArgs[key] = existingValue + arg.stringValue;
+      } else {
+        active.accumulatedArgs[key] = arg.stringValue;
+      }
+      value = arg.stringValue;
+    } else if (arg.numberValue != null) {
+      active.accumulatedArgs[key] = arg.numberValue;
+      value = arg.numberValue;
+    } else if (arg.boolValue != null) {
+      active.accumulatedArgs[key] = arg.boolValue;
+      value = arg.boolValue;
+    } else if ('nullValue' in arg) {
+      active.accumulatedArgs[key] = null;
+      value = null;
+    }
+
+    if (value !== undefined) {
+      delta += JSON.stringify({ [key]: value });
+    }
+  }
+
+  return delta;
 }
 
 function extractSources({
@@ -1040,6 +1267,15 @@ export const getGroundingMetadataSchema = () =>
       .nullish(),
   });
 
+const partialArgSchema = z.object({
+  jsonPath: z.string(),
+  stringValue: z.string().nullish(),
+  numberValue: z.number().nullish(),
+  boolValue: z.boolean().nullish(),
+  nullValue: z.unknown().nullish(),
+  willContinue: z.boolean().nullish(),
+});
+
 const getContentSchema = () =>
   z.object({
     parts: z
@@ -1048,8 +1284,10 @@ const getContentSchema = () =>
           // note: order matters since text can be fully empty
           z.object({
             functionCall: z.object({
-              name: z.string(),
-              args: z.unknown(),
+              name: z.string().nullish(),
+              args: z.unknown().nullish(),
+              partialArgs: z.array(partialArgSchema).nullish(),
+              willContinue: z.boolean().nullish(),
             }),
             thoughtSignature: z.string().nullish(),
           }),
