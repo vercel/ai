@@ -1,5 +1,6 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { generateText, tool, stepCountIs } from 'ai';
+import 'dotenv/config';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -10,7 +11,7 @@ run(async () => {
     stopWhen: stepCountIs(10),
     onStepFinish: step => {
       console.log(`\n=== Step Response ===`);
-      console.dir(step.response.messages, { depth: Infinity });
+      console.dir(step.response.body, { depth: Infinity });
     },
     tools: {
       toolSearch: bedrockAnthropic.tools.toolSearchBm25_20251119(),

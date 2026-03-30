@@ -1,5 +1,6 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { streamText, tool, stepCountIs } from 'ai';
+import 'dotenv/config';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
