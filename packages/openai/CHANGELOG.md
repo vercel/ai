@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.49
+
+### Patch Changes
+
+- bc01093: fix(openai): support file-url parts in tool output content
+
 ## 3.0.48
 
 ### Patch Changes
