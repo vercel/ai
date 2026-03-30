@@ -7,6 +7,7 @@ import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 import {
   convertBase64ToUint8Array,
   convertToBase64,
+  isProviderReference,
 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
@@ -58,11 +59,7 @@ export function convertToOpenAICompatibleChatMessages(
                 return { type: 'text', text: part.text, ...partMetadata };
               }
               case 'file': {
-                if (
-                  typeof part.data === 'object' &&
-                  !(part.data instanceof Uint8Array) &&
-                  !(part.data instanceof URL)
-                ) {
+                if (isProviderReference(part.data)) {
                   throw new UnsupportedFunctionalityError({
                     functionality: 'file parts with provider references',
                   });

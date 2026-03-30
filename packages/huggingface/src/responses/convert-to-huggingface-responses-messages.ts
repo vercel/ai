@@ -3,6 +3,7 @@ import {
   LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { isProviderReference } from '@ai-sdk/provider-utils';
 
 export async function convertToHuggingFaceResponsesMessages({
   prompt,
@@ -31,11 +32,7 @@ export async function convertToHuggingFaceResponsesMessages({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
-                if (
-                  typeof part.data === 'object' &&
-                  !(part.data instanceof Uint8Array) &&
-                  !(part.data instanceof URL)
-                ) {
+                if (isProviderReference(part.data)) {
                   throw new UnsupportedFunctionalityError({
                     functionality: 'file parts with provider references',
                   });

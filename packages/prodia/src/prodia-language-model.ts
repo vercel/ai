@@ -10,6 +10,7 @@ import type { InferSchema } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
   isCustomReasoning,
+  isProviderReference,
   convertBase64ToUint8Array,
   generateId,
   lazySchema,
@@ -127,11 +128,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
       if (message.role === 'user') {
         for (const part of message.content) {
           if (part.type === 'file' && part.mediaType.startsWith('image/')) {
-            if (
-              typeof part.data === 'object' &&
-              !(part.data instanceof Uint8Array) &&
-              !(part.data instanceof URL)
-            ) {
+            if (isProviderReference(part.data)) {
               throw new UnsupportedFunctionalityError({
                 functionality: 'file parts with provider references',
               });

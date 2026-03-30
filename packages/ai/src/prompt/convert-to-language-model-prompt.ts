@@ -4,13 +4,13 @@ import {
   LanguageModelV4Prompt,
   LanguageModelV4TextPart,
   LanguageModelV4ToolResultOutput,
-  SharedV4ProviderReference,
 } from '@ai-sdk/provider';
 import {
   CustomPart,
   DataContent,
   FilePart,
   ImagePart,
+  isProviderReference,
   isUrlSupported,
   ModelMessage,
   ReasoningFilePart,
@@ -264,13 +264,12 @@ export function convertToLanguageModelMessage({
               }
               case 'file': {
                 if (
-                  typeof part.data === 'object' &&
-                  !(part.data instanceof Uint8Array) &&
-                  !(part.data instanceof URL)
+                  !(part.data instanceof ArrayBuffer) &&
+                  isProviderReference(part.data)
                 ) {
                   return {
                     type: 'file' as const,
-                    data: part.data as SharedV4ProviderReference,
+                    data: part.data,
                     filename: part.filename,
                     mediaType: part.mediaType,
                     providerOptions,

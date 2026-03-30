@@ -9,6 +9,7 @@ import {
 import {
   convertBase64ToUint8Array,
   convertToBase64,
+  isProviderReference,
   parseProviderOptions,
   resolveProviderReference,
   validateTypes,
@@ -184,11 +185,7 @@ export async function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'file': {
-                    if (
-                      typeof part.data === 'object' &&
-                      !(part.data instanceof Uint8Array) &&
-                      !(part.data instanceof URL)
-                    ) {
+                    if (isProviderReference(part.data)) {
                       const fileId = resolveProviderReference({
                         reference: part.data,
                         provider: 'anthropic',

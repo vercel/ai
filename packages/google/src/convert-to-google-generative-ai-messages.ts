@@ -4,6 +4,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
+  isProviderReference,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 import {
@@ -216,10 +217,7 @@ export function convertToGoogleGenerativeAIMessages(
                     fileUri: part.data.toString(),
                   },
                 });
-              } else if (
-                typeof part.data === 'object' &&
-                !(part.data instanceof Uint8Array)
-              ) {
+              } else if (isProviderReference(part.data)) {
                 if (providerOptionsName === 'vertex') {
                   throw new UnsupportedFunctionalityError({
                     functionality: 'file parts with provider references',
@@ -316,10 +314,7 @@ export function convertToGoogleGenerativeAIMessages(
                     });
                   }
 
-                  if (
-                    typeof part.data === 'object' &&
-                    !(part.data instanceof Uint8Array)
-                  ) {
+                  if (isProviderReference(part.data)) {
                     if (providerOptionsName === 'vertex') {
                       throw new UnsupportedFunctionalityError({
                         functionality: 'file parts with provider references',

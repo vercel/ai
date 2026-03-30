@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
+  isProviderReference,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 import { XaiChatPrompt } from './xai-chat-prompt';
@@ -37,11 +38,7 @@ export function convertToXaiChatMessages(prompt: LanguageModelV4Prompt): {
                 return { type: 'text', text: part.text };
               }
               case 'file': {
-                if (
-                  typeof part.data === 'object' &&
-                  !(part.data instanceof Uint8Array) &&
-                  !(part.data instanceof URL)
-                ) {
+                if (isProviderReference(part.data)) {
                   return {
                     type: 'file',
                     file: {

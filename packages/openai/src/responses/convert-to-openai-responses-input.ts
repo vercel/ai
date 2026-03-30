@@ -7,6 +7,7 @@ import {
 import {
   convertToBase64,
   isNonNullable,
+  isProviderReference,
   parseJSON,
   parseProviderOptions,
   resolveProviderReference,
@@ -117,11 +118,7 @@ export async function convertToOpenAIResponsesInput({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
-                if (
-                  typeof part.data === 'object' &&
-                  !(part.data instanceof Uint8Array) &&
-                  !(part.data instanceof URL)
-                ) {
+                if (isProviderReference(part.data)) {
                   const fileId = resolveProviderReference({
                     reference: part.data,
                     provider: providerOptionsName,

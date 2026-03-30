@@ -100,16 +100,11 @@ const provider = {
 In the message conversion code (e.g. `convert-to-myprovider-messages.ts`), check for provider references in file parts and resolve them using `resolveProviderReference` from `@ai-sdk/provider-utils`:
 
 ```ts
-import { resolveProviderReference } from '@ai-sdk/provider-utils';
+import { isProviderReference, resolveProviderReference } from '@ai-sdk/provider-utils';
 
 // Inside the file part handling:
 case 'file': {
-  if (
-    typeof part.data === 'object' &&
-    !(part.data instanceof Uint8Array) &&
-    !(part.data instanceof URL)
-  ) {
-    // part.data is a SharedV4ProviderReference
+  if (isProviderReference(part.data)) {
     const fileId = resolveProviderReference({
       reference: part.data,
       provider: 'myprovider',
@@ -129,12 +124,10 @@ case 'file': {
 Providers that don't support file uploads should add a guard at the top of their `case 'file':` block to throw `UnsupportedFunctionalityError` when a provider reference is encountered:
 
 ```ts
+import { isProviderReference } from '@ai-sdk/provider-utils';
+
 case 'file': {
-  if (
-    typeof part.data === 'object' &&
-    !(part.data instanceof Uint8Array) &&
-    !(part.data instanceof URL)
-  ) {
+  if (isProviderReference(part.data)) {
     throw new UnsupportedFunctionalityError({
       functionality: 'file parts with provider references',
     });

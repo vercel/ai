@@ -6,7 +6,10 @@ import {
   PerplexityMessageContent,
   PerplexityPrompt,
 } from './perplexity-language-model-prompt';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertUint8ArrayToBase64,
+  isProviderReference,
+} from '@ai-sdk/provider-utils';
 
 export function convertToPerplexityMessages(
   prompt: LanguageModelV4Prompt,
@@ -38,11 +41,7 @@ export function convertToPerplexityMessages(
                 };
               }
               case 'file': {
-                if (
-                  typeof part.data === 'object' &&
-                  !(part.data instanceof Uint8Array) &&
-                  !(part.data instanceof URL)
-                ) {
+                if (isProviderReference(part.data)) {
                   throw new UnsupportedFunctionalityError({
                     functionality: 'file parts with provider references',
                   });

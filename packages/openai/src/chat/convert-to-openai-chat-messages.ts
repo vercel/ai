@@ -6,6 +6,7 @@ import {
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 import {
   convertToBase64,
+  isProviderReference,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 
@@ -65,11 +66,7 @@ export function convertToOpenAIChatMessages({
                 return { type: 'text', text: part.text };
               }
               case 'file': {
-                if (
-                  typeof part.data === 'object' &&
-                  !(part.data instanceof Uint8Array) &&
-                  !(part.data instanceof URL)
-                ) {
+                if (isProviderReference(part.data)) {
                   return {
                     type: 'file',
                     file: {
