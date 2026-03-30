@@ -1912,7 +1912,6 @@ describe('XaiResponsesLanguageModel', () => {
           finishReason: 'tool-calls',
         });
       });
-
     });
 
     describe('tool name mapping by type in streaming', () => {
