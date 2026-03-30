@@ -228,6 +228,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     });
 
     const content: Array<LanguageModelV3Content> = [];
+    let hasFunctionCall = false;
 
     const webSearchSubTools = [
       'web_search',
@@ -350,6 +351,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'function_call': {
+          hasFunctionCall = true;
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -398,7 +400,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: {
-        unified: mapXaiResponsesFinishReason(response.status),
+        unified: hasFunctionCall
+          ? 'tool-calls'
+          : mapXaiResponsesFinishReason(response.status),
         raw: response.status ?? undefined,
       },
       usage: response.usage
@@ -450,6 +454,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
+    let hasFunctionCall = false;
     let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
@@ -643,7 +648,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
               if (response.status) {
                 finishReason = {
-                  unified: mapXaiResponsesFinishReason(response.status),
+                  unified: hasFunctionCall
+                    ? 'tool-calls'
+                    : mapXaiResponsesFinishReason(response.status),
                   raw: response.status,
                 };
               }
@@ -911,6 +918,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     toolName: part.name,
                   });
                 } else if (event.type === 'response.output_item.done') {
+                  hasFunctionCall = true;
                   ongoingToolCalls[event.output_index] = undefined;
 
                   controller.enqueue({
