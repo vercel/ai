@@ -160,6 +160,50 @@ function appendLegacyToolResultParts(
   }
 }
 
+/**
+ * When Gemini thinking models issue parallel tool calls, only the first
+ * `functionCall` part carries a `thoughtSignature`. The API requires all
+ * `functionCall` parts in the same turn to include it when replaying the
+ * conversation, otherwise the request fails with a 400 or silently drops data.
+ *
+ * This function copies the first observed signature to every `functionCall`
+ * part in the turn that is missing one.
+ *
+ * @see https://discuss.ai.google.dev/t/gemini-3-flash-preview-inconsistent-thought-signature-generation-in-parallel-function-calls-causes-400-errors-and-potential-silent-data-loss/118936
+ */
+function propagateThoughtSignatureToParallelFunctionCalls(
+  parts: GoogleGenerativeAIContentPart[],
+): void {
+  const functionCallIndices: number[] = [];
+  let firstSignature: string | undefined;
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (part && 'functionCall' in part) {
+      functionCallIndices.push(i);
+      if (
+        firstSignature === undefined &&
+        'thoughtSignature' in part &&
+        typeof part.thoughtSignature === 'string' &&
+        part.thoughtSignature.length > 0
+      ) {
+        firstSignature = part.thoughtSignature;
+      }
+    }
+  }
+
+  if (functionCallIndices.length < 2 || firstSignature === undefined) {
+    return;
+  }
+
+  for (const idx of functionCallIndices) {
+    const part = parts[idx] as { functionCall: unknown; thoughtSignature?: string };
+    if (!part.thoughtSignature || part.thoughtSignature.length === 0) {
+      part.thoughtSignature = firstSignature;
+    }
+  }
+}
+
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
@@ -235,91 +279,92 @@ export function convertToGoogleGenerativeAIMessages(
       case 'assistant': {
         systemMessagesAllowed = false;
 
-        contents.push({
-          role: 'model',
-          parts: content
-            .map(part => {
-              const providerOpts =
-                part.providerOptions?.[providerOptionsName] ??
-                (providerOptionsName !== 'google'
-                  ? part.providerOptions?.google
-                  : part.providerOptions?.vertex);
-              const thoughtSignature =
-                providerOpts?.thoughtSignature != null
-                  ? String(providerOpts.thoughtSignature)
-                  : undefined;
+        const modelParts: GoogleGenerativeAIContentPart[] = content
+          .map(part => {
+            const providerOpts =
+              part.providerOptions?.[providerOptionsName] ??
+              (providerOptionsName !== 'google'
+                ? part.providerOptions?.google
+                : part.providerOptions?.vertex);
+            const thoughtSignature =
+              providerOpts?.thoughtSignature != null
+                ? String(providerOpts.thoughtSignature)
+                : undefined;
 
-              switch (part.type) {
-                case 'text': {
-                  return part.text.length === 0
-                    ? undefined
-                    : {
-                        text: part.text,
-                        thoughtSignature,
-                      };
-                }
-
-                case 'reasoning': {
-                  return part.text.length === 0
-                    ? undefined
-                    : {
-                        text: part.text,
-                        thought: true,
-                        thoughtSignature,
-                      };
-                }
-
-                case 'reasoning-file': {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'File data URLs in assistant messages are not supported',
-                    });
-                  }
-
-                  return {
-                    inlineData: {
-                      mimeType: part.mediaType,
-                      data: convertToBase64(part.data),
-                    },
-                    thought: true,
-                    thoughtSignature,
-                  };
-                }
-
-                case 'file': {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'File data URLs in assistant messages are not supported',
-                    });
-                  }
-
-                  return {
-                    inlineData: {
-                      mimeType: part.mediaType,
-                      data: convertToBase64(part.data),
-                    },
-                    ...(providerOpts?.thought === true
-                      ? { thought: true }
-                      : {}),
-                    thoughtSignature,
-                  };
-                }
-
-                case 'tool-call': {
-                  return {
-                    functionCall: {
-                      name: part.toolName,
-                      args: part.input,
-                    },
-                    thoughtSignature,
-                  };
-                }
+            switch (part.type) {
+              case 'text': {
+                return part.text.length === 0
+                  ? undefined
+                  : {
+                      text: part.text,
+                      thoughtSignature,
+                    };
               }
-            })
-            .filter(part => part !== undefined),
-        });
+
+              case 'reasoning': {
+                return part.text.length === 0
+                  ? undefined
+                  : {
+                      text: part.text,
+                      thought: true,
+                      thoughtSignature,
+                    };
+              }
+
+              case 'reasoning-file': {
+                if (part.data instanceof URL) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality:
+                      'File data URLs in assistant messages are not supported',
+                  });
+                }
+
+                return {
+                  inlineData: {
+                    mimeType: part.mediaType,
+                    data: convertToBase64(part.data),
+                  },
+                  thought: true,
+                  thoughtSignature,
+                };
+              }
+
+              case 'file': {
+                if (part.data instanceof URL) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality:
+                      'File data URLs in assistant messages are not supported',
+                  });
+                }
+
+                return {
+                  inlineData: {
+                    mimeType: part.mediaType,
+                    data: convertToBase64(part.data),
+                  },
+                  ...(providerOpts?.thought === true
+                    ? { thought: true }
+                    : {}),
+                  thoughtSignature,
+                };
+              }
+
+              case 'tool-call': {
+                return {
+                  functionCall: {
+                    name: part.toolName,
+                    args: part.input,
+                  },
+                  thoughtSignature,
+                };
+              }
+            }
+          })
+          .filter(part => part !== undefined);
+
+        propagateThoughtSignatureToParallelFunctionCalls(modelParts);
+
+        contents.push({ role: 'model', parts: modelParts });
         break;
       }
 
