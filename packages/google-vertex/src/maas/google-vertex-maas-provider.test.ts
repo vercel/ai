@@ -4,7 +4,17 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 // Mock the imported modules
 vi.mock('@ai-sdk/openai-compatible', () => ({
-  createOpenAICompatible: vi.fn(),
+  createOpenAICompatible: vi.fn(() => {
+    const provider: any = vi.fn();
+    provider.specificationVersion = 'v4';
+    provider.languageModel = vi.fn();
+    provider.chatModel = vi.fn();
+    provider.completionModel = vi.fn();
+    provider.embeddingModel = vi.fn();
+    provider.textEmbeddingModel = vi.fn();
+    provider.imageModel = vi.fn();
+    return provider;
+  }),
 }));
 
 vi.mock('@ai-sdk/provider-utils', () => ({
@@ -28,11 +38,23 @@ describe('google-vertex-maas-provider', () => {
     vi.clearAllMocks();
   });
 
-  it('should create a provider with correct base URL for global location', () => {
+  it('should not call createOpenAICompatible at provider creation time', () => {
     createVertexMaas({
       project: 'test-project',
       location: 'global',
     });
+
+    expect(createOpenAICompatible).not.toHaveBeenCalled();
+  });
+
+  it('should create a provider with correct base URL for global location', () => {
+    const provider = createVertexMaas({
+      project: 'test-project',
+      location: 'global',
+    });
+
+    // Trigger lazy init
+    provider('test-model');
 
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -44,10 +66,12 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should create a provider with correct base URL for regional location', () => {
-    createVertexMaas({
+    const provider = createVertexMaas({
       project: 'test-project',
       location: 'us-central1',
     });
+
+    provider('test-model');
 
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -59,9 +83,11 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should default to global location when not specified', () => {
-    createVertexMaas({
+    const provider = createVertexMaas({
       project: 'test-project',
     });
+
+    provider('test-model');
 
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -74,10 +100,12 @@ describe('google-vertex-maas-provider', () => {
 
   it('should use custom baseURL when provided', () => {
     const customBaseURL = 'https://custom-endpoint.example.com';
-    createVertexMaas({
+    const provider = createVertexMaas({
       project: 'test-project',
       baseURL: customBaseURL,
     });
+
+    provider('test-model');
 
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -89,10 +117,12 @@ describe('google-vertex-maas-provider', () => {
 
   it('should not pass headers to openai-compatible provider', () => {
     const customHeaders = { 'X-Custom': 'header-value' };
-    createVertexMaas({
+    const provider = createVertexMaas({
       project: 'test-project',
       headers: customHeaders,
     });
+
+    provider('test-model');
 
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -110,10 +140,12 @@ describe('google-vertex-maas-provider', () => {
 
   it('should pass custom fetch to openai-compatible provider', () => {
     const customFetch = vi.fn();
-    createVertexMaas({
+    const provider = createVertexMaas({
       project: 'test-project',
       fetch: customFetch,
     });
+
+    provider('test-model');
 
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -123,10 +155,12 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should construct correct URL with trailing slash removed from baseURL', () => {
-    createVertexMaas({
+    const provider = createVertexMaas({
       project: 'test-project',
       baseURL: 'https://custom-endpoint.example.com/',
     });
+
+    provider('test-model');
 
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -136,11 +170,13 @@ describe('google-vertex-maas-provider', () => {
   });
 
   it('should construct correct URL when baseURL is empty string', () => {
-    createVertexMaas({
+    const provider = createVertexMaas({
       project: 'test-project',
       location: 'us-central1',
       baseURL: '',
     });
+
+    provider('test-model');
 
     expect(createOpenAICompatible).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -150,14 +186,14 @@ describe('google-vertex-maas-provider', () => {
     );
   });
 
-  it('should return a provider from createOpenAICompatible', () => {
-    const mockProvider = vi.fn();
-    vi.mocked(createOpenAICompatible).mockReturnValue(mockProvider as any);
-
-    const result = createVertexMaas({
+  it('should cache the provider after first access', () => {
+    const provider = createVertexMaas({
       project: 'test-project',
     });
 
-    expect(result).toBe(mockProvider);
+    provider('model-1');
+    provider('model-2');
+
+    expect(createOpenAICompatible).toHaveBeenCalledTimes(1);
   });
 });

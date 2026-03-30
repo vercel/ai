@@ -81,14 +81,31 @@ export function createVertexMaas(
     return `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi`;
   };
 
-  const baseURL =
+  const loadBaseURL = () =>
     withoutTrailingSlash(options.baseURL ?? '') || constructBaseURL();
 
-  return createOpenAICompatible({
-    name: 'vertex.maas',
-    baseURL,
-    // Note: headers are not passed here as they are handled by the auth wrapper
-    // in the Node.js/Edge-specific implementations via the fetch function
-    fetch: options.fetch,
-  });
+  let cachedProvider: GoogleVertexMaasProvider | undefined;
+  const getProvider = () =>
+    (cachedProvider ??= createOpenAICompatible({
+      name: 'vertex.maas',
+      baseURL: loadBaseURL(),
+      fetch: options.fetch,
+    }));
+
+  const provider = (modelId: GoogleVertexMaasModelId) => getProvider()(modelId);
+
+  provider.specificationVersion = 'v4' as const;
+  provider.languageModel = (modelId: GoogleVertexMaasModelId) =>
+    getProvider().languageModel(modelId);
+  provider.chatModel = (modelId: GoogleVertexMaasModelId) =>
+    getProvider().chatModel(modelId);
+  provider.completionModel = (modelId: string) =>
+    getProvider().completionModel(modelId);
+  provider.embeddingModel = (modelId: string) =>
+    getProvider().embeddingModel(modelId);
+  provider.textEmbeddingModel = (modelId: string) =>
+    getProvider().textEmbeddingModel(modelId);
+  provider.imageModel = (modelId: string) => getProvider().imageModel(modelId);
+
+  return provider as GoogleVertexMaasProvider;
 }
