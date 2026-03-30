@@ -1,8 +1,8 @@
 import { xai } from '@ai-sdk/xai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
-import { weatherTool } from '../../tools/weather-tool';
-import { run } from '../../lib/run';
+import { weatherTool } from '../tools/weather-tool';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
