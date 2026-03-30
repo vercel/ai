@@ -7,6 +7,7 @@ export type {
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
 } from './core-events';
+export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export {
   generateText,
   type GenerateTextOnFinishCallback,

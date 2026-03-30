@@ -42,7 +42,7 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should return all tools when activeTools is not provided', async () => {
+  it('should return all tools', async () => {
     const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: undefined,

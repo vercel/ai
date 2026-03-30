@@ -69,6 +69,13 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
     }
   }
 
+  if (languageModelTools.length === 0) {
+    return {
+      tools: undefined,
+      toolChoice: undefined,
+    };
+  }
+
   return {
     tools: languageModelTools,
     toolChoice:

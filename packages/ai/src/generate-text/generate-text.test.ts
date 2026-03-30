@@ -3405,10 +3405,8 @@ describe('generateText', () => {
                   "role": "tool",
                 },
               ],
-              "toolChoice": {
-                "type": "auto",
-              },
-              "tools": [],
+              "toolChoice": undefined,
+              "tools": undefined,
             },
           ]
         `);
