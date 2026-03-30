@@ -2,4 +2,4 @@
 "@ai-sdk/amazon-bedrock": patch
 ---
 
-add tool search beta and strip unsupported beta
+add tool search beta for Anthropic
