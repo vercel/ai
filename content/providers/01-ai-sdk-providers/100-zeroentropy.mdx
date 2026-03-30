@@ -1,0 +1,104 @@
+---
+title: ZeroEntropy
+description: Learn how to use the ZeroEntropy provider with the AI SDK.
+---
+
+# ZeroEntropy Provider
+
+[ZeroEntropy](https://zeroentropy.dev) provides state-of-the-art multilingual text embedding models. The `@ai-sdk/zeroentropy` provider gives access to the ZeroEntropy embedding API.
+
+## Setup
+
+The ZeroEntropy provider is available in the `@ai-sdk/zeroentropy` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/zeroentropy" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/zeroentropy" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/zeroentropy" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `zeroentropy` from `@ai-sdk/zeroentropy`:
+
+```ts
+import { zeroentropy } from '@ai-sdk/zeroentropy';
+```
+
+For a customized setup, import `createZeroEntropy`:
+
+```ts
+import { createZeroEntropy } from '@ai-sdk/zeroentropy';
+
+const zeroentropy = createZeroEntropy({
+  apiKey: process.env.ZEROENTROPY_API_KEY ?? '',
+});
+```
+
+## Configuration
+
+### API Key
+
+Set the `ZEROENTROPY_API_KEY` environment variable, or pass `apiKey` to `createZeroEntropy`. Obtain your API key from the [ZeroEntropy Dashboard](https://dashboard.zeroentropy.dev).
+
+### Provider Options
+
+| Option    | Type                      | Description                                         |
+| --------- | ------------------------- | --------------------------------------------------- |
+| `baseURL` | `string`                  | Override the API base URL (default: `https://api.zeroentropy.dev/v1`) |
+| `apiKey`  | `string`                  | API key (defaults to `ZEROENTROPY_API_KEY` env var) |
+| `headers` | `Record<string, string>`  | Additional HTTP headers                             |
+| `fetch`   | `FetchFunction`           | Custom fetch implementation                         |
+
+## Embedding Models
+
+Use the `.embedding()` method to create an embedding model:
+
+```ts
+import { zeroentropy } from '@ai-sdk/zeroentropy';
+import { embed, embedMany } from 'ai';
+
+// Single embedding
+const { embedding } = await embed({
+  model: zeroentropy.embedding('zembed-1'),
+  value: 'sunny day at the beach',
+});
+
+// Batch embeddings
+const { embeddings } = await embedMany({
+  model: zeroentropy.embedding('zembed-1', { inputType: 'document' }),
+  values: ['first document', 'second document'],
+});
+```
+
+### Asymmetric Retrieval
+
+ZeroEntropy uses asymmetric embeddings for retrieval — queries and documents are embedded differently for optimal similarity. Specify `inputType` when creating the model:
+
+```ts
+// For search queries
+const queryModel = zeroentropy.embedding('zembed-1', { inputType: 'query' });
+
+// For documents being indexed
+const documentModel = zeroentropy.embedding('zembed-1', { inputType: 'document' });
+```
+
+### Model Options
+
+| Option      | Type                                          | Default  | Description                                        |
+| ----------- | --------------------------------------------- | -------- | -------------------------------------------------- |
+| `inputType` | `'query' \| 'document'`                       | `'query'`| Whether the input is a query or a document         |
+| `dimensions`| `2560 \| 1280 \| 640 \| 320 \| 160 \| 80 \| 40` | `2560` | Output vector dimensions                           |
+| `latency`   | `'fast' \| 'slow'`                            | auto     | `'fast'` for sub-second latency; `'slow'` for throughput |
+
+### Available Models
+
+| Model      | Default Dimensions | Description                                     |
+| ---------- | ------------------ | ----------------------------------------------- |
+| `zembed-1` | 2560               | Multilingual embedding model, supports Matryoshka dimensions |
