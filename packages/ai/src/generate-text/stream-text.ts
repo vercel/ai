@@ -112,6 +112,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import { ToolSet } from './tool-set';
+import { filterActiveTools } from './filter-active-tool';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1537,13 +1538,15 @@ class DefaultStreamTextResult<
             prepareStepResult?.model ?? model,
           );
 
-          const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+          const stepActiveTools = filterActiveTools({
+            tools,
+            activeTools: prepareStepResult?.activeTools ?? activeTools,
+          });
 
           const { toolChoice: stepToolChoice, tools: stepTools } =
             await prepareToolsAndToolChoice({
-              tools,
+              tools: stepActiveTools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              activeTools: stepActiveTools,
             });
 
           experimental_context =
@@ -1565,7 +1568,7 @@ class DefaultStreamTextResult<
             response,
           } = await streamModelCall({
             model: prepareStepResult?.model ?? model,
-            tools,
+            tools: stepActiveTools,
             activeTools: prepareStepResult?.activeTools ?? activeTools,
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
             system: stepSystem,
@@ -1589,7 +1592,7 @@ class DefaultStreamTextResult<
                   messages: stepMessages,
                   tools,
                   toolChoice: stepToolChoice,
-                  activeTools: stepActiveTools,
+                  activeTools: prepareStepResult?.activeTools ?? activeTools,
                   steps: [...recordedSteps],
                   providerOptions: stepProviderOptions,
                   timeout,
