@@ -235,6 +235,8 @@ export function convertToGoogleGenerativeAIMessages(
       case 'assistant': {
         systemMessagesAllowed = false;
 
+        let functionCallSignature: string | undefined;
+
         contents.push({
           role: 'model',
           parts: content
@@ -308,12 +310,18 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'tool-call': {
+                  if (
+                    functionCallSignature == null &&
+                    thoughtSignature != null
+                  ) {
+                    functionCallSignature = thoughtSignature;
+                  }
                   return {
                     functionCall: {
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature,
+                    thoughtSignature: thoughtSignature ?? functionCallSignature,
                   };
                 }
               }
