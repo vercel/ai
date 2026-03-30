@@ -9,8 +9,7 @@ import {
 
 export type { GoogleVertexMaasProvider };
 
-export interface GoogleVertexMaasProviderSettings
-  extends GoogleVertexMaasProviderSettingsOriginal {
+export interface GoogleVertexMaasProviderSettings extends GoogleVertexMaasProviderSettingsOriginal {
   /**
    * Optional. The Authentication options provided by google-auth-library.
    * Complete list of authentication options is documented in the

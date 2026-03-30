@@ -1,7 +1,7 @@
+import { run } from '../../lib/run';
 import { vertexMaas } from '@ai-sdk/google-vertex/maas';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
-import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({

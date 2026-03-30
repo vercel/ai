@@ -11,5 +11,5 @@ export type GoogleVertexMaasModelId =
   | 'qwen/qwen3-coder-480b-a35b-instruct-maas'
   | 'qwen/qwen3-next-80b-a3b-instruct-maas'
   | 'qwen/qwen3-next-80b-a3b-thinking-maas'
-  | 'moonshotai/kimi-k2-instruct-0905-maas'
+  | 'moonshotai/kimi-k2-thinking-maas'
   | (string & {});

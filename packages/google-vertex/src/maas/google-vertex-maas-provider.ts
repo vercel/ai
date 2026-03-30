@@ -9,13 +9,12 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
 
-export interface GoogleVertexMaasProvider
-  extends OpenAICompatibleProvider<
-    GoogleVertexMaasModelId,
-    string,
-    string,
-    string
-  > {}
+export interface GoogleVertexMaasProvider extends OpenAICompatibleProvider<
+  GoogleVertexMaasModelId,
+  string,
+  string,
+  string
+> {}
 
 export interface GoogleVertexMaasProviderSettings {
   /**
