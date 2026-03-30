@@ -37,6 +37,13 @@ export {
   streamModelCall as experimental_streamModelCall,
   type ModelCallStreamPart as Experimental_ModelCallStreamPart,
 } from './stream-model-call';
+export type {
+  FunctionToolDescriptor,
+  ProviderToolDescriptor,
+  ToolChoiceDescriptor,
+  ToolDescriptor,
+} from './tool-descriptor';
+export { prepareToolsAndToolChoice as experimental_prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 export {
   streamText,
   type StreamTextOnChunkCallback,
