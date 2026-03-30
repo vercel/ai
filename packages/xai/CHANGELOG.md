@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.75
+
+### Patch Changes
+
+- 5d61547: fix(provider/xai): correct finish reason for tool calls
+
 ## 3.0.74
 
 ### Patch Changes
