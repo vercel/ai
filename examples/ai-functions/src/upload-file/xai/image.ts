@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const { providerReference, mediaType, filename, providerMetadata } =
     await uploadFile({
-      files: xai.files(),
+      api: xai.files(),
       data: fs.readFileSync('./data/comic-cat.png'),
       filename: 'comic-cat.png',
     });

@@ -15,7 +15,7 @@ import { openai } from '@ai-sdk/openai';
 import fs from 'node:fs';
 
 const { providerReference } = await uploadFile({
-  files: openai.files(),
+  api: openai.files(),
   data: fs.readFileSync('./photo.png'),
   filename: 'photo.png',
 });
@@ -41,7 +41,7 @@ The media type is auto-detected from the file bytes when not specified explicitl
 
 ```ts highlight="4"
 const { providerReference } = await uploadFile({
-  files: anthropic.files(),
+  api: anthropic.files(),
   data: fs.readFileSync('./document.pdf'),
   mediaType: 'application/pdf', // optional, auto-detected if omitted
   filename: 'document.pdf',
@@ -69,7 +69,7 @@ For example, OpenAI requires a `purpose` field:
 import { openai, type OpenAIFilesOptions } from '@ai-sdk/openai';
 
 const { providerReference } = await uploadFile({
-  files: openai.files(),
+  api: openai.files(),
   data: fs.readFileSync('./photo.png'),
   providerOptions: {
     openai: {
@@ -103,13 +103,13 @@ references:
 
 ```ts
 const openaiResult = await uploadFile({
-  files: openai.files(),
+  api: openai.files(),
   data: imageBytes,
   filename: 'photo.png',
 });
 
 const anthropicResult = await uploadFile({
-  files: anthropic.files(),
+  api: anthropic.files(),
   data: imageBytes,
   filename: 'photo.png',
 });

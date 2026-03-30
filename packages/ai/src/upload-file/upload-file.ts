@@ -16,9 +16,9 @@ import {
 import { UploadFileResult } from './upload-file-result';
 
 /**
- * Uploads a file using a files interface.
+ * Uploads a file using a files API interface.
  *
- * @param files - The FilesV4 interface to use for uploading.
+ * @param api - The Files API interface to use for uploading.
  * @param data - The file data to upload.
  * @param mediaType - Optional IANA media type. Auto-detected from file bytes if not provided.
  * @param filename - Optional filename for the uploaded file.
@@ -27,16 +27,16 @@ import { UploadFileResult } from './upload-file-result';
  * @returns A result object containing the provider reference and optional metadata.
  */
 export async function uploadFile({
-  files,
+  api,
   data: dataArg,
   mediaType: mediaTypeArg,
   filename,
   providerOptions,
 }: {
   /**
-   * The files interface to use for uploading.
+   * The files API interface to use for uploading.
    */
-  files: FilesV4;
+  api: FilesV4;
 
   /**
    * The file data to upload.
@@ -75,7 +75,7 @@ export async function uploadFile({
     }) ??
     (isLikelyText(data) ? 'text/plain' : undefined);
 
-  const result = await files.uploadFile({
+  const result = await api.uploadFile({
     data,
     mediaType,
     filename,

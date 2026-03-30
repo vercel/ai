@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const { providerReference, mediaType, filename, providerMetadata } =
     await uploadFile({
-      files: anthropic.files(),
+      api: anthropic.files(),
       data: fs.readFileSync('./data/ai.pdf'),
       filename: 'ai.pdf',
     });

@@ -9,12 +9,12 @@ run(async () => {
 
   const [openaiUpload, anthropicUpload] = await Promise.all([
     uploadFile({
-      files: openai.files(),
+      api: openai.files(),
       data: fileData,
       filename: 'ai.pdf',
     }),
     uploadFile({
-      files: anthropic.files(),
+      api: anthropic.files(),
       data: fileData,
       filename: 'ai.pdf',
     }),

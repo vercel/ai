@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const { providerReference, mediaType, filename, providerMetadata } =
     await uploadFile({
-      files: google.files(),
+      api: google.files(),
       data: fs.readFileSync('./data/comic-cat.png'),
     });
 

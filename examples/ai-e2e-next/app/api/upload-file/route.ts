@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   };
 
   const result = await uploadFile({
-    files: filesMap[provider](),
+    api: filesMap[provider](),
     data,
     mediaType,
     filename,

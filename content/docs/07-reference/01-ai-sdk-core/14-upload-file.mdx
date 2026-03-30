@@ -15,7 +15,7 @@ import { openai } from '@ai-sdk/openai';
 import fs from 'node:fs';
 
 const { providerReference } = await uploadFile({
-  files: openai.files(),
+  api: openai.files(),
   data: fs.readFileSync('./photo.png'),
   filename: 'photo.png',
 });
@@ -32,10 +32,10 @@ const { providerReference } = await uploadFile({
 <PropertiesTable
   content={[
     {
-      name: 'files',
+      name: 'api',
       type: 'FilesV4',
       description:
-        'The files interface to use for uploading. Obtained from a provider, e.g. `openai.files()` or `anthropic.files()`.',
+        'The files API interface to use for uploading. Obtained from a provider, e.g. `openai.files()` or `anthropic.files()`.',
     },
     {
       name: 'data',

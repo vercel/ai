@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const { providerReference, mediaType, filename, providerMetadata } =
     await uploadFile({
-      files: openai.files(),
+      api: openai.files(),
       data: fs.readFileSync('./data/compaction-data.txt'),
       filename: 'compaction-data.txt',
     });

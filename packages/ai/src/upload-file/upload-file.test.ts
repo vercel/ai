@@ -24,7 +24,7 @@ describe('uploadFile', () => {
 
     const data = new Uint8Array([1, 2, 3]);
     const result = await uploadFile({
-      files: createMockFiles({ uploadFile: uploadFileSpy }),
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
       data,
     });
 
@@ -50,7 +50,7 @@ describe('uploadFile', () => {
     view.set([4, 5, 6]);
 
     await uploadFile({
-      files: createMockFiles({ uploadFile: uploadFileSpy }),
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
       data: arrayBuffer,
     });
 
@@ -64,14 +64,14 @@ describe('uploadFile', () => {
 
     await expect(
       uploadFile({
-        files: createMockFiles({ uploadFile: uploadFileSpy }),
+        api: createMockFiles({ uploadFile: uploadFileSpy }),
         data: new Uint8Array([0]),
       }),
     ).resolves.toBeDefined();
 
     await expect(
       uploadFile({
-        files: createMockFiles({ uploadFile: uploadFileSpy }),
+        api: createMockFiles({ uploadFile: uploadFileSpy }),
         // string URLs get converted to URL objects by convertToLanguageModelV4DataContent
         data: 'https://example.com/file.pdf' as any,
       }),
@@ -85,7 +85,7 @@ describe('uploadFile', () => {
 
     const base64 = 'dGVzdA==';
     await uploadFile({
-      files: createMockFiles({ uploadFile: uploadFileSpy }),
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
       data: base64,
     });
 
@@ -101,7 +101,7 @@ describe('uploadFile', () => {
     };
 
     await uploadFile({
-      files: createMockFiles({ uploadFile: uploadFileSpy }),
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
       data: new Uint8Array([1]),
       providerOptions,
     });
@@ -117,7 +117,7 @@ describe('uploadFile', () => {
     const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
 
     await uploadFile({
-      files: createMockFiles({ uploadFile: uploadFileSpy }),
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
       data: new Uint8Array([1]),
     });
 
@@ -132,7 +132,7 @@ describe('uploadFile', () => {
     const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
 
     await uploadFile({
-      files: createMockFiles({ uploadFile: uploadFileSpy }),
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
       data: new Uint8Array([1]),
       filename: 'test.pdf',
     });
@@ -148,7 +148,7 @@ describe('uploadFile', () => {
     });
 
     const result = await uploadFile({
-      files: createMockFiles({ uploadFile: uploadFileSpy }),
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
       data: new Uint8Array([1]),
       filename: 'test.pdf',
     });
@@ -165,7 +165,7 @@ describe('uploadFile', () => {
     });
 
     const result = await uploadFile({
-      files: createMockFiles({ uploadFile: uploadFileSpy }),
+      api: createMockFiles({ uploadFile: uploadFileSpy }),
       data: new Uint8Array([1]),
     });
 
