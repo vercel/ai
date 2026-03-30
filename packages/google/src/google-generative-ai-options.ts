@@ -33,6 +33,8 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-flash-lite-latest'
   | 'deep-research-pro-preview-12-2025'
   | 'nano-banana-pro-preview'
+  | 'lyria-3-clip-preview'
+  | 'lyria-3-pro-preview'
   | 'aqa'
   // Experimental models
   // https://ai.google.dev/gemini-api/docs/models/experimental-models
