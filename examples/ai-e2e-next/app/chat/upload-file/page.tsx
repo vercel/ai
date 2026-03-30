@@ -93,7 +93,7 @@ export default function UploadFilePage() {
       const base64 = dataUrl.split(',')[1];
       const { providerReference } = await uploadToProvider({
         base64,
-        mediaType: file.type || 'application/octet-stream',
+        mediaType: file.type,
         filename: file.name,
         provider: selectedModel.provider,
       });
@@ -105,7 +105,7 @@ export default function UploadFilePage() {
         {
           id,
           filename: file.name,
-          mediaType: file.type || 'application/octet-stream',
+          mediaType: file.type,
           providerReference,
           dataUrl,
         },
