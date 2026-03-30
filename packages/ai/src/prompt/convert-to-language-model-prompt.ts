@@ -38,6 +38,8 @@ export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
   download = createDefaultDownloadFunction(),
+  // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
+  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
 }: {
   prompt: StandardizedPrompt;
@@ -178,6 +180,8 @@ export async function convertToLanguageModelPrompt({
 export function convertToLanguageModelMessage({
   message,
   downloadedAssets,
+  // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
+  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
 }: {
   message: ModelMessage;
@@ -546,6 +550,8 @@ function convertPartToLanguageModelPart(
 
 function mapToolResultOutput({
   output,
+  // `provider` is only needed here to convert legacy "file-id" and "image-file-id" types to provider references, in case they are using string ID values.
+  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
 }: {
   output: ToolResultOutput;
