@@ -6,7 +6,7 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 vi.mock('@ai-sdk/openai-compatible', () => ({
   createOpenAICompatible: vi.fn(() => {
     const provider: any = vi.fn();
-    provider.specificationVersion = 'v4';
+    provider.specificationVersion = 'v3';
     provider.languageModel = vi.fn();
     provider.chatModel = vi.fn();
     provider.completionModel = vi.fn();

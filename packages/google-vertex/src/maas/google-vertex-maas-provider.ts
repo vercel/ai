@@ -94,7 +94,7 @@ export function createVertexMaas(
 
   const provider = (modelId: GoogleVertexMaasModelId) => getProvider()(modelId);
 
-  provider.specificationVersion = 'v4' as const;
+  provider.specificationVersion = 'v3' as const;
   provider.languageModel = (modelId: GoogleVertexMaasModelId) =>
     getProvider().languageModel(modelId);
   provider.chatModel = (modelId: GoogleVertexMaasModelId) =>
