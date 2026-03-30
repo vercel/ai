@@ -227,12 +227,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-<<<<<<< HEAD
     const content: Array<LanguageModelV3Content> = [];
-=======
-    const content: Array<LanguageModelV4Content> = [];
     let hasFunctionCall = false;
->>>>>>> 9f20868cc (fix(xai): correctly map the finish-reason (#13909))
 
     const webSearchSubTools = [
       'web_search',
@@ -458,12 +454,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
-<<<<<<< HEAD
-    let usage: LanguageModelV3Usage | undefined = undefined;
-=======
     let hasFunctionCall = false;
-    let usage: LanguageModelV4Usage | undefined = undefined;
->>>>>>> 9f20868cc (fix(xai): correctly map the finish-reason (#13909))
+    let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
