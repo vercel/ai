@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 2.0.65
+
+### Patch Changes
+
+- 4e8bdc7: feat (provider/gateway): add spend reporting support
+
+## 2.0.64
+
+### Patch Changes
+
+- 2f94884: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.63
 
 ### Patch Changes
