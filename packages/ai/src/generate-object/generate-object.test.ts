@@ -20,6 +20,7 @@ import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } 
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockTracer } from '../test/mock-tracer';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 import { asLanguageModelUsage } from '../types/usage';
 import { generateObject } from './generate-object';
 
@@ -1037,6 +1038,9 @@ describe('generateObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
+        experimental_telemetry: {
+          integrations: new OpenTelemetryIntegration({ tracer }),
+        },
       });
 
       assert.deepStrictEqual(tracer.jsonSpans, []);
@@ -1080,7 +1084,7 @@ describe('generateObject', () => {
             test1: 'value1',
             test2: false,
           },
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
       });
 
@@ -1106,7 +1110,7 @@ describe('generateObject', () => {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: false,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
       });
 
