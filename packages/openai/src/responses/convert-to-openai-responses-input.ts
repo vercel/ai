@@ -35,11 +35,23 @@ import {
   toolSearchOutputSchema,
 } from '../tool/tool-search';
 
+/**
+ * This is soft-deprecated. Use provider references instead. Kept for backward compatibility
+ * with the `fileIdPrefixes` option.
+ *
+ * TODO: remove in v8
+ */
+function isFileId(data: string, prefixes?: readonly string[]): boolean {
+  if (!prefixes) return false;
+  return prefixes.some(prefix => data.startsWith(prefix));
+}
+
 export async function convertToOpenAIResponsesInput({
   prompt,
   toolNameMapping,
   systemMessageMode,
   providerOptionsName,
+  fileIdPrefixes,
   store,
   hasConversation = false,
   hasLocalShellTool = false,
@@ -51,6 +63,8 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
+  /** @deprecated Use provider references instead. */
+  fileIdPrefixes?: readonly string[];
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
   hasLocalShellTool?: boolean;
@@ -139,9 +153,12 @@ export async function convertToOpenAIResponsesInput({
                     type: 'input_image',
                     ...(part.data instanceof URL
                       ? { image_url: part.data.toString() }
-                      : {
-                          image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                        }),
+                      : typeof part.data === 'string' &&
+                          isFileId(part.data, fileIdPrefixes)
+                        ? { file_id: part.data }
+                        : {
+                            image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                          }),
                     detail:
                       part.providerOptions?.[providerOptionsName]?.imageDetail,
                   };
@@ -154,8 +171,13 @@ export async function convertToOpenAIResponsesInput({
                   }
                   return {
                     type: 'input_file',
-                    filename: part.filename ?? `part-${index}.pdf`,
-                    file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                    ...(typeof part.data === 'string' &&
+                    isFileId(part.data, fileIdPrefixes)
+                      ? { file_id: part.data }
+                      : {
+                          filename: part.filename ?? `part-${index}.pdf`,
+                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                        }),
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({

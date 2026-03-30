@@ -247,6 +247,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      fileIdPrefixes: ['file-'],
     });
   };
 
