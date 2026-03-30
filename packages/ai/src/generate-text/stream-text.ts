@@ -682,8 +682,13 @@ function createOutputTransformStream<
 
       // null should be allowed (valid JSON value) but undefined should not:
       if (result !== undefined) {
-        // only send new json if it has changed:
-        const currentJson = JSON.stringify(result.partial);
+        // For string partials, compare directly to avoid JSON.stringify
+        // which creates O(n) string copies causing quadratic memory
+        // growth with large text streams (see #13839).
+        const currentJson =
+          typeof result.partial === 'string'
+            ? result.partial
+            : JSON.stringify(result.partial);
         if (currentJson !== lastPublishedJson) {
           publishTextChunk({ controller, partialOutput: result.partial });
           lastPublishedJson = currentJson;
