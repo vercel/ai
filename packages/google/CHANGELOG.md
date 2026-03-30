@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.64
+
+### Patch Changes
+
+- fd3f1d3: feat(provider/google): add support for service tier parameter
+
 ## 2.0.63
 
 ### Patch Changes
