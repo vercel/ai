@@ -1,15 +1,15 @@
-import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { streamText, tool, stepCountIs } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: bedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     prompt: 'Find out weather data in SF',
     stopWhen: stepCountIs(10),
     tools: {
-      toolSearch: bedrock.tools.toolSearchRegex_20251119(),
+      toolSearch: bedrockAnthropic.tools.toolSearchRegex_20251119(),
 
       get_temp_data: tool({
         description: 'Get the current weather at a specific location',
