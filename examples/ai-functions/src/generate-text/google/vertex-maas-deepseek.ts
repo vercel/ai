@@ -1,10 +1,10 @@
-import { run } from '../lib/run';
 import { vertexMaas } from '@ai-sdk/google-vertex/maas';
 import { generateText } from 'ai';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: vertexMaas('moonshotai/kimi-k2-instruct-0905-maas'),
+    model: vertexMaas('deepseek-ai/deepseek-v3.2-maas'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
