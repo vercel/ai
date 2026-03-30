@@ -407,6 +407,32 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
+  it('should skip null/undefined tool entries without crashing', async () => {
+    // Simulates accidentally spreading a Tool object into the tools record:
+    //   tools: { ...anthropic.tools.webSearch_20260209({ maxUses: 3 }) }
+    // The factory creates a Tool with execute: undefined, needsApproval: undefined, etc.
+    // These undefined values become spurious tool entries when spread.
+    const result = await prepareToolsAndToolChoice({
+      tools: {
+        validTool: tool({
+          description: 'A valid tool',
+          inputSchema: z.object({}),
+        }),
+        execute: undefined as any,
+        needsApproval: undefined as any,
+        toModelOutput: undefined as any,
+      },
+      toolChoice: undefined,
+      activeTools: undefined,
+    });
+
+    expect(result.tools).toHaveLength(1);
+    expect(result.tools?.[0]).toMatchObject({
+      name: 'validTool',
+      type: 'function',
+    });
+  });
+
   it('should pass through input examples', async () => {
     const result = await prepareToolsAndToolChoice({
       tools: {

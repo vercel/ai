@@ -41,6 +41,10 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
     LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
   > = [];
   for (const [name, tool] of filteredTools) {
+    if (tool == null) {
+      continue;
+    }
+
     const toolType = tool.type;
 
     switch (toolType) {
