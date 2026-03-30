@@ -409,6 +409,7 @@ export async function generateObject<
       finishReason,
       usage,
       objectText: text,
+      msToFirstChunk: undefined,
       reasoning,
       warnings,
       request,

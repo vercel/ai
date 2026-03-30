@@ -189,6 +189,9 @@ export interface ObjectOnStepFinishEvent {
 
   /** Additional metadata from telemetry settings. */
   readonly metadata: Record<string, unknown> | undefined;
+
+  /** Milliseconds from the start of the stream to the first chunk (streaming only). */
+  readonly msToFirstChunk: number | undefined;
 }
 
 /**

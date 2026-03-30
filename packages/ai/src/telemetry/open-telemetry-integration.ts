@@ -402,7 +402,13 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       selectAttributes(telemetry, {
         'ai.response.finishReason': event.finishReason,
         'ai.response.object': {
-          output: () => event.objectText,
+          output: () => {
+            try {
+              return JSON.stringify(JSON.parse(event.objectText));
+            } catch {
+              return event.objectText;
+            }
+          },
         },
         'ai.response.id': event.response.id,
         'ai.response.model': event.response.modelId,
@@ -411,8 +417,11 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
           ? JSON.stringify(event.providerMetadata)
           : undefined,
 
-        'ai.usage.promptTokens': event.usage.inputTokens,
-        'ai.usage.completionTokens': event.usage.outputTokens,
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
+        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
+        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
 
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.response.id,
@@ -421,6 +430,15 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
         'gen_ai.usage.output_tokens': event.usage.outputTokens,
       }),
     );
+
+    if (event.msToFirstChunk != null) {
+      state.stepSpan.addEvent('ai.stream.firstChunk', {
+        'ai.stream.msToFirstChunk': event.msToFirstChunk,
+      });
+      state.stepSpan.setAttributes({
+        'ai.stream.msToFirstChunk': event.msToFirstChunk,
+      });
+    }
 
     state.stepSpan.end();
     state.stepSpan = undefined;
@@ -817,8 +835,11 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
           ? JSON.stringify(event.providerMetadata)
           : undefined,
 
-        'ai.usage.promptTokens': event.usage.inputTokens,
-        'ai.usage.completionTokens': event.usage.outputTokens,
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
+        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
+        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
       }),
     );
 
