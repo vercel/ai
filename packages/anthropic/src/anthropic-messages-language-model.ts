@@ -139,6 +139,12 @@ type AnthropicMessagesConfig = {
    * Defaults to true.
    */
   supportsStrictTools?: boolean;
+
+  /**
+   * When false, `cache_control` on message content blocks and tool definitions
+   * will be stripped and a warning emitted. Defaults to true.
+   */
+  supportsCacheControl?: boolean;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
@@ -306,8 +312,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
 
     const contextManagement = anthropicOptions?.contextManagement;
 
-    // Create a shared cache control validator to track breakpoints across tools and messages
-    const cacheControlValidator = new CacheControlValidator();
+    const cacheControlValidator = new CacheControlValidator({
+      supportsCacheControl: this.config.supportsCacheControl ?? true,
+    });
 
     const toolNameMapping = createToolNameMapping({
       tools,

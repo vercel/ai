@@ -204,6 +204,8 @@ export function createVertexAnthropic(
       supportsNativeStructuredOutput: false,
       // Vertex Anthropic doesn't support strict mode on tool definitions.
       supportsStrictTools: false,
+      // Vertex Anthropic doesn't support cache_control on message content blocks or tools.
+      supportsCacheControl: false,
     });
 
   const provider = function (modelId: GoogleVertexAnthropicMessagesModelId) {

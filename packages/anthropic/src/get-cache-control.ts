@@ -22,6 +22,14 @@ function getCacheControl(
 export class CacheControlValidator {
   private breakpointCount = 0;
   private warnings: SharedV4Warning[] = [];
+  private readonly supportsCacheControl: boolean;
+  private hasEmittedUnsupportedWarning = false;
+
+  constructor({
+    supportsCacheControl = true,
+  }: { supportsCacheControl?: boolean } = {}) {
+    this.supportsCacheControl = supportsCacheControl;
+  }
 
   getCacheControl(
     providerMetadata: SharedV4ProviderMetadata | undefined,
@@ -33,7 +41,19 @@ export class CacheControlValidator {
       return undefined;
     }
 
-    // Validate that cache_control is allowed in this context
+    if (!this.supportsCacheControl) {
+      if (!this.hasEmittedUnsupportedWarning) {
+        this.hasEmittedUnsupportedWarning = true;
+        this.warnings.push({
+          type: 'unsupported',
+          feature: 'cacheControl',
+          details:
+            'cache_control on message content blocks is not supported by this provider. All cache_control markers will be stripped.',
+        });
+      }
+      return undefined;
+    }
+
     if (!context.canCache) {
       this.warnings.push({
         type: 'unsupported',
@@ -43,7 +63,6 @@ export class CacheControlValidator {
       return undefined;
     }
 
-    // Validate cache breakpoint limit
     this.breakpointCount++;
     if (this.breakpointCount > MAX_CACHE_BREAKPOINTS) {
       this.warnings.push({

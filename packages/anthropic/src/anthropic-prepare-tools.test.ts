@@ -1409,6 +1409,51 @@ describe('prepareTools', () => {
       ]
     `);
   });
+
+  it('should strip cache_control from tools when supportsCacheControl is false', async () => {
+    const cacheControlValidator = new CacheControlValidator({
+      supportsCacheControl: false,
+    });
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'tool1',
+          description: 'Test 1',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+        {
+          type: 'function',
+          name: 'tool2',
+          description: 'Test 2',
+          inputSchema: {},
+          providerOptions: {
+            anthropic: { cacheControl: { type: 'ephemeral' } },
+          },
+        },
+      ],
+      toolChoice: undefined,
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+      cacheControlValidator,
+    });
+
+    expect(result.tools?.[0]).toHaveProperty('cache_control', undefined);
+    expect(result.tools?.[1]).toHaveProperty('cache_control', undefined);
+
+    expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "cache_control on message content blocks is not supported by this provider. All cache_control markers will be stripped.",
+          "feature": "cacheControl",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
 });
 
 describe('webFetch_20250910OutputSchema', () => {

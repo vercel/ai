@@ -2642,6 +2642,72 @@ describe('cache control', () => {
         ]
       `);
     });
+
+    it('should strip all cache_control when supportsCacheControl is false', async () => {
+      const warnings: SharedV4Warning[] = [];
+      const cacheControlValidator = new CacheControlValidator({
+        supportsCacheControl: false,
+      });
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'system',
+            content: 'system prompt',
+            providerOptions: {
+              anthropic: { cacheControl: { type: 'ephemeral' } },
+            },
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'user message',
+                providerOptions: {
+                  anthropic: { cacheControl: { type: 'ephemeral' } },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'assistant reply',
+                providerOptions: {
+                  anthropic: { cacheControl: { type: 'ephemeral' } },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        cacheControlValidator,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.system).toEqual([
+        { type: 'text', text: 'system prompt', cache_control: undefined },
+      ]);
+      expect(result.prompt.messages[0].content).toEqual([
+        { type: 'text', text: 'user message', cache_control: undefined },
+      ]);
+      expect(result.prompt.messages[1].content).toEqual([
+        { type: 'text', text: 'assistant reply', cache_control: undefined },
+      ]);
+
+      expect(cacheControlValidator.getWarnings()).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "cache_control on message content blocks is not supported by this provider. All cache_control markers will be stripped.",
+            "feature": "cacheControl",
+            "type": "unsupported",
+          },
+        ]
+      `);
+    });
   });
 
   it('should limit cache breakpoints to 4', async () => {
