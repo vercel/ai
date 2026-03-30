@@ -28,7 +28,7 @@ import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-opena
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
-import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
+import { GoogleGenerativeAIContentPart, GoogleGenerativeAIProviderMetadata } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
   googleGenerativeAIProviderOptions,
@@ -318,18 +318,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       warnings,
       providerMetadata: {
         google: {
-          promptFeedback: response.promptFeedback ?? null,
           groundingMetadata: candidate.groundingMetadata ?? null,
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
-          usageMetadata: usageMetadata ?? null,
-<<<<<<< HEAD
-        },
-=======
-          finishMessage: candidate.finishMessage ?? null,
           serviceTier: response.serviceTier ?? null,
         } satisfies GoogleGenerativeAIProviderMetadata,
->>>>>>> 4e22c2c07 (Backport: feat(provider/google): add support for service tier parameter (#13916))
       },
       request: { body },
       response: {
@@ -629,18 +622,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
               providerMetadata = {
                 google: {
-                  promptFeedback: value.promptFeedback ?? null,
                   groundingMetadata: lastGroundingMetadata,
                   urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
-<<<<<<< HEAD
-                },
-=======
-                  usageMetadata: usageMetadata ?? null,
-                  finishMessage: candidate.finishMessage ?? null,
                   serviceTier,
                 } satisfies GoogleGenerativeAIProviderMetadata,
->>>>>>> 4e22c2c07 (Backport: feat(provider/google): add support for service tier parameter (#13916))
               };
               if (usageMetadata != null) {
                 providerMetadata.google.usageMetadata = usageMetadata;

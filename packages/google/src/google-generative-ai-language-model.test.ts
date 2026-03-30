@@ -514,37 +514,6 @@ describe('doGenerate', () => {
         promptFeedback: { safetyRatings: SAFETY_RATINGS },
       },
     };
-
-<<<<<<< HEAD
-    const { content, finishReason } = await model.doGenerate({
-      tools: [
-        {
-          type: 'function',
-          name: 'test-tool',
-          inputSchema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-=======
-    const { providerMetadata } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(providerMetadata?.google.finishMessage).toBe(
-      "Malformed function call: print(default_api.create(name='test'))",
-    );
-  });
-
-  it('should expose null finishMessage in provider metadata when not present', async () => {
-    prepareJsonResponse({ content: 'test response' });
-
-    const { providerMetadata } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(providerMetadata?.google.finishMessage).toBeNull();
   });
 
   it('should send serviceTier in request body when specified', async () => {
@@ -615,25 +584,43 @@ describe('doGenerate', () => {
     expect(providerMetadata?.google.serviceTier).toBeNull();
   });
 
-  describe('tool-call', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('google-tool-call');
-    });
-
-    it('should extract tool calls', async () => {
-      const result = await model.doGenerate({
-        tools: [
+  it('should extract tool calls', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
           {
-            type: 'function',
-            name: 'weather',
-            inputSchema: {
-              type: 'object',
-              properties: { location: { type: 'string' } },
-              required: ['location'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    name: 'test-tool',
+                    args: { value: 'example value' },
+                  },
+                },
+              ],
+              role: 'model',
             },
->>>>>>> 4e22c2c07 (Backport: feat(provider/google): add support for service tier parameter (#13916))
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+      },
+    };
+
+    const { content, finishReason } = await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
         },
       ],
@@ -1541,35 +1528,6 @@ describe('doGenerate', () => {
         blocked: false,
       },
     ]);
-  });
-
-  it('should expose PromptFeedback in provider metadata', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'json-value',
-      body: {
-        candidates: [
-          {
-            content: { parts: [{ text: 'No' }], role: 'model' },
-            finishReason: 'SAFETY',
-            index: 0,
-            safetyRatings: SAFETY_RATINGS,
-          },
-        ],
-        promptFeedback: {
-          blockReason: 'SAFETY',
-          safetyRatings: SAFETY_RATINGS,
-        },
-      },
-    };
-
-    const { providerMetadata } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(providerMetadata?.google.promptFeedback).toStrictEqual({
-      blockReason: 'SAFETY',
-      safetyRatings: SAFETY_RATINGS,
-    });
   });
 
   it('should expose grounding metadata in provider metadata', async () => {
@@ -2755,7 +2713,6 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
-              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -2774,6 +2731,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "serviceTier": null,
               "urlContextMetadata": null,
               "usageMetadata": {
                 "candidatesTokenCount": 233,
@@ -2827,36 +2785,6 @@ describe('doStream', () => {
         blocked: false,
       },
     ]);
-  });
-
-  it('should expose PromptFeedback in provider metadata on finish', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: {"candidates": [{"content": {"parts": [{"text": "No"}],"role": "model"},` +
-          `"finishReason": "PROHIBITED_CONTENT","index": 0}],` +
-          `"promptFeedback": {"blockReason": "PROHIBITED_CONTENT","safetyRatings": [` +
-          `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}}\n\n`,
-      ],
-    };
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    const events = await convertReadableStreamToArray(stream);
-    const finishEvent = events.find(event => event.type === 'finish');
-
-    expect(
-      finishEvent?.type === 'finish' &&
-        finishEvent.providerMetadata?.google.promptFeedback,
-    ).toStrictEqual({
-      blockReason: 'PROHIBITED_CONTENT',
-      safetyRatings: SAFETY_RATINGS,
-    });
   });
 
   it('should expose serviceTier in provider metadata on finish', async () => {
@@ -3345,7 +3273,6 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
-              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -3717,7 +3644,6 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
-              "promptFeedback": null,
               "safetyRatings": null,
               "serviceTier": null,
               "urlContextMetadata": null,
@@ -3847,7 +3773,6 @@ describe('doStream', () => {
           "providerMetadata": {
             "google": {
               "groundingMetadata": null,
-              "promptFeedback": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",

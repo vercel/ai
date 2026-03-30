@@ -45,10 +45,5 @@ export interface GoogleGenerativeAIProviderMetadata {
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
   urlContextMetadata: GoogleGenerativeAIUrlContextMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
-<<<<<<< HEAD
-=======
-  usageMetadata: GoogleGenerativeAIUsageMetadata | null;
-  finishMessage: string | null;
   serviceTier: string | null;
->>>>>>> 4e22c2c07 (Backport: feat(provider/google): add support for service tier parameter (#13916))
 }
