@@ -1,6 +1,6 @@
-import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { google, type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { streamText } from 'ai';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
@@ -9,7 +9,7 @@ run(async () => {
     providerOptions: {
       google: {
         serviceTier: 'SERVICE_TIER_FLEX',
-      } satisfies GoogleLanguageModelOptions,
+      } satisfies GoogleGenerativeAIProviderOptions,
     },
   });
 
