@@ -31,7 +31,6 @@ describe('prepareToolsAndToolChoice', () => {
     const result = await prepareToolsAndToolChoice({
       tools: undefined,
       toolChoice: undefined,
-      activeTools: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -42,11 +41,10 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should return all tools when activeTools is not provided', async () => {
+  it('should return all tools', async () => {
     const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: undefined,
-      activeTools: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -91,41 +89,10 @@ describe('prepareToolsAndToolChoice', () => {
     `);
   });
 
-  it('should filter tools based on activeTools', async () => {
-    const result = await prepareToolsAndToolChoice({
-      tools: mockTools,
-      toolChoice: undefined,
-      activeTools: ['tool1'],
-    });
-
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "toolChoice": {
-          "type": "auto",
-        },
-        "tools": [
-          {
-            "description": "Tool 1 description",
-            "inputSchema": {
-              "$schema": "http://json-schema.org/draft-07/schema#",
-              "additionalProperties": false,
-              "properties": {},
-              "type": "object",
-            },
-            "name": "tool1",
-            "providerOptions": undefined,
-            "type": "function",
-          },
-        ],
-      }
-    `);
-  });
-
   it('should handle string toolChoice', async () => {
     const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: 'none',
-      activeTools: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -174,7 +141,6 @@ describe('prepareToolsAndToolChoice', () => {
     const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: { type: 'tool', toolName: 'tool2' },
-      activeTools: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -224,7 +190,6 @@ describe('prepareToolsAndToolChoice', () => {
     const result = await prepareToolsAndToolChoice({
       tools: mockTools,
       toolChoice: undefined,
-      activeTools: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -273,7 +238,6 @@ describe('prepareToolsAndToolChoice', () => {
     const result = await prepareToolsAndToolChoice({
       tools: mockToolsWithProviderDefined,
       toolChoice: undefined,
-      activeTools: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -340,7 +304,6 @@ describe('prepareToolsAndToolChoice', () => {
         }),
       },
       toolChoice: undefined,
-      activeTools: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -380,7 +343,6 @@ describe('prepareToolsAndToolChoice', () => {
         }),
       },
       toolChoice: undefined,
-      activeTools: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -419,7 +381,6 @@ describe('prepareToolsAndToolChoice', () => {
         }),
       },
       toolChoice: undefined,
-      activeTools: undefined,
     });
 
     expect(result).toMatchInlineSnapshot(`

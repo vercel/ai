@@ -197,6 +197,17 @@ export const googleLanguageModelOptions = lazySchema(() =>
        * https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc
        */
       streamFunctionCallArguments: z.boolean().optional(),
+      
+      /**
+       * Optional. The service tier to use for the request.
+       */
+      serviceTier: z
+        .enum([
+          'SERVICE_TIER_STANDARD',
+          'SERVICE_TIER_FLEX',
+          'SERVICE_TIER_PRIORITY',
+        ])
+        .optional(),
     }),
   ),
 );
