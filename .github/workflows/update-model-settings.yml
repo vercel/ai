@@ -173,10 +173,11 @@ jobs:
         id: check-prs
         run: |
           PR_COUNT=$(gh api search/issues \
+          PR_COUNT=$(gh api repos/vercel/ai/pulls \
             --method GET \
-            -f q='repo:vercel/ai is:pr is:open "chore(provider/gateway): update gateway model settings files"' \
-            --jq '.total_count')
-          echo "pr-count=$PR_COUNT" >> "$GITHUB_OUTPUT"
+            -f state=open \
+            -f per_page=100 \
+            --jq '[.[] | select(.title | contains("chore(provider/gateway): update gateway model settings files"))] | length')
           echo "Found $PR_COUNT open PRs"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
