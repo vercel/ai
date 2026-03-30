@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.46
+
+### Patch Changes
+
+- 31ee822: refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
+
 ## 7.0.0-beta.45
 
 ### Patch Changes
