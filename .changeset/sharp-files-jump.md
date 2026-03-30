@@ -1,5 +1,5 @@
 ---
-"@ai-sdk/xai": minor
+"@ai-sdk/xai": patch
 ---
 
-Fix finish-reason generation for xai model
+fix(provider/xai): correct finish reason for tool calls
