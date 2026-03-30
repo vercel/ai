@@ -364,6 +364,104 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
   `);
 });
 
+it('should combine function and provider-defined tools on Gemini 3 models', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3.1-flash-lite-preview',
+  });
+
+  expect(result.tools).toEqual([
+    { googleSearch: {} },
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parameters: undefined,
+        },
+      ],
+    },
+  ]);
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+    includeServerSideToolInvocations: true,
+  });
+
+  expect(result.toolWarnings).toEqual([]);
+});
+
+it('should combine multiple provider tools with function tools on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'function',
+        name: 'bookVenue',
+        description: 'Book a venue',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+      {
+        type: 'provider',
+        id: 'google.google_maps',
+        name: 'google_maps',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.tools).toEqual([
+    { googleSearch: {} },
+    { googleMaps: {} },
+    {
+      functionDeclarations: [
+        {
+          name: 'getWeather',
+          description: 'Get weather',
+          parameters: undefined,
+        },
+        {
+          name: 'bookVenue',
+          description: 'Book a venue',
+          parameters: undefined,
+        },
+      ],
+    },
+  ]);
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+    includeServerSideToolInvocations: true,
+  });
+
+  expect(result.toolWarnings).toEqual([]);
+});
+
 it('should handle latest modelId for provider-defined tools correctly', () => {
   const result = prepareTools({
     tools: [

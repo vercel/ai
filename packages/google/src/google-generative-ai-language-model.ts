@@ -264,6 +264,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
 
     // Associates a code execution result with its preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
+    // Associates a server-side tool response with its preceding call (tool combination).
+    let lastServerToolCallId: string | undefined;
 
     // Build content array from all parts
     for (const part of parts) {
@@ -341,6 +343,52 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
               }
             : undefined,
         });
+      } else if ('toolCall' in part && part.toolCall) {
+        const toolCallId = part.toolCall.id ?? this.config.generateId();
+        lastServerToolCallId = toolCallId;
+        content.push({
+          type: 'tool-call',
+          toolCallId,
+          toolName: `server:${part.toolCall.toolType}`,
+          input: JSON.stringify(part.toolCall.args ?? {}),
+          providerExecuted: true,
+          providerMetadata: part.thoughtSignature
+            ? {
+                [providerOptionsName]: {
+                  thoughtSignature: part.thoughtSignature,
+                  serverToolCallId: part.toolCall.id,
+                  serverToolType: part.toolCall.toolType,
+                },
+              }
+            : {
+                [providerOptionsName]: {
+                  serverToolCallId: part.toolCall.id,
+                  serverToolType: part.toolCall.toolType,
+                },
+              },
+        });
+      } else if ('toolResponse' in part && part.toolResponse) {
+        content.push({
+          type: 'tool-result',
+          toolCallId: lastServerToolCallId ?? part.toolResponse.id ?? this.config.generateId(),
+          toolName: `server:${part.toolResponse.toolType}`,
+          result: part.toolResponse.response ?? {},
+          providerMetadata: part.thoughtSignature
+            ? {
+                [providerOptionsName]: {
+                  thoughtSignature: part.thoughtSignature,
+                  serverToolCallId: part.toolResponse.id,
+                  serverToolType: part.toolResponse.toolType,
+                },
+              }
+            : {
+                [providerOptionsName]: {
+                  serverToolCallId: part.toolResponse.id,
+                  serverToolType: part.toolResponse.toolType,
+                },
+              },
+        });
+        lastServerToolCallId = undefined;
       }
     }
 
@@ -431,6 +479,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     const emittedSourceUrls = new Set<string>();
     // Associates a code execution result with its preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
+    // Associates a server-side tool response with its preceding call (tool combination).
+    let lastServerToolCallId: string | undefined;
 
     return {
       stream: response.pipeThrough(
@@ -637,6 +687,51 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                     data: part.inlineData.data,
                     providerMetadata: fileMeta,
                   });
+                } else if ('toolCall' in part && part.toolCall) {
+                  const toolCallId =
+                    part.toolCall.id ?? generateId();
+                  lastServerToolCallId = toolCallId;
+                  const serverMeta = {
+                    [providerOptionsName]: {
+                      ...(part.thoughtSignature
+                        ? { thoughtSignature: part.thoughtSignature }
+                        : {}),
+                      serverToolCallId: part.toolCall.id,
+                      serverToolType: part.toolCall.toolType,
+                    },
+                  };
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName: `server:${part.toolCall.toolType}`,
+                    input: JSON.stringify(part.toolCall.args ?? {}),
+                    providerExecuted: true,
+                    providerMetadata: serverMeta,
+                  });
+                } else if ('toolResponse' in part && part.toolResponse) {
+                  const toolCallId =
+                    lastServerToolCallId ??
+                    part.toolResponse.id ??
+                    generateId();
+                  const serverMeta = {
+                    [providerOptionsName]: {
+                      ...(part.thoughtSignature
+                        ? { thoughtSignature: part.thoughtSignature }
+                        : {}),
+                      serverToolCallId: part.toolResponse.id,
+                      serverToolType: part.toolResponse.toolType,
+                    },
+                  };
+
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId,
+                    toolName: `server:${part.toolResponse.toolType}`,
+                    result: part.toolResponse.response ?? {},
+                    providerMetadata: serverMeta,
+                  });
+                  lastServerToolCallId = undefined;
                 }
               }
 

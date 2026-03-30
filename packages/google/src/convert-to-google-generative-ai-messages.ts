@@ -308,6 +308,30 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'tool-call': {
+                  const serverToolCallId =
+                    providerOpts?.serverToolCallId != null
+                      ? String(providerOpts.serverToolCallId)
+                      : undefined;
+                  const serverToolType =
+                    providerOpts?.serverToolType != null
+                      ? String(providerOpts.serverToolType)
+                      : undefined;
+
+                  if (serverToolCallId && serverToolType) {
+                    return {
+                      toolCall: {
+                        toolType: serverToolType,
+                        args: JSON.parse(
+                          typeof part.input === 'string'
+                            ? part.input
+                            : JSON.stringify(part.input),
+                        ),
+                        id: serverToolCallId,
+                      },
+                      thoughtSignature,
+                    };
+                  }
+
                   return {
                     functionCall: {
                       name: part.toolName,
@@ -320,6 +344,7 @@ export function convertToGoogleGenerativeAIMessages(
             })
             .filter(part => part !== undefined),
         });
+
         break;
       }
 
@@ -332,6 +357,43 @@ export function convertToGoogleGenerativeAIMessages(
           if (part.type === 'tool-approval-response') {
             continue;
           }
+
+          const partProviderOpts =
+            part.providerMetadata?.[providerOptionsName] ??
+            (providerOptionsName !== 'google'
+              ? part.providerMetadata?.google
+              : part.providerMetadata?.vertex);
+          const serverToolCallId =
+            partProviderOpts?.serverToolCallId != null
+              ? String(partProviderOpts.serverToolCallId)
+              : undefined;
+          const serverToolType =
+            partProviderOpts?.serverToolType != null
+              ? String(partProviderOpts.serverToolType)
+              : undefined;
+
+          if (serverToolCallId && serverToolType) {
+            const serverThoughtSignature =
+              partProviderOpts?.thoughtSignature != null
+                ? String(partProviderOpts.thoughtSignature)
+                : undefined;
+
+            if (contents.length > 0) {
+              const lastContent = contents[contents.length - 1];
+              if (lastContent.role === 'model') {
+                lastContent.parts.push({
+                  toolResponse: {
+                    toolType: serverToolType,
+                    response: part.output.type === 'value' ? part.output.value : {},
+                    id: serverToolCallId,
+                  },
+                  thoughtSignature: serverThoughtSignature,
+                });
+                continue;
+              }
+            }
+          }
+
           const output = part.output;
 
           if (output.type === 'content') {
