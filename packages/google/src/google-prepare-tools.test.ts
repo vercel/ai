@@ -397,7 +397,6 @@ it('should combine function and provider-defined tools on Gemini 3 models', () =
   ]);
 
   expect(result.toolConfig).toEqual({
-    functionCallingConfig: { mode: 'VALIDATED' },
     includeServerSideToolInvocations: true,
   });
 
@@ -455,7 +454,6 @@ it('should combine multiple provider tools with function tools on Gemini 3', () 
   ]);
 
   expect(result.toolConfig).toEqual({
-    functionCallingConfig: { mode: 'VALIDATED' },
     includeServerSideToolInvocations: true,
   });
 

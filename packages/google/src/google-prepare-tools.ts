@@ -198,7 +198,6 @@ export function prepareTools({
       return {
         tools: [...googleTools, { functionDeclarations }],
         toolConfig: {
-          functionCallingConfig: { mode: 'VALIDATED' as const },
           includeServerSideToolInvocations: true,
         },
         toolWarnings,
