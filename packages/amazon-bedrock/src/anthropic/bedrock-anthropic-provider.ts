@@ -37,9 +37,6 @@ const BEDROCK_TOOL_NAME_MAP: Record<string, string> = {
   text_editor_20250728: 'str_replace_based_edit_tool',
 };
 
-// Betas unsupported by Bedrock that must be stripped from upstream Anthropic SDK
-const BEDROCK_UNSUPPORTED_BETAS = ['advanced-tool-use-2025-11-20'] as const;
-
 // Map tool types to required anthropic_beta values for Bedrock
 const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
   bash_20250124: 'computer-use-2025-01-24',
@@ -275,9 +272,6 @@ export function createBedrockAnthropic(
             : undefined;
 
         const requiredBetas = new Set<string>(betas);
-        for (const beta of BEDROCK_UNSUPPORTED_BETAS) {
-          requiredBetas.delete(beta);
-        }
         const transformedTools = tools?.map((tool: Record<string, unknown>) => {
           const toolType = tool.type as string | undefined;
 

@@ -512,33 +512,6 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
-  it('should strip unsupported betas and preserve supported ones', () => {
-    const provider = createBedrockAnthropic({
-      region: 'us-east-1',
-      accessKeyId: 'test-key',
-      secretAccessKey: 'test-secret',
-    });
-    provider('test-model-id');
-
-    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
-      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
-    const config = constructorCall[1];
-
-    const transformedBody = config.transformRequestBody?.(
-      {
-        model: 'test-model-id',
-        messages: [{ role: 'user', content: 'Hello' }],
-        max_tokens: 1024,
-      },
-      new Set(['advanced-tool-use-2025-11-20', 'some-other-beta']),
-    );
-
-    expect(transformedBody?.anthropic_beta).toContain('some-other-beta');
-    expect(transformedBody?.anthropic_beta).not.toContain(
-      'advanced-tool-use-2025-11-20',
-    );
-  });
-
   it('should handle models with us. prefix for inference profiles', () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
