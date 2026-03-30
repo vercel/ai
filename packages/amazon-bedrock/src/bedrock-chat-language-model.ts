@@ -566,6 +566,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
         raw: response.stopReason ?? undefined,
       },
       usage: convertBedrockUsage(response.usage),
+      request: { body: args },
       response: {
         id: responseHeaders?.['x-amzn-requestid'] ?? undefined,
         timestamp:
@@ -970,7 +971,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
           },
         }),
       ),
-      // TODO request?
+      request: { body: args },
       response: { headers: responseHeaders },
     };
   }
