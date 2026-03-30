@@ -276,7 +276,6 @@ export async function streamUI<
       ...prepareToolsAndToolChoice({
         tools: tools as any,
         toolChoice,
-        activeTools: undefined,
       }),
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,

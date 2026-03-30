@@ -49,6 +49,8 @@ import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
+import { collectToolApprovals } from './collect-tool-approvals';
+import { ContentPart } from './content-part';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -57,9 +59,8 @@ import type {
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
 } from './core-events';
-import { collectToolApprovals } from './collect-tool-approvals';
-import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
+import { filterActiveTools } from './filter-active-tool';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
@@ -700,13 +701,15 @@ export async function generateText<
         experimental_context =
           prepareStepResult?.experimental_context ?? experimental_context;
 
-        const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+        const stepActiveTools = filterActiveTools({
+          tools,
+          activeTools: prepareStepResult?.activeTools ?? activeTools,
+        });
 
         const { toolChoice: stepToolChoice, tools: stepTools } =
           await prepareToolsAndToolChoice({
-            tools,
+            tools: stepActiveTools,
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-            activeTools: stepActiveTools,
           });
 
         const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
@@ -727,7 +730,7 @@ export async function generateText<
           messages: stepMessages,
           tools,
           toolChoice: stepToolChoice,
-          activeTools: stepActiveTools,
+          activeTools: prepareStepResult?.activeTools ?? activeTools,
           steps: [...steps],
           providerOptions: stepProviderOptions,
           timeout,

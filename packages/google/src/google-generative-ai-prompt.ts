@@ -62,4 +62,5 @@ export interface GoogleGenerativeAIProviderMetadata {
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
   usageMetadata: GoogleGenerativeAIUsageMetadata | null;
   finishMessage: string | null;
+  serviceTier: string | null;
 }
