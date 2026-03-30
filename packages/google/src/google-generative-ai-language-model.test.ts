@@ -4991,6 +4991,487 @@ describe('doStream', () => {
     `);
   });
 
+  it('should send streamFunctionCallArguments in toolConfig when provider option is set with Vertex provider', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      providerOptions: {
+        vertex: {
+          streamFunctionCallArguments: true,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig).toMatchObject({
+      functionCallingConfig: {
+        streamFunctionCallArguments: true,
+      },
+    });
+  });
+
+  it('should emit warning and not send streamFunctionCallArguments when using non-Vertex provider', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      providerOptions: {
+        google: {
+          streamFunctionCallArguments: true,
+        },
+      },
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const streamStart = events.find(e => e.type === 'stream-start');
+    expect(streamStart?.warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'other',
+        message: expect.stringContaining('streamFunctionCallArguments'),
+      }),
+    );
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(
+      requestBody.toolConfig?.functionCallingConfig
+        ?.streamFunctionCallArguments,
+    ).toBeUndefined();
+  });
+
+  it('should stream partial function call arguments across chunks', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        // Chunk 1: start of function call with name
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'get_weather',
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        // Chunk 2: partial arg for location
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      partialArgs: [
+                        {
+                          jsonPath: '$.location',
+                          stringValue: 'Boston',
+                          willContinue: true,
+                        },
+                      ],
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        // Chunk 3: continuation of location string
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      partialArgs: [
+                        {
+                          jsonPath: '$.location',
+                          stringValue: ', MA',
+                        },
+                      ],
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        // Chunk 4: terminal empty functionCall
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ functionCall: {} }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 5,
+            totalTokenCount: 15,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const toolInputStart = events.find(e => e.type === 'tool-input-start');
+    expect(toolInputStart).toMatchObject({
+      type: 'tool-input-start',
+      id: 'test-id',
+      toolName: 'get_weather',
+    });
+
+    const toolInputDeltas = events.filter(e => e.type === 'tool-input-delta');
+    expect(toolInputDeltas.length).toBeGreaterThanOrEqual(1);
+
+    const toolInputEnd = events.find(e => e.type === 'tool-input-end');
+    expect(toolInputEnd).toMatchObject({
+      type: 'tool-input-end',
+      id: 'test-id',
+    });
+
+    const toolCall = events.find(e => e.type === 'tool-call');
+    expect(toolCall).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'test-id',
+      toolName: 'get_weather',
+      input: JSON.stringify({ location: 'Boston, MA' }),
+    });
+
+    const finishEvent = events.find(e => e.type === 'finish');
+    expect(finishEvent?.finishReason).toMatchObject({
+      unified: 'tool-calls',
+      raw: 'STOP',
+    });
+  });
+
+  it('should stream parallel function calls with partial args', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        // First function call starts
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'get_weather',
+                      partialArgs: [
+                        {
+                          jsonPath: '$.location',
+                          stringValue: 'Boston',
+                        },
+                      ],
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        // First function call terminates
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ functionCall: {} }],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        // Second function call starts
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'get_weather',
+                      partialArgs: [
+                        {
+                          jsonPath: '$.location',
+                          stringValue: 'San Francisco',
+                        },
+                      ],
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        // Second function call terminates
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ functionCall: {} }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 10,
+            totalTokenCount: 20,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const toolCalls = events.filter(e => e.type === 'tool-call');
+    expect(toolCalls).toHaveLength(2);
+    expect(toolCalls[0]).toMatchObject({
+      toolName: 'get_weather',
+      input: JSON.stringify({ location: 'Boston' }),
+    });
+    expect(toolCalls[1]).toMatchObject({
+      toolName: 'get_weather',
+      input: JSON.stringify({ location: 'San Francisco' }),
+    });
+
+    const finishEvent = events.find(e => e.type === 'finish');
+    expect(finishEvent?.finishReason).toMatchObject({
+      unified: 'tool-calls',
+    });
+  });
+
+  it('should handle partial args with number and boolean values', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'control_light',
+                      partialArgs: [
+                        {
+                          jsonPath: '$.brightness',
+                          numberValue: 50,
+                        },
+                      ],
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      partialArgs: [
+                        {
+                          jsonPath: '$.enabled',
+                          boolValue: true,
+                        },
+                      ],
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ functionCall: {} }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 5,
+            candidatesTokenCount: 5,
+            totalTokenCount: 10,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'control_light',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              brightness: { type: 'number' },
+              enabled: { type: 'boolean' },
+            },
+            required: ['brightness', 'enabled'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const toolCall = events.find(e => e.type === 'tool-call');
+    expect(toolCall).toMatchObject({
+      type: 'tool-call',
+      toolName: 'control_light',
+      input: JSON.stringify({ brightness: 50, enabled: true }),
+    });
+  });
+
   it('should only pass valid provider options', async () => {
     prepareChunksFixtureResponse('google-text');
 
