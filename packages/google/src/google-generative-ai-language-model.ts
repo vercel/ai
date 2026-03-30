@@ -940,6 +940,7 @@ type ActiveStreamingToolCall = {
   toolCallId: string;
   toolName: string;
   accumulatedArgs: Record<string, unknown>;
+  jsonText: string;
   providerMetadata?: SharedV4ProviderMetadata;
 };
 
@@ -988,6 +989,7 @@ function processStreamingFunctionCallParts({
           toolCallId,
           toolName: fc.name,
           accumulatedArgs: {},
+          jsonText: '',
           providerMetadata: providerMeta,
         });
 
@@ -1032,6 +1034,16 @@ function processStreamingFunctionCallParts({
       const active = activeStreamingToolCalls.pop()!;
       const finalArgs = JSON.stringify(active.accumulatedArgs);
 
+      const closingDelta = finalArgs.slice(active.jsonText.length);
+      if (closingDelta.length > 0) {
+        controller.enqueue({
+          type: 'tool-input-delta',
+          id: active.toolCallId,
+          delta: closingDelta,
+          providerMetadata: active.providerMetadata,
+        });
+      }
+
       controller.enqueue({
         type: 'tool-input-end',
         id: active.toolCallId,
@@ -1053,6 +1065,22 @@ function processStreamingFunctionCallParts({
   return hasToolCalls;
 }
 
+function resolvePartialArgValue(arg: {
+  stringValue?: string | null;
+  numberValue?: number | null;
+  boolValue?: boolean | null;
+  nullValue?: unknown;
+}): { value: unknown; json: string } | undefined {
+  if (arg.stringValue != null)
+    return { value: arg.stringValue, json: JSON.stringify(arg.stringValue) };
+  if (arg.numberValue != null)
+    return { value: arg.numberValue, json: JSON.stringify(arg.numberValue) };
+  if (arg.boolValue != null)
+    return { value: arg.boolValue, json: JSON.stringify(arg.boolValue) };
+  if ('nullValue' in arg) return { value: null, json: 'null' };
+  return undefined;
+}
+
 function applyPartialArgs(
   active: ActiveStreamingToolCall,
   partialArgs: Array<{
@@ -1070,29 +1098,34 @@ function applyPartialArgs(
     const key = arg.jsonPath.replace(/^\$\./, '');
     if (!key) continue;
 
-    let value: unknown;
-    if (arg.stringValue != null) {
-      const existingValue = active.accumulatedArgs[key];
-      if (typeof existingValue === 'string') {
-        active.accumulatedArgs[key] = existingValue + arg.stringValue;
-      } else {
-        active.accumulatedArgs[key] = arg.stringValue;
-      }
-      value = arg.stringValue;
-    } else if (arg.numberValue != null) {
-      active.accumulatedArgs[key] = arg.numberValue;
-      value = arg.numberValue;
-    } else if (arg.boolValue != null) {
-      active.accumulatedArgs[key] = arg.boolValue;
-      value = arg.boolValue;
-    } else if ('nullValue' in arg) {
-      active.accumulatedArgs[key] = null;
-      value = null;
+    const isStringContinuation =
+      arg.stringValue != null && key in active.accumulatedArgs;
+
+    if (isStringContinuation) {
+      const escaped = JSON.stringify(arg.stringValue).slice(1, -1);
+      active.accumulatedArgs[key] =
+        (active.accumulatedArgs[key] as string) + arg.stringValue;
+      active.jsonText += escaped;
+      delta += escaped;
+      continue;
     }
 
-    if (value !== undefined) {
-      delta += JSON.stringify({ [key]: value });
-    }
+    const resolved = resolvePartialArgValue(arg);
+    if (resolved == null) continue;
+
+    active.accumulatedArgs[key] = resolved.value;
+
+    // For strings that will continue, strip the closing quote
+    const valueJson =
+      arg.stringValue != null && arg.willContinue
+        ? resolved.json.slice(0, -1)
+        : resolved.json;
+
+    const prefix =
+      active.jsonText === '' ? '{' : active.jsonText.endsWith('{') ? '' : ',';
+    const fragment = `${prefix}${JSON.stringify(key)}:${valueJson}`;
+    active.jsonText += fragment;
+    delta += fragment;
   }
 
   return delta;

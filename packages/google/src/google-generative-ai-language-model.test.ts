@@ -5595,6 +5595,221 @@ describe('doStream', () => {
     });
   });
 
+  it('should emit escaped tool input deltas for continued string partial args', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'search_airport',
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      partialArgs: [
+                        {
+                          jsonPath: '$.query',
+                          stringValue: 'Boston "Lo',
+                          willContinue: true,
+                        },
+                      ],
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      partialArgs: [
+                        {
+                          jsonPath: '$.query',
+                          stringValue: 'gan"',
+                        },
+                      ],
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ functionCall: {} }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 7,
+            candidatesTokenCount: 6,
+            totalTokenCount: 13,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'search_airport',
+          inputSchema: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(
+      events
+        .filter(e => e.type === 'tool-input-delta')
+        .map(event => event.delta),
+    ).toEqual(['{"query":"Boston \\"Lo', 'gan\\"', '"}']);
+
+    expect(events.find(e => e.type === 'tool-call')).toMatchObject({
+      type: 'tool-call',
+      toolName: 'search_airport',
+      input: JSON.stringify({ query: 'Boston "Logan"' }),
+    });
+  });
+
+  it('should accumulate null partial args alongside other primitive values', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'set_preferences',
+                      partialArgs: [
+                        {
+                          jsonPath: '$.brightness',
+                          numberValue: 50,
+                        },
+                        {
+                          jsonPath: '$.enabled',
+                          boolValue: false,
+                        },
+                        {
+                          jsonPath: '$.nickname',
+                          nullValue: {},
+                        },
+                      ],
+                      willContinue: true,
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ functionCall: {} }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 6,
+            candidatesTokenCount: 5,
+            totalTokenCount: 11,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'set_preferences',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              brightness: { type: 'number' },
+              enabled: { type: 'boolean' },
+              nickname: { type: 'null' },
+            },
+            required: ['brightness', 'enabled', 'nickname'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(
+      events
+        .filter(e => e.type === 'tool-input-delta')
+        .map(event => event.delta),
+    ).toEqual(['{"brightness":50,"enabled":false,"nickname":null', '}']);
+
+    expect(events.find(e => e.type === 'tool-call')).toMatchObject({
+      type: 'tool-call',
+      toolName: 'set_preferences',
+      input: JSON.stringify({
+        brightness: 50,
+        enabled: false,
+        nickname: null,
+      }),
+    });
+  });
+
   it('should only pass valid provider options', async () => {
     prepareChunksFixtureResponse('google-text');
 
