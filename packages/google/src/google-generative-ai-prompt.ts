@@ -45,4 +45,5 @@ export interface GoogleGenerativeAIProviderMetadata {
   groundingMetadata: GoogleGenerativeAIGroundingMetadata | null;
   urlContextMetadata: GoogleGenerativeAIUrlContextMetadata | null;
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
+  serviceTier: string | null;
 }
