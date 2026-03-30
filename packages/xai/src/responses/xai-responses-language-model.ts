@@ -227,7 +227,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
+<<<<<<< HEAD
     const content: Array<LanguageModelV3Content> = [];
+=======
+    const content: Array<LanguageModelV4Content> = [];
+    let hasFunctionCall = false;
+>>>>>>> 9f20868cc (fix(xai): correctly map the finish-reason (#13909))
 
     const webSearchSubTools = [
       'web_search',
@@ -350,6 +355,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'function_call': {
+          hasFunctionCall = true;
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -398,7 +404,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: {
-        unified: mapXaiResponsesFinishReason(response.status),
+        unified: hasFunctionCall
+          ? 'tool-calls'
+          : mapXaiResponsesFinishReason(response.status),
         raw: response.status ?? undefined,
       },
       usage: response.usage
@@ -450,7 +458,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
+<<<<<<< HEAD
     let usage: LanguageModelV3Usage | undefined = undefined;
+=======
+    let hasFunctionCall = false;
+    let usage: LanguageModelV4Usage | undefined = undefined;
+>>>>>>> 9f20868cc (fix(xai): correctly map the finish-reason (#13909))
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -643,7 +656,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
               if (response.status) {
                 finishReason = {
-                  unified: mapXaiResponsesFinishReason(response.status),
+                  unified: hasFunctionCall
+                    ? 'tool-calls'
+                    : mapXaiResponsesFinishReason(response.status),
                   raw: response.status,
                 };
               }
@@ -911,6 +926,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     toolName: part.name,
                   });
                 } else if (event.type === 'response.output_item.done') {
+                  hasFunctionCall = true;
                   ongoingToolCalls[event.output_index] = undefined;
 
                   controller.enqueue({
