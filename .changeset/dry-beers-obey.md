@@ -3,4 +3,4 @@
 "ai": patch
 ---
 
-refactoring(ai): extract and expose filterActiveTools
+refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
