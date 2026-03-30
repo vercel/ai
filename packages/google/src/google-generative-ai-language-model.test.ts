@@ -515,6 +515,7 @@ describe('doGenerate', () => {
       },
     };
 
+<<<<<<< HEAD
     const { content, finishReason } = await model.doGenerate({
       tools: [
         {
@@ -526,6 +527,113 @@ describe('doGenerate', () => {
             required: ['value'],
             additionalProperties: false,
             $schema: 'http://json-schema.org/draft-07/schema#',
+=======
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBe(
+      "Malformed function call: print(default_api.create(name='test'))",
+    );
+  });
+
+  it('should expose null finishMessage in provider metadata when not present', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.finishMessage).toBeNull();
+  });
+
+  it('should send serviceTier in request body when specified', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          serviceTier: 'SERVICE_TIER_FLEX',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      serviceTier: 'SERVICE_TIER_FLEX',
+    });
+  });
+
+  it('should not send serviceTier in request body when not specified', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('serviceTier');
+  });
+
+  it('should expose serviceTier in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'test response' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
+        serviceTier: 'SERVICE_TIER_FLEX',
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.serviceTier).toBe('SERVICE_TIER_FLEX');
+  });
+
+  it('should expose null serviceTier in provider metadata when not present', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.serviceTier).toBeNull();
+  });
+
+  describe('tool-call', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('google-tool-call');
+    });
+
+    it('should extract tool calls', async () => {
+      const result = await model.doGenerate({
+        tools: [
+          {
+            type: 'function',
+            name: 'weather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+>>>>>>> 4e22c2c07 (Backport: feat(provider/google): add support for service tier parameter (#13916))
           },
         },
       ],
@@ -2751,6 +2859,60 @@ describe('doStream', () => {
     });
   });
 
+  it('should expose serviceTier in provider metadata on finish', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'test response' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+          serviceTier: 'SERVICE_TIER_FLEX',
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.serviceTier,
+    ).toBe('SERVICE_TIER_FLEX');
+  });
+
+  it('should expose null serviceTier in provider metadata on finish when not present', async () => {
+    prepareStreamResponse({ content: ['test'] });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.serviceTier,
+    ).toBeNull();
+  });
+
   it('should stream code execution tool calls and results', async () => {
     server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
       type: 'stream-chunks',
@@ -3202,6 +3364,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "serviceTier": null,
               "urlContextMetadata": null,
             },
           },
@@ -3556,6 +3719,7 @@ describe('doStream', () => {
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": null,
+              "serviceTier": null,
               "urlContextMetadata": null,
               "usageMetadata": {
                 "candidatesTokenCount": 18,
@@ -3702,6 +3866,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "serviceTier": null,
               "urlContextMetadata": null,
             },
           },

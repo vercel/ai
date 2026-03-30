@@ -184,6 +184,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           : googleToolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
+        serviceTier: googleOptions?.serviceTier,
       },
       warnings: [...warnings, ...toolWarnings],
     };
@@ -322,7 +323,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
           usageMetadata: usageMetadata ?? null,
+<<<<<<< HEAD
         },
+=======
+          finishMessage: candidate.finishMessage ?? null,
+          serviceTier: response.serviceTier ?? null,
+        } satisfies GoogleGenerativeAIProviderMetadata,
+>>>>>>> 4e22c2c07 (Backport: feat(provider/google): add support for service tier parameter (#13916))
       },
       request: { body },
       response: {
@@ -365,6 +372,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
+    let serviceTier: string | null = null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -412,6 +420,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 usageMetadata.thoughtsTokenCount ?? undefined;
               usage.cachedInputTokens =
                 usageMetadata.cachedContentTokenCount ?? undefined;
+            }
+
+            if (value.serviceTier != null) {
+              serviceTier = value.serviceTier;
             }
 
             const candidate = value.candidates?.[0];
@@ -621,7 +633,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                   groundingMetadata: lastGroundingMetadata,
                   urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
+<<<<<<< HEAD
                 },
+=======
+                  usageMetadata: usageMetadata ?? null,
+                  finishMessage: candidate.finishMessage ?? null,
+                  serviceTier,
+                } satisfies GoogleGenerativeAIProviderMetadata,
+>>>>>>> 4e22c2c07 (Backport: feat(provider/google): add support for service tier parameter (#13916))
               };
               if (usageMetadata != null) {
                 providerMetadata.google.usageMetadata = usageMetadata;
@@ -957,6 +976,7 @@ const responseSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
+      serviceTier: z.string().nullish(),
     }),
   ),
 );
@@ -1007,6 +1027,7 @@ const chunkSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
+      serviceTier: z.string().nullish(),
     }),
   ),
 );
