@@ -2,7 +2,7 @@
 
 import ChatInput from '@/components/chat-input';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, FileUIPart } from 'ai';
+import { DefaultChatTransport, FileUIPart, generateId } from 'ai';
 import { useRef, useState } from 'react';
 
 const MODELS = [
@@ -98,7 +98,7 @@ export default function UploadFilePage() {
         provider: selectedModel.provider,
       });
 
-      const id = crypto.randomUUID();
+      const id = generateId();
 
       setUploadedFiles(prev => [
         ...prev,
