@@ -1,5 +1,19 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- 0ee8aec: feat (provider/anthropic): support passing metadata.user_id
+
 ## 4.0.0-beta.10
 
 ### Patch Changes

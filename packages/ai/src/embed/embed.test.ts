@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockTracer } from '../test/mock-tracer';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 import { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { embed } from './embed';
 import type { EmbedOnStartEvent, EmbedOnFinishEvent } from './embed-events';
@@ -236,7 +237,9 @@ describe('telemetry', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_telemetry: { tracer },
+      experimental_telemetry: {
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
     });
 
     expect(tracer.jsonSpans).toMatchSnapshot();
@@ -255,7 +258,7 @@ describe('telemetry', () => {
           test1: 'value1',
           test2: false,
         },
-        tracer,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
 
@@ -272,7 +275,7 @@ describe('telemetry', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        tracer,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
 

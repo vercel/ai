@@ -681,6 +681,43 @@ describe('OpenTelemetryIntegration', () => {
       expect(parsed[0].toolName).toBe('myTool');
     });
 
+    it('includes files when present', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({
+          files: [
+            {
+              mediaType: 'image/png',
+              base64: 'iVBORw0KGgo=',
+            },
+          ],
+        }),
+      );
+
+      const stepSpan = tracer.spans[1];
+      const setAttrsCall = getSetAttributesArg(stepSpan);
+      expect(setAttrsCall['ai.response.files']).toBeDefined();
+      const parsed = JSON.parse(setAttrsCall['ai.response.files'] as string);
+      expect(parsed).toEqual([
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'iVBORw0KGgo=',
+        },
+      ]);
+    });
+
+    it('does not include files when empty', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(makeStepFinishEvent({ files: [] }));
+
+      const stepSpan = tracer.spans[1];
+      const setAttrsCall = getSetAttributesArg(stepSpan);
+      expect(setAttrsCall['ai.response.files']).toBeUndefined();
+    });
+
     it('does nothing without prior step span', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
@@ -744,6 +781,34 @@ describe('OpenTelemetryIntegration', () => {
       const rootSpan = tracer.spans[0];
       const setAttrsCall = getSetAttributesArg(rootSpan);
       expect(setAttrsCall['ai.response.finishReason']).toBe('stop');
+    });
+
+    it('includes files in root span when present', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(makeStepFinishEvent());
+      otelIntegration.onFinish!(
+        makeFinishEvent({
+          files: [
+            {
+              mediaType: 'image/png',
+              base64: 'iVBORw0KGgo=',
+            },
+          ],
+        }),
+      );
+
+      const rootSpan = tracer.spans[0];
+      const setAttrsCall = getSetAttributesArg(rootSpan);
+      expect(setAttrsCall['ai.response.files']).toBeDefined();
+      const parsed = JSON.parse(setAttrsCall['ai.response.files'] as string);
+      expect(parsed).toEqual([
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'iVBORw0KGgo=',
+        },
+      ]);
     });
 
     it('cleans up call state after finishing', () => {

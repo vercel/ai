@@ -7,11 +7,11 @@ import {
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { asLanguageModelUsage } from '../types/usage';
-import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
+import { ModelCallStreamPart } from './stream-model-call';
 
 const finishChunk = {
-  type: 'finish' as const,
+  type: 'model-call-end' as const,
   finishReason: 'stop' as const,
   rawFinishReason: 'stop' as const,
   usage: asLanguageModelUsage({
@@ -38,17 +38,16 @@ describe('createExecuteToolsTransformation', () => {
       }),
     };
 
-    const inputStream: ReadableStream<
-      UglyTransformedStreamTextPart<typeof tools>
-    > = convertArrayToReadableStream([
-      {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'syncTool',
-        input: { value: 'test' },
-      },
-      finishChunk,
-    ]);
+    const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'syncTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]);
 
     const transformedStream = inputStream.pipeThrough(
       createExecuteToolsTransformation({
@@ -75,19 +74,9 @@ describe('createExecuteToolsTransformation', () => {
             "type": "tool-call",
           },
           {
-            "dynamic": false,
-            "input": {
-              "value": "test",
-            },
-            "output": "test-sync-result",
-            "toolCallId": "call-1",
-            "toolName": "syncTool",
-            "type": "tool-result",
-          },
-          {
             "finishReason": "stop",
             "rawFinishReason": "stop",
-            "type": "finish",
+            "type": "model-call-end",
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -106,6 +95,16 @@ describe('createExecuteToolsTransformation', () => {
               "totalTokens": 13,
             },
           },
+          {
+            "dynamic": false,
+            "input": {
+              "value": "test",
+            },
+            "output": "test-sync-result",
+            "toolCallId": "call-1",
+            "toolName": "syncTool",
+            "type": "tool-result",
+          },
         ]
       `);
   });
@@ -118,17 +117,16 @@ describe('createExecuteToolsTransformation', () => {
       }),
     };
 
-    const inputStream: ReadableStream<
-      UglyTransformedStreamTextPart<typeof tools>
-    > = convertArrayToReadableStream([
-      {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'syncTool',
-        input: { value: 'test' },
-      },
-      finishChunk,
-    ]);
+    const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'syncTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]);
 
     const transformedStream = createExecuteToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
@@ -146,113 +144,19 @@ describe('createExecuteToolsTransformation', () => {
         inputStream.pipeThrough(transformedStream),
       ),
     ).toMatchInlineSnapshot(`
-        [
-          {
-            "input": {
-              "value": "test",
-            },
-            "toolCallId": "call-1",
-            "toolName": "syncTool",
-            "type": "tool-call",
-          },
-          {
-            "dynamic": false,
-            "input": {
-              "value": "test",
-            },
-            "output": "test-sync-result",
-            "toolCallId": "call-1",
-            "toolName": "syncTool",
-            "type": "tool-result",
-          },
-          {
-            "finishReason": "stop",
-            "rawFinishReason": "stop",
-            "type": "finish",
-            "usage": {
-              "cachedInputTokens": undefined,
-              "inputTokenDetails": {
-                "cacheReadTokens": undefined,
-                "cacheWriteTokens": undefined,
-                "noCacheTokens": 3,
-              },
-              "inputTokens": 3,
-              "outputTokenDetails": {
-                "reasoningTokens": undefined,
-                "textTokens": 10,
-              },
-              "outputTokens": 10,
-              "raw": undefined,
-              "reasoningTokens": undefined,
-              "totalTokens": 13,
-            },
-          },
-        ]
-      `);
-  });
-
-  it('should hold off on sending finish until the delayed tool result is received', async () => {
-    const tools = {
-      delayedTool: tool({
-        inputSchema: z.object({ value: z.string() }),
-        execute: async ({ value }) => {
-          await delay(0); // Simulate delayed execution
-          return `${value}-delayed-result`;
-        },
-      }),
-    };
-
-    const inputStream: ReadableStream<
-      UglyTransformedStreamTextPart<typeof tools>
-    > = convertArrayToReadableStream([
-      {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'delayedTool',
-        input: { value: 'test' },
-      },
-      finishChunk,
-    ]);
-
-    const transformedStream = inputStream.pipeThrough(
-      createExecuteToolsTransformation({
-        generateId: mockId({ prefix: 'id' }),
-        tools,
-        telemetry: undefined,
-        callId: 'test-telemetry-call-id',
-        messages: [],
-        abortSignal: undefined,
-        timeout: undefined,
-        experimental_context: undefined,
-      }),
-    );
-
-    const result = await convertReadableStreamToArray(transformedStream);
-
-    expect(result).toMatchInlineSnapshot(`
       [
         {
           "input": {
             "value": "test",
           },
           "toolCallId": "call-1",
-          "toolName": "delayedTool",
+          "toolName": "syncTool",
           "type": "tool-call",
-        },
-        {
-          "dynamic": false,
-          "input": {
-            "value": "test",
-          },
-          "output": "test-delayed-result",
-          "toolCallId": "call-1",
-          "toolName": "delayedTool",
-          "type": "tool-result",
         },
         {
           "finishReason": "stop",
           "rawFinishReason": "stop",
-          "type": "finish",
+          "type": "model-call-end",
           "usage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -271,6 +175,16 @@ describe('createExecuteToolsTransformation', () => {
             "totalTokens": 13,
           },
         },
+        {
+          "dynamic": false,
+          "input": {
+            "value": "test",
+          },
+          "output": "test-sync-result",
+          "toolCallId": "call-1",
+          "toolName": "syncTool",
+          "type": "tool-result",
+        },
       ]
     `);
   });
@@ -288,26 +202,25 @@ describe('createExecuteToolsTransformation', () => {
 
     let toolExecuted = false;
 
-    const inputStream: ReadableStream<
-      UglyTransformedStreamTextPart<typeof tools>
-    > = convertArrayToReadableStream([
-      {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'providerTool',
-        input: { value: 'test' },
-        providerExecuted: true,
-      },
-      {
-        type: 'tool-result',
-        toolCallId: 'call-1',
-        toolName: 'providerTool',
-        providerExecuted: true,
-        input: { value: 'test' },
-        output: 'example-result',
-      },
-      finishChunk,
-    ]);
+    const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'providerTool',
+          input: { value: 'test' },
+          providerExecuted: true,
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'providerTool',
+          providerExecuted: true,
+          input: { value: 'test' },
+          output: 'example-result',
+        },
+        finishChunk,
+      ]);
 
     const transformedStream = inputStream.pipeThrough(
       createExecuteToolsTransformation({
@@ -341,17 +254,16 @@ describe('createExecuteToolsTransformation', () => {
 
       const callOrder: string[] = [];
 
-      const inputStream: ReadableStream<
-        UglyTransformedStreamTextPart<typeof tools>
-      > = convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'testTool',
-          input: { value: 'hello' },
-        },
-        finishChunk,
-      ]);
+      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { value: 'hello' },
+          },
+          finishChunk,
+        ]);
 
       const transformedStream = inputStream.pipeThrough(
         createExecuteToolsTransformation({
@@ -392,17 +304,16 @@ describe('createExecuteToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<
-        UglyTransformedStreamTextPart<typeof tools>
-      > = convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'testTool',
-          input: { value: 'test' },
-        },
-        finishChunk,
-      ]);
+      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { value: 'test' },
+          },
+          finishChunk,
+        ]);
 
       const transformedStream = inputStream.pipeThrough(
         createExecuteToolsTransformation({
@@ -466,17 +377,16 @@ describe('createExecuteToolsTransformation', () => {
 
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<
-        UglyTransformedStreamTextPart<typeof tools>
-      > = convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'testTool',
-          input: { value: 'abc' },
-        },
-        finishChunk,
-      ]);
+      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { value: 'abc' },
+          },
+          finishChunk,
+        ]);
 
       const transformedStream = inputStream.pipeThrough(
         createExecuteToolsTransformation({
@@ -524,17 +434,16 @@ describe('createExecuteToolsTransformation', () => {
       const finishEvents: unknown[] = [];
       const toolError = new Error('tool failed');
 
-      const inputStream: ReadableStream<
-        UglyTransformedStreamTextPart<typeof tools>
-      > = convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'failingTool',
-          input: { value: 'test' },
-        },
-        finishChunk,
-      ]);
+      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'failingTool',
+            input: { value: 'test' },
+          },
+          finishChunk,
+        ]);
 
       const transformedStream = inputStream.pipeThrough(
         createExecuteToolsTransformation({
@@ -575,17 +484,16 @@ describe('createExecuteToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<
-        UglyTransformedStreamTextPart<typeof tools>
-      > = convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'noExecuteTool',
-          input: { value: 'test' },
-        },
-        finishChunk,
-      ]);
+      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'noExecuteTool',
+            input: { value: 'test' },
+          },
+          finishChunk,
+        ]);
 
       const transformedStream = inputStream.pipeThrough(
         createExecuteToolsTransformation({
@@ -623,23 +531,22 @@ describe('createExecuteToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<
-        UglyTransformedStreamTextPart<typeof tools>
-      > = convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'testTool',
-          input: { value: 'a' },
-        },
-        {
-          type: 'tool-call',
-          toolCallId: 'call-2',
-          toolName: 'testTool',
-          input: { value: 'b' },
-        },
-        finishChunk,
-      ]);
+      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { value: 'a' },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-2',
+            toolName: 'testTool',
+            input: { value: 'b' },
+          },
+          finishChunk,
+        ]);
 
       const transformedStream = inputStream.pipeThrough(
         createExecuteToolsTransformation({
@@ -677,26 +584,25 @@ describe('createExecuteToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<
-        UglyTransformedStreamTextPart<typeof tools>
-      > = convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'providerTool',
-          input: { value: 'test' },
-          providerExecuted: true,
-        },
-        {
-          type: 'tool-result',
-          toolCallId: 'call-1',
-          toolName: 'providerTool',
-          providerExecuted: true,
-          input: { value: 'test' },
-          output: { result: 'example' },
-        },
-        finishChunk,
-      ]);
+      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'providerTool',
+            input: { value: 'test' },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'providerTool',
+            providerExecuted: true,
+            input: { value: 'test' },
+            output: { result: 'example' },
+          },
+          finishChunk,
+        ]);
 
       const transformedStream = inputStream.pipeThrough(
         createExecuteToolsTransformation({
@@ -739,17 +645,16 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const inputStream: ReadableStream<
-        UglyTransformedStreamTextPart<typeof tools>
-      > = convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'failingTool',
-          input: { value: 'test' },
-        },
-        finishChunk,
-      ]);
+      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'failingTool',
+            input: { value: 'test' },
+          },
+          finishChunk,
+        ]);
 
       const toolError = new Error('Tool execution failed!');
 
@@ -768,28 +673,50 @@ describe('createExecuteToolsTransformation', () => {
 
       const result = await convertReadableStreamToArray(transformedStream);
 
-      // tool-call should come first
-      expect(result[0]).toMatchObject({
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'failingTool',
-      });
-
-      // tool-error should be included
-      expect(result).toContainEqual(
-        expect.objectContaining({
-          type: 'tool-error',
-          toolCallId: 'call-1',
-          toolName: 'failingTool',
-          error: toolError,
-        }),
-      );
-
-      // finish should come last (stream closes properly)
-      expect(result[result.length - 1]).toMatchObject({
-        type: 'finish',
-        finishReason: 'stop',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "failingTool",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "type": "model-call-end",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "dynamic": false,
+            "error": [Error: Tool execution failed!],
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "failingTool",
+            "type": "tool-error",
+          },
+        ]
+      `);
     });
 
     it('should handle error thrown in sync tool execution', async () => {
@@ -805,17 +732,16 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const inputStream: ReadableStream<
-        UglyTransformedStreamTextPart<typeof tools>
-      > = convertArrayToReadableStream([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'failingTool',
-          input: { value: 'test' },
-        },
-        finishChunk,
-      ]);
+      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'failingTool',
+            input: { value: 'test' },
+          },
+          finishChunk,
+        ]);
 
       const toolError = new Error('Sync tool failed!');
 
@@ -833,20 +759,50 @@ describe('createExecuteToolsTransformation', () => {
 
       const result = await convertReadableStreamToArray(transformedStream);
 
-      // tool-error should be included
-      expect(result).toContainEqual(
-        expect.objectContaining({
-          type: 'tool-error',
-          toolCallId: 'call-1',
-          toolName: 'failingTool',
-          error: toolError,
-        }),
-      );
-
-      // stream should close properly
-      expect(result[result.length - 1]).toMatchObject({
-        type: 'finish',
-      });
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "failingTool",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "type": "model-call-end",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "dynamic": false,
+            "error": [Error: Sync tool failed!],
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "failingTool",
+            "type": "tool-error",
+          },
+        ]
+      `);
     });
   });
 });

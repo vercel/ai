@@ -96,6 +96,8 @@ exports[`result.responses > should include responses in the result 1`] = `
 ]
 `;
 
+exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+
 exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {

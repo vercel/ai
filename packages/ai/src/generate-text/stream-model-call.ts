@@ -1,15 +1,37 @@
 import {
   getErrorMessage,
-  LanguageModelV4ResponseMetadata,
+  LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
-  SharedV4Warning,
+  SharedV4Headers,
 } from '@ai-sdk/provider';
-import { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
+import {
+  ModelMessage,
+  ProviderOptions,
+  SystemModelMessage,
+} from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
-import { FinishReason } from '../types/language-model';
+import { resolveLanguageModel } from '../model/resolve-model';
+import { CallSettings, Prompt } from '../prompt';
+import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
+import { standardizePrompt } from '../prompt/standardize-prompt';
+import {
+  CallWarning,
+  FinishReason,
+  LanguageModel,
+  ToolChoice,
+} from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
+import { DownloadFunction } from '../util/download/download-function';
+import { notify } from '../util/notify';
+import { prepareRetries } from '../util/prepare-retries';
 import { DefaultGeneratedFileWithType } from './generated-file';
+import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import {
   TextStreamFilePart,
@@ -28,7 +50,7 @@ import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
-export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
+export type ModelCallStreamPart<TOOLS extends ToolSet = ToolSet> =
   | Exclude<
       TextStreamPart<TOOLS>,
       {
@@ -50,26 +72,164 @@ export type UglyTransformedStreamTextPart<TOOLS extends ToolSet> =
   | TextStreamToolCallPart<TOOLS>
   | TextStreamToolResultPart<TOOLS>
   | TextStreamToolErrorPart<TOOLS>
-
-  // the finish part is special because it gets further transformed into
-  // a finish-step part (which includes additional response information and
-  // can have a different finish reason):
   | {
-      type: 'finish';
+      type: 'model-call-end';
       finishReason: FinishReason;
       rawFinishReason: string | undefined;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
     }
-
-  // TODO check if we need to transform these parts?
   | {
-      type: 'stream-start';
-      warnings: Array<SharedV4Warning>;
+      type: 'model-call-start';
+      warnings: Array<CallWarning>;
     }
-  | ({ type: 'response-metadata' } & LanguageModelV4ResponseMetadata);
+  | {
+      type: 'model-call-response-metadata';
 
-export function createStreamTextPartTransform<TOOLS extends ToolSet>({
+      /**
+       * ID for the generated response, if the provider sends one.
+       */
+      id?: string;
+
+      /**
+       * Timestamp for the start of the generated response, if the provider sends one.
+       */
+      timestamp?: Date;
+
+      /**
+       * The ID of the response model that was used to generate the response, if the provider sends one.
+       */
+      modelId?: string;
+    };
+
+export async function streamModelCall<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output = Output,
+>({
+  model,
+  tools,
+  output,
+  toolChoice,
+  activeTools,
+  prompt,
+  system,
+  messages,
+  download,
+  maxRetries,
+  abortSignal,
+  headers,
+  includeRawChunks,
+  providerOptions,
+  repairToolCall,
+  onStart,
+  ...callSettings
+}: {
+  model: LanguageModel;
+  tools?: TOOLS;
+  output?: OUTPUT;
+  toolChoice?: ToolChoice<TOOLS>;
+  activeTools?: Array<keyof NoInfer<TOOLS>>;
+  download?: DownloadFunction;
+  headers?: Record<string, string | undefined>;
+  includeRawChunks?: boolean;
+  providerOptions?: ProviderOptions;
+  repairToolCall?: ToolCallRepairFunction<TOOLS> | undefined;
+
+  // onStart is currently required because the telemetry callbacks need
+  // LanguageModelV4Prompt and we only want download URLs at most once.
+  // Therefore convertToLanguageModelPrompt can only be called once
+  // per step and the resulting LanguageModelV4Prompt needs to be
+  // passed to the onStart callback.
+  //
+  // TODO explore decoupling by changing the telemetry callbacks to accept
+  // a Prompt or a standardized Prompt.
+  onStart?: (args: {
+    promptMessages: LanguageModelV4Prompt;
+  }) => Promise<void> | void;
+} & Prompt &
+  CallSettings): Promise<{
+  stream: AsyncIterableStream<ModelCallStreamPart<TOOLS>>;
+  request?: {
+    /**
+     * Request HTTP body that was sent to the provider API.
+     */
+    body?: unknown;
+  };
+  response?: {
+    /**
+     * Response headers.
+     */
+    headers?: SharedV4Headers;
+  };
+}> {
+  const resolvedModel = resolveLanguageModel(model);
+
+  const { retry } = prepareRetries({ maxRetries, abortSignal });
+
+  const standardizedPrompt = await standardizePrompt({
+    system,
+    prompt,
+    messages,
+  } as Prompt);
+
+  const promptMessages = await convertToLanguageModelPrompt({
+    prompt: {
+      system: standardizedPrompt.system,
+      messages: standardizedPrompt.messages,
+    },
+    supportedUrls: await resolvedModel.supportedUrls,
+    download,
+  });
+
+  const { toolChoice: stepToolChoice, tools: stepTools } =
+    await prepareToolsAndToolChoice({
+      tools,
+      toolChoice,
+      activeTools,
+    });
+
+  await notify({
+    event: { promptMessages },
+    callbacks: onStart,
+  });
+
+  const {
+    stream: languageModelStream,
+    response,
+    request,
+  } = await retry(async () =>
+    resolvedModel.doStream({
+      ...callSettings,
+      tools: stepTools,
+      toolChoice: stepToolChoice,
+      responseFormat: await output?.responseFormat,
+      prompt: promptMessages,
+      providerOptions,
+      abortSignal,
+      headers,
+      includeRawChunks,
+    }),
+  );
+
+  const standardizedStream = languageModelStream.pipeThrough(
+    createLanguageModelStreamPartToModelCallStreamPartTransform({
+      tools,
+      system: standardizedPrompt.system,
+      messages: standardizedPrompt.messages,
+      repairToolCall,
+    }),
+  );
+
+  return {
+    stream: createAsyncIterableStream(standardizedStream),
+    response,
+    request,
+  };
+}
+
+function createLanguageModelStreamPartToModelCallStreamPartTransform<
+  TOOLS extends ToolSet,
+>({
   tools,
   system,
   messages,
@@ -86,7 +246,7 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
 
   return new TransformStream<
     LanguageModelV4StreamPart,
-    UglyTransformedStreamTextPart<TOOLS>
+    ModelCallStreamPart<TOOLS>
   >({
     async transform(chunk, controller) {
       switch (chunk.type) {
@@ -123,7 +283,7 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
 
         case 'finish': {
           controller.enqueue({
-            type: 'finish',
+            type: 'model-call-end',
             finishReason: chunk.finishReason.unified,
             rawFinishReason: chunk.finishReason.raw,
             usage: asLanguageModelUsage(chunk.usage),
@@ -227,6 +387,24 @@ export function createStreamTextPartTransform<TOOLS extends ToolSet>({
             ...chunk,
             dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
             title: tool?.title,
+          });
+          break;
+        }
+
+        case 'stream-start': {
+          controller.enqueue({
+            type: 'model-call-start',
+            warnings: chunk.warnings,
+          });
+          break;
+        }
+
+        case 'response-metadata': {
+          controller.enqueue({
+            type: 'model-call-response-metadata',
+            id: chunk.id,
+            timestamp: chunk.timestamp,
+            modelId: chunk.modelId,
           });
           break;
         }
