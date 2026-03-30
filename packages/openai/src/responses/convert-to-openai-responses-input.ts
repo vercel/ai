@@ -740,6 +740,11 @@ export async function convertToOpenAIResponsesInput({
                           filename: item.filename ?? 'data',
                           file_data: `data:${item.mediaType};base64,${item.data}`,
                         };
+                      case 'file-url':
+                        return {
+                          type: 'input_file' as const,
+                          file_url: item.url,
+                        };
                       default:
                         warnings.push({
                           type: 'other',
@@ -801,6 +806,13 @@ export async function convertToOpenAIResponsesInput({
                         type: 'input_file' as const,
                         filename: item.filename ?? 'data',
                         file_data: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    case 'file-url': {
+                      return {
+                        type: 'input_file' as const,
+                        file_url: item.url,
                       };
                     }
 
