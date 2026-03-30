@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 4.0.97
+
+### Patch Changes
+
+- afb6886: feat (provider/google-vertex): add support for maas models
+
 ## 4.0.96
 
 ### Patch Changes
