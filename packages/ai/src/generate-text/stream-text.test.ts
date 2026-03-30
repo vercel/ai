@@ -9587,10 +9587,8 @@ describe('streamText', () => {
               "seed": undefined,
               "stopSequences": undefined,
               "temperature": undefined,
-              "toolChoice": {
-                "type": "auto",
-              },
-              "tools": [],
+              "toolChoice": undefined,
+              "tools": undefined,
               "topK": undefined,
               "topP": undefined,
             },
