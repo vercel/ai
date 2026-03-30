@@ -193,12 +193,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-<<<<<<< HEAD
     const content: Array<LanguageModelV2Content> = [];
-=======
-    const content: Array<LanguageModelV3Content> = [];
     let hasFunctionCall = false;
->>>>>>> 5d6154778 (Backport: fix(xai): correctly map the finish-reason (#13922))
 
     const webSearchSubTools = [
       'web_search',
@@ -335,23 +331,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
 
     return {
       content,
-<<<<<<< HEAD
-      finishReason: mapXaiResponsesFinishReason(response.status),
+      finishReason: hasFunctionCall
+        ? 'tool-calls'
+        : mapXaiResponsesFinishReason(response.status),
       usage: convertXaiResponsesUsage(response.usage),
-=======
-      finishReason: {
-        unified: hasFunctionCall
-          ? 'tool-calls'
-          : mapXaiResponsesFinishReason(response.status),
-        raw: response.status ?? undefined,
-      },
-      usage: response.usage
-        ? convertXaiResponsesUsage(response.usage)
-        : {
-            inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-            outputTokens: { total: 0, text: 0, reasoning: 0 },
-          },
->>>>>>> 5d6154778 (Backport: fix(xai): correctly map the finish-reason (#13922))
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -395,11 +378,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
-<<<<<<< HEAD
-=======
     let hasFunctionCall = false;
-    let usage: LanguageModelV3Usage | undefined = undefined;
->>>>>>> 5d6154778 (Backport: fix(xai): correctly map the finish-reason (#13922))
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -595,16 +574,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
               }
 
               if (response.status) {
-<<<<<<< HEAD
-                finishReason = mapXaiResponsesFinishReason(response.status);
-=======
-                finishReason = {
-                  unified: hasFunctionCall
-                    ? 'tool-calls'
-                    : mapXaiResponsesFinishReason(response.status),
-                  raw: response.status,
-                };
->>>>>>> 5d6154778 (Backport: fix(xai): correctly map the finish-reason (#13922))
+                finishReason = hasFunctionCall
+                  ? 'tool-calls'
+                  : mapXaiResponsesFinishReason(response.status);
               }
 
               return;

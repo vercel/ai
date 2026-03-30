@@ -195,12 +195,7 @@ describe('XaiResponsesLanguageModel', () => {
           ],
         });
 
-        expect(result.finishReason).toMatchInlineSnapshot(`
-          {
-            "raw": "completed",
-            "unified": "tool-calls",
-          }
-        `);
+        expect(result.finishReason).toMatchInlineSnapshot(`"tool-calls"`);
       });
     });
 
@@ -1839,8 +1834,6 @@ describe('XaiResponsesLanguageModel', () => {
           input: '{"location":"sf"}',
         });
       });
-<<<<<<< HEAD
-=======
 
       it('should return tool-calls finish reason when function_call is streamed', async () => {
         prepareStreamChunks([
@@ -1916,125 +1909,10 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(finishPart).toMatchObject({
           type: 'finish',
-          finishReason: {
-            unified: 'tool-calls',
-            raw: 'completed',
-          },
+          finishReason: 'tool-calls',
         });
       });
 
-      it('should stream file_search tool call and result', async () => {
-        prepareStreamChunks([
-          JSON.stringify({
-            type: 'response.created',
-            response: {
-              id: 'resp_123',
-              object: 'response',
-              model: 'grok-4-fast-non-reasoning',
-              status: 'in_progress',
-              output: [],
-            },
-          }),
-          JSON.stringify({
-            type: 'response.output_item.added',
-            item: {
-              type: 'file_search_call',
-              id: 'fs_stream_123',
-              status: 'in_progress',
-              queries: ['search query'],
-              results: null,
-            },
-            output_index: 0,
-          }),
-          JSON.stringify({
-            type: 'response.output_item.done',
-            item: {
-              type: 'file_search_call',
-              id: 'fs_stream_123',
-              status: 'completed',
-              queries: ['search query'],
-              results: [
-                {
-                  file_id: 'file_abc',
-                  filename: 'doc.txt',
-                  score: 0.9,
-                  text: 'Found text content',
-                },
-              ],
-            },
-            output_index: 0,
-          }),
-          JSON.stringify({
-            type: 'response.done',
-            response: {
-              id: 'resp_123',
-              object: 'response',
-              status: 'completed',
-              output: [],
-              usage: { input_tokens: 10, output_tokens: 5 },
-            },
-          }),
-        ]);
-
-        const { stream } = await createModel().doStream({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'provider',
-              id: 'xai.file_search',
-              name: 'file_search',
-              args: {
-                vectorStoreIds: ['collection_123'],
-              },
-            },
-          ],
-        });
-
-        const parts = await convertReadableStreamToArray(stream);
-
-        expect(parts).toContainEqual({
-          type: 'tool-input-start',
-          id: 'fs_stream_123',
-          toolName: 'file_search',
-        });
-
-        expect(parts).toContainEqual({
-          type: 'tool-input-delta',
-          id: 'fs_stream_123',
-          delta: '',
-        });
-
-        expect(parts).toContainEqual({
-          type: 'tool-input-end',
-          id: 'fs_stream_123',
-        });
-
-        expect(parts).toContainEqual({
-          type: 'tool-call',
-          toolCallId: 'fs_stream_123',
-          toolName: 'file_search',
-          input: '',
-          providerExecuted: true,
-        });
-
-        expect(parts).toContainEqual({
-          type: 'tool-result',
-          toolCallId: 'fs_stream_123',
-          toolName: 'file_search',
-          result: {
-            queries: ['search query'],
-            results: [
-              {
-                fileId: 'file_abc',
-                filename: 'doc.txt',
-                score: 0.9,
-                text: 'Found text content',
-              },
-            ],
-          },
-        });
-      });
->>>>>>> 5d6154778 (Backport: fix(xai): correctly map the finish-reason (#13922))
     });
 
     describe('tool name mapping by type in streaming', () => {
