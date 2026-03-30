@@ -668,6 +668,9 @@ describe('streamObject', () => {
           onFinish: async event => {
             result = event as unknown as typeof result;
           },
+          _internal: {
+            generateId: () => 'test-id',
+          },
         });
 
         // consume stream
@@ -711,6 +714,9 @@ describe('streamObject', () => {
           prompt: 'prompt',
           onFinish: async event => {
             result = event as unknown as typeof result;
+          },
+          _internal: {
+            generateId: () => 'test-id',
           },
         });
 
@@ -1944,6 +1950,402 @@ describe('streamObject', () => {
         warnings: [],
         provider: 'mock-provider',
         model: 'mock-model-id',
+      });
+    });
+  });
+
+  describe('callbacks', () => {
+    describe('experimental_onStart', () => {
+      it('should call onStart before the model call', async () => {
+        const events: string[] = [];
+
+        const model = new MockLanguageModelV4({
+          doStream: async () => {
+            events.push('doStream');
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        });
+
+        const { partialObjectStream } = streamObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStart: () => {
+            events.push('onStart');
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(events).toEqual(['onStart', 'doStream']);
+      });
+
+      it('should provide the correct event properties', async () => {
+        let startEvent: any;
+
+        const { partialObjectStream } = streamObject({
+          model: new MockLanguageModelV4({
+            provider: 'test-provider',
+            modelId: 'test-model',
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          schemaName: 'test-schema',
+          schemaDescription: 'A test schema',
+          prompt: 'test-prompt',
+          temperature: 0.5,
+          maxOutputTokens: 100,
+          experimental_onStart: event => {
+            startEvent = event;
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(startEvent.operationId).toBe('ai.streamObject');
+        expect(startEvent.provider).toBe('test-provider');
+        expect(startEvent.modelId).toBe('test-model');
+        expect(startEvent.prompt).toBe('test-prompt');
+        expect(startEvent.temperature).toBe(0.5);
+        expect(startEvent.maxOutputTokens).toBe(100);
+        expect(startEvent.schemaName).toBe('test-schema');
+        expect(startEvent.schemaDescription).toBe('A test schema');
+        expect(startEvent.callId).toBeDefined();
+      });
+    });
+
+    describe('experimental_onStepStart', () => {
+      it('should call onStepStart before the model call', async () => {
+        const events: string[] = [];
+
+        const model = new MockLanguageModelV4({
+          doStream: async () => {
+            events.push('doStream');
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        });
+
+        const { partialObjectStream } = streamObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStepStart: () => {
+            events.push('onStepStart');
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(events).toEqual(['onStepStart', 'doStream']);
+      });
+
+      it('should provide stepNumber 0 and model info', async () => {
+        let stepStartEvent: any;
+
+        const { partialObjectStream } = streamObject({
+          model: new MockLanguageModelV4({
+            provider: 'test-provider',
+            modelId: 'test-model',
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStepStart: event => {
+            stepStartEvent = event;
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(stepStartEvent.stepNumber).toBe(0);
+        expect(stepStartEvent.provider).toBe('test-provider');
+        expect(stepStartEvent.modelId).toBe('test-model');
+        expect(stepStartEvent.callId).toBeDefined();
+        expect(stepStartEvent.promptMessages).toBeDefined();
+      });
+    });
+
+    describe('onStepFinish', () => {
+      it('should call onStepFinish after streaming completes', async () => {
+        const events: string[] = [];
+
+        const { partialObjectStream } = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              events.push('doStream');
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: '{ "content": "Hello, world!" }',
+                  },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onStepFinish: () => {
+            events.push('onStepFinish');
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(events).toContain('doStream');
+        expect(events).toContain('onStepFinish');
+        expect(events.indexOf('doStream')).toBeLessThan(
+          events.indexOf('onStepFinish'),
+        );
+      });
+
+      it('should provide the raw objectText and usage', async () => {
+        let stepFinishEvent: any;
+
+        const { partialObjectStream } = streamObject({
+          model: new MockLanguageModelV4({
+            provider: 'test-provider',
+            modelId: 'test-model',
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onStepFinish: event => {
+            stepFinishEvent = event;
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(stepFinishEvent.stepNumber).toBe(0);
+        expect(stepFinishEvent.provider).toBe('test-provider');
+        expect(stepFinishEvent.modelId).toBe('test-model');
+        expect(stepFinishEvent.objectText).toBe(
+          '{ "content": "Hello, world!" }',
+        );
+        expect(stepFinishEvent.finishReason).toBe('stop');
+        expect(stepFinishEvent.usage).toEqual(asLanguageModelUsage(testUsage));
+        expect(stepFinishEvent.callId).toBeDefined();
+      });
+    });
+
+    describe('callback ordering', () => {
+      it('should fire callbacks in order: onStart -> onStepStart -> doStream -> onStepFinish -> onFinish', async () => {
+        const events: string[] = [];
+
+        const { partialObjectStream } = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              events.push('doStream');
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'text-start', id: '1' },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: '{ "content": "Hello, world!" }',
+                  },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStart: () => {
+            events.push('onStart');
+          },
+          experimental_onStepStart: () => {
+            events.push('onStepStart');
+          },
+          onStepFinish: () => {
+            events.push('onStepFinish');
+          },
+          onFinish: () => {
+            events.push('onFinish');
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(events).toEqual([
+          'onStart',
+          'onStepStart',
+          'doStream',
+          'onStepFinish',
+          'onFinish',
+        ]);
+      });
+
+      it('should correlate all events with the same callId', async () => {
+        const callIds: string[] = [];
+
+        const { partialObjectStream } = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStart: event => {
+            callIds.push(event.callId);
+          },
+          experimental_onStepStart: event => {
+            callIds.push(event.callId);
+          },
+          onStepFinish: event => {
+            callIds.push(event.callId);
+          },
+          onFinish: event => {
+            callIds.push(event.callId);
+          },
+        });
+
+        await convertAsyncIterableToArray(partialObjectStream);
+
+        expect(callIds).toHaveLength(4);
+        expect(new Set(callIds).size).toBe(1);
+      });
+    });
+
+    describe('error handling in callbacks', () => {
+      it('should not break the stream when a callback throws', async () => {
+        const { partialObjectStream, object } = streamObject({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                {
+                  type: 'text-delta',
+                  id: '1',
+                  delta: '{ "content": "Hello, world!" }',
+                },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStart: () => {
+            throw new Error('onStart error');
+          },
+          experimental_onStepStart: () => {
+            throw new Error('onStepStart error');
+          },
+          onStepFinish: () => {
+            throw new Error('onStepFinish error');
+          },
+        });
+
+        const objects = await convertAsyncIterableToArray(partialObjectStream);
+        expect(objects.length).toBeGreaterThan(0);
       });
     });
   });

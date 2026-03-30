@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 9f20868: fix(provider/xai): correct finish reason for tool calls
+
 ## 4.0.0-beta.17
 
 ### Patch Changes

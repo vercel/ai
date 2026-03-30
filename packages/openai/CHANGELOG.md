@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- 817a1a6: fix(openai): support file-url parts in tool output content
+
 ## 4.0.0-beta.16
 
 ### Patch Changes

@@ -185,7 +185,6 @@ export async function streamModelCall<
     await prepareToolsAndToolChoice({
       tools,
       toolChoice,
-      activeTools,
     });
 
   await notify({
