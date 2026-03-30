@@ -115,15 +115,20 @@ class DefaultUploadFileResult implements UploadFileResult {
 
 function isLikelyText(data: Uint8Array | string): boolean {
   /*
-   * 688 base64 characters decode to 516 bytes (688/4*3), which covers the
-   * 512-byte check window below with a small margin.
+   * Limit checks to 512 bytes for performance.
+   * 4 base64 characters represent 3 bytes, and we use a small margin of 4 bytes just to be safe.
    */
+  const CHECK_LENGTH = 512;
+  const BASE64_CHECK_LENGTH = Math.ceil((CHECK_LENGTH + 4) / 3) * 4;
+
   const bytes =
     typeof data === 'string'
-      ? convertBase64ToUint8Array(data.substring(0, Math.min(data.length, 688)))
+      ? convertBase64ToUint8Array(
+          data.substring(0, Math.min(data.length, BASE64_CHECK_LENGTH)),
+        )
       : data;
 
-  const checkLength = Math.min(bytes.length, 512);
+  const checkLength = Math.min(bytes.length, CHECK_LENGTH);
   if (checkLength === 0) return false;
 
   for (let i = 0; i < checkLength; i++) {
