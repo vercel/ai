@@ -148,7 +148,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  const schema = asSchema(tool.inputSchema);
+  const schema = asSchema(tool.inputSchema ?? tool.parameters);
 
   // when the tool call has no arguments, we try passing an empty object to the schema
   // (many LLMs generate empty strings for tool calls with no arguments)

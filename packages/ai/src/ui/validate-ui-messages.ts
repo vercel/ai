@@ -433,15 +433,17 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             }
 
             // Tool input validation
+            const inputSchema = tool.inputSchema ?? tool.parameters;
             if (
-              toolPart.state === 'input-available' ||
-              toolPart.state === 'output-available' ||
-              (toolPart.state === 'output-error' &&
-                toolPart.input !== undefined)
+              inputSchema != null &&
+              (toolPart.state === 'input-available' ||
+                toolPart.state === 'output-available' ||
+                (toolPart.state === 'output-error' &&
+                  toolPart.input !== undefined))
             ) {
               await validateTypes({
                 value: toolPart.input,
-                schema: tool.inputSchema,
+                schema: inputSchema,
                 context: {
                   field: `messages[${msgIdx}].parts[${partIdx}].input`,
                   entityName: toolName,

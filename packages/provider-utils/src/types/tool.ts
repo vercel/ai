@@ -135,7 +135,13 @@ export type Tool<
    *
    * You can use descriptions on the schema properties to make the input understandable for the language model.
    */
-  inputSchema: FlexibleSchema<INPUT>;
+  inputSchema?: FlexibleSchema<INPUT>;
+
+  /**
+   * Alias for inputSchema. The schema of the input that the tool expects.
+   * Use either inputSchema or parameters, not both.
+   */
+  parameters?: FlexibleSchema<INPUT>;
 
   /**
    * An optional list of input examples that show the language
