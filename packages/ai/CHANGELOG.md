@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.51
+
+### Patch Changes
+
+- 6abd098: split `prepareToolsAndToolChoice()` into `prepareTools()` and `prepareToolChoice()`
+
 ## 7.0.0-beta.50
 
 ### Patch Changes
