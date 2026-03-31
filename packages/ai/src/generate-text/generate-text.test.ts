@@ -41,7 +41,12 @@ import {
 } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
+<<<<<<< HEAD
 import { stepCountIs } from './stop-condition';
+=======
+import { isLoopFinished, stepCountIs } from './stop-condition';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
+>>>>>>> 5c4d9107b (feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps (#13937))
 
 vi.mock('../version', () => {
   return {
@@ -3628,6 +3633,50 @@ describe('generateText', () => {
           ]
         `);
       });
+    });
+
+    it('should complete tool loop with isLoopFinished()', async () => {
+      let responseCount = 0;
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done!' }],
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isLoopFinished(),
+      });
+
+      expect(result.text).toBe('Done!');
+      expect(result.steps).toHaveLength(2);
     });
   });
 
