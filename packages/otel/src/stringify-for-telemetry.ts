@@ -2,7 +2,14 @@ import {
   LanguageModelV4Message,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import { convertDataContentToBase64String } from '../prompt/data-content';
+
+function convertUint8ArrayToBase64(data: Uint8Array): string {
+  let latin1string = '';
+  for (let i = 0; i < data.length; i++) {
+    latin1string += String.fromCodePoint(data[i]);
+  }
+  return globalThis.btoa(latin1string);
+}
 
 /**
  * Helper utility to serialize prompt content for OpenTelemetry tracing.
@@ -23,7 +30,7 @@ export function stringifyForTelemetry(prompt: LanguageModelV4Prompt): string {
                     ...part,
                     data:
                       part.data instanceof Uint8Array
-                        ? convertDataContentToBase64String(part.data)
+                        ? convertUint8ArrayToBase64(part.data)
                         : part.data,
                   }
                 : part,

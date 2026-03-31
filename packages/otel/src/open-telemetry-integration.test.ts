@@ -8,7 +8,7 @@ import {
   convertArrayToReadableStream,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import assert from 'node:assert';
+import * as assert from 'node:assert';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   Attributes,
@@ -18,25 +18,45 @@ import {
   Tracer,
 } from '@opentelemetry/api';
 import { z } from 'zod/v4';
-import { embed } from '../embed/embed';
-import { embedMany } from '../embed/embed-many';
-import { generateText } from '../generate-text/generate-text';
-import { isStepCount } from '../generate-text/stop-condition';
-import { streamText } from '../generate-text/stream-text';
-import { rerank } from '../rerank/rerank';
-import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
-import { MockTracer as IntegrationMockTracer } from '../test/mock-tracer';
-import { Embedding, EmbeddingModelUsage } from '../types';
-import { createResolvablePromise } from '../util/create-resolvable-promise';
-import { mockValues } from '../test/mock-values';
+import {
+  embed,
+  embedMany,
+  generateText,
+  isStepCount,
+  streamText,
+  rerank,
+} from 'ai';
+import type { Embedding, EmbeddingModelUsage, TelemetryIntegration } from 'ai';
+import {
+  MockEmbeddingModelV4,
+  MockLanguageModelV4,
+  MockRerankingModelV4,
+  mockValues,
+} from 'ai/test';
+import { MockTracer as IntegrationMockTracer } from './mock-tracer';
 import { OpenTelemetryIntegration } from './open-telemetry-integration';
-import type { TelemetryIntegration } from './telemetry-integration';
 
 vi.mock('../version', () => ({
   VERSION: '0.0.0-test',
 }));
+
+export function createResolvablePromise<T = any>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (error: unknown) => void;
+} {
+  let resolve: (value: T) => void;
+  let reject: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return {
+    promise,
+    resolve: resolve!,
+    reject: reject!,
+  };
+}
 
 type MockSpan = Span & {
   name: string;
