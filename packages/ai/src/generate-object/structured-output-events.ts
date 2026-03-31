@@ -18,6 +18,8 @@ import type { LanguageModelUsage } from '../types/usage';
  * `generateObject` and `streamObject`.
  *
  * Called when the operation begins, before any LLM call.
+ *
+ * @deprecated
  */
 export interface ObjectOnStartEvent {
   /** Unique identifier for this generation call, used to correlate events. */
@@ -105,6 +107,8 @@ export interface ObjectOnStartEvent {
  *
  * Called when the model call (step) begins, before the provider is called.
  * For object generation, there is always exactly one step (step 0).
+ *
+ * @deprecated
  */
 export interface ObjectOnStepStartEvent {
   /** Unique identifier for this generation call, used to correlate events. */
@@ -144,6 +148,8 @@ export interface ObjectOnStepStartEvent {
  *
  * Called when the model call (step) completes, with the raw result
  * before JSON parsing and schema validation.
+ *
+ * @deprecated
  */
 export interface ObjectOnStepFinishEvent {
   /** Unique identifier for this generation call, used to correlate events. */
@@ -201,6 +207,8 @@ export interface ObjectOnStepFinishEvent {
  * Called when the entire operation completes, including JSON parsing
  * and schema validation. For `streamObject`, the object may be undefined
  * if validation failed (the error is provided in that case).
+ *
+ * @deprecated
  */
 export interface ObjectOnFinishEvent<RESULT> {
   /** Unique identifier for this generation call, used to correlate events. */

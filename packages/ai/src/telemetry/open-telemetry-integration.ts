@@ -342,6 +342,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     });
   }
 
+  /** @deprecated */
   onObjectStepStart(event: ObjectOnStepStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
@@ -392,6 +393,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     state.stepContext = trace.setSpan(state.rootContext, state.stepSpan);
   }
 
+  /** @deprecated */
   onObjectStepFinish(event: ObjectOnStepFinishEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;

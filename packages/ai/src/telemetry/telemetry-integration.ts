@@ -91,12 +91,16 @@ export interface TelemetryIntegration {
   /**
    * Called when an object generation step (single LLM invocation) begins.
    * For generateObject/streamObject there is always exactly one step.
+   *
+   * @deprecated
    */
   onObjectStepStart?: Listener<ObjectOnStepStartEvent>;
 
   /**
    * Called when an object generation step (single LLM invocation) completes,
    * with the raw result before JSON parsing and schema validation.
+   *
+   * @deprecated
    */
   onObjectStepFinish?: Listener<ObjectOnStepFinishEvent>;
 
