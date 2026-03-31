@@ -8,7 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/amazon-bedrock": "4.0.84",
+    "@ai-sdk/amazon-bedrock": "4.0.85",
     "@ai-sdk/anthropic": "3.0.64",
     "@ai-sdk/azure": "3.0.50",
     "@ai-sdk/cohere": "3.0.27",
