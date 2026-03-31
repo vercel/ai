@@ -21,6 +21,7 @@ import {
   agentOnToolCallFinishE2e,
   agentOnToolCallStartE2e,
   agentPrepareCallE2e,
+  agentRepairToolCallE2e,
   agentTimeoutE2e,
   agentToolApprovalE2e,
   agentToolCallE2e,
@@ -77,6 +78,19 @@ describe('DurableAgent integration', { timeout: 120_000 }, () => {
       const run = await start(agentToolInputSchemaE2e, [3, 7]);
       const rv = await run.returnValue;
       expect(rv).toMatchObject({ stepCount: 2 });
+      expect(rv.lastStepText).toBe('The sum is 10');
+    });
+  });
+
+  // ==========================================================================
+  // experimental_repairToolCall serialization
+  // ==========================================================================
+
+  describe('experimental_repairToolCall', () => {
+    it('callback survives serialization and repairs malformed tool input', async () => {
+      const run = await start(agentRepairToolCallE2e, []);
+      const rv = await run.returnValue;
+      expect(rv).toMatchObject({ stepCount: 2, repaired: true });
       expect(rv.lastStepText).toBe('The sum is 10');
     });
   });

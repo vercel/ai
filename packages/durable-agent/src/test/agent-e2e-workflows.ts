@@ -142,6 +142,52 @@ export async function agentErrorToolE2e() {
 }
 
 // ============================================================================
+// experimental_repairToolCall serialization
+// ============================================================================
+
+async function repairToolCall({
+  toolCall,
+}: {
+  toolCall: { toolCallId: string; toolName: string; input: string };
+}) {
+  'use step';
+  // Fix the malformed JSON
+  return { ...toolCall, input: '{"a": 3, "b": 7}' };
+}
+
+export async function agentRepairToolCallE2e() {
+  'use workflow';
+  const agent = new DurableAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'addNumbers',
+        // Malformed input: missing closing brace
+        input: '{"a": 3, "b": 7',
+      },
+      { type: 'text', text: 'The sum is 10' },
+    ]),
+    tools: {
+      addNumbers: {
+        description: 'Add two numbers',
+        inputSchema: z.object({ a: z.number(), b: z.number() }),
+        execute: addNumbers,
+      },
+    },
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'add 3 and 7' }],
+    writable: getWritable(),
+    experimental_repairToolCall: repairToolCall as any,
+  });
+  return {
+    stepCount: result.steps.length,
+    lastStepText: result.steps[result.steps.length - 1]?.text,
+    repaired: result.steps.length === 2, // If repair worked, we get 2 steps (tool call + text)
+  };
+}
+
+// ============================================================================
 // Callback tests — onStepFinish
 // ============================================================================
 
