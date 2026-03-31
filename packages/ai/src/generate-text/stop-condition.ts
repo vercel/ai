@@ -5,8 +5,12 @@ export type StopCondition<TOOLS extends ToolSet> = (options: {
   steps: Array<StepResult<TOOLS>>;
 }) => PromiseLike<boolean> | boolean;
 
-export function stepCountIs(stepCount: number): StopCondition<any> {
+export function isStepCount(stepCount: number): StopCondition<any> {
   return ({ steps }) => steps.length === stepCount;
+}
+
+export function isLoopFinished(): StopCondition<any> {
+  return () => false;
 }
 
 export function hasToolCall(toolName: string): StopCondition<any> {
