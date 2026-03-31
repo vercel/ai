@@ -26,7 +26,8 @@ import {
 } from '../prompt/call-settings';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
-import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
+import { prepareToolChoice } from '../prompt/prepare-tool-choice';
+import { prepareTools } from '../prompt/prepare-tools';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
@@ -1543,11 +1544,14 @@ class DefaultStreamTextResult<
             activeTools: prepareStepResult?.activeTools ?? activeTools,
           });
 
-          const { toolChoice: stepToolChoice, tools: stepTools } =
-            await prepareToolsAndToolChoice({
-              tools: stepActiveTools,
-              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-            });
+          const stepTools = await prepareTools({
+            tools: stepActiveTools,
+          });
+
+          const stepToolChoice = prepareToolChoice({
+            tools: stepActiveTools,
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+          });
 
           experimental_context =
             prepareStepResult?.experimental_context ?? experimental_context;
