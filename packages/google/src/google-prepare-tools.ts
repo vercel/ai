@@ -195,11 +195,46 @@ export function prepareTools({
           });
         }
       }
+
+      const combinedToolConfig: {
+        functionCallingConfig: {
+          mode: 'VALIDATED' | 'ANY' | 'NONE';
+          allowedFunctionNames?: string[];
+        };
+        includeServerSideToolInvocations: true;
+      } = {
+        functionCallingConfig: { mode: 'VALIDATED' },
+        includeServerSideToolInvocations: true,
+      };
+
+      if (toolChoice != null) {
+        switch (toolChoice.type) {
+          case 'auto':
+            toolWarnings.push({
+              type: 'unsupported',
+              feature: `toolChoice "auto" with combined tool calling`,
+              details:
+                'AUTO mode is not supported with combined tool calling. Using VALIDATED mode instead.',
+            });
+            break;
+          case 'none':
+            combinedToolConfig.functionCallingConfig = { mode: 'NONE' };
+            break;
+          case 'required':
+            combinedToolConfig.functionCallingConfig = { mode: 'ANY' };
+            break;
+          case 'tool':
+            combinedToolConfig.functionCallingConfig = {
+              mode: 'ANY',
+              allowedFunctionNames: [toolChoice.toolName],
+            };
+            break;
+        }
+      }
+
       return {
         tools: [...googleTools, { functionDeclarations }],
-        toolConfig: {
-          includeServerSideToolInvocations: true,
-        },
+        toolConfig: combinedToolConfig,
         toolWarnings,
       };
     }

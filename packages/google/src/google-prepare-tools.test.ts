@@ -397,6 +397,7 @@ it('should combine function and provider-defined tools on Gemini 3 models', () =
   ]);
 
   expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
     includeServerSideToolInvocations: true,
   });
 
@@ -454,10 +455,127 @@ it('should combine multiple provider tools with function tools on Gemini 3', () 
   ]);
 
   expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
     includeServerSideToolInvocations: true,
   });
 
   expect(result.toolWarnings).toEqual([]);
+});
+
+it('should use VALIDATED mode for combined tools with toolChoice auto on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'auto' },
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'VALIDATED' },
+    includeServerSideToolInvocations: true,
+  });
+
+  expect(result.toolWarnings).toEqual([
+    {
+      type: 'unsupported',
+      feature: 'toolChoice "auto" with combined tool calling',
+      details:
+        'AUTO mode is not supported with combined tool calling. Using VALIDATED mode instead.',
+    },
+  ]);
+});
+
+it('should use ANY mode for combined tools with toolChoice required on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'required' },
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'ANY' },
+    includeServerSideToolInvocations: true,
+  });
+});
+
+it('should use NONE mode for combined tools with toolChoice none on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'none' },
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'NONE' },
+    includeServerSideToolInvocations: true,
+  });
+});
+
+it('should use ANY mode with allowedFunctionNames for combined tools with specific tool choice on Gemini 3', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'tool', toolName: 'testFunction' },
+    modelId: 'gemini-3-flash-preview',
+  });
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: {
+      mode: 'ANY',
+      allowedFunctionNames: ['testFunction'],
+    },
+    includeServerSideToolInvocations: true,
+  });
 });
 
 it('should handle latest modelId for provider-defined tools correctly', () => {
