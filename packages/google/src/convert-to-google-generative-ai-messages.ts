@@ -4,10 +4,14 @@ import {
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 import {
+  GoogleGenerativeAICodeExecutionResultPart,
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
+  GoogleGenerativeAIExecutableCodePart,
   GoogleGenerativeAIFunctionResponsePart,
   GoogleGenerativeAIPrompt,
+  GoogleGenerativeAIServerSideToolCall,
+  GoogleGenerativeAIServerSideToolResponse,
 } from './google-generative-ai-prompt';
 
 const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
@@ -52,6 +56,7 @@ function convertUrlToolResultPart(
  */
 function appendToolResultParts(
   parts: GoogleGenerativeAIContentPart[],
+  toolCallId: string,
   toolName: string,
   outputValue: Array<{
     type: string;
@@ -99,6 +104,7 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
+      id: toolCallId,
       name: toolName,
       response: {
         name: toolName,
@@ -121,6 +127,7 @@ function appendToolResultParts(
  */
 function appendLegacyToolResultParts(
   parts: GoogleGenerativeAIContentPart[],
+  toolCallId: string,
   toolName: string,
   outputValue: Array<{
     type: string;
@@ -132,6 +139,7 @@ function appendLegacyToolResultParts(
       case 'text':
         parts.push({
           functionResponse: {
+            id: toolCallId,
             name: toolName,
             response: {
               name: toolName,
@@ -158,6 +166,65 @@ function appendLegacyToolResultParts(
         break;
     }
   }
+}
+
+function getProviderOptions(
+  providerOptions: Record<string, any> | undefined,
+  providerOptionsName: string,
+) {
+  return (
+    providerOptions?.[providerOptionsName] ??
+    (providerOptionsName !== 'google'
+      ? providerOptions?.google
+      : providerOptions?.vertex)
+  );
+}
+
+function getThoughtSignature(
+  providerOptions: Record<string, any> | undefined,
+  providerOptionsName: string,
+) {
+  const providerOpts = getProviderOptions(providerOptions, providerOptionsName);
+
+  return providerOpts?.thoughtSignature != null
+    ? String(providerOpts.thoughtSignature)
+    : undefined;
+}
+
+function getServerSideToolCall(
+  providerOptions: Record<string, any> | undefined,
+  providerOptionsName: string,
+): GoogleGenerativeAIServerSideToolCall | undefined {
+  return getProviderOptions(providerOptions, providerOptionsName)
+    ?.serverSideToolCall as GoogleGenerativeAIServerSideToolCall | undefined;
+}
+
+function getServerSideToolResponse(
+  providerOptions: Record<string, any> | undefined,
+  providerOptionsName: string,
+): GoogleGenerativeAIServerSideToolResponse | undefined {
+  return getProviderOptions(providerOptions, providerOptionsName)
+    ?.serverSideToolResponse as
+    | GoogleGenerativeAIServerSideToolResponse
+    | undefined;
+}
+
+function getExecutableCode(
+  providerOptions: Record<string, any> | undefined,
+  providerOptionsName: string,
+): GoogleGenerativeAIExecutableCodePart | undefined {
+  return getProviderOptions(providerOptions, providerOptionsName)
+    ?.executableCode as GoogleGenerativeAIExecutableCodePart | undefined;
+}
+
+function getCodeExecutionResult(
+  providerOptions: Record<string, any> | undefined,
+  providerOptionsName: string,
+): GoogleGenerativeAICodeExecutionResultPart | undefined {
+  return getProviderOptions(providerOptions, providerOptionsName)
+    ?.codeExecutionResult as
+    | GoogleGenerativeAICodeExecutionResultPart
+    | undefined;
 }
 
 export function convertToGoogleGenerativeAIMessages(
@@ -239,15 +306,14 @@ export function convertToGoogleGenerativeAIMessages(
           role: 'model',
           parts: content
             .map(part => {
-              const providerOpts =
-                part.providerOptions?.[providerOptionsName] ??
-                (providerOptionsName !== 'google'
-                  ? part.providerOptions?.google
-                  : part.providerOptions?.vertex);
-              const thoughtSignature =
-                providerOpts?.thoughtSignature != null
-                  ? String(providerOpts.thoughtSignature)
-                  : undefined;
+              const providerOpts = getProviderOptions(
+                part.providerOptions,
+                providerOptionsName,
+              );
+              const thoughtSignature = getThoughtSignature(
+                part.providerOptions,
+                providerOptionsName,
+              );
 
               switch (part.type) {
                 case 'text': {
@@ -308,13 +374,68 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'tool-call': {
+                  if (part.providerExecuted === true) {
+                    const serverSideToolCall = getServerSideToolCall(
+                      part.providerOptions,
+                      providerOptionsName,
+                    );
+
+                    if (serverSideToolCall != null) {
+                      return {
+                        toolCall: serverSideToolCall,
+                        thoughtSignature,
+                      };
+                    }
+
+                    const executableCode = getExecutableCode(
+                      part.providerOptions,
+                      providerOptionsName,
+                    );
+
+                    if (executableCode != null) {
+                      return {
+                        executableCode,
+                        thoughtSignature,
+                      };
+                    }
+                  }
+
                   return {
                     functionCall: {
                       name: part.toolName,
                       args: part.input,
+                      id: part.toolCallId,
                     },
                     thoughtSignature,
                   };
+                }
+
+                case 'tool-result': {
+                  const serverSideToolResponse = getServerSideToolResponse(
+                    part.providerOptions,
+                    providerOptionsName,
+                  );
+
+                  if (serverSideToolResponse != null) {
+                    return {
+                      toolResponse: serverSideToolResponse,
+                      thoughtSignature,
+                    };
+                  }
+
+                  const codeExecutionResult = getCodeExecutionResult(
+                    part.providerOptions,
+                    providerOptionsName,
+                  );
+
+                  if (codeExecutionResult != null) {
+                    return {
+                      codeExecutionResult,
+                      thoughtSignature,
+                    };
+                  }
+
+                  return undefined;
                 }
               }
             })
@@ -336,13 +457,24 @@ export function convertToGoogleGenerativeAIMessages(
 
           if (output.type === 'content') {
             if (supportsFunctionResponseParts) {
-              appendToolResultParts(parts, part.toolName, output.value);
+              appendToolResultParts(
+                parts,
+                part.toolCallId,
+                part.toolName,
+                output.value,
+              );
             } else {
-              appendLegacyToolResultParts(parts, part.toolName, output.value);
+              appendLegacyToolResultParts(
+                parts,
+                part.toolCallId,
+                part.toolName,
+                output.value,
+              );
             }
           } else {
             parts.push({
               functionResponse: {
+                id: part.toolCallId,
                 name: part.toolName,
                 response: {
                   name: part.toolName,

@@ -395,7 +395,12 @@ describe('doGenerate', () => {
         | typeof TEST_URL_GEMINI_2_0_PRO
         | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
         | typeof TEST_URL_GEMINI_1_0_PRO
-        | typeof TEST_URL_GEMINI_1_5_FLASH;
+        | typeof TEST_URL_GEMINI_1_5_FLASH
+        | typeof TEST_URL_GEMINI_3_PRO
+        | typeof TEST_URL_GEMINI_3_1_PRO
+        | typeof TEST_URL_GEMINI_2_5_PRO
+        | typeof TEST_URL_GEMINI_2_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_FLASH_LITE;
     } = {},
   ) {
     server.urls[url].response = {
@@ -431,7 +436,12 @@ describe('doGenerate', () => {
       | typeof TEST_URL_GEMINI_2_0_PRO
       | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
       | typeof TEST_URL_GEMINI_1_0_PRO
-      | typeof TEST_URL_GEMINI_1_5_FLASH;
+      | typeof TEST_URL_GEMINI_1_5_FLASH
+      | typeof TEST_URL_GEMINI_3_PRO
+      | typeof TEST_URL_GEMINI_3_1_PRO
+      | typeof TEST_URL_GEMINI_2_5_PRO
+      | typeof TEST_URL_GEMINI_2_5_FLASH
+      | typeof TEST_URL_GEMINI_2_5_FLASH_LITE;
   }) => {
     server.urls[url].response = {
       type: 'json-value',
@@ -695,6 +705,338 @@ describe('doGenerate', () => {
       });
 
       expect(result).toMatchSnapshot();
+    });
+  });
+
+  it('should pass combined tools and include server-side tool invocations in combo mode', async () => {
+    prepareJsonResponse({
+      content: 'combined tools ready',
+      url: TEST_URL_GEMINI_3_1_PRO,
+    });
+
+    const comboModel = provider.chat('gemini-3.1-pro-preview');
+
+    await comboModel.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeather',
+          description: 'Get weather for a city',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+          },
+        },
+        {
+          type: 'provider',
+          id: 'google.google_search',
+          name: 'google_search',
+          args: {},
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      providerOptions: {
+        google: {
+          retrievalConfig: {
+            latLng: {
+              latitude: 64.8378,
+              longitude: -147.7164,
+            },
+          },
+        },
+      },
+    });
+
+    expect(await server.calls.at(-1)?.requestBodyJson).toMatchObject({
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              name: 'getWeather',
+              description: 'Get weather for a city',
+            },
+          ],
+        },
+        { googleSearch: {} },
+      ],
+      toolConfig: {
+        includeServerSideToolInvocations: true,
+        functionCallingConfig: { mode: 'VALIDATED' },
+        retrievalConfig: {
+          latLng: {
+            latitude: 64.8378,
+            longitude: -147.7164,
+          },
+        },
+      },
+    });
+  });
+
+  it('should parse server-side tool parts alongside function calls', async () => {
+    server.urls[TEST_URL_GEMINI_3_1_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              role: 'model',
+              parts: [
+                {
+                  thoughtSignature: 'sig-tool-call',
+                  toolCall: {
+                    id: 'search-call',
+                    toolType: 'GOOGLE_SEARCH_WEB',
+                    args: { queries: ['northernmost city in the US'] },
+                  },
+                },
+                {
+                  thoughtSignature: 'sig-tool-response',
+                  toolResponse: {
+                    id: 'search-call',
+                    toolType: 'GOOGLE_SEARCH_WEB',
+                    response: { city: 'Utqiagvik, Alaska' },
+                  },
+                },
+                {
+                  thoughtSignature: 'sig-function-call',
+                  functionCall: {
+                    id: 'weather-call',
+                    name: 'getWeather',
+                    args: { city: 'Utqiagvik, Alaska' },
+                  },
+                },
+              ],
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const comboModel = provider.chat('gemini-3.1-pro-preview');
+    const result = await comboModel.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+          },
+        },
+        {
+          type: 'provider',
+          id: 'google.google_search',
+          name: 'google_search',
+          args: {},
+        },
+      ],
+    });
+
+    expect(result.content).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'search-call',
+        toolName: 'GOOGLE_SEARCH_WEB',
+        input: '{"queries":["northernmost city in the US"]}',
+        providerExecuted: true,
+        providerMetadata: {
+          google: {
+            thoughtSignature: 'sig-tool-call',
+            serverSideToolCall: {
+              id: 'search-call',
+              toolType: 'GOOGLE_SEARCH_WEB',
+              args: { queries: ['northernmost city in the US'] },
+            },
+          },
+        },
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'search-call',
+        toolName: 'GOOGLE_SEARCH_WEB',
+        result: { city: 'Utqiagvik, Alaska' },
+        providerMetadata: {
+          google: {
+            thoughtSignature: 'sig-tool-response',
+            serverSideToolResponse: {
+              id: 'search-call',
+              toolType: 'GOOGLE_SEARCH_WEB',
+              response: { city: 'Utqiagvik, Alaska' },
+            },
+          },
+        },
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'weather-call',
+        toolName: 'getWeather',
+        input: '{"city":"Utqiagvik, Alaska"}',
+        providerMetadata: {
+          google: {
+            thoughtSignature: 'sig-function-call',
+          },
+        },
+      },
+    ]);
+  });
+
+  it('should circulate built-in tool context and function response on follow-up turns', async () => {
+    prepareJsonResponse({
+      content: 'follow up',
+      url: TEST_URL_GEMINI_3_1_PRO,
+    });
+
+    const comboModel = provider.chat('gemini-3.1-pro-preview');
+
+    await comboModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What is the weather there?' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'search-call',
+              toolName: 'GOOGLE_SEARCH_WEB',
+              input: '{"queries":["northernmost city in the US"]}',
+              providerExecuted: true,
+              providerOptions: {
+                google: {
+                  thoughtSignature: 'sig-tool-call',
+                  serverSideToolCall: {
+                    id: 'search-call',
+                    toolType: 'GOOGLE_SEARCH_WEB',
+                    args: { queries: ['northernmost city in the US'] },
+                  },
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'search-call',
+              toolName: 'GOOGLE_SEARCH_WEB',
+              result: { city: 'Utqiagvik, Alaska' },
+              providerOptions: {
+                google: {
+                  thoughtSignature: 'sig-tool-response',
+                  serverSideToolResponse: {
+                    id: 'search-call',
+                    toolType: 'GOOGLE_SEARCH_WEB',
+                    response: { city: 'Utqiagvik, Alaska' },
+                  },
+                },
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'weather-call',
+              toolName: 'getWeather',
+              input: { city: 'Utqiagvik, Alaska' },
+              providerOptions: {
+                google: { thoughtSignature: 'sig-function-call' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'weather-call',
+              toolName: 'getWeather',
+              output: {
+                type: 'json',
+                value: { response: 'Very cold. 22 degrees Fahrenheit.' },
+              },
+            },
+          ],
+        },
+      ],
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+          },
+        },
+        {
+          type: 'provider',
+          id: 'google.google_search',
+          name: 'google_search',
+          args: {},
+        },
+      ],
+    });
+
+    expect(await server.calls.at(-1)?.requestBodyJson).toMatchObject({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: 'What is the weather there?' }],
+        },
+        {
+          role: 'model',
+          parts: [
+            {
+              thoughtSignature: 'sig-tool-call',
+              toolCall: {
+                id: 'search-call',
+                toolType: 'GOOGLE_SEARCH_WEB',
+                args: { queries: ['northernmost city in the US'] },
+              },
+            },
+            {
+              thoughtSignature: 'sig-tool-response',
+              toolResponse: {
+                id: 'search-call',
+                toolType: 'GOOGLE_SEARCH_WEB',
+                response: { city: 'Utqiagvik, Alaska' },
+              },
+            },
+            {
+              thoughtSignature: 'sig-function-call',
+              functionCall: {
+                id: 'weather-call',
+                name: 'getWeather',
+                args: { city: 'Utqiagvik, Alaska' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                id: 'weather-call',
+                name: 'getWeather',
+                response: {
+                  name: 'getWeather',
+                  content: { response: 'Very cold. 22 degrees Fahrenheit.' },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      toolConfig: {
+        includeServerSideToolInvocations: true,
+      },
     });
   });
 

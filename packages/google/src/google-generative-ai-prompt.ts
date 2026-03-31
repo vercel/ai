@@ -20,14 +20,58 @@ export type GoogleGenerativeAIContent = {
   parts: Array<GoogleGenerativeAIContentPart>;
 };
 
+export type GoogleGenerativeAIServerSideToolCall = {
+  id: string;
+  toolType: string;
+  args?: unknown;
+} & Record<string, unknown>;
+
+export type GoogleGenerativeAIServerSideToolResponse = {
+  id: string;
+  toolType: string;
+  response?: unknown;
+} & Record<string, unknown>;
+
+export type GoogleGenerativeAIExecutableCodePart = {
+  language: string;
+  code: string;
+  id?: string;
+} & Record<string, unknown>;
+
+export type GoogleGenerativeAICodeExecutionResultPart = {
+  outcome: string;
+  output?: string | null;
+  id?: string;
+} & Record<string, unknown>;
+
 export type GoogleGenerativeAIContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
   | { inlineData: { mimeType: string; data: string } }
-  | { functionCall: { name: string; args: unknown }; thoughtSignature?: string }
+  | {
+      functionCall: { name: string; args: unknown; id?: string };
+      thoughtSignature?: string;
+    }
+  | {
+      toolCall: GoogleGenerativeAIServerSideToolCall;
+      thoughtSignature?: string;
+    }
+  | {
+      toolResponse: GoogleGenerativeAIServerSideToolResponse;
+      thoughtSignature?: string;
+    }
+  | {
+      executableCode: GoogleGenerativeAIExecutableCodePart;
+      thoughtSignature?: string;
+    }
+  | {
+      codeExecutionResult: GoogleGenerativeAICodeExecutionResultPart;
+      thoughtSignature?: string;
+    }
   | {
       functionResponse: {
         name: string;
         response: unknown;
+        id?: string;
         parts?: Array<GoogleGenerativeAIFunctionResponsePart>;
       };
     }
