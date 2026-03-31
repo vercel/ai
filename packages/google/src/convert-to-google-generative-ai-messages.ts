@@ -321,11 +321,10 @@ export function convertToGoogleGenerativeAIMessages(
                     return {
                       toolCall: {
                         toolType: serverToolType,
-                        args: JSON.parse(
+                        args:
                           typeof part.input === 'string'
-                            ? part.input
-                            : JSON.stringify(part.input),
-                        ),
+                            ? JSON.parse(part.input)
+                            : part.input,
                         id: serverToolCallId,
                       },
                       thoughtSignature,
@@ -359,10 +358,10 @@ export function convertToGoogleGenerativeAIMessages(
           }
 
           const partProviderOpts =
-            part.providerMetadata?.[providerOptionsName] ??
+            part.providerOptions?.[providerOptionsName] ??
             (providerOptionsName !== 'google'
-              ? part.providerMetadata?.google
-              : part.providerMetadata?.vertex);
+              ? part.providerOptions?.google
+              : part.providerOptions?.vertex);
           const serverToolCallId =
             partProviderOpts?.serverToolCallId != null
               ? String(partProviderOpts.serverToolCallId)
@@ -384,7 +383,8 @@ export function convertToGoogleGenerativeAIMessages(
                 lastContent.parts.push({
                   toolResponse: {
                     toolType: serverToolType,
-                    response: part.output.type === 'value' ? part.output.value : {},
+                    response:
+                      part.output.type === 'json' ? part.output.value : {},
                     id: serverToolCallId,
                   },
                   thoughtSignature: serverThoughtSignature,
