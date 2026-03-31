@@ -1,5 +1,17 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.14
+
+### Patch Changes
+
+- b0c59e8: fix(amazon-bedrock): preserve reasoning text when signature is present
+
+## 5.0.0-beta.13
+
+### Patch Changes
+
+- 1921625: fix(provider/amazon-bedrock): add tool search beta for Anthropic
+
 ## 5.0.0-beta.12
 
 ### Patch Changes

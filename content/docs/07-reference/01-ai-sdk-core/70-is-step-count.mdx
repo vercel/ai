@@ -1,16 +1,16 @@
 ---
-title: stepCountIs
-description: API Reference for stepCountIs.
+title: isStepCount
+description: API Reference for isStepCount.
 ---
 
-# `stepCountIs()`
+# `isStepCount()`
 
 Creates a stop condition that stops when the number of steps reaches a specified count.
 
 This function is used with `stopWhen` in `generateText` and `streamText` to control when a tool-calling loop should stop based on the number of steps executed.
 
 ```ts
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const result = await generateText({
@@ -19,13 +19,13 @@ const result = await generateText({
     // your tools
   },
   // Stop after 5 steps
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 ```
 
 ## Import
 
-<Snippet text={`import { stepCountIs } from "ai"`} prompt={false} />
+<Snippet text={`import { isStepCount } from "ai"`} prompt={false} />
 
 ## API Signature
 
@@ -53,12 +53,12 @@ A `StopCondition` function that returns `true` when the step count reaches the s
 Stop after 3 steps:
 
 ```ts
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: yourModel,
   tools: yourTools,
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 ```
 
@@ -67,13 +67,13 @@ const result = await generateText({
 You can combine multiple stop conditions in an array:
 
 ```ts
-import { generateText, stepCountIs, hasToolCall } from 'ai';
+import { generateText, isStepCount, hasToolCall } from 'ai';
 
 const result = await generateText({
   model: yourModel,
   tools: yourTools,
   // Stop after 10 steps OR when finalAnswer tool is called
-  stopWhen: [stepCountIs(10), hasToolCall('finalAnswer')],
+  stopWhen: [isStepCount(10), hasToolCall('finalAnswer')],
 });
 ```
 
