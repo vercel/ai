@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
+import { isStepCount, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
@@ -11,7 +11,7 @@ run(async () => {
     },
     prompt: 'What is the weather in San Francisco?',
     reasoning: 'low',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     maxRetries: 5,
   });
 

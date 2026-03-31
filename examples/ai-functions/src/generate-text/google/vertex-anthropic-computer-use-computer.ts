@@ -1,6 +1,6 @@
 import { run } from '../../lib/run';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import fs from 'node:fs';
 
 run(async () => {
@@ -51,7 +51,7 @@ run(async () => {
     },
     prompt:
       'How can I switch to dark mode? Take a look at the screen and tell me.',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log(result.text);

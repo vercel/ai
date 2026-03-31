@@ -41,7 +41,7 @@ import {
 } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
-import { stepCountIs } from './stop-condition';
+import { isLoopFinished, isStepCount } from './stop-condition';
 import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 
 vi.mock('../version', () => {
@@ -1006,7 +1006,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         experimental_onStepStart: async event => {
           stepStartEvents.push(event);
         },
@@ -1097,7 +1097,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         prepareStep: async ({ stepNumber }) => {
           if (stepNumber === 1) {
             return { model: alternateModel };
@@ -1191,7 +1191,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(4),
+        stopWhen: isStepCount(4),
         experimental_onStepStart: async event => {
           stepStartEvents.push(event);
         },
@@ -1262,7 +1262,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         experimental_onStepStart: async event => {
           stepStartEvents.push(event);
         },
@@ -1340,7 +1340,7 @@ describe('generateText', () => {
         },
         prompt: 'test-input',
         experimental_context: { counter: 0 },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         prepareStep: async ({ experimental_context, stepNumber }) => {
           return {
             experimental_context: {
@@ -1439,7 +1439,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(4),
+        stopWhen: isStepCount(4),
         onStepFinish: async event => {
           stepNumbers.push(event.stepNumber);
         },
@@ -1487,7 +1487,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         experimental_onStepStart: async event => {
           startStepNumbers.push(event.stepNumber);
         },
@@ -2157,7 +2157,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(4),
+        stopWhen: isStepCount(4),
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
@@ -2635,7 +2635,7 @@ describe('generateText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
         });
       });
 
@@ -2808,7 +2808,7 @@ describe('generateText', () => {
             generateId: () => 'test-call-id',
             generateCallId: () => 'test-telemetry-call-id',
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
@@ -3774,6 +3774,50 @@ describe('generateText', () => {
         `);
       });
     });
+
+    it('should complete tool loop with isLoopFinished()', async () => {
+      let responseCount = 0;
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done!' }],
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isLoopFinished(),
+      });
+
+      expect(result.text).toBe('Done!');
+      expect(result.steps).toHaveLength(2);
+    });
   });
 
   describe('options.headers', () => {
@@ -4131,7 +4175,7 @@ describe('generateText', () => {
         },
         prompt: 'test-input',
         timeout: { stepMs: 5000 },
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
       });
 
       expect(receivedAbortSignals.length).toBe(2);
@@ -4624,7 +4668,7 @@ describe('generateText', () => {
             execute: async () => 'result1',
           },
         },
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
         prompt: 'test-input',
         experimental_telemetry: {
           isEnabled: true,
@@ -4969,7 +5013,7 @@ describe('generateText', () => {
             },
           },
           prompt: 'test-input',
-          stopWhen: stepCountIs(4),
+          stopWhen: isStepCount(4),
         });
       });
 
@@ -5993,7 +6037,7 @@ describe('generateText', () => {
             }),
           },
           prompt: 'Play a dice game between two players.',
-          stopWhen: stepCountIs(10),
+          stopWhen: isStepCount(10),
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
           },
@@ -7457,7 +7501,7 @@ describe('generateText', () => {
             execute: async () => 'result',
           },
         },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
       });
 
       expect(logWarningsSpy).toHaveBeenCalledTimes(2);
@@ -7522,7 +7566,7 @@ describe('generateText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
@@ -7639,7 +7683,7 @@ describe('generateText', () => {
               },
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
@@ -7830,7 +7874,7 @@ describe('generateText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -7996,7 +8040,7 @@ describe('generateText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
           },
@@ -8110,7 +8154,7 @@ describe('generateText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -8269,7 +8313,7 @@ describe('generateText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -8476,7 +8520,7 @@ describe('generateText', () => {
                 args: {},
               },
             },
-            stopWhen: stepCountIs(3),
+            stopWhen: isStepCount(3),
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
@@ -8610,7 +8654,7 @@ describe('generateText', () => {
                 args: {},
               },
             },
-            stopWhen: stepCountIs(3),
+            stopWhen: isStepCount(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
               generateCallId: () => 'test-telemetry-call-id',
@@ -8770,7 +8814,7 @@ describe('generateText', () => {
                 args: {},
               },
             },
-            stopWhen: stepCountIs(3),
+            stopWhen: isStepCount(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
               generateCallId: () => 'test-telemetry-call-id',

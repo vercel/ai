@@ -96,7 +96,7 @@ import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   isStopConditionMet,
-  stepCountIs,
+  isStepCount,
   StopCondition,
 } from './stop-condition';
 import { ModelCallStreamPart, streamModelCall } from './stream-model-call';
@@ -301,7 +301,7 @@ export function streamText<
   abortSignal,
   timeout,
   headers,
-  stopWhen = stepCountIs(1),
+  stopWhen = isStepCount(1),
   experimental_output,
   output = experimental_output,
   experimental_telemetry: telemetry,
@@ -361,7 +361,7 @@ export function streamText<
      * Condition for stopping the generation when there are tool results in the last step.
      * When the condition is an array, any of the conditions can be met to stop the generation.
      *
-     * @default stepCountIs(1)
+     * @default isStepCount(1)
      */
     stopWhen?:
       | StopCondition<NoInfer<TOOLS>>

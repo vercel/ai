@@ -377,13 +377,13 @@ const { text } = await generateText({
 Some providers offer tools that are executed by the provider itself, such as [OpenAI's web search tool](/providers/ai-sdk-providers/openai#web-search-tool). To use these tools through AI Gateway, import the provider to access the tool definitions:
 
 ```ts
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
   model: 'openai/gpt-5-mini',
   prompt: 'What is the Vercel AI Gateway?',
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   tools: {
     web_search: openai.tools.webSearch({}),
   },

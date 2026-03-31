@@ -2,7 +2,11 @@
 
 exports[`streamObject > output = "object" > options.onFinish > should be called when a valid object is generated 1`] = `
 {
+  "callId": "test-id",
   "error": undefined,
+  "finishReason": "stop",
+  "functionId": undefined,
+  "metadata": undefined,
   "object": {
     "content": "Hello, world!",
   },
@@ -11,6 +15,8 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
       "testKey": "testValue",
     },
   },
+  "reasoning": undefined,
+  "request": {},
   "response": {
     "headers": undefined,
     "id": "id-0",
@@ -40,9 +46,15 @@ exports[`streamObject > output = "object" > options.onFinish > should be called 
 
 exports[`streamObject > output = "object" > options.onFinish > should be called when object doesn't match the schema 1`] = `
 {
+  "callId": "test-id",
   "error": [AI_NoObjectGeneratedError: No object generated: response did not match schema.],
+  "finishReason": "stop",
+  "functionId": undefined,
+  "metadata": undefined,
   "object": undefined,
   "providerMetadata": undefined,
+  "reasoning": undefined,
+  "request": {},
   "response": {
     "headers": undefined,
     "id": "id-0",
