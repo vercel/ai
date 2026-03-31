@@ -303,6 +303,9 @@ importers:
       '@ai-sdk/openai-compatible':
         specifier: workspace:*
         version: link:../../packages/openai-compatible
+      '@ai-sdk/otel':
+        specifier: workspace:*
+        version: link:../../packages/otel
       '@ai-sdk/perplexity':
         specifier: workspace:*
         version: link:../../packages/perplexity
