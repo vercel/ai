@@ -287,33 +287,43 @@ export async function convertToBedrockChatMessages(
                   schema: bedrockReasoningMetadataSchema,
                 });
 
-                if (reasoningMetadata != null) {
-                  if (reasoningMetadata.signature != null) {
-                    bedrockContent.push({
-                      reasoningContent: {
-                        reasoningText: {
-                          // trim the last text part if it's the last message in the block
-                          // because Bedrock does not allow trailing whitespace
-                          // in pre-filled assistant responses
-                          text: trimIfLast(
-                            isLastBlock,
-                            isLastMessage,
-                            isLastContentPart,
-                            part.text,
-                          ),
-                          signature: reasoningMetadata.signature,
-                        },
+                if (reasoningMetadata?.signature != null) {
+                  // When a signature is present, do NOT trim the text.
+                  // The signature was computed over the exact original bytes
+                  // of the reasoning text. Trimming would invalidate the
+                  // signature and cause Bedrock to reject the request.
+                  bedrockContent.push({
+                    reasoningContent: {
+                      reasoningText: {
+                        text: part.text,
+                        signature: reasoningMetadata.signature,
                       },
-                    });
-                  } else if (reasoningMetadata.redactedData != null) {
-                    bedrockContent.push({
-                      reasoningContent: {
-                        redactedReasoning: {
-                          data: reasoningMetadata.redactedData,
-                        },
+                    },
+                  });
+                } else if (reasoningMetadata?.redactedData != null) {
+                  bedrockContent.push({
+                    reasoningContent: {
+                      redactedReasoning: {
+                        data: reasoningMetadata.redactedData,
                       },
-                    });
-                  }
+                    },
+                  });
+                } else {
+                  // Reasoning without signature/redactedData: trim if last
+                  // This handles Bedrock's restriction on trailing whitespace
+                  // in pre-filled assistant responses.
+                  bedrockContent.push({
+                    reasoningContent: {
+                      reasoningText: {
+                        text: trimIfLast(
+                          isLastBlock,
+                          isLastMessage,
+                          isLastContentPart,
+                          part.text,
+                        ),
+                      },
+                    },
+                  });
                 }
 
                 break;
