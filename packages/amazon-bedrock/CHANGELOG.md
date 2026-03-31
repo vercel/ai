@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.85
+
+### Patch Changes
+
+- 4918dda: fix(amazon-bedrock): preserve reasoning text when signature is present
+
 ## 4.0.84
 
 ### Patch Changes
