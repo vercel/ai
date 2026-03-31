@@ -584,6 +584,10 @@ class DefaultMCPClient implements MCPClient {
         options?.abortSignal?.throwIfAborted();
         const result = await self.callTool({ name, args, options });
 
+        if (result.isError) {
+          return result;
+        }
+
         if (outputSchema != null) {
           return self.extractStructuredContent(result, outputSchema, name);
         }
