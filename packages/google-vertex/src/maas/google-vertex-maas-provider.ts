@@ -94,15 +94,13 @@ export function createVertexMaas(
 
   const provider = (modelId: GoogleVertexMaasModelId) => getProvider()(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v2' as const;
   provider.languageModel = (modelId: GoogleVertexMaasModelId) =>
     getProvider().languageModel(modelId);
   provider.chatModel = (modelId: GoogleVertexMaasModelId) =>
     getProvider().chatModel(modelId);
   provider.completionModel = (modelId: string) =>
     getProvider().completionModel(modelId);
-  provider.embeddingModel = (modelId: string) =>
-    getProvider().embeddingModel(modelId);
   provider.textEmbeddingModel = (modelId: string) =>
     getProvider().textEmbeddingModel(modelId);
   provider.imageModel = (modelId: string) => getProvider().imageModel(modelId);
