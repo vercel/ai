@@ -35,7 +35,7 @@ export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';
 export {
   hasToolCall,
-  loopIsFinished,
+  isLoopFinished,
   stepCountIs,
   type StopCondition,
 } from './stop-condition';

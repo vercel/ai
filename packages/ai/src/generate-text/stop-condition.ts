@@ -9,7 +9,7 @@ export function stepCountIs(stepCount: number): StopCondition<any> {
   return ({ steps }) => steps.length === stepCount;
 }
 
-export function loopIsFinished(): StopCondition<any> {
+export function isLoopFinished(): StopCondition<any> {
   return () => false;
 }
 

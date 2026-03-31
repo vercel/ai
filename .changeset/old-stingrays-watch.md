@@ -2,4 +2,4 @@
 "ai": patch
 ---
 
-feat(ai): add new `loopIsFinished` stop condition helper for unlimited steps
+feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps

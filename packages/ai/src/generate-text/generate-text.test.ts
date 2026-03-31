@@ -41,7 +41,7 @@ import {
 } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
-import { loopIsFinished, stepCountIs } from './stop-condition';
+import { isLoopFinished, stepCountIs } from './stop-condition';
 import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 
 vi.mock('../version', () => {
@@ -3775,7 +3775,7 @@ describe('generateText', () => {
       });
     });
 
-    it('should complete tool loop with loopIsFinished()', async () => {
+    it('should complete tool loop with isLoopFinished()', async () => {
       let responseCount = 0;
       const result = await generateText({
         model: new MockLanguageModelV4({
@@ -3812,7 +3812,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: loopIsFinished(),
+        stopWhen: isLoopFinished(),
       });
 
       expect(result.text).toBe('Done!');

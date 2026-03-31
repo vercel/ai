@@ -49,7 +49,7 @@ import {
   createNullLanguageModelUsage,
 } from '../types/usage';
 import { StepResult } from './step-result';
-import { loopIsFinished, stepCountIs } from './stop-condition';
+import { isLoopFinished, stepCountIs } from './stop-condition';
 import {
   streamText,
   StreamTextOnFinishCallback,
@@ -11708,7 +11708,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should complete tool loop with loopIsFinished()', async () => {
+    it('should complete tool loop with isLoopFinished()', async () => {
       let responseCount = 0;
       const result = streamText({
         model: new MockLanguageModelV4({
@@ -11770,7 +11770,7 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        stopWhen: loopIsFinished(),
+        stopWhen: isLoopFinished(),
       });
 
       await result.consumeStream();
