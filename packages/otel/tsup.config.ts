@@ -6,5 +6,6 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
+    target: 'es2018',
   },
 ]);

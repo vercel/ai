@@ -1077,7 +1077,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       state.stepSpan.end();
     }
 
-    for (const { span: embedSpan } of Array.from(state.embedSpans.values())) {
+    for (const { span: embedSpan } of state.embedSpans.values()) {
       recordSpanError(embedSpan, actualError);
       embedSpan.end();
     }
