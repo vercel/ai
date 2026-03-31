@@ -1,5 +1,7 @@
 import {
+  CustomPart,
   FilePart,
+  ReasoningFilePart,
   ReasoningPart,
   TextPart,
   ToolCallPart,
@@ -31,8 +33,10 @@ export type AssistantContent =
   | string
   | Array<
       | TextPart
+      | CustomPart
       | FilePart
       | ReasoningPart
+      | ReasoningFilePart
       | ToolCallPart
       | ToolResultPart
       | ToolApprovalRequest

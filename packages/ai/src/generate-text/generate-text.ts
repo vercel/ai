@@ -2,19 +2,17 @@ import {
   LanguageModelV4,
   LanguageModelV4Content,
   LanguageModelV4ToolCall,
-  LanguageModelV4ToolChoice,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
-  SystemModelMessage,
   ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
-import { notify } from '../util/notify';
+import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
@@ -31,7 +29,6 @@ import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choi
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -47,9 +44,13 @@ import {
 } from '../types/usage';
 import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
+import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
+import { collectToolApprovals } from './collect-tool-approvals';
+import { ContentPart } from './content-part';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -57,10 +58,9 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
-} from './callback-events';
-import { collectToolApprovals } from './collect-tool-approvals';
-import { ContentPart } from './content-part';
+} from './core-events';
 import { executeToolCall } from './execute-tool-call';
+import { filterActiveTools } from './filter-active-tool';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
@@ -68,6 +68,7 @@ import { Output, text } from './output';
 import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
 import { PrepareStepFunction } from './prepare-step';
+import { convertToReasoningOutputs } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
@@ -83,7 +84,6 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
-import { mergeAbortSignals } from '../util/merge-abort-signals';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -288,6 +288,14 @@ export async function generateText<
     model: LanguageModel;
 
     /**
+     * Timeout in milliseconds. The call will be aborted if it takes longer
+     * than the specified timeout. Can be used alongside abortSignal.
+     *
+     * Can be specified as a number (milliseconds) or as an object with `totalMs`.
+     */
+    timeout?: TimeoutConfiguration<TOOLS>;
+
+    /**
      * The tools that the model can call. The model needs to support calling tools.
      */
     tools?: TOOLS;
@@ -468,8 +476,6 @@ export async function generateText<
     `ai/${VERSION}`,
   );
 
-  const modelInfo = { provider: model.provider, modelId: model.modelId };
-
   const initialPrompt = await standardizePrompt({
     system,
     prompt,
@@ -485,7 +491,8 @@ export async function generateText<
     event: {
       callId,
       operationId: 'ai.generateText',
-      model: modelInfo,
+      provider: model.provider,
+      modelId: model.modelId,
       system,
       prompt,
       messages,
@@ -500,6 +507,7 @@ export async function generateText<
       frequencyPenalty: callSettings.frequencyPenalty,
       stopSequences: callSettings.stopSequences,
       seed: callSettings.seed,
+      reasoning: callSettings.reasoning,
       maxRetries,
       timeout,
       headers: headersWithUserAgent,
@@ -547,9 +555,11 @@ export async function generateText<
         callId,
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
+        timeout,
         experimental_context,
         stepNumber: 0,
-        model: modelInfo,
+        provider: model.provider,
+        modelId: model.modelId,
         onToolCallStart: event =>
           notify({
             event,
@@ -677,10 +687,6 @@ export async function generateText<
         const stepModel = resolveLanguageModel(
           prepareStepResult?.model ?? model,
         );
-        const stepModelInfo = {
-          provider: stepModel.provider,
-          modelId: stepModel.modelId,
-        };
 
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
@@ -694,13 +700,15 @@ export async function generateText<
         experimental_context =
           prepareStepResult?.experimental_context ?? experimental_context;
 
-        const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+        const stepActiveTools = filterActiveTools({
+          tools,
+          activeTools: prepareStepResult?.activeTools ?? activeTools,
+        });
 
         const { toolChoice: stepToolChoice, tools: stepTools } =
           await prepareToolsAndToolChoice({
-            tools,
+            tools: stepActiveTools,
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-            activeTools: stepActiveTools,
           });
 
         const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
@@ -715,12 +723,13 @@ export async function generateText<
         const onStepStartEvent = {
           callId,
           stepNumber: steps.length,
-          model: stepModelInfo,
+          provider: stepModel.provider,
+          modelId: stepModel.modelId,
           system: stepSystem,
           messages: stepMessages,
           tools,
           toolChoice: stepToolChoice,
-          activeTools: stepActiveTools,
+          activeTools: prepareStepResult?.activeTools ?? activeTools,
           steps: [...steps],
           providerOptions: stepProviderOptions,
           timeout,
@@ -869,9 +878,11 @@ export async function generateText<
               callId,
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
+              timeout,
               experimental_context,
               stepNumber: steps.length,
-              model: stepModelInfo,
+              provider: stepModel.provider,
+              modelId: stepModel.modelId,
               onToolCallStart: event =>
                 notify({
                   event,
@@ -967,7 +978,8 @@ export async function generateText<
         const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
           callId,
           stepNumber,
-          model: stepModelInfo,
+          provider: stepModel.provider,
+          modelId: stepModel.modelId,
           functionId: telemetry?.functionId,
           metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           experimental_context,
@@ -983,8 +995,8 @@ export async function generateText<
 
         logWarnings({
           warnings: currentModelResponse.warnings ?? [],
-          provider: stepModelInfo.provider,
-          model: stepModelInfo.modelId,
+          provider: stepModel.provider,
+          model: stepModel.modelId,
         });
 
         steps.push(currentStepResult);
@@ -1101,9 +1113,11 @@ async function executeTools<TOOLS extends ToolSet>({
   callId,
   messages,
   abortSignal,
+  timeout,
   experimental_context,
   stepNumber,
-  model,
+  provider,
+  modelId,
   onToolCallStart,
   onToolCallFinish,
   executeToolInTelemetryContext,
@@ -1114,9 +1128,11 @@ async function executeTools<TOOLS extends ToolSet>({
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
+  timeout?: TimeoutConfiguration<TOOLS>;
   experimental_context: unknown;
   stepNumber: number;
-  model: { provider: string; modelId: string };
+  provider: string;
+  modelId: string;
   onToolCallStart?: GenerateTextOnToolCallStartCallback<TOOLS>;
   onToolCallFinish?: GenerateTextOnToolCallFinishCallback<TOOLS>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
@@ -1130,9 +1146,11 @@ async function executeTools<TOOLS extends ToolSet>({
         callId,
         messages,
         abortSignal,
+        timeout,
         experimental_context,
         stepNumber,
-        model,
+        provider,
+        modelId,
         onToolCallStart,
         onToolCallFinish,
         executeToolInTelemetryContext,
@@ -1145,9 +1163,10 @@ async function executeTools<TOOLS extends ToolSet>({
   );
 }
 
-class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
-  implements GenerateTextResult<TOOLS, OUTPUT>
-{
+class DefaultGenerateTextResult<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output,
+> implements GenerateTextResult<TOOLS, OUTPUT> {
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
   readonly totalUsage: LanguageModelUsage;
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
@@ -1183,7 +1202,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
   }
 
   get reasoning() {
-    return this.finalStep.reasoning;
+    return convertToReasoningOutputs(this.finalStep.reasoning);
   }
 
   get toolCalls() {
@@ -1274,13 +1293,15 @@ function asContent<TOOLS extends ToolSet>({
     switch (part.type) {
       case 'text':
       case 'reasoning':
+      case 'custom':
       case 'source':
         contentParts.push(part);
         break;
 
-      case 'file': {
+      case 'file':
+      case 'reasoning-file': {
         contentParts.push({
-          type: 'file' as const,
+          type: part.type as 'file' | 'reasoning-file',
           file: new DefaultGeneratedFile(part),
           ...(part.providerMetadata != null
             ? { providerMetadata: part.providerMetadata }

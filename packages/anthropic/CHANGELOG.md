@@ -1,5 +1,71 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- 0ee8aec: feat (provider/anthropic): support passing metadata.user_id
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 21d1ee3: fix(anthropic): skip passing beta header for tool search tools
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- f05a40d: fix(vertex): throw warning when strict: true for vertexAnthropic
+
 ## 4.0.0-beta.3
 
 ### Patch Changes
@@ -446,13 +512,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - f33a018: chore: add model ID for Haiku 4.5
@@ -792,13 +858,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

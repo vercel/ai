@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'vitest';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
-import { describe, it, expect } from 'vitest';
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {
@@ -539,6 +539,319 @@ describe('tool messages', () => {
       ],
     });
   });
+
+  it('should convert tool result content with image-data into functionResponse parts', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'text',
+                  text: 'Here is the generated image:',
+                },
+                {
+                  type: 'image-data',
+                  data: 'base64encodedimagedata',
+                  mediaType: 'image/jpeg',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                name: 'imageGenerator',
+                response: {
+                  name: 'imageGenerator',
+                  content: 'Here is the generated image:',
+                },
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: 'base64encodedimagedata',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should convert tool result content with file-data into functionResponse parts', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'documentReader',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file-data',
+                  data: 'base64pdfdata',
+                  mediaType: 'application/pdf',
+                  filename: 'report.pdf',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        name: 'documentReader',
+        response: {
+          name: 'documentReader',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            inlineData: {
+              mimeType: 'application/pdf',
+              data: 'base64pdfdata',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('should convert tool result content with image-url data URL into functionResponse parts', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'image-url',
+                  url: 'data:image/png;base64,base64pngdata',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            inlineData: {
+              mimeType: 'image/png',
+              data: 'base64pngdata',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('should forward non-data image-url tool result parts as text content', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'image-url',
+                  url: 'https://example.com/image.png',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: '{"type":"image-url","url":"https://example.com/image.png"}',
+        },
+      },
+    });
+  });
+
+  it('should forward non-data file-url tool result parts as text content', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'documentReader',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file-url',
+                  url: 'https://example.com/report.pdf',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        name: 'documentReader',
+        response: {
+          name: 'documentReader',
+          content: '{"type":"file-url","url":"https://example.com/report.pdf"}',
+        },
+      },
+    });
+  });
+
+  it('should use legacy tool-result conversion when functionResponse parts are unsupported', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageGenerator',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'text',
+                    text: 'Here is the generated image:',
+                  },
+                  {
+                    type: 'image-data',
+                    data: 'base64encodedimagedata',
+                    mediaType: 'image/jpeg',
+                  },
+                  {
+                    type: 'file-data',
+                    data: 'base64pdfdata',
+                    mediaType: 'application/pdf',
+                    filename: 'report.pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { supportsFunctionResponseParts: false },
+    );
+
+    expect(result.contents[0].parts).toEqual([
+      {
+        functionResponse: {
+          name: 'imageGenerator',
+          response: {
+            name: 'imageGenerator',
+            content: 'Here is the generated image:',
+          },
+        },
+      },
+      {
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: 'base64encodedimagedata',
+        },
+      },
+      {
+        text: 'Tool executed successfully and returned this image as a response',
+      },
+      {
+        text: '{"type":"file-data","data":"base64pdfdata","mediaType":"application/pdf","filename":"report.pdf"}',
+      },
+    ]);
+  });
+
+  it('should keep URL tool result parts on the legacy path', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'documentReader',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'image-url',
+                    url: 'https://example.com/image.png',
+                  },
+                  {
+                    type: 'file-url',
+                    url: 'https://example.com/report.pdf',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { supportsFunctionResponseParts: false },
+    );
+
+    expect(result.contents[0].parts).toEqual([
+      {
+        text: '{"type":"image-url","url":"https://example.com/image.png"}',
+      },
+      {
+        text: '{"type":"file-url","url":"https://example.com/report.pdf"}',
+      },
+    ]);
+  });
 });
 
 describe('assistant messages', () => {
@@ -617,6 +930,154 @@ describe('assistant messages', () => {
     });
   });
 
+  it('should convert reasoning-file parts with thought flag and signature', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning-file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
+            providerOptions: {
+              google: { thoughtSignature: 'sig_reasoning_file' },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "AAECAw==",
+                  "mimeType": "image/png",
+                },
+                "thought": true,
+                "thoughtSignature": "sig_reasoning_file",
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should convert reasoning-file parts without thoughtSignature', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning-file',
+            data: 'BAUG',
+            mediaType: 'image/jpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "BAUG",
+                  "mimeType": "image/jpeg",
+                },
+                "thought": true,
+                "thoughtSignature": undefined,
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
+  it('should throw error for URL file data in reasoning-file assistant messages', async () => {
+    expect(() =>
+      convertToGoogleGenerativeAIMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning-file',
+              data: new URL('https://example.com/image.png'),
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow('File data URLs in assistant messages are not supported');
+  });
+
+  it('should handle mixed reasoning, reasoning-file, text, and tool-call parts', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Thinking about this...',
+            providerOptions: { google: { thoughtSignature: 'sig1' } },
+          },
+          {
+            type: 'reasoning-file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
+            providerOptions: { google: { thoughtSignature: 'sig2' } },
+          },
+          {
+            type: 'text',
+            text: 'Here is my response',
+            providerOptions: { google: { thoughtSignature: 'sig3' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "Thinking about this...",
+                "thought": true,
+                "thoughtSignature": "sig1",
+              },
+              {
+                "inlineData": {
+                  "data": "AAECAw==",
+                  "mimeType": "image/png",
+                },
+                "thought": true,
+                "thoughtSignature": "sig2",
+              },
+              {
+                "text": "Here is my response",
+                "thoughtSignature": "sig3",
+              },
+            ],
+            "role": "model",
+          },
+        ],
+        "systemInstruction": undefined,
+      }
+    `);
+  });
+
   it('should throw error for URL file data in assistant messages', async () => {
     expect(() =>
       convertToGoogleGenerativeAIMessages([
@@ -632,64 +1093,6 @@ describe('assistant messages', () => {
         },
       ]),
     ).toThrow('File data URLs in assistant messages are not supported');
-  });
-
-  it('should convert tool result messages with content type (multipart with images)', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolName: 'imageGenerator',
-            toolCallId: 'testCallId',
-            output: {
-              type: 'content',
-              value: [
-                {
-                  type: 'text',
-                  text: 'Here is the generated image:',
-                },
-                {
-                  type: 'image-data',
-                  data: 'base64encodedimagedata',
-                  mediaType: 'image/jpeg',
-                },
-              ],
-            },
-          },
-        ],
-      },
-    ]);
-
-    expect(result).toEqual({
-      systemInstruction: undefined,
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              functionResponse: {
-                name: 'imageGenerator',
-                response: {
-                  name: 'imageGenerator',
-                  content: 'Here is the generated image:',
-                },
-              },
-            },
-            {
-              inlineData: {
-                mimeType: 'image/jpeg',
-                data: 'base64encodedimagedata',
-              },
-            },
-            {
-              text: 'Tool executed successfully and returned this image as a response',
-            },
-          ],
-        },
-      ],
-    });
   });
 });
 

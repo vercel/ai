@@ -14,6 +14,8 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
@@ -74,6 +76,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     providerOptions,
     tools,
     toolChoice,
+    reasoning,
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
 
@@ -139,6 +142,24 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       }
     }
 
+    const resolvedReasoningEffort =
+      options.reasoningEffort ??
+      (isCustomReasoning(reasoning)
+        ? reasoning === 'none'
+          ? undefined
+          : mapReasoningToProviderEffort({
+              reasoning,
+              effortMap: {
+                minimal: 'low',
+                low: 'low',
+                medium: 'medium',
+                high: 'high',
+                xhigh: 'high',
+              },
+              warnings,
+            })
+        : undefined);
+
     const baseArgs: Record<string, unknown> = {
       model: this.modelId,
       input,
@@ -165,11 +186,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               : { type: 'json_object' },
         },
       }),
-      ...((options.reasoningEffort != null ||
+      ...((resolvedReasoningEffort != null ||
         options.reasoningSummary != null) && {
         reasoning: {
-          ...(options.reasoningEffort != null && {
-            effort: options.reasoningEffort,
+          ...(resolvedReasoningEffort != null && {
+            effort: resolvedReasoningEffort,
           }),
           ...(options.reasoningSummary != null && {
             summary: options.reasoningSummary,
@@ -236,6 +257,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     });
 
     const content: Array<LanguageModelV4Content> = [];
+    let hasFunctionCall = false;
 
     const webSearchSubTools = [
       'web_search',
@@ -358,6 +380,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
         }
 
         case 'function_call': {
+          hasFunctionCall = true;
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -410,7 +433,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason: {
-        unified: mapXaiResponsesFinishReason(response.status),
+        unified: hasFunctionCall
+          ? 'tool-calls'
+          : mapXaiResponsesFinishReason(response.status),
         raw: response.status ?? undefined,
       },
       usage: response.usage
@@ -462,6 +487,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
+    let hasFunctionCall = false;
     let usage: LanguageModelV4Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
@@ -655,7 +681,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
               if (response.status) {
                 finishReason = {
-                  unified: mapXaiResponsesFinishReason(response.status),
+                  unified: hasFunctionCall
+                    ? 'tool-calls'
+                    : mapXaiResponsesFinishReason(response.status),
                   raw: response.status,
                 };
               }
@@ -923,6 +951,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     toolName: part.name,
                   });
                 } else if (event.type === 'response.output_item.done') {
+                  hasFunctionCall = true;
                   ongoingToolCalls[event.output_index] = undefined;
 
                   controller.enqueue({

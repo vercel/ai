@@ -34,9 +34,17 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { ProviderMetadata } from '../types/provider-metadata';
 import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { DownloadFunction } from '../util/download/download-function';
+import { notify } from '../util/notify';
+import type { Listener } from '../util/notify';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
+import type {
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
+} from './structured-output-events';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
@@ -105,6 +113,11 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * to the provider from the AI SDK and enable provider-specific
  * functionality that can be fully encapsulated in the provider.
  *
+ * @param experimental_onStart - Callback invoked when generation begins, before the LLM call.
+ * @param experimental_onStepStart - Callback invoked when the model call begins.
+ * @param onStepFinish - Callback invoked when the model call completes with the raw result.
+ * @param onFinish - Callback invoked when the entire operation completes with the parsed object.
+ *
  * @returns
  * A result object that contains the generated object, the finish reason, the token usage, and additional information.
  *
@@ -112,11 +125,8 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  */
 export async function generateObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
-  OUTPUT extends
-    | 'object'
-    | 'array'
-    | 'enum'
-    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+  OUTPUT extends 'object' | 'array' | 'enum' | 'no-schema' =
+    InferSchema<SCHEMA> extends string ? 'enum' : 'object',
   RESULT = OUTPUT extends 'array'
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
@@ -186,6 +196,30 @@ export async function generateObject<
       providerOptions?: ProviderOptions;
 
       /**
+       * Callback that is called when the generateObject operation begins,
+       * before the LLM call is made.
+       */
+      experimental_onStart?: Listener<ObjectOnStartEvent>;
+
+      /**
+       * Callback that is called when the model call (step) begins,
+       * before the provider is called.
+       */
+      experimental_onStepStart?: Listener<ObjectOnStepStartEvent>;
+
+      /**
+       * Callback that is called when the model call (step) completes,
+       * with the raw result before JSON parsing.
+       */
+      onStepFinish?: Listener<ObjectOnStepFinishEvent>;
+
+      /**
+       * Callback that is called when the entire operation completes
+       * with the final parsed and validated object.
+       */
+      onFinish?: Listener<ObjectOnFinishEvent<RESULT>>;
+
+      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -207,6 +241,10 @@ export async function generateObject<
     experimental_telemetry: telemetry,
     experimental_download: download,
     providerOptions,
+    experimental_onStart: onStart,
+    experimental_onStepStart: onStepStart,
+    onStepFinish,
+    onFinish,
     _internal: {
       generateId = originalGenerateId,
       currentDate = () => new Date(),
@@ -258,6 +296,41 @@ export async function generateObject<
 
   const tracer = getTracer(telemetry);
   const jsonSchema = await outputStrategy.jsonSchema();
+  const callId = generateId();
+
+  // Fire onStart callback
+  await notify({
+    event: {
+      callId,
+      operationId: 'ai.generateObject' as const,
+      provider: model.provider,
+      modelId: model.modelId,
+      system,
+      prompt,
+      messages,
+      maxOutputTokens: callSettings.maxOutputTokens,
+      temperature: callSettings.temperature,
+      topP: callSettings.topP,
+      topK: callSettings.topK,
+      presencePenalty: callSettings.presencePenalty,
+      frequencyPenalty: callSettings.frequencyPenalty,
+      seed: callSettings.seed,
+      maxRetries,
+      headers: headersWithUserAgent,
+      providerOptions,
+      abortSignal,
+      output: outputStrategy.type as 'object' | 'array' | 'enum' | 'no-schema',
+      schema: jsonSchema as Record<string, unknown> | undefined,
+      schemaName,
+      schemaDescription,
+      isEnabled: telemetry?.isEnabled,
+      recordInputs: telemetry?.recordInputs,
+      recordOutputs: telemetry?.recordOutputs,
+      functionId: telemetry?.functionId,
+      metadata: telemetry?.metadata,
+    },
+    callbacks: [onStart],
+  });
 
   try {
     return await recordSpan({
@@ -304,6 +377,25 @@ export async function generateObject<
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
           download,
+        });
+
+        // Fire onStepStart callback
+        await notify({
+          event: {
+            callId,
+            stepNumber: 0 as const,
+            provider: model.provider,
+            modelId: model.modelId,
+            providerOptions,
+            headers: headersWithUserAgent,
+            abortSignal,
+            functionId: telemetry?.functionId,
+            metadata: telemetry?.metadata as
+              | Record<string, unknown>
+              | undefined,
+            promptMessages,
+          },
+          callbacks: [onStepStart],
         });
 
         const generateResult = await retry(() =>
@@ -428,6 +520,29 @@ export async function generateObject<
           model: model.modelId,
         });
 
+        // Fire onStepFinish callback
+        await notify({
+          event: {
+            callId,
+            stepNumber: 0 as const,
+            provider: model.provider,
+            modelId: model.modelId,
+            finishReason,
+            usage,
+            objectText: result,
+            reasoning,
+            warnings,
+            request,
+            response,
+            providerMetadata: resultProviderMetadata,
+            functionId: telemetry?.functionId,
+            metadata: telemetry?.metadata as
+              | Record<string, unknown>
+              | undefined,
+          },
+          callbacks: [onStepFinish],
+        });
+
         const object = await parseAndValidateObjectResultWithRepair(
           result,
           outputStrategy,
@@ -458,6 +573,27 @@ export async function generateObject<
             },
           }),
         );
+
+        // Fire onFinish callback
+        await notify({
+          event: {
+            callId,
+            object,
+            error: undefined,
+            reasoning,
+            finishReason,
+            usage,
+            warnings,
+            request,
+            response,
+            providerMetadata: resultProviderMetadata,
+            functionId: telemetry?.functionId,
+            metadata: telemetry?.metadata as
+              | Record<string, unknown>
+              | undefined,
+          },
+          callbacks: [onFinish],
+        });
 
         return new DefaultGenerateObjectResult({
           object,

@@ -1,6 +1,7 @@
 export * from './language-model-v4';
 export * from './language-model-v4-call-options';
 export * from './language-model-v4-content';
+export * from './language-model-v4-custom-content';
 export * from './language-model-v4-data-content';
 export * from './language-model-v4-file';
 export * from './language-model-v4-finish-reason';
@@ -9,6 +10,7 @@ export * from './language-model-v4-generate-result';
 export * from './language-model-v4-prompt';
 export * from './language-model-v4-provider-tool';
 export * from './language-model-v4-reasoning';
+export * from './language-model-v4-reasoning-file';
 export * from './language-model-v4-response-metadata';
 export * from './language-model-v4-source';
 export * from './language-model-v4-stream-part';

@@ -1,7 +1,7 @@
 import {
-  LanguageModelV3CallOptions,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamResult,
+  LanguageModelV4CallOptions,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import { FetchFunction } from '@ai-sdk/provider-utils';
@@ -67,8 +67,8 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const result = await super.doGenerate(options);
 
     // Fix usage if needed
@@ -107,8 +107,8 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const result = await super.doStream(options);
 
     // Wrap the stream to fix usage in the final chunk

@@ -113,7 +113,8 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
     operationId: 'ai.generateText',
-    model,
+    provider: model.provider,
+    modelId: model.modelId,
     system: undefined,
     prompt: 'Hello',
     messages: undefined,
@@ -146,7 +147,8 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
     stepNumber: 0,
-    model,
+    provider: model.provider,
+    modelId: model.modelId,
     system: undefined,
     messages: [],
     tools: undefined,
@@ -249,7 +251,8 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
     stepNumber: 0,
-    model,
+    provider: model.provider,
+    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
@@ -272,7 +275,8 @@ function makeToolCallFinishEvent(
   const base = {
     callId,
     stepNumber: 0,
-    model,
+    provider: model.provider,
+    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
@@ -677,6 +681,43 @@ describe('OpenTelemetryIntegration', () => {
       expect(parsed[0].toolName).toBe('myTool');
     });
 
+    it('includes files when present', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(
+        makeStepFinishEvent({
+          files: [
+            {
+              mediaType: 'image/png',
+              base64: 'iVBORw0KGgo=',
+            },
+          ],
+        }),
+      );
+
+      const stepSpan = tracer.spans[1];
+      const setAttrsCall = getSetAttributesArg(stepSpan);
+      expect(setAttrsCall['ai.response.files']).toBeDefined();
+      const parsed = JSON.parse(setAttrsCall['ai.response.files'] as string);
+      expect(parsed).toEqual([
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'iVBORw0KGgo=',
+        },
+      ]);
+    });
+
+    it('does not include files when empty', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(makeStepFinishEvent({ files: [] }));
+
+      const stepSpan = tracer.spans[1];
+      const setAttrsCall = getSetAttributesArg(stepSpan);
+      expect(setAttrsCall['ai.response.files']).toBeUndefined();
+    });
+
     it('does nothing without prior step span', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent());
@@ -740,6 +781,34 @@ describe('OpenTelemetryIntegration', () => {
       const rootSpan = tracer.spans[0];
       const setAttrsCall = getSetAttributesArg(rootSpan);
       expect(setAttrsCall['ai.response.finishReason']).toBe('stop');
+    });
+
+    it('includes files in root span when present', () => {
+      otelIntegration.onStart!(makeOnStartEvent());
+      otelIntegration.onStepStart!(makeStepStartEvent());
+      otelIntegration.onStepFinish!(makeStepFinishEvent());
+      otelIntegration.onFinish!(
+        makeFinishEvent({
+          files: [
+            {
+              mediaType: 'image/png',
+              base64: 'iVBORw0KGgo=',
+            },
+          ],
+        }),
+      );
+
+      const rootSpan = tracer.spans[0];
+      const setAttrsCall = getSetAttributesArg(rootSpan);
+      expect(setAttrsCall['ai.response.files']).toBeDefined();
+      const parsed = JSON.parse(setAttrsCall['ai.response.files'] as string);
+      expect(parsed).toEqual([
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: 'iVBORw0KGgo=',
+        },
+      ]);
     });
 
     it('cleans up call state after finishing', () => {

@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
 
 export function convertMoonshotAIChatUsage(
   usage:
@@ -15,7 +15,7 @@ export function convertMoonshotAIChatUsage(
       }
     | undefined
     | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (usage == null) {
     return {
       inputTokens: {

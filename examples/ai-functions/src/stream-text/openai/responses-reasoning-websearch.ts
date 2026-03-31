@@ -9,10 +9,10 @@ run(async () => {
   const result = streamText({
     model: openai.responses('gpt-5-mini'),
     prompt: 'What happened in the world today?',
+    reasoning: 'medium',
     providerOptions: {
       openai: {
         reasoningSummary: 'detailed',
-        reasoningEffort: 'medium',
       } satisfies OpenAILanguageModelResponsesOptions,
     },
     tools: {
