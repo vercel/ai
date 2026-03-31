@@ -1,5 +1,20 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [bc67b4f]
+  - ai@7.0.0-beta.47
+
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- 31ee822: refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
+- Updated dependencies [31ee822]
+  - ai@7.0.0-beta.46
+
 ## 3.0.0-beta.46
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.0-beta.47
+
+### Patch Changes
+
+- bc67b4f: feat(ai): add experimental callbacks for structured outputs
+
+## 7.0.0-beta.46
+
+### Patch Changes
+
+- 31ee822: refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
+
 ## 7.0.0-beta.45
 
 ### Patch Changes
