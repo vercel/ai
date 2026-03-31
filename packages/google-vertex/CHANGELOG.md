@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 3.0.122
+
+### Patch Changes
+
+- b0a2029: feat (provider/google-vertex): add support for maas models
+
 ## 3.0.121
 
 ### Patch Changes
