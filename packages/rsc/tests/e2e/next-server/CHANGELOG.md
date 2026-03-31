@@ -4,6 +4,40 @@
 
 ### Patch Changes
 
+- Updated dependencies [b56301c]
+  - ai@7.0.0-beta.52
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [6abd098]
+  - ai@7.0.0-beta.51
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [3debdb7]
+  - ai@7.0.0-beta.50
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- ai@7.0.0-beta.49
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [5c4d910]
+  - ai@7.0.0-beta.48
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - Updated dependencies [bc67b4f]
   - ai@7.0.0-beta.47
 

@@ -1,5 +1,5 @@
 import { alibaba } from '@ai-sdk/alibaba';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -7,7 +7,7 @@ run(async () => {
   const result = streamText({
     model: alibaba('qwen-plus'),
     prompt: 'What is the weather in Paris and Tokyo?',
-    stopWhen: stepCountIs(5), // Allow multi-turn: call tools → get results → generate answer
+    stopWhen: isStepCount(5), // Allow multi-turn: call tools → get results → generate answer
     tools: {
       getWeather: tool({
         description: 'Get the weather for a location',

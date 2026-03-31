@@ -1,5 +1,5 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
@@ -34,7 +34,7 @@ run(async () => {
       },
     },
     reasoning: 'medium',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     experimental_telemetry: {
       isEnabled: true,
       functionId: 'anthropic-custom-provider-demo',

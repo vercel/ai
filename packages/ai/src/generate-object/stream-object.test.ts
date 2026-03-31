@@ -20,6 +20,7 @@ import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
+import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
@@ -1444,6 +1445,9 @@ describe('streamObject', () => {
         }),
         schema: z.object({ content: z.string() }),
         prompt: 'prompt',
+        experimental_telemetry: {
+          integrations: new OpenTelemetryIntegration({ tracer }),
+        },
         _internal: { now: () => 0 },
       });
 
@@ -1503,7 +1507,7 @@ describe('streamObject', () => {
             test1: 'value1',
             test2: false,
           },
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: { now: () => 0 },
       });
@@ -1547,7 +1551,7 @@ describe('streamObject', () => {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: false,
-          tracer,
+          integrations: new OpenTelemetryIntegration({ tracer }),
         },
         _internal: { now: () => 0 },
       });
@@ -1556,6 +1560,39 @@ describe('streamObject', () => {
       await convertAsyncIterableToArray(result.partialObjectStream);
 
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('should pass correct callId to onError when doStream throws', async () => {
+      const onErrorCalls: Array<{ callId: string; error: unknown }> = [];
+
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw new Error('doStream failure');
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_telemetry: {
+          isEnabled: true,
+          integrations: {
+            onStart(event: any) {
+              onErrorCalls.length; // keep reference
+            },
+            onError(event: any) {
+              onErrorCalls.push(event);
+            },
+          },
+        },
+        onError: () => {},
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(onErrorCalls).toHaveLength(1);
+      expect(onErrorCalls[0].callId).not.toBe('');
+      expect(onErrorCalls[0].error).toBeInstanceOf(Error);
+      expect((onErrorCalls[0].error as Error).message).toBe('doStream failure');
     });
   });
 
