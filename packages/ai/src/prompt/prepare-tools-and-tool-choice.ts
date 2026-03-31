@@ -11,11 +11,9 @@ import { ToolChoice } from '../types/language-model';
 export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   tools,
   toolChoice,
-  activeTools,
 }: {
   tools: TOOLS | undefined;
   toolChoice: ToolChoice<TOOLS> | undefined;
-  activeTools: Array<keyof TOOLS> | undefined;
 }): Promise<{
   tools:
     | Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool>
@@ -29,18 +27,10 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
     };
   }
 
-  // when activeTools is provided, we only include the tools that are in the list:
-  const filteredTools =
-    activeTools != null
-      ? Object.entries(tools).filter(([name]) =>
-          activeTools.includes(name as keyof TOOLS),
-        )
-      : Object.entries(tools);
-
   const languageModelTools: Array<
     LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
   > = [];
-  for (const [name, tool] of filteredTools) {
+  for (const [name, tool] of Object.entries(tools)) {
     const toolType = tool.type;
 
     switch (toolType) {

@@ -276,14 +276,14 @@ describe('generateText', () => {
               { type: 'text', text: 'Hello' },
               {
                 type: 'custom',
-                kind: 'openai-compaction',
+                kind: 'openai.compaction',
                 providerMetadata: {
                   openai: { itemId: 'cmp_123' },
                 },
               },
               {
                 type: 'custom',
-                kind: 'openai-other',
+                kind: 'openai.other',
               },
             ],
           },
@@ -295,14 +295,14 @@ describe('generateText', () => {
         { type: 'text', text: 'Hello' },
         {
           type: 'custom',
-          kind: 'openai-compaction',
+          kind: 'openai.compaction',
           providerMetadata: {
             openai: { itemId: 'cmp_123' },
           },
         },
         {
           type: 'custom',
-          kind: 'openai-other',
+          kind: 'openai.other',
         },
       ]);
     });
@@ -3395,10 +3395,8 @@ describe('generateText', () => {
                   "role": "tool",
                 },
               ],
-              "toolChoice": {
-                "type": "auto",
-              },
-              "tools": [],
+              "toolChoice": undefined,
+              "tools": undefined,
             },
           ]
         `);

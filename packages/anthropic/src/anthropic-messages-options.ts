@@ -113,6 +113,23 @@ export const anthropicLanguageModelOptions = z.object({
     .optional(),
 
   /**
+   * Metadata to include with the request.
+   *
+   * See https://platform.claude.com/docs/en/api/messages/create for details.
+   */
+  metadata: z
+    .object({
+      /**
+       * An external identifier for the user associated with the request.
+       *
+       * Should be a UUID, hash value, or other opaque identifier.
+       * Must not contain PII (name, email, phone number, etc.).
+       */
+      userId: z.string().optional(),
+    })
+    .optional(),
+
+  /**
    * MCP servers to be utilized in this request.
    */
   mcpServers: z

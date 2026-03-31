@@ -1,5 +1,27 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.13
+
+### Patch Changes
+
+- 1921625: fix(provider/amazon-bedrock): add tool search beta for Anthropic
+
+## 5.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+  - @ai-sdk/anthropic@4.0.0-beta.12
+
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [0ee8aec]
+  - @ai-sdk/anthropic@4.0.0-beta.11
+
 ## 5.0.0-beta.10
 
 ### Patch Changes
