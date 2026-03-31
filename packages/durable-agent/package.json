@@ -40,7 +40,8 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "ai": "workspace:*"
+    "ai": "workspace:*",
+    "ajv": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

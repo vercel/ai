@@ -3,12 +3,12 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
-  LanguageModelV4ToolCall,
   LanguageModelV4ToolResultPart,
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   asSchema,
+  type Experimental_ModelCallStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,
@@ -18,6 +18,7 @@ import {
   type StopCondition,
   type StreamTextOnStepFinishCallback,
   type SystemModelMessage,
+  type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
   type UIMessage,
@@ -134,13 +135,9 @@ export type StreamTextTransform<TTools extends ToolSet> = (options: {
 
 /**
  * Function to repair a tool call that failed to parse.
+ * Re-exported from the AI SDK core.
  */
-export type ToolCallRepairFunction<TTools extends ToolSet> = (options: {
-  toolCall: LanguageModelV4ToolCall;
-  tools: TTools;
-  error: unknown;
-  messages: LanguageModelV4Prompt;
-}) => Promise<LanguageModelV4ToolCall | null> | LanguageModelV4ToolCall | null;
+export type { ToolCallRepairFunction } from 'ai';
 
 /**
  * Custom download function for URLs.
@@ -485,18 +482,16 @@ export interface DurableAgentStreamOptions<
    * // In the workflow:
    * await agent.stream({
    *   messages,
-   *   writable: getWritable<LanguageModelV4StreamPart>(),
+   *   writable: getWritable<ModelCallStreamPart>(),
    * });
    *
    * // In the route handler:
    * return createUIMessageStreamResponse({
-   *   stream: run.readable.pipeThrough(createUIMessageChunkTransform()),
+   *   stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
    * });
    * ```
    */
-  writable?: WritableStream<
-    import('@ai-sdk/provider').LanguageModelV4StreamPart
-  >;
+  writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
 
   /**
    * Condition for stopping the generation when there are tool results in the last step.
@@ -967,9 +962,8 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
       experimental_context: experimentalContext,
       experimental_telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
-      experimental_transform: options.experimental_transform as
-        | StreamTextTransform<ToolSet>
-        | Array<StreamTextTransform<ToolSet>>,
+      repairToolCall:
+        options.experimental_repairToolCall as ToolCallRepairFunction<ToolSet>,
       responseFormat: await options.experimental_output?.responseFormat,
     });
 
@@ -1037,8 +1031,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
                     effectiveTools as ToolSet,
                     iterMessages,
                     experimentalContext,
-                    options.experimental_repairToolCall as ToolCallRepairFunction<ToolSet>,
-                    effectiveTelemetry,
                   ),
               ),
             );
@@ -1058,16 +1050,15 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
               type: 'tool-call' as const,
               toolCallId: tc.toolCallId,
               toolName: tc.toolName,
-              input: safeParseInput(tc.input),
+              input: tc.input,
             }));
 
             const allToolResults: ToolResult[] = resolvedResults.map(r => ({
               type: 'tool-result' as const,
               toolCallId: r.toolCallId,
               toolName: r.toolName,
-              input: safeParseInput(
-                toolCalls.find(tc => tc.toolCallId === r.toolCallId)?.input,
-              ),
+              input: toolCalls.find(tc => tc.toolCallId === r.toolCallId)
+                ?.input,
               output: 'value' in r.output ? r.output.value : undefined,
             }));
 
@@ -1111,7 +1102,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
                   effectiveTools as ToolSet,
                   iterMessages,
                   experimentalContext,
-                  options.experimental_repairToolCall as ToolCallRepairFunction<ToolSet>,
                 ),
             ),
           );
@@ -1146,15 +1136,13 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
             type: 'tool-call' as const,
             toolCallId: tc.toolCallId,
             toolName: tc.toolName,
-            input: safeParseInput(tc.input),
+            input: tc.input,
           }));
           lastStepToolResults = toolResults.map(r => ({
             type: 'tool-result' as const,
             toolCallId: r.toolCallId,
             toolName: r.toolName,
-            input: safeParseInput(
-              toolCalls.find(tc => tc.toolCallId === r.toolCallId)?.input,
-            ),
+            input: toolCalls.find(tc => tc.toolCallId === r.toolCallId)?.input,
             output: 'value' in r.output ? r.output.value : undefined,
           }));
 
@@ -1313,7 +1301,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 function resolveProviderToolResult(
-  toolCall: LanguageModelV4ToolCall,
+  toolCall: { toolCallId: string; toolName: string },
   providerExecutedToolResults?: Map<
     string,
     { toolCallId: string; toolName: string; result: unknown; isError?: boolean }
@@ -1360,12 +1348,10 @@ function resolveProviderToolResult(
 }
 
 async function executeTool(
-  toolCall: LanguageModelV4ToolCall,
+  toolCall: { toolCallId: string; toolName: string; input: unknown },
   tools: ToolSet,
   messages: LanguageModelV4Prompt,
   experimentalContext?: unknown,
-  repairToolCall?: ToolCallRepairFunction<ToolSet>,
-  telemetry?: TelemetrySettings,
 ): Promise<LanguageModelV4ToolResultPart> {
   const tool = tools[toolCall.toolName];
   if (!tool) throw new Error(`Tool "${toolCall.toolName}" not found`);
@@ -1375,58 +1361,8 @@ async function executeTool(
         `Client-side tools should be filtered before calling executeTool.`,
     );
   }
-  const schema = asSchema(tool.inputSchema);
-
-  let parsedInput: unknown;
-  try {
-    const input = await schema.validate?.(JSON.parse(toolCall.input || '{}'));
-    if (!input?.success) {
-      // Try to repair the tool call if a repair function is provided
-      if (repairToolCall) {
-        const repairedToolCall = await repairToolCall({
-          toolCall,
-          tools,
-          error: input?.error,
-          messages,
-        });
-        if (repairedToolCall) {
-          // Retry with repaired tool call
-          return executeTool(
-            repairedToolCall,
-            tools,
-            messages,
-            experimentalContext,
-            undefined, // Don't pass repair function to prevent infinite loops
-          );
-        }
-      }
-      throw new Error(
-        `Invalid input for tool "${toolCall.toolName}": ${input?.error?.message}`,
-      );
-    }
-    parsedInput = input.value;
-  } catch (parseError) {
-    // Try to repair the tool call if a repair function is provided
-    if (repairToolCall) {
-      const repairedToolCall = await repairToolCall({
-        toolCall,
-        tools,
-        error: parseError,
-        messages,
-      });
-      if (repairedToolCall) {
-        // Retry with repaired tool call
-        return executeTool(
-          repairedToolCall,
-          tools,
-          messages,
-          experimentalContext,
-          undefined, // Don't pass repair function to prevent infinite loops
-        );
-      }
-    }
-    throw parseError;
-  }
+  // Input is already parsed and validated by streamModelCall's parseToolCall
+  const parsedInput = toolCall.input;
 
   try {
     // Extract execute function to avoid binding `this` to the tool object.

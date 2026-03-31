@@ -24,6 +24,7 @@ import {
   agentTimeoutE2e,
   agentToolApprovalE2e,
   agentToolCallE2e,
+  agentToolInputSchemaE2e,
 } from './test/agent-e2e-workflows.js';
 
 describe('DurableAgent integration', { timeout: 120_000 }, () => {
@@ -64,6 +65,19 @@ describe('DurableAgent integration', { timeout: 120_000 }, () => {
         stepCount: 2,
         lastStepText: 'Tool failed but I recovered.',
       });
+    });
+  });
+
+  // ==========================================================================
+  // streamModelCall with serializable tool schemas
+  // ==========================================================================
+
+  describe('tool input schema serialization', () => {
+    it('tools with zod input schemas work across step boundaries', async () => {
+      const run = await start(agentToolInputSchemaE2e, [3, 7]);
+      const rv = await run.returnValue;
+      expect(rv).toMatchObject({ stepCount: 2 });
+      expect(rv.lastStepText).toBe('The sum is 10');
     });
   });
 

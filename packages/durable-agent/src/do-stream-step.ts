@@ -1,29 +1,29 @@
 import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
-  LanguageModelV4StreamPart,
-  LanguageModelV4ToolCall,
-  LanguageModelV4ToolChoice,
-  SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
+  type Experimental_ModelCallStreamPart as ModelCallStreamPart,
+  experimental_streamModelCall as streamModelCall,
   type FinishReason,
+  type LanguageModel,
+  type LanguageModelUsage,
+  type ModelMessage,
   type StepResult,
   type StopCondition,
+  type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
 } from 'ai';
 import { resolveLanguageModel } from 'ai/internal';
-import type {
-  ProviderOptions,
-  StreamTextTransform,
-  TelemetrySettings,
-} from './durable-agent.js';
-import { recordSpan } from './telemetry.js';
-import { uint8ArrayToBase64 } from './to-ui-message-chunk.js';
+import type { ProviderOptions, TelemetrySettings } from './durable-agent.js';
+import {
+  resolveSerializableTools,
+  type SerializableToolDef,
+} from './serializable-schema.js';
 import type { CompatibleLanguageModel } from './types.js';
 
-export type FinishPart = Extract<LanguageModelV4StreamPart, { type: 'finish' }>;
+export type { Experimental_ModelCallStreamPart as ModelCallStreamPart } from 'ai';
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>>;
 
@@ -41,7 +41,6 @@ export interface ProviderExecutedToolResult {
  * Options for the doStreamStep function.
  */
 export interface DoStreamStepOptions {
-  sendStart?: boolean;
   maxOutputTokens?: number;
   temperature?: number;
   topP?: number;
@@ -57,43 +56,45 @@ export interface DoStreamStepOptions {
   toolChoice?: ToolChoice<ToolSet>;
   includeRawChunks?: boolean;
   experimental_telemetry?: TelemetrySettings;
-  transforms?: Array<StreamTextTransform<ToolSet>>;
+  repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
 }
 
 /**
- * Convert AI SDK ToolChoice to LanguageModelV4ToolChoice
+ * Parsed tool call from the stream (parsed by streamModelCall's transform).
  */
-function toLanguageModelToolChoice(
-  toolChoice: ToolChoice<ToolSet> | undefined,
-): LanguageModelV4ToolChoice | undefined {
-  if (toolChoice === undefined) {
-    return undefined;
-  }
-  if (toolChoice === 'auto') {
-    return { type: 'auto' };
-  }
-  if (toolChoice === 'none') {
-    return { type: 'none' };
-  }
-  if (toolChoice === 'required') {
-    return { type: 'required' };
-  }
-  if (typeof toolChoice === 'object' && toolChoice.type === 'tool') {
-    return { type: 'tool', toolName: toolChoice.toolName };
-  }
-  return undefined;
+export interface ParsedToolCall {
+  type: 'tool-call';
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  providerExecuted?: boolean;
+  providerMetadata?: Record<string, unknown>;
+  dynamic?: boolean;
+  invalid?: boolean;
+  error?: unknown;
+}
+
+/**
+ * Finish metadata from the stream.
+ */
+export interface StreamFinish {
+  finishReason: FinishReason;
+  rawFinishReason: string | undefined;
+  usage: LanguageModelUsage;
+  providerMetadata?: Record<string, unknown>;
 }
 
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
   modelInit: string | (() => Promise<CompatibleLanguageModel>),
-  writable?: WritableStream<LanguageModelV4StreamPart>,
-  tools?: LanguageModelV4CallOptions['tools'],
+  writable?: WritableStream<ModelCallStreamPart<ToolSet>>,
+  serializedTools?: Record<string, SerializableToolDef>,
   options?: DoStreamStepOptions,
 ) {
   'use step';
 
+  // Resolve model inside step (must happen here for serialization boundary)
   let model: CompatibleLanguageModel;
   if (typeof modelInit === 'string') {
     model = resolveLanguageModel(modelInit) as CompatibleLanguageModel;
@@ -105,233 +106,143 @@ export async function doStreamStep(
     );
   }
 
-  // Build call options with all generation settings
-  const callOptions: LanguageModelV4CallOptions = {
-    prompt: conversationPrompt,
-    tools,
-    ...(options?.maxOutputTokens !== undefined && {
-      maxOutputTokens: options.maxOutputTokens,
-    }),
-    ...(options?.temperature !== undefined && {
-      temperature: options.temperature,
-    }),
-    ...(options?.topP !== undefined && { topP: options.topP }),
-    ...(options?.topK !== undefined && { topK: options.topK }),
-    ...(options?.presencePenalty !== undefined && {
-      presencePenalty: options.presencePenalty,
-    }),
-    ...(options?.frequencyPenalty !== undefined && {
-      frequencyPenalty: options.frequencyPenalty,
-    }),
-    ...(options?.stopSequences !== undefined && {
-      stopSequences: options.stopSequences,
-    }),
-    ...(options?.seed !== undefined && { seed: options.seed }),
-    ...(options?.abortSignal !== undefined && {
-      abortSignal: options.abortSignal,
-    }),
-    ...(options?.headers !== undefined && { headers: options.headers }),
-    ...(options?.providerOptions !== undefined && {
-      providerOptions: options.providerOptions as SharedV4ProviderOptions,
-    }),
-    ...(options?.toolChoice !== undefined && {
-      toolChoice: toLanguageModelToolChoice(options.toolChoice),
-    }),
-    ...(options?.includeRawChunks !== undefined && {
-      includeRawChunks: options.includeRawChunks,
-    }),
-    ...(options?.responseFormat !== undefined && {
-      responseFormat: options.responseFormat,
-    }),
-  };
+  // Reconstruct tools from serializable definitions with Ajv validation.
+  // Tools are serialized before crossing the step boundary because zod schemas
+  // contain functions that can't be serialized by the workflow runtime.
+  const tools = serializedTools
+    ? resolveSerializableTools(serializedTools)
+    : undefined;
 
-  const result = await recordSpan({
-    name: 'ai.streamText.doStream',
-    telemetry: options?.experimental_telemetry,
-    attributes: {
-      'ai.model.provider': model.provider,
-      'ai.model.id': model.modelId,
-      'gen_ai.system': model.provider,
-      'gen_ai.request.model': model.modelId,
-      ...(options?.maxOutputTokens !== undefined && {
-        'gen_ai.request.max_tokens': options.maxOutputTokens,
-      }),
-      ...(options?.temperature !== undefined && {
-        'gen_ai.request.temperature': options.temperature,
-      }),
-      ...(options?.topP !== undefined && {
-        'gen_ai.request.top_p': options.topP,
-      }),
-      ...(options?.topK !== undefined && {
-        'gen_ai.request.top_k': options.topK,
-      }),
-      ...(options?.frequencyPenalty !== undefined && {
-        'gen_ai.request.frequency_penalty': options.frequencyPenalty,
-      }),
-      ...(options?.presencePenalty !== undefined && {
-        'gen_ai.request.presence_penalty': options.presencePenalty,
-      }),
-      ...(options?.stopSequences !== undefined && {
-        'gen_ai.request.stop_sequences': options.stopSequences,
-      }),
-    },
-    fn: () => model!.doStream(callOptions),
+  // streamModelCall handles: prompt standardization, tool preparation,
+  // model.doStream(), retry logic, and stream part transformation
+  // (tool call parsing, finish reason mapping, file wrapping).
+  const { stream: modelStream } = await streamModelCall({
+    model: model as LanguageModel,
+    // streamModelCall expects Prompt (ModelMessage[]) but we pass the
+    // pre-converted LanguageModelV4Prompt. standardizePrompt inside
+    // streamModelCall handles both formats.
+    messages: conversationPrompt as unknown as ModelMessage[],
+    tools,
+    toolChoice: options?.toolChoice,
+    includeRawChunks: options?.includeRawChunks,
+    providerOptions: options?.providerOptions,
+    maxRetries: options?.maxRetries,
+    abortSignal: options?.abortSignal,
+    headers: options?.headers,
+    maxOutputTokens: options?.maxOutputTokens,
+    temperature: options?.temperature,
+    topP: options?.topP,
+    topK: options?.topK,
+    presencePenalty: options?.presencePenalty,
+    frequencyPenalty: options?.frequencyPenalty,
+    stopSequences: options?.stopSequences,
+    seed: options?.seed,
+    repairToolCall: options?.repairToolCall,
   });
 
-  let finish: FinishPart | undefined;
-  const toolCalls: LanguageModelV4ToolCall[] = [];
+  // Consume the stream: capture data and write to writable in real-time
+  const toolCalls: ParsedToolCall[] = [];
   const providerExecutedToolResults = new Map<
     string,
     ProviderExecutedToolResult
   >();
-  const chunks: LanguageModelV4StreamPart[] = [];
+  let finish: StreamFinish | undefined;
 
-  // Build the stream pipeline
-  let stream: ReadableStream<LanguageModelV4StreamPart> = result.stream;
+  // Aggregation for StepResult
+  let text = '';
+  const reasoningParts: Array<{ text: string }> = [];
+  let responseMetadata:
+    | { id?: string; timestamp?: Date; modelId?: string }
+    | undefined;
+  let warnings: unknown[] | undefined;
 
-  // Apply custom transforms if provided
-  if (options?.transforms && options.transforms.length > 0) {
-    let terminated = false;
-    const stopStream = () => {
-      terminated = true;
-    };
+  // Acquire writer once before the loop to avoid per-chunk lock overhead
+  const writer = writable?.getWriter();
 
-    for (const transform of options.transforms) {
-      if (!terminated) {
-        stream = stream.pipeThrough(
-          transform({
-            tools: {} as ToolSet,
-            stopStream,
-          }),
-        );
+  try {
+    for await (const part of modelStream) {
+      switch (part.type) {
+        case 'text-delta':
+          text += part.text;
+          break;
+        case 'reasoning-delta':
+          reasoningParts.push({ text: part.text });
+          break;
+        case 'tool-call': {
+          // parseToolCall adds dynamic/invalid/error at runtime
+          const toolCallPart = part as typeof part & Partial<ParsedToolCall>;
+          toolCalls.push({
+            type: 'tool-call',
+            toolCallId: toolCallPart.toolCallId,
+            toolName: toolCallPart.toolName,
+            input: toolCallPart.input,
+            providerExecuted: toolCallPart.providerExecuted,
+            providerMetadata: toolCallPart.providerMetadata as
+              | Record<string, unknown>
+              | undefined,
+            dynamic: toolCallPart.dynamic,
+            invalid: toolCallPart.invalid,
+            error: toolCallPart.error,
+          });
+          break;
+        }
+        case 'tool-result':
+          if (part.providerExecuted) {
+            providerExecutedToolResults.set(part.toolCallId, {
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              result: part.output,
+              isError: false,
+            });
+          }
+          break;
+        case 'tool-error': {
+          const errorPart = part as typeof part & {
+            providerExecuted?: boolean;
+          };
+          if (errorPart.providerExecuted) {
+            providerExecutedToolResults.set(errorPart.toolCallId, {
+              toolCallId: errorPart.toolCallId,
+              toolName: errorPart.toolName,
+              result: errorPart.error,
+              isError: true,
+            });
+          }
+          break;
+        }
+        case 'model-call-end':
+          finish = {
+            finishReason: part.finishReason,
+            rawFinishReason: part.rawFinishReason,
+            usage: part.usage,
+            providerMetadata: part.providerMetadata as
+              | Record<string, unknown>
+              | undefined,
+          };
+          break;
+        case 'model-call-start':
+          warnings = part.warnings;
+          break;
+        case 'model-call-response-metadata':
+          responseMetadata = part;
+          break;
+      }
+
+      // Write to writable in real-time
+      if (writer) {
+        await writer.write(part);
       }
     }
+  } finally {
+    writer?.releaseLock();
   }
 
-  // Consume the stream: capture data and optionally write raw parts to writable
-  await stream
-    .pipeThrough(
-      new TransformStream<LanguageModelV4StreamPart, LanguageModelV4StreamPart>(
-        {
-          transform(chunk, controller) {
-            if (chunk.type === 'tool-call') {
-              toolCalls.push({
-                ...chunk,
-                input: chunk.input || '{}',
-              });
-            } else if (chunk.type === 'tool-result') {
-              providerExecutedToolResults.set(chunk.toolCallId, {
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
-                result: chunk.result,
-                isError: chunk.isError,
-              });
-            } else if (chunk.type === 'finish') {
-              finish = chunk;
-            }
-            chunks.push(chunk);
-            controller.enqueue(chunk);
-          },
-        },
-      ),
-    )
-    .pipeTo(
-      writable ?? new WritableStream<LanguageModelV4StreamPart>(), // sink when no writable
-      { preventClose: true },
-    );
+  // Build StepResult
+  const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
 
-  const step = chunksToStep(chunks, toolCalls, conversationPrompt, finish);
-  return {
-    toolCalls,
-    finish,
-    step,
-    providerExecutedToolResults,
-  };
-}
-
-// This is a stand-in for logic in the AI-SDK streamText code which aggregates
-// chunks into a single step result.
-function chunksToStep(
-  chunks: LanguageModelV4StreamPart[],
-  toolCalls: LanguageModelV4ToolCall[],
-  conversationPrompt: LanguageModelV4Prompt,
-  finish?: FinishPart,
-): StepResult<any> {
-  // Transform chunks to a single step result
-  const text = chunks
-    .filter(
-      (chunk): chunk is Extract<typeof chunk, { type: 'text-delta' }> =>
-        chunk.type === 'text-delta',
-    )
-    .map(chunk => chunk.delta)
-    .join('');
-
-  const reasoning = chunks.filter(
-    (chunk): chunk is Extract<typeof chunk, { type: 'reasoning-delta' }> =>
-      chunk.type === 'reasoning-delta',
-  );
-
-  const reasoningText = reasoning.map(chunk => chunk.delta).join('');
-
-  // Extract warnings from stream-start chunk
-  const streamStart = chunks.find(
-    (chunk): chunk is Extract<typeof chunk, { type: 'stream-start' }> =>
-      chunk.type === 'stream-start',
-  );
-
-  // Extract response metadata from response-metadata chunk
-  const responseMetadata = chunks.find(
-    (chunk): chunk is Extract<typeof chunk, { type: 'response-metadata' }> =>
-      chunk.type === 'response-metadata',
-  );
-
-  // Extract files from file chunks
-  // File chunks contain mediaType and data (base64 string or Uint8Array)
-  // GeneratedFile requires both base64 and uint8Array properties
-  const files = chunks
-    .filter(
-      (chunk): chunk is Extract<typeof chunk, { type: 'file' }> =>
-        chunk.type === 'file',
-    )
-    .map(chunk => {
-      const data = chunk.data;
-      // If data is already a Uint8Array, convert to base64; otherwise use as-is
-      if (data instanceof Uint8Array) {
-        // Convert Uint8Array to base64 string
-        const base64 = uint8ArrayToBase64(data);
-        return {
-          mediaType: chunk.mediaType,
-          base64,
-          uint8Array: data,
-        };
-      } else {
-        // Data is base64 string, decode to Uint8Array
-        const binaryString = atob(data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        return {
-          mediaType: chunk.mediaType,
-          base64: data,
-          uint8Array: bytes,
-        };
-      }
-    });
-
-  // Extract sources from source chunks
-  const sources = chunks
-    .filter(
-      (chunk): chunk is Extract<typeof chunk, { type: 'source' }> =>
-        chunk.type === 'source',
-    )
-    .map(chunk => chunk);
-
-  const rawFinishReason = finish?.finishReason?.raw;
-
-  const stepResult: StepResult<any> = {
-    callId: 'durable-agent', // Placeholder; DurableAgent doesn't use multi-call IDs
-    stepNumber: 0, // Will be overridden by the caller
+  const step: StepResult<ToolSet> = {
+    callId: 'durable-agent',
+    stepNumber: 0,
     model: {
       provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
       modelId: responseMetadata?.modelId ?? 'unknown',
@@ -341,94 +252,79 @@ function chunksToStep(
     experimental_context: undefined,
     content: [
       ...(text ? [{ type: 'text' as const, text }] : []),
-      ...toolCalls.map(toolCall => ({
-        type: 'tool-call' as const,
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        input: JSON.parse(toolCall.input),
-        dynamic: true as const,
-      })),
+      ...toolCalls
+        .filter(tc => !tc.invalid)
+        .map(tc => ({
+          type: 'tool-call' as const,
+          toolCallId: tc.toolCallId,
+          toolName: tc.toolName,
+          input: tc.input,
+          ...(tc.dynamic ? { dynamic: true as const } : {}),
+        })),
     ],
     text,
-    reasoning: reasoning.map(chunk => ({
+    reasoning: reasoningParts.map(r => ({
       type: 'reasoning' as const,
-      text: chunk.delta,
+      text: r.text,
     })),
-    reasoningText: reasoningText || undefined,
-    files,
-    sources,
-    toolCalls: toolCalls.map(toolCall => ({
-      type: 'tool-call' as const,
-      toolCallId: toolCall.toolCallId,
-      toolName: toolCall.toolName,
-      input: JSON.parse(toolCall.input),
-      dynamic: true as const,
-    })),
+    reasoningText,
+    files: [],
+    sources: [],
+    toolCalls: toolCalls
+      .filter(tc => !tc.invalid)
+      .map(tc => ({
+        type: 'tool-call' as const,
+        toolCallId: tc.toolCallId,
+        toolName: tc.toolName,
+        input: tc.input,
+        ...(tc.dynamic ? { dynamic: true as const } : {}),
+      })),
     staticToolCalls: [],
-    dynamicToolCalls: toolCalls.map(toolCall => ({
-      type: 'tool-call' as const,
-      toolCallId: toolCall.toolCallId,
-      toolName: toolCall.toolName,
-      input: JSON.parse(toolCall.input),
-      dynamic: true as const,
-    })),
+    dynamicToolCalls: toolCalls
+      .filter(tc => !tc.invalid && tc.dynamic)
+      .map(tc => ({
+        type: 'tool-call' as const,
+        toolCallId: tc.toolCallId,
+        toolName: tc.toolName,
+        input: tc.input,
+        dynamic: true as const,
+      })),
     toolResults: [],
     staticToolResults: [],
     dynamicToolResults: [],
-    finishReason: finish?.finishReason?.unified ?? 'other',
-    rawFinishReason,
-    usage: finish?.usage
-      ? {
-          inputTokens: finish.usage.inputTokens?.total ?? 0,
-          inputTokenDetails: {
-            noCacheTokens: finish.usage.inputTokens?.noCache,
-            cacheReadTokens: finish.usage.inputTokens?.cacheRead,
-            cacheWriteTokens: finish.usage.inputTokens?.cacheWrite,
-          },
-          outputTokens: finish.usage.outputTokens?.total ?? 0,
-          outputTokenDetails: {
-            textTokens: finish.usage.outputTokens?.text,
-            reasoningTokens: finish.usage.outputTokens?.reasoning,
-          },
-          totalTokens:
-            (finish.usage.inputTokens?.total ?? 0) +
-            (finish.usage.outputTokens?.total ?? 0),
-        }
-      : {
-          inputTokens: 0,
-          inputTokenDetails: {
-            noCacheTokens: undefined,
-            cacheReadTokens: undefined,
-            cacheWriteTokens: undefined,
-          },
-          outputTokens: 0,
-          outputTokenDetails: {
-            textTokens: undefined,
-            reasoningTokens: undefined,
-          },
-          totalTokens: 0,
+    finishReason: finish?.finishReason ?? 'other',
+    rawFinishReason: finish?.rawFinishReason,
+    usage:
+      finish?.usage ??
+      ({
+        inputTokens: 0,
+        inputTokenDetails: {
+          noCacheTokens: undefined,
+          cacheReadTokens: undefined,
+          cacheWriteTokens: undefined,
         },
-    warnings: streamStart?.warnings,
-    request: {
-      body: JSON.stringify({
-        prompt: conversationPrompt,
-        tools: toolCalls.map(toolCall => ({
-          type: 'tool-call' as const,
-          toolCallId: toolCall.toolCallId,
-          toolName: toolCall.toolName,
-          input: JSON.parse(toolCall.input),
-          dynamic: true as const,
-        })),
-      }),
-    },
+        outputTokens: 0,
+        outputTokenDetails: {
+          textTokens: undefined,
+          reasoningTokens: undefined,
+        },
+        totalTokens: 0,
+      } as LanguageModelUsage),
+    warnings,
+    request: { body: '' },
     response: {
       id: responseMetadata?.id ?? 'unknown',
       timestamp: responseMetadata?.timestamp ?? new Date(),
       modelId: responseMetadata?.modelId ?? 'unknown',
       messages: [],
     },
-    providerMetadata: finish?.providerMetadata || {},
-  };
+    providerMetadata: finish?.providerMetadata ?? {},
+  } as StepResult<ToolSet>;
 
-  return stepResult;
+  return {
+    toolCalls,
+    finish,
+    step,
+    providerExecutedToolResults,
+  };
 }

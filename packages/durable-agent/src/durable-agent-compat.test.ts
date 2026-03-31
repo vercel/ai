@@ -12,12 +12,15 @@
  * - DurableAgent returns DurableAgentStreamResult (not StreamTextResult with consumeStream())
  */
 import { tool } from 'ai';
-import type { UIMessageChunk } from 'ai';
+import type {
+  Experimental_ModelCallStreamPart,
+  ToolSet,
+  UIMessageChunk,
+} from 'ai';
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { DurableAgent } from './durable-agent.js';
-import { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
 // ============================================================================
 // Test helpers
@@ -28,8 +31,10 @@ import { LanguageModelV4StreamPart } from '@ai-sdk/provider';
  * DIVERGENCE: DurableAgent requires a writable stream; ToolLoopAgent does not.
  */
 function createMockWritable() {
-  const chunks: LanguageModelV4StreamPart[] = [];
-  const writable = new WritableStream<LanguageModelV4StreamPart>({
+  const chunks: Experimental_ModelCallStreamPart<ToolSet>[] = [];
+  const writable = new WritableStream<
+    Experimental_ModelCallStreamPart<ToolSet>
+  >({
     write(chunk) {
       chunks.push(chunk);
     },
@@ -352,26 +357,19 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         [
           {
             "content": "INSTRUCTIONS",
+            "providerOptions": undefined,
             "role": "system",
           },
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
             ],
             "providerOptions": undefined,
             "role": "user",
-          },
-          {
-            "content": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
           },
         ]
       `);
@@ -409,21 +407,13 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
             ],
             "providerOptions": undefined,
             "role": "user",
-          },
-          {
-            "content": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
           },
         ]
       `);
@@ -477,21 +467,13 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "Hello, world!",
                 "type": "text",
               },
             ],
             "providerOptions": undefined,
             "role": "user",
-          },
-          {
-            "content": [
-              {
-                "text": "Hello, world!",
-                "type": "text",
-              },
-            ],
-            "role": "assistant",
           },
         ]
       `);
