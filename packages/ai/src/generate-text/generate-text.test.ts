@@ -3395,7 +3395,9 @@ describe('generateText', () => {
                   "role": "tool",
                 },
               ],
-              "toolChoice": undefined,
+              "toolChoice": {
+                "type": "auto",
+              },
               "tools": undefined,
             },
           ]
@@ -5256,7 +5258,9 @@ describe('generateText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,
@@ -5344,7 +5348,9 @@ describe('generateText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,
@@ -9061,7 +9067,9 @@ describe('generateText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,

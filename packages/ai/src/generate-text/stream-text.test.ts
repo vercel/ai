@@ -9587,7 +9587,9 @@ describe('streamText', () => {
               "seed": undefined,
               "stopSequences": undefined,
               "temperature": undefined,
-              "toolChoice": undefined,
+              "toolChoice": {
+                "type": "auto",
+              },
               "tools": undefined,
               "topK": undefined,
               "topP": undefined,
@@ -16077,7 +16079,9 @@ describe('streamText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,
@@ -23486,7 +23490,9 @@ describe('streamText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,
