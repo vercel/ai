@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.84
+
+### Patch Changes
+
+- ff854a2: fix(provider/amazon-bedrock): add tool search beta for Anthropic
+
 ## 4.0.83
 
 ### Patch Changes
