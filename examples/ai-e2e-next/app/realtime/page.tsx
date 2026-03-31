@@ -90,6 +90,7 @@ const PROVIDER_CONFIG: Record<
     createModel: modelId => elevenlabs.realtime(modelId),
     sessionConfigOverrides: {
       inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      outputAudioFormat: { type: 'audio/pcm', rate: 16000 },
     },
   },
 };
