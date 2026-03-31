@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/provider-utils';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
+import { getToolInputSchema } from '../util/get-tool-input-schema';
 import { ToolSet } from '../generate-text';
 import { ToolChoice } from '../types/language-model';
 
@@ -41,7 +42,7 @@ export async function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
           type: 'function' as const,
           name,
           description: tool.description,
-          inputSchema: await asSchema(tool.inputSchema).jsonSchema,
+          inputSchema: await asSchema(getToolInputSchema(tool)).jsonSchema,
           ...(tool.inputExamples != null
             ? { inputExamples: tool.inputExamples }
             : {}),
