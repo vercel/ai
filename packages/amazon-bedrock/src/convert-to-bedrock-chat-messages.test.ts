@@ -669,7 +669,7 @@ describe('assistant messages', () => {
     });
   });
 
-  it('should trim trailing whitespace from reasoning content when it is the last part', async () => {
+  it('should not trim reasoning text when a signature is present', async () => {
     const result = await convertToBedrockChatMessages([
       {
         role: 'user',
@@ -703,7 +703,7 @@ describe('assistant messages', () => {
             {
               reasoningContent: {
                 reasoningText: {
-                  text: 'This is my reasoning with trailing space',
+                  text: 'This is my reasoning with trailing space    ',
                   signature: 'test-signature',
                 },
               },
@@ -713,6 +713,112 @@ describe('assistant messages', () => {
       ],
       system: [],
     });
+  });
+
+  it('should trim trailing whitespace from reasoning content without signature', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'This is my reasoning with trailing space    ',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                reasoningText: {
+                  text: 'This is my reasoning with trailing space',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should preserve reasoning text with signature in multi-turn tool use', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'What is the weather?' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me check the weather API.\n',
+            providerOptions: {
+              bedrock: {
+                signature: 'sig-abc123',
+              } satisfies BedrockReasoningMetadata,
+            },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            input: { city: 'SF' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: { type: 'text', value: 'Sunny, 72F' },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'The weather is sunny and warm.\n',
+            providerOptions: {
+              bedrock: {
+                signature: 'sig-def456',
+              } satisfies BedrockReasoningMetadata,
+            },
+          },
+          { type: 'text', text: 'It is sunny and 72F in SF.' },
+        ],
+      },
+    ]);
+
+    const lastAssistant = result.messages[result.messages.length - 1];
+    const reasoningBlock = lastAssistant.content[0] as {
+      reasoningContent: { reasoningText: { text: string; signature: string } };
+    };
+    expect(reasoningBlock.reasoningContent.reasoningText.text).toBe(
+      'The weather is sunny and warm.\n',
+    );
+    expect(reasoningBlock.reasoningContent.reasoningText.signature).toBe(
+      'sig-def456',
+    );
   });
 
   it('should handle a mix of text and reasoning content types', async () => {
