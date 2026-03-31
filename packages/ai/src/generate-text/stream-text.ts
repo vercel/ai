@@ -1549,7 +1549,6 @@ class DefaultStreamTextResult<
           });
 
           const stepToolChoice = prepareToolChoice({
-            tools: stepActiveTools,
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           });
 

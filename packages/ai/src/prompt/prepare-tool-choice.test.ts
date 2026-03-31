@@ -17,16 +17,18 @@ const mockTools = {
 describe('prepareToolChoice', () => {
   it('returns undefined when tools are not provided', () => {
     const result = prepareToolChoice({
-      tools: undefined,
       toolChoice: undefined,
     });
 
-    expect(result).toBeUndefined();
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "type": "auto",
+      }
+    `);
   });
 
   it('returns auto when tool choice is not provided', () => {
     const result = prepareToolChoice({
-      tools: mockTools,
       toolChoice: undefined,
     });
 
@@ -35,7 +37,6 @@ describe('prepareToolChoice', () => {
 
   it('handles string tool choice', () => {
     const result = prepareToolChoice({
-      tools: mockTools,
       toolChoice: 'none',
     });
 
@@ -44,7 +45,6 @@ describe('prepareToolChoice', () => {
 
   it('handles object tool choice', () => {
     const result = prepareToolChoice({
-      tools: mockTools,
       toolChoice: { type: 'tool', toolName: 'tool2' },
     });
 

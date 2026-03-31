@@ -187,7 +187,6 @@ export async function streamModelCall<
   });
 
   const stepToolChoice = prepareToolChoice({
-    tools,
     toolChoice,
   });
 

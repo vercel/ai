@@ -711,7 +711,6 @@ export async function generateText<
         });
 
         const stepToolChoice = prepareToolChoice({
-          tools: stepActiveTools,
           toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
         });
 

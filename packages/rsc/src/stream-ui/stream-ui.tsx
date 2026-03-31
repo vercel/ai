@@ -272,10 +272,9 @@ export async function streamUI<
     messages,
   } as Prompt);
   const languageModelTools = await prepareTools({
-    tools: tools as any,
+    tools: tools,
   });
   const languageModelToolChoice = prepareToolChoice({
-    tools: tools as any,
     toolChoice,
   });
 

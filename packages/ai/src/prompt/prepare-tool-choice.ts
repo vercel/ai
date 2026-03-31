@@ -1,19 +1,12 @@
 import { LanguageModelV4ToolChoice } from '@ai-sdk/provider';
-import { ToolSet } from '../generate-text';
 import { ToolChoice } from '../types/language-model';
-import { isNonEmptyObject } from '../util/is-non-empty-object';
 
-export function prepareToolChoice<TOOLS extends ToolSet>({
-  tools,
+export function prepareToolChoice({
   toolChoice,
 }: {
-  tools: TOOLS | undefined;
-  toolChoice: ToolChoice<TOOLS> | undefined;
-}): LanguageModelV4ToolChoice | undefined {
-  if (!isNonEmptyObject(tools)) {
-    return undefined;
-  }
-
+  // use of any because it doesn't matter for tool choice preparation
+  toolChoice: ToolChoice<any> | undefined;
+}): LanguageModelV4ToolChoice {
   return toolChoice == null
     ? { type: 'auto' }
     : typeof toolChoice === 'string'
