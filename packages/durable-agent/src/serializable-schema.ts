@@ -52,7 +52,7 @@ export function serializeToolSet(
  */
 export function resolveSerializableTools(
   tools: Record<string, SerializableToolDef>,
-): Record<string, ReturnType<typeof tool>> {
+): ToolSet {
   const ajv = new Ajv();
 
   return Object.fromEntries(
