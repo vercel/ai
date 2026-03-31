@@ -21,7 +21,7 @@ import { z } from 'zod/v4';
 import { embed } from '../embed/embed';
 import { embedMany } from '../embed/embed-many';
 import { generateText } from '../generate-text/generate-text';
-import { stepCountIs } from '../generate-text/stop-condition';
+import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { rerank } from '../rerank/rerank';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
@@ -1654,7 +1654,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
           execute: async () => 'result1',
         },
       },
-      stopWhen: stepCountIs(2),
+      stopWhen: isStepCount(2),
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
