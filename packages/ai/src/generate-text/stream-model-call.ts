@@ -13,7 +13,8 @@ import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-f
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
+import { prepareToolChoice } from '../prompt/prepare-tool-choice';
+import { prepareTools } from '../prompt/prepare-tools';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import {
   CallWarning,
@@ -182,11 +183,13 @@ export async function streamModelCall<
     provider: resolvedModel.provider.split('.')[0],
   });
 
-  const { toolChoice: stepToolChoice, tools: stepTools } =
-    await prepareToolsAndToolChoice({
-      tools,
-      toolChoice,
-    });
+  const stepTools = await prepareTools({
+    tools,
+  });
+
+  const stepToolChoice = prepareToolChoice({
+    toolChoice,
+  });
 
   await notify({
     event: { promptMessages },
