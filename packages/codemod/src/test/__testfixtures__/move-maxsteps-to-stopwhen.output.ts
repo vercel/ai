@@ -1,12 +1,12 @@
 // @ts-nocheck
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { useChat } from '@ai-sdk/react';
 
 async function foo() {
   const result = await generateText({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(5)
+    stopWhen: isStepCount(5)
   });
 
   const maxSteps = 5;
@@ -14,25 +14,25 @@ async function foo() {
   await generateText({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(maxSteps)
+    stopWhen: isStepCount(maxSteps)
   });
 
   await generateText({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(5 + 5)
+    stopWhen: isStepCount(5 + 5)
   });
 
   await generateText({
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(maxSteps + 5)
+    stopWhen: isStepCount(maxSteps + 5)
   });
 
   const obj = {
     model: 'gpt-4',
     messages: [],
-    stopWhen: stepCountIs(maxSteps + 5)
+    stopWhen: isStepCount(maxSteps + 5)
   }
 
   await generateText(obj);

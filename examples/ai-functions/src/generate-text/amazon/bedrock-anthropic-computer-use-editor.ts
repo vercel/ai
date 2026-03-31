@@ -1,5 +1,5 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import 'dotenv/config';
 import { run } from '../../lib/run';
 
@@ -35,7 +35,7 @@ run(async () => {
       }),
     },
     prompt: 'Update my README file to talk about AI.',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('Response:', result.text);

@@ -36,7 +36,12 @@ export type { StepResult } from './step-result';
 export {
   hasToolCall,
   isLoopFinished,
-  stepCountIs,
+  isStepCount,
+
+  /**
+   * @deprecated Use `isStepCount` instead.
+   */
+  isStepCount as stepCountIs,
   type StopCondition,
 } from './stop-condition';
 export {

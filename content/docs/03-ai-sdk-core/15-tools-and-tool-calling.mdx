@@ -22,7 +22,7 @@ The `tools` parameter of `generateText` and `streamText` is an object that has t
 
 ```ts highlight="6-17"
 import { z } from 'zod';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const result = await generateText({
@@ -39,7 +39,7 @@ const result = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -228,7 +228,7 @@ With the `stopWhen` setting, you can enable multi-step calls in `generateText` a
 
 The AI SDK provides several built-in stopping conditions:
 
-- `stepCountIs(count)` — stops after a specified number of steps (default: `stepCountIs(20)`)
+- `isStepCount(count)` — stops after a specified number of steps (default: `isStepCount(20)`)
 - `hasToolCall(toolName)` — stops when a specific tool is called
 - `isLoopFinished()` — never triggers, letting the loop run until naturally finished
 
@@ -259,7 +259,7 @@ In the following example, there are two steps:
 
 ```ts highlight="18-19"
 import { z } from 'zod';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const { text, steps } = await generateText({
@@ -276,7 +276,7 @@ const { text, steps } = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5), // stop after a maximum of 5 steps if tools were called
+  stopWhen: isStepCount(5), // stop after a maximum of 5 steps if tools were called
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -297,7 +297,7 @@ __PROVIDER_IMPORT__;
 
 const { steps } = await generateText({
   model: __MODEL__,
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   // ...
 });
 
