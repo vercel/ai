@@ -41,12 +41,7 @@ import {
 } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
-<<<<<<< HEAD
-import { stepCountIs } from './stop-condition';
-=======
 import { isLoopFinished, stepCountIs } from './stop-condition';
-import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
->>>>>>> 5c4d9107b (feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps (#13937))
 
 vi.mock('../version', () => {
   return {
@@ -3638,7 +3633,7 @@ describe('generateText', () => {
     it('should complete tool loop with isLoopFinished()', async () => {
       let responseCount = 0;
       const result = await generateText({
-        model: new MockLanguageModelV4({
+        model: new MockLanguageModelV3({
           doGenerate: async () => {
             switch (responseCount++) {
               case 0:

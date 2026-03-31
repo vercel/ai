@@ -11133,7 +11133,7 @@ describe('streamText', () => {
     it('should complete tool loop with isLoopFinished()', async () => {
       let responseCount = 0;
       const result = streamText({
-        model: new MockLanguageModelV4({
+        model: new MockLanguageModelV3({
           doStream: async () => {
             switch (responseCount++) {
               case 0:
