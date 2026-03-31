@@ -1561,6 +1561,39 @@ describe('streamObject', () => {
 
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
+
+    it('should pass correct callId to onError when doStream throws', async () => {
+      const onErrorCalls: Array<{ callId: string; error: unknown }> = [];
+
+      const result = streamObject({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw new Error('doStream failure');
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        prompt: 'prompt',
+        experimental_telemetry: {
+          isEnabled: true,
+          integrations: {
+            onStart(event: any) {
+              onErrorCalls.length; // keep reference
+            },
+            onError(event: any) {
+              onErrorCalls.push(event);
+            },
+          },
+        },
+        onError: () => {},
+      });
+
+      await convertAsyncIterableToArray(result.partialObjectStream);
+
+      expect(onErrorCalls).toHaveLength(1);
+      expect(onErrorCalls[0].callId).not.toBe('');
+      expect(onErrorCalls[0].error).toBeInstanceOf(Error);
+      expect((onErrorCalls[0].error as Error).message).toBe('doStream failure');
+    });
   });
 
   describe('options.messages', () => {

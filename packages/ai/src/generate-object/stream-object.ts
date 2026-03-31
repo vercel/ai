@@ -485,8 +485,9 @@ class DefaultStreamObjectResult<
 
     this.baseStream = stitchableStream.stream.pipeThrough(eventProcessor);
 
+    const callId = generateId();
+
     (async () => {
-      const callId = generateId();
       const jsonSchema = await outputStrategy.jsonSchema();
 
       await notify({
@@ -818,7 +819,7 @@ class DefaultStreamObjectResult<
       stitchableStream.addStream(transformedStream);
     })()
       .catch(async error => {
-        await globalTelemetry.onError?.({ callId: '', error });
+        await globalTelemetry.onError?.({ callId, error });
 
         stitchableStream.addStream(
           new ReadableStream({
