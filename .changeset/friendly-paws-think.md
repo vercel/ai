@@ -2,4 +2,4 @@
 "@ai-sdk/amazon-bedrock": patch
 ---
 
-add tool search beta for Anthropic
+fix(provider/amazon-bedrock): add tool search beta for Anthropic
