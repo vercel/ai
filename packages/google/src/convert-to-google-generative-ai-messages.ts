@@ -339,6 +339,31 @@ export function convertToGoogleGenerativeAIMessages(
                     thoughtSignature,
                   };
                 }
+
+                case 'tool-result': {
+                  const serverToolCallId =
+                    providerOpts?.serverToolCallId != null
+                      ? String(providerOpts.serverToolCallId)
+                      : undefined;
+                  const serverToolType =
+                    providerOpts?.serverToolType != null
+                      ? String(providerOpts.serverToolType)
+                      : undefined;
+
+                  if (serverToolCallId && serverToolType) {
+                    return {
+                      toolResponse: {
+                        toolType: serverToolType,
+                        response:
+                          part.output.type === 'json' ? part.output.value : {},
+                        id: serverToolCallId,
+                      },
+                      thoughtSignature,
+                    };
+                  }
+
+                  return undefined;
+                }
               }
             })
             .filter(part => part !== undefined),
