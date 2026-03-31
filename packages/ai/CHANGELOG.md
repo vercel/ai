@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.52
+
+### Patch Changes
+
+- b56301c: feat(ai): decouple otel from generate/streamObject
+
 ## 7.0.0-beta.51
 
 ### Patch Changes
