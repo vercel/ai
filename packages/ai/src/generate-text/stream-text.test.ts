@@ -49,7 +49,7 @@ import {
   createNullLanguageModelUsage,
 } from '../types/usage';
 import { StepResult } from './step-result';
-import { stepCountIs } from './stop-condition';
+import { isLoopFinished, isStepCount } from './stop-condition';
 import {
   streamText,
   StreamTextOnFinishCallback,
@@ -2180,7 +2180,7 @@ describe('streamText', () => {
             execute: async () => 'result1',
           },
         },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         onError,
       });
 
@@ -5655,7 +5655,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         timeout: { totalMs: 5000, stepMs: 1000 },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         experimental_onStart: async event => {
           startEvent = event;
         },
@@ -5789,7 +5789,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         experimental_onStepStart: async event => {
           stepStartEvents.push(event);
         },
@@ -5926,7 +5926,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         prepareStep: async ({ stepNumber }) => {
           if (stepNumber === 1) {
             return { model: alternateModel };
@@ -6796,7 +6796,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(4),
+        stopWhen: isStepCount(4),
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
@@ -8120,7 +8120,7 @@ describe('streamText', () => {
             isEnabled: true,
             integrations: new OpenTelemetryIntegration({ tracer }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
@@ -9417,7 +9417,7 @@ describe('streamText', () => {
           },
           experimental_context: { context: 'state1' },
           prompt: 'test-input',
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: () => 'test-call-id',
             generateCallId: () => 'test-telemetry-call-id',
@@ -10144,7 +10144,7 @@ describe('streamText', () => {
             isEnabled: true,
             integrations: new OpenTelemetryIntegration({ tracer }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
@@ -11707,6 +11707,77 @@ describe('streamText', () => {
         `);
       });
     });
+
+    it('should complete tool loop with isLoopFinished()', async () => {
+      let responseCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call',
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                  response: {},
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Done!' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                  response: {},
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isLoopFinished(),
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toBe('Done!');
+      expect((await result.steps).length).toBe(2);
+    });
   });
 
   describe('options.headers', () => {
@@ -11820,7 +11891,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(4),
+          stopWhen: isStepCount(4),
         });
       });
 
@@ -12138,7 +12209,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(4),
+          stopWhen: isStepCount(4),
         });
 
         const chunks = await convertReadableStreamToArray(
@@ -12291,7 +12362,7 @@ describe('streamText', () => {
             }),
           },
           prompt: 'test-input',
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
         });
 
         await result.consumeStream();
@@ -13065,7 +13136,7 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
         timeout: { stepMs: 5000 },
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
         onError: () => {},
       });
 
@@ -17708,7 +17779,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             },
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           ...defaultSettings(),
           onError: error => {
             onErrorCalls.push({ error });
@@ -18039,7 +18110,7 @@ describe('streamText', () => {
               },
             },
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
         });
       });
 
@@ -19498,7 +19569,7 @@ describe('streamText', () => {
             }),
           },
           prompt: 'Play a dice game between two players.',
-          stopWhen: stepCountIs(10),
+          stopWhen: isStepCount(10),
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
           },
@@ -20785,7 +20856,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(2),
+          stopWhen: isStepCount(2),
         });
 
         // Consume the stream
@@ -20916,7 +20987,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
         });
 
         // Consume the stream
@@ -21059,7 +21130,7 @@ describe('streamText', () => {
             execute: async () => 'result',
           },
         },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         ...defaultSettings(),
       });
 
@@ -21365,7 +21436,7 @@ describe('streamText', () => {
               },
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
@@ -21690,7 +21761,7 @@ describe('streamText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -21994,7 +22065,7 @@ describe('streamText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
           },
@@ -22118,7 +22189,7 @@ describe('streamText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -22447,7 +22518,7 @@ describe('streamText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',

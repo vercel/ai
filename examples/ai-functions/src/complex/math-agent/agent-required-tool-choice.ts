@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import * as mathjs from 'mathjs';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -31,7 +31,7 @@ run(async () => {
       }),
     },
     toolChoice: 'required',
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     onStepFinish: async ({ toolResults }) => {
       console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
     },
