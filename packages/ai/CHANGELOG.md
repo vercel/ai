@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.48
+
+### Patch Changes
+
+- 5c4d910: feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps
+
 ## 7.0.0-beta.47
 
 ### Patch Changes
