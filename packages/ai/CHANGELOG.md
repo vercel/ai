@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.50
+
+### Patch Changes
+
+- 3debdb7: feat(ai): rename `stepCountIs` to `isStepCount`
+
 ## 7.0.0-beta.49
 
 ### Patch Changes
