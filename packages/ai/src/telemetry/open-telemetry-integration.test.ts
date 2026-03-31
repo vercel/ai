@@ -1,4 +1,5 @@
 import {
+  EmbeddingModelV4,
   LanguageModelV4StreamPart,
   LanguageModelV4Usage,
 } from '@ai-sdk/provider';
@@ -7,6 +8,7 @@ import {
   convertArrayToReadableStream,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import assert from 'node:assert';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   Attributes,
@@ -16,13 +18,18 @@ import {
   Tracer,
 } from '@opentelemetry/api';
 import { z } from 'zod/v4';
+import { embed } from '../embed/embed';
+import { embedMany } from '../embed/embed-many';
 import { generateText } from '../generate-text/generate-text';
 import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { rerank } from '../rerank/rerank';
+import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { MockTracer as IntegrationMockTracer } from '../test/mock-tracer';
+import { Embedding, EmbeddingModelUsage } from '../types';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { mockValues } from '../test/mock-values';
 import { OpenTelemetryIntegration } from './open-telemetry-integration';
 import type { TelemetryIntegration } from './telemetry-integration';
@@ -2339,5 +2346,279 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
         },
       ]
     `);
+  });
+});
+
+// --- embed integration fixtures ---
+
+const embedDummyEmbedding = [0.1, 0.2, 0.3];
+const embedTestValue = 'sunny day at the beach';
+
+function mockEmbedSingle(
+  expectedValues: Array<string>,
+  embeddings: Array<Embedding>,
+  usage?: EmbeddingModelUsage,
+  response: Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>['response'] = {
+    headers: {},
+    body: {},
+  },
+  providerMetadata?: Awaited<
+    ReturnType<EmbeddingModelV4['doEmbed']>
+  >['providerMetadata'],
+  warnings: Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>['warnings'] = [],
+): EmbeddingModelV4['doEmbed'] {
+  return async ({ values }) => {
+    assert.deepStrictEqual(expectedValues, values);
+    return { embeddings, usage, response, providerMetadata, warnings };
+  };
+}
+
+describe('OpenTelemetryIntegration integration with embed', () => {
+  let tracer: IntegrationMockTracer;
+
+  beforeEach(() => {
+    tracer = new IntegrationMockTracer();
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding]),
+      }),
+      value: embedTestValue,
+      experimental_telemetry: {
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding], {
+          tokens: 10,
+        }),
+      }),
+      value: embedTestValue,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding], {
+          tokens: 10,
+        }),
+      }),
+      value: embedTestValue,
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+// --- embedMany integration fixtures ---
+
+const embedManyDummyEmbeddings = [
+  [0.1, 0.2, 0.3],
+  [0.4, 0.5, 0.6],
+  [0.7, 0.8, 0.9],
+];
+
+const embedManyTestValues = [
+  'sunny day at the beach',
+  'rainy afternoon in the city',
+  'snowy night in the mountains',
+];
+
+function mockEmbedMany(
+  expectedValues: Array<string>,
+  embeddings: Array<Embedding>,
+  usage?: EmbeddingModelUsage,
+  response: Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>['response'] = {
+    headers: {},
+    body: {},
+  },
+  providerMetadata?: Awaited<
+    ReturnType<EmbeddingModelV4['doEmbed']>
+  >['providerMetadata'],
+): EmbeddingModelV4['doEmbed'] {
+  return async ({ values }) => {
+    assert.deepStrictEqual(expectedValues, values);
+    return { embeddings, usage, response, providerMetadata, warnings: [] };
+  };
+}
+
+describe('OpenTelemetryIntegration integration with embedMany', () => {
+  let tracer: IntegrationMockTracer;
+
+  beforeEach(() => {
+    tracer = new IntegrationMockTracer();
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 5,
+        doEmbed: mockEmbedMany(embedManyTestValues, embedManyDummyEmbeddings),
+      }),
+      values: embedManyTestValues,
+      experimental_telemetry: {
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record telemetry data when enabled (multiple calls path)', async () => {
+    let callCount = 0;
+
+    await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async ({ values }) => {
+          switch (callCount++) {
+            case 0:
+              assert.deepStrictEqual(values, embedManyTestValues.slice(0, 2));
+              return {
+                embeddings: embedManyDummyEmbeddings.slice(0, 2),
+                usage: { tokens: 10 },
+                warnings: [],
+              };
+            case 1:
+              assert.deepStrictEqual(values, embedManyTestValues.slice(2));
+              return {
+                embeddings: embedManyDummyEmbeddings.slice(2),
+                usage: { tokens: 20 },
+                warnings: [],
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      values: embedManyTestValues,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record telemetry data when enabled (single call path)', async () => {
+    await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: null,
+        doEmbed: mockEmbedMany(embedManyTestValues, embedManyDummyEmbeddings, {
+          tokens: 10,
+        }),
+      }),
+      values: embedManyTestValues,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: null,
+        doEmbed: mockEmbedMany(embedManyTestValues, embedManyDummyEmbeddings, {
+          tokens: 10,
+        }),
+      }),
+      values: embedManyTestValues,
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should correctly track telemetry spans for parallel doEmbed calls', async () => {
+    const resolvables = [
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+    ];
+
+    let callCount = 0;
+
+    const embedManyPromise = embedMany({
+      model: new MockEmbeddingModelV4({
+        supportsParallelCalls: true,
+        maxEmbeddingsPerCall: 1,
+        doEmbed: async () => {
+          const index = callCount++;
+          await resolvables[index].promise;
+          return {
+            embeddings: [embedManyDummyEmbeddings[index]],
+            usage: { tokens: (index + 1) * 10 },
+            warnings: [],
+          };
+        },
+      }),
+      values: embedManyTestValues,
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    resolvables[0].resolve();
+    resolvables[1].resolve();
+    resolvables[2].resolve();
+
+    await embedManyPromise;
+
+    const doEmbedSpans = tracer.jsonSpans.filter(
+      s => s.name === 'ai.embedMany.doEmbed',
+    );
+
+    expect(doEmbedSpans).toHaveLength(3);
+
+    expect(doEmbedSpans[0].attributes['ai.usage.tokens']).toBe(10);
+    expect(doEmbedSpans[1].attributes['ai.usage.tokens']).toBe(20);
+    expect(doEmbedSpans[2].attributes['ai.usage.tokens']).toBe(30);
   });
 });
