@@ -56,6 +56,179 @@ describe('google-vertex-anthropic-provider', () => {
     );
   });
 
+  describe('transformRequestBody', () => {
+    function getTransformRequestBody() {
+      const provider = createVertexAnthropic({
+        project: 'test-project',
+        location: 'test-location',
+      });
+      provider('test-model-id');
+      const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+        .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+      return constructorCall[1].transformRequestBody!;
+    }
+
+    it('should remove model and add anthropic_version', () => {
+      const transform = getTransformRequestBody();
+      const result = transform({
+        model: 'claude-3-5-sonnet-v2@20241022',
+        max_tokens: 4096,
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        ],
+      });
+
+      expect(result).toEqual({
+        max_tokens: 4096,
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        ],
+        anthropic_version: 'vertex-2023-10-16',
+      });
+      expect(result).not.toHaveProperty('model');
+    });
+
+    it('should move top-level cache_control to message before last user message', () => {
+      const transform = getTransformRequestBody();
+      const result = transform({
+        model: 'claude-3-5-sonnet-v2@20241022',
+        max_tokens: 4096,
+        cache_control: { type: 'ephemeral' },
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'System context' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Got it' }],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Latest question' }],
+          },
+        ],
+      });
+
+      expect(result).not.toHaveProperty('cache_control');
+      // cache_control should be on the assistant message (before last user)
+      expect(result.messages[1].content[0].cache_control).toEqual({
+        type: 'ephemeral',
+      });
+      // Other messages should not have cache_control
+      expect(result.messages[0].content[0].cache_control).toBeUndefined();
+      expect(result.messages[2].content[0].cache_control).toBeUndefined();
+    });
+
+    it('should preserve cache_control ttl when moving to message level', () => {
+      const transform = getTransformRequestBody();
+      const result = transform({
+        model: 'claude-3-5-sonnet-v2@20241022',
+        max_tokens: 4096,
+        cache_control: { type: 'ephemeral', ttl: '1h' },
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: 'Context' }] },
+          { role: 'assistant', content: [{ type: 'text', text: 'Ok' }] },
+          { role: 'user', content: [{ type: 'text', text: 'Question' }] },
+        ],
+      });
+
+      expect(result.messages[1].content[0].cache_control).toEqual({
+        type: 'ephemeral',
+        ttl: '1h',
+      });
+    });
+
+    it('should fall back to system message when only one user message', () => {
+      const transform = getTransformRequestBody();
+      const result = transform({
+        model: 'claude-3-5-sonnet-v2@20241022',
+        max_tokens: 4096,
+        cache_control: { type: 'ephemeral' },
+        system: [{ type: 'text', text: 'You are a helpful assistant' }],
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        ],
+      });
+
+      expect(result).not.toHaveProperty('cache_control');
+      expect(result.system[0].cache_control).toEqual({ type: 'ephemeral' });
+    });
+
+    it('should not overwrite existing message-level cache_control', () => {
+      const transform = getTransformRequestBody();
+      const result = transform({
+        model: 'claude-3-5-sonnet-v2@20241022',
+        max_tokens: 4096,
+        cache_control: { type: 'ephemeral' },
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Context' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Ok',
+                cache_control: { type: 'ephemeral', ttl: '5m' },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Question' }],
+          },
+        ],
+      });
+
+      // Should NOT overwrite the existing cache_control
+      expect(result.messages[1].content[0].cache_control).toEqual({
+        type: 'ephemeral',
+        ttl: '5m',
+      });
+    });
+
+    it('should not overwrite existing system-level cache_control', () => {
+      const transform = getTransformRequestBody();
+      const result = transform({
+        model: 'claude-3-5-sonnet-v2@20241022',
+        max_tokens: 4096,
+        cache_control: { type: 'ephemeral' },
+        system: [
+          {
+            type: 'text',
+            text: 'You are helpful',
+            cache_control: { type: 'ephemeral', ttl: '5m' },
+          },
+        ],
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        ],
+      });
+
+      expect(result.system[0].cache_control).toEqual({
+        type: 'ephemeral',
+        ttl: '5m',
+      });
+    });
+
+    it('should pass through request without cache_control unchanged', () => {
+      const transform = getTransformRequestBody();
+      const result = transform({
+        model: 'claude-3-5-sonnet-v2@20241022',
+        max_tokens: 4096,
+        messages: [
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        ],
+      });
+
+      expect(result).not.toHaveProperty('cache_control');
+      expect(result.messages[0].content[0]).not.toHaveProperty('cache_control');
+    });
+  });
+
   it('should throw an error when using new keyword', () => {
     const provider = createVertexAnthropic({ project: 'test-project' });
 

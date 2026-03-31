@@ -158,6 +158,72 @@ export interface GoogleVertexAnthropicProviderSettings {
 }
 
 /**
+ * Distributes a top-level `cache_control` value to the last cacheable content
+ * block in the messages array. Targets the message immediately before the last
+ * user message (the stable conversation prefix), falling back to the last
+ * system message block if there is no prior message.
+ *
+ * This replicates Anthropic's automatic caching semantics in a way that
+ * Vertex's strict input validation accepts.
+ */
+function distributeCacheControlToMessages(
+  body: Record<string, unknown>,
+  cacheControl: unknown,
+): void {
+  const messages = body.messages as
+    | Array<{ role: string; content: unknown }>
+    | undefined;
+
+  // Find the last user message index
+  let lastUserIndex = -1;
+  if (messages) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        lastUserIndex = i;
+        break;
+      }
+    }
+  }
+
+  // Target the message before the last user message
+  const targetIndex = lastUserIndex > 0 ? lastUserIndex - 1 : -1;
+
+  if (targetIndex >= 0 && messages) {
+    const targetMessage = messages[targetIndex];
+    applyCacheControlToMessage(targetMessage, cacheControl);
+    return;
+  }
+
+  // Fall back to the last system message block
+  const system = body.system as
+    | Array<{ type: string; cache_control?: unknown }>
+    | undefined;
+  if (system && system.length > 0) {
+    const lastSystemBlock = system[system.length - 1];
+    if (lastSystemBlock.cache_control == null) {
+      lastSystemBlock.cache_control = cacheControl;
+    }
+  }
+}
+
+/**
+ * Applies cache_control to the last content block of a message,
+ * only if that block doesn't already have cache_control set.
+ */
+function applyCacheControlToMessage(
+  message: { role: string; content: unknown },
+  cacheControl: unknown,
+): void {
+  const content = message.content;
+  if (Array.isArray(content) && content.length > 0) {
+    const lastBlock = content[content.length - 1];
+    if (lastBlock.cache_control == null) {
+      lastBlock.cache_control = cacheControl;
+    }
+  }
+}
+
+/**
  * Create a Google Vertex Anthropic provider instance.
  */
 export function createVertexAnthropic(
@@ -192,11 +258,22 @@ export function createVertexAnthropic(
         }`,
       transformRequestBody: args => {
         // Remove model from args and add anthropic version
-        const { model, ...rest } = args;
-        return {
+        const { model, cache_control, ...rest } = args;
+
+        const body: Record<string, unknown> = {
           ...rest,
           anthropic_version: 'vertex-2023-10-16',
         };
+
+        // Vertex Anthropic rejects top-level cache_control. Translate it to
+        // message-level cache_control on the last cacheable content block
+        // before the final user turn, matching Anthropic's automatic caching
+        // semantics.
+        if (cache_control != null) {
+          distributeCacheControlToMessages(body, cache_control);
+        }
+
+        return body;
       },
       // Google Vertex Anthropic doesn't support URL sources, force download and base64 conversion
       supportedUrls: () => ({}),
