@@ -54,6 +54,7 @@ export async function* streamTextIterator({
   tools = {},
   writable,
   model,
+  activeTools,
   stopConditions,
   maxSteps,
   onStepFinish,
@@ -71,6 +72,7 @@ export async function* streamTextIterator({
   tools: ToolSet;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
   model: string | (() => Promise<CompatibleLanguageModel>);
+  activeTools?: string[];
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
   onStepFinish?: StreamTextOnStepFinishCallback<any>;
@@ -93,7 +95,7 @@ export async function* streamTextIterator({
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
   let currentContext = experimental_context;
-  let currentActiveTools: string[] | undefined;
+  let currentActiveTools: string[] | undefined = activeTools;
 
   const steps: StepResult<any>[] = [];
   let done = false;

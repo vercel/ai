@@ -1663,10 +1663,15 @@ describe('DurableAgent', () => {
         activeTools: ['tool1', 'tool3'],
       });
 
-      // Verify only active tools are passed (get the most recent call)
+      // Verify all tools are passed with activeTools for filtering in the iterator
       const calls = vi.mocked(streamTextIterator).mock.calls;
       const lastCall = calls[calls.length - 1][0];
-      expect(Object.keys(lastCall.tools).sort()).toEqual(['tool1', 'tool3']);
+      expect(Object.keys(lastCall.tools).sort()).toEqual([
+        'tool1',
+        'tool2',
+        'tool3',
+      ]);
+      expect(lastCall.activeTools).toEqual(['tool1', 'tool3']);
     });
   });
 

@@ -8,7 +8,6 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asSchema,
-  experimental_filterActiveTools as filterActiveTools,
   type Experimental_ModelCallStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModelResponseMetadata,
@@ -916,13 +915,6 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
     // Merge telemetry settings
     const effectiveTelemetry = options.experimental_telemetry ?? this.telemetry;
 
-    // Filter tools if activeTools is specified
-    const effectiveTools =
-      filterActiveTools({
-        tools: this.tools,
-        activeTools: options.activeTools as (keyof TBaseTools)[] | undefined,
-      }) ?? this.tools;
-
     // Initialize context
     let experimentalContext =
       options.experimental_context ?? this.experimentalContext;
@@ -949,7 +941,8 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
 
     const iterator = streamTextIterator({
       model: this.model,
-      tools: effectiveTools as ToolSet,
+      tools: this.tools as ToolSet,
+      activeTools: options.activeTools as string[] | undefined,
       writable: options.writable,
       prompt: modelPrompt,
       stopConditions: options.stopWhen,
@@ -1013,11 +1006,11 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
           // Note: missing tools (!tool) are left to executeTool which will throw —
           // only tools that exist but lack execute are treated as client-side.
           const executableToolCalls = nonProviderToolCalls.filter(tc => {
-            const tool = (effectiveTools as ToolSet)[tc.toolName];
+            const tool = (this.tools as ToolSet)[tc.toolName];
             return !tool || typeof tool.execute === 'function';
           });
           const clientSideToolCalls = nonProviderToolCalls.filter(tc => {
-            const tool = (effectiveTools as ToolSet)[tc.toolName];
+            const tool = (this.tools as ToolSet)[tc.toolName];
             return tool && typeof tool.execute !== 'function';
           });
 
@@ -1030,7 +1023,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
                 (toolCall): Promise<LanguageModelV4ToolResultPart> =>
                   executeTool(
                     toolCall,
-                    effectiveTools as ToolSet,
+                    this.tools as ToolSet,
                     iterMessages,
                     experimentalContext,
                   ),
@@ -1101,7 +1094,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
               (toolCall): Promise<LanguageModelV4ToolResultPart> =>
                 executeTool(
                   toolCall,
-                  effectiveTools as ToolSet,
+                  this.tools as ToolSet,
                   iterMessages,
                   experimentalContext,
                 ),
