@@ -2225,6 +2225,7 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
+          "dynamic": true,
           "input": "{"query":"San Francisco weather"}",
           "providerExecuted": true,
           "providerMetadata": {
@@ -4712,6 +4713,7 @@ describe('doStream', () => {
     expect(toolEvents).toMatchInlineSnapshot(`
       [
         {
+          "dynamic": true,
           "input": "{"query":"SF weather"}",
           "providerExecuted": true,
           "providerMetadata": {

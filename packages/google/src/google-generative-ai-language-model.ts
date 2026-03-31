@@ -353,6 +353,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
           toolName: `server:${part.toolCall.toolType}`,
           input: JSON.stringify(part.toolCall.args ?? {}),
           providerExecuted: true,
+          dynamic: true,
           providerMetadata: part.thoughtSignature
             ? {
                 [providerOptionsName]: {
@@ -710,6 +711,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                     toolName: `server:${part.toolCall.toolType}`,
                     input: JSON.stringify(part.toolCall.args ?? {}),
                     providerExecuted: true,
+                    dynamic: true,
                     providerMetadata: serverMeta,
                   });
                 } else if ('toolResponse' in part && part.toolResponse) {
