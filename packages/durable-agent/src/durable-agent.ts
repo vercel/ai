@@ -8,6 +8,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asSchema,
+  experimental_filterActiveTools as filterActiveTools,
   type Experimental_ModelCallStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModelResponseMetadata,
@@ -917,9 +918,10 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
 
     // Filter tools if activeTools is specified
     const effectiveTools =
-      options.activeTools && options.activeTools.length > 0
-        ? filterTools(this.tools, options.activeTools as string[])
-        : this.tools;
+      filterActiveTools({
+        tools: this.tools,
+        activeTools: options.activeTools as (keyof TBaseTools)[] | undefined,
+      }) ?? this.tools;
 
     // Initialize context
     let experimentalContext =
@@ -1256,19 +1258,6 @@ function aggregateUsage(steps: StepResult<any>[]): LanguageModelUsage {
     outputTokens,
     totalTokens: inputTokens + outputTokens,
   } as LanguageModelUsage;
-}
-
-function filterTools<TTools extends ToolSet>(
-  tools: TTools,
-  activeTools: string[],
-): ToolSet {
-  const filtered: ToolSet = {};
-  for (const toolName of activeTools) {
-    if (toolName in tools) {
-      filtered[toolName] = tools[toolName];
-    }
-  }
-  return filtered;
 }
 
 /**
