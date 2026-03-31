@@ -1,6 +1,7 @@
 /**
  * Integration test workflows for DurableAgent using mock providers.
  */
+import { tool } from 'ai';
 import { DurableAgent } from '../durable-agent.js';
 import { mockTextModel, mockSequenceModel } from '../providers/mock.js';
 import { FatalError, getWritable } from 'workflow';
@@ -422,5 +423,39 @@ export async function agentToolApprovalE2e() {
     toolResultsCount: result.toolResults.length,
     stepCount: result.steps.length,
     firstToolCallName: result.toolCalls[0]?.toolName,
+  };
+}
+
+// ============================================================================
+// Tool with input schema (tests serialization across step boundary)
+// ============================================================================
+
+export async function agentToolInputSchemaE2e(a: number, b: number) {
+  'use workflow';
+  const agent = new DurableAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'addNumbers',
+        input: JSON.stringify({ a, b }),
+      },
+      { type: 'text', text: `The sum is ${a + b}` },
+    ]),
+    tools: {
+      addNumbers: tool({
+        description: 'Add two numbers',
+        inputSchema: z.object({ a: z.number(), b: z.number() }),
+        execute: async (input: { a: number; b: number }) => input.a + input.b,
+      }),
+    },
+    instructions: 'You are a calculator.',
+  });
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: `Add ${a} and ${b}` }],
+    writable: getWritable(),
+  });
+  return {
+    stepCount: result.steps.length,
+    lastStepText: result.steps[result.steps.length - 1]?.text,
   };
 }

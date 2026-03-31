@@ -17,6 +17,10 @@ import {
 } from 'ai';
 import { resolveLanguageModel } from 'ai/internal';
 import type { ProviderOptions, TelemetrySettings } from './durable-agent.js';
+import {
+  resolveSerializableTools,
+  type SerializableToolDef,
+} from './serializable-schema.js';
 import type { CompatibleLanguageModel } from './types.js';
 
 export type { Experimental_ModelCallStreamPart as ModelCallStreamPart } from 'ai';
@@ -85,7 +89,7 @@ export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
   modelInit: string | (() => Promise<CompatibleLanguageModel>),
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>,
-  tools?: ToolSet,
+  serializedTools?: Record<string, SerializableToolDef>,
   options?: DoStreamStepOptions,
 ) {
   'use step';
@@ -101,6 +105,13 @@ export async function doStreamStep(
       'Invalid "model initialization" argument. Must be a string or a function that returns a LanguageModel instance.',
     );
   }
+
+  // Reconstruct tools from serializable definitions with Ajv validation.
+  // Tools are serialized before crossing the step boundary because zod schemas
+  // contain functions that can't be serialized by the workflow runtime.
+  const tools = serializedTools
+    ? resolveSerializableTools(serializedTools)
+    : undefined;
 
   // streamModelCall handles: prompt standardization, tool preparation,
   // model.doStream(), retry logic, and stream part transformation

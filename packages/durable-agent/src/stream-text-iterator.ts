@@ -18,6 +18,7 @@ import {
   type ParsedToolCall,
   type ProviderExecutedToolResult,
 } from './do-stream-step.js';
+import { serializeToolSet } from './serializable-schema.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
@@ -240,12 +241,17 @@ export async function* streamTextIterator({
           ? filterToolSet(tools, currentActiveTools)
           : tools;
 
+      // Serialize tools before crossing the step boundary — zod schemas
+      // contain functions that can't be serialized by the workflow runtime.
+      // Tools are reconstructed with Ajv validation inside doStreamStep.
+      const serializedTools = serializeToolSet(effectiveTools);
+
       const { toolCalls, finish, step, providerExecutedToolResults } =
         await doStreamStep(
           conversationPrompt,
           currentModel,
           writable,
-          effectiveTools,
+          serializedTools,
           {
             ...currentGenerationSettings,
             toolChoice: currentToolChoice,
