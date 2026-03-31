@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.47
+
+### Patch Changes
+
+- bc67b4f: feat(ai): add experimental callbacks for structured outputs
+
 ## 7.0.0-beta.46
 
 ### Patch Changes
