@@ -285,6 +285,10 @@ export class ElevenLabsRealtimeEventMapper {
  * Builds an ElevenLabs-specific session configuration from a normalized
  * config. Produces a `conversation_initiation_client_data` message to be
  * sent as the first message after WebSocket connection.
+ *
+ * Provider options are merged into the result. The `conversation_config_override`
+ * from providerOptions is deep-merged with overrides derived from normalized
+ * fields (instructions, voice).
  */
 export function buildElevenLabsSessionConfig(
   config: RealtimeModelV4SessionConfig | undefined,
@@ -297,11 +301,11 @@ export function buildElevenLabsSessionConfig(
     return result;
   }
 
-  const agent: Record<string, unknown> = {};
+  const prompt: Record<string, unknown> = {};
   const tts: Record<string, unknown> = {};
 
   if (config.instructions != null) {
-    agent.prompt = { prompt: config.instructions };
+    prompt.prompt = config.instructions;
   }
 
   if (config.voice != null) {
@@ -309,19 +313,53 @@ export function buildElevenLabsSessionConfig(
   }
 
   const override: Record<string, unknown> = {};
-  if (Object.keys(agent).length > 0) {
-    override.agent = agent;
+  if (Object.keys(prompt).length > 0) {
+    override.agent = { prompt };
   }
   if (Object.keys(tts).length > 0) {
     override.tts = tts;
   }
 
-  if (Object.keys(override).length > 0) {
-    result.conversation_config_override = override;
+  if (config.providerOptions != null) {
+    const { conversation_config_override: extraOverride, ...rest } =
+      config.providerOptions as Record<string, any>;
+
+    if (extraOverride != null) {
+      // Deep-merge agent and tts from providerOptions
+      if (extraOverride.agent != null) {
+        const existingAgent = (override.agent ?? {}) as Record<string, any>;
+        const existingPrompt = (existingAgent.prompt ?? {}) as Record<
+          string,
+          unknown
+        >;
+        const extraAgent = extraOverride.agent as Record<string, any>;
+        const extraPrompt = (extraAgent.prompt ?? {}) as Record<
+          string,
+          unknown
+        >;
+
+        override.agent = {
+          ...existingAgent,
+          ...extraAgent,
+          prompt: { ...existingPrompt, ...extraPrompt },
+        };
+      }
+      if (extraOverride.tts != null) {
+        override.tts = {
+          ...((override.tts ?? {}) as Record<string, unknown>),
+          ...(extraOverride.tts as Record<string, unknown>),
+        };
+      }
+      // Pass through any other override fields (e.g. conversation)
+      const { agent: _a, tts: _t, ...otherOverrides } = extraOverride;
+      Object.assign(override, otherOverrides);
+    }
+
+    Object.assign(result, rest);
   }
 
-  if (config.providerOptions != null) {
-    Object.assign(result, config.providerOptions);
+  if (Object.keys(override).length > 0) {
+    result.conversation_config_override = override;
   }
 
   return result;

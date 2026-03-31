@@ -487,6 +487,46 @@ describe('buildElevenLabsSessionConfig', () => {
     });
   });
 
+  it('deep-merges LLM override from providerOptions with instructions', () => {
+    const result = buildElevenLabsSessionConfig({
+      instructions: 'Be helpful',
+      providerOptions: {
+        conversation_config_override: {
+          agent: {
+            prompt: { llm: 'gpt-4o' },
+          },
+        },
+      },
+    });
+
+    expect(result).toEqual({
+      type: 'conversation_initiation_client_data',
+      conversation_config_override: {
+        agent: {
+          prompt: { prompt: 'Be helpful', llm: 'gpt-4o' },
+        },
+      },
+    });
+  });
+
+  it('deep-merges TTS overrides from providerOptions with voice', () => {
+    const result = buildElevenLabsSessionConfig({
+      voice: 'voice_abc',
+      providerOptions: {
+        conversation_config_override: {
+          tts: { speed: 1.1 },
+        },
+      },
+    });
+
+    expect(result).toEqual({
+      type: 'conversation_initiation_client_data',
+      conversation_config_override: {
+        tts: { voice_id: 'voice_abc', speed: 1.1 },
+      },
+    });
+  });
+
   it('builds config with empty config object', () => {
     const result = buildElevenLabsSessionConfig({});
 
