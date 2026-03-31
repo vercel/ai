@@ -5165,12 +5165,14 @@ describe('doStream', () => {
       },
     });
 
-    const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.toolConfig).toMatchObject({
-      functionCallingConfig: {
-        streamFunctionCallArguments: true,
-      },
-    });
+    expect((await server.calls[0].requestBodyJson).toolConfig)
+      .toMatchInlineSnapshot(`
+      {
+        "functionCallingConfig": {
+          "streamFunctionCallArguments": true,
+        },
+      }
+    `);
   });
 
   it('should emit warning and not send streamFunctionCallArguments when using non-Vertex provider', async () => {
@@ -5218,19 +5220,97 @@ describe('doStream', () => {
     });
 
     const events = await convertReadableStreamToArray(stream);
-    const streamStart = events.find(e => e.type === 'stream-start');
-    expect(streamStart?.warnings).toContainEqual(
-      expect.objectContaining({
-        type: 'other',
-        message: expect.stringContaining('streamFunctionCallArguments'),
-      }),
-    );
 
-    const requestBody = await server.calls[0].requestBodyJson;
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [
+            {
+              "message": "'streamFunctionCallArguments' is only supported on the Vertex AI API and will be ignored with the current Google provider (google.generative-ai). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc",
+              "type": "other",
+            },
+          ],
+        },
+        {
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-start",
+        },
+        {
+          "delta": "Hello",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "stop",
+          },
+          "providerMetadata": {
+            "google": {
+              "finishMessage": null,
+              "groundingMetadata": null,
+              "promptFeedback": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+              "serviceTier": null,
+              "urlContextMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 1,
+                "promptTokenCount": 1,
+                "totalTokenCount": 2,
+              },
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 1,
+              "total": 1,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 1,
+              "total": 1,
+            },
+            "raw": {
+              "candidatesTokenCount": 1,
+              "promptTokenCount": 1,
+              "totalTokenCount": 2,
+            },
+          },
+        },
+      ]
+    `);
+
     expect(
-      requestBody.toolConfig?.functionCallingConfig
+      (await server.calls[0].requestBodyJson).toolConfig?.functionCallingConfig
         ?.streamFunctionCallArguments,
-    ).toBeUndefined();
+    ).toMatchInlineSnapshot(`undefined`);
   });
 
   it('should stream partial function call arguments across chunks', async () => {
@@ -5343,35 +5423,107 @@ describe('doStream', () => {
 
     const events = await convertReadableStreamToArray(stream);
 
-    const toolInputStart = events.find(e => e.type === 'tool-input-start');
-    expect(toolInputStart).toMatchObject({
-      type: 'tool-input-start',
-      id: 'test-id',
-      toolName: 'get_weather',
-    });
-
-    const toolInputDeltas = events.filter(e => e.type === 'tool-input-delta');
-    expect(toolInputDeltas.length).toBeGreaterThanOrEqual(1);
-
-    const toolInputEnd = events.find(e => e.type === 'tool-input-end');
-    expect(toolInputEnd).toMatchObject({
-      type: 'tool-input-end',
-      id: 'test-id',
-    });
-
-    const toolCall = events.find(e => e.type === 'tool-call');
-    expect(toolCall).toMatchObject({
-      type: 'tool-call',
-      toolCallId: 'test-id',
-      toolName: 'get_weather',
-      input: JSON.stringify({ location: 'Boston, MA' }),
-    });
-
-    const finishEvent = events.find(e => e.type === 'finish');
-    expect(finishEvent?.finishReason).toMatchObject({
-      unified: 'tool-calls',
-      raw: 'STOP',
-    });
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"location":"Boston",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ", MA",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""}",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"location":"Boston, MA"}",
+          "providerMetadata": undefined,
+          "toolCallId": "test-id",
+          "toolName": "get_weather",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "tool-calls",
+          },
+          "providerMetadata": {
+            "google": {
+              "finishMessage": null,
+              "groundingMetadata": null,
+              "promptFeedback": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+              "serviceTier": null,
+              "urlContextMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 5,
+                "promptTokenCount": 10,
+                "totalTokenCount": 15,
+              },
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 10,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 5,
+              "total": 5,
+            },
+            "raw": {
+              "candidatesTokenCount": 5,
+              "promptTokenCount": 10,
+              "totalTokenCount": 15,
+            },
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream parallel function calls with partial args', async () => {
@@ -5478,21 +5630,131 @@ describe('doStream', () => {
 
     const events = await convertReadableStreamToArray(stream);
 
-    const toolCalls = events.filter(e => e.type === 'tool-call');
-    expect(toolCalls).toHaveLength(2);
-    expect(toolCalls[0]).toMatchObject({
-      toolName: 'get_weather',
-      input: JSON.stringify({ location: 'Boston' }),
-    });
-    expect(toolCalls[1]).toMatchObject({
-      toolName: 'get_weather',
-      input: JSON.stringify({ location: 'San Francisco' }),
-    });
-
-    const finishEvent = events.find(e => e.type === 'finish');
-    expect(finishEvent?.finishReason).toMatchObject({
-      unified: 'tool-calls',
-    });
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"location":"Boston"",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "}",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"location":"Boston"}",
+          "providerMetadata": undefined,
+          "toolCallId": "test-id",
+          "toolName": "get_weather",
+          "type": "tool-call",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"location":"San Francisco"",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "}",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"location":"San Francisco"}",
+          "providerMetadata": undefined,
+          "toolCallId": "test-id",
+          "toolName": "get_weather",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "tool-calls",
+          },
+          "providerMetadata": {
+            "google": {
+              "finishMessage": null,
+              "groundingMetadata": null,
+              "promptFeedback": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+              "serviceTier": null,
+              "urlContextMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 10,
+                "promptTokenCount": 10,
+                "totalTokenCount": 20,
+              },
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 10,
+              "total": 10,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 10,
+              "total": 10,
+            },
+            "raw": {
+              "candidatesTokenCount": 10,
+              "promptTokenCount": 10,
+              "totalTokenCount": 20,
+            },
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle partial args with number and boolean values', async () => {
@@ -5587,12 +5849,107 @@ describe('doStream', () => {
 
     const events = await convertReadableStreamToArray(stream);
 
-    const toolCall = events.find(e => e.type === 'tool-call');
-    expect(toolCall).toMatchObject({
-      type: 'tool-call',
-      toolName: 'control_light',
-      input: JSON.stringify({ brightness: 50, enabled: true }),
-    });
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "toolName": "control_light",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"brightness":50",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ","enabled":true",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "}",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"brightness":50,"enabled":true}",
+          "providerMetadata": undefined,
+          "toolCallId": "test-id",
+          "toolName": "control_light",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "tool-calls",
+          },
+          "providerMetadata": {
+            "google": {
+              "finishMessage": null,
+              "groundingMetadata": null,
+              "promptFeedback": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+              "serviceTier": null,
+              "urlContextMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 5,
+                "promptTokenCount": 5,
+                "totalTokenCount": 10,
+              },
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 5,
+              "total": 5,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 5,
+              "total": 5,
+            },
+            "raw": {
+              "candidatesTokenCount": 5,
+              "promptTokenCount": 5,
+              "totalTokenCount": 10,
+            },
+          },
+        },
+      ]
+    `);
   });
 
   it('should emit escaped tool input deltas for continued string partial args', async () => {
@@ -5701,17 +6058,107 @@ describe('doStream', () => {
 
     const events = await convertReadableStreamToArray(stream);
 
-    expect(
-      events
-        .filter(e => e.type === 'tool-input-delta')
-        .map(event => event.delta),
-    ).toEqual(['{"query":"Boston \\"Lo', 'gan\\"', '"}']);
-
-    expect(events.find(e => e.type === 'tool-call')).toMatchObject({
-      type: 'tool-call',
-      toolName: 'search_airport',
-      input: JSON.stringify({ query: 'Boston "Logan"' }),
-    });
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "toolName": "search_airport",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"query":"Boston \\"Lo",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "gan\\"",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""}",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"query":"Boston \\"Logan\\""}",
+          "providerMetadata": undefined,
+          "toolCallId": "test-id",
+          "toolName": "search_airport",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "tool-calls",
+          },
+          "providerMetadata": {
+            "google": {
+              "finishMessage": null,
+              "groundingMetadata": null,
+              "promptFeedback": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+              "serviceTier": null,
+              "urlContextMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 6,
+                "promptTokenCount": 7,
+                "totalTokenCount": 13,
+              },
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 7,
+              "total": 7,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 6,
+              "total": 6,
+            },
+            "raw": {
+              "candidatesTokenCount": 6,
+              "promptTokenCount": 7,
+              "totalTokenCount": 13,
+            },
+          },
+        },
+      ]
+    `);
   });
 
   it('should accumulate null partial args alongside other primitive values', async () => {
@@ -5793,21 +6240,101 @@ describe('doStream', () => {
 
     const events = await convertReadableStreamToArray(stream);
 
-    expect(
-      events
-        .filter(e => e.type === 'tool-input-delta')
-        .map(event => event.delta),
-    ).toEqual(['{"brightness":50,"enabled":false,"nickname":null', '}']);
-
-    expect(events.find(e => e.type === 'tool-call')).toMatchObject({
-      type: 'tool-call',
-      toolName: 'set_preferences',
-      input: JSON.stringify({
-        brightness: 50,
-        enabled: false,
-        nickname: null,
-      }),
-    });
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "toolName": "set_preferences",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"brightness":50,"enabled":false,"nickname":null",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": "}",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"brightness":50,"enabled":false,"nickname":null}",
+          "providerMetadata": undefined,
+          "toolCallId": "test-id",
+          "toolName": "set_preferences",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": {
+            "raw": "STOP",
+            "unified": "tool-calls",
+          },
+          "providerMetadata": {
+            "google": {
+              "finishMessage": null,
+              "groundingMetadata": null,
+              "promptFeedback": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+              "serviceTier": null,
+              "urlContextMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 5,
+                "promptTokenCount": 6,
+                "totalTokenCount": 11,
+              },
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 6,
+              "total": 6,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 5,
+              "total": 5,
+            },
+            "raw": {
+              "candidatesTokenCount": 5,
+              "promptTokenCount": 6,
+              "totalTokenCount": 11,
+            },
+          },
+        },
+      ]
+    `);
   });
 
   it('should only pass valid provider options', async () => {
