@@ -187,7 +187,7 @@ pnpm add @vectorize-io/hindsight-ai-sdk @vectorize-io/hindsight-client
 __PROVIDER_IMPORT__;
 import { HindsightClient } from '@vectorize-io/hindsight-client';
 import { createHindsightTools } from '@vectorize-io/hindsight-ai-sdk';
-import { ToolLoopAgent, stepCountIs } from 'ai';
+import { ToolLoopAgent } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const client = new HindsightClient({ baseUrl: process.env.HINDSIGHT_API_URL });
@@ -195,7 +195,6 @@ const client = new HindsightClient({ baseUrl: process.env.HINDSIGHT_API_URL });
 const agent = new ToolLoopAgent({
   model: __MODEL__,
   tools: createHindsightTools({ client, bankId: 'user-123' }),
-  stopWhen: stepCountIs(10),
   instructions: 'You are a helpful assistant with long-term memory.',
 });
 
