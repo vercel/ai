@@ -30058,13 +30058,6 @@ snapshots:
     dependencies:
       is-what: 4.1.16
 
-<<<<<<< HEAD
-=======
-  copy-anything@4.0.5:
-    dependencies:
-      is-what: 5.5.0
-
->>>>>>> afb68865f (Backport: feat (provider/google-vertex): add support for maas models (#13945))
   copy-webpack-plugin@13.0.1(webpack@5.105.0(esbuild@0.25.9)):
     dependencies:
       glob-parent: 6.0.2
