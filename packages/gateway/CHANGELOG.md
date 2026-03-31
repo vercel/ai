@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.66
+
+### Patch Changes
+
+- efc9006: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.65
 
 ### Patch Changes
