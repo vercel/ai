@@ -6,6 +6,7 @@ import {
 import { tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
+  convertAsyncIterableToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import * as assert from 'node:assert';
@@ -21,8 +22,10 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  generateObject,
   generateText,
   isStepCount,
+  streamObject,
   streamText,
   rerank,
 } from 'ai';
@@ -35,10 +38,6 @@ import {
 } from 'ai/test';
 import { MockTracer as IntegrationMockTracer } from './mock-tracer';
 import { OpenTelemetryIntegration } from './open-telemetry-integration';
-
-vi.mock('../version', () => ({
-  VERSION: '0.0.0-test',
-}));
 
 export function createResolvablePromise<T = any>(): {
   promise: Promise<T>;
@@ -2640,5 +2639,818 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
     expect(doEmbedSpans[0].attributes['ai.usage.tokens']).toBe(10);
     expect(doEmbedSpans[1].attributes['ai.usage.tokens']).toBe(20);
     expect(doEmbedSpans[2].attributes['ai.usage.tokens']).toBe(30);
+  });
+});
+
+// --- generateObject telemetry integration fixtures ---
+
+const generateObjectDummyResponseValues = {
+  finishReason: { unified: 'stop', raw: 'stop' } as const,
+  usage: {
+    inputTokens: {
+      total: 10,
+      noCache: 10,
+      cacheRead: undefined,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: 20,
+      text: 20,
+      reasoning: undefined,
+    },
+  },
+  response: { id: 'id-1', timestamp: new Date(123), modelId: 'm-1' },
+  warnings: [],
+};
+
+describe('OpenTelemetryIntegration integration with generateObject', () => {
+  let tracer: IntegrationMockTracer;
+
+  beforeEach(() => {
+    tracer = new IntegrationMockTracer();
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await generateObject({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...generateObjectDummyResponseValues,
+          content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      prompt: 'prompt',
+      experimental_telemetry: {
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    await generateObject({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...generateObjectDummyResponseValues,
+          content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
+          providerMetadata: {
+            testProvider: {
+              testKey: 'testValue',
+            },
+          },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
+      prompt: 'prompt',
+      topK: 0.1,
+      topP: 0.2,
+      frequencyPenalty: 0.3,
+      presencePenalty: 0.4,
+      temperature: 0.5,
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    await generateObject({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...generateObjectDummyResponseValues,
+          content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+// --- streamObject telemetry integration fixtures ---
+
+const streamObjectTestUsage: LanguageModelV4Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
+};
+
+function createStreamObjectTestModel({
+  stream = convertArrayToReadableStream([
+    {
+      type: 'stream-start' as const,
+      warnings: [],
+    },
+    {
+      type: 'response-metadata' as const,
+      id: 'id-0',
+      modelId: 'mock-model-id',
+      timestamp: new Date(0),
+    },
+    { type: 'text-start' as const, id: '1' },
+    { type: 'text-delta' as const, id: '1', delta: '{ ' },
+    { type: 'text-delta' as const, id: '1', delta: '"content": ' },
+    { type: 'text-delta' as const, id: '1', delta: '"Hello, ' },
+    { type: 'text-delta' as const, id: '1', delta: 'world' },
+    { type: 'text-delta' as const, id: '1', delta: '!"' },
+    { type: 'text-delta' as const, id: '1', delta: ' }' },
+    { type: 'text-end' as const, id: '1' },
+    {
+      type: 'finish' as const,
+      finishReason: { unified: 'stop' as const, raw: 'stop' },
+      usage: streamObjectTestUsage,
+      providerMetadata: {
+        testProvider: { testKey: 'testValue' },
+      },
+    },
+  ]),
+}: {
+  stream?: ReadableStream<LanguageModelV4StreamPart>;
+} = {}) {
+  return new MockLanguageModelV4({
+    doStream: async () => ({ stream }),
+  });
+}
+
+describe('OpenTelemetryIntegration integration with streamObject', () => {
+  let tracer: IntegrationMockTracer;
+
+  beforeEach(() => {
+    tracer = new IntegrationMockTracer();
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    const result = streamObject({
+      model: new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"content": ' },
+            { type: 'text-delta', id: '1', delta: '"Hello, ' },
+            { type: 'text-delta', id: '1', delta: 'world' },
+            { type: 'text-delta', id: '1', delta: '!"' },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: streamObjectTestUsage,
+            },
+          ]),
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      prompt: 'prompt',
+      experimental_telemetry: {
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: { now: () => 0 },
+    });
+
+    await convertAsyncIterableToArray(result.partialObjectStream);
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    const result = streamObject({
+      model: createStreamObjectTestModel({
+        stream: convertArrayToReadableStream([
+          {
+            type: 'response-metadata',
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          { type: 'text-start', id: '1' },
+          { type: 'text-delta', id: '1', delta: '{ ' },
+          { type: 'text-delta', id: '1', delta: '"content": ' },
+          { type: 'text-delta', id: '1', delta: '"Hello, ' },
+          { type: 'text-delta', id: '1', delta: 'world' },
+          { type: 'text-delta', id: '1', delta: '!"' },
+          { type: 'text-delta', id: '1', delta: ' }' },
+          { type: 'text-end', id: '1' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: streamObjectTestUsage,
+            providerMetadata: {
+              testProvider: {
+                testKey: 'testValue',
+              },
+            },
+          },
+        ]),
+      }),
+      schema: z.object({ content: z.string() }),
+      schemaName: 'test-name',
+      schemaDescription: 'test description',
+      prompt: 'prompt',
+      topK: 0.1,
+      topP: 0.2,
+      frequencyPenalty: 0.3,
+      presencePenalty: 0.4,
+      temperature: 0.5,
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: { now: () => 0 },
+    });
+
+    await convertAsyncIterableToArray(result.partialObjectStream);
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    const result = streamObject({
+      model: new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: '{ ' },
+            { type: 'text-delta', id: '1', delta: '"content": ' },
+            { type: 'text-delta', id: '1', delta: '"Hello, ' },
+            { type: 'text-delta', id: '1', delta: 'world' },
+            { type: 'text-delta', id: '1', delta: '!"' },
+            { type: 'text-delta', id: '1', delta: ' }' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: streamObjectTestUsage,
+            },
+          ]),
+        }),
+      }),
+      schema: z.object({ content: z.string() }),
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: { now: () => 0 },
+    });
+
+    await convertAsyncIterableToArray(result.partialObjectStream);
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should pass correct callId to onError when doStream throws', async () => {
+    const onErrorCalls: Array<{ callId: string; error: unknown }> = [];
+
+    const result = streamObject({
+      model: new MockLanguageModelV4({
+        doStream: async () => {
+          throw new Error('doStream failure');
+        },
+      }),
+      schema: z.object({ content: z.string() }),
+      prompt: 'prompt',
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: {
+          onStart(event: any) {
+            onErrorCalls.length;
+          },
+          onError(event: any) {
+            onErrorCalls.push(event);
+          },
+        },
+      },
+      onError: () => {},
+    });
+
+    await convertAsyncIterableToArray(result.partialObjectStream);
+
+    expect(onErrorCalls).toHaveLength(1);
+    expect(onErrorCalls[0].callId).not.toBe('');
+    expect(onErrorCalls[0].error).toBeInstanceOf(Error);
+    expect((onErrorCalls[0].error as Error).message).toBe('doStream failure');
+  });
+});
+
+// --- streamText stopWhen telemetry integration fixtures ---
+
+const streamTextTestUsage: LanguageModelV4Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
+};
+
+const streamTextTestUsage2: LanguageModelV4Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: 0,
+    cacheWrite: 0,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: 10,
+  },
+};
+
+describe('OpenTelemetryIntegration integration with streamText stopWhen (2 steps)', () => {
+  it('should record telemetry data for each step', async () => {
+    const tracer = new IntegrationMockTracer();
+    let responseCount = 0;
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async () => {
+          switch (responseCount++) {
+            case 0: {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  { type: 'reasoning-start', id: '0' },
+                  { type: 'reasoning-delta', id: '0', delta: 'thinking' },
+                  { type: 'reasoning-end', id: '0' },
+                  {
+                    type: 'tool-call',
+                    id: 'call-1',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "value" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                    usage: streamTextTestUsage,
+                  },
+                ]),
+                response: { headers: { call: '1' } },
+              };
+            }
+            case 1: {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(1000),
+                  },
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                  { type: 'text-delta', id: '1', delta: `world!` },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: streamTextTestUsage2,
+                  },
+                ]),
+                response: { headers: { call: '2' } },
+              };
+            }
+            default:
+              throw new Error(`Unexpected response count: ${responseCount}`);
+          }
+        },
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      stopWhen: isStepCount(3),
+      _internal: {
+        now: mockValues(0, 100, 500, 600, 1000),
+        generateId: mockId({ prefix: 'id' }),
+        generateCallId: () => 'test-telemetry-call-id',
+      },
+    });
+
+    await result.consumeStream();
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+describe('OpenTelemetryIntegration integration with streamText stopWhen (2 steps with transformed tool results)', () => {
+  it('should record telemetry data for each step', async () => {
+    const tracer = new IntegrationMockTracer();
+
+    const upperCaseToolResultTransform = () =>
+      new TransformStream({
+        transform(chunk: any, controller: any) {
+          if (chunk.type === 'tool-result' && !chunk.dynamic) {
+            chunk.output = chunk.output.toUpperCase();
+            chunk.input = {
+              ...chunk.input,
+              value: chunk.input.value.toUpperCase(),
+            };
+          }
+          controller.enqueue(chunk);
+        },
+      });
+
+    let responseCount = 0;
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async () => {
+          switch (responseCount++) {
+            case 0: {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  { type: 'reasoning-start', id: 'id-0' },
+                  {
+                    type: 'reasoning-delta',
+                    id: 'id-0',
+                    delta: 'thinking',
+                  },
+                  { type: 'reasoning-end', id: 'id-0' },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: `{ "value": "value" }`,
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'tool-calls', raw: undefined },
+                    usage: streamTextTestUsage,
+                  },
+                ]),
+                response: { headers: { call: '1' } },
+              };
+            }
+            case 1: {
+              return {
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'id-1',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(1000),
+                  },
+                  { type: 'text-start', id: '1' },
+                  { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                  { type: 'text-delta', id: '1', delta: `world!` },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: streamTextTestUsage2,
+                  },
+                ]),
+                response: { headers: { call: '2' } },
+              };
+            }
+            default:
+              throw new Error(`Unexpected response count: ${responseCount}`);
+          }
+        },
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      experimental_transform: upperCaseToolResultTransform,
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      stopWhen: isStepCount(3),
+      _internal: {
+        now: mockValues(0, 100, 500, 600, 1000),
+        generateId: mockId({ prefix: 'id' }),
+        generateCallId: () => 'test-telemetry-call-id',
+      },
+    });
+
+    await result.consumeStream();
+
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.streamText",
+            "ai.prompt": "{"prompt":"test-input"}",
+            "ai.response.finishReason": "stop",
+            "ai.response.text": "Hello, world!",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.cachedInputTokens": 0,
+            "ai.usage.inputTokenDetails.cacheReadTokens": 0,
+            "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
+            "ai.usage.inputTokenDetails.noCacheTokens": 6,
+            "ai.usage.inputTokens": 6,
+            "ai.usage.outputTokenDetails.reasoningTokens": 10,
+            "ai.usage.outputTokenDetails.textTokens": 20,
+            "ai.usage.outputTokens": 20,
+            "ai.usage.reasoningTokens": 10,
+            "ai.usage.totalTokens": 26,
+            "operation.name": "ai.streamText",
+          },
+          "events": [],
+          "name": "ai.streamText",
+        },
+        {
+          "attributes": {
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.streamText.doStream",
+            "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+            "ai.prompt.toolChoice": "{"type":"auto"}",
+            "ai.prompt.tools": [
+              "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
+            ],
+            "ai.response.avgOutputTokensPerSecond": 20,
+            "ai.response.finishReason": "tool-calls",
+            "ai.response.id": "id-0",
+            "ai.response.model": "mock-model-id",
+            "ai.response.msToFinish": 500,
+            "ai.response.msToFirstChunk": 100,
+            "ai.response.reasoning": "thinking",
+            "ai.response.text": "",
+            "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.inputTokenDetails.noCacheTokens": 3,
+            "ai.usage.inputTokens": 3,
+            "ai.usage.outputTokenDetails.textTokens": 10,
+            "ai.usage.outputTokens": 10,
+            "ai.usage.totalTokens": 13,
+            "gen_ai.request.model": "mock-model-id",
+            "gen_ai.response.finish_reasons": [
+              "tool-calls",
+            ],
+            "gen_ai.response.id": "id-0",
+            "gen_ai.response.model": "mock-model-id",
+            "gen_ai.system": "mock-provider",
+            "gen_ai.usage.input_tokens": 3,
+            "gen_ai.usage.output_tokens": 10,
+            "operation.name": "ai.streamText.doStream",
+          },
+          "events": [
+            {
+              "attributes": {
+                "ai.response.msToFirstChunk": 100,
+              },
+              "name": "ai.stream.firstChunk",
+            },
+            {
+              "attributes": {
+                "ai.response.avgOutputTokensPerSecond": 20,
+                "ai.response.msToFinish": 500,
+              },
+              "name": "ai.stream.finish",
+            },
+          ],
+          "name": "ai.streamText.doStream",
+        },
+        {
+          "attributes": {
+            "ai.operationId": "ai.toolCall",
+            "ai.toolCall.args": "{"value":"value"}",
+            "ai.toolCall.id": "call-1",
+            "ai.toolCall.name": "tool1",
+            "ai.toolCall.result": ""result1"",
+            "operation.name": "ai.toolCall",
+          },
+          "events": [],
+          "name": "ai.toolCall",
+        },
+        {
+          "attributes": {
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.streamText.doStream",
+            "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"text","value":"RESULT1"}}]}]",
+            "ai.prompt.toolChoice": "{"type":"auto"}",
+            "ai.prompt.tools": [
+              "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
+            ],
+            "ai.response.avgOutputTokensPerSecond": 25,
+            "ai.response.finishReason": "stop",
+            "ai.response.id": "id-1",
+            "ai.response.model": "mock-model-id",
+            "ai.response.msToFinish": 400,
+            "ai.response.msToFirstChunk": 400,
+            "ai.response.text": "Hello, world!",
+            "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.cachedInputTokens": 0,
+            "ai.usage.inputTokenDetails.cacheReadTokens": 0,
+            "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
+            "ai.usage.inputTokenDetails.noCacheTokens": 3,
+            "ai.usage.inputTokens": 3,
+            "ai.usage.outputTokenDetails.reasoningTokens": 10,
+            "ai.usage.outputTokenDetails.textTokens": 10,
+            "ai.usage.outputTokens": 10,
+            "ai.usage.reasoningTokens": 10,
+            "ai.usage.totalTokens": 13,
+            "gen_ai.request.model": "mock-model-id",
+            "gen_ai.response.finish_reasons": [
+              "stop",
+            ],
+            "gen_ai.response.id": "id-1",
+            "gen_ai.response.model": "mock-model-id",
+            "gen_ai.system": "mock-provider",
+            "gen_ai.usage.input_tokens": 3,
+            "gen_ai.usage.output_tokens": 10,
+            "operation.name": "ai.streamText.doStream",
+          },
+          "events": [
+            {
+              "attributes": {
+                "ai.response.msToFirstChunk": 400,
+              },
+              "name": "ai.stream.firstChunk",
+            },
+            {
+              "attributes": {
+                "ai.response.avgOutputTokensPerSecond": 25,
+                "ai.response.msToFinish": 400,
+              },
+              "name": "ai.stream.finish",
+            },
+          ],
+          "name": "ai.streamText.doStream",
+        },
+      ]
+    `);
+  });
+});
+
+describe('OpenTelemetryIntegration integration with streamText transform', () => {
+  it('telemetry should record transformed data when enabled', async () => {
+    const tracer = new IntegrationMockTracer();
+
+    const upperCaseTransform = () =>
+      new TransformStream({
+        transform(chunk: any, controller: any) {
+          if (chunk.type === 'text-delta' || chunk.type === 'reasoning-delta') {
+            chunk.text = chunk.text.toUpperCase();
+          }
+
+          if (chunk.type === 'tool-input-delta') {
+            chunk.delta = chunk.delta.toUpperCase();
+          }
+
+          if (chunk.type === 'tool-call' && !chunk.dynamic) {
+            chunk.input = {
+              ...chunk.input,
+              value: chunk.input.value.toUpperCase(),
+            };
+          }
+
+          if (chunk.type === 'tool-result' && !chunk.dynamic) {
+            chunk.output = chunk.output.toUpperCase();
+          }
+
+          controller.enqueue(chunk);
+        },
+      });
+
+    const result = streamText({
+      model: new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: ', ' },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+            { type: 'text-delta', id: '1', delta: 'world!' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: streamTextTestUsage,
+              providerMetadata: {
+                testProvider: { testKey: 'testValue' },
+              },
+            },
+          ]),
+        }),
+      }),
+      tools: {
+        tool1: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      },
+      prompt: 'test-input',
+      experimental_transform: upperCaseTransform,
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: { now: mockValues(0, 100, 500) },
+    });
+
+    await result.consumeStream();
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });

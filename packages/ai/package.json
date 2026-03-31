@@ -63,7 +63,6 @@
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
-    "@ai-sdk/otel": "workspace:*",
     "@ai-sdk/test-server": "workspace:*",
     "@edge-runtime/vm": "^5.0.0",
     "@types/json-schema": "7.0.15",

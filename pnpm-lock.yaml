@@ -1340,9 +1340,6 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
-      '@ai-sdk/otel':
-        specifier: workspace:*
-        version: link:../otel
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server
