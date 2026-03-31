@@ -358,37 +358,38 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
             ? {
                 [providerOptionsName]: {
                   thoughtSignature: part.thoughtSignature,
-                  serverToolCallId: part.toolCall.id,
+                  serverToolCallId: toolCallId,
                   serverToolType: part.toolCall.toolType,
                 },
               }
             : {
                 [providerOptionsName]: {
-                  serverToolCallId: part.toolCall.id,
+                  serverToolCallId: toolCallId,
                   serverToolType: part.toolCall.toolType,
                 },
               },
         });
       } else if ('toolResponse' in part && part.toolResponse) {
+        const responseToolCallId =
+          lastServerToolCallId ??
+          part.toolResponse.id ??
+          this.config.generateId();
         content.push({
           type: 'tool-result',
-          toolCallId:
-            lastServerToolCallId ??
-            part.toolResponse.id ??
-            this.config.generateId(),
+          toolCallId: responseToolCallId,
           toolName: `server:${part.toolResponse.toolType}`,
           result: (part.toolResponse.response ?? {}) as JSONObject,
           providerMetadata: part.thoughtSignature
             ? {
                 [providerOptionsName]: {
                   thoughtSignature: part.thoughtSignature,
-                  serverToolCallId: part.toolResponse.id,
+                  serverToolCallId: responseToolCallId,
                   serverToolType: part.toolResponse.toolType,
                 },
               }
             : {
                 [providerOptionsName]: {
-                  serverToolCallId: part.toolResponse.id,
+                  serverToolCallId: responseToolCallId,
                   serverToolType: part.toolResponse.toolType,
                 },
               },
@@ -700,7 +701,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                       ...(part.thoughtSignature
                         ? { thoughtSignature: part.thoughtSignature }
                         : {}),
-                      serverToolCallId: part.toolCall.id,
+                      serverToolCallId: toolCallId,
                       serverToolType: part.toolCall.toolType,
                     },
                   };
@@ -715,7 +716,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                     providerMetadata: serverMeta,
                   });
                 } else if ('toolResponse' in part && part.toolResponse) {
-                  const toolCallId =
+                  const responseToolCallId =
                     lastServerToolCallId ??
                     part.toolResponse.id ??
                     generateId();
@@ -724,14 +725,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                       ...(part.thoughtSignature
                         ? { thoughtSignature: part.thoughtSignature }
                         : {}),
-                      serverToolCallId: part.toolResponse.id,
+                      serverToolCallId: responseToolCallId,
                       serverToolType: part.toolResponse.toolType,
                     },
                   };
 
                   controller.enqueue({
                     type: 'tool-result',
-                    toolCallId,
+                    toolCallId: responseToolCallId,
                     toolName: `server:${part.toolResponse.toolType}`,
                     result: (part.toolResponse.response ?? {}) as JSONObject,
                     providerMetadata: serverMeta,
