@@ -7,6 +7,7 @@ import {
   LanguageModelV4Source,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
+  JSONObject,
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -370,9 +371,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       } else if ('toolResponse' in part && part.toolResponse) {
         content.push({
           type: 'tool-result',
-          toolCallId: lastServerToolCallId ?? part.toolResponse.id ?? this.config.generateId(),
+          toolCallId:
+            lastServerToolCallId ??
+            part.toolResponse.id ??
+            this.config.generateId(),
           toolName: `server:${part.toolResponse.toolType}`,
-          result: part.toolResponse.response ?? {},
+          result: (part.toolResponse.response ?? {}) as JSONObject,
           providerMetadata: part.thoughtSignature
             ? {
                 [providerOptionsName]: {
@@ -688,8 +692,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                     providerMetadata: fileMeta,
                   });
                 } else if ('toolCall' in part && part.toolCall) {
-                  const toolCallId =
-                    part.toolCall.id ?? generateId();
+                  const toolCallId = part.toolCall.id ?? generateId();
                   lastServerToolCallId = toolCallId;
                   const serverMeta = {
                     [providerOptionsName]: {
@@ -728,7 +731,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                     type: 'tool-result',
                     toolCallId,
                     toolName: `server:${part.toolResponse.toolType}`,
-                    result: part.toolResponse.response ?? {},
+                    result: (part.toolResponse.response ?? {}) as JSONObject,
                     providerMetadata: serverMeta,
                   });
                   lastServerToolCallId = undefined;
@@ -1162,6 +1165,22 @@ const getContentSchema = () =>
               data: z.string(),
             }),
             thought: z.boolean().nullish(),
+            thoughtSignature: z.string().nullish(),
+          }),
+          z.object({
+            toolCall: z.object({
+              toolType: z.string(),
+              args: z.unknown().nullish(),
+              id: z.string(),
+            }),
+            thoughtSignature: z.string().nullish(),
+          }),
+          z.object({
+            toolResponse: z.object({
+              toolType: z.string(),
+              response: z.unknown().nullish(),
+              id: z.string(),
+            }),
             thoughtSignature: z.string().nullish(),
           }),
           z.object({
