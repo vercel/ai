@@ -33,7 +33,12 @@ export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';
-export { hasToolCall, stepCountIs, type StopCondition } from './stop-condition';
+export {
+  hasToolCall,
+  isLoopFinished,
+  stepCountIs,
+  type StopCondition,
+} from './stop-condition';
 export {
   streamModelCall as experimental_streamModelCall,
   type ModelCallStreamPart as Experimental_ModelCallStreamPart,
