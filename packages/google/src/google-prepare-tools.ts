@@ -210,12 +210,6 @@ export function prepareTools({
       if (toolChoice != null) {
         switch (toolChoice.type) {
           case 'auto':
-            toolWarnings.push({
-              type: 'unsupported',
-              feature: `toolChoice "auto" with combined tool calling`,
-              details:
-                'AUTO mode is not supported with combined tool calling. Using VALIDATED mode instead.',
-            });
             break;
           case 'none':
             combinedToolConfig.functionCallingConfig = { mode: 'NONE' };

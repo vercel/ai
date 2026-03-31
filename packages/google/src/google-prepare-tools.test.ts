@@ -487,14 +487,7 @@ it('should use VALIDATED mode for combined tools with toolChoice auto on Gemini 
     includeServerSideToolInvocations: true,
   });
 
-  expect(result.toolWarnings).toEqual([
-    {
-      type: 'unsupported',
-      feature: 'toolChoice "auto" with combined tool calling',
-      details:
-        'AUTO mode is not supported with combined tool calling. Using VALIDATED mode instead.',
-    },
-  ]);
+  expect(result.toolWarnings).toEqual([]);
 });
 
 it('should use ANY mode for combined tools with toolChoice required on Gemini 3', () => {
