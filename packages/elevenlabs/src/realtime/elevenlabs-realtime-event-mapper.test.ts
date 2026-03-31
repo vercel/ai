@@ -250,7 +250,7 @@ describe('ElevenLabsRealtimeEventMapper', () => {
       ]);
     });
 
-    it('maps ping to unknown event', () => {
+    it('maps ping to custom event', () => {
       const mapper = new ElevenLabsRealtimeEventMapper();
       const raw = {
         type: 'ping',
@@ -259,13 +259,13 @@ describe('ElevenLabsRealtimeEventMapper', () => {
       const result = mapper.parseServerEvent(raw);
 
       expect(result).toEqual({
-        type: 'unknown',
+        type: 'custom',
         rawType: 'ping',
         raw,
       });
     });
 
-    it('maps vad_score to unknown event', () => {
+    it('maps vad_score to custom event', () => {
       const mapper = new ElevenLabsRealtimeEventMapper();
       const raw = {
         type: 'vad_score',
@@ -274,19 +274,19 @@ describe('ElevenLabsRealtimeEventMapper', () => {
       const result = mapper.parseServerEvent(raw);
 
       expect(result).toEqual({
-        type: 'unknown',
+        type: 'custom',
         rawType: 'vad_score',
         raw,
       });
     });
 
-    it('maps unknown event type to unknown', () => {
+    it('maps unrecognized event type to custom', () => {
       const mapper = new ElevenLabsRealtimeEventMapper();
       const raw = { type: 'some_new_event', data: {} };
       const result = mapper.parseServerEvent(raw);
 
       expect(result).toEqual({
-        type: 'unknown',
+        type: 'custom',
         rawType: 'some_new_event',
         raw,
       });

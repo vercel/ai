@@ -262,25 +262,25 @@ describe('GoogleRealtimeEventMapper', () => {
       ]);
     });
 
-    it('maps toolCallCancellation to unknown event', () => {
+    it('maps toolCallCancellation to custom event', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = { toolCallCancellation: { ids: ['call_1'] } };
       const result = mapper.parseServerEvent(raw);
 
       expect(result).toEqual({
-        type: 'unknown',
+        type: 'custom',
         rawType: 'toolCallCancellation',
         raw,
       });
     });
 
-    it('maps unknown top-level key to unknown event', () => {
+    it('maps unrecognized top-level key to custom event', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = { somethingNew: { data: 123 } };
       const result = mapper.parseServerEvent(raw);
 
       expect(result).toEqual({
-        type: 'unknown',
+        type: 'custom',
         rawType: 'somethingNew',
         raw,
       });

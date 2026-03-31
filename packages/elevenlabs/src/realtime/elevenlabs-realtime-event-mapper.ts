@@ -181,7 +181,7 @@ export class ElevenLabsRealtimeEventMapper {
       case 'client_tool_call': {
         const toolCall = data.client_tool_call;
         if (toolCall == null) {
-          return { type: 'unknown', rawType: 'client_tool_call', raw };
+          return { type: 'custom', rawType: 'client_tool_call', raw };
         }
 
         const args = JSON.stringify(toolCall.parameters ?? {});
@@ -217,11 +217,11 @@ export class ElevenLabsRealtimeEventMapper {
       case 'ping':
       case 'vad_score':
       case 'internal_tentative_agent_response':
-        return { type: 'unknown', rawType: type, raw };
+        return { type: 'custom', rawType: type, raw };
 
       default:
         return {
-          type: 'unknown',
+          type: 'custom',
           rawType: type ?? String(Object.keys(data)[0]),
           raw,
         };

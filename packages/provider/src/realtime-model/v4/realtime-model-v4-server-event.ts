@@ -187,9 +187,9 @@ export type RealtimeModelV4ServerEvent =
       raw: unknown;
     }
 
-  // ── Unknown / provider-specific ────────────────────────────────────
+  // ── Custom / provider-specific ────────────────────────────────────
   | {
-      type: 'unknown';
+      type: 'custom';
 
       /**
        * The original event type string from the provider.

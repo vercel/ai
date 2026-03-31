@@ -662,20 +662,24 @@ function RealtimeChat({
                     color:
                       event.type === 'error'
                         ? '#fca5a5'
-                        : event.type.includes('function')
-                          ? '#a78bfa'
-                          : event.type.includes('text')
-                            ? '#86efac'
-                            : event.type.includes('audio')
-                              ? '#93c5fd'
-                              : '#cbd5e1',
+                        : event.type === 'custom'
+                          ? '#fbbf24'
+                          : event.type.includes('function')
+                            ? '#a78bfa'
+                            : event.type.includes('text')
+                              ? '#86efac'
+                              : event.type.includes('audio')
+                                ? '#93c5fd'
+                                : '#cbd5e1',
                     background: expandedEvent === i ? '#334155' : 'transparent',
                   }}
                 >
                   <span style={{ color: '#64748b' }}>
                     {new Date().toLocaleTimeString('en', { hour12: false })}
                   </span>{' '}
-                  {event.type}
+                  {event.type === 'custom'
+                    ? `custom (${event.rawType})`
+                    : event.type}
                 </div>
                 {expandedEvent === i && (
                   <pre
