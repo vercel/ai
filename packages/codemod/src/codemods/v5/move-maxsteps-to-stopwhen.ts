@@ -60,7 +60,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     const stopWhenProp = j.property(
       'init',
       j.identifier('stopWhen'),
-      j.callExpression(j.identifier('isStepCount'), [property.value]),
+      j.callExpression(j.identifier('stepCountIs'), [property.value]),
     );
     objExpr.properties.splice(index, 1, stopWhenProp);
     shouldAddStepCountIsImport = true;
@@ -92,7 +92,7 @@ export default createTransformer((fileInfo, api, options, context) => {
           trackedFunctions.generateText = localName;
         } else if (importedName === 'streamText') {
           trackedFunctions.streamText = localName;
-        } else if (importedName === 'isStepCount') {
+        } else if (importedName === 'stepCountIs') {
           hasStepCountIsImport = true;
         }
       } else if (source === '@ai-sdk/react' && importedName === 'useChat') {
@@ -154,7 +154,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     }
   });
 
-  // Add isStepCount to existing `ai` or create new import if needed
+  // Add stepCountIs to existing `ai` or create new import if needed
   if (shouldAddStepCountIsImport && !hasStepCountIsImport) {
     const aiImport = root
       .find(j.ImportDeclaration)
@@ -165,17 +165,17 @@ export default createTransformer((fileInfo, api, options, context) => {
       const specifiers = path.node.specifiers;
       const alreadyImported = specifiers?.some(
         (s: any) =>
-          s.type === 'ImportSpecifier' && s.imported.name === 'isStepCount',
+          s.type === 'ImportSpecifier' && s.imported.name === 'stepCountIs',
       );
       if (!alreadyImported) {
-        specifiers.push(j.importSpecifier(j.identifier('isStepCount')));
+        specifiers.push(j.importSpecifier(j.identifier('stepCountIs')));
         path.node.specifiers = specifiers;
       }
     } else {
       // In reality, this branch is unreachable cause `ai` import should always exist
       const firstImport = root.find(j.ImportDeclaration).at(0);
       const importDecl = j.importDeclaration(
-        [j.importSpecifier(j.identifier('isStepCount'))],
+        [j.importSpecifier(j.identifier('stepCountIs'))],
         j.literal('ai'),
       );
       if (firstImport.size()) {
