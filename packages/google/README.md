@@ -2,6 +2,8 @@
 
 The **[Google Generative AI provider](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Google Generative AI](https://ai.google/discover/generativeai/) APIs.
 
+> **Deploying on Vercel?** The AI Gateway lets you reach OpenAI (and other providers) by changing a single string — no provider packages or API keys needed. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Google Generative AI provider is available in the `@ai-sdk/google` module. You can install it with
