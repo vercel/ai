@@ -2,7 +2,7 @@
 
 The **[Google Vertex provider](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
 
-This library includes a Google Vertex Anthropic provider. This provider closely follows the core Google Vertex library's usage patterns. See more in the [Google Vertex Anthropic Provider](#google-vertex-anthropic-provider) section below.
+This library includes a Google Vertex Anthropic provider and a Google Vertex MaaS provider. These providers closely follow the core Google Vertex library's usage patterns. See more in the [Google Vertex Anthropic Provider](#google-vertex-anthropic-provider) and [Google Vertex MaaS Provider](#google-vertex-maas-provider) sections below.
 
 ## Setup
 
@@ -212,6 +212,68 @@ const customProvider = createVertexAnthropic({
 
 const { text } = await generateText({
   model: customProvider('claude-3-5-sonnet@20240620'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+## Google Vertex MaaS Provider
+
+The Google Vertex MaaS (Model as a Service) provider offers access to partner and open models hosted on Vertex AI through an OpenAI-compatible Chat Completions API. It is available for both Node.js and Edge runtimes.
+
+### Node.js Runtime
+
+```ts
+import { vertexMaas } from '@ai-sdk/google-vertex/maas';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertexMaas('deepseek-ai/deepseek-v3.2-maas'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+### Edge Runtime
+
+```ts
+import { vertexMaas } from '@ai-sdk/google-vertex/maas/edge';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertexMaas('deepseek-ai/deepseek-v3.2-maas'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+### Google Vertex MaaS Provider Custom Configuration
+
+```ts
+import { createVertexMaas } from '@ai-sdk/google-vertex/maas';
+import { generateText } from 'ai';
+
+const customProvider = createVertexMaas({
+  project: 'your-project-id',
+  location: 'us-east5',
+});
+
+const { text } = await generateText({
+  model: customProvider('deepseek-ai/deepseek-v3.2-maas'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+And for the Edge runtime:
+
+```ts
+import { createVertexMaas } from '@ai-sdk/google-vertex/maas/edge';
+import { generateText } from 'ai';
+
+const customProvider = createVertexMaas({
+  project: 'your-project-id',
+  location: 'us-east5',
+});
+
+const { text } = await generateText({
+  model: customProvider('deepseek-ai/deepseek-v3.2-maas'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
