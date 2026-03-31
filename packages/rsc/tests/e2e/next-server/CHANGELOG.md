@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [3debdb7]
+  - ai@7.0.0-beta.50
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - ai@7.0.0-beta.49
 
 ## 0.0.1-beta.0
