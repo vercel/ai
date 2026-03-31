@@ -25,7 +25,8 @@ import {
   convertToLanguageModelPrompt,
   prepareCallSettings,
   prepareRetries,
-  prepareToolsAndToolChoice,
+  prepareToolChoice,
+  prepareTools,
   standardizePrompt,
 } from 'ai/internal';
 import { ReactNode } from 'react';
@@ -270,14 +271,18 @@ export async function streamUI<
     prompt,
     messages,
   } as Prompt);
+  const languageModelTools = await prepareTools({
+    tools: tools,
+  });
+  const languageModelToolChoice = prepareToolChoice({
+    toolChoice,
+  });
+
   const result = await retry(async () =>
     model.doStream({
       ...prepareCallSettings(settings),
-      ...prepareToolsAndToolChoice({
-        tools: tools as any,
-        toolChoice,
-        activeTools: undefined,
-      }),
+      tools: languageModelTools,
+      toolChoice: languageModelToolChoice,
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         supportedUrls: await model.supportedUrls,

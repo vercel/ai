@@ -1,5 +1,146 @@
 # @ai-sdk/vue
 
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [9b47dea]
+  - ai@7.0.0-beta.53
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [b56301c]
+  - ai@7.0.0-beta.52
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [6abd098]
+  - ai@7.0.0-beta.51
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [3debdb7]
+  - ai@7.0.0-beta.50
+
+## 4.0.0-beta.49
+
+### Patch Changes
+
+- ai@7.0.0-beta.49
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [5c4d910]
+  - ai@7.0.0-beta.48
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- Updated dependencies [bc67b4f]
+  - ai@7.0.0-beta.47
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [31ee822]
+  - ai@7.0.0-beta.46
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- ai@7.0.0-beta.45
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- ai@7.0.0-beta.44
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- ai@7.0.0-beta.43
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [a3fd75b]
+  - ai@7.0.0-beta.42
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- ai@7.0.0-beta.41
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [989d3d2]
+  - ai@7.0.0-beta.40
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [f4cfccd]
+  - ai@7.0.0-beta.39
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - ai@7.0.0-beta.38
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- ai@7.0.0-beta.37
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [118b953]
+  - ai@7.0.0-beta.36
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [99bf941]
+  - ai@7.0.0-beta.35
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- ai@7.0.0-beta.34
+
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [caf1b6f]
+  - ai@7.0.0-beta.33
+
 ## 4.0.0-beta.32
 
 ### Patch Changes

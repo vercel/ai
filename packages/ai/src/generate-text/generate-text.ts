@@ -25,7 +25,8 @@ import {
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
-import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
+import { prepareToolChoice } from '../prompt/prepare-tool-choice';
+import { prepareTools } from '../prompt/prepare-tools';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
@@ -49,6 +50,8 @@ import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
+import { collectToolApprovals } from './collect-tool-approvals';
+import { ContentPart } from './content-part';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -57,9 +60,8 @@ import type {
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
 } from './core-events';
-import { collectToolApprovals } from './collect-tool-approvals';
-import { ContentPart } from './content-part';
 import { executeToolCall } from './execute-tool-call';
+import { filterActiveTools } from './filter-active-tool';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
@@ -72,7 +74,7 @@ import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
 import {
   isStopConditionMet,
-  stepCountIs,
+  isStepCount,
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
@@ -255,7 +257,7 @@ export async function generateText<
   abortSignal,
   timeout,
   headers,
-  stopWhen = stepCountIs(1),
+  stopWhen = isStepCount(1),
   experimental_output,
   output = experimental_output,
   experimental_telemetry: telemetry,
@@ -308,7 +310,7 @@ export async function generateText<
      * Condition for stopping the generation when there are tool results in the last step.
      * When the condition is an array, any of the conditions can be met to stop the generation.
      *
-     * @default stepCountIs(1)
+     * @default isStepCount(1)
      */
     stopWhen?:
       | StopCondition<NoInfer<TOOLS>>
@@ -699,14 +701,18 @@ export async function generateText<
         experimental_context =
           prepareStepResult?.experimental_context ?? experimental_context;
 
-        const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+        const stepActiveTools = filterActiveTools({
+          tools,
+          activeTools: prepareStepResult?.activeTools ?? activeTools,
+        });
 
-        const { toolChoice: stepToolChoice, tools: stepTools } =
-          await prepareToolsAndToolChoice({
-            tools,
-            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-            activeTools: stepActiveTools,
-          });
+        const stepTools = await prepareTools({
+          tools: stepActiveTools,
+        });
+
+        const stepToolChoice = prepareToolChoice({
+          toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+        });
 
         const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
 
@@ -726,7 +732,7 @@ export async function generateText<
           messages: stepMessages,
           tools,
           toolChoice: stepToolChoice,
-          activeTools: stepActiveTools,
+          activeTools: prepareStepResult?.activeTools ?? activeTools,
           steps: [...steps],
           providerOptions: stepProviderOptions,
           timeout,

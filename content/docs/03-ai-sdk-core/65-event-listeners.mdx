@@ -1,15 +1,15 @@
 ---
 title: Event Callbacks
-description: Subscribe to lifecycle events in generateText, streamText, embed, and embedMany calls
+description: Subscribe to lifecycle events in generateText, streamText, embed, embedMany, and rerank calls
 ---
 
 # Event Callbacks
 
-The AI SDK provides per-call event callbacks that you can pass to `generateText`, `streamText`, `embed`, and `embedMany` to observe lifecycle events. This is useful for building observability tools, logging systems, analytics, and debugging utilities.
+The AI SDK provides per-call event callbacks that you can pass to `generateText`, `streamText`, `embed`, `embedMany`, and `rerank` to observe lifecycle events. This is useful for building observability tools, logging systems, analytics, and debugging utilities.
 
 ## Basic Usage
 
-Pass callbacks directly to `generateText`, `streamText`, `embed`, or `embedMany`:
+Pass callbacks directly to `generateText`, `streamText`, `embed`, `embedMany`, or `rerank`:
 
 ```ts
 import { generateText } from 'ai';
@@ -82,6 +82,25 @@ const result = await generateText({
       type: '(event: EmbedOnFinishEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation completes, after the embedding model returns.',
+    },
+  ]}
+/>
+
+### `rerank`
+
+<PropertiesTable
+  content={[
+    {
+      name: 'experimental_onStart',
+      type: '(event: RerankOnStartEvent) => void | Promise<void>',
+      description:
+        'Called when the reranking operation begins, before the reranking model is called.',
+    },
+    {
+      name: 'experimental_onFinish',
+      type: '(event: RerankOnFinishEvent) => void | Promise<void>',
+      description:
+        'Called when the reranking operation completes, after the reranking model returns.',
     },
   ]}
 />
@@ -1022,6 +1041,172 @@ const result = await embedMany({
   ]}
 />
 
+### `rerank`
+
+#### `experimental_onStart`
+
+Called when the reranking operation begins, before the reranking model is called.
+
+```ts
+import { rerank } from 'ai';
+
+const result = await rerank({
+  model: cohere.reranking('rerank-v3.5'),
+  documents: ['sunny day at the beach', 'rainy afternoon in the city'],
+  query: 'talk about rain',
+  experimental_onStart: event => {
+    console.log('Operation:', event.operationId);
+    console.log('Model:', event.model.modelId);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this rerank call.',
+    },
+    {
+      name: 'operationId',
+      type: 'string',
+      description: "Identifies the operation type ('ai.rerank').",
+    },
+    {
+      name: 'model',
+      type: '{ provider: string; modelId: string }',
+      description: 'The reranking model being used.',
+    },
+    {
+      name: 'documents',
+      type: 'Array<JSONObject | string>',
+      description: 'The documents being reranked.',
+    },
+    {
+      name: 'query',
+      type: 'string',
+      description: 'The query to rerank the documents against.',
+    },
+    {
+      name: 'topN',
+      type: 'number | undefined',
+      description: 'Number of top documents to return.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      description: 'Maximum number of retries for failed requests.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal | undefined',
+      description: 'Abort signal for cancelling the operation.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string | undefined> | undefined',
+      description: 'Additional HTTP headers sent with the request.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions | undefined',
+      description: 'Additional provider-specific options.',
+    },
+    {
+      name: 'functionId',
+      type: 'string | undefined',
+      description:
+        'Identifier from telemetry settings for grouping related operations.',
+    },
+    {
+      name: 'metadata',
+      type: 'Record<string, JSONValue> | undefined',
+      description: 'Additional metadata from telemetry settings.',
+    },
+  ]}
+/>
+
+#### `experimental_onFinish`
+
+Called when the reranking operation completes, after the reranking model returns.
+
+```ts
+import { rerank } from 'ai';
+
+const result = await rerank({
+  model: cohere.reranking('rerank-v3.5'),
+  documents: ['sunny day at the beach', 'rainy afternoon in the city'],
+  query: 'talk about rain',
+  experimental_onFinish: event => {
+    console.log('Operation:', event.operationId);
+    console.log('Rankings:', event.ranking.length);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this rerank call.',
+    },
+    {
+      name: 'operationId',
+      type: 'string',
+      description: "Identifies the operation type ('ai.rerank').",
+    },
+    {
+      name: 'model',
+      type: '{ provider: string; modelId: string }',
+      description: 'The reranking model that was used.',
+    },
+    {
+      name: 'documents',
+      type: 'Array<JSONObject | string>',
+      description: 'The documents that were reranked.',
+    },
+    {
+      name: 'query',
+      type: 'string',
+      description: 'The query that documents were reranked against.',
+    },
+    {
+      name: 'ranking',
+      type: 'Array<{ originalIndex: number; score: number; document: JSONObject | string }>',
+      description:
+        'The reranked results sorted by relevance score in descending order.',
+    },
+    {
+      name: 'warnings',
+      type: 'Array<Warning>',
+      description: 'Warnings from the reranking model.',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata | undefined',
+      description: 'Optional provider-specific metadata.',
+    },
+    {
+      name: 'response',
+      type: '{ id?: string; timestamp: Date; modelId: string; headers?: Record<string, string>; body?: unknown }',
+      description: 'Response data including headers and body.',
+    },
+    {
+      name: 'functionId',
+      type: 'string | undefined',
+      description:
+        'Identifier from telemetry settings for grouping related operations.',
+    },
+    {
+      name: 'metadata',
+      type: 'Record<string, JSONValue> | undefined',
+      description: 'Additional metadata from telemetry settings.',
+    },
+  ]}
+/>
+
 ## Use Cases
 
 ### Logging and Debugging
@@ -1104,7 +1289,7 @@ const result = await embedMany({
 
 ## Error Handling
 
-Errors thrown inside callbacks are caught and do not break the generation or embedding flow. This ensures that monitoring code cannot disrupt your application:
+Errors thrown inside callbacks are caught and do not break the generation, embedding, or reranking flow. This ensures that monitoring code cannot disrupt your application:
 
 ```ts
 const result = await generateText({

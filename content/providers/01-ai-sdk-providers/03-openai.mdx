@@ -769,7 +769,7 @@ const result = await generateText({
     }),
   },
   prompt: 'List the files in my home directory.',
-  stopWhen: stepCountIs(2),
+  stopWhen: isStepCount(2),
 });
 ```
 
@@ -927,7 +927,7 @@ const result = await generateText({
     }),
   },
   prompt: 'Use the skill to solve this problem.',
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 ```
 
@@ -942,7 +942,7 @@ enabling iterative, multi-step code editing workflows.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: openai('gpt-5.1'),
@@ -954,7 +954,7 @@ const result = await generateText({
     }),
   },
   prompt: 'Create a python file that calculates the factorial of a number',
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 ```
 
@@ -982,13 +982,13 @@ Add `openai.tools.toolSearch()` with no arguments and mark your tools with `defe
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
   model: openai.responses('gpt-5.4'),
   prompt: 'What is the weather in San Francisco?',
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   tools: {
     toolSearch: openai.tools.toolSearch(),
 
@@ -1033,13 +1033,13 @@ a `description`, `parameters` schema, and an `execute` callback:
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
   model: openai.responses('gpt-5.4'),
   prompt: 'What is the weather in San Francisco?',
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   tools: {
     toolSearch: openai.tools.toolSearch({
       execution: 'client',
@@ -1113,7 +1113,7 @@ SQL queries, code snippets, or any output that must match a specific pattern.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: openai.responses('gpt-5.2-codex'),
@@ -1134,7 +1134,7 @@ const result = await generateText({
   },
   toolChoice: 'required',
   prompt: 'Write a SQL query to get all users older than 25.',
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 ```
 
@@ -2303,6 +2303,8 @@ The following optional provider options are available for OpenAI completion mode
 | --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `gpt-5.4-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.4`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.4-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.4-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.3-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.2-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.2-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |

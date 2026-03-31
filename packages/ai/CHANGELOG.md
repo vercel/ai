@@ -1,5 +1,142 @@
 # ai
 
+## 7.0.0-beta.53
+
+### Patch Changes
+
+- 9b47dea: fix(ai): remove otel Tracer api from telemetry settings
+
+## 7.0.0-beta.52
+
+### Patch Changes
+
+- b56301c: feat(ai): decouple otel from generate/streamObject
+
+## 7.0.0-beta.51
+
+### Patch Changes
+
+- 6abd098: split `prepareToolsAndToolChoice()` into `prepareTools()` and `prepareToolChoice()`
+
+## 7.0.0-beta.50
+
+### Patch Changes
+
+- 3debdb7: feat(ai): rename `stepCountIs` to `isStepCount`
+
+## 7.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [294cbe7]
+  - @ai-sdk/gateway@4.0.0-beta.26
+
+## 7.0.0-beta.48
+
+### Patch Changes
+
+- 5c4d910: feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps
+
+## 7.0.0-beta.47
+
+### Patch Changes
+
+- bc67b4f: feat(ai): add experimental callbacks for structured outputs
+
+## 7.0.0-beta.46
+
+### Patch Changes
+
+- 31ee822: refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
+
+## 7.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [435895b]
+  - @ai-sdk/gateway@4.0.0-beta.25
+
+## 7.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [d30466c]
+  - @ai-sdk/gateway@4.0.0-beta.24
+
+## 7.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [4ec78cd]
+  - @ai-sdk/gateway@4.0.0-beta.23
+
+## 7.0.0-beta.42
+
+### Patch Changes
+
+- a3fd75b: feat(ai): expose Experimental_ModelCallStreamPart type
+
+## 7.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [7ceff62]
+  - @ai-sdk/gateway@4.0.0-beta.22
+
+## 7.0.0-beta.40
+
+### Patch Changes
+
+- 989d3d2: fix(ai): include generated files in OTEL response attributes
+
+## 7.0.0-beta.39
+
+### Patch Changes
+
+- f4cfccd: feat(ai): decouple otel from rerank function
+
+## 7.0.0-beta.38
+
+### Patch Changes
+
+- 1f509d4: fix(ai): force template check on 'kind' param
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+  - @ai-sdk/gateway@4.0.0-beta.21
+
+## 7.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [4f91b5d]
+  - @ai-sdk/gateway@4.0.0-beta.20
+
+## 7.0.0-beta.36
+
+### Patch Changes
+
+- 118b953: feat(ai): decouple otel from embed functions
+
+## 7.0.0-beta.35
+
+### Patch Changes
+
+- 99bf941: feat(ai): extract streamModelCall function for streaming text generation
+
+## 7.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [72889f8]
+  - @ai-sdk/gateway@4.0.0-beta.19
+
+## 7.0.0-beta.33
+
+### Patch Changes
+
+- caf1b6f: feat(ai): introduce experimental callbacks for rerank function
+
 ## 7.0.0-beta.32
 
 ### Major Changes
@@ -1228,7 +1365,7 @@
 - 81d4308: feat: provider-executed dynamic tools
 - e0d1ea9: fix(ai): align logic of text-end with reasoning-end
 - 2406576: chore(agent): rename messages property on agent ui stream functions to uiMessages
-- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+- b1aeea7: feat(ai): set default stopWhen on Agent to isStepCount(20)
 - dce4e7b: chore(agent): rename system to instructions
 - 4ece5f9: feat(agent): add experimental_download to ToolLoopAgent
 - a417a34: feat(agent): introduce version property
@@ -2404,7 +2541,7 @@
 
 - aa0515c: feat(ai): move Agent to stable
 - e7d9b00: feat(agent): add optional name property to agent
-- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+- b1aeea7: feat(ai): set default stopWhen on Agent to isStepCount(20)
 
 ## 5.1.0-beta.18
 
@@ -2974,7 +3111,7 @@
 - c7710a9: chore (ai): rename DataStreamToSSETransformStream to JsonToSseTransformStream
 - bfbfc4c: feat (ai): streamText/generateText: totalUsage contains usage for all steps. usage is for a single step.
 - 9ae327d: chore (ui): replace chat store concept with chat instances
-- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to stepCountIs.
+- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to isStepCount.
 - 247ee0c: chore (ai): remove steps from tool invocation ui parts
 - 109c0ac: chore (ai): rename id to chatId (in post request, resume request, and useChat)
 - 954aa73: feat (ui): extended regenerate support
@@ -3717,7 +3854,7 @@
 ### Major Changes
 
 - 72d7d72: chore (ai): stable activeTools
-- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to stepCountIs.
+- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to isStepCount.
 
 ### Patch Changes
 

@@ -1,5 +1,149 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- Updated dependencies [9b47dea]
+  - ai@7.0.0-beta.53
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [b56301c]
+  - ai@7.0.0-beta.52
+
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- 6abd098: split `prepareToolsAndToolChoice()` into `prepareTools()` and `prepareToolChoice()`
+- Updated dependencies [6abd098]
+  - ai@7.0.0-beta.51
+
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [3debdb7]
+  - ai@7.0.0-beta.50
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- ai@7.0.0-beta.49
+
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [5c4d910]
+  - ai@7.0.0-beta.48
+
+## 3.0.0-beta.48
+
+### Patch Changes
+
+- Updated dependencies [bc67b4f]
+  - ai@7.0.0-beta.47
+
+## 3.0.0-beta.47
+
+### Patch Changes
+
+- 31ee822: refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
+- Updated dependencies [31ee822]
+  - ai@7.0.0-beta.46
+
+## 3.0.0-beta.46
+
+### Patch Changes
+
+- ai@7.0.0-beta.45
+
+## 3.0.0-beta.45
+
+### Patch Changes
+
+- ai@7.0.0-beta.44
+
+## 3.0.0-beta.44
+
+### Patch Changes
+
+- ai@7.0.0-beta.43
+
+## 3.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [a3fd75b]
+  - ai@7.0.0-beta.42
+
+## 3.0.0-beta.42
+
+### Patch Changes
+
+- ai@7.0.0-beta.41
+
+## 3.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [989d3d2]
+  - ai@7.0.0-beta.40
+
+## 3.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [f4cfccd]
+  - ai@7.0.0-beta.39
+
+## 3.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+  - ai@7.0.0-beta.38
+
+## 3.0.0-beta.38
+
+### Patch Changes
+
+- ai@7.0.0-beta.37
+
+## 3.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [118b953]
+  - ai@7.0.0-beta.36
+
+## 3.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [99bf941]
+  - ai@7.0.0-beta.35
+
+## 3.0.0-beta.35
+
+### Patch Changes
+
+- ai@7.0.0-beta.34
+
+## 3.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [caf1b6f]
+  - ai@7.0.0-beta.33
+
 ## 3.0.0-beta.33
 
 ### Patch Changes

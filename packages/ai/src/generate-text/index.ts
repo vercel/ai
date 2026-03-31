@@ -1,13 +1,22 @@
+export type { ContentPart } from './content-part';
+export type {
+  OnFinishEvent,
+  OnStartEvent,
+  OnStepFinishEvent,
+  OnStepStartEvent,
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
+} from './core-events';
+export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export {
   generateText,
   type GenerateTextOnFinishCallback,
   type GenerateTextOnStartCallback,
-  type GenerateTextOnStepStartCallback,
   type GenerateTextOnStepFinishCallback,
-  type GenerateTextOnToolCallStartCallback,
+  type GenerateTextOnStepStartCallback,
   type GenerateTextOnToolCallFinishCallback,
+  type GenerateTextOnToolCallStartCallback,
 } from './generate-text';
-export type { ContentPart } from './content-part';
 export type { GenerateTextResult } from './generate-text-result';
 export {
   DefaultGeneratedFile,
@@ -24,7 +33,21 @@ export { pruneMessages } from './prune-messages';
 export type { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';
-export { hasToolCall, stepCountIs, type StopCondition } from './stop-condition';
+export {
+  hasToolCall,
+  isLoopFinished,
+  isStepCount,
+
+  /**
+   * @deprecated Use `isStepCount` instead.
+   */
+  isStepCount as stepCountIs,
+  type StopCondition,
+} from './stop-condition';
+export {
+  streamModelCall as experimental_streamModelCall,
+  type ModelCallStreamPart as Experimental_ModelCallStreamPart,
+} from './stream-model-call';
 export {
   streamText,
   type StreamTextOnChunkCallback,
@@ -64,11 +87,3 @@ export type {
   TypedToolResult,
 } from './tool-result';
 export type { ToolSet } from './tool-set';
-export type {
-  OnFinishEvent,
-  OnStartEvent,
-  OnStepFinishEvent,
-  OnStepStartEvent,
-  OnToolCallFinishEvent,
-  OnToolCallStartEvent,
-} from './core-events';

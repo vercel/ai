@@ -11,7 +11,6 @@ import {
 } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
-import { MockTracer } from '../test/mock-tracer';
 import { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { embedMany } from './embed-many';
@@ -371,107 +370,6 @@ describe('options.providerOptions', () => {
       },
       values: ['test-input'],
     });
-  });
-});
-
-describe('telemetry', () => {
-  let tracer: MockTracer;
-
-  beforeEach(() => {
-    tracer = new MockTracer();
-  });
-
-  it('should not record any telemetry data when not explicitly enabled', async () => {
-    await embedMany({
-      model: new MockEmbeddingModelV4({
-        maxEmbeddingsPerCall: 5,
-        doEmbed: mockEmbed(testValues, dummyEmbeddings),
-      }),
-      values: testValues,
-    });
-
-    assert.deepStrictEqual(tracer.jsonSpans, []);
-  });
-
-  it('should record telemetry data when enabled (multiple calls path)', async () => {
-    let callCount = 0;
-
-    await embedMany({
-      model: new MockEmbeddingModelV4({
-        maxEmbeddingsPerCall: 2,
-        doEmbed: async ({ values }) => {
-          switch (callCount++) {
-            case 0:
-              assert.deepStrictEqual(values, testValues.slice(0, 2));
-              return {
-                embeddings: dummyEmbeddings.slice(0, 2),
-                usage: { tokens: 10 },
-                warnings: [],
-              };
-            case 1:
-              assert.deepStrictEqual(values, testValues.slice(2));
-              return {
-                embeddings: dummyEmbeddings.slice(2),
-                usage: { tokens: 20 },
-                warnings: [],
-              };
-            default:
-              throw new Error('Unexpected call');
-          }
-        },
-      }),
-      values: testValues,
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
-        tracer,
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record telemetry data when enabled (single call path)', async () => {
-    await embedMany({
-      model: new MockEmbeddingModelV4({
-        maxEmbeddingsPerCall: null,
-        doEmbed: mockEmbed(testValues, dummyEmbeddings, { tokens: 10 }),
-      }),
-      values: testValues,
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
-        tracer,
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should not record telemetry inputs / outputs when disabled', async () => {
-    await embedMany({
-      model: new MockEmbeddingModelV4({
-        maxEmbeddingsPerCall: null,
-        doEmbed: mockEmbed(testValues, dummyEmbeddings, { tokens: 10 }),
-      }),
-      values: testValues,
-      experimental_telemetry: {
-        isEnabled: true,
-        recordInputs: false,
-        recordOutputs: false,
-        tracer,
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });
 

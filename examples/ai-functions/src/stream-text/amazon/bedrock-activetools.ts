@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { streamText, tool, stepCountIs } from 'ai';
+import { streamText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -15,7 +15,7 @@ run(async () => {
         }),
       }),
     },
-    stopWhen: [stepCountIs(5)],
+    stopWhen: [isStepCount(5)],
     prepareStep: ({ stepNumber }) => {
       if (stepNumber > 0) {
         console.log(`Setting activeTools: [] for step ${stepNumber}`);

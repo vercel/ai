@@ -1,5 +1,25 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 9715ec7: feat(provider/google): add support for service tier parameter
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 6190649: chore(provider/google): remove obsolete Google image model
+
 ## 4.0.0-beta.15
 
 ### Patch Changes

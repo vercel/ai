@@ -143,16 +143,16 @@ export interface FilePart {
 
 ### `CustomPart`
 
-Represents a provider-specific custom content part. The `kind` field identifies the content type in the format `{provider}-{provider-type}`.
+Represents a provider-specific custom content part. The `kind` field identifies the content type in the format `{provider}.{provider-type}`.
 
 ```typescript
 export interface CustomPart {
   type: 'custom';
 
   /**
-   * The kind of custom content, in the format `{provider}-{provider-type}`.
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
    */
-  kind: string;
+  kind: `${string}.${string}`;
 
   /**
    * Additional provider-specific metadata.

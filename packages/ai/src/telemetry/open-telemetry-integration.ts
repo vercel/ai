@@ -10,6 +10,18 @@ import {
   Tracer,
 } from '@opentelemetry/api';
 import type {
+  EmbedOnStartEvent,
+  EmbedOnFinishEvent,
+  EmbedStartEvent,
+  EmbedFinishEvent,
+} from '../embed/embed-events';
+import type {
+  RerankOnStartEvent,
+  RerankOnFinishEvent,
+  RerankStartEvent,
+  RerankFinishEvent,
+} from '../rerank/rerank-events';
+import type {
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -20,6 +32,12 @@ import type {
 } from '../generate-text/core-events';
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
+import type {
+  ObjectOnStartEvent,
+  ObjectOnFinishEvent,
+  ObjectOnStepStartEvent,
+  ObjectOnStepFinishEvent,
+} from '../generate-object/structured-output-events';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
@@ -111,6 +129,8 @@ interface CallState {
   rootContext: Context | undefined;
   stepSpan: Span | undefined;
   stepContext: Context | undefined;
+  embedSpans: Map<string, { span: Span; context: Context }>;
+  rerankSpan: { span: Span; context: Context } | undefined;
   toolSpans: Map<string, { span: Span; context: Context }>;
   baseTelemetryAttributes: Attributes;
   settings: Record<string, unknown>;
@@ -158,9 +178,40 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     return context.with(toolSpanEntry.context, execute);
   }
 
-  onStart(event: OnStartEvent<ToolSet, Output>): void {
+  onStart(
+    event:
+      | OnStartEvent<ToolSet, Output>
+      | ObjectOnStartEvent
+      | EmbedOnStartEvent
+      | RerankOnStartEvent,
+  ): void {
     if (event.isEnabled !== true) return;
 
+    if (
+      event.operationId === 'ai.embed' ||
+      event.operationId === 'ai.embedMany'
+    ) {
+      this.onEmbedOperationStart(event as EmbedOnStartEvent);
+      return;
+    }
+
+    if (event.operationId === 'ai.rerank') {
+      this.onRerankOperationStart(event as RerankOnStartEvent);
+      return;
+    }
+
+    if (
+      event.operationId === 'ai.generateObject' ||
+      event.operationId === 'ai.streamObject'
+    ) {
+      this.onObjectOperationStart(event as ObjectOnStartEvent);
+      return;
+    }
+
+    this.onGenerateStart(event as OnStartEvent<ToolSet, Output>);
+  }
+
+  private onGenerateStart(event: OnStartEvent<ToolSet, Output>): void {
     const telemetry: TelemetrySettings = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
@@ -216,6 +267,240 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       rootContext,
       stepSpan: undefined,
       stepContext: undefined,
+      embedSpans: new Map(),
+      rerankSpan: undefined,
+      toolSpans: new Map(),
+      baseTelemetryAttributes,
+      settings,
+    });
+  }
+
+  private onObjectOperationStart(event: ObjectOnStartEvent): void {
+    const telemetry: TelemetrySettings = {
+      isEnabled: event.isEnabled,
+      recordInputs: event.recordInputs,
+      recordOutputs: event.recordOutputs,
+      functionId: event.functionId,
+      metadata: event.metadata,
+    };
+
+    const settings: Record<string, unknown> = {
+      maxOutputTokens: event.maxOutputTokens,
+      temperature: event.temperature,
+      topP: event.topP,
+      topK: event.topK,
+      presencePenalty: event.presencePenalty,
+      frequencyPenalty: event.frequencyPenalty,
+      seed: event.seed,
+      maxRetries: event.maxRetries,
+    };
+
+    const baseTelemetryAttributes = getBaseTelemetryAttributes({
+      model: { provider: event.provider, modelId: event.modelId },
+      telemetry,
+      headers: event.headers,
+      settings,
+    });
+
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: event.operationId,
+        telemetry,
+      }),
+      ...baseTelemetryAttributes,
+      'ai.prompt': {
+        input: () =>
+          JSON.stringify({
+            system: event.system,
+            prompt: event.prompt,
+            messages: event.messages,
+          }),
+      },
+      'ai.schema': event.schema
+        ? { input: () => JSON.stringify(event.schema) }
+        : undefined,
+      'ai.schema.name': event.schemaName,
+      'ai.schema.description': event.schemaDescription,
+      'ai.settings.output': event.output,
+    });
+
+    const rootSpan = this.tracer.startSpan(event.operationId, { attributes });
+    const rootContext = trace.setSpan(context.active(), rootSpan);
+
+    this.callStates.set(event.callId, {
+      operationId: event.operationId,
+      telemetry,
+      rootSpan,
+      rootContext,
+      stepSpan: undefined,
+      stepContext: undefined,
+      embedSpans: new Map(),
+      rerankSpan: undefined,
+      toolSpans: new Map(),
+      baseTelemetryAttributes,
+      settings,
+    });
+  }
+
+  /** @deprecated */
+  onObjectStepStart(event: ObjectOnStepStartEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan || !state.rootContext) return;
+
+    const { telemetry } = state;
+
+    const stepOperationId =
+      state.operationId === 'ai.streamObject'
+        ? 'ai.streamObject.doStream'
+        : 'ai.generateObject.doGenerate';
+
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: stepOperationId,
+        telemetry,
+      }),
+      ...state.baseTelemetryAttributes,
+      'ai.prompt.messages': {
+        input: () =>
+          event.promptMessages
+            ? stringifyForTelemetry(event.promptMessages)
+            : undefined,
+      },
+
+      'gen_ai.system': event.provider,
+      'gen_ai.request.model': event.modelId,
+      'gen_ai.request.frequency_penalty': state.settings.frequencyPenalty as
+        | number
+        | undefined,
+      'gen_ai.request.max_tokens': state.settings.maxOutputTokens as
+        | number
+        | undefined,
+      'gen_ai.request.presence_penalty': state.settings.presencePenalty as
+        | number
+        | undefined,
+      'gen_ai.request.temperature': (state.settings.temperature ?? undefined) as
+        | number
+        | undefined,
+      'gen_ai.request.top_k': state.settings.topK as number | undefined,
+      'gen_ai.request.top_p': state.settings.topP as number | undefined,
+    });
+
+    state.stepSpan = this.tracer.startSpan(
+      stepOperationId,
+      { attributes },
+      state.rootContext,
+    );
+    state.stepContext = trace.setSpan(state.rootContext, state.stepSpan);
+  }
+
+  /** @deprecated */
+  onObjectStepFinish(event: ObjectOnStepFinishEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.stepSpan) return;
+
+    const { telemetry } = state;
+
+    state.stepSpan.setAttributes(
+      selectAttributes(telemetry, {
+        'ai.response.finishReason': event.finishReason,
+        'ai.response.object': {
+          output: () => {
+            try {
+              return JSON.stringify(JSON.parse(event.objectText));
+            } catch {
+              return event.objectText;
+            }
+          },
+        },
+        'ai.response.id': event.response.id,
+        'ai.response.model': event.response.modelId,
+        'ai.response.timestamp': event.response.timestamp.toISOString(),
+        'ai.response.providerMetadata': event.providerMetadata
+          ? JSON.stringify(event.providerMetadata)
+          : undefined,
+
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
+        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
+        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
+
+        'gen_ai.response.finish_reasons': [event.finishReason],
+        'gen_ai.response.id': event.response.id,
+        'gen_ai.response.model': event.response.modelId,
+        'gen_ai.usage.input_tokens': event.usage.inputTokens,
+        'gen_ai.usage.output_tokens': event.usage.outputTokens,
+      }),
+    );
+
+    if (event.msToFirstChunk != null) {
+      state.stepSpan.addEvent('ai.stream.firstChunk', {
+        'ai.stream.msToFirstChunk': event.msToFirstChunk,
+      });
+      state.stepSpan.setAttributes({
+        'ai.stream.msToFirstChunk': event.msToFirstChunk,
+      });
+    }
+
+    state.stepSpan.end();
+    state.stepSpan = undefined;
+    state.stepContext = undefined;
+  }
+
+  private onEmbedOperationStart(event: EmbedOnStartEvent): void {
+    const telemetry: TelemetrySettings = {
+      isEnabled: event.isEnabled,
+      recordInputs: event.recordInputs,
+      recordOutputs: event.recordOutputs,
+      functionId: event.functionId,
+      metadata: event.metadata,
+    };
+
+    const settings: Record<string, unknown> = {
+      maxRetries: event.maxRetries,
+    };
+
+    const baseTelemetryAttributes = getBaseTelemetryAttributes({
+      model: { provider: event.provider, modelId: event.modelId },
+      telemetry,
+      headers: event.headers,
+      settings,
+    });
+
+    const value = event.value;
+    const isMany = event.operationId === 'ai.embedMany';
+
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: event.operationId,
+        telemetry,
+      }),
+      ...baseTelemetryAttributes,
+      ...(isMany
+        ? {
+            'ai.values': {
+              input: () => (value as string[]).map(v => JSON.stringify(v)),
+            },
+          }
+        : {
+            'ai.value': {
+              input: () => JSON.stringify(value),
+            },
+          }),
+    });
+
+    const rootSpan = this.tracer.startSpan(event.operationId, { attributes });
+    const rootContext = trace.setSpan(context.active(), rootSpan);
+
+    this.callStates.set(event.callId, {
+      operationId: event.operationId,
+      telemetry,
+      rootSpan,
+      rootContext,
+      stepSpan: undefined,
+      stepContext: undefined,
+      embedSpans: new Map(),
+      rerankSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -382,6 +667,18 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
                 )
               : undefined,
         },
+        'ai.response.files': {
+          output: () =>
+            event.files.length > 0
+              ? JSON.stringify(
+                  event.files.map(file => ({
+                    type: 'file',
+                    mediaType: file.mediaType,
+                    data: file.base64,
+                  })),
+                )
+              : undefined,
+        },
         'ai.response.id': event.response.id,
         'ai.response.model': event.response.modelId,
         'ai.response.timestamp': event.response.timestamp.toISOString(),
@@ -418,7 +715,41 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     state.stepContext = undefined;
   }
 
-  onFinish(event: OnFinishEvent<ToolSet>): void {
+  onFinish(
+    event:
+      | OnFinishEvent<ToolSet>
+      | ObjectOnFinishEvent<unknown>
+      | EmbedOnFinishEvent
+      | RerankOnFinishEvent,
+  ): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    if (
+      state.operationId === 'ai.embed' ||
+      state.operationId === 'ai.embedMany'
+    ) {
+      this.onEmbedOperationFinish(event as EmbedOnFinishEvent);
+      return;
+    }
+
+    if (state.operationId === 'ai.rerank') {
+      this.onRerankOperationFinish(event as RerankOnFinishEvent);
+      return;
+    }
+
+    if (
+      state.operationId === 'ai.generateObject' ||
+      state.operationId === 'ai.streamObject'
+    ) {
+      this.onObjectOperationFinish(event as ObjectOnFinishEvent<unknown>);
+      return;
+    }
+
+    this.onGenerateFinish(event as OnFinishEvent<ToolSet>);
+  }
+
+  private onGenerateFinish(event: OnFinishEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -451,6 +782,18 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
                 )
               : undefined,
         },
+        'ai.response.files': {
+          output: () =>
+            event.files.length > 0
+              ? JSON.stringify(
+                  event.files.map(file => ({
+                    type: 'file',
+                    mediaType: file.mediaType,
+                    data: file.base64,
+                  })),
+                )
+              : undefined,
+        },
         'ai.response.providerMetadata': event.providerMetadata
           ? JSON.stringify(event.providerMetadata)
           : undefined,
@@ -475,6 +818,222 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
 
     state.rootSpan.end();
     this.cleanupCallState(event.callId);
+  }
+
+  private onObjectOperationFinish(event: ObjectOnFinishEvent<unknown>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    const { telemetry } = state;
+
+    state.rootSpan.setAttributes(
+      selectAttributes(telemetry, {
+        'ai.response.finishReason': event.finishReason,
+        'ai.response.object': {
+          output: () =>
+            event.object != null ? JSON.stringify(event.object) : undefined,
+        },
+        'ai.response.providerMetadata': event.providerMetadata
+          ? JSON.stringify(event.providerMetadata)
+          : undefined,
+
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
+        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
+        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
+      }),
+    );
+
+    state.rootSpan.end();
+    this.cleanupCallState(event.callId);
+  }
+
+  private onEmbedOperationFinish(event: EmbedOnFinishEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    const { telemetry } = state;
+    const isMany = state.operationId === 'ai.embedMany';
+
+    state.rootSpan.setAttributes(
+      selectAttributes(telemetry, {
+        ...(isMany
+          ? {
+              'ai.embeddings': {
+                output: () =>
+                  (event.embedding as number[][]).map(e => JSON.stringify(e)),
+              },
+            }
+          : {
+              'ai.embedding': {
+                output: () => JSON.stringify(event.embedding),
+              },
+            }),
+        'ai.usage.tokens': event.usage.tokens,
+      }),
+    );
+
+    state.rootSpan.end();
+    this.cleanupCallState(event.callId);
+  }
+
+  onEmbedStart(event: EmbedStartEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan || !state.rootContext) return;
+
+    const { telemetry } = state;
+
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: event.operationId,
+        telemetry,
+      }),
+      ...state.baseTelemetryAttributes,
+      'ai.values': {
+        input: () => event.values.map(v => JSON.stringify(v)),
+      },
+    });
+
+    const embedSpan = this.tracer.startSpan(
+      event.operationId,
+      { attributes },
+      state.rootContext,
+    );
+    const embedContext = trace.setSpan(state.rootContext, embedSpan);
+
+    state.embedSpans.set(event.embedCallId, {
+      span: embedSpan,
+      context: embedContext,
+    });
+  }
+
+  onEmbedFinish(event: EmbedFinishEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state) return;
+
+    const embedSpanEntry = state.embedSpans.get(event.embedCallId);
+    if (!embedSpanEntry) return;
+
+    const { span } = embedSpanEntry;
+    const { telemetry } = state;
+
+    span.setAttributes(
+      selectAttributes(telemetry, {
+        'ai.embeddings': {
+          output: () =>
+            event.embeddings.map(embedding => JSON.stringify(embedding)),
+        },
+        'ai.usage.tokens': event.usage.tokens,
+      }),
+    );
+
+    span.end();
+    state.embedSpans.delete(event.embedCallId);
+  }
+
+  private onRerankOperationStart(event: RerankOnStartEvent): void {
+    const telemetry: TelemetrySettings = {
+      isEnabled: event.isEnabled,
+      recordInputs: event.recordInputs,
+      recordOutputs: event.recordOutputs,
+      functionId: event.functionId,
+      metadata: event.metadata,
+    };
+
+    const settings: Record<string, unknown> = {
+      maxRetries: event.maxRetries,
+    };
+
+    const baseTelemetryAttributes = getBaseTelemetryAttributes({
+      model: { provider: event.provider, modelId: event.modelId },
+      telemetry,
+      headers: event.headers,
+      settings,
+    });
+
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: event.operationId,
+        telemetry,
+      }),
+      ...baseTelemetryAttributes,
+      'ai.documents': {
+        input: () => event.documents.map(d => JSON.stringify(d)),
+      },
+    });
+
+    const rootSpan = this.tracer.startSpan(event.operationId, { attributes });
+    const rootContext = trace.setSpan(context.active(), rootSpan);
+
+    this.callStates.set(event.callId, {
+      operationId: event.operationId,
+      telemetry,
+      rootSpan,
+      rootContext,
+      stepSpan: undefined,
+      stepContext: undefined,
+      embedSpans: new Map(),
+      rerankSpan: undefined,
+      toolSpans: new Map(),
+      baseTelemetryAttributes,
+      settings,
+    });
+  }
+
+  private onRerankOperationFinish(event: RerankOnFinishEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    state.rootSpan.end();
+    this.cleanupCallState(event.callId);
+  }
+
+  onRerankStart(event: RerankStartEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan || !state.rootContext) return;
+
+    const { telemetry } = state;
+
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: event.operationId,
+        telemetry,
+      }),
+      ...state.baseTelemetryAttributes,
+      'ai.documents': {
+        input: () => event.documents.map(d => JSON.stringify(d)),
+      },
+    });
+
+    const rerankSpan = this.tracer.startSpan(
+      event.operationId,
+      { attributes },
+      state.rootContext,
+    );
+    const rerankContext = trace.setSpan(state.rootContext, rerankSpan);
+
+    state.rerankSpan = { span: rerankSpan, context: rerankContext };
+  }
+
+  onRerankFinish(event: RerankFinishEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rerankSpan) return;
+
+    const { span } = state.rerankSpan;
+    const { telemetry } = state;
+
+    span.setAttributes(
+      selectAttributes(telemetry, {
+        'ai.ranking.type': event.documentsType,
+        'ai.ranking': {
+          output: () => event.ranking.map(r => JSON.stringify(r)),
+        },
+      }),
+    );
+
+    span.end();
+    state.rerankSpan = undefined;
   }
 
   onChunk(event: OnChunkEvent<ToolSet>): void {
@@ -511,11 +1070,6 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
   }
 
   onError(error: unknown): void {
-    // onError receives the raw error; we need callId to look up state.
-    // The callId is attached to the error event by generate-text.ts via
-    // the globalTelemetry.onError composite which wraps it.
-    // However, since TelemetryIntegration.onError is Listener<unknown>,
-    // we accept a { callId, error } shape here.
     const event = error as { callId?: string; error?: unknown };
     if (!event?.callId) return;
 
@@ -527,6 +1081,18 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     if (state.stepSpan) {
       recordSpanError(state.stepSpan, actualError);
       state.stepSpan.end();
+    }
+
+    for (const { span: embedSpan } of state.embedSpans.values()) {
+      recordSpanError(embedSpan, actualError);
+      embedSpan.end();
+    }
+    state.embedSpans.clear();
+
+    if (state.rerankSpan) {
+      recordSpanError(state.rerankSpan.span, actualError);
+      state.rerankSpan.span.end();
+      state.rerankSpan = undefined;
     }
 
     recordSpanError(state.rootSpan, actualError);

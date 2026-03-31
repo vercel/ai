@@ -1,6 +1,6 @@
 import { run } from '../../lib/run';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 run(async () => {
   let editorContent = `
@@ -35,7 +35,7 @@ This is a test file.
       }),
     },
     prompt: 'Update my README file to talk about AI.',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('TEXT', result.text);

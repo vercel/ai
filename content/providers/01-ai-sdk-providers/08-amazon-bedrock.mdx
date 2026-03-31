@@ -1380,6 +1380,16 @@ const { text } = await generateText({
 });
 ```
 
+### Provider Options
+
+The following optional provider options are available for Bedrock Anthropic models:
+
+- `metadata` _object_
+
+  Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
+
+  - `userId` _string_ - An external identifier for the end-user.
+
 ### Cache Control
 
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
@@ -1433,7 +1443,7 @@ They are available via the `tools` property of the provider instance.
 
 ```ts
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
@@ -1446,7 +1456,7 @@ const result = await generateText({
     }),
   },
   prompt: 'List the files in my directory.',
-  stopWhen: stepCountIs(2),
+  stopWhen: isStepCount(2),
 });
 ```
 
@@ -1454,7 +1464,7 @@ const result = await generateText({
 
 ```ts
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
@@ -1467,7 +1477,7 @@ const result = await generateText({
     }),
   },
   prompt: 'Update my README file.',
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 ```
 
@@ -1475,7 +1485,7 @@ const result = await generateText({
 
 ```ts
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import fs from 'fs';
 
 const result = await generateText({
@@ -1510,7 +1520,7 @@ const result = await generateText({
     }),
   },
   prompt: 'Take a screenshot.',
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 ```
 
