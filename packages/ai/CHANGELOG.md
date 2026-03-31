@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.142
+
+### Patch Changes
+
+- 6f75953: feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps
+- Updated dependencies [70322b4]
+  - @ai-sdk/gateway@3.0.84
+
 ## 6.0.141
 
 ### Patch Changes
