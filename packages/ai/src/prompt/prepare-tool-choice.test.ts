@@ -1,21 +1,8 @@
-import { z } from 'zod/v4';
-import { tool } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import { prepareToolChoice } from './prepare-tool-choice';
 
-const mockTools = {
-  tool1: tool({
-    description: 'Tool 1 description',
-    inputSchema: z.object({}),
-  }),
-  tool2: tool({
-    description: 'Tool 2 description',
-    inputSchema: z.object({ city: z.string() }),
-  }),
-};
-
 describe('prepareToolChoice', () => {
-  it('returns undefined when tools are not provided', () => {
+  it('returns auto when tool choice is not provided', () => {
     const result = prepareToolChoice({
       toolChoice: undefined,
     });
@@ -27,20 +14,16 @@ describe('prepareToolChoice', () => {
     `);
   });
 
-  it('returns auto when tool choice is not provided', () => {
-    const result = prepareToolChoice({
-      toolChoice: undefined,
-    });
-
-    expect(result).toEqual({ type: 'auto' });
-  });
-
-  it('handles string tool choice', () => {
+  it('handles string tool choice: none', () => {
     const result = prepareToolChoice({
       toolChoice: 'none',
     });
 
-    expect(result).toEqual({ type: 'none' });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "type": "none",
+      }
+    `);
   });
 
   it('handles object tool choice', () => {
@@ -48,6 +31,35 @@ describe('prepareToolChoice', () => {
       toolChoice: { type: 'tool', toolName: 'tool2' },
     });
 
-    expect(result).toEqual({ type: 'tool', toolName: 'tool2' });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "toolName": "tool2",
+        "type": "tool",
+      }
+    `);
+  });
+
+  it('handles string tool choice: auto', () => {
+    const result = prepareToolChoice({
+      toolChoice: 'auto',
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "type": "auto",
+      }
+    `);
+  });
+
+  it('handles string tool choice: required', () => {
+    const result = prepareToolChoice({
+      toolChoice: 'required',
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "type": "required",
+      }
+    `);
   });
 });
