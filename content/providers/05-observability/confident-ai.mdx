@@ -88,7 +88,7 @@ for await (const textPart of result.textStream) {
 ### Generate text with tool calls
 
 ```typescript highlight="3,6,26"
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { configureAiSdkTracing } from 'deepeval-ts';
 import { z } from 'zod';
@@ -109,7 +109,7 @@ const result = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   prompt: 'What is the weather in San Francisco?',
   experimental_telemetry: {
     isEnabled: true,

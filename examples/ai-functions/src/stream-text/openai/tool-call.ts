@@ -1,13 +1,13 @@
 import { openai } from '@ai-sdk/openai';
 import { weatherTool } from '../../tools/weather-tool';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
     model: openai('gpt-5-mini'),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',

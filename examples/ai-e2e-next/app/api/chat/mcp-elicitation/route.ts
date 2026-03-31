@@ -4,7 +4,7 @@ import {
   streamText,
   createUIMessageStream,
   convertToModelMessages,
-  stepCountIs,
+  isStepCount,
 } from 'ai';
 import { createMCPClient, ElicitationRequestSchema } from '@ai-sdk/mcp';
 import { MCPElicitationUIMessage } from './types';
@@ -83,7 +83,7 @@ async function processMessages(
     const result = streamText({
       model: openai('gpt-4o-mini'),
       tools,
-      stopWhen: stepCountIs(10),
+      stopWhen: isStepCount(10),
       onStepFinish: async ({ toolResults }) => {
         if (toolResults.length > 0) {
           console.log('TOOL RESULTS:', JSON.stringify(toolResults, null, 2));
