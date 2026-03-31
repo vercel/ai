@@ -3,6 +3,8 @@
 The **[Hume provider](https://ai-sdk.dev/providers/ai-sdk-providers/hume)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains support for the Hume API.
 
+> **Deploying on Vercel?** The AI Gateway lets you reach OpenAI (and other providers) by changing a single string — no provider packages or API keys needed. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Hume provider is available in the `@ai-sdk/hume` module. You can install it with

@@ -14,6 +14,8 @@ contains language model support for Perplexity's Sonar API - a powerful answer e
 - Data privacy - no training on customer data
 - Self-serve API access with scalable pricing
 
+> **Deploying on Vercel?** The AI Gateway lets you reach OpenAI (and other providers) by changing a single string — no provider packages or API keys needed. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Perplexity provider is available in the `@ai-sdk/perplexity` module. You can install it with:
