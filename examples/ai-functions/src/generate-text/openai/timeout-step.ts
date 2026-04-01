@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -20,7 +20,7 @@ run(async () => {
         }),
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     timeout: { stepMs: 1000 }, // 1 second timeout per step
   });
 

@@ -1,16 +1,16 @@
 import {
   JSONObject,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3Reasoning,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4Reasoning,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -19,10 +19,14 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  isCustomReasoning,
+  mapReasoningToProviderBudget,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
+import { getModelCapabilities } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import {
   BEDROCK_STOP_REASONS,
@@ -30,6 +34,7 @@ import {
   BedrockStopReason,
 } from './bedrock-api-types';
 import {
+  AmazonBedrockLanguageModelOptions,
   BedrockChatModelId,
   amazonBedrockLanguageModelOptions,
 } from './bedrock-chat-options';
@@ -48,8 +53,8 @@ type BedrockChatConfig = {
   generateId: () => string;
 };
 
-export class BedrockChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class BedrockChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
 
   constructor(
@@ -70,22 +75,23 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     seed,
     tools,
     toolChoice,
+    reasoning,
     providerOptions,
-  }: LanguageModelV3CallOptions): Promise<{
+  }: LanguageModelV4CallOptions): Promise<{
     command: BedrockConverseInput;
-    warnings: SharedV3Warning[];
+    warnings: SharedV4Warning[];
     usesJsonResponseTool: boolean;
     betas: Set<string>;
   }> {
     // Parse provider options
-    const bedrockOptions =
+    let bedrockOptions =
       (await parseProviderOptions({
         provider: 'bedrock',
         providerOptions,
         schema: amazonBedrockLanguageModelOptions,
       })) ?? {};
 
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     if (frequencyPenalty != null) {
       warnings.push({
@@ -137,6 +143,16 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     }
 
     const isAnthropicModel = this.modelId.includes('anthropic');
+    const isOpenAIModel = this.modelId.startsWith('openai.');
+
+    bedrockOptions = resolveBedrockReasoningConfig({
+      reasoning,
+      bedrockOptions,
+      warnings,
+      isAnthropicModel,
+      modelId: this.modelId,
+    });
+
     const isThinkingEnabled =
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
@@ -147,7 +163,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       responseFormat?.type === 'json' &&
       responseFormat.schema != null;
 
-    const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
+    const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       !useNativeStructuredOutput
@@ -247,7 +263,6 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const maxReasoningEffort =
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
-    const isOpenAIModel = this.modelId.startsWith('openai.');
 
     if (maxReasoningEffort != null) {
       if (isAnthropicModel) {
@@ -417,8 +432,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const {
       command: args,
       warnings,
@@ -441,7 +456,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
     let isJsonResponseFromTool = false;
 
     // map response content to content array
@@ -454,7 +469,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       // reasoning
       if (part.reasoningContent) {
         if ('reasoningText' in part.reasoningContent) {
-          const reasoning: LanguageModelV3Reasoning = {
+          const reasoning: LanguageModelV4Reasoning = {
             type: 'reasoning',
             text: part.reasoningContent.reasoningText.text,
           };
@@ -572,8 +587,8 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const {
       command: args,
       warnings,
@@ -597,12 +612,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
     let usage: BedrockUsage | undefined = undefined;
-    let providerMetadata: SharedV3ProviderMetadata | undefined = undefined;
+    let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
     let isJsonResponseFromTool = false;
     let stopSequence: string | null = null;
 
@@ -622,7 +637,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof BedrockStreamSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -1128,3 +1143,73 @@ export const bedrockReasoningMetadataSchema = z.object({
 export type BedrockReasoningMetadata = z.infer<
   typeof bedrockReasoningMetadataSchema
 >;
+
+const bedrockReasoningEffortMap: Partial<
+  Record<string, 'low' | 'medium' | 'high' | 'max'>
+> = {
+  minimal: 'low',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'max',
+};
+
+function resolveBedrockReasoningConfig({
+  reasoning,
+  bedrockOptions,
+  warnings,
+  isAnthropicModel,
+  modelId,
+}: {
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  bedrockOptions: AmazonBedrockLanguageModelOptions;
+  warnings: SharedV4Warning[];
+  isAnthropicModel: boolean;
+  modelId: string;
+}): AmazonBedrockLanguageModelOptions {
+  if (!isCustomReasoning(reasoning) || bedrockOptions.reasoningConfig != null) {
+    return bedrockOptions;
+  }
+
+  const result = { ...bedrockOptions };
+
+  if (isAnthropicModel) {
+    const capabilities = getModelCapabilities(modelId);
+
+    if (reasoning === 'none') {
+      result.reasoningConfig = { type: 'disabled' };
+    } else if (capabilities.supportsAdaptiveThinking) {
+      const effort = mapReasoningToProviderEffort({
+        reasoning,
+        effortMap: bedrockReasoningEffortMap,
+        warnings,
+      });
+      result.reasoningConfig = {
+        type: 'adaptive',
+        maxReasoningEffort: effort,
+      };
+    } else {
+      const budgetTokens = mapReasoningToProviderBudget({
+        reasoning,
+        maxOutputTokens: capabilities.maxOutputTokens,
+        maxReasoningBudget: capabilities.maxOutputTokens,
+        warnings,
+      });
+      if (budgetTokens != null) {
+        result.reasoningConfig = {
+          type: 'enabled',
+          budgetTokens,
+        };
+      }
+    }
+  } else if (reasoning !== 'none') {
+    const effort = mapReasoningToProviderEffort({
+      reasoning,
+      effortMap: bedrockReasoningEffortMap,
+      warnings,
+    });
+    result.reasoningConfig = { maxReasoningEffort: effort };
+  }
+
+  return result;
+}

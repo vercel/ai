@@ -114,6 +114,11 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerMetadata: providerMetadataSchema.optional(),
       }),
       z.strictObject({
+        type: z.literal('custom'),
+        kind: z.string().transform(value => value as `${string}.${string}`),
+        providerMetadata: providerMetadataSchema.optional(),
+      }),
+      z.strictObject({
         type: z.literal('source-url'),
         sourceId: z.string(),
         url: z.string(),
@@ -130,6 +135,12 @@ export const uiMessageChunkSchema = lazySchema(() =>
       }),
       z.strictObject({
         type: z.literal('file'),
+        url: z.string(),
+        mediaType: z.string(),
+        providerMetadata: providerMetadataSchema.optional(),
+      }),
+      z.strictObject({
+        type: z.literal('reasoning-file'),
         url: z.string(),
         mediaType: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
@@ -227,6 +238,11 @@ export type UIMessageChunk<
       providerMetadata?: ProviderMetadata;
     }
   | {
+      type: 'custom';
+      kind: `${string}.${string}`;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
       type: 'error';
       errorText: string;
     }
@@ -308,6 +324,12 @@ export type UIMessageChunk<
     }
   | {
       type: 'file';
+      url: string;
+      mediaType: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'reasoning-file';
       url: string;
       mediaType: string;
       providerMetadata?: ProviderMetadata;

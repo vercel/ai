@@ -13,6 +13,16 @@ import {
   type GatewayFetchMetadataResponse,
   type GatewayCreditsResponse,
 } from './gateway-fetch-metadata';
+import {
+  GatewaySpendReport,
+  type GatewaySpendReportParams,
+  type GatewaySpendReportResponse,
+} from './gateway-spend-report';
+import {
+  GatewayGenerationInfoFetcher,
+  type GatewayGenerationInfoParams,
+  type GatewayGenerationInfo,
+} from './gateway-generation-info';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
@@ -24,27 +34,27 @@ import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
-  LanguageModelV3,
-  EmbeddingModelV3,
-  ImageModelV3,
-  Experimental_VideoModelV3,
-  ProviderV3,
+  LanguageModelV4,
+  EmbeddingModelV4,
+  ImageModelV4,
+  Experimental_VideoModelV4,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
-export interface GatewayProvider extends ProviderV3 {
-  (modelId: GatewayModelId): LanguageModelV3;
+export interface GatewayProvider extends ProviderV4 {
+  (modelId: GatewayModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  chat(modelId: GatewayModelId): LanguageModelV3;
+  chat(modelId: GatewayModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: GatewayModelId): LanguageModelV3;
+  languageModel(modelId: GatewayModelId): LanguageModelV4;
 
   /**
    * Returns available providers and models for use with the remote provider.
@@ -57,39 +67,55 @@ export interface GatewayProvider extends ProviderV3 {
   getCredits(): Promise<GatewayCreditsResponse>;
 
   /**
-   * Creates a model for generating text embeddings.
+   * Returns a spend report with cost, token, and request count data,
+   * aggregated by the specified dimension.
    */
-  embedding(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+  getSpendReport(
+    params: GatewaySpendReportParams,
+  ): Promise<GatewaySpendReportResponse>;
+
+  /**
+   * Returns detailed information about a specific generation by its ID,
+   * including cost, token usage, latency, and provider details.
+   */
+  getGenerationInfo(
+    params: GatewayGenerationInfoParams,
+  ): Promise<GatewayGenerationInfo>;
 
   /**
    * Creates a model for generating text embeddings.
    */
-  embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+  embedding(modelId: GatewayEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Creates a model for generating text embeddings.
+   */
+  embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for generating images.
    */
-  image(modelId: GatewayImageModelId): ImageModelV3;
+  image(modelId: GatewayImageModelId): ImageModelV4;
 
   /**
    * Creates a model for generating images.
    */
-  imageModel(modelId: GatewayImageModelId): ImageModelV3;
+  imageModel(modelId: GatewayImageModelId): ImageModelV4;
 
   /**
    * Creates a model for generating videos.
    */
-  video(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
+  video(modelId: GatewayVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a model for generating videos.
    */
-  videoModel(modelId: GatewayVideoModelId): Experimental_VideoModelV3;
+  videoModel(modelId: GatewayVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Gateway-specific tools executed server-side.
@@ -253,6 +279,36 @@ export function createGatewayProvider(
       });
   };
 
+  const getSpendReport = async (params: GatewaySpendReportParams) => {
+    return new GatewaySpendReport({
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    })
+      .getSpendReport(params)
+      .catch(async (error: unknown) => {
+        throw await asGatewayError(
+          error,
+          await parseAuthMethod(await getHeaders()),
+        );
+      });
+  };
+
+  const getGenerationInfo = async (params: GatewayGenerationInfoParams) => {
+    return new GatewayGenerationInfoFetcher({
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    })
+      .getGenerationInfo(params)
+      .catch(async (error: unknown) => {
+        throw await asGatewayError(
+          error,
+          await parseAuthMethod(await getHeaders()),
+        );
+      });
+  };
+
   const provider = function (modelId: GatewayModelId) {
     if (new.target) {
       throw new Error(
@@ -263,9 +319,11 @@ export function createGatewayProvider(
     return createLanguageModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.getAvailableModels = getAvailableModels;
   provider.getCredits = getCredits;
+  provider.getSpendReport = getSpendReport;
+  provider.getGenerationInfo = getGenerationInfo;
   provider.imageModel = (modelId: GatewayImageModelId) => {
     return new GatewayImageModel(modelId, {
       provider: 'gateway',

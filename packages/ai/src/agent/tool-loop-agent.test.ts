@@ -1,9 +1,9 @@
-import { LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { ToolLoopAgent } from './tool-loop-agent';
 import type {
   ToolLoopAgentOnFinishCallback,
@@ -15,12 +15,12 @@ import type {
 
 describe('ToolLoopAgent', () => {
   describe('generate', () => {
-    let doGenerateOptions: LanguageModelV3CallOptions | undefined;
-    let mockModel: MockLanguageModelV3;
+    let doGenerateOptions: LanguageModelV4CallOptions | undefined;
+    let mockModel: MockLanguageModelV4;
 
     beforeEach(() => {
       doGenerateOptions = undefined;
-      mockModel = new MockLanguageModelV3({
+      mockModel = new MockLanguageModelV4({
         doGenerate: async options => {
           doGenerateOptions = options;
           return {
@@ -260,12 +260,12 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('stream', () => {
-    let doStreamOptions: LanguageModelV3CallOptions | undefined;
-    let mockModel: MockLanguageModelV3;
+    let doStreamOptions: LanguageModelV4CallOptions | undefined;
+    let mockModel: MockLanguageModelV4;
 
     beforeEach(() => {
       doStreamOptions = undefined;
-      mockModel = new MockLanguageModelV3({
+      mockModel = new MockLanguageModelV4({
         doStream: async options => {
           doStreamOptions = options;
           return {
@@ -451,12 +451,12 @@ describe('ToolLoopAgent', () => {
 
   describe('experimental_onStart', () => {
     describe('generate', () => {
-      let doGenerateOptions: LanguageModelV3CallOptions | undefined;
-      let mockModel: MockLanguageModelV3;
+      let doGenerateOptions: LanguageModelV4CallOptions | undefined;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
         doGenerateOptions = undefined;
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doGenerate: async options => {
             doGenerateOptions = options;
             return {
@@ -553,7 +553,7 @@ describe('ToolLoopAgent', () => {
         const callOrder: string[] = [];
 
         const agent = new ToolLoopAgent({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => {
               callOrder.push('doGenerate');
               return {
@@ -628,7 +628,8 @@ describe('ToolLoopAgent', () => {
         });
 
         expect({
-          model: startEvent.model,
+          provider: startEvent.provider,
+          modelId: startEvent.modelId,
           system: startEvent.system,
           prompt: startEvent.prompt,
           messages: startEvent.messages,
@@ -642,11 +643,9 @@ describe('ToolLoopAgent', () => {
             },
             "maxOutputTokens": 500,
             "messages": undefined,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
             "prompt": "Hello, world!",
+            "provider": "mock-provider",
             "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
@@ -680,10 +679,10 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('stream', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doStream: async () => {
             return {
               stream: convertArrayToReadableStream([
@@ -812,7 +811,8 @@ describe('ToolLoopAgent', () => {
         await result.consumeStream();
 
         expect({
-          model: startEvent.model,
+          provider: startEvent.provider,
+          modelId: startEvent.modelId,
           system: startEvent.system,
           prompt: startEvent.prompt,
           messages: startEvent.messages,
@@ -826,11 +826,9 @@ describe('ToolLoopAgent', () => {
             },
             "maxOutputTokens": 500,
             "messages": undefined,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
             "prompt": "Hello, world!",
+            "provider": "mock-provider",
             "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
@@ -841,10 +839,10 @@ describe('ToolLoopAgent', () => {
 
   describe('experimental_onStepStart', () => {
     describe('generate', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doGenerate: async () => {
             return {
               content: [{ type: 'text', text: 'reply' }],
@@ -940,7 +938,7 @@ describe('ToolLoopAgent', () => {
         const callOrder: string[] = [];
 
         const agent = new ToolLoopAgent({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => {
               callOrder.push('doGenerate');
               return {
@@ -1014,7 +1012,8 @@ describe('ToolLoopAgent', () => {
 
         expect({
           stepNumber: stepStartEvent.stepNumber,
-          model: stepStartEvent.model,
+          provider: stepStartEvent.provider,
+          modelId: stepStartEvent.modelId,
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
@@ -1025,10 +1024,8 @@ describe('ToolLoopAgent', () => {
               "userId": "test-user",
             },
             "messagesLength": 1,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
             "stepNumber": 0,
             "steps": [],
             "system": "You are a helpful assistant",
@@ -1038,10 +1035,10 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('stream', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doStream: async () => {
             return {
               stream: convertArrayToReadableStream([
@@ -1169,7 +1166,8 @@ describe('ToolLoopAgent', () => {
 
         expect({
           stepNumber: stepStartEvent.stepNumber,
-          model: stepStartEvent.model,
+          provider: stepStartEvent.provider,
+          modelId: stepStartEvent.modelId,
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
@@ -1180,10 +1178,8 @@ describe('ToolLoopAgent', () => {
               "userId": "test-user",
             },
             "messagesLength": 1,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
             "stepNumber": 0,
             "steps": [],
             "system": "You are a helpful assistant",
@@ -1195,10 +1191,10 @@ describe('ToolLoopAgent', () => {
 
   describe('onStepFinish', () => {
     describe('generate', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doGenerate: async () => {
             return {
               content: [{ type: 'text', text: 'reply' }],
@@ -1323,10 +1319,10 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('stream', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doStream: async () => {
             return {
               stream: convertArrayToReadableStream([
@@ -1507,7 +1503,7 @@ describe('ToolLoopAgent', () => {
 
       function createToolCallMockModel() {
         let callCount = 0;
-        return new MockLanguageModelV3({
+        return new MockLanguageModelV4({
           doGenerate: async () => {
             if (callCount++ === 0) {
               return {
@@ -1645,7 +1641,8 @@ describe('ToolLoopAgent', () => {
 
         expect({
           stepNumber: event.stepNumber,
-          model: event.model,
+          provider: event.provider,
+          modelId: event.modelId,
           toolCallName: event.toolCall.toolName,
           toolCallId: event.toolCall.toolCallId,
           toolCallInput: event.toolCall.input,
@@ -1653,10 +1650,8 @@ describe('ToolLoopAgent', () => {
         }).toMatchInlineSnapshot(`
           {
             "messagesLength": 1,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
             "stepNumber": 0,
             "toolCallId": "call-1",
             "toolCallInput": {
@@ -1690,7 +1685,7 @@ describe('ToolLoopAgent', () => {
 
       function createToolCallStreamMockModel() {
         let callCount = 0;
-        return new MockLanguageModelV3({
+        return new MockLanguageModelV4({
           doStream: async () => {
             if (callCount++ === 0) {
               return {
@@ -1892,7 +1887,7 @@ describe('ToolLoopAgent', () => {
 
       function createToolCallMockModel() {
         let callCount = 0;
-        return new MockLanguageModelV3({
+        return new MockLanguageModelV4({
           doGenerate: async () => {
             if (callCount++ === 0) {
               return {
@@ -1923,7 +1918,7 @@ describe('ToolLoopAgent', () => {
 
       function createToolCallMockModelWithInput(input: string) {
         let callCount = 0;
-        return new MockLanguageModelV3({
+        return new MockLanguageModelV4({
           doGenerate: async () => {
             if (callCount++ === 0) {
               return {
@@ -2062,7 +2057,8 @@ describe('ToolLoopAgent', () => {
         expect(event.durationMs).toBeGreaterThanOrEqual(0);
         expect({
           stepNumber: event.stepNumber,
-          model: event.model,
+          provider: event.provider,
+          modelId: event.modelId,
           toolCallName: event.toolCall.toolName,
           toolCallId: event.toolCall.toolCallId,
           toolCallInput: event.toolCall.input,
@@ -2072,11 +2068,9 @@ describe('ToolLoopAgent', () => {
         }).toMatchInlineSnapshot(`
           {
             "messagesLength": 1,
-            "model": {
-              "modelId": "mock-model-id",
-              "provider": "mock-provider",
-            },
+            "modelId": "mock-model-id",
             "output": "hello-result",
+            "provider": "mock-provider",
             "stepNumber": 0,
             "success": true,
             "toolCallId": "call-1",
@@ -2111,7 +2105,7 @@ describe('ToolLoopAgent', () => {
 
       function createToolCallStreamMockModel() {
         let callCount = 0;
-        return new MockLanguageModelV3({
+        return new MockLanguageModelV4({
           doStream: async () => {
             if (callCount++ === 0) {
               return {
@@ -2298,10 +2292,10 @@ describe('ToolLoopAgent', () => {
 
   describe('onFinish', () => {
     describe('generate', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doGenerate: async () => {
             return {
               content: [{ type: 'text', text: 'reply' }],
@@ -2424,10 +2418,10 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('stream', () => {
-      let mockModel: MockLanguageModelV3;
+      let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        mockModel = new MockLanguageModelV3({
+        mockModel = new MockLanguageModelV4({
           doStream: async () => {
             return {
               stream: convertArrayToReadableStream([
@@ -2603,7 +2597,7 @@ describe('ToolLoopAgent', () => {
 
       function createToolCallMockModel() {
         let callCount = 0;
-        return new MockLanguageModelV3({
+        return new MockLanguageModelV4({
           doGenerate: async () => {
             if (callCount++ === 0) {
               return {
@@ -2700,7 +2694,7 @@ describe('ToolLoopAgent', () => {
         ];
 
         const agent = new ToolLoopAgent({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               content: [{ type: 'text' as const, text: 'Hello!' }],
               ...dummyResponseValues,
@@ -2722,7 +2716,7 @@ describe('ToolLoopAgent', () => {
         const events: string[] = [];
 
         const agent = new ToolLoopAgent({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               content: [{ type: 'text' as const, text: 'Hello!' }],
               ...dummyResponseValues,
@@ -2767,7 +2761,7 @@ describe('ToolLoopAgent', () => {
 
       it('should not break generation when an integration listener throws', async () => {
         const agent = new ToolLoopAgent({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doGenerate: async () => ({
               content: [{ type: 'text' as const, text: 'Hello!' }],
               ...dummyResponseValues,
@@ -2817,7 +2811,7 @@ describe('ToolLoopAgent', () => {
 
       function createToolCallStreamMockModel() {
         let callCount = 0;
-        return new MockLanguageModelV3({
+        return new MockLanguageModelV4({
           doStream: async () => {
             if (callCount++ === 0) {
               return {
@@ -2933,7 +2927,7 @@ describe('ToolLoopAgent', () => {
         ];
 
         const agent = new ToolLoopAgent({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'stream-start', warnings: [] },
@@ -2966,7 +2960,7 @@ describe('ToolLoopAgent', () => {
         const events: string[] = [];
 
         const agent = new ToolLoopAgent({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'stream-start', warnings: [] },
@@ -3022,7 +3016,7 @@ describe('ToolLoopAgent', () => {
 
       it('should not break streaming when an integration listener throws', async () => {
         const agent = new ToolLoopAgent({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 { type: 'stream-start', warnings: [] },

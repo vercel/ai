@@ -6,11 +6,13 @@ import {
   LanguageModelV4ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
+  CustomPart,
   DataContent,
   FilePart,
   ImagePart,
   isUrlSupported,
   ModelMessage,
+  ReasoningFilePart,
   ReasoningPart,
   TextPart,
   ToolCallPart,
@@ -232,9 +234,11 @@ export function convertToLanguageModelMessage({
             (
               part,
             ): part is
+              | CustomPart
               | TextPart
               | FilePart
               | ReasoningPart
+              | ReasoningFilePart
               | ToolCallPart
               | ToolResultPart => part.type !== 'tool-approval-request',
           )
@@ -242,6 +246,13 @@ export function convertToLanguageModelMessage({
             const providerOptions = part.providerOptions;
 
             switch (part.type) {
+              case 'custom': {
+                return {
+                  type: 'custom' as const,
+                  kind: part.kind,
+                  providerOptions,
+                };
+              }
               case 'file': {
                 const { data, mediaType } = convertToLanguageModelV4DataContent(
                   part.data,
@@ -258,6 +269,17 @@ export function convertToLanguageModelMessage({
                 return {
                   type: 'reasoning',
                   text: part.text,
+                  providerOptions,
+                };
+              }
+              case 'reasoning-file': {
+                const { data, mediaType } = convertToLanguageModelV4DataContent(
+                  part.data,
+                );
+                return {
+                  type: 'reasoning-file' as const,
+                  data,
+                  mediaType: mediaType ?? part.mediaType,
                   providerOptions,
                 };
               }

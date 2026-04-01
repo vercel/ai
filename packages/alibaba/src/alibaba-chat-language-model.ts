@@ -5,21 +5,24 @@ import {
 } from '@ai-sdk/openai-compatible/internal';
 import {
   InvalidResponseDataError,
-  type LanguageModelV3,
-  type LanguageModelV3CallOptions,
-  type LanguageModelV3Content,
-  type LanguageModelV3FinishReason,
-  type LanguageModelV3GenerateResult,
-  type LanguageModelV3StreamPart,
-  type LanguageModelV3StreamResult,
-  type SharedV3Warning,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  type InferSchema,
+  isCustomReasoning,
   isParsableJson,
+  mapReasoningToProviderBudget,
   parseProviderOptions,
   postJsonToApi,
   type ParseResult,
@@ -38,14 +41,14 @@ import { CacheControlValidator } from './get-cache-control';
 /**
  * Alibaba language model implementation.
  *
- * Implements LanguageModelV3 interface for Alibaba Cloud's Qwen models.
+ * Implements LanguageModelV4 interface for Alibaba Cloud's Qwen models.
  * Supports OpenAI-compatible chat completions API with Alibaba-specific features:
  * - Reasoning/thinking mode (enable_thinking, reasoning_content)
  * - Thinking budget control (thinking_budget)
  * - Prompt caching (cached_tokens tracking)
  */
-export class AlibabaLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class AlibabaLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: AlibabaChatModelId;
 
   private readonly config: AlibabaConfig;
@@ -78,11 +81,12 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     stopSequences,
     responseFormat,
     seed,
+    reasoning,
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     const cacheControlValidator = new CacheControlValidator();
 
@@ -121,13 +125,11 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
             : { type: 'json_object' }
           : undefined,
 
-      // Alibaba-specific options
-      ...(alibabaOptions?.enableThinking != null
-        ? { enable_thinking: alibabaOptions.enableThinking }
-        : {}),
-      ...(alibabaOptions?.thinkingBudget != null
-        ? { thinking_budget: alibabaOptions.thinkingBudget }
-        : {}),
+      ...resolveAlibabaThinking({
+        reasoning,
+        alibabaOptions,
+        warnings,
+      }),
 
       // Convert messages with cache control support
       messages: convertToAlibabaChatMessages({
@@ -160,8 +162,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -181,7 +183,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -228,8 +230,8 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = {
       ...args,
@@ -252,7 +254,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
     });
 
     // Track state across chunks
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -274,7 +276,7 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof alibabaChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -517,6 +519,50 @@ export class AlibabaLanguageModel implements LanguageModelV3 {
       response: { headers: responseHeaders },
     };
   }
+}
+
+function resolveAlibabaThinking({
+  reasoning,
+  alibabaOptions,
+  warnings,
+}: {
+  reasoning: LanguageModelV4CallOptions['reasoning'];
+  alibabaOptions: InferSchema<typeof alibabaLanguageModelOptions> | undefined;
+  warnings: SharedV4Warning[];
+}): { enable_thinking?: boolean; thinking_budget?: number } {
+  if (
+    alibabaOptions?.enableThinking != null ||
+    alibabaOptions?.thinkingBudget != null
+  ) {
+    return {
+      ...(alibabaOptions.enableThinking != null
+        ? { enable_thinking: alibabaOptions.enableThinking }
+        : {}),
+      ...(alibabaOptions.thinkingBudget != null
+        ? { thinking_budget: alibabaOptions.thinkingBudget }
+        : {}),
+    };
+  }
+
+  if (!isCustomReasoning(reasoning)) {
+    return {};
+  }
+
+  if (reasoning === 'none') {
+    return { enable_thinking: false };
+  }
+
+  const thinkingBudget = mapReasoningToProviderBudget({
+    reasoning,
+    maxOutputTokens: 16384,
+    maxReasoningBudget: 16384,
+    warnings,
+  });
+
+  return {
+    enable_thinking: true,
+    ...(thinkingBudget != null ? { thinking_budget: thinkingBudget } : {}),
+  };
 }
 
 /**

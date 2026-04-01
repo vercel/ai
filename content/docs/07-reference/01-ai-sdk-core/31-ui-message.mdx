@@ -164,6 +164,24 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
 }>;
 ```
 
+### `CustomContentUIPart`
+
+A provider-specific custom content part of a message.
+
+```typescript
+type CustomContentUIPart = {
+  type: 'custom';
+  /**
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
+   */
+  kind: `${string}.${string}`;
+  /**
+   * The provider metadata.
+   */
+  providerMetadata?: Record<string, any>;
+};
+```
+
 ### `SourceUrlUIPart`
 
 A source URL part of a message.

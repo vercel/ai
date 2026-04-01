@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
@@ -14,7 +14,7 @@ run(async () => {
       }),
     },
     activeTools: [], // disable all tools
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     prompt:
       'What is the weather in San Francisco and what attractions should I visit?',
   });
