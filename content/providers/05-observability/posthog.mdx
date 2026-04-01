@@ -23,7 +23,7 @@ Next.js has built-in support for OpenTelemetry instrumentation via the [instrume
 **Step 1.** Install dependencies
 
 ```bash
-npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources
+npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources @ai-sdk/otel
 ```
 
 **Step 2.** Create an `instrumentation.ts` file in your project root
@@ -32,6 +32,8 @@ npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PostHogTraceExporter } from '@posthog/ai/otel';
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 
 export function register() {
   const sdk = new NodeSDK({
@@ -44,6 +46,7 @@ export function register() {
     }),
   });
   sdk.start();
+  registerTelemetryIntegration(new OpenTelemetryIntegration());
 }
 ```
 
@@ -72,7 +75,7 @@ const result = await generateText({
 **Step 1.** Install dependencies
 
 ```bash
-npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources
+npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources @ai-sdk/otel
 ```
 
 **Step 2.** Initialize the OpenTelemetry SDK with PostHog's trace exporter
@@ -81,6 +84,8 @@ npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PostHogTraceExporter } from '@posthog/ai/otel';
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
@@ -92,6 +97,7 @@ const sdk = new NodeSDK({
   }),
 });
 sdk.start();
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 ```
 
 **Step 3.** Use the AI SDK with telemetry enabled

@@ -28,17 +28,17 @@ To start with Laminar's tracing, first [install](https://docs.lmnr.ai/installati
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add @lmnr-ai/lmnr" dark />
+    <Snippet text="pnpm add @lmnr-ai/lmnr @ai-sdk/otel" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @lmnr-ai/lmnr" dark />
+    <Snippet text="npm install @lmnr-ai/lmnr @ai-sdk/otel" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @lmnr-ai/lmnr" dark />
+    <Snippet text="yarn add @lmnr-ai/lmnr @ai-sdk/otel" dark />
   </Tab>
 
   <Tab>
-    <Snippet text="bun add @lmnr-ai/lmnr" dark />
+    <Snippet text="bun add @lmnr-ai/lmnr @ai-sdk/otel" dark />
   </Tab>
 </Tabs>
 
@@ -88,19 +88,20 @@ This is because Laminar depends on OpenTelemetry, which uses some Node.js-specif
 
 ### Tracing AI SDK calls
 
-Then, when you call AI SDK functions in any of your API routes, add the Laminar tracer to the `experimental_telemetry` option.
+Then, register the `OpenTelemetryIntegration` and enable telemetry on your AI SDK calls:
 
-```javascript highlight="3,8-11"
+```javascript highlight="3-4,7,12"
 import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-import { getTracer } from '@lmnr-ai/lmnr';
+import { registerTelemetryIntegration, generateText } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const { text } = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'What is Laminar flow?',
   experimental_telemetry: {
     isEnabled: true,
-    tracer: getTracer(),
   },
 });
 ```
@@ -198,19 +199,20 @@ Read more in Laminar [docs](https://docs.lmnr.ai/tracing/introduction).
 
 ### Tracing AI SDK calls
 
-Then, when you call AI SDK functions in any of your API routes, add the Laminar tracer to the `experimental_telemetry` option.
+Then, register the `OpenTelemetryIntegration` and enable telemetry on your AI SDK calls:
 
-```javascript highlight="3,8-11"
+```javascript highlight="3-4,7,12"
 import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-import { getTracer } from '@lmnr-ai/lmnr';
+import { registerTelemetryIntegration, generateText } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const { text } = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'What is Laminar flow?',
   experimental_telemetry: {
     isEnabled: true,
-    tracer: getTracer(),
   },
 });
 ```
@@ -256,14 +258,11 @@ The two libraries allow for additional advanced configuration, but the default s
 If you want to override the default span name, you can set the `functionId` inside the `telemetry` option.
 
 ```javascript
-import { getTracer } from '@lmnr-ai/lmnr';
-
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
   experimental_telemetry: {
     isEnabled: true,
-    tracer: getTracer(),
     functionId: 'poem-writer',
   },
 });
@@ -274,7 +273,7 @@ const { text } = await generateText({
 If you want to trace not just the AI SDK calls, but also other functions in your application, you can use Laminar's `observe` wrapper.
 
 ```javascript highlight="3"
-import { getTracer, observe } from '@lmnr-ai/lmnr';
+import { observe } from '@lmnr-ai/lmnr';
 
 const result = await observe({ name: 'my-function' }, async () => {
   // ... some work
@@ -309,14 +308,11 @@ const result = await observe(
 In Laminar, metadata is set on the trace level. Metadata contains key-value pairs and can be used to filter traces.
 
 ```javascript
-import { getTracer } from '@lmnr-ai/lmnr';
-
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
   experimental_telemetry: {
     isEnabled: true,
-    tracer: getTracer(),
     metadata: {
       'my-key': 'my-value',
       'another-key': 'another-value',
@@ -334,14 +330,11 @@ One of the reserved metadata keys is `tags`. It can be used to add [tags](https:
 Tags can subsequently be used to filter traces in Laminar.
 
 ```javascript
-import { getTracer } from '@lmnr-ai/lmnr';
-
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
   experimental_telemetry: {
     isEnabled: true,
-    tracer: getTracer(),
     metadata: {
       tags: ['fallback-model', 'api-handler'],
     },
@@ -355,14 +348,11 @@ Traces in Laminar can be grouped into [sessions](https://docs.lmnr.ai/tracing/st
 reserved metadata keys.
 
 ```javascript
-import { getTracer } from '@lmnr-ai/lmnr';
-
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
   experimental_telemetry: {
     isEnabled: true,
-    tracer: getTracer(),
     metadata: {
       sessionId: 'session-123',
       userId: 'user-123',

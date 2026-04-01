@@ -52,7 +52,18 @@ export function register() {
   `https://otel.patronus.ai:4317`.
 </Note>
 
-### 2. Enable telemetry on individual calls
+### 2. Register the OpenTelemetry integration
+
+Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at application startup:
+
+```ts
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+```
+
+### 3. Enable telemetry on individual calls
 
 The AI SDK emits a span only when you opt in with `experimental_telemetry`:
 
@@ -84,9 +95,9 @@ import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const tracer = trace.getTracer('next-app');
+  const otelTracer = trace.getTracer('next-app');
 
-  return await tracer.startActiveSpan('chat-evaluate', async span => {
+  return await otelTracer.startActiveSpan('chat-evaluate', async span => {
     try {
       /* 1️⃣ generate answer */
       const answer = await generateText({

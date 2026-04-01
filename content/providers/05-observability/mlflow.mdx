@@ -50,7 +50,7 @@ For local testing: `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:5000`.
 Install the Vercel OpenTelemetry integration:
 
 ```bash
-pnpm i @opentelemetry/api @vercel/otel
+pnpm i @opentelemetry/api @vercel/otel @ai-sdk/otel
 ```
 
 Create `instrumentation.ts` in your project root:
@@ -61,6 +61,15 @@ import { registerOTel } from '@vercel/otel';
 export async function register() {
   registerOTel({ serviceName: 'next-app' });
 }
+```
+
+Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at application startup (for example in `instrumentation.ts` alongside the OTEL setup above):
+
+```ts
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 ```
 
 Then enable telemetry where you call the AI SDK (for example in `route.ts`):
@@ -96,7 +105,8 @@ For other Node.js frameworks, wire up the OpenTelemetry Node SDK and OTLP export
 
 ```ts filename="main.ts"
 import { init } from 'mlflow-tracing';
-import { generateText } from 'ai';
+import { registerTelemetryIntegration, generateText } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { openai } from '@ai-sdk/openai';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
@@ -115,6 +125,7 @@ const sdk = new NodeSDK({
 
 sdk.start();
 init();
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 // Make an AI SDK call with telemetry enabled
 const result = await generateText({

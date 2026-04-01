@@ -33,6 +33,15 @@ export function register() {
 
 Traced LLM calls will appear under the Braintrust project or experiment provided in the `parent` field.
 
+Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at application startup:
+
+```typescript
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+```
+
 When you call the AI SDK, make sure to set `experimental_telemetry`:
 
 ```typescript
@@ -78,14 +87,15 @@ If you are using Node.js without a framework, you must configure the `NodeSDK` d
 First, install the necessary dependencies:
 
 ```bash
-npm install ai @ai-sdk/openai braintrust @opentelemetry/sdk-node @opentelemetry/sdk-trace-base zod
+npm install ai @ai-sdk/openai @ai-sdk/otel braintrust @opentelemetry/sdk-node @opentelemetry/sdk-trace-base zod
 ```
 
 Then, set up the OpenTelemetry SDK:
 
 ```typescript
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { generateText, tool } from 'ai';
+import { registerTelemetryIntegration, generateText, tool } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { BraintrustSpanProcessor } from 'braintrust';
@@ -100,6 +110,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 async function main() {
   const result = await generateText({

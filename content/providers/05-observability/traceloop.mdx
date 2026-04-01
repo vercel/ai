@@ -22,6 +22,15 @@ OTEL_EXPORTER_OTLP_ENDPOINT=https://api.traceloop.com
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your API Key>"
 ```
 
+Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at application startup:
+
+```typescript
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+```
+
 You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
 
 ```typescript highlight="7-13"

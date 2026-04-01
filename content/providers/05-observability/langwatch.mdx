@@ -70,7 +70,7 @@ The AI SDK supports tracing via Next.js OpenTelemetry integration. By using the 
 First, you need to install the necessary dependencies:
 
 ```bash
-npm install @vercel/otel langwatch @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs
+npm install @vercel/otel langwatch @opentelemetry/api-logs @opentelemetry/instrumentation @opentelemetry/sdk-logs @ai-sdk/otel
 ```
 
 Then, set up the OpenTelemetry for your application, follow one of the tabs below depending whether you are using AI SDK with Next.js or on Node.js:
@@ -106,6 +106,15 @@ export function register() {
 ```
 
 (Read more about Next.js OpenTelemetry configuration [on the official guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry#manual-opentelemetry-configuration))
+
+Next, install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at application startup:
+
+```typescript
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+```
 
 Finally, enable `experimental_telemetry` tracking on the AI SDK calls you want to trace:
 
