@@ -1,7 +1,7 @@
 import { createBedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import { AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 
 const bedrockAnthropic = createBedrockAnthropic();
 
@@ -15,7 +15,7 @@ async function main() {
       providerOptions: {
         anthropic: {
           anthropicBeta: ['redact-thinking-2026-02-12'],
-        } satisfies AnthropicLanguageModelOptions,
+        } satisfies AnthropicProviderOptions,
       },
     });
 
