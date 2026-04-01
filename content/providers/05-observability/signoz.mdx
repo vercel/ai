@@ -48,10 +48,15 @@ export default nextConfig;
 **Step 3.** Create **`instrumentation.ts`** file(in root project directory)
 
 ```jsx
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { registerOTel, OTLPHttpJsonTraceExporter } from '@vercel/otel';
 // Add otel logging
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.ERROR); // set diag log level to DEBUG when debugging
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+
 export function register() {
   registerOTel({
     serviceName: '<service_name>',
@@ -79,15 +84,9 @@ The Vercel AI SDK uses [OpenTelemetry](https://signoz.io/blog/what-is-openteleme
 
 Check out more detailed information about Vercel AI SDK's telemetry options visit [here](https://ai-sdk.dev/docs/ai-sdk-core/telemetry#telemetry).
 
-Install the `@ai-sdk/otel` package and register the `OpenTelemetryIntegration` at the top of your API route files:
+With `@ai-sdk/otel` installed and `registerTelemetryIntegration` added to your `instrumentation.ts` (see Step 3 above), enable telemetry on your AI SDK calls:
 
-```jsx filename="app/api/chat/route.ts"
-import { registerTelemetryIntegration, generateText } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
-import { openai } from '@ai-sdk/openai';
-
-registerTelemetryIntegration(new OpenTelemetryIntegration());
-
+```jsx
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Write a short story about a cat.',

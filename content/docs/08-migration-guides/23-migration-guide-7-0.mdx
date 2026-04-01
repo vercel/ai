@@ -41,19 +41,15 @@ const result = await generateText({
 });
 ```
 
-Now, you must register the `OpenTelemetryIntegration` at the top of any file where you use the AI SDK. For Next.js, place this at the top of your route files (not in `instrumentation.ts`):
+Now, you must install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` once at application startup. For Next.js, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup:
 
-```tsx filename="AI SDK 7 — app/api/chat/route.ts"
-import { registerTelemetryIntegration, generateText } from 'ai';
+```tsx filename="instrumentation.ts"
+import { registerTelemetryIntegration } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 
 registerTelemetryIntegration(new OpenTelemetryIntegration());
 
-const result = await generateText({
-  model: yourModel,
-  prompt: 'Hello',
-  experimental_telemetry: { isEnabled: true },
-});
+// ... your OpenTelemetry provider setup (e.g. registerOTel, NodeTracerProvider)
 ```
 
 For Node.js applications (without Next.js), register the integration at the top level of your entry file.

@@ -26,12 +26,16 @@ Next.js has built-in support for OpenTelemetry instrumentation via the [instrume
 npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources @ai-sdk/otel
 ```
 
-**Step 2.** Create an `instrumentation.ts` file in your project root
+**Step 2.** Create an `instrumentation.ts` file in your project root and register the AI SDK telemetry integration alongside your OTel setup:
 
 ```ts filename="instrumentation.ts"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PostHogTraceExporter } from '@posthog/ai/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 export function register() {
   const sdk = new NodeSDK({
@@ -49,14 +53,9 @@ export function register() {
 
 **Step 3.** Use the AI SDK with telemetry enabled in your route handlers or server actions
 
-Register the `OpenTelemetryIntegration` at the top of your route file:
-
-```ts highlight="1-4,10-17"
-import { registerTelemetryIntegration, generateText } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+```ts highlight="6-12"
+import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-
-registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const result = await generateText({
   model: openai('gpt-4o'),

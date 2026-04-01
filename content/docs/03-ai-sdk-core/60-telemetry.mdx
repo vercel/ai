@@ -20,7 +20,7 @@ to see providers that offer monitoring and tracing for AI SDK applications.
 
 ### Step 1: Register the OpenTelemetry integration
 
-OpenTelemetry span collection requires the `@ai-sdk/otel` package. Install it and register the integration at the top level of any file where you use the AI SDK:
+OpenTelemetry span collection requires the `@ai-sdk/otel` package. Install it and register the integration once at application startup:
 
 ```bash
 pnpm install @ai-sdk/otel
@@ -33,7 +33,9 @@ import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 registerTelemetryIntegration(new OpenTelemetryIntegration());
 ```
 
-For Next.js applications, place this at the top of your API route files (not in `instrumentation.ts`). Your `instrumentation.ts` should only contain the OpenTelemetry provider setup (e.g. `registerOTel` or `NodeTracerProvider`). See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
+For Next.js applications, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup. See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
+
+For Node.js applications (without Next.js), register the integration at the top level of your entry file.
 
 ### Step 2: Enable telemetry on individual calls
 

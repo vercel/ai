@@ -46,14 +46,9 @@ After registering the integration, enable telemetry on individual AI SDK calls u
 
 ### Generate text
 
-```typescript highlight="3-5,7-8,15"
-import { registerTelemetryIntegration, generateText } from 'ai';
+```typescript
+import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
-
-configureAiSdkTracing();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const { text } = await generateText({
   model: openai('gpt-4o'),
@@ -66,14 +61,9 @@ const { text } = await generateText({
 
 ### Stream text
 
-```typescript highlight="3-5,7-8,15"
-import { registerTelemetryIntegration, streamText } from 'ai';
+```typescript
+import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
-
-configureAiSdkTracing();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const result = streamText({
   model: openai('gpt-4o'),
@@ -90,15 +80,10 @@ for await (const textPart of result.textStream) {
 
 ### Generate text with tool calls
 
-```typescript highlight="3-4,8-9,29"
-import { registerTelemetryIntegration, generateText, tool, isStepCount } from 'ai';
+```typescript
+import { generateText, tool, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
 import { z } from 'zod';
-
-configureAiSdkTracing();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const result = await generateText({
   model: openai('gpt-4o'),
@@ -124,15 +109,10 @@ const result = await generateText({
 
 ### Generate structured output
 
-```typescript highlight="3-4,8-9,23"
-import { registerTelemetryIntegration, generateObject } from 'ai';
+```typescript
+import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
-import { configureAiSdkTracing } from 'deepeval-ts';
 import { z } from 'zod';
-
-configureAiSdkTracing();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const { object } = await generateObject({
   model: openai('gpt-4o'),

@@ -53,24 +53,25 @@ Install the Vercel OpenTelemetry integration:
 pnpm i @opentelemetry/api @vercel/otel @ai-sdk/otel
 ```
 
-Create `instrumentation.ts` in your project root:
+Create `instrumentation.ts` in your project root and register the `OpenTelemetryIntegration` alongside your OTel provider setup:
 
 ```ts filename="instrumentation.ts"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 export async function register() {
   registerOTel({ serviceName: 'next-app' });
 }
 ```
 
-Then register the `OpenTelemetryIntegration` at the top of your route files and enable telemetry where you call the AI SDK:
+Then enable telemetry where you call the AI SDK:
 
-```ts filename="route.ts" highlight="1-5,12"
-import { registerTelemetryIntegration, generateText } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+```ts filename="route.ts" highlight="8"
+import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-
-registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();

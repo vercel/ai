@@ -94,8 +94,12 @@ module.exports = nextConfig;
 Next, you need to create a file named `instrumentation.ts` (or `.js`) in the **root directory** of the project (or inside `src` folder if using one), with `LangWatchExporter` as the traceExporter:
 
 ```typescript
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 import { LangWatchExporter } from 'langwatch';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 export function register() {
   registerOTel({
@@ -107,14 +111,11 @@ export function register() {
 
 (Read more about Next.js OpenTelemetry configuration [on the official guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry#manual-opentelemetry-configuration))
 
-Finally, register the `OpenTelemetryIntegration` at the top of your route files and enable `experimental_telemetry` tracking on the AI SDK calls you want to trace:
+Finally, enable `experimental_telemetry` tracking on the AI SDK calls you want to trace:
 
 ```typescript
-import { registerTelemetryIntegration, generateText } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-
-registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const result = await generateText({
   model: openai('gpt-4o-mini'),

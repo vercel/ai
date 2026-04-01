@@ -15,11 +15,14 @@ Braintrust natively supports OpenTelemetry and works out of the box with the AI 
 
 If you are using Next.js, use the Braintrust exporter with `@vercel/otel`:
 
-```typescript
+```typescript filename="instrumentation.ts"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 import { BraintrustExporter } from 'braintrust';
 
-// In your instrumentation.ts file
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+
 export function register() {
   registerOTel({
     serviceName: 'my-braintrust-app',
@@ -33,14 +36,11 @@ export function register() {
 
 Traced LLM calls will appear under the Braintrust project or experiment provided in the `parent` field.
 
-When you call the AI SDK, register the `OpenTelemetryIntegration` at the top of your route file and set `experimental_telemetry`:
+When you call the AI SDK, set `experimental_telemetry`:
 
 ```typescript
-import { registerTelemetryIntegration, generateText } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-
-registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const result = await generateText({
   model: openai('gpt-4o-mini'),
