@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { isStepCount, streamText } from 'ai';
+import { stepCountIs, streamText } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
@@ -12,7 +12,7 @@ run(async () => {
     },
     prompt:
       'What is the weather in San Francisco and what are the latest news about the city?',
-    stopWhen: isStepCount(5),
+    stopWhen: stepCountIs(5),
   });
 
   for await (const part of result.fullStream) {
