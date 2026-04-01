@@ -4968,7 +4968,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5111,7 +5111,7 @@ describe('streamText', () => {
                 "url": "https://example.com/2",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5199,7 +5199,7 @@ describe('streamText', () => {
                 "type": "file",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5309,7 +5309,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -7121,7 +7121,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
+          "experimental_context": {},
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -7241,7 +7241,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -7436,7 +7436,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
+          "experimental_context": {},
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -7531,7 +7531,7 @@ describe('streamText', () => {
                   "url": "https://example.com/2",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -7698,7 +7698,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
+          "experimental_context": {},
           "files": [
             DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
@@ -7787,7 +7787,7 @@ describe('streamText', () => {
                   "type": "file",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -8428,7 +8428,7 @@ describe('streamText', () => {
               ],
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
@@ -8531,7 +8531,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -8615,7 +8615,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -8775,7 +8775,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -8859,7 +8859,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9037,7 +9037,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9121,7 +9121,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -10332,7 +10332,7 @@ describe('streamText', () => {
               ],
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
@@ -10435,7 +10435,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -10519,7 +10519,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -10679,7 +10679,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -10763,7 +10763,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -10937,7 +10937,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -11021,7 +11021,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -11518,7 +11518,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -11628,7 +11628,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -12824,6 +12824,7 @@ describe('streamText', () => {
         {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
+          experimental_context: {},
           messages: expect.any(Array),
         },
       );
@@ -13451,7 +13452,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "messages": [
                 {
                   "content": "test-input",
@@ -13465,7 +13466,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": "{"",
               "messages": [
                 {
@@ -13480,7 +13481,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": "value",
               "messages": [
                 {
@@ -13495,7 +13496,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": "":"",
               "messages": [
                 {
@@ -13510,7 +13511,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": "Spark",
               "messages": [
                 {
@@ -13525,7 +13526,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": "le",
               "messages": [
                 {
@@ -13540,7 +13541,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": " Day",
               "messages": [
                 {
@@ -13555,7 +13556,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": ""}",
               "messages": [
                 {
@@ -13570,7 +13571,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "input": {
                 "value": "Sparkle Day",
               },
@@ -13865,7 +13866,7 @@ describe('streamText', () => {
                 "type": "tool-error",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -14370,7 +14371,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -14604,7 +14605,7 @@ describe('streamText', () => {
             ],
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
@@ -14724,7 +14725,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -14954,7 +14955,7 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -15461,7 +15462,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -15906,7 +15907,7 @@ describe('streamText', () => {
             ],
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
@@ -15952,7 +15953,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -17048,7 +17049,7 @@ describe('streamText', () => {
                   "type": "reasoning",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -17439,7 +17440,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -18494,7 +18495,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,

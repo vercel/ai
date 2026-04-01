@@ -2260,7 +2260,7 @@ describe('generateText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
+          "experimental_context": {},
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -2376,7 +2376,7 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -3605,7 +3605,7 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -3704,7 +3704,7 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -3951,6 +3951,7 @@ describe('generateText', () => {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
           messages: expect.any(Array),
+          experimental_context: {},
         },
       );
     });
@@ -4054,6 +4055,7 @@ describe('generateText', () => {
           abortSignal: expect.any(AbortSignal),
           toolCallId: 'call-1',
           messages: expect.any(Array),
+          experimental_context: {},
         },
       );
     });
@@ -4352,7 +4354,7 @@ describe('generateText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "input": {
                 "value": "value",
               },
@@ -6868,7 +6870,7 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "tool-calls",
               "functionId": undefined,
               "metadata": undefined,
@@ -7341,7 +7343,7 @@ describe('generateText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "messages": [
                   {
                     "content": "test-input",
@@ -7356,7 +7358,7 @@ describe('generateText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "messages": [
                   {
                     "content": "test-input",
