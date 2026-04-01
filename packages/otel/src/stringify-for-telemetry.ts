@@ -2,14 +2,7 @@ import {
   LanguageModelV4Message,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-
-function convertUint8ArrayToBase64(data: Uint8Array): string {
-  let latin1string = '';
-  for (let i = 0; i < data.length; i++) {
-    latin1string += String.fromCodePoint(data[i]);
-  }
-  return globalThis.btoa(latin1string);
-}
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 /**
  * Helper utility to serialize prompt content for OpenTelemetry tracing.
