@@ -146,6 +146,12 @@ The following optional provider options are available for Anthropic models:
   - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
   - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
 
+- `metadata` _object_
+
+  Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
+
+  - `userId` _string_ - An external identifier for the end-user. Should be a UUID, hash, or other opaque identifier. Must not contain PII.
+
 ### Structured Outputs and Tool Input Streaming
 
 Tool call streaming is enabled by default. You can opt out by setting the
@@ -220,17 +226,58 @@ The `speed` option accepts `'fast'` or `'standard'` (default behavior).
 
 ### Reasoning
 
-Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, and `claude-3-7-sonnet-20250219` models.
+Anthropic models support extended thinking, where Claude shows its reasoning process before providing a final answer.
 
-You can enable it using the `thinking` provider option
-and specifying a thinking budget in tokens.
+#### Adaptive Thinking
+
+For newer models (`claude-sonnet-4-6`, `claude-opus-4-6`, and later), use adaptive thinking.
+Claude automatically determines how much reasoning to use based on the complexity of the prompt.
 
 ```ts highlight="4,8-10"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoningText, reasoning } = await generateText({
-  model: anthropic('claude-opus-4-20250514'),
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive' },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+
+console.log(reasoningText); // reasoning text
+console.log(reasoning); // reasoning details including redacted reasoning
+console.log(text); // text response
+```
+
+You can combine adaptive thinking with the `effort` option to control how much reasoning Claude uses:
+
+```ts highlight="6-8"
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive' },
+      effort: 'max', // 'low' | 'medium' | 'high' | 'max'
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+#### Budget-Based Thinking
+
+For earlier models (`claude-opus-4-20250514`, `claude-sonnet-4-20250514`, `claude-sonnet-4-5-20250929`),
+use `type: 'enabled'` with an explicit token budget:
+
+```ts highlight="4,8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text, reasoningText, reasoning } = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     anthropic: {
@@ -258,7 +305,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: anthropic('claude-3-7-sonnet-20250219'),
+  model: anthropic('claude-sonnet-4-5-20250929'),
   prompt: 'Continue our conversation...',
   providerOptions: {
     anthropic: {
@@ -509,7 +556,7 @@ Cache control for tools:
 
 ```ts
 const result = await generateText({
-  model: anthropic('claude-3-5-haiku-latest'),
+  model: anthropic('claude-haiku-4-5'),
   tools: {
     cityAttractions: tool({
       inputSchema: z.object({ city: z.string() }),
@@ -537,7 +584,7 @@ Here's an example:
 
 ```ts
 const result = await generateText({
-  model: anthropic('claude-3-5-haiku-latest'),
+  model: anthropic('claude-haiku-4-5'),
   messages: [
     {
       role: 'user',
@@ -1036,7 +1083,7 @@ You can enable code execution using the provider-defined code execution tool:
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
-const codeExecutionTool = anthropic.tools.codeExecution_20250825();
+const codeExecutionTool = anthropic.tools.codeExecution_20260120();
 
 const result = await generateText({
   model: anthropic('claude-opus-4-20250514'),
@@ -1049,9 +1096,10 @@ const result = await generateText({
 ```
 
 <Note>
-  Two versions are available: `codeExecution_20250825` (recommended, supports
-  Python and Bash with enhanced file operations) and `codeExecution_20250522`
-  (supports Bash only).
+  Three versions are available: `codeExecution_20260120` (recommended, does not
+  require a beta header, supports Claude Opus 4.6, Sonnet 4.6, Sonnet 4.5, and
+  Opus 4.5), `codeExecution_20250825` (supports Python and Bash with enhanced
+  file operations), and `codeExecution_20250522` (supports Bash only).
 </Note>
 
 #### Error Handling
@@ -1113,16 +1161,16 @@ import {
   anthropic,
   forwardAnthropicContainerIdFromLastStep,
 } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   prompt:
     'Get the weather for Tokyo, Sydney, and London, then calculate the average temperature.',
   tools: {
-    code_execution: anthropic.tools.codeExecution_20250825(),
+    code_execution: anthropic.tools.codeExecution_20260120(),
 
     getWeather: tool({
       description: 'Get current weather data for a city.',
@@ -1136,7 +1184,7 @@ const result = await generateText({
       // Enable this tool to be called from within code execution
       providerOptions: {
         anthropic: {
-          allowedCallers: ['code_execution_20250825'],
+          allowedCallers: ['code_execution_20260120'],
         },
       },
     }),
@@ -1156,7 +1204,7 @@ In this flow:
 <Note>
   Programmatic tool calling requires `claude-sonnet-4-6`, `claude-sonnet-4-5`,
   `claude-opus-4-6`, or `claude-opus-4-5` models and uses the
-  `code_execution_20250825` tool.
+  `code_execution_20260120` or `code_execution_20250825` tool.
 </Note>
 
 #### Container Persistence
@@ -1188,7 +1236,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
-    code_execution: anthropic.tools.codeExecution_20250825(),
+    code_execution: anthropic.tools.codeExecution_20260120(),
   },
   prompt: 'Create a presentation about renewable energy with 5 slides',
   providerOptions: {
@@ -1215,7 +1263,7 @@ You can also use custom skills by specifying `type: 'custom'`:
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
-    code_execution: anthropic.tools.codeExecution_20250825(),
+    code_execution: anthropic.tools.codeExecution_20260120(),
   },
   prompt: 'Use my custom skill to process this data',
   providerOptions: {
@@ -1301,18 +1349,16 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
-| -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-sonnet-4-6`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-haiku-4-5`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-sonnet-4-5`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-1`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-opus-4-0`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| Model               | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
+| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-6`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-4-6` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-5`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-haiku-4-5`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-5` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-1`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-opus-4-0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

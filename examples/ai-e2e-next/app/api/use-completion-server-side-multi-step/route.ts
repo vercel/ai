@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 60 seconds
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const { prompt } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-5-mini'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         }),
       }),
     },
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
     prompt,
   });
 

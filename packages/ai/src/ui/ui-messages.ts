@@ -77,12 +77,14 @@ export type UIMessagePart<
   TOOLS extends UITools,
 > =
   | TextUIPart
+  | CustomContentUIPart
   | ReasoningUIPart
   | ToolUIPart<TOOLS>
   | DynamicToolUIPart
   | SourceUrlUIPart
   | SourceDocumentUIPart
   | FileUIPart
+  | ReasoningFileUIPart
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
 
@@ -101,6 +103,23 @@ export type TextUIPart = {
    * The state of the text part.
    */
   state?: 'streaming' | 'done';
+
+  /**
+   * The provider metadata.
+   */
+  providerMetadata?: ProviderMetadata;
+};
+
+/**
+ * A provider-specific part of a message.
+ */
+export type CustomContentUIPart = {
+  type: 'custom';
+
+  /**
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
+   */
+  kind: `${string}.${string}`;
 
   /**
    * The provider metadata.
@@ -170,6 +189,31 @@ export type FileUIPart = {
    * Optional filename of the file.
    */
   filename?: string;
+
+  /**
+   * The URL of the file.
+   * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
+   */
+  url: string;
+
+  /**
+   * The provider metadata.
+   */
+  providerMetadata?: ProviderMetadata;
+};
+
+/**
+ * A reasoning file part of a message.
+ */
+export type ReasoningFileUIPart = {
+  type: 'reasoning-file';
+
+  /**
+   * IANA media type of the file.
+   *
+   * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+   */
+  mediaType: string;
 
   /**
    * The URL of the file.
@@ -274,6 +318,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       output: asUITool<TOOL>['output'];
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
+      resultProviderMetadata?: ProviderMetadata;
       preliminary?: boolean;
       approval?: {
         id: string;
@@ -288,6 +333,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
+      resultProviderMetadata?: ProviderMetadata;
       approval?: {
         id: string;
         approved: true;
@@ -379,6 +425,7 @@ export type DynamicToolUIPart = {
       output: unknown;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
+      resultProviderMetadata?: ProviderMetadata;
       preliminary?: boolean;
       approval?: {
         id: string;
@@ -392,6 +439,7 @@ export type DynamicToolUIPart = {
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
+      resultProviderMetadata?: ProviderMetadata;
       approval?: {
         id: string;
         approved: true;
@@ -422,12 +470,30 @@ export function isTextUIPart(
 }
 
 /**
+ * Type guard to check if a message part is a custom part.
+ */
+export function isCustomContentUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is CustomContentUIPart {
+  return part.type === 'custom';
+}
+
+/**
  * Type guard to check if a message part is a file part.
  */
 export function isFileUIPart(
   part: UIMessagePart<UIDataTypes, UITools>,
 ): part is FileUIPart {
   return part.type === 'file';
+}
+
+/**
+ * Type guard to check if a message part is a reasoning file part.
+ */
+export function isReasoningFileUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is ReasoningFileUIPart {
+  return part.type === 'reasoning-file';
 }
 
 /**

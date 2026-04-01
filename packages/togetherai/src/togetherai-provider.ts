@@ -4,11 +4,11 @@ import {
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
 import {
-  EmbeddingModelV3,
-  ImageModelV3,
-  LanguageModelV3,
-  ProviderV3,
-  RerankingModelV3,
+  EmbeddingModelV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
+  RerankingModelV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -45,56 +45,73 @@ export interface TogetherAIProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface TogetherAIProvider extends ProviderV3 {
+export interface TogetherAIProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: TogetherAIChatModelId): LanguageModelV3;
+  (modelId: TogetherAIChatModelId): LanguageModelV4;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: TogetherAIChatModelId): LanguageModelV3;
+  chatModel(modelId: TogetherAIChatModelId): LanguageModelV4;
 
   /**
    * Creates a chat model for text generation.
    */
-  languageModel(modelId: TogetherAIChatModelId): LanguageModelV3;
+  languageModel(modelId: TogetherAIChatModelId): LanguageModelV4;
 
   /**
    * Creates a completion model for text generation.
    */
-  completionModel(modelId: TogetherAICompletionModelId): LanguageModelV3;
+  completionModel(modelId: TogetherAICompletionModelId): LanguageModelV4;
 
   /**
    * Creates a text embedding model for text generation.
    */
-  embeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV3;
+  embeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: TogetherAIImageModelId): ImageModelV3;
+  image(modelId: TogetherAIImageModelId): ImageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: TogetherAIImageModelId): ImageModelV3;
+  imageModel(modelId: TogetherAIImageModelId): ImageModelV4;
 
   /**
    * Creates a model for reranking.
    */
-  reranking(modelId: TogetherAIRerankingModelId): RerankingModelV3;
+  reranking(modelId: TogetherAIRerankingModelId): RerankingModelV4;
 
   /**
    * Creates a model for reranking.
    */
-  rerankingModel(modelId: TogetherAIRerankingModelId): RerankingModelV3;
+  rerankingModel(modelId: TogetherAIRerankingModelId): RerankingModelV4;
+}
+
+function loadDeprecatedApiKey(): string | undefined {
+  if (typeof process === 'undefined') {
+    return undefined;
+  }
+  // If the new env var is set, let loadApiKey handle it
+  if (typeof process.env.TOGETHER_API_KEY === 'string') {
+    return undefined;
+  }
+  const key = process.env.TOGETHER_AI_API_KEY;
+  if (typeof key === 'string') {
+    console.warn(
+      'TOGETHER_AI_API_KEY is deprecated and will be removed in a future release. Please use TOGETHER_API_KEY instead.',
+    );
+  }
+  return key;
 }
 
 export function createTogetherAI(
@@ -107,8 +124,8 @@ export function createTogetherAI(
     withUserAgentSuffix(
       {
         Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'TOGETHER_AI_API_KEY',
+          apiKey: options.apiKey ?? loadDeprecatedApiKey(),
+          environmentVariableName: 'TOGETHER_API_KEY',
           description: 'TogetherAI',
         })}`,
         ...options.headers,
@@ -163,7 +180,7 @@ export function createTogetherAI(
 
   const provider = (modelId: TogetherAIChatModelId) => createChatModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.completionModel = createCompletionModel;
   provider.languageModel = createChatModel;
   provider.chatModel = createChatModel;

@@ -22,7 +22,7 @@ Use of LangChain's open-source frameworks is not necessary.
 <Note>The steps in this guide assume you are using `langsmith>=0.3.63.`.</Note>
 
 Install an [AI SDK model provider](/providers/ai-sdk-providers) and the [LangSmith client SDK](https://npmjs.com/package/langsmith).
-The code snippets below will use the [AI SDK's OpenAI provider](/providers/ai-sdk-providers/openai), but you can use any [other supported provider](/providers/ai-sdk-providers/) as well.
+The code snippets below will use the [AI SDK's OpenAI provider](/providers/ai-sdk-providers/openai), but you can use any [other supported provider](/providers/ai-sdk-providers) as well.
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
@@ -72,7 +72,7 @@ You can also trace runs with tool calls:
 
 ```ts
 import * as ai from 'ai';
-import { tool, stepCountIs } from 'ai';
+import { tool, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -102,7 +102,7 @@ await generateText({
         `Here is the tracking information for ${orderId}`,
     }),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 ```
 
@@ -117,7 +117,7 @@ want to group runs together in LangSmith:
 
 ```ts
 import * as ai from 'ai';
-import { tool, stepCountIs } from 'ai';
+import { tool, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -150,7 +150,7 @@ const wrapper = traceable(
             `Here is the tracking information for ${orderId}`,
         }),
       },
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
     });
     return text;
   },

@@ -1,5 +1,232 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- 01fa606: feat(provider/google): support combining built-in tools with function calling on Gemini 3
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 9715ec7: feat(provider/google): add support for service tier parameter
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 6190649: chore(provider/google): remove obsolete Google image model
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 18c1970: feat(provider/google): Add multimodal tool-result support for Google function responses.
+
+  Tool results with `output.type = 'content'` now map media parts into
+  `functionResponse.parts` for Google models, including `image-data`,
+  `file-data`, and base64 `data:` URLs in URL-style content parts.
+  Remote HTTP(S) URLs in URL-style tool-result parts are not supported.
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- e59176c: chore(google): update v3 specs to v4
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4dac142: feat(google): add new finishMessage field in providerMetadata
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- add4326: fix(provider/google): correct JSDoc for multimodal embedding content option
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- ab43029: feat(provider/google): support multimodal content parts in embedding provider options
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 2edd14e: fix(provider/google): correctly mark reasoning files as such and fix related multi-turn errors
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- c9c4661: fix(provider/google): preserve groundingMetadata and urlContextMetadata when they arrive in a stream chunk before the finishReason chunk
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 19b95f9: fix(google): use VALIDATED function calling mode when any tool has strict:true
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.43
+
+### Patch Changes
+
+- 7ba09a4: Fix gateway failover losing thoughtSignature when failing over from Vertex to Google AI Studio. The Google provider now falls back to checking the vertex namespace for thoughtSignature, matching the existing Vertex-to-Google fallback behavior.
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 3.0.40
+
+### Patch Changes
+
+- 89d8b45: fix(google): make urlMetadata optional in urlContextMetadata schema
+
+## 3.0.39
+
+### Patch Changes
+
+- 2565e70: feat(google): add support for image search, replace obsolete google_search_retrieval implementation
+
+## 3.0.38
+
+### Patch Changes
+
+- 2291047: fix(ai): fix missing support for image thought signatures (e.g. for Gemini image models)
+
+## 3.0.37
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.35
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.33
+
+### Patch Changes
+
+- 1ece97a: feat(provider/google): add support for new Google image model aspect ratios and sizes
+
+## 3.0.32
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
+## 3.0.31
+
+### Patch Changes
+
+- 2fa3ca8: Added missing model IDs to GoogleGenerativeAIModelId and GoogleGenerativeAIVideoModelId types for better autocomplete support.
+
 ## 3.0.30
 
 ### Patch Changes
@@ -232,13 +459,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -547,13 +774,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

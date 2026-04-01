@@ -1,11 +1,15 @@
 import {
   JSONObject,
-  LanguageModelV3Message,
-  LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
+  LanguageModelV4Message,
+  LanguageModelV4Prompt,
+  SharedV4ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  parseProviderOptions,
+  stripFileExtension,
+} from '@ai-sdk/provider-utils';
 import {
   BEDROCK_DOCUMENT_MIME_TYPES,
   BEDROCK_IMAGE_MIME_TYPES,
@@ -24,7 +28,7 @@ import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
 import { normalizeToolCallId } from './normalize-tool-call-id';
 
 function getCachePoint(
-  providerMetadata: SharedV3ProviderMetadata | undefined,
+  providerMetadata: SharedV4ProviderMetadata | undefined,
 ): BedrockCachePoint | undefined {
   const cachePointConfig = providerMetadata?.bedrock?.cachePoint as
     | BedrockCachePoint['cachePoint']
@@ -38,7 +42,7 @@ function getCachePoint(
 }
 
 async function shouldEnableCitations(
-  providerMetadata: SharedV3ProviderMetadata | undefined,
+  providerMetadata: SharedV4ProviderMetadata | undefined,
 ): Promise<boolean> {
   const bedrockOptions = await parseProviderOptions({
     provider: 'bedrock',
@@ -50,7 +54,7 @@ async function shouldEnableCitations(
 }
 
 export async function convertToBedrockChatMessages(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
   isMistral: boolean = false,
 ): Promise<{
   system: BedrockSystemMessages;
@@ -138,7 +142,9 @@ export async function convertToBedrockChatMessages(
                       bedrockContent.push({
                         document: {
                           format: getBedrockDocumentFormat(part.mediaType),
-                          name: part.filename ?? generateDocumentName(),
+                          name: part.filename
+                            ? stripFileExtension(part.filename)
+                            : generateDocumentName(),
                           source: { bytes: convertToBase64(part.data) },
                           ...(enableCitations && {
                             citations: { enabled: true },
@@ -281,33 +287,41 @@ export async function convertToBedrockChatMessages(
                   schema: bedrockReasoningMetadataSchema,
                 });
 
-                if (reasoningMetadata != null) {
-                  if (reasoningMetadata.signature != null) {
-                    bedrockContent.push({
-                      reasoningContent: {
-                        reasoningText: {
-                          // trim the last text part if it's the last message in the block
-                          // because Bedrock does not allow trailing whitespace
-                          // in pre-filled assistant responses
-                          text: trimIfLast(
-                            isLastBlock,
-                            isLastMessage,
-                            isLastContentPart,
-                            part.text,
-                          ),
-                          signature: reasoningMetadata.signature,
-                        },
+                if (reasoningMetadata?.signature != null) {
+                  // do not trim reasoning text when a signature is present:
+                  // the signature validates the exact original bytes
+                  bedrockContent.push({
+                    reasoningContent: {
+                      reasoningText: {
+                        text: part.text,
+                        signature: reasoningMetadata.signature,
                       },
-                    });
-                  } else if (reasoningMetadata.redactedData != null) {
-                    bedrockContent.push({
-                      reasoningContent: {
-                        redactedReasoning: {
-                          data: reasoningMetadata.redactedData,
-                        },
+                    },
+                  });
+                } else if (reasoningMetadata?.redactedData != null) {
+                  bedrockContent.push({
+                    reasoningContent: {
+                      redactedReasoning: {
+                        data: reasoningMetadata.redactedData,
                       },
-                    });
-                  }
+                    },
+                  });
+                } else {
+                  // trim the last text part if it's the last message in the block
+                  // because Bedrock does not allow trailing whitespace
+                  // in pre-filled assistant responses
+                  bedrockContent.push({
+                    reasoningContent: {
+                      reasoningText: {
+                        text: trimIfLast(
+                          isLastBlock,
+                          isLastMessage,
+                          isLastContentPart,
+                          part.text,
+                        ),
+                      },
+                    },
+                  });
                 }
 
                 break;
@@ -394,19 +408,19 @@ function trimIfLast(
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV3Message & { role: 'system' }>;
+  messages: Array<LanguageModelV4Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV3Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV4Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV3Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV4Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

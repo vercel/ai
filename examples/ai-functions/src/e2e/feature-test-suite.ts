@@ -1,8 +1,11 @@
 import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import type {
   EmbeddingModelV3,
+  EmbeddingModelV4,
   ImageModelV3,
+  ImageModelV4,
   LanguageModelV3,
+  LanguageModelV4,
 } from '@ai-sdk/provider';
 import {
   APICallError,
@@ -11,7 +14,7 @@ import {
   generateImage,
   generateText,
   Output,
-  stepCountIs,
+  isStepCount,
   streamText,
 } from 'ai';
 import fs from 'fs';
@@ -49,35 +52,37 @@ export const defaultChatModelCapabilities: ModelCapabilities = [
 ];
 
 export const createLanguageModelWithCapabilities = (
-  model: LanguageModelV3,
+  model: LanguageModelV3 | LanguageModelV4,
   capabilities: ModelCapabilities = defaultChatModelCapabilities,
-): ModelWithCapabilities<LanguageModelV3> => ({
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => ({
   model,
   capabilities,
 });
 
 export const createEmbeddingModelWithCapabilities = (
-  model: EmbeddingModelV3,
+  model: EmbeddingModelV3 | EmbeddingModelV4,
   capabilities: ModelCapabilities = ['embedding'],
-): ModelWithCapabilities<EmbeddingModelV3> => ({
+): ModelWithCapabilities<EmbeddingModelV3 | EmbeddingModelV4> => ({
   model,
   capabilities,
 });
 
 export const createImageModelWithCapabilities = (
-  model: ImageModelV3,
+  model: ImageModelV3 | ImageModelV4,
   capabilities: ModelCapabilities = ['imageGeneration'],
-): ModelWithCapabilities<ImageModelV3> => ({
+): ModelWithCapabilities<ImageModelV3 | ImageModelV4> => ({
   model,
   capabilities,
 });
 
 export interface ModelVariants {
-  invalidModel?: LanguageModelV3;
-  languageModels?: ModelWithCapabilities<LanguageModelV3>[];
-  embeddingModels?: ModelWithCapabilities<EmbeddingModelV3>[];
-  invalidImageModel?: ImageModelV3;
-  imageModels?: ModelWithCapabilities<ImageModelV3>[];
+  invalidModel?: LanguageModelV3 | LanguageModelV4;
+  languageModels?: ModelWithCapabilities<LanguageModelV3 | LanguageModelV4>[];
+  embeddingModels?: ModelWithCapabilities<
+    EmbeddingModelV3 | EmbeddingModelV4
+  >[];
+  invalidImageModel?: ImageModelV3 | ImageModelV4;
+  imageModels?: ModelWithCapabilities<ImageModelV3 | ImageModelV4>[];
 }
 
 export interface TestSuiteOptions {
@@ -744,7 +749,7 @@ export function createFeatureTestSuite({
                       },
                     },
                   },
-                  stopWhen: stepCountIs(10),
+                  stopWhen: isStepCount(10),
                 });
 
                 expect(weatherCalls).toBe(1);

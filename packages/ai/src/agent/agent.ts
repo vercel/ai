@@ -62,7 +62,7 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
     /**
      * Timeout in milliseconds. Can be specified as a number or as an object with `totalMs`.
      */
-    timeout?: TimeoutConfiguration;
+    timeout?: TimeoutConfiguration<TOOLS>;
 
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.

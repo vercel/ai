@@ -110,6 +110,7 @@ export type XaiResponsesTool =
       name: string;
       description?: string;
       parameters: unknown;
+      strict?: boolean;
     };
 
 const annotationSchema = z.union([
@@ -222,6 +223,9 @@ const outputItemSchema = z.discriminatedUnion('type', [
     type: z.literal('reasoning'),
     id: z.string(),
     summary: z.array(reasoningSummaryPartSchema),
+    content: z
+      .array(z.object({ type: z.string(), text: z.string() }))
+      .nullish(),
     status: z.string(),
     encrypted_content: z.string().nullish(),
   }),

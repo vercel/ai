@@ -1,4 +1,4 @@
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
@@ -32,7 +32,7 @@ vi.mock('@ai-sdk/anthropic/internal', async importOriginal => {
   };
 });
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'system', content: 'System Prompt' },
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
@@ -88,6 +88,11 @@ const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
 )}/converse`;
 
+const newerAnthropicModelId = 'anthropic.claude-sonnet-4-6-v1';
+const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  newerAnthropicModelId,
+)}/converse`;
+
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -100,6 +105,7 @@ const server = createTestServer({
   [anthropicGenerateUrl]: {},
   [novaGenerateUrl]: {},
   [openaiGenerateUrl]: {},
+  [newerAnthropicGenerateUrl]: {},
 });
 
 function prepareJsonFixtureResponse(
@@ -166,6 +172,16 @@ const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
   fetch: fakeFetchWithAuth,
   generateId: () => 'test-id',
 });
+
+const newerAnthropicModel = new BedrockChatLanguageModel(
+  newerAnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
 
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
@@ -3518,6 +3534,104 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should only send the forced tool when toolChoice specifies a specific tool', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeatherByCity',
+          description: 'Get weather by city',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getCurrentWeather',
+          description: 'Get current weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getWeatherForecast',
+          description: 'Get forecast',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              location: { type: 'string' },
+              days: { type: 'number' },
+            },
+            required: ['location', 'days'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'getWeatherByCity' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      'getWeatherByCity',
+    );
+    expect(requestBody.toolConfig.toolChoice).toEqual({
+      tool: { name: 'getWeatherByCity' },
+    });
+  });
+
+  it('should send all tools when toolChoice is auto', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'getWeatherByCity',
+          description: 'Get weather by city',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'getCurrentWeather',
+          description: 'Get current weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+            required: ['location'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.toolConfig.tools).toHaveLength(2);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe(
+      'getWeatherByCity',
+    );
+    expect(requestBody.toolConfig.tools[1].toolSpec.name).toBe(
+      'getCurrentWeather',
+    );
+  });
+
   it('should omit empty tool descriptions to avoid Bedrock validation errors', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 
@@ -4229,6 +4343,184 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should use native output_config.format instead of json tool when thinking is enabled with structured output', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients'],
+            },
+          },
+          required: ['recipe'],
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      format: {
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          properties: {
+            recipe: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                ingredients: { type: 'array', items: { type: 'string' } },
+              },
+              required: ['name', 'ingredients'],
+            },
+          },
+          required: ['recipe'],
+        },
+      },
+    });
+
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeDefined();
+  });
+
+  it('should merge output_config.effort and output_config.format when thinking with maxReasoningEffort and structured output', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a recipe' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 2000,
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
+      format: {
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+  });
+
+  it('should still use json tool fallback for structured output without thinking enabled', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeDefined();
+    expect(requestBody.toolConfig.tools).toHaveLength(1);
+    expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+    expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "{"name":"Test"}",
+          "type": "text",
+        },
+      ]
+    `);
+    expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
+  });
+
   it('should extract reasoning text with signature', async () => {
     server.urls[generateUrl].response = {
       type: 'json-value',
@@ -4433,7 +4725,7 @@ describe('doGenerate', () => {
   it('should omit toolConfig and filter tool content when conversation has tool calls but no active tools', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 
-    const conversationWithToolCalls: LanguageModelV3Prompt = [
+    const conversationWithToolCalls: LanguageModelV4Prompt = [
       {
         role: 'user',
         content: [{ type: 'text', text: 'What is the weather in Toronto?' }],
@@ -4753,7 +5045,7 @@ describe('doGenerate', () => {
   it('should omit toolConfig when conversation has tool calls but toolChoice is none', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 
-    const conversationWithToolCalls: LanguageModelV3Prompt = [
+    const conversationWithToolCalls: LanguageModelV4Prompt = [
       {
         role: 'user',
         content: [{ type: 'text', text: 'What is the weather in Toronto?' }],
@@ -5170,5 +5462,237 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  describe('top-level reasoning parameter', () => {
+    const simpleResponse = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    it('should not set reasoning config when reasoning is "provider-default" for newer Anthropic models', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'provider-default',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.thinking,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+    });
+
+    it('should map reasoning to adaptive thinking with effort for newer Anthropic models', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'adaptive',
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('high');
+    });
+
+    it('should map reasoning "xhigh" to effort "max" for newer Anthropic models', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'adaptive',
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('max');
+    });
+
+    it('should warn when reasoning "minimal" is mapped for newer Anthropic models', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      const result = await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'minimal',
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "minimal" is not directly supported by this model. mapped to effort "low".',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('low');
+    });
+
+    it('should map reasoning to budget-based thinking for older Anthropic models', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: Math.max(1024, Math.round(4096 * 0.6)),
+      });
+    });
+
+    it('should map reasoning to budget with minimum of 1024 tokens for older Anthropic models', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'minimal',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.thinking?.budget_tokens,
+      ).toBe(1024);
+    });
+
+    it('should map reasoning directly to reasoning_effort for OpenAI models', async () => {
+      server.urls[openaiGenerateUrl].response = simpleResponse;
+
+      await openaiModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoning_effort).toBe(
+        'medium',
+      );
+      expect(
+        requestBody.additionalModelRequestFields?.thinking,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+    });
+
+    it('should map reasoning to reasoningConfig.maxReasoningEffort for other models', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig
+          ?.maxReasoningEffort,
+      ).toBe('high');
+    });
+
+    it('should let providerOptions.bedrock.reasoningConfig take precedence over top-level reasoning', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              budgetTokens: 5000,
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: 5000,
+      });
+    });
+
+    it('should strip temperature, topP, topK for Anthropic models when reasoning enables thinking', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        temperature: 0.7,
+        topP: 0.9,
+        topK: 5,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.temperature).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topP).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topK).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'temperature',
+        details: 'temperature is not supported when thinking is enabled',
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'topP',
+        details: 'topP is not supported when thinking is enabled',
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'topK',
+        details: 'topK is not supported when thinking is enabled',
+      });
+    });
+
+    it('should handle reasoning "none" for Anthropic models', async () => {
+      prepareJsonFixtureResponse('bedrock-text');
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.thinking,
+      ).toBeUndefined();
+    });
+
+    it('should handle reasoning "none" for OpenAI models', async () => {
+      server.urls[openaiGenerateUrl].response = simpleResponse;
+
+      await openaiModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.reasoning_effort,
+      ).toBeUndefined();
+    });
   });
 });

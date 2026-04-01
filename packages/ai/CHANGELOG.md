@@ -1,5 +1,524 @@
 # ai
 
+## 7.0.0-beta.53
+
+### Patch Changes
+
+- 9b47dea: fix(ai): remove otel Tracer api from telemetry settings
+
+## 7.0.0-beta.52
+
+### Patch Changes
+
+- b56301c: feat(ai): decouple otel from generate/streamObject
+
+## 7.0.0-beta.51
+
+### Patch Changes
+
+- 6abd098: split `prepareToolsAndToolChoice()` into `prepareTools()` and `prepareToolChoice()`
+
+## 7.0.0-beta.50
+
+### Patch Changes
+
+- 3debdb7: feat(ai): rename `stepCountIs` to `isStepCount`
+
+## 7.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [294cbe7]
+  - @ai-sdk/gateway@4.0.0-beta.26
+
+## 7.0.0-beta.48
+
+### Patch Changes
+
+- 5c4d910: feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps
+
+## 7.0.0-beta.47
+
+### Patch Changes
+
+- bc67b4f: feat(ai): add experimental callbacks for structured outputs
+
+## 7.0.0-beta.46
+
+### Patch Changes
+
+- 31ee822: refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
+
+## 7.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [435895b]
+  - @ai-sdk/gateway@4.0.0-beta.25
+
+## 7.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [d30466c]
+  - @ai-sdk/gateway@4.0.0-beta.24
+
+## 7.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [4ec78cd]
+  - @ai-sdk/gateway@4.0.0-beta.23
+
+## 7.0.0-beta.42
+
+### Patch Changes
+
+- a3fd75b: feat(ai): expose Experimental_ModelCallStreamPart type
+
+## 7.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [7ceff62]
+  - @ai-sdk/gateway@4.0.0-beta.22
+
+## 7.0.0-beta.40
+
+### Patch Changes
+
+- 989d3d2: fix(ai): include generated files in OTEL response attributes
+
+## 7.0.0-beta.39
+
+### Patch Changes
+
+- f4cfccd: feat(ai): decouple otel from rerank function
+
+## 7.0.0-beta.38
+
+### Patch Changes
+
+- 1f509d4: fix(ai): force template check on 'kind' param
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+  - @ai-sdk/gateway@4.0.0-beta.21
+
+## 7.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [4f91b5d]
+  - @ai-sdk/gateway@4.0.0-beta.20
+
+## 7.0.0-beta.36
+
+### Patch Changes
+
+- 118b953: feat(ai): decouple otel from embed functions
+
+## 7.0.0-beta.35
+
+### Patch Changes
+
+- 99bf941: feat(ai): extract streamModelCall function for streaming text generation
+
+## 7.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [72889f8]
+  - @ai-sdk/gateway@4.0.0-beta.19
+
+## 7.0.0-beta.33
+
+### Patch Changes
+
+- caf1b6f: feat(ai): introduce experimental callbacks for rerank function
+
+## 7.0.0-beta.32
+
+### Major Changes
+
+- 4b46062: refactoring(ai): extract tool callback invocation into separate function and forward chunks before callback invocation
+
+### Patch Changes
+
+- Updated dependencies [165b97a]
+  - @ai-sdk/gateway@4.0.0-beta.18
+
+## 7.0.0-beta.31
+
+### Patch Changes
+
+- e79e644: chore(ai/core): remove `timeout` from `CallSettings` as it was effectively unused there
+
+## 7.0.0-beta.30
+
+### Patch Changes
+
+- f5a6f89: README updates
+
+## 7.0.0-beta.29
+
+### Patch Changes
+
+- 877bf12: fix(ai): flatten model attributes for telemetry
+
+## 7.0.0-beta.28
+
+### Major Changes
+
+- b9cf502: refactoring(ai): delay tool execution in stream text until model call is finished
+
+## 7.0.0-beta.27
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+  - @ai-sdk/gateway@4.0.0-beta.17
+
+## 7.0.0-beta.26
+
+### Patch Changes
+
+- f0b0b20: feat(ai): add per-tool timeout overrides via toolTimeouts
+
+## 7.0.0-beta.25
+
+### Patch Changes
+
+- ff9ce30: feat(ai): introduce experimental callbacks for embed function
+
+## 7.0.0-beta.24
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+  - @ai-sdk/gateway@4.0.0-beta.16
+
+## 7.0.0-beta.23
+
+### Patch Changes
+
+- 80d4dde: fix(ai): include tool input on tool result for provider executed dynamic tools
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+  - @ai-sdk/gateway@4.0.0-beta.15
+
+## 7.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [ead9144]
+  - @ai-sdk/gateway@4.0.0-beta.14
+
+## 7.0.0-beta.21
+
+### Patch Changes
+
+- 34fd051: feat(ai): add toolMs to timeout configuration
+
+## 7.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [2095655]
+  - @ai-sdk/gateway@4.0.0-beta.13
+
+## 7.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/gateway@4.0.0-beta.12
+
+## 7.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/gateway@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 7.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [4d6ab9a]
+  - @ai-sdk/gateway@4.0.0-beta.10
+
+## 7.0.0-beta.16
+
+### Major Changes
+
+- 5b8c58f: feat(ai): decouple otel from core functions
+
+## 7.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [980f777]
+- Updated dependencies [7185ba2]
+  - @ai-sdk/gateway@4.0.0-beta.9
+
+## 7.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [4adc485]
+  - @ai-sdk/gateway@4.0.0-beta.8
+
+## 7.0.0-beta.13
+
+### Patch Changes
+
+- c26ca8d: Remove custom User-Agent header from HttpChatTransport to fix CORS preflight failures in Safari and Firefox
+
+## 7.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [e046ea3]
+  - @ai-sdk/gateway@4.0.0-beta.7
+
+## 7.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [82288b0]
+  - @ai-sdk/gateway@4.0.0-beta.6
+
+## 7.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [aa5a583]
+  - @ai-sdk/gateway@4.0.0-beta.5
+
+## 7.0.0-beta.9
+
+### Patch Changes
+
+- 1fe058b: fix(anthropic): preserve the error code returned by model
+
+## 7.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [f32d84a]
+  - @ai-sdk/gateway@4.0.0-beta.4
+
+## 7.0.0-beta.7
+
+### Patch Changes
+
+- 210ed3d: feat(ai): pass result provider metadata across the stream
+
+## 7.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [c949e25]
+  - @ai-sdk/gateway@4.0.0-beta.3
+
+## 7.0.0-beta.5
+
+### Patch Changes
+
+- ebd4da2: feat(ai): add missing usage attributes
+
+## 7.0.0-beta.4
+
+### Patch Changes
+
+- 5ceed7d: fix(ai): doStream should reflect transformed values
+
+## 7.0.0-beta.3
+
+### Patch Changes
+
+- 531251e: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  Both `downloadBlob` and `download` now validate the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/gateway@4.0.0-beta.2
+
+## 7.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [7afaece]
+- Updated dependencies [f16c103]
+  - @ai-sdk/gateway@4.0.0-beta.1
+
+## 7.0.0-beta.1
+
+### Patch Changes
+
+- 6a3793e: chore(ai): add optional ChatRequestOptions to `addToolApprovalResponse` and `addToolOutput`
+
+## 7.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/gateway@4.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 6.0.116
+
+### Patch Changes
+
+- ad4cfc2: Add URL validation to `downloadBlob` and `download` to prevent blind SSRF attacks. Private/internal IP addresses, localhost, and non-HTTP protocols are now rejected before fetching.
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/gateway@3.0.66
+
+## 6.0.115
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/gateway@3.0.65
+
+## 6.0.114
+
+### Patch Changes
+
+- 2291047: fix(ai): fix missing support for image thought signatures (e.g. for Gemini image models)
+
+## 6.0.113
+
+### Patch Changes
+
+- 70d3980: fix(ai): use errorMode 'text' in approval continuation to preserve tool error messages
+
+## 6.0.112
+
+### Patch Changes
+
+- Updated dependencies [db3d4ca]
+  - @ai-sdk/gateway@3.0.64
+
+## 6.0.111
+
+### Patch Changes
+
+- 2129c82: feat(ai): register global telemetry integrations
+
+## 6.0.110
+
+### Patch Changes
+
+- Updated dependencies [1b01ec1]
+- Updated dependencies [8df8e11]
+  - @ai-sdk/gateway@3.0.63
+
+## 6.0.109
+
+### Patch Changes
+
+- Updated dependencies [10bec50]
+  - @ai-sdk/gateway@3.0.62
+
+## 6.0.108
+
+### Patch Changes
+
+- 2a4f512: feat(ai): add telemetry interface and registry
+
+## 6.0.107
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/gateway@3.0.61
+
+## 6.0.106
+
+### Patch Changes
+
+- Updated dependencies [29e9f4d]
+  - @ai-sdk/gateway@3.0.60
+
+## 6.0.105
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/gateway@3.0.59
+
+## 6.0.104
+
+### Patch Changes
+
+- Updated dependencies [1330f2f]
+  - @ai-sdk/gateway@3.0.58
+
+## 6.0.103
+
+### Patch Changes
+
+- Updated dependencies [ba63bc2]
+  - @ai-sdk/gateway@3.0.57
+
+## 6.0.102
+
+### Patch Changes
+
+- Updated dependencies [45f0a7f]
+  - @ai-sdk/gateway@3.0.56
+
+## 6.0.101
+
+### Patch Changes
+
+- 5230482: fix(ai): Don't create duplicate tool parts when models call non-existent tools
+
+## 6.0.100
+
+### Patch Changes
+
+- b7fba77: feat(ai): add event notifiers to core functions
+
+## 6.0.99
+
+### Patch Changes
+
+- Updated dependencies [e8172b6]
+  - @ai-sdk/gateway@3.0.55
+
+## 6.0.98
+
+### Patch Changes
+
+- Updated dependencies [0c9395b]
+  - @ai-sdk/gateway@3.0.54
+
 ## 6.0.97
 
 ### Patch Changes
@@ -722,13 +1241,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
@@ -751,15 +1270,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 - 90e5bdd: chore(ai): restructure agent files
@@ -846,7 +1365,7 @@
 - 81d4308: feat: provider-executed dynamic tools
 - e0d1ea9: fix(ai): align logic of text-end with reasoning-end
 - 2406576: chore(agent): rename messages property on agent ui stream functions to uiMessages
-- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+- b1aeea7: feat(ai): set default stopWhen on Agent to isStepCount(20)
 - dce4e7b: chore(agent): rename system to instructions
 - 4ece5f9: feat(agent): add experimental_download to ToolLoopAgent
 - a417a34: feat(agent): introduce version property
@@ -1279,13 +1798,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1632,15 +2151,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ## 6.0.0-beta.71
@@ -2022,7 +2541,7 @@
 
 - aa0515c: feat(ai): move Agent to stable
 - e7d9b00: feat(agent): add optional name property to agent
-- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+- b1aeea7: feat(ai): set default stopWhen on Agent to isStepCount(20)
 
 ## 5.1.0-beta.18
 
@@ -2559,7 +3078,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2572,7 +3091,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2592,7 +3111,7 @@
 - c7710a9: chore (ai): rename DataStreamToSSETransformStream to JsonToSseTransformStream
 - bfbfc4c: feat (ai): streamText/generateText: totalUsage contains usage for all steps. usage is for a single step.
 - 9ae327d: chore (ui): replace chat store concept with chat instances
-- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to stepCountIs.
+- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to isStepCount.
 - 247ee0c: chore (ai): remove steps from tool invocation ui parts
 - 109c0ac: chore (ai): rename id to chatId (in post request, resume request, and useChat)
 - 954aa73: feat (ui): extended regenerate support
@@ -2772,10 +3291,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -3335,7 +3854,7 @@
 ### Major Changes
 
 - 72d7d72: chore (ai): stable activeTools
-- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to stepCountIs.
+- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to isStepCount.
 
 ### Patch Changes
 
@@ -3438,7 +3957,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -3451,7 +3970,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3549,10 +4068,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
