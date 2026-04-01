@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.87
+
+### Patch Changes
+
+- df099b9: feat(bedrock): add support for service tier for model inference
+
 ## 4.0.86
 
 ### Patch Changes
