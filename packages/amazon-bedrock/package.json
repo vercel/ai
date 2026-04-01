@@ -1,10 +1,11 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
   "version": "5.0.0-beta.16",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "main": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
     "docs/**/*",
@@ -36,14 +37,14 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs",
-      "default": "./dist/index.mjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./anthropic": {
-      "types": "./dist/anthropic/index.d.mts",
-      "import": "./dist/anthropic/index.mjs",
-      "default": "./dist/anthropic/index.mjs"
+      "types": "./dist/anthropic/index.d.ts",
+      "import": "./dist/anthropic/index.js",
+      "default": "./dist/anthropic/index.js"
     }
   },
   "dependencies": {

@@ -1,10 +1,11 @@
 {
   "name": "@ai-sdk/test-server",
   "version": "2.0.0-beta.0",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "main": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
     "src",
@@ -29,14 +30,14 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs",
-      "default": "./dist/index.mjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./with-vitest": {
-      "types": "./dist/with-vitest.d.mts",
-      "import": "./dist/with-vitest.mjs",
-      "default": "./dist/with-vitest.mjs"
+      "types": "./dist/with-vitest.d.ts",
+      "import": "./dist/with-vitest.js",
+      "default": "./dist/with-vitest.js"
     }
   },
   "dependencies": {
