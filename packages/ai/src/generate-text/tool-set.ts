@@ -1,5 +1,5 @@
-import { Context, InferToolContext, Tool } from '@ai-sdk/provider-utils';
-import { UnionToIntersection } from '../util/union-to-intersection';
+import { Context, Tool } from '@ai-sdk/provider-utils';
+import type { InferToolSetContext } from './infer-tool-set-context';
 
 export type ToolSet = Record<
   string,
@@ -17,12 +17,6 @@ export type ToolSet = Record<
       | 'onInputDelta'
       | 'needsApproval'
     >
->;
-
-export type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
-  {
-    [K in keyof TOOLS]: InferToolContext<NoInfer<TOOLS[K]>>;
-  }[keyof TOOLS]
 >;
 
 export type ExpandedContext<TOOLS extends ToolSet> = InferToolSetContext<
