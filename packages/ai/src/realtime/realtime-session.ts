@@ -153,8 +153,10 @@ export abstract class AbstractRealtimeSession {
         const parseResult = await safeParseJSON({ text });
         if (!parseResult.success) return;
 
-        if (this.model.getAutoResponse != null) {
-          const autoResponse = this.model.getAutoResponse(parseResult.value);
+        if (this.model.getHealthCheckResponse != null) {
+          const autoResponse = this.model.getHealthCheckResponse(
+            parseResult.value,
+          );
           if (autoResponse != null) {
             this.sendRaw(autoResponse);
           }

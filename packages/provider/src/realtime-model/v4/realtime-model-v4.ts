@@ -83,5 +83,5 @@ export type RealtimeModelV4 = {
    * Used for provider-specific keepalive protocols (e.g. ElevenLabs ping/pong).
    * Called by the session layer before parseServerEvent.
    */
-  getAutoResponse?(raw: unknown): unknown | null;
+  getHealthCheckResponse?(raw: unknown): unknown | null;
 };

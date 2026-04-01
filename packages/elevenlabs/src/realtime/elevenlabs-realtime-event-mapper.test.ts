@@ -293,7 +293,7 @@ describe('ElevenLabsRealtimeEventMapper', () => {
     });
   });
 
-  describe('getAutoResponse', () => {
+  describe('getHealthCheckResponse', () => {
     it('returns pong for ping events', () => {
       const mapper = new ElevenLabsRealtimeEventMapper();
       const raw = {
@@ -301,7 +301,7 @@ describe('ElevenLabsRealtimeEventMapper', () => {
         ping_event: { event_id: 42, ping_ms: 120 },
       };
 
-      expect(mapper.getAutoResponse(raw)).toEqual({
+      expect(mapper.getHealthCheckResponse(raw)).toEqual({
         type: 'pong',
         event_id: 42,
       });
@@ -311,7 +311,7 @@ describe('ElevenLabsRealtimeEventMapper', () => {
       const mapper = new ElevenLabsRealtimeEventMapper();
 
       expect(
-        mapper.getAutoResponse({
+        mapper.getHealthCheckResponse({
           type: 'audio',
           audio_event: { audio_base_64: 'data' },
         }),

@@ -232,7 +232,7 @@ export class ElevenLabsRealtimeEventMapper {
    * Returns a pong response for ping events, or null for everything else.
    * Called by the session layer to auto-respond to keepalive pings.
    */
-  getAutoResponse(raw: unknown): unknown | null {
+  getHealthCheckResponse(raw: unknown): unknown | null {
     const data = raw as Record<string, any>;
     if (data.type === 'ping') {
       return {

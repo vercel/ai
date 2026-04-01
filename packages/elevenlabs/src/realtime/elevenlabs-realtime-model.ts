@@ -92,8 +92,8 @@ export class ElevenLabsRealtimeModel implements RealtimeModelV4 {
   /**
    * Returns a pong response for ping events, or null for everything else.
    */
-  getAutoResponse(raw: unknown): unknown | null {
-    return this.mapper.getAutoResponse(raw);
+  getHealthCheckResponse(raw: unknown): unknown | null {
+    return this.mapper.getHealthCheckResponse(raw);
   }
 
   serializeClientEvent(event: RealtimeModelV4ClientEvent): unknown {

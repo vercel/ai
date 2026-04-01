@@ -126,14 +126,14 @@ describe('ElevenLabsRealtimeModel', () => {
     });
   });
 
-  describe('getAutoResponse', () => {
+  describe('getHealthCheckResponse', () => {
     it('returns pong for ping events', () => {
       const model = new ElevenLabsRealtimeModel('agent_123', {
         provider: 'elevenlabs.realtime',
         headers: () => ({ 'xi-api-key': 'test-key' }),
       });
 
-      const result = model.getAutoResponse({
+      const result = model.getHealthCheckResponse({
         type: 'ping',
         ping_event: { event_id: 42, ping_ms: 100 },
       });
@@ -147,7 +147,7 @@ describe('ElevenLabsRealtimeModel', () => {
         headers: () => ({ 'xi-api-key': 'test-key' }),
       });
 
-      expect(model.getAutoResponse({ type: 'audio' })).toBeNull();
+      expect(model.getHealthCheckResponse({ type: 'audio' })).toBeNull();
     });
   });
 
