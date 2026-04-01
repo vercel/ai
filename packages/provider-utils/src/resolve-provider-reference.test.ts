@@ -29,9 +29,10 @@ describe('resolveProviderReference', () => {
     } catch (error) {
       expect(NoSuchProviderReferenceError.isInstance(error)).toBe(true);
       expect((error as NoSuchProviderReferenceError).provider).toBe('openai');
-      expect(
-        (error as NoSuchProviderReferenceError).availableProviders,
-      ).toStrictEqual(['anthropic', 'google']);
+      expect((error as NoSuchProviderReferenceError).reference).toStrictEqual({
+        anthropic: 'file-xyz',
+        google: 'file-123',
+      });
     }
   });
 
@@ -45,9 +46,9 @@ describe('resolveProviderReference', () => {
     } catch (error) {
       expect(NoSuchProviderReferenceError.isInstance(error)).toBe(true);
       expect((error as NoSuchProviderReferenceError).provider).toBe('openai');
-      expect(
-        (error as NoSuchProviderReferenceError).availableProviders,
-      ).toStrictEqual([]);
+      expect((error as NoSuchProviderReferenceError).reference).toStrictEqual(
+        {},
+      );
     }
   });
 

@@ -22,6 +22,6 @@ export function resolveProviderReference({
 
   throw new NoSuchProviderReferenceError({
     provider,
-    availableProviders: Object.keys(reference),
+    reference,
   });
 }

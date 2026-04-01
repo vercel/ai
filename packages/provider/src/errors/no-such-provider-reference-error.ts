@@ -1,3 +1,4 @@
+import { SharedV4ProviderReference } from '../shared/v4/shared-v4-provider-reference';
 import { AISDKError } from './ai-sdk-error';
 
 const name = 'AI_NoSuchProviderReferenceError';
@@ -12,20 +13,20 @@ export class NoSuchProviderReferenceError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   readonly provider: string;
-  readonly availableProviders: string[];
+  readonly reference: SharedV4ProviderReference;
 
   constructor({
     provider,
-    availableProviders,
-    message = `No provider reference found for provider '${provider}'. Available providers: ${availableProviders.join(', ')}`,
+    reference,
+    message = `No provider reference found for provider '${provider}'. Available providers: ${Object.keys(reference).join(', ')}`,
   }: {
     provider: string;
-    availableProviders: string[];
+    reference: SharedV4ProviderReference;
     message?: string;
   }) {
     super({ name, message });
     this.provider = provider;
-    this.availableProviders = availableProviders;
+    this.reference = reference;
   }
 
   static isInstance(error: unknown): error is NoSuchProviderReferenceError {
