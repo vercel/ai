@@ -812,7 +812,9 @@ describe('generateText', () => {
 
   describe('options.experimental_onStart', () => {
     it('should send correct information with text prompt', async () => {
-      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+      let startEvent!: Parameters<
+        GenerateTextOnStartCallback<any, any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -839,7 +841,9 @@ describe('generateText', () => {
     });
 
     it('should pass experimental_context', async () => {
-      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+      let startEvent!: Parameters<
+        GenerateTextOnStartCallback<any, any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -862,7 +866,9 @@ describe('generateText', () => {
     });
 
     it('should send correct information with system and messages', async () => {
-      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+      let startEvent!: Parameters<
+        GenerateTextOnStartCallback<any, any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -1365,7 +1371,7 @@ describe('generateText', () => {
   describe('options.onStepFinish stepNumber', () => {
     it('should pass stepNumber 0 for a single step', async () => {
       let stepFinishEvent!: Parameters<
-        GenerateTextOnStepFinishCallback<any>
+        GenerateTextOnStepFinishCallback<any, any>
       >[0];
 
       await generateText({
@@ -2178,7 +2184,7 @@ describe('generateText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<GenerateTextOnFinishCallback<any>>[0];
+      let result!: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -2513,9 +2519,9 @@ describe('generateText', () => {
   });
 
   describe('options.stopWhen', () => {
-    let result: GenerateTextResult<any, any>;
-    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
-    let onStepFinishResults: StepResult<any>[];
+    let result: GenerateTextResult<any, any, any>;
+    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+    let onStepFinishResults: StepResult<any, any>[];
 
     beforeEach(() => {
       result = undefined as any;
@@ -2711,13 +2717,13 @@ describe('generateText', () => {
     });
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
-      let result: GenerateTextResult<any, any>;
-      let onStepFinishResults: StepResult<any>[];
+      let result: GenerateTextResult<any, any, any>;
+      let onStepFinishResults: StepResult<any, any>[];
       let doGenerateCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
         experimental_context: unknown;
       }>;
@@ -3481,10 +3487,10 @@ describe('generateText', () => {
     });
 
     describe('2 stop conditions', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let stopConditionCalls: Array<{
         number: number;
-        steps: StepResult<any>[];
+        steps: StepResult<any, any>[];
       }>;
 
       beforeEach(async () => {
@@ -4476,7 +4482,7 @@ describe('generateText', () => {
 
   describe('provider-executed tools', () => {
     describe('two provider-executed tool calls and results', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -5069,7 +5075,7 @@ describe('generateText', () => {
   });
 
   describe('tool execution errors', () => {
-    let result: GenerateTextResult<any, any>;
+    let result: GenerateTextResult<any, any, any>;
 
     beforeEach(async () => {
       result = await generateText({
@@ -5260,14 +5266,14 @@ describe('generateText', () => {
 
   describe('programmatic tool calling', () => {
     describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
-      let result: GenerateTextResult<any, any>;
-      let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
-      let onStepFinishResults: StepResult<any>[];
+      let result: GenerateTextResult<any, any, any>;
+      let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+      let onStepFinishResults: StepResult<any, any>[];
       let doGenerateCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
       }>;
       let rollDieExecutions: Array<{ player: string }>;
@@ -6598,7 +6604,7 @@ describe('generateText', () => {
 
   describe('invalid tool calls', () => {
     describe('single invalid tool call', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -6741,7 +6747,7 @@ describe('generateText', () => {
 
   describe('tools with preliminary results', () => {
     describe('single tool with preliminary results', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -7062,7 +7068,7 @@ describe('generateText', () => {
 
   describe('tool execution approval', () => {
     describe('when a single tool needs approval', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -7167,7 +7173,7 @@ describe('generateText', () => {
     });
 
     describe('when a single tool has a needsApproval function', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let needsApprovalCalls: Array<{ input: any; options: any }> = [];
 
       beforeEach(async () => {
@@ -7366,9 +7372,9 @@ describe('generateText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -7532,7 +7538,7 @@ describe('generateText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
@@ -7646,9 +7652,9 @@ describe('generateText', () => {
     });
 
     describe('when a call from a single tool that needs approval is denied', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -7805,9 +7811,9 @@ describe('generateText', () => {
     });
 
     describe('when two calls from a single tool that needs approval are approved', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -8010,7 +8016,7 @@ describe('generateText', () => {
 
     describe('provider-executed tool (MCP) approval', () => {
       describe('when a provider-executed tool emits tool-approval-request', () => {
-        let result: GenerateTextResult<any, any>;
+        let result: GenerateTextResult<any, any, any>;
 
         beforeEach(async () => {
           result = await generateText({
@@ -8121,7 +8127,7 @@ describe('generateText', () => {
       });
 
       describe('when a provider-executed tool approval is approved', () => {
-        let result: GenerateTextResult<any, any>;
+        let result: GenerateTextResult<any, any, any>;
         let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
@@ -8307,7 +8313,7 @@ describe('generateText', () => {
       });
 
       describe('when a provider-executed tool approval is denied', () => {
-        let result: GenerateTextResult<any, any>;
+        let result: GenerateTextResult<any, any, any>;
         let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {

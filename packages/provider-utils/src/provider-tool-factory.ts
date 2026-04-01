@@ -3,9 +3,9 @@ import { FlexibleSchema } from './schema';
 import { Context } from './types/context';
 
 export type ProviderToolFactory<
-  CONTEXT extends Context,
   INPUT,
   ARGS extends object,
+  CONTEXT extends Context = {},
 > = <OUTPUT>(
   options: ARGS & {
     execute?: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
@@ -18,16 +18,16 @@ export type ProviderToolFactory<
 ) => Tool<INPUT, OUTPUT, CONTEXT>;
 
 export function createProviderToolFactory<
-  CONTEXT extends Context,
   INPUT,
   ARGS extends object,
+  CONTEXT extends Context = {},
 >({
   id,
   inputSchema,
 }: {
   id: `${string}.${string}`;
   inputSchema: FlexibleSchema<INPUT>;
-}): ProviderToolFactory<CONTEXT, INPUT, ARGS> {
+}): ProviderToolFactory<INPUT, ARGS, CONTEXT> {
   return <OUTPUT>({
     execute,
     outputSchema,
@@ -62,10 +62,10 @@ export function createProviderToolFactory<
 }
 
 export type ProviderToolFactoryWithOutputSchema<
-  CONTEXT extends Context,
   INPUT,
   OUTPUT,
   ARGS extends object,
+  CONTEXT extends Context = {},
 > = (
   options: ARGS & {
     execute?: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
@@ -78,10 +78,10 @@ export type ProviderToolFactoryWithOutputSchema<
 ) => Tool<INPUT, OUTPUT, CONTEXT>;
 
 export function createProviderToolFactoryWithOutputSchema<
-  CONTEXT extends Context,
   INPUT,
   OUTPUT,
   ARGS extends object,
+  CONTEXT extends Context = {},
 >({
   id,
   inputSchema,
@@ -102,7 +102,7 @@ export function createProviderToolFactoryWithOutputSchema<
    * @default false
    */
   supportsDeferredResults?: boolean;
-}): ProviderToolFactoryWithOutputSchema<CONTEXT, INPUT, OUTPUT, ARGS> {
+}): ProviderToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS, CONTEXT> {
   return ({
     execute,
     needsApproval,

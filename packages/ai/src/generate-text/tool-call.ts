@@ -1,4 +1,4 @@
-import { Tool } from '@ai-sdk/provider-utils';
+import { InferToolInput } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types';
 import { ValueOf } from '../util/value-of';
 import { ToolSet } from './tool-set';
@@ -13,7 +13,7 @@ type BaseToolCall = {
 export type StaticToolCall<TOOLS extends ToolSet = ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: BaseToolCall & {
     toolName: NAME & string;
-    input: TOOLS[NAME] extends Tool<any, infer PARAMETERS> ? PARAMETERS : never;
+    input: InferToolInput<TOOLS[NAME]>;
     dynamic?: false | undefined;
     invalid?: false | undefined;
     error?: never;
