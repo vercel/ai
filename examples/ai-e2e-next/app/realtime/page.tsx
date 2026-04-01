@@ -4,16 +4,38 @@ import { useRealtime } from '@ai-sdk/react';
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
-type Provider = 'openai' | 'google' | 'xai';
+type Provider = 'openai' | 'google' | 'xai' | 'elevenlabs';
+
+type VoiceOption = { id: string; label: string };
+
+const ELEVENLABS_LLM_MODELS = [
+  'gemini-2.5-flash',
+  'gpt-4o',
+  'gpt-4o-mini',
+  'gpt-5',
+  'gpt-5-mini',
+  'claude-sonnet-4',
+  'claude-sonnet-4-5',
+  'claude-haiku-4-5',
+  'gemini-2.0-flash',
+  'gemini-2.5-flash-lite',
+] as const;
+
+function toVoiceOptions(names: string[]): VoiceOption[] {
+  return names.map(n => ({ id: n, label: n }));
+}
 
 const PROVIDER_CONFIG: Record<
   Provider,
   {
     label: string;
     defaultModel: string;
-    voices: string[];
+    staticVoices: VoiceOption[];
+    dynamicVoices?: boolean;
+    llmModels?: readonly string[];
     createModel: (modelId: string) => ReturnType<typeof openai.realtime>;
     sessionConfigOverrides?: Record<string, unknown>;
   }
@@ -21,7 +43,7 @@ const PROVIDER_CONFIG: Record<
   openai: {
     label: 'OpenAI',
     defaultModel: 'gpt-4o-realtime-preview',
-    voices: [
+    staticVoices: toVoiceOptions([
       'alloy',
       'ash',
       'ballad',
@@ -32,13 +54,13 @@ const PROVIDER_CONFIG: Record<
       'sage',
       'shimmer',
       'verse',
-    ],
+    ]),
     createModel: modelId => openai.realtime(modelId),
   },
   google: {
     label: 'Google',
     defaultModel: 'gemini-3.1-flash-live-preview',
-    voices: ['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede'],
+    staticVoices: toVoiceOptions(['Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede']),
     createModel: modelId => google.realtime(modelId),
     sessionConfigOverrides: {
       inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
@@ -48,19 +70,105 @@ const PROVIDER_CONFIG: Record<
   xai: {
     label: 'xAI',
     defaultModel: 'grok-3',
-    voices: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer'],
+    staticVoices: toVoiceOptions([
+      'alloy',
+      'ash',
+      'ballad',
+      'coral',
+      'echo',
+      'sage',
+      'shimmer',
+    ]),
     createModel: modelId => xai.realtime(modelId),
+  },
+  elevenlabs: {
+    label: 'ElevenLabs',
+    defaultModel: 'agent (env)',
+    staticVoices: [],
+    dynamicVoices: true,
+    llmModels: ELEVENLABS_LLM_MODELS,
+    createModel: modelId => elevenlabs.realtime(modelId),
+    sessionConfigOverrides: {
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      outputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    },
   },
 };
 
+function useElevenLabsVoices(): {
+  voices: VoiceOption[];
+  loading: boolean;
+} {
+  const [voices, setVoices] = useState<VoiceOption[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch('/api/realtime/elevenlabs-voices')
+      .then(res => res.json())
+      .then((data: { voices: VoiceOption[] }) => {
+        if (!cancelled) {
+          setVoices(data.voices);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { voices, loading };
+}
+
 export default function RealtimePage() {
   const [provider, setProvider] = useState<Provider>('openai');
-  const [voice, setVoice] = useState(PROVIDER_CONFIG.openai.voices[0]);
+  const [voice, setVoice] = useState(
+    PROVIDER_CONFIG.openai.staticVoices[0]?.id ?? '',
+  );
+  const [llmModel, setLlmModel] = useState<string | undefined>(undefined);
+  const { voices: elevenLabsVoices, loading: voicesLoading } =
+    useElevenLabsVoices();
+
+  const voicesForProvider = useCallback(
+    (p: Provider): VoiceOption[] => {
+      const cfg = PROVIDER_CONFIG[p];
+      if (cfg.dynamicVoices && elevenLabsVoices.length > 0) {
+        return elevenLabsVoices;
+      }
+      return cfg.staticVoices;
+    },
+    [elevenLabsVoices],
+  );
+
+  const currentVoices = voicesForProvider(provider);
 
   const handleProviderChange = (next: Provider) => {
     setProvider(next);
-    setVoice(PROVIDER_CONFIG[next].voices[0]);
+    const nextVoices = voicesForProvider(next);
+    setVoice(nextVoices[0]?.id ?? '');
+    const models = PROVIDER_CONFIG[next].llmModels;
+    setLlmModel(models ? models[0] : undefined);
   };
+
+  // When ElevenLabs voices finish loading, set the first voice if currently empty
+  useEffect(() => {
+    if (provider === 'elevenlabs' && elevenLabsVoices.length > 0 && !voice) {
+      setVoice(elevenLabsVoices[0].id);
+    }
+  }, [provider, elevenLabsVoices, voice]);
+
+  const selectStyle = {
+    marginLeft: 8,
+    padding: '6px 10px',
+    borderRadius: 8,
+    border: '1px solid #e2e8f0',
+    fontSize: 13,
+    background: 'white',
+  } as const;
 
   return (
     <div
@@ -85,6 +193,7 @@ export default function RealtimePage() {
           gap: 12,
           marginBottom: 16,
           alignItems: 'center',
+          flexWrap: 'wrap',
         }}
       >
         <label style={{ fontSize: 13, fontWeight: 500, color: '#475569' }}>
@@ -92,14 +201,7 @@ export default function RealtimePage() {
           <select
             value={provider}
             onChange={e => handleProviderChange(e.target.value as Provider)}
-            style={{
-              marginLeft: 8,
-              padding: '6px 10px',
-              borderRadius: 8,
-              border: '1px solid #e2e8f0',
-              fontSize: 13,
-              background: 'white',
-            }}
+            style={selectStyle}
           >
             {Object.entries(PROVIDER_CONFIG).map(([key, cfg]) => (
               <option key={key} value={key}>
@@ -114,22 +216,39 @@ export default function RealtimePage() {
           <select
             value={voice}
             onChange={e => setVoice(e.target.value)}
-            style={{
-              marginLeft: 8,
-              padding: '6px 10px',
-              borderRadius: 8,
-              border: '1px solid #e2e8f0',
-              fontSize: 13,
-              background: 'white',
-            }}
+            disabled={PROVIDER_CONFIG[provider].dynamicVoices && voicesLoading}
+            style={selectStyle}
           >
-            {PROVIDER_CONFIG[provider].voices.map(v => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
+            {PROVIDER_CONFIG[provider].dynamicVoices && voicesLoading ? (
+              <option>Loading voices…</option>
+            ) : currentVoices.length === 0 ? (
+              <option>No voices available</option>
+            ) : (
+              currentVoices.map(v => (
+                <option key={v.id} value={v.id}>
+                  {v.label}
+                </option>
+              ))
+            )}
           </select>
         </label>
+
+        {PROVIDER_CONFIG[provider].llmModels && (
+          <label style={{ fontSize: 13, fontWeight: 500, color: '#475569' }}>
+            LLM
+            <select
+              value={llmModel ?? PROVIDER_CONFIG[provider].llmModels![0]}
+              onChange={e => setLlmModel(e.target.value)}
+              style={selectStyle}
+            >
+              {PROVIDER_CONFIG[provider].llmModels!.map(m => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <span
           style={{
@@ -144,9 +263,10 @@ export default function RealtimePage() {
       </div>
 
       <RealtimeChat
-        key={`${provider}-${voice}`}
+        key={`${provider}-${voice}-${llmModel ?? ''}`}
         provider={provider}
         voice={voice}
+        llmModel={llmModel}
       />
     </div>
   );
@@ -155,9 +275,11 @@ export default function RealtimePage() {
 function RealtimeChat({
   provider,
   voice,
+  llmModel,
 }: {
   provider: Provider;
   voice: string;
+  llmModel?: string;
 }) {
   const [textInput, setTextInput] = useState('');
   const [showEvents, setShowEvents] = useState(false);
@@ -196,6 +318,15 @@ function RealtimeChat({
       voice,
       turnDetection: { type: 'server-vad' },
       ...config.sessionConfigOverrides,
+      ...(llmModel != null
+        ? {
+            providerOptions: {
+              conversation_config_override: {
+                agent: { prompt: { llm: llmModel } },
+              },
+            },
+          }
+        : {}),
     },
     onEvent: event => {
       if (event.type !== 'audio-delta') {
@@ -531,20 +662,24 @@ function RealtimeChat({
                     color:
                       event.type === 'error'
                         ? '#fca5a5'
-                        : event.type.includes('function')
-                          ? '#a78bfa'
-                          : event.type.includes('text')
-                            ? '#86efac'
-                            : event.type.includes('audio')
-                              ? '#93c5fd'
-                              : '#cbd5e1',
+                        : event.type === 'custom'
+                          ? '#fbbf24'
+                          : event.type.includes('function')
+                            ? '#a78bfa'
+                            : event.type.includes('text')
+                              ? '#86efac'
+                              : event.type.includes('audio')
+                                ? '#93c5fd'
+                                : '#cbd5e1',
                     background: expandedEvent === i ? '#334155' : 'transparent',
                   }}
                 >
                   <span style={{ color: '#64748b' }}>
                     {new Date().toLocaleTimeString('en', { hour12: false })}
                   </span>{' '}
-                  {event.type}
+                  {event.type === 'custom'
+                    ? `custom (${event.rawType})`
+                    : event.type}
                 </div>
                 {expandedEvent === i && (
                   <pre

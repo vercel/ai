@@ -75,4 +75,13 @@ export type RealtimeModelV4 = {
    * session.update event sent after WebSocket connection.
    */
   buildSessionConfig(config: RealtimeModelV4SessionConfig): unknown;
+
+  /**
+   * Browser-side: Returns a message to auto-send back over the WebSocket
+   * in response to a raw incoming message, or null if no response is needed.
+   *
+   * Used for provider-specific keepalive protocols (e.g. ElevenLabs ping/pong).
+   * Called by the session layer before parseServerEvent.
+   */
+  getHealthCheckResponse?(raw: unknown): unknown | null;
 };

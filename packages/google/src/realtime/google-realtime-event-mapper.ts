@@ -73,7 +73,7 @@ export class GoogleRealtimeEventMapper {
 
     if (data.toolCallCancellation != null) {
       return {
-        type: 'unknown',
+        type: 'custom',
         rawType: 'toolCallCancellation',
         raw,
       };
@@ -83,7 +83,7 @@ export class GoogleRealtimeEventMapper {
       return this.parseServerContent(data.serverContent, raw);
     }
 
-    return { type: 'unknown', rawType: String(Object.keys(data)[0]), raw };
+    return { type: 'custom', rawType: String(Object.keys(data)[0]), raw };
   }
 
   private parseServerContent(
@@ -170,7 +170,7 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (events.length === 0) {
-      return { type: 'unknown', rawType: 'serverContent', raw };
+      return { type: 'custom', rawType: 'serverContent', raw };
     }
 
     return events.length === 1 ? events[0] : events;

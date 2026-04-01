@@ -22,7 +22,7 @@ export function parseXaiRealtimeServerEvent(
       return { type: 'session-updated', raw };
 
     case 'conversation.created':
-      return { type: 'unknown', rawType: type, raw };
+      return { type: 'custom', rawType: type, raw };
 
     case 'input_audio_buffer.speech_started':
       return {
@@ -191,7 +191,7 @@ export function parseXaiRealtimeServerEvent(
     case 'response.mcp_call.in_progress':
     case 'response.mcp_call.completed':
     case 'response.mcp_call.failed':
-      return { type: 'unknown', rawType: type, raw };
+      return { type: 'custom', rawType: type, raw };
 
     case 'error':
       return {
@@ -202,7 +202,7 @@ export function parseXaiRealtimeServerEvent(
       };
 
     default:
-      return { type: 'unknown', rawType: type, raw };
+      return { type: 'custom', rawType: type, raw };
   }
 }
 

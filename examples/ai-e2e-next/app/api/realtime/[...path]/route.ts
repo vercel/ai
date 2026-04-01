@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { tool, getRealtimeToolDefinitions, executeRealtimeTool } from 'ai';
 import type {
   RealtimeFactory,
@@ -42,6 +43,10 @@ const providers: Record<string, { factory: RealtimeFactory; model: string }> = {
   xai: {
     factory: xai.realtime,
     model: 'grok-3',
+  },
+  elevenlabs: {
+    factory: elevenlabs.realtime,
+    model: process.env.ELEVENLABS_AGENT_ID ?? '',
   },
 };
 
@@ -90,6 +95,43 @@ export async function POST(
     }
 
     return Response.json(toolResults);
+  }
+
+  return new Response('Not found', { status: 404 });
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ path?: string[] }> },
+) {
+  const { path = [] } = await params;
+  const route = path.join('/');
+
+  if (route === 'elevenlabs-voices') {
+    const apiKey = process.env.ELEVENLABS_API_KEY;
+    if (!apiKey) {
+      return Response.json({ voices: [] });
+    }
+
+    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+      headers: { 'xi-api-key': apiKey },
+    });
+
+    if (!response.ok) {
+      return Response.json({ voices: [] });
+    }
+
+    const data = (await response.json()) as {
+      voices: Array<{ voice_id: string; name: string; category?: string }>;
+    };
+
+    const voices = data.voices.map(v => ({
+      id: v.voice_id,
+      label: v.name,
+      category: v.category,
+    }));
+
+    return Response.json({ voices });
   }
 
   return new Response('Not found', { status: 404 });

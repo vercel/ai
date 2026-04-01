@@ -203,7 +203,7 @@ export function parseOpenAIRealtimeServerEvent(
 
     // ── Pass-through ────────────────────────────────────────────────
     default:
-      return { type: 'unknown', rawType: type, raw };
+      return { type: 'custom', rawType: type, raw };
   }
 }
 

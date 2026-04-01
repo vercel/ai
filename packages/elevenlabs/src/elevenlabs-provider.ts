@@ -3,6 +3,8 @@ import {
   SpeechModelV4,
   ProviderV4,
   NoSuchModelError,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -13,6 +15,7 @@ import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
 import { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
+import { ElevenLabsRealtimeModel } from './realtime/elevenlabs-realtime-model';
 import { VERSION } from './version';
 
 export interface ElevenLabsProvider extends ProviderV4 {
@@ -32,6 +35,12 @@ export interface ElevenLabsProvider extends ProviderV4 {
    * Creates a model for speech generation.
    */
   speech(modelId: ElevenLabsSpeechModelId): SpeechModelV4;
+
+  /**
+   * Creates a realtime model for bidirectional audio/text conversations.
+   * The modelId corresponds to an ElevenLabs agent_id.
+   */
+  realtime: RealtimeFactoryV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -92,6 +101,32 @@ export function createElevenLabs(
       fetch: options.fetch,
     });
 
+  const createRealtimeModel = (agentId: string) =>
+    new ElevenLabsRealtimeModel(agentId, {
+      provider: `elevenlabs.realtime`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const realtimeFactory = Object.assign(
+    (agentId: string) => createRealtimeModel(agentId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   const provider = function (modelId: ElevenLabsTranscriptionModelId) {
     return {
       transcription: createTranscriptionModel(modelId),
@@ -103,6 +138,7 @@ export function createElevenLabs(
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+  provider.realtime = realtimeFactory;
 
   provider.languageModel = (modelId: string) => {
     throw new NoSuchModelError({
