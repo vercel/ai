@@ -2,4 +2,4 @@
 "@ai-sdk/anthropic": patch
 ---
 
-feat(anthropic): support new code_execution tool
+feat(provider/anthropic): support new code_execution tool
