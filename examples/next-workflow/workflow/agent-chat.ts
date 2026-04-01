@@ -1,5 +1,9 @@
 import { DurableAgent, type ModelCallStreamPart } from '@ai-sdk/durable-agent';
-import { convertToModelMessages, type UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  ToolCallRepairFunction,
+  type UIMessage,
+} from 'ai';
 import { getWritable } from 'workflow';
 import z from 'zod';
 
@@ -49,6 +53,36 @@ async function calculate(input: {
 // Chat workflow — orchestrates the DurableAgent
 // ============================================================================
 
+const tools = {
+  getWeather: {
+    description:
+      'Get the current weather for a city. Returns temperature in Fahrenheit and conditions.',
+    inputSchema: z.object({
+      city: z.string().describe('The city name to get weather for'),
+    }),
+    execute: getWeather,
+  },
+  calculate: {
+    description:
+      'Evaluate a simple math expression. Supports +, -, *, /, and parentheses.',
+    inputSchema: z.object({
+      expression: z
+        .string()
+        .describe('The math expression to evaluate, e.g. "2 + 3 * 4"'),
+    }),
+    execute: calculate,
+  },
+};
+const repairToolCall: ToolCallRepairFunction<typeof tools> = async ({
+  toolCall,
+}) => {
+  'use step';
+
+  console.log('Repairing tool call', { toolCall });
+
+  return toolCall;
+};
+
 export async function chat(messages: UIMessage[]) {
   'use workflow';
 
@@ -58,26 +92,7 @@ export async function chat(messages: UIMessage[]) {
     model: 'anthropic/claude-sonnet-4-20250514',
     instructions:
       'You are a helpful assistant with access to weather and calculator tools. Use them when the user asks about weather in a city or needs math calculations. Keep responses concise.',
-    tools: {
-      getWeather: {
-        description:
-          'Get the current weather for a city. Returns temperature in Fahrenheit and conditions.',
-        inputSchema: z.object({
-          city: z.string().describe('The city name to get weather for'),
-        }),
-        execute: getWeather,
-      },
-      calculate: {
-        description:
-          'Evaluate a simple math expression. Supports +, -, *, /, and parentheses.',
-        inputSchema: z.object({
-          expression: z
-            .string()
-            .describe('The math expression to evaluate, e.g. "2 + 3 * 4"'),
-        }),
-        execute: calculate,
-      },
-    },
+    tools,
     onStepFinish: async stepResult => {
       console.log('[agent-chat] step finished:', {
         finishReason: stepResult.finishReason,
@@ -98,6 +113,7 @@ export async function chat(messages: UIMessage[]) {
   const result = await agent.stream({
     messages: modelMessages,
     writable: getWritable<ModelCallStreamPart>(),
+    experimental_repairToolCall: repairToolCall as any,
   });
 
   return { messages: result.messages };
