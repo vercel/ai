@@ -81,7 +81,7 @@ describe('generateText types', () => {
               userId: z.string(),
             }),
             execute: async (_input, { experimental_context }) => {
-              expectTypeOf(experimental_context).toMatchTypeOf<{
+              expectTypeOf(experimental_context).toMatchObjectType<{
                 userId: string;
               }>();
 
@@ -94,7 +94,7 @@ describe('generateText types', () => {
           role: 'admin',
         },
         prepareStep: ({ experimental_context }) => {
-          expectTypeOf(experimental_context).toMatchTypeOf<{
+          expectTypeOf(experimental_context).toMatchObjectType<{
             userId: string;
             role: string;
           }>();
