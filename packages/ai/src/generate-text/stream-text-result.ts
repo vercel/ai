@@ -35,7 +35,8 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ExpandedContext, ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from './tool-set';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -108,7 +109,7 @@ export type ConsumeStreamOptions = {
  */
 export interface StreamTextResult<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
   OUTPUT extends Output,
 > {
   /**

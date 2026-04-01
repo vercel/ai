@@ -4,7 +4,8 @@ import { Output } from '../generate-text/output';
 import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
-import { ExpandedContext, ToolSet } from '../generate-text/tool-set';
+import type { GenerationContext } from '../generate-text/generation-context';
+import type { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
 import {
@@ -27,7 +28,7 @@ import {
 export class ToolLoopAgent<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = never,
 > implements Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT> {
   readonly version = 'agent-v1';

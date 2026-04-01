@@ -16,7 +16,8 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ExpandedContext, ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from './tool-set';
 
 /**
  * The result of a `generateText` call.
@@ -24,7 +25,7 @@ import { ExpandedContext, ToolSet } from './tool-set';
  */
 export interface GenerateTextResult<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
   OUTPUT extends Output,
 > {
   /**

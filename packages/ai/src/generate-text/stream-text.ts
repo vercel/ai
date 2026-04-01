@@ -113,7 +113,8 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
-import { ExpandedContext, ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -152,7 +153,7 @@ export type StreamTextOnErrorCallback = (event: {
  */
 export type StreamTextOnStepFinishCallback<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 > = (event: OnStepFinishEvent<TOOLS, CONTEXT>) => PromiseLike<void> | void;
 
 /**
@@ -185,7 +186,7 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
  */
 export type StreamTextOnFinishCallback<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 > = (event: OnFinishEvent<TOOLS, CONTEXT>) => PromiseLike<void> | void;
 
 /**
@@ -195,7 +196,7 @@ export type StreamTextOnFinishCallback<
  */
 export type StreamTextOnAbortCallback<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 > = (event: {
   /**
    * Details for all previously finished steps.
@@ -219,7 +220,7 @@ type StreamTextIncludeSettings = { requestBody?: boolean };
  */
 export type StreamTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
 > = (
   event: OnStartEvent<TOOLS, CONTEXT, OUTPUT, StreamTextIncludeSettings>,
@@ -236,7 +237,7 @@ export type StreamTextOnStartCallback<
  */
 export type StreamTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
 > = (
   event: OnStepStartEvent<TOOLS, CONTEXT, OUTPUT, StreamTextIncludeSettings>,
@@ -297,7 +298,7 @@ export type StreamTextOnToolCallFinishCallback<
  */
 export function streamText<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output<string, string, never>,
 >({
   model,
@@ -713,7 +714,7 @@ function createOutputTransformStream<
 
 class DefaultStreamTextResult<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
   OUTPUT extends Output,
 > implements StreamTextResult<TOOLS, CONTEXT, OUTPUT> {
   private readonly _totalUsage = new DelayedPromise<

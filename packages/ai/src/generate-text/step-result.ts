@@ -23,14 +23,15 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ExpandedContext, ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from './tool-set';
 
 /**
  * The result of a single step in the generation process.
  */
 export type StepResult<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 > = {
   /**
    * Unique identifier for the generation call this step belongs to.
@@ -181,7 +182,7 @@ export type StepResult<
 
 export class DefaultStepResult<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 > implements StepResult<TOOLS, CONTEXT> {
   readonly callId: StepResult<TOOLS, CONTEXT>['callId'];
   readonly stepNumber: StepResult<TOOLS, CONTEXT>['stepNumber'];

@@ -1,6 +1,7 @@
 import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
-import { ExpandedContext, ToolSet } from '../generate-text/tool-set';
+import type { GenerationContext } from '../generate-text/generation-context';
+import type { ToolSet } from '../generate-text/tool-set';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import { createUIMessageStreamResponse } from '../ui-message-stream';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
@@ -29,7 +30,7 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
 export async function createAgentUIStreamResponse<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output<TOOLS, CONTEXT> = never,
   MESSAGE_METADATA = unknown,
 >({

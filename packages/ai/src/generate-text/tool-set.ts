@@ -1,5 +1,4 @@
-import { Context, Tool } from '@ai-sdk/provider-utils';
-import type { InferToolSetContext } from './infer-tool-set-context';
+import type { Tool } from '@ai-sdk/provider-utils';
 
 export type ToolSet = Record<
   string,
@@ -18,8 +17,3 @@ export type ToolSet = Record<
       | 'needsApproval'
     >
 >;
-
-export type ExpandedContext<TOOLS extends ToolSet> = InferToolSetContext<
-  NoInfer<TOOLS>
-> &
-  Context;

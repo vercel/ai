@@ -6,7 +6,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { StepResult } from './step-result';
-import { ExpandedContext, ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from './tool-set';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -23,7 +24,7 @@ import { ExpandedContext, ToolSet } from './tool-set';
  */
 export type PrepareStepFunction<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 > = (options: {
   /**
    * The steps that have been executed so far.
@@ -59,7 +60,7 @@ export type PrepareStepFunction<
  */
 export type PrepareStepResult<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 > =
   | {
       /**

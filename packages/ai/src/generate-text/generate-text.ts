@@ -64,6 +64,7 @@ import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import type { GenerationContext } from './generation-context';
 import { isApprovalNeeded } from './is-approval-needed';
 import { Output, text } from './output';
 import { InferCompleteOutput } from './output-utils';
@@ -84,7 +85,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
-import { ExpandedContext, ToolSet } from './tool-set';
+import type { ToolSet } from './tool-set';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -115,7 +116,7 @@ type GenerateTextIncludeSettings = {
  */
 export type GenerateTextOnStartCallback<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
 > = (
   event: OnStartEvent<TOOLS, CONTEXT, OUTPUT, GenerateTextIncludeSettings>,
@@ -132,7 +133,7 @@ export type GenerateTextOnStartCallback<
  */
 export type GenerateTextOnStepStartCallback<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
 > = (
   event: OnStepStartEvent<TOOLS, CONTEXT, OUTPUT, GenerateTextIncludeSettings>,
@@ -176,7 +177,7 @@ export type GenerateTextOnToolCallFinishCallback<TOOLS extends ToolSet> = (
  */
 export type GenerateTextOnStepFinishCallback<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 > = (event: OnStepFinishEvent<TOOLS, CONTEXT>) => Promise<void> | void;
 
 /**
@@ -190,7 +191,7 @@ export type GenerateTextOnStepFinishCallback<
  */
 export type GenerateTextOnFinishCallback<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 > = (event: OnFinishEvent<TOOLS, CONTEXT>) => PromiseLike<void> | void;
 
 /**
@@ -249,7 +250,7 @@ export type GenerateTextOnFinishCallback<
  */
 export async function generateText<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
   OUTPUT extends Output = Output<string, string>,
 >({
   model: modelArg,
@@ -1127,7 +1128,7 @@ export async function generateText<
 
 async function executeTools<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 >({
   toolCalls,
   tools,
@@ -1187,7 +1188,7 @@ async function executeTools<
 
 class DefaultGenerateTextResult<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
   OUTPUT extends Output,
 > implements GenerateTextResult<TOOLS, CONTEXT, OUTPUT> {
   readonly steps: GenerateTextResult<TOOLS, CONTEXT, OUTPUT>['steps'];

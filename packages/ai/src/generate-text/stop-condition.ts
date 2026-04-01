@@ -1,9 +1,10 @@
 import { StepResult } from './step-result';
-import { ExpandedContext, ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from './tool-set';
 
 export type StopCondition<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 > = (options: {
   steps: Array<StepResult<TOOLS, CONTEXT>>;
 }) => PromiseLike<boolean> | boolean;
@@ -25,7 +26,7 @@ export function hasToolCall(toolName: string): StopCondition<any, any> {
 
 export async function isStopConditionMet<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 >({
   stopConditions,
   steps,

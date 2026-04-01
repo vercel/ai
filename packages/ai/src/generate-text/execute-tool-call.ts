@@ -14,7 +14,8 @@ import { TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
-import { ExpandedContext, ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from './tool-set';
 
 /**
  * Executes a single tool call and manages its lifecycle callbacks.
@@ -29,7 +30,7 @@ import { ExpandedContext, ToolSet } from './tool-set';
  */
 export async function executeToolCall<
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
 >({
   toolCall,
   tools,

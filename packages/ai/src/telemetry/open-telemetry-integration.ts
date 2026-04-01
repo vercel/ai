@@ -31,7 +31,8 @@ import type {
   OnToolCallStartEvent,
 } from '../generate-text/core-events';
 import type { Output } from '../generate-text/output';
-import type { ExpandedContext, ToolSet } from '../generate-text/tool-set';
+import type { GenerationContext } from '../generate-text/generation-context';
+import type { ToolSet } from '../generate-text/tool-set';
 import type {
   ObjectOnStartEvent,
   ObjectOnFinishEvent,
@@ -115,7 +116,7 @@ function selectAttributes(
 
 interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
 > extends OnStepStartEvent<TOOLS, CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;

@@ -1,7 +1,8 @@
 import { Agent } from '../agent/agent';
 import { Output } from '../generate-text/output';
 import { UIMessageStreamOptions } from '../generate-text/stream-text-result';
-import { ExpandedContext, ToolSet } from '../generate-text/tool-set';
+import type { GenerationContext } from '../generate-text/generation-context';
+import type { ToolSet } from '../generate-text/tool-set';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { ChatTransport } from './chat-transport';
 import { convertToModelMessages } from './convert-to-model-messages';
@@ -14,7 +15,7 @@ import { validateUIMessages } from './validate-ui-messages';
 export type DirectChatTransportOptions<
   CALL_OPTIONS,
   TOOLS extends ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS>,
   OUTPUT extends Output<TOOLS, CONTEXT>,
   UI_MESSAGE extends UIMessage<unknown, never, InferUITools<TOOLS>>,
 > = {
@@ -50,7 +51,7 @@ export type DirectChatTransportOptions<
 export class DirectChatTransport<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output<TOOLS, CONTEXT> = never,
   UI_MESSAGE extends UIMessage<unknown, never, InferUITools<TOOLS>> = UIMessage<
     unknown,

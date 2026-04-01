@@ -12,7 +12,8 @@ import type { StepResult } from './step-result';
 import type { StopCondition } from './stop-condition';
 import { TextStreamPart } from './stream-text-result';
 import type { TypedToolCall } from './tool-call';
-import type { ExpandedContext, ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from './tool-set';
 
 /**
  * Common model information used across callback events.
@@ -31,7 +32,7 @@ export interface CallbackModelInfo {
  */
 export interface OnStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -150,7 +151,7 @@ export interface OnStartEvent<
  */
 export interface OnStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -370,7 +371,7 @@ export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
  */
 export type OnStepFinishEvent<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
 > = StepResult<TOOLS, CONTEXT>;
 
 /**
@@ -381,7 +382,7 @@ export type OnStepFinishEvent<
  */
 export type OnFinishEvent<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
 > = StepResult<TOOLS, CONTEXT> & {
   /** Array containing results from all steps in the generation. */
   readonly steps: StepResult<TOOLS, CONTEXT>[];

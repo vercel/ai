@@ -16,7 +16,8 @@ import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
-import { ExpandedContext, ToolSet } from '../generate-text/tool-set';
+import type { GenerationContext } from '../generate-text/generation-context';
+import type { ToolSet } from '../generate-text/tool-set';
 import { CallSettings, TimeoutConfiguration } from '../prompt/call-settings';
 import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -26,13 +27,13 @@ import { AgentCallParameters } from './agent';
 
 export type ToolLoopAgentOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
 > = (event: OnStartEvent<TOOLS, CONTEXT, OUTPUT>) => PromiseLike<void> | void;
 
 export type ToolLoopAgentOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
 > = (
   event: OnStepStartEvent<TOOLS, CONTEXT, OUTPUT>,
@@ -48,12 +49,12 @@ export type ToolLoopAgentOnToolCallFinishCallback<
 
 export type ToolLoopAgentOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
 > = (stepResult: OnStepFinishEvent<TOOLS, CONTEXT>) => Promise<void> | void;
 
 export type ToolLoopAgentOnFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
 > = (event: OnFinishEvent<TOOLS, CONTEXT>) => PromiseLike<void> | void;
 
 /**
@@ -62,7 +63,7 @@ export type ToolLoopAgentOnFinishCallback<
 export type ToolLoopAgentSettings<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = never,
 > = Omit<CallSettings, 'abortSignal'> & {
   /**

@@ -3,7 +3,8 @@ import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
 import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
-import { ExpandedContext, ToolSet } from '../generate-text/tool-set';
+import type { GenerationContext } from '../generate-text/generation-context';
+import type { ToolSet } from '../generate-text/tool-set';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import type {
   ToolLoopAgentOnFinishCallback,
@@ -20,7 +21,7 @@ import type {
 export type AgentCallParameters<
   CALL_OPTIONS,
   TOOLS extends ToolSet = {},
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
 > = ([CALL_OPTIONS] extends [never]
   ? { options?: never }
   : { options: CALL_OPTIONS }) &
@@ -124,7 +125,7 @@ export type AgentStreamParameters<
 export interface Agent<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  CONTEXT extends ExpandedContext<TOOLS> = ExpandedContext<TOOLS>,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = never,
 > {
   /**
