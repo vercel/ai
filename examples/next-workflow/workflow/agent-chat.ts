@@ -1,4 +1,4 @@
-import { DurableAgent, type ModelCallStreamPart } from '@ai-sdk/durable-agent';
+import { WorkflowAgent, type ModelCallStreamPart } from '@ai-sdk/workflow';
 import {
   convertToModelMessages,
   ToolCallRepairFunction,
@@ -50,7 +50,7 @@ async function calculate(input: {
 }
 
 // ============================================================================
-// Chat workflow — orchestrates the DurableAgent
+// Chat workflow — orchestrates the WorkflowAgent
 // ============================================================================
 
 const tools = {
@@ -88,7 +88,7 @@ export async function chat(messages: UIMessage[]) {
 
   const modelMessages = await convertToModelMessages(messages);
 
-  const agent = new DurableAgent({
+  const agent = new WorkflowAgent({
     model: 'anthropic/claude-sonnet-4-20250514',
     instructions:
       'You are a helpful assistant with access to weather and calculator tools. Use them when the user asks about weather in a city or needs math calculations. Keep responses concise.',
@@ -107,7 +107,7 @@ export async function chat(messages: UIMessage[]) {
     },
   });
 
-  // DurableAgent streams ModelCallStreamPart chunks to the writable
+  // WorkflowAgent streams ModelCallStreamPart chunks to the writable
   // in real-time. The route handler converts to UIMessageChunks at the
   // response boundary using createUIMessageChunkTransform().
   const result = await agent.stream({

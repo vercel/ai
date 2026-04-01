@@ -1,4 +1,4 @@
-import { createModelCallToUIChunkTransform } from '@ai-sdk/durable-agent';
+import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
 import type { NextRequest } from 'next/server';
 import { getRun } from 'workflow/api';
 

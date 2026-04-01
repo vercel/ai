@@ -32,16 +32,16 @@ import type { CompatibleLanguageModel } from './types.js';
 export type { CompatibleLanguageModel } from './types.js';
 
 /**
- * Infer the type of the tools of a durable agent.
+ * Infer the type of the tools of a workflow agent.
  */
-export type InferDurableAgentTools<DURABLE_AGENT> =
-  DURABLE_AGENT extends DurableAgent<infer TOOLS> ? TOOLS : never;
+export type InferWorkflowAgentTools<WORKFLOW_AGENT> =
+  WORKFLOW_AGENT extends WorkflowAgent<infer TOOLS> ? TOOLS : never;
 
 /**
- * Infer the UI message type of a durable agent.
+ * Infer the UI message type of a workflow agent.
  */
-export type InferDurableAgentUIMessage<
-  DURABLE_AGENT,
+export type InferWorkflowAgentUIMessage<
+  WORKFLOW_AGENT,
   MESSAGE_METADATA = unknown,
 > = UIMessage<MESSAGE_METADATA>;
 
@@ -318,9 +318,9 @@ export type PrepareStepCallback<TTools extends ToolSet = ToolSet> = (
 ) => PrepareStepResult | Promise<PrepareStepResult>;
 
 /**
- * Configuration options for creating a {@link DurableAgent} instance.
+ * Configuration options for creating a {@link WorkflowAgent} instance.
  */
-export interface DurableAgentOptions<
+export interface WorkflowAgentOptions<
   TTools extends ToolSet = ToolSet,
 > extends GenerationSettings {
   /**
@@ -452,9 +452,9 @@ export type StreamTextOnAbortCallback<TTools extends ToolSet = ToolSet> =
   }) => PromiseLike<void> | void;
 
 /**
- * Options for the {@link DurableAgent.stream} method.
+ * Options for the {@link WorkflowAgent.stream} method.
  */
-export interface DurableAgentStreamOptions<
+export interface WorkflowAgentStreamOptions<
   TTools extends ToolSet = ToolSet,
   OUTPUT = never,
   PARTIAL_OUTPUT = never,
@@ -472,10 +472,10 @@ export interface DurableAgentStreamOptions<
   /**
    * A WritableStream that receives raw LanguageModelV4StreamPart chunks in real-time
    * as the model generates them. This enables streaming to the client without
-   * coupling DurableAgent to UIMessageChunk format.
+   * coupling WorkflowAgent to UIMessageChunk format.
    *
    * Convert to UIMessageChunks at the response boundary using
-   * `createUIMessageChunkTransform()` from `@ai-sdk/durable-agent`.
+   * `createUIMessageChunkTransform()` from `@ai-sdk/workflow`.
    *
    * @example
    * ```typescript
@@ -666,9 +666,9 @@ export interface ToolResult {
 }
 
 /**
- * Result of the DurableAgent.stream method.
+ * Result of the WorkflowAgent.stream method.
  */
-export interface DurableAgentStreamResult<
+export interface WorkflowAgentStreamResult<
   TTools extends ToolSet = ToolSet,
   OUTPUT = never,
 > {
@@ -719,14 +719,14 @@ export interface DurableAgentStreamResult<
 /**
  * A class for building durable AI agents within workflows.
  *
- * DurableAgent enables you to create AI-powered agents that can maintain state
+ * WorkflowAgent enables you to create AI-powered agents that can maintain state
  * across workflow steps, call tools, and gracefully handle interruptions and resumptions.
  * It integrates seamlessly with the AI SDK and the Workflow DevKit for
  * production-grade reliability.
  *
  * @example
  * ```typescript
- * const agent = new DurableAgent({
+ * const agent = new WorkflowAgent({
  *   model: 'anthropic/claude-opus',
  *   tools: {
  *     getWeather: {
@@ -743,7 +743,7 @@ export interface DurableAgentStreamResult<
  * });
  * ```
  */
-export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
+export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private model: string | (() => Promise<CompatibleLanguageModel>);
   /**
    * The tool set configured for this agent.
@@ -761,7 +761,7 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
   private constructorOnStepFinish?: StreamTextOnStepFinishCallback<ToolSet>;
   private constructorOnFinish?: StreamTextOnFinishCallback<ToolSet>;
 
-  constructor(options: DurableAgentOptions<TBaseTools>) {
+  constructor(options: WorkflowAgentOptions<TBaseTools>) {
     this.model = options.model;
     this.tools = (options.tools ?? {}) as TBaseTools;
     // `instructions` takes precedence over deprecated `system`
@@ -799,8 +799,8 @@ export class DurableAgent<TBaseTools extends ToolSet = ToolSet> {
     OUTPUT = never,
     PARTIAL_OUTPUT = never,
   >(
-    options: DurableAgentStreamOptions<TTools, OUTPUT, PARTIAL_OUTPUT>,
-  ): Promise<DurableAgentStreamResult<TTools, OUTPUT>> {
+    options: WorkflowAgentStreamOptions<TTools, OUTPUT, PARTIAL_OUTPUT>,
+  ): Promise<WorkflowAgentStreamResult<TTools, OUTPUT>> {
     const prompt = await standardizePrompt({
       system: options.system ?? this.instructions,
       messages: options.messages,
@@ -1310,7 +1310,7 @@ function resolveProviderToolResult(
   const streamResult = providerExecutedToolResults?.get(toolCall.toolCallId);
   if (!streamResult) {
     console.warn(
-      `[DurableAgent] Provider-executed tool "${toolCall.toolName}" (${toolCall.toolCallId}) ` +
+      `[WorkflowAgent] Provider-executed tool "${toolCall.toolName}" (${toolCall.toolCallId}) ` +
         `did not receive a result from the stream. This may indicate a provider issue.`,
     );
     return {

@@ -1,4 +1,4 @@
-import type { TelemetrySettings } from './durable-agent.js';
+import type { TelemetrySettings } from './workflow-agent.js';
 
 // Minimal OTel type shims so we don't depend on @opentelemetry/api at compile time.
 type Attributes = Record<string, unknown>;

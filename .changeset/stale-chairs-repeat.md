@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/durable-agent': patch
+'@ai-sdk/workflow': patch
 ---
 
 initial version

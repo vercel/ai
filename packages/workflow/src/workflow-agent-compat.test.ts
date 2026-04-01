@@ -1,15 +1,15 @@
 /**
- * DurableAgent compatibility test suite — ported from AI SDK's ToolLoopAgent tests.
+ * WorkflowAgent compatibility test suite — ported from AI SDK's ToolLoopAgent tests.
  *
  * These tests are a 1:1 port of tool-loop-agent.test.ts (stream tests only).
  * They use the SAME API names as ToolLoopAgent to serve as a compatibility spec.
- * Tests that fail are expected — they indicate features DurableAgent must implement.
+ * Tests that fail are expected — they indicate features WorkflowAgent must implement.
  *
  * DIVERGENCES from ToolLoopAgent (necessary for workflow runtime):
- * - DurableAgent.stream() requires `messages` (ModelMessage[]) + `writable` (WritableStream)
+ * - WorkflowAgent.stream() requires `messages` (ModelMessage[]) + `writable` (WritableStream)
  *   instead of ToolLoopAgent's `prompt` string
- * - DurableAgent model is `string | () => Promise<CompatibleLanguageModel>` instead of direct LanguageModel
- * - DurableAgent returns DurableAgentStreamResult (not StreamTextResult with consumeStream())
+ * - WorkflowAgent model is `string | () => Promise<CompatibleLanguageModel>` instead of direct LanguageModel
+ * - WorkflowAgent returns WorkflowAgentStreamResult (not StreamTextResult with consumeStream())
  */
 import { tool } from 'ai';
 import type {
@@ -20,15 +20,15 @@ import type {
 import { MockLanguageModelV4, convertArrayToReadableStream } from 'ai/test';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { DurableAgent } from './durable-agent.js';
+import { WorkflowAgent } from './workflow-agent.js';
 
 // ============================================================================
 // Test helpers
 // ============================================================================
 
 /**
- * Creates a mock WritableStream for DurableAgent.stream().
- * DIVERGENCE: DurableAgent requires a writable stream; ToolLoopAgent does not.
+ * Creates a mock WritableStream for WorkflowAgent.stream().
+ * DIVERGENCE: WorkflowAgent requires a writable stream; ToolLoopAgent does not.
  */
 function createMockWritable() {
   const chunks: Experimental_ModelCallStreamPart<ToolSet>[] = [];
@@ -44,7 +44,7 @@ function createMockWritable() {
 
 /**
  * Wraps a MockLanguageModelV4 in an async factory function.
- * DIVERGENCE: DurableAgent model is `() => Promise<CompatibleLanguageModel>`
+ * DIVERGENCE: WorkflowAgent model is `() => Promise<CompatibleLanguageModel>`
  * while ToolLoopAgent takes `LanguageModel` directly.
  */
 function asModelFactory(model: MockLanguageModelV4) {
@@ -252,7 +252,7 @@ function createToolCallStreamMockModelWithInput(input: string) {
 // Tests
 // ============================================================================
 
-describe('DurableAgent (ToolLoopAgent compat)', () => {
+describe('WorkflowAgent (ToolLoopAgent compat)', () => {
   describe('stream', () => {
     let doStreamOptions: any;
     let mockModel: MockLanguageModelV4;
@@ -267,14 +267,14 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       });
     });
 
-    // GAP: DurableAgent doesn't expose prepareCall in its API yet.
+    // GAP: WorkflowAgent doesn't expose prepareCall in its API yet.
     // The underlying streamText now supports it, so it.fails() no longer applies.
-    // Skipped until DurableAgent wires prepareCall through its own API.
+    // Skipped until WorkflowAgent wires prepareCall through its own API.
     it.skip('should use prepareCall', async () => {
-      // DurableAgent has prepareStep on stream options, but prepareCall is different —
+      // WorkflowAgent has prepareStep on stream options, but prepareCall is different —
       // it transforms the generateText/streamText call params.
-      // @ts-expect-error - not yet implemented on DurableAgent
-      const agent = new DurableAgent<{ value: string }>({
+      // @ts-expect-error - not yet implemented on WorkflowAgent
+      const agent = new WorkflowAgent<{ value: string }>({
         model: asModelFactory(mockModel),
         prepareCall: ({ options, ...rest }: any) => {
           return {
@@ -288,7 +288,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
       const { writable } = createMockWritable();
 
-      // DIVERGENCE: DurableAgent uses messages + writable instead of prompt
+      // DIVERGENCE: WorkflowAgent uses messages + writable instead of prompt
       await agent.stream({
         messages: [{ role: 'user' as const, content: 'Hello, world!' }],
         writable,
@@ -306,7 +306,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
     it('should pass abortSignal to streamText', async () => {
       const abortController = new AbortController();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: asModelFactory(mockModel),
       });
 
@@ -322,7 +322,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
     });
 
     it('should pass timeout to streamText', async () => {
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: asModelFactory(mockModel),
       });
 
@@ -339,9 +339,9 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
     });
 
     it('should pass string instructions', async () => {
-      // GAP: DurableAgent uses `system` (string only) instead of `instructions`
+      // GAP: WorkflowAgent uses `system` (string only) instead of `instructions`
       // (which can be string | SystemModelMessage | SystemModelMessage[])
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: asModelFactory(mockModel),
         instructions: 'INSTRUCTIONS',
       });
@@ -376,8 +376,8 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
     });
 
     it('should pass system message instructions', async () => {
-      // GAP: DurableAgent only supports string system prompts, not SystemModelMessage objects
-      const agent = new DurableAgent({
+      // GAP: WorkflowAgent only supports string system prompts, not SystemModelMessage objects
+      const agent = new WorkflowAgent({
         model: asModelFactory(mockModel),
         instructions: {
           role: 'system',
@@ -420,8 +420,8 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
     });
 
     it('should pass array of system message instructions', async () => {
-      // GAP: DurableAgent doesn't support array of SystemModelMessage
-      const agent = new DurableAgent({
+      // GAP: WorkflowAgent doesn't support array of SystemModelMessage
+      const agent = new WorkflowAgent({
         model: asModelFactory(mockModel),
         instructions: [
           {
@@ -490,16 +490,16 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         });
       });
 
-      // GAP: DurableAgent doesn't expose experimental_onStart in its API yet.
+      // GAP: WorkflowAgent doesn't expose experimental_onStart in its API yet.
       // The underlying streamText now supports it, so it.fails() no longer applies.
-      // Skipped until DurableAgent wires experimental_onStart through its own API.
+      // Skipped until WorkflowAgent wires experimental_onStart through its own API.
       it.skip('should call experimental_onStart from constructor', async () => {
         const onStartCalls: string[] = [];
 
-        // GAP: DurableAgent does not accept experimental_onStart in constructor
-        const agent = new DurableAgent({
+        // GAP: WorkflowAgent does not accept experimental_onStart in constructor
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onStart: async () => {
             onStartCalls.push('constructor');
           },
@@ -518,17 +518,17 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: see above — experimental_onStart not in DurableAgent API yet.
+      // GAP: see above — experimental_onStart not in WorkflowAgent API yet.
       it.skip('should call experimental_onStart from stream method', async () => {
         const onStartCalls: string[] = [];
 
-        const agent = new DurableAgent({ model: asModelFactory(mockModel) });
+        const agent = new WorkflowAgent({ model: asModelFactory(mockModel) });
 
         const { writable } = createMockWritable();
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'Hello, world!' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onStart: async () => {
             onStartCalls.push('method');
           },
@@ -541,13 +541,13 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: see above — experimental_onStart not in DurableAgent API yet.
+      // GAP: see above — experimental_onStart not in WorkflowAgent API yet.
       it.skip('should call both constructor and method experimental_onStart in correct order', async () => {
         const onStartCalls: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onStart: async () => {
             onStartCalls.push('constructor');
           },
@@ -557,7 +557,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'Hello, world!' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onStart: async () => {
             onStartCalls.push('method');
           },
@@ -574,7 +574,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it.fails('should pass correct event information', async () => {
         let startEvent!: any;
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
@@ -586,7 +586,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'Hello, world!' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onStart: async (event: any) => {
             startEvent = event;
           },
@@ -630,16 +630,16 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         });
       });
 
-      // GAP: DurableAgent doesn't expose experimental_onStepStart in its API yet.
+      // GAP: WorkflowAgent doesn't expose experimental_onStepStart in its API yet.
       // The underlying streamText now supports it, so it.fails() no longer applies.
-      // Skipped until DurableAgent wires experimental_onStepStart through its own API.
+      // Skipped until WorkflowAgent wires experimental_onStepStart through its own API.
       it.skip('should call experimental_onStepStart from constructor', async () => {
         const onStepStartCalls: string[] = [];
 
-        // GAP: DurableAgent does not accept experimental_onStepStart in constructor
-        const agent = new DurableAgent({
+        // GAP: WorkflowAgent does not accept experimental_onStepStart in constructor
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onStepStart: async () => {
             onStepStartCalls.push('constructor');
           },
@@ -658,17 +658,17 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: see above — experimental_onStepStart not in DurableAgent API yet.
+      // GAP: see above — experimental_onStepStart not in WorkflowAgent API yet.
       it.skip('should call experimental_onStepStart from stream method', async () => {
         const onStepStartCalls: string[] = [];
 
-        const agent = new DurableAgent({ model: asModelFactory(mockModel) });
+        const agent = new WorkflowAgent({ model: asModelFactory(mockModel) });
 
         const { writable } = createMockWritable();
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'Hello, world!' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onStepStart: async () => {
             onStepStartCalls.push('method');
           },
@@ -681,13 +681,13 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: see above — experimental_onStepStart not in DurableAgent API yet.
+      // GAP: see above — experimental_onStepStart not in WorkflowAgent API yet.
       it.skip('should call both constructor and method experimental_onStepStart in correct order', async () => {
         const onStepStartCalls: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onStepStart: async () => {
             onStepStartCalls.push('constructor');
           },
@@ -697,7 +697,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'Hello, world!' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onStepStart: async () => {
             onStepStartCalls.push('method');
           },
@@ -714,7 +714,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it.fails('should pass correct event information', async () => {
         let stepStartEvent!: any;
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
           instructions: 'You are a helpful assistant',
           experimental_context: { userId: 'test-user' },
@@ -724,7 +724,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'Hello, world!' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onStepStart: async (event: any) => {
             stepStartEvent = event;
           },
@@ -768,7 +768,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
       it('should call onStepFinish from constructor', async () => {
         const onStepFinishCalls: string[] = [];
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
           onStepFinish: async () => {
             onStepFinishCalls.push('constructor');
@@ -791,7 +791,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it('should call onStepFinish from stream method', async () => {
         const onStepFinishCalls: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
         });
 
@@ -814,7 +814,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it('should call both constructor and method onStepFinish in correct order', async () => {
         const onStepFinishCalls: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
           onStepFinish: async () => {
             onStepFinishCalls.push('constructor');
@@ -841,7 +841,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it('should pass stepResult to onStepFinish callback', async () => {
         let capturedStepResult: any;
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
         });
 
@@ -881,14 +881,14 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
   describe('experimental_onToolCallStart', () => {
     describe('stream', () => {
-      // GAP: DurableAgent doesn't expose experimental_onToolCallStart in its API yet.
+      // GAP: WorkflowAgent doesn't expose experimental_onToolCallStart in its API yet.
       // The underlying streamText now supports it, so it.fails() no longer applies.
-      // Skipped until DurableAgent wires experimental_onToolCallStart through its own API.
+      // Skipped until WorkflowAgent wires experimental_onToolCallStart through its own API.
       it.skip('should call experimental_onToolCallStart from constructor', async () => {
         const calls: string[] = [];
 
-        // GAP: DurableAgent does not accept experimental_onToolCallStart in constructor
-        const agent = new DurableAgent({
+        // GAP: WorkflowAgent does not accept experimental_onToolCallStart in constructor
+        const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
             testTool: tool({
@@ -897,7 +897,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
                 `${value}-result`,
             }),
           },
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallStart: async () => {
             calls.push('constructor');
           },
@@ -916,11 +916,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: see above — experimental_onToolCallStart not in DurableAgent API yet.
+      // GAP: see above — experimental_onToolCallStart not in WorkflowAgent API yet.
       it.skip('should call experimental_onToolCallStart from stream method', async () => {
         const calls: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
             testTool: tool({
@@ -935,7 +935,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallStart: async () => {
             calls.push('method');
           },
@@ -948,11 +948,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: see above — experimental_onToolCallStart not in DurableAgent API yet.
+      // GAP: see above — experimental_onToolCallStart not in WorkflowAgent API yet.
       it.skip('should call both constructor and method in correct order', async () => {
         const calls: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
             testTool: tool({
@@ -961,7 +961,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
                 `${value}-result`,
             }),
           },
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallStart: async () => {
             calls.push('constructor');
           },
@@ -971,7 +971,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallStart: async () => {
             calls.push('method');
           },
@@ -988,7 +988,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it.fails('should pass correct event information', async () => {
         let event!: any;
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
             testTool: tool({
@@ -1003,7 +1003,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallStart: async (e: any) => {
             event = e;
           },
@@ -1030,14 +1030,14 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
   describe('experimental_onToolCallFinish', () => {
     describe('stream', () => {
-      // GAP: DurableAgent doesn't expose experimental_onToolCallFinish in its API yet.
+      // GAP: WorkflowAgent doesn't expose experimental_onToolCallFinish in its API yet.
       // The underlying streamText now supports it, so it.fails() no longer applies.
-      // Skipped until DurableAgent wires experimental_onToolCallFinish through its own API.
+      // Skipped until WorkflowAgent wires experimental_onToolCallFinish through its own API.
       it.skip('should call experimental_onToolCallFinish from constructor', async () => {
         const calls: string[] = [];
 
-        // GAP: DurableAgent does not accept experimental_onToolCallFinish in constructor
-        const agent = new DurableAgent({
+        // GAP: WorkflowAgent does not accept experimental_onToolCallFinish in constructor
+        const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
             testTool: tool({
@@ -1046,7 +1046,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
                 `${value}-result`,
             }),
           },
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallFinish: async () => {
             calls.push('constructor');
           },
@@ -1065,11 +1065,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: see above — experimental_onToolCallFinish not in DurableAgent API yet.
+      // GAP: see above — experimental_onToolCallFinish not in WorkflowAgent API yet.
       it.skip('should call experimental_onToolCallFinish from stream method', async () => {
         const calls: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
             testTool: tool({
@@ -1084,7 +1084,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallFinish: async () => {
             calls.push('method');
           },
@@ -1097,11 +1097,11 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: see above — experimental_onToolCallFinish not in DurableAgent API yet.
+      // GAP: see above — experimental_onToolCallFinish not in WorkflowAgent API yet.
       it.skip('should call both constructor and method in correct order', async () => {
         const calls: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
             testTool: tool({
@@ -1110,7 +1110,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
                 `${value}-result`,
             }),
           },
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallFinish: async () => {
             calls.push('constructor');
           },
@@ -1120,7 +1120,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallFinish: async () => {
             calls.push('method');
           },
@@ -1137,7 +1137,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it.fails('should pass correct event information on success', async () => {
         let event!: any;
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(
             createToolCallStreamMockModelWithInput('{ "value": "hello" }'),
           ),
@@ -1154,7 +1154,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          // @ts-expect-error - not yet implemented on DurableAgent
+          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallFinish: async (e: any) => {
             event = e;
           },
@@ -1196,7 +1196,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
 
       it('should call onFinish from constructor', async () => {
         const calls: string[] = [];
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
           onFinish: async () => {
             calls.push('constructor');
@@ -1219,7 +1219,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it('should call onFinish from stream method', async () => {
         const calls: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
         });
 
@@ -1242,7 +1242,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it('should call both constructor and method in correct order', async () => {
         const calls: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
           onFinish: async () => {
             calls.push('constructor');
@@ -1269,7 +1269,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it('should pass correct event information', async () => {
         let event!: any;
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(mockModel),
         });
 
@@ -1310,8 +1310,8 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it.fails('should call per-call integration listeners for all lifecycle events', async () => {
         const events: string[] = [];
 
-        // GAP: DurableAgent does not support telemetry integration listeners
-        const agent = new DurableAgent({
+        // GAP: WorkflowAgent does not support telemetry integration listeners
+        const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
             testTool: tool({
@@ -1321,7 +1321,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             }),
           },
           experimental_telemetry: {
-            // @ts-expect-error - not yet implemented on DurableAgent
+            // @ts-expect-error - not yet implemented on WorkflowAgent
             integrations: {
               onStart: async () => {
                 events.push('onStart');
@@ -1380,7 +1380,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
           },
         ];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(
             new MockLanguageModelV4({
               doStream: async () => ({
@@ -1418,7 +1418,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       it.fails('should call integration listeners alongside agent callbacks', async () => {
         const events: string[] = [];
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(
             new MockLanguageModelV4({
               doStream: async () => ({
@@ -1448,7 +1448,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             events.push('agent-onFinish');
           },
           experimental_telemetry: {
-            // @ts-expect-error - not yet implemented on DurableAgent
+            // @ts-expect-error - not yet implemented on WorkflowAgent
             integrations: {
               onStart: async () => {
                 events.push('integration-onStart');
@@ -1480,7 +1480,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
       });
 
       it('should not break streaming when an integration listener throws', async () => {
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(
             new MockLanguageModelV4({
               doStream: async () => ({
@@ -1501,7 +1501,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
             }),
           ),
           experimental_telemetry: {
-            // @ts-expect-error - not yet implemented on DurableAgent
+            // @ts-expect-error - not yet implemented on WorkflowAgent
             integrations: {
               onStart: async () => {
                 throw new Error('integration error');
@@ -1529,10 +1529,10 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
   describe('tool approval', () => {
     describe('stream', () => {
       it.fails('should pause agent when tool has needsApproval: true', async () => {
-        // GAP: DurableAgent does not support tool approval.
+        // GAP: WorkflowAgent does not support tool approval.
         // When a tool has needsApproval: true, the agent should pause
         // and emit a tool-approval-request before executing the tool.
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
             testTool: tool({
@@ -1564,7 +1564,7 @@ describe('DurableAgent (ToolLoopAgent compat)', () => {
         // and returns a boolean (or promise of boolean).
         let approvalInput: any = null;
 
-        const agent = new DurableAgent({
+        const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
             testTool: tool({

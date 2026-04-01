@@ -1,20 +1,20 @@
-# @ai-sdk/durable-agent
+# @ai-sdk/workflow
 
-DurableAgent is a class for building durable AI agents that can maintain state across workflow steps, call tools, and handle interruptions gracefully.
+WorkflowAgent is a class for building durable AI agents that can maintain state across workflow steps, call tools, and handle interruptions gracefully.
 
 ## Installation
 
 ```bash
-npm install @ai-sdk/durable-agent ai
+npm install @ai-sdk/workflow ai
 ```
 
 ## Usage
 
 ```typescript
-import { DurableAgent } from '@ai-sdk/durable-agent';
+import { WorkflowAgent } from '@ai-sdk/workflow';
 import { z } from 'zod';
 
-const agent = new DurableAgent({
+const agent = new WorkflowAgent({
   model: 'anthropic/claude-opus',
   tools: {
     getWeather: {

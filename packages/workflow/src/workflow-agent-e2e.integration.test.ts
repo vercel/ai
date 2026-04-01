@@ -1,7 +1,7 @@
 /**
- * Integration tests for DurableAgent workflows.
+ * Integration tests for WorkflowAgent workflows.
  *
- * Tests exercise DurableAgent through the workflow runtime using mock
+ * Tests exercise WorkflowAgent through the workflow runtime using mock
  * providers. Tests marked it.fails() correspond to known API gaps.
  *
  * Run with: pnpm test:integration
@@ -28,7 +28,7 @@ import {
   agentToolInputSchemaE2e,
 } from './test/agent-e2e-workflows.js';
 
-describe('DurableAgent integration', { timeout: 120_000 }, () => {
+describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
   // ==========================================================================
   // Core agent tests
   // ==========================================================================

@@ -1,14 +1,14 @@
 export {
-  DurableAgent,
+  WorkflowAgent,
   Output,
   type CompatibleLanguageModel,
   type DownloadFunction,
-  type DurableAgentOptions,
-  type DurableAgentStreamOptions,
-  type DurableAgentStreamResult,
+  type WorkflowAgentOptions,
+  type WorkflowAgentStreamOptions,
+  type WorkflowAgentStreamResult,
   type GenerationSettings,
-  type InferDurableAgentTools,
-  type InferDurableAgentUIMessage,
+  type InferWorkflowAgentTools,
+  type InferWorkflowAgentUIMessage,
   type OutputSpecification,
   type PrepareStepCallback,
   type PrepareStepInfo,
@@ -20,7 +20,7 @@ export {
   type StreamTextTransform,
   type TelemetrySettings,
   type ToolCallRepairFunction,
-} from './durable-agent.js';
+} from './workflow-agent.js';
 
 export {
   createModelCallToUIChunkTransform,

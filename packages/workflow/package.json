@@ -1,7 +1,7 @@
 {
-  "name": "@ai-sdk/durable-agent",
+  "name": "@ai-sdk/workflow",
   "version": "0.0.1",
-  "description": "DurableAgent for building AI agents with AI SDK",
+  "description": "WorkflowAgent for building AI agents with AI SDK",
   "license": "Apache-2.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -73,6 +73,6 @@
   "keywords": [
     "ai",
     "agent",
-    "durable"
+    "workflow"
   ]
 }
