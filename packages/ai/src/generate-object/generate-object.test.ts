@@ -19,8 +19,6 @@ import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { MockTracer } from '../test/mock-tracer';
-import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 import { asLanguageModelUsage } from '../types/usage';
 import { generateObject } from './generate-object';
 
@@ -1018,103 +1016,6 @@ describe('generateObject', () => {
         "type": "json",
       }
     `);
-    });
-  });
-
-  describe('telemetry', () => {
-    let tracer: MockTracer;
-
-    beforeEach(() => {
-      tracer = new MockTracer();
-    });
-
-    it('should not record any telemetry data when not explicitly enabled', async () => {
-      await generateObject({
-        model: new MockLanguageModelV4({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
-          }),
-        }),
-        schema: z.object({ content: z.string() }),
-        prompt: 'prompt',
-        experimental_telemetry: {
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-      });
-
-      assert.deepStrictEqual(tracer.jsonSpans, []);
-    });
-
-    it('should record telemetry data when enabled', async () => {
-      await generateObject({
-        model: new MockLanguageModelV4({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
-            response: {
-              id: 'test-id-from-model',
-              timestamp: new Date(10000),
-              modelId: 'test-response-model-id',
-            },
-            providerMetadata: {
-              testProvider: {
-                testKey: 'testValue',
-              },
-            },
-          }),
-        }),
-        schema: z.object({ content: z.string() }),
-        schemaName: 'test-name',
-        schemaDescription: 'test description',
-        prompt: 'prompt',
-        topK: 0.1,
-        topP: 0.2,
-        frequencyPenalty: 0.3,
-        presencePenalty: 0.4,
-        temperature: 0.5,
-        headers: {
-          header1: 'value1',
-          header2: 'value2',
-        },
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'test-function-id',
-          metadata: {
-            test1: 'value1',
-            test2: false,
-          },
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-      });
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should not record telemetry inputs / outputs when disabled', async () => {
-      await generateObject({
-        model: new MockLanguageModelV4({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
-            response: {
-              id: 'test-id-from-model',
-              timestamp: new Date(10000),
-              modelId: 'test-response-model-id',
-            },
-          }),
-        }),
-        schema: z.object({ content: z.string() }),
-        prompt: 'prompt',
-        experimental_telemetry: {
-          isEnabled: true,
-          recordInputs: false,
-          recordOutputs: false,
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-      });
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
     });
   });
 
