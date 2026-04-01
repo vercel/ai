@@ -1,5 +1,6 @@
 export type { ContentPart } from './content-part';
 export type {
+  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
@@ -24,6 +25,7 @@ export {
   type GeneratedFile,
 } from './generated-file';
 export * as Output from './output';
+export type { Output as OutputInterface } from './output';
 export type {
   InferCompleteOutput as InferGenerateOutput,
   InferPartialOutput as InferStreamOutput,
