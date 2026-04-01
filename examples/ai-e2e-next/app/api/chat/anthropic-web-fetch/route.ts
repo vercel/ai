@@ -1,8 +1,5 @@
 import { anthropicWebFetchAgent } from '@/agent/anthropic/web-fetch-agent';
-import { createAgentUIStreamResponse, registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
-
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+import { createAgentUIStreamResponse } from 'ai';
 
 export async function POST(request: Request) {
   const body = await request.json();
