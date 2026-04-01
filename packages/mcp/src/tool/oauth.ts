@@ -21,6 +21,24 @@ import {
   InvalidGrantError,
   UnauthorizedClientError,
 } from '../error/oauth-error';
+
+/**
+ * Return the canonical resource URI for OAuth parameters.
+ *
+ * `new URL("https://host").href` appends a trailing slash (`https://host/`)
+ * per the WHATWG URL spec, but the MCP spec recommends the form without the
+ * trailing slash for origin-only URIs. Auth servers that do exact matching
+ * reject the slashed form.
+ *
+ * Only strips the slash when the pathname is exactly `/` (origin-only URL).
+ * Path-based resource URIs like `https://host/api/` are left unchanged.
+ */
+function canonicalResourceUri(resource: URL): string {
+  if (resource.pathname === '/') {
+    return resource.href.replace(/\/$/, '');
+  }
+  return resource.href;
+}
 import {
   resourceUrlFromServerUrl,
   checkResourceAllowed,
@@ -451,7 +469,7 @@ export async function startAuthorization(
   }
 
   if (resource) {
-    authorizationUrl.searchParams.set('resource', resource.href);
+    authorizationUrl.searchParams.set('resource', canonicalResourceUri(resource));
   }
 
   return { authorizationUrl, codeVerifier };
@@ -675,7 +693,7 @@ export async function exchangeAuthorization(
   }
 
   if (resource) {
-    params.set('resource', resource.href);
+    params.set('resource', canonicalResourceUri(resource));
   }
 
   const response = await (fetchFn ?? fetch)(tokenUrl, {
@@ -762,7 +780,7 @@ export async function refreshAuthorization(
   }
 
   if (resource) {
-    params.set('resource', resource.href);
+    params.set('resource', canonicalResourceUri(resource));
   }
 
   const response = await (fetchFn ?? fetch)(tokenUrl, {
