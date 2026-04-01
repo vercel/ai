@@ -1,4 +1,8 @@
-import { FilesV4, FilesV4UploadFileResult } from '@ai-sdk/provider';
+import {
+  FilesV4,
+  FilesV4UploadFileCallOptions,
+  FilesV4UploadFileResult,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -35,7 +39,7 @@ export class OpenAIFiles implements FilesV4 {
     mediaType,
     filename,
     providerOptions,
-  }: Parameters<FilesV4['uploadFile']>[0]): Promise<FilesV4UploadFileResult> {
+  }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
     const openaiOptions = (await parseProviderOptions({
       provider: 'openai',
       providerOptions,
