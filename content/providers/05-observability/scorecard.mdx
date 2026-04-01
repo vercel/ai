@@ -34,20 +34,14 @@ export function register() {
 }
 ```
 
-Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at application startup:
+Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at the top of your route files. You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
 
 ```typescript
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetryIntegration, generateText } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { openai } from '@ai-sdk/openai';
 
 registerTelemetryIntegration(new OpenTelemetryIntegration());
-```
-
-You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
-
-```typescript
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
 
 const result = await generateText({
   model: openai('gpt-4o-mini'),

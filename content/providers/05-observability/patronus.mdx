@@ -52,24 +52,16 @@ export function register() {
   `https://otel.patronus.ai:4317`.
 </Note>
 
-### 2. Register the OpenTelemetry integration
+### 2. Register the integration and enable telemetry
 
-Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at application startup:
+Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at the top of your route files. The AI SDK emits a span only when you opt in with `experimental_telemetry`:
 
 ```ts
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetryIntegration, generateText } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { openai } from '@ai-sdk/openai';
 
 registerTelemetryIntegration(new OpenTelemetryIntegration());
-```
-
-### 3. Enable telemetry on individual calls
-
-The AI SDK emits a span only when you opt in with `experimental_telemetry`:
-
-```ts
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
   model: openai('gpt-4o'),

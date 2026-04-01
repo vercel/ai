@@ -32,8 +32,6 @@ npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources @ai-sdk
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PostHogTraceExporter } from '@posthog/ai/otel';
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 
 export function register() {
   const sdk = new NodeSDK({
@@ -46,15 +44,19 @@ export function register() {
     }),
   });
   sdk.start();
-  registerTelemetryIntegration(new OpenTelemetryIntegration());
 }
 ```
 
 **Step 3.** Use the AI SDK with telemetry enabled in your route handlers or server actions
 
-```ts highlight="6-13"
-import { generateText } from 'ai';
+Register the `OpenTelemetryIntegration` at the top of your route file:
+
+```ts highlight="1-4,10-17"
+import { registerTelemetryIntegration, generateText } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { openai } from '@ai-sdk/openai';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const result = await generateText({
   model: openai('gpt-4o'),

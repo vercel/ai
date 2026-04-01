@@ -40,8 +40,6 @@ Then, in your `instrumentation.ts` file add the following:
 
 ```typescript
 import { registerOTel } from '@vercel/otel';
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import {
   isOpenInferenceSpan,
   OpenInferenceSimpleSpanProcessor,
@@ -68,15 +66,20 @@ export function register() {
       }),
     ],
   });
-  registerTelemetryIntegration(new OpenTelemetryIntegration());
 }
 ```
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
 
-You must set the `experimental_telemetry` flag to true in all calls using the AI SDK.
+You must register the `OpenTelemetryIntegration` at the top of your route files and set the `experimental_telemetry` flag to true in all calls using the AI SDK.
 
 ```typescript
+import { registerTelemetryIntegration, generateText } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { openai } from '@ai-sdk/openai';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Please write a haiku.',

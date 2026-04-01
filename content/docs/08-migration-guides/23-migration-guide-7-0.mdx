@@ -41,19 +41,13 @@ const result = await generateText({
 });
 ```
 
-Now, you must register the `OpenTelemetryIntegration` once at application startup:
+Now, you must register the `OpenTelemetryIntegration` at the top of any file where you use the AI SDK. For Next.js, place this at the top of your route files (not in `instrumentation.ts`):
 
-```tsx filename="AI SDK 7"
-import { registerTelemetryIntegration } from 'ai';
+```tsx filename="AI SDK 7 — app/api/chat/route.ts"
+import { registerTelemetryIntegration, generateText } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 
 registerTelemetryIntegration(new OpenTelemetryIntegration());
-```
-
-After registration, enable telemetry on individual calls as before:
-
-```tsx filename="AI SDK 7"
-import { generateText } from 'ai';
 
 const result = await generateText({
   model: yourModel,
@@ -61,6 +55,8 @@ const result = await generateText({
   experimental_telemetry: { isEnabled: true },
 });
 ```
+
+For Node.js applications (without Next.js), register the integration at the top level of your entry file.
 
 This applies to all AI SDK functions that accept `experimental_telemetry`, including `generateText`, `streamText`, `embed`, `embedMany`, and `rerank`.
 

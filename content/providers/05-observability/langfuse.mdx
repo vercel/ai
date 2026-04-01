@@ -17,18 +17,15 @@ description: Monitor, evaluate and debug your AI SDK application with Langfuse
 
 The AI SDK supports tracing via OpenTelemetry. With the `LangfuseSpanProcessor` you can collect these traces in Langfuse.
 
-First, install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at application startup to enable OpenTelemetry span collection:
+Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at the top of your route files to enable OpenTelemetry span collection, then enable telemetry on each request that you want to trace:
 
-```ts
-import { registerTelemetryIntegration } from 'ai';
+```ts highlight="1-5,10"
+import { registerTelemetryIntegration, generateText } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { openai } from '@ai-sdk/openai';
 
 registerTelemetryIntegration(new OpenTelemetryIntegration());
-```
 
-Then enable telemetry on each request that you want to trace:
-
-```ts highlight="4"
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
@@ -86,8 +83,6 @@ npm install @langfuse/otel @langfuse/tracing @opentelemetry/sdk-trace-node @ai-s
 Add `LangfuseSpanProcessor` to your instrumentation using a manual OpenTelemetry setup via `NodeTracerProvider`:
 
 ```ts filename="instrumentation.ts"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor, ShouldExportSpan } from '@langfuse/otel';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
@@ -105,7 +100,6 @@ const tracerProvider = new NodeTracerProvider({
 });
 
 tracerProvider.register();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
 ```
 
 </Tab>

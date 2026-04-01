@@ -33,18 +33,15 @@ export function register() {
 
 Traced LLM calls will appear under the Braintrust project or experiment provided in the `parent` field.
 
-Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at application startup:
+When you call the AI SDK, register the `OpenTelemetryIntegration` at the top of your route file and set `experimental_telemetry`:
 
 ```typescript
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetryIntegration, generateText } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { openai } from '@ai-sdk/openai';
 
 registerTelemetryIntegration(new OpenTelemetryIntegration());
-```
 
-When you call the AI SDK, make sure to set `experimental_telemetry`:
-
-```typescript
 const result = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'What is 2 + 2?',

@@ -63,20 +63,14 @@ export async function register() {
 }
 ```
 
-Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` at application startup (for example in `instrumentation.ts` alongside the OTEL setup above):
+Then register the `OpenTelemetryIntegration` at the top of your route files and enable telemetry where you call the AI SDK:
 
-```ts
-import { registerTelemetryIntegration } from 'ai';
+```ts filename="route.ts" highlight="1-5,12"
+import { registerTelemetryIntegration, generateText } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { openai } from '@ai-sdk/openai';
 
 registerTelemetryIntegration(new OpenTelemetryIntegration());
-```
-
-Then enable telemetry where you call the AI SDK (for example in `route.ts`):
-
-```ts filename="route.ts" highlight="8"
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
 
 export async function POST(req: Request) {
   const { prompt } = await req.json();
