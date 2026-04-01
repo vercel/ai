@@ -38,7 +38,7 @@ npm install ai @ai-sdk/openai @ai-sdk/otel @vercel/otel @arizeai/openinference-v
 
 Then, in your `instrumentation.ts` file add the following, including the AI SDK telemetry integration registration:
 
-```typescript filename="instrumentation.ts"
+```typescript filename="instrumentation"
 import { registerTelemetryIntegration } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';

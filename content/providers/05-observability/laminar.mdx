@@ -66,12 +66,12 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { registerTelemetryIntegration } = await import('ai');
     const { OpenTelemetryIntegration } = await import('@ai-sdk/otel');
-    const { Laminar } = await import('@lmnr-ai/lmnr');
+    const { Laminar, getTracer } = await import('@lmnr-ai/lmnr');
 
     Laminar.initialize({
       projectApiKey: process.env.LMNR_PROJECT_API_KEY,
     });
-    registerTelemetryIntegration(new OpenTelemetryIntegration());
+    registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer: getTracer() }));
   }
 }
 ```
@@ -197,10 +197,10 @@ Then, initialize tracing in your application:
 ```javascript
 import { registerTelemetryIntegration } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
-import { Laminar } from '@lmnr-ai/lmnr';
+import { Laminar, getTracer } from '@lmnr-ai/lmnr';
 
 Laminar.initialize();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer: getTracer() }));
 ```
 
 This must be done once in your application, as early as possible, but _after_ other tracing libraries (e.g. `@sentry/node`) are initialized.

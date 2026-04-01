@@ -23,7 +23,7 @@ pnpm install ai@latest @ai-sdk/react@latest @ai-sdk/openai@latest @ai-sdk/otel@l
 
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
 
-OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetryIntegration` globally before any AI SDK calls.
+OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetryIntegration` globally.
 
 ```bash
 pnpm install @ai-sdk/otel
@@ -43,7 +43,7 @@ const result = await generateText({
 
 Now, you must install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` once at application startup. For Next.js, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup:
 
-```tsx filename="instrumentation.ts"
+```tsx filename="instrumentation"
 import { registerTelemetryIntegration } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 
@@ -54,7 +54,7 @@ registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 For Node.js applications (without Next.js), register the integration at the top level of your entry file.
 
-This applies to all AI SDK functions that accept `experimental_telemetry`, including `generateText`, `streamText`, `embed`, `embedMany`, and `rerank`.
+This applies to all AI SDK functions that accept `experimental_telemetry`, including `generateText`, `streamText`, `ToolLoopAgent`, `embed`, `embedMany`, and `rerank`.
 
 ### Telemetry: `tracer` Property Removed from `experimental_telemetry`
 

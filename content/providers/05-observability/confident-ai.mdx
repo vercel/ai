@@ -42,19 +42,26 @@ registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 ## Tracing Your Application
 
-After registering the integration, enable telemetry on individual AI SDK calls using `experimental_telemetry`:
+You can now pass the `tracer` object into the `experimental_telemetry` field of any AI SDK call to get your traces on the Confident AI platform.
+
+Here are some of the examples on how to trace various AI SDK functions using Confident AI's tracer:
 
 ### Generate text
 
 ```typescript
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { configureAiSdkTracing } from 'deepeval-ts';
+
+const tracer = configureAiSdkTracing();
 
 const { text } = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What are LLMs?',
   experimental_telemetry: {
     isEnabled: true,
+    integrations: new OpenTelemetryIntegration({ tracer }),
   },
 });
 ```
@@ -64,12 +71,18 @@ const { text } = await generateText({
 ```typescript
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { configureAiSdkTracing } from 'deepeval-ts';
+
+const tracer = configureAiSdkTracing();
 
 const result = streamText({
   model: openai('gpt-4o'),
   prompt: 'Invent a new holiday and describe its traditions.',
   experimental_telemetry: {
     isEnabled: true,
+    integrations: new OpenTelemetryIntegration({ tracer }),
+
   },
 });
 
@@ -84,6 +97,10 @@ for await (const textPart of result.textStream) {
 import { generateText, tool, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { configureAiSdkTracing } from 'deepeval-ts';
+
+const tracer = configureAiSdkTracing();
 
 const result = await generateText({
   model: openai('gpt-4o'),
@@ -103,6 +120,7 @@ const result = await generateText({
   prompt: 'What is the weather in San Francisco?',
   experimental_telemetry: {
     isEnabled: true,
+    integrations: new OpenTelemetryIntegration({ tracer }),
   },
 });
 ```
@@ -113,6 +131,10 @@ const result = await generateText({
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { configureAiSdkTracing } from 'deepeval-ts';
+
+const tracer = configureAiSdkTracing();
 
 const { object } = await generateObject({
   model: openai('gpt-4o'),
@@ -126,6 +148,7 @@ const { object } = await generateObject({
   prompt: 'Generate a lasagna recipe.',
   experimental_telemetry: {
     isEnabled: true,
+    integrations: new OpenTelemetryIntegration({ tracer }),
   },
 });
 ```
@@ -155,13 +178,14 @@ import { openai } from '@ai-sdk/openai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { configureAiSdkTracing } from 'deepeval-ts';
 
-configureAiSdkTracing({
+const tracer = configureAiSdkTracing({
   name: 'AI SDK Confident AI Tracing',
   threadId: 'thread-123',
   userId: 'user-456',
   environment: 'production',
 });
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+
+registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer }));
 
 const { text } = await generateText({
   model: openai('gpt-4o'),
@@ -185,10 +209,10 @@ import { configureAiSdkTracing, Prompt } from 'deepeval-ts';
 const prompt = new Prompt({ alias: 'my-prompt-alias' });
 await prompt.pull();
 
-configureAiSdkTracing({
+const tracer = configureAiSdkTracing({
   confidentPrompt: prompt,
 });
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer }));
 
 const { text } = await generateText({
   model: openai('gpt-4o'),
@@ -225,12 +249,12 @@ import { openai } from '@ai-sdk/openai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { configureAiSdkTracing } from 'deepeval-ts';
 
-configureAiSdkTracing({
+const tracer = configureAiSdkTracing({
   metricCollection: 'my-trace-metrics',
   llmMetricCollection: 'my-llm-metrics',
   toolMetricCollection: 'my-tool-metrics',
 });
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer }));
 
 const { text } = await generateText({
   model: openai('gpt-4o'),

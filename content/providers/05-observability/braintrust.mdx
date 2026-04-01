@@ -15,7 +15,7 @@ Braintrust natively supports OpenTelemetry and works out of the box with the AI 
 
 If you are using Next.js, use the Braintrust exporter with `@vercel/otel`:
 
-```typescript filename="instrumentation.ts"
+```typescript filename="instrumentation"
 import { registerTelemetryIntegration } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
