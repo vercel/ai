@@ -1195,7 +1195,7 @@ class DefaultGenerateTextResult<
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
 
   constructor(options: {
-    steps: StepResult<TOOLS, CONTEXT>[];
+    steps: GenerateTextResult<TOOLS, CONTEXT, OUTPUT>['steps'];
     output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
   }) {
