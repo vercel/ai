@@ -33,6 +33,7 @@ export interface ImagePart {
    *
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the image
+   * - ProviderReference: a provider reference from `uploadFile`
    */
   image: DataContent | URL | ProviderReference;
 
@@ -61,7 +62,8 @@ export interface FilePart {
    * File data. Can either be:
    *
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
-   * - URL: a URL that points to the image
+   * - URL: a URL that points to the file
+   * - ProviderReference: a provider reference from `uploadFile`
    */
   data: DataContent | URL | ProviderReference;
 
