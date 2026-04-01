@@ -54,9 +54,26 @@ export type FilesV4 = {
    * that can be used in subsequent API calls.
    */
   uploadFile(options: {
+    /**
+     * The file data as raw bytes or a base64-encoded string.
+     */
     data: Uint8Array | string;
+
+    /**
+     * The IANA media type of the file (e.g. `'application/pdf'`).
+     */
     mediaType?: string;
+
+    /**
+     * The filename of the file.
+     */
     filename?: string;
+
+    /**
+     * Additional provider-specific options. They are passed through
+     * to the provider from the AI SDK and enable provider-specific
+     * functionality that can be fully encapsulated in the provider.
+     */
     providerOptions?: SharedV4ProviderOptions;
   }): PromiseLike<FilesV4UploadFileResult>;
 };
