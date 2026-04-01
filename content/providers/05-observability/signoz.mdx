@@ -126,7 +126,7 @@ const result = await generateText({
 If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetryIntegration` constructor:
 
 ```jsx
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetryIntegration, generateText } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 
 const tracerProvider = new NodeTracerProvider();
@@ -135,6 +135,14 @@ registerTelemetryIntegration(
     tracer: tracerProvider.getTracer('ai'),
   }),
 );
+
+const result = await generateText({
+  model: openai('gpt-5-mini'),
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: {
+    isEnabled: true,
+  },
+});
 ```
 
 Your Vercel AI SDK commands should now automatically emit traces, spans, and events. You can find more details on the types of spans and events generated [here](https://ai-sdk.dev/docs/ai-sdk-core/telemetry#collected-data).

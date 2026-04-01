@@ -88,9 +88,9 @@ import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const otelTracer = trace.getTracer('next-app');
+  const tracer = trace.getTracer('next-app');
 
-  return await otelTracer.startActiveSpan('chat-evaluate', async span => {
+  return await tracer.startActiveSpan('chat-evaluate', async span => {
     try {
       /* 1️⃣ generate answer */
       const answer = await generateText({
