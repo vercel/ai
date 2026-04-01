@@ -13,7 +13,7 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { createAnthropicFiles } from './anthropic-files';
+import { AnthropicFiles } from './anthropic-files';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
@@ -171,7 +171,7 @@ export function createAnthropic(
   };
 
   provider.files = () =>
-    createAnthropicFiles({
+    new AnthropicFiles({
       provider: providerName,
       baseURL,
       headers: getHeaders,

@@ -28,77 +28,77 @@ const anthropicUploadFileResponseSchema = lazySchema(() =>
   ),
 );
 
-export function createAnthropicFiles({
-  provider,
-  baseURL,
-  headers,
-  fetch,
-}: {
+interface AnthropicFilesConfig {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
-}): FilesV4 {
-  return {
-    specificationVersion: 'v4',
-    provider,
+}
 
-    async uploadFile({
-      data,
-      mediaType,
-      filename,
+export class AnthropicFiles implements FilesV4 {
+  readonly specificationVersion = 'v4';
+
+  get provider(): string {
+    return this.config.provider;
+  }
+
+  constructor(private readonly config: AnthropicFilesConfig) {}
+
+  async uploadFile({
+    data,
+    mediaType,
+    filename,
+    providerOptions,
+  }: Parameters<FilesV4['uploadFile']>[0]): Promise<FilesV4UploadFileResult> {
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
       providerOptions,
-    }): Promise<FilesV4UploadFileResult> {
-      const anthropicOptions = await parseProviderOptions({
-        provider: 'anthropic',
-        providerOptions,
-        schema: zodSchema(anthropicUploadFileProviderOptions),
-      });
+      schema: zodSchema(anthropicUploadFileProviderOptions),
+    });
 
-      const fileBytes =
-        data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
+    const fileBytes =
+      data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
 
-      const resolvedMediaType = mediaType ?? 'application/octet-stream';
+    const resolvedMediaType = mediaType ?? 'application/octet-stream';
 
-      const blob = new Blob([fileBytes], { type: resolvedMediaType });
+    const blob = new Blob([fileBytes], { type: resolvedMediaType });
 
-      const formData = new FormData();
-      if (filename != null) {
-        formData.append('file', blob, filename);
-      } else {
-        formData.append('file', blob);
-      }
+    const formData = new FormData();
+    if (filename != null) {
+      formData.append('file', blob, filename);
+    } else {
+      formData.append('file', blob);
+    }
 
-      const { value: response } = await postFormDataToApi({
-        url: `${baseURL}/files`,
-        headers: combineHeaders(headers(), {
-          'anthropic-beta': 'files-api-2025-04-14',
-        }),
-        formData,
-        failedResponseHandler: anthropicFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(
-          anthropicUploadFileResponseSchema,
-        ),
-        fetch,
-      });
+    const { value: response } = await postFormDataToApi({
+      url: `${this.config.baseURL}/files`,
+      headers: combineHeaders(this.config.headers(), {
+        'anthropic-beta': 'files-api-2025-04-14',
+      }),
+      formData,
+      failedResponseHandler: anthropicFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        anthropicUploadFileResponseSchema,
+      ),
+      fetch: this.config.fetch,
+    });
 
-      return {
-        warnings: [],
-        providerReference: { anthropic: response.id },
-        mediaType: response.mime_type ?? resolvedMediaType,
-        filename: response.filename ?? filename,
-        providerMetadata: {
-          anthropic: {
-            filename: response.filename,
-            mimeType: response.mime_type,
-            sizeBytes: response.size_bytes,
-            createdAt: response.created_at,
-            ...(response.downloadable != null
-              ? { downloadable: response.downloadable }
-              : {}),
-          },
+    return {
+      warnings: [],
+      providerReference: { anthropic: response.id },
+      mediaType: response.mime_type ?? resolvedMediaType,
+      filename: response.filename ?? filename,
+      providerMetadata: {
+        anthropic: {
+          filename: response.filename,
+          mimeType: response.mime_type,
+          sizeBytes: response.size_bytes,
+          createdAt: response.created_at,
+          ...(response.downloadable != null
+            ? { downloadable: response.downloadable }
+            : {}),
         },
-      };
-    },
-  };
+      },
+    };
+  }
 }

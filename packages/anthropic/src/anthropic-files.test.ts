@@ -1,6 +1,6 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
-import { createAnthropicFiles } from './anthropic-files';
+import { AnthropicFiles } from './anthropic-files';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -11,7 +11,7 @@ const server = createTestServer({
 });
 
 const createFiles = (options?: { headers?: Record<string, string> }) =>
-  createAnthropicFiles({
+  new AnthropicFiles({
     provider: 'anthropic.files',
     baseURL: 'https://api.anthropic.com/v1',
     headers: () => ({

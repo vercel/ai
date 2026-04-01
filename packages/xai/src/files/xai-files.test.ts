@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createXaiFiles } from './xai-files';
+import { XaiFiles } from './xai-files';
 
 const mockFetchResponse = ({
   body,
@@ -23,7 +23,7 @@ const defaultResponseBody = {
   filename: 'upload',
 };
 
-describe('createXaiFiles', () => {
+describe('XaiFiles', () => {
   let mockHeaders: () => Record<string, string | undefined>;
 
   beforeEach(() => {
@@ -36,7 +36,7 @@ describe('createXaiFiles', () => {
     it('should send a multipart POST to /v1/files', async () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -62,7 +62,7 @@ describe('createXaiFiles', () => {
         body: { ...defaultResponseBody, id: 'file-xyz789' },
       });
 
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -87,7 +87,7 @@ describe('createXaiFiles', () => {
         },
       });
 
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -110,7 +110,7 @@ describe('createXaiFiles', () => {
     it('should pass custom filename when provided', async () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -131,7 +131,7 @@ describe('createXaiFiles', () => {
     it('should use default filename "blob" when not provided', async () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -151,7 +151,7 @@ describe('createXaiFiles', () => {
     it('should pass teamId as team_id when provided', async () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -173,7 +173,7 @@ describe('createXaiFiles', () => {
     it('should not include team_id when not provided', async () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -192,7 +192,7 @@ describe('createXaiFiles', () => {
     it('should convert base64 string data to bytes', async () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -223,7 +223,7 @@ describe('createXaiFiles', () => {
         },
       });
 
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -240,7 +240,7 @@ describe('createXaiFiles', () => {
     it('should return empty warnings array', async () => {
       const fetchMock = mockFetchResponse({ body: defaultResponseBody });
 
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -255,7 +255,7 @@ describe('createXaiFiles', () => {
     });
 
     it('should have specificationVersion v4', () => {
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,
@@ -265,7 +265,7 @@ describe('createXaiFiles', () => {
     });
 
     it('should have the correct provider name', () => {
-      const files = createXaiFiles({
+      const files = new XaiFiles({
         provider: 'xai.files',
         baseURL: 'https://api.x.ai/v1',
         headers: mockHeaders,

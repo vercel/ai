@@ -14,8 +14,6 @@ import {
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  type Resolvable,
-  resolve,
   zodSchema,
   getFromApi,
 } from '@ai-sdk/provider-utils';
@@ -33,7 +31,7 @@ export type GoogleFilesUploadOptions = {
 interface GoogleGenerativeAIFilesConfig {
   provider: string;
   baseURL: string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 }
 
@@ -55,7 +53,7 @@ export class GoogleGenerativeAIFiles implements FilesV4 {
       schema: googleFilesUploadOptionsSchema,
     })) as GoogleFilesUploadOptions | undefined;
 
-    const resolvedHeaders = await resolve(this.config.headers);
+    const resolvedHeaders = this.config.headers();
     const fetchFn = this.config.fetch ?? globalThis.fetch;
 
     const warnings: Array<SharedV4Warning> = [];

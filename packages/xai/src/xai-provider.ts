@@ -21,7 +21,7 @@ import { XaiResponsesLanguageModel } from './responses/xai-responses-language-mo
 import { XaiResponsesModelId } from './responses/xai-responses-options';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
-import { createXaiFiles } from './files/xai-files';
+import { XaiFiles } from './files/xai-files';
 import { XaiVideoModel } from './xai-video-model';
 import { XaiVideoModelId } from './xai-video-settings';
 
@@ -158,7 +158,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   };
 
   const createFiles = () =>
-    createXaiFiles({
+    new XaiFiles({
       provider: 'xai.files',
       baseURL,
       headers: getHeaders,
