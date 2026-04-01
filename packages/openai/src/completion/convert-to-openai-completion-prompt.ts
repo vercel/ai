@@ -1,6 +1,6 @@
 import {
   InvalidPromptError,
-  LanguageModelV3Prompt,
+  LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 
@@ -9,7 +9,7 @@ export function convertToOpenAICompletionPrompt({
   user = 'user',
   assistant = 'assistant',
 }: {
-  prompt: LanguageModelV3Prompt;
+  prompt: LanguageModelV4Prompt;
   user?: string;
   assistant?: string;
 }): {

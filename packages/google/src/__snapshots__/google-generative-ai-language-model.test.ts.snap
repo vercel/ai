@@ -21,9 +21,11 @@ Here is the breakdown: st**r**awbe**rr**y.",
   },
   "providerMetadata": {
     "google": {
+      "finishMessage": null,
       "groundingMetadata": null,
       "promptFeedback": null,
       "safetyRatings": null,
+      "serviceTier": null,
       "urlContextMetadata": null,
       "usageMetadata": {
         "candidatesTokenCount": 29,
@@ -62,6 +64,7 @@ Here is the breakdown: st**r**awbe**rr**y.",
       },
       "labels": undefined,
       "safetySettings": undefined,
+      "serviceTier": undefined,
       "systemInstruction": undefined,
       "toolConfig": undefined,
       "tools": undefined,
@@ -150,9 +153,11 @@ Here is the breakdown: st**r**awbe**rr**y.",
   },
   "providerMetadata": {
     "google": {
+      "finishMessage": null,
       "groundingMetadata": null,
       "promptFeedback": null,
       "safetyRatings": null,
+      "serviceTier": null,
       "urlContextMetadata": null,
       "usageMetadata": {
         "candidatesTokenCount": 28,
@@ -191,6 +196,7 @@ Here is the breakdown: st**r**awbe**rr**y.",
       },
       "labels": undefined,
       "safetySettings": undefined,
+      "serviceTier": undefined,
       "systemInstruction": undefined,
       "toolConfig": undefined,
       "tools": undefined,
@@ -301,9 +307,11 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
   },
   "providerMetadata": {
     "google": {
+      "finishMessage": "Model generated function call(s).",
       "groundingMetadata": null,
       "promptFeedback": null,
       "safetyRatings": null,
+      "serviceTier": null,
       "urlContextMetadata": null,
       "usageMetadata": {
         "candidatesTokenCount": 15,
@@ -342,6 +350,7 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
       },
       "labels": undefined,
       "safetySettings": undefined,
+      "serviceTier": undefined,
       "systemInstruction": undefined,
       "toolConfig": undefined,
       "tools": [
@@ -454,9 +463,11 @@ exports[`doGenerate > tool-call-gemini3 > should extract tool call with thoughtS
   },
   "providerMetadata": {
     "google": {
+      "finishMessage": "Model generated function call(s).",
       "groundingMetadata": null,
       "promptFeedback": null,
       "safetyRatings": null,
+      "serviceTier": null,
       "urlContextMetadata": null,
       "usageMetadata": {
         "candidatesTokenCount": 15,
@@ -495,6 +506,7 @@ exports[`doGenerate > tool-call-gemini3 > should extract tool call with thoughtS
       },
       "labels": undefined,
       "safetySettings": undefined,
+      "serviceTier": undefined,
       "systemInstruction": undefined,
       "toolConfig": undefined,
       "tools": undefined,
@@ -612,9 +624,11 @@ Here is the breakdown: st**r**awbe**rr**y.",
     },
     "providerMetadata": {
       "google": {
+        "finishMessage": null,
         "groundingMetadata": null,
         "promptFeedback": null,
         "safetyRatings": null,
+        "serviceTier": null,
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 29,
@@ -694,9 +708,11 @@ exports[`doStream > reasoning-gemini3 > should stream reasoning with thoughtSign
     },
     "providerMetadata": {
       "google": {
+        "finishMessage": null,
         "groundingMetadata": null,
         "promptFeedback": null,
         "safetyRatings": null,
+        "serviceTier": null,
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 23,
@@ -881,9 +897,11 @@ st**r**awbe**rr**y",
     },
     "providerMetadata": {
       "google": {
+        "finishMessage": null,
         "groundingMetadata": null,
         "promptFeedback": null,
         "safetyRatings": null,
+        "serviceTier": null,
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 23,
@@ -970,9 +988,11 @@ exports[`doStream > tool-call > should stream tool call 1`] = `
     },
     "providerMetadata": {
       "google": {
+        "finishMessage": null,
         "groundingMetadata": null,
         "promptFeedback": null,
         "safetyRatings": null,
+        "serviceTier": null,
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 15,
@@ -1059,9 +1079,11 @@ exports[`doStream > tool-call-gemini3 > should stream tool call with thoughtSign
     },
     "providerMetadata": {
       "google": {
+        "finishMessage": null,
         "groundingMetadata": null,
         "promptFeedback": null,
         "safetyRatings": null,
+        "serviceTier": null,
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 15,

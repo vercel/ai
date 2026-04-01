@@ -1,4 +1,4 @@
-import { SharedV3Headers } from '../../shared';
+import { SharedV4Headers } from '../../shared';
 import { LanguageModelV4StreamPart } from './language-model-v4-stream-part';
 
 /**
@@ -27,6 +27,6 @@ export type LanguageModelV4StreamResult = {
     /**
      * Response headers.
      */
-    headers?: SharedV3Headers;
+    headers?: SharedV4Headers;
   };
 };

@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -37,8 +37,8 @@ const RESOLUTION_MAP: Record<string, string> = {
   '640x480': '480p',
 };
 
-export class XaiVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class XaiVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
@@ -51,10 +51,10 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     const xaiOptions = (await parseProviderOptions({
       provider: 'xai',
@@ -239,6 +239,14 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
         statusResponse.status === 'done' ||
         (statusResponse.status == null && statusResponse.video?.url)
       ) {
+        if (statusResponse.video?.respect_moderation === false) {
+          throw new AISDKError({
+            name: 'XAI_VIDEO_MODERATION_ERROR',
+            message:
+              'Video generation was blocked due to a content policy violation.',
+          });
+        }
+
         if (!statusResponse.video?.url) {
           throw new AISDKError({
             name: 'XAI_VIDEO_GENERATION_ERROR',
@@ -267,6 +275,9 @@ export class XaiVideoModel implements Experimental_VideoModelV3 {
               videoUrl: statusResponse.video.url,
               ...(statusResponse.video.duration != null
                 ? { duration: statusResponse.video.duration }
+                : {}),
+              ...(statusResponse.usage?.cost_in_usd_ticks != null
+                ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
                 : {}),
             },
           },
@@ -299,4 +310,9 @@ const xaiVideoStatusResponseSchema = z.object({
     })
     .nullish(),
   model: z.string().nullish(),
+  usage: z
+    .object({
+      cost_in_usd_ticks: z.number().nullish(),
+    })
+    .nullish(),
 });

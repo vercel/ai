@@ -1,8 +1,5 @@
-import {
-  bedrock,
-  type AmazonBedrockLanguageModelOptions,
-} from '@ai-sdk/amazon-bedrock';
-import { stepCountIs, streamText } from 'ai';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { isStepCount, streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -13,13 +10,9 @@ run(async () => {
     onError: error => {
       console.error(error);
     },
-    providerOptions: {
-      bedrock: {
-        reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
-      } satisfies AmazonBedrockLanguageModelOptions,
-    },
+    reasoning: 'low',
     maxRetries: 0,
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   for await (const part of result.fullStream) {

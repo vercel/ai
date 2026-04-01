@@ -1,7 +1,7 @@
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
-import { stepCountIs } from '../generate-text/stop-condition';
+import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
@@ -18,14 +18,13 @@ import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
  * - A finish reasoning other than tool-calls is returned, or
  * - A tool that is invoked does not have an execute function, or
  * - A tool call needs approval, or
- * - A stop condition is met (default stop condition is stepCountIs(20))
+ * - A stop condition is met (default stop condition is isStepCount(20))
  */
 export class ToolLoopAgent<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-> implements Agent<CALL_OPTIONS, TOOLS, OUTPUT>
-{
+> implements Agent<CALL_OPTIONS, TOOLS, OUTPUT> {
   readonly version = 'agent-v1';
 
   private readonly settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>;
@@ -78,7 +77,7 @@ export class ToolLoopAgent<
 
     const baseCallArgs = {
       ...settingsWithoutCallbacks,
-      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
+      stopWhen: this.settings.stopWhen ?? isStepCount(20),
       ...options,
     };
 

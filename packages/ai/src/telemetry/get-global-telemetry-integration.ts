@@ -17,35 +17,37 @@ export function bindTelemetryIntegration(
     onStepStart: integration.onStepStart?.bind(integration),
     onToolCallStart: integration.onToolCallStart?.bind(integration),
     onToolCallFinish: integration.onToolCallFinish?.bind(integration),
+    onChunk: integration.onChunk?.bind(integration),
     onStepFinish: integration.onStepFinish?.bind(integration),
+    onObjectStepStart: integration.onObjectStepStart?.bind(integration),
+    onObjectStepFinish: integration.onObjectStepFinish?.bind(integration),
+    onEmbedStart: integration.onEmbedStart?.bind(integration),
+    onEmbedFinish: integration.onEmbedFinish?.bind(integration),
+    onRerankStart: integration.onRerankStart?.bind(integration),
+    onRerankFinish: integration.onRerankFinish?.bind(integration),
     onFinish: integration.onFinish?.bind(integration),
+    onError: integration.onError?.bind(integration),
+    executeTool: integration.executeTool?.bind(integration),
   };
 }
 
-/**
- * Creates a factory that merges globally registered integrations
- * (via `registerTelemetryIntegration`) with per-call integrations
- * into a single composite integration.
- *
- * Returns a factory function that accepts local integrations and
- * returns the merged TelemetryIntegration.
- */
 export function getGlobalTelemetryIntegration<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
->(): (
-  integrations: TelemetryIntegration | Array<TelemetryIntegration> | undefined,
-) => TelemetryIntegration {
+>(): (args?: {
+  integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
+}) => TelemetryIntegration {
   const globalIntegrations = getGlobalTelemetryIntegrations();
 
-  return (
-    integrations:
-      | TelemetryIntegration
-      | Array<TelemetryIntegration>
-      | undefined,
-  ): TelemetryIntegration => {
+  return ({
+    integrations,
+  }: {
+    integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
+  } = {}): TelemetryIntegration => {
     const localIntegrations = asArray(integrations);
-    const allIntegrations = [...globalIntegrations, ...localIntegrations];
+    const allIntegrations = [...globalIntegrations, ...localIntegrations].map(
+      bindTelemetryIntegration,
+    );
 
     function createTelemetryComposite<EVENT>(
       getListenerFromIntegration: (
@@ -65,6 +67,10 @@ export function getGlobalTelemetryIntegration<
       };
     }
 
+    const executeWrappers = allIntegrations
+      .map(integration => integration.executeTool)
+      .filter(Boolean) as Array<TelemetryIntegration['executeTool']>;
+
     return {
       onStart: createTelemetryComposite(integration => integration.onStart),
       onStepStart: createTelemetryComposite(
@@ -76,10 +82,41 @@ export function getGlobalTelemetryIntegration<
       onToolCallFinish: createTelemetryComposite(
         integration => integration.onToolCallFinish,
       ),
+      onChunk: createTelemetryComposite(integration => integration.onChunk),
       onStepFinish: createTelemetryComposite(
         integration => integration.onStepFinish,
       ),
+      onObjectStepStart: createTelemetryComposite(
+        integration => integration.onObjectStepStart,
+      ),
+      onObjectStepFinish: createTelemetryComposite(
+        integration => integration.onObjectStepFinish,
+      ),
+      onEmbedStart: createTelemetryComposite(
+        integration => integration.onEmbedStart,
+      ),
+      onEmbedFinish: createTelemetryComposite(
+        integration => integration.onEmbedFinish,
+      ),
+      onRerankStart: createTelemetryComposite(
+        integration => integration.onRerankStart,
+      ),
+      onRerankFinish: createTelemetryComposite(
+        integration => integration.onRerankFinish,
+      ),
       onFinish: createTelemetryComposite(integration => integration.onFinish),
+      onError: createTelemetryComposite(integration => integration.onError),
+      executeTool:
+        executeWrappers.length > 0
+          ? async params => {
+              let execute = params.execute;
+              for (const wrapper of executeWrappers) {
+                const inner = execute;
+                execute = () => wrapper!({ ...params, execute: inner });
+              }
+              return execute();
+            }
+          : undefined,
     };
   };
 }

@@ -1,4 +1,4 @@
-import { SharedV3Warning, TranscriptionModelV3 } from '@ai-sdk/provider';
+import { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -61,8 +61,8 @@ interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
   };
 }
 
-export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -75,8 +75,8 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const deepgramOptions = await parseProviderOptions({
@@ -125,8 +125,8 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { queryParams, warnings } = await this.getArgs(options);
 

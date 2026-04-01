@@ -76,7 +76,7 @@ Gemini 3 excels at tool calling with improved reliability and consistency for mu
 
 ```ts
 import { z } from 'zod';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { google } from '@ai-sdk/google';
 
 const result = await generateText({
@@ -94,7 +94,7 @@ const result = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5), // enables multi-step calling
+  stopWhen: isStepCount(5), // enables multi-step calling
 });
 
 console.log(result.text);

@@ -1,8 +1,5 @@
-import {
-  bedrock,
-  type AmazonBedrockLanguageModelOptions,
-} from '@ai-sdk/amazon-bedrock';
-import { ModelMessage, generateText, stepCountIs } from 'ai';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { ModelMessage, generateText, isStepCount } from 'ai';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
@@ -24,12 +21,8 @@ run(async () => {
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,
-      stopWhen: stepCountIs(5),
-      providerOptions: {
-        bedrock: {
-          reasoningConfig: { type: 'enabled', budgetTokens: 2048 },
-        } satisfies AmazonBedrockLanguageModelOptions,
-      },
+      stopWhen: isStepCount(5),
+      reasoning: 'medium',
     });
 
     for (const step of steps) {

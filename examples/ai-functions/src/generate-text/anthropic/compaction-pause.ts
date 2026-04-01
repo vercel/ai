@@ -11,7 +11,7 @@ import { run } from '../../lib/run';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const documentCorpus = readFileSync(
-  join(__dirname, '../../data/anthropic-compaction-data.txt'),
+  join(__dirname, '../../data/compaction-data.txt'),
   'utf-8',
 );
 
