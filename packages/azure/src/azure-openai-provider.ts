@@ -213,6 +213,8 @@ export function createAzure(
       url,
       headers: getHeaders,
       fetch: options.fetch,
+      // Soft-deprecated. TODO: remove in v8
+      fileIdPrefixes: ['assistant-'],
     });
 
   const createImageModel = (modelId: string) =>
