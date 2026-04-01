@@ -3,7 +3,7 @@ import { ProviderMetadata } from '../types';
 import { ValueOf } from '../../src/util/value-of';
 import { ToolSet } from './tool-set';
 
-export type StaticToolResult<TOOLS extends ToolSet = ToolSet> = ValueOf<{
+export type StaticToolResult<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: {
     type: 'tool-result';
     toolCallId: string;
@@ -31,6 +31,6 @@ export type DynamicToolResult = {
   title?: string;
 };
 
-export type TypedToolResult<TOOLS extends ToolSet = ToolSet> =
+export type TypedToolResult<TOOLS extends ToolSet> =
   | StaticToolResult<TOOLS>
   | DynamicToolResult;
