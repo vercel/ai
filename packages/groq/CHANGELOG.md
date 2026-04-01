@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 7bf717f: feat: Groq support for performance service tier
+
 ## 4.0.0-beta.9
 
 ### Patch Changes
