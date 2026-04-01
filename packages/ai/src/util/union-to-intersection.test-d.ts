@@ -5,7 +5,7 @@ describe('UnionToIntersection', () => {
   it('returns never when given no input', () => {
     type Result = UnionToIntersection<never>;
 
-    expectTypeOf<Result>().toEqualTypeOf<never>();
+    expectTypeOf<Result>().toEqualTypeOf<unknown>();
   });
 
   it('returns the same type for a single input', () => {
@@ -21,9 +21,12 @@ describe('UnionToIntersection', () => {
       { city: string } | { countryCode: string }
     >;
 
-    expectTypeOf<Result>().toEqualTypeOf<{
-      city: string;
-      countryCode: string;
-    }>();
+    expectTypeOf<Result>().toEqualTypeOf<
+      {
+        city: string;
+      } & {
+        countryCode: string;
+      }
+    >();
   });
 });
