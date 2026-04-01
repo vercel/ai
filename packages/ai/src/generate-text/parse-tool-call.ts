@@ -78,9 +78,10 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       return await doParseToolCall({ toolCall: repairedToolCall, tools });
     }
   } catch (error) {
-    // use parsed input when possible
     const parsedInput = await safeParseJSON({ text: toolCall.input });
-    const input = parsedInput.success ? parsedInput.value : toolCall.input;
+    const input = parsedInput.success
+      ? parsedInput.value
+      : { __invalidObject: toolCall.input };
 
     // TODO AI SDK 6: special invalid tool call parts
     return {
