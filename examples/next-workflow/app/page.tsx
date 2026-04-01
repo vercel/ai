@@ -14,9 +14,9 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-screen max-w-2xl mx-auto">
       <header className="p-4 border-b">
-        <h1 className="text-lg font-semibold">DurableAgent Chat</h1>
+        <h1 className="text-lg font-semibold">WorkflowAgent Chat</h1>
         <p className="text-sm text-gray-500">
-          A durable AI agent with weather and calculator tools
+          A workflow AI agent with weather and calculator tools
         </p>
       </header>
 

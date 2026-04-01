@@ -24,7 +24,7 @@ import type {
   PrepareStepCallback,
   StreamTextOnErrorCallback,
   TelemetrySettings,
-} from './durable-agent.js';
+} from './workflow-agent.js';
 import type { CompatibleLanguageModel } from './types.js';
 
 // Re-export for consumers

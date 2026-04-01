@@ -1,5 +1,5 @@
 /**
- * Tests for DurableAgent
+ * Tests for WorkflowAgent
  *
  * These tests focus on error handling in tool execution,
  * particularly for FatalError conversion to tool result errors,
@@ -22,13 +22,13 @@ vi.mock('./stream-text-iterator.js', () => ({
 }));
 
 // Import after mocking
-const { DurableAgent } = await import('./durable-agent.js');
+const { WorkflowAgent } = await import('./workflow-agent.js');
 
 import type { ParsedToolCall } from './do-stream-step.js';
 import type {
   PrepareStepCallback,
   ToolCallRepairFunction,
-} from './durable-agent.js';
+} from './workflow-agent.js';
 import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
 
 /**
@@ -54,7 +54,7 @@ type MockIterator = AsyncGenerator<
   LanguageModelV4ToolResultPart[]
 >;
 
-describe('DurableAgent', () => {
+describe('WorkflowAgent', () => {
   describe('tool execution error handling', () => {
     it('should convert FatalError to tool error result', async () => {
       const errorMessage = 'This is a fatal error';
@@ -72,7 +72,7 @@ describe('DurableAgent', () => {
       // Create a mock model that will trigger tool calls
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -148,7 +148,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -220,7 +220,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -292,7 +292,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -378,7 +378,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -474,7 +474,7 @@ describe('DurableAgent', () => {
     it('should handle provider-executed tool errors with isError flag', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -551,7 +551,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -636,7 +636,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -715,7 +715,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -816,7 +816,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -878,7 +878,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -941,7 +941,7 @@ describe('DurableAgent', () => {
     it('should pass prepareStep callback to streamTextIterator', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -978,7 +978,7 @@ describe('DurableAgent', () => {
     it('should allow prepareStep to modify messages', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -1024,7 +1024,7 @@ describe('DurableAgent', () => {
     it('should allow prepareStep to change model dynamically', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -1069,7 +1069,7 @@ describe('DurableAgent', () => {
     it('should provide step information to prepareStep callback', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -1139,7 +1139,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -1228,7 +1228,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -1317,7 +1317,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -1428,7 +1428,7 @@ describe('DurableAgent', () => {
     it('should pass generation settings from constructor to streamTextIterator', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
         temperature: 0.7,
@@ -1470,7 +1470,7 @@ describe('DurableAgent', () => {
     it('should allow stream options to override constructor generation settings', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
         temperature: 0.7,
@@ -1511,7 +1511,7 @@ describe('DurableAgent', () => {
     it('should pass maxSteps to streamTextIterator', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -1547,7 +1547,7 @@ describe('DurableAgent', () => {
     it('should pass toolChoice from constructor to streamTextIterator', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
         toolChoice: 'required',
@@ -1581,7 +1581,7 @@ describe('DurableAgent', () => {
     it('should allow stream options to override constructor toolChoice', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
         toolChoice: 'auto',
@@ -1636,7 +1636,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -1674,7 +1674,7 @@ describe('DurableAgent', () => {
     it('should pass onError callback to streamTextIterator', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -1721,7 +1721,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -1785,7 +1785,7 @@ describe('DurableAgent', () => {
     it('should call onFinish with steps and messages when streaming completes', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -1856,7 +1856,7 @@ describe('DurableAgent', () => {
     it('should call onAbort when abort signal is already aborted', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -1906,7 +1906,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools,
       });
@@ -1958,7 +1958,7 @@ describe('DurableAgent', () => {
     it('should return messages and steps in result', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -2028,7 +2028,7 @@ describe('DurableAgent', () => {
 
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -2066,7 +2066,7 @@ describe('DurableAgent', () => {
     it('should pass includeRawChunks to streamTextIterator', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -2108,7 +2108,7 @@ describe('DurableAgent', () => {
         metadata: { version: '1.0' },
       };
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
         experimental_telemetry: telemetrySettings,
@@ -2142,7 +2142,7 @@ describe('DurableAgent', () => {
     it('should allow stream options to override constructor telemetry', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
         experimental_telemetry: { functionId: 'constructor-id' },
@@ -2177,11 +2177,11 @@ describe('DurableAgent', () => {
     });
   });
 
-  /* collectUIMessages tests removed — DurableAgent no longer handles UIMessageChunks
+  /* collectUIMessages tests removed — WorkflowAgent no longer handles UIMessageChunks
     it('should return undefined uiMessages when collectUIMessages is false', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -2211,7 +2211,7 @@ describe('DurableAgent', () => {
     it('should return undefined uiMessages when collectUIMessages is not set', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -2240,7 +2240,7 @@ describe('DurableAgent', () => {
     it('should pass collectUIChunks to streamTextIterator when collectUIMessages is true', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -2277,7 +2277,7 @@ describe('DurableAgent', () => {
     it('should work correctly when collectUIMessages is true and sendFinish is false', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });
@@ -2322,7 +2322,7 @@ describe('DurableAgent', () => {
     it('should not write finish chunk but still return uiMessages when sendFinish is false', async () => {
       const mockModel = createMockModel();
 
-      const agent = new DurableAgent({
+      const agent = new WorkflowAgent({
         model: async () => mockModel,
         tools: {},
       });

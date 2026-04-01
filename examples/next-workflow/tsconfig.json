@@ -34,7 +34,7 @@
       "path": "../../packages/react"
     },
     {
-      "path": "../../packages/durable-agent"
+      "path": "../../packages/workflow"
     }
   ]
 }

@@ -16,7 +16,7 @@ import {
   type ToolSet,
 } from 'ai';
 import { resolveLanguageModel } from 'ai/internal';
-import type { ProviderOptions, TelemetrySettings } from './durable-agent.js';
+import type { ProviderOptions, TelemetrySettings } from './workflow-agent.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
@@ -241,7 +241,7 @@ export async function doStreamStep(
   const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
 
   const step: StepResult<ToolSet> = {
-    callId: 'durable-agent',
+    callId: 'workflow-agent',
     stepNumber: 0,
     model: {
       provider: responseMetadata?.modelId?.split(':')[0] ?? 'unknown',
