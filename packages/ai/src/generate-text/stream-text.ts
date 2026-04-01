@@ -16,6 +16,7 @@ import {
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
+import { logDefaultStopWhenWarningIfNeeded } from './default-stop-when-warning';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
   CallSettings,
@@ -302,7 +303,7 @@ export function streamText<
   abortSignal,
   timeout,
   headers,
-  stopWhen = isStepCount(1),
+  stopWhen: stopWhenFromUser,
   experimental_output,
   output = experimental_output,
   experimental_telemetry: telemetry,
@@ -331,6 +332,8 @@ export function streamText<
     now = originalNow,
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
+    usedDefaultStopWhen: usedDefaultStopWhenFromInternal,
+    defaultStopStepCount: defaultStopStepCountFromInternal,
   } = {},
   ...settings
 }: CallSettings &
@@ -534,8 +537,18 @@ export function streamText<
       now?: () => number;
       generateId?: IdGenerator;
       generateCallId?: IdGenerator;
+      usedDefaultStopWhen?: boolean;
+      defaultStopStepCount?: number;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
+  const usedDefaultStopWhen =
+    usedDefaultStopWhenFromInternal !== undefined
+      ? usedDefaultStopWhenFromInternal
+      : stopWhenFromUser === undefined;
+
+  const defaultStopStepCount = defaultStopStepCountFromInternal ?? 1;
+  const stopWhen = stopWhenFromUser ?? isStepCount(defaultStopStepCount);
+
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
@@ -590,6 +603,8 @@ export function streamText<
     experimental_context,
     download,
     include,
+    usedDefaultStopWhen,
+    defaultStopStepCount,
   });
 }
 
@@ -728,6 +743,10 @@ class DefaultStreamTextResult<
 
   private tools: TOOLS | undefined;
 
+  private readonly usedDefaultStopWhen: boolean;
+
+  private readonly defaultStopStepCount: number;
+
   constructor({
     model,
     telemetry,
@@ -770,6 +789,8 @@ class DefaultStreamTextResult<
     experimental_context,
     download,
     include,
+    usedDefaultStopWhen,
+    defaultStopStepCount,
   }: {
     model: LanguageModelV4;
     telemetry: TelemetrySettings | undefined;
@@ -817,7 +838,11 @@ class DefaultStreamTextResult<
     onStepStart: undefined | StreamTextOnStepStartCallback<TOOLS, OUTPUT>;
     onToolCallStart: undefined | StreamTextOnToolCallStartCallback<TOOLS>;
     onToolCallFinish: undefined | StreamTextOnToolCallFinishCallback<TOOLS>;
+    usedDefaultStopWhen: boolean;
+    defaultStopStepCount: number;
   }) {
+    this.usedDefaultStopWhen = usedDefaultStopWhen;
+    this.defaultStopStepCount = defaultStopStepCount;
     this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
@@ -1951,6 +1976,21 @@ class DefaultStreamTextResult<
                       self.closeStream();
                     }
                   } else {
+                    const toolLoopCouldContinue =
+                      ((clientToolCalls.length > 0 &&
+                        clientToolOutputs.length === clientToolCalls.length) ||
+                        pendingDeferredToolCalls.size > 0);
+
+                    await logDefaultStopWhenWarningIfNeeded({
+                      provider: model.provider,
+                      model: model.modelId,
+                      usedDefaultStopWhen: self.usedDefaultStopWhen,
+                      defaultStopStepCount: self.defaultStopStepCount,
+                      stopConditions,
+                      steps: recordedSteps,
+                      toolLoopCouldContinue,
+                    });
+
                     controller.enqueue({
                       type: 'finish',
                       finishReason: stepFinishReason,

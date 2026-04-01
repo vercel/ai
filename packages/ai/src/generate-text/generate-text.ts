@@ -72,6 +72,7 @@ import { PrepareStepFunction } from './prepare-step';
 import { convertToReasoningOutputs } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
+import { logDefaultStopWhenWarningIfNeeded } from './default-stop-when-warning';
 import {
   isStopConditionMet,
   isStepCount,
@@ -257,7 +258,7 @@ export async function generateText<
   abortSignal,
   timeout,
   headers,
-  stopWhen = isStepCount(1),
+  stopWhen: stopWhenFromUser,
   experimental_output,
   output = experimental_output,
   experimental_telemetry: telemetry,
@@ -273,6 +274,8 @@ export async function generateText<
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
+    usedDefaultStopWhen: usedDefaultStopWhenFromInternal,
+    defaultStopStepCount: defaultStopStepCountFromInternal,
   } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
@@ -449,8 +452,18 @@ export async function generateText<
     _internal?: {
       generateId?: IdGenerator;
       generateCallId?: IdGenerator;
+      usedDefaultStopWhen?: boolean;
+      defaultStopStepCount?: number;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
+  const usedDefaultStopWhen =
+    usedDefaultStopWhenFromInternal !== undefined
+      ? usedDefaultStopWhenFromInternal
+      : stopWhenFromUser === undefined;
+
+  const defaultStopStepCount = defaultStopStepCountFromInternal ?? 1;
+  const stopWhen = stopWhenFromUser ?? isStepCount(defaultStopStepCount);
+
   const model = resolveLanguageModel(modelArg);
   const createGlobalTelemetry = getGlobalTelemetryIntegration<TOOLS, OUTPUT>();
   const stopConditions = asArray(stopWhen);
@@ -1030,6 +1043,23 @@ export async function generateText<
     );
 
     const lastStep = steps[steps.length - 1];
+
+    if (lastStep != null) {
+      const toolLoopCouldContinue =
+        ((clientToolCalls.length > 0 &&
+          clientToolOutputs.length === clientToolCalls.length) ||
+          pendingDeferredToolCalls.size > 0);
+
+      await logDefaultStopWhenWarningIfNeeded({
+        provider: lastStep.model.provider,
+        model: lastStep.model.modelId,
+        usedDefaultStopWhen,
+        defaultStopStepCount,
+        stopConditions,
+        steps,
+        toolLoopCouldContinue,
+      });
+    }
 
     const totalUsage = steps.reduce(
       (totalUsage, step) => {
