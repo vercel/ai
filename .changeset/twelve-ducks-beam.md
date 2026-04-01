@@ -3,4 +3,4 @@
 "@ai-sdk/otel": major
 ---
 
-feat(otel): add changeset for major release of otel
+feat(ai): create new opentelemetry package (@ai-sdk/otel)
