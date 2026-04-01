@@ -290,6 +290,29 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'tool-call': {
+                  const serverToolCallId =
+                    providerOpts?.serverToolCallId != null
+                      ? String(providerOpts.serverToolCallId)
+                      : undefined;
+                  const serverToolType =
+                    providerOpts?.serverToolType != null
+                      ? String(providerOpts.serverToolType)
+                      : undefined;
+
+                  if (serverToolCallId && serverToolType) {
+                    return {
+                      toolCall: {
+                        toolType: serverToolType,
+                        args:
+                          typeof part.input === 'string'
+                            ? JSON.parse(part.input)
+                            : part.input,
+                        id: serverToolCallId,
+                      },
+                      thoughtSignature,
+                    };
+                  }
+
                   return {
                     functionCall: {
                       name: part.toolName,
@@ -298,10 +321,36 @@ export function convertToGoogleGenerativeAIMessages(
                     thoughtSignature,
                   };
                 }
+
+                case 'tool-result': {
+                  const serverToolCallId =
+                    providerOpts?.serverToolCallId != null
+                      ? String(providerOpts.serverToolCallId)
+                      : undefined;
+                  const serverToolType =
+                    providerOpts?.serverToolType != null
+                      ? String(providerOpts.serverToolType)
+                      : undefined;
+
+                  if (serverToolCallId && serverToolType) {
+                    return {
+                      toolResponse: {
+                        toolType: serverToolType,
+                        response:
+                          part.output.type === 'json' ? part.output.value : {},
+                        id: serverToolCallId,
+                      },
+                      thoughtSignature,
+                    };
+                  }
+
+                  return undefined;
+                }
               }
             })
             .filter(part => part !== undefined),
         });
+
         break;
       }
 
@@ -314,6 +363,44 @@ export function convertToGoogleGenerativeAIMessages(
           if (part.type === 'tool-approval-response') {
             continue;
           }
+
+          const partProviderOpts =
+            part.providerOptions?.[providerOptionsName] ??
+            (providerOptionsName !== 'google'
+              ? part.providerOptions?.google
+              : part.providerOptions?.vertex);
+          const serverToolCallId =
+            partProviderOpts?.serverToolCallId != null
+              ? String(partProviderOpts.serverToolCallId)
+              : undefined;
+          const serverToolType =
+            partProviderOpts?.serverToolType != null
+              ? String(partProviderOpts.serverToolType)
+              : undefined;
+
+          if (serverToolCallId && serverToolType) {
+            const serverThoughtSignature =
+              partProviderOpts?.thoughtSignature != null
+                ? String(partProviderOpts.thoughtSignature)
+                : undefined;
+
+            if (contents.length > 0) {
+              const lastContent = contents[contents.length - 1];
+              if (lastContent.role === 'model') {
+                lastContent.parts.push({
+                  toolResponse: {
+                    toolType: serverToolType,
+                    response:
+                      part.output.type === 'json' ? part.output.value : {},
+                    id: serverToolCallId,
+                  },
+                  thoughtSignature: serverThoughtSignature,
+                });
+                continue;
+              }
+            }
+          }
+
           const output = part.output;
 
           if (output.type === 'content') {

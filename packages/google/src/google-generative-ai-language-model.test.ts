@@ -2138,6 +2138,179 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should handle server-side toolCall and toolResponse parts (tool combination)', async () => {
+    server.urls[TEST_URL_GEMINI_3_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  toolCall: {
+                    toolType: 'GOOGLE_SEARCH_WEB',
+                    args: { query: 'San Francisco weather' },
+                    id: 'server-call-1',
+                  },
+                  thoughtSignature: 'sig-abc',
+                },
+                {
+                  toolResponse: {
+                    toolType: 'GOOGLE_SEARCH_WEB',
+                    response: {
+                      results: [{ title: 'Weather in SF' }],
+                    },
+                    id: 'server-call-1',
+                  },
+                  thoughtSignature: 'sig-def',
+                },
+                {
+                  text: 'The weather in San Francisco is sunny.',
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const model = provider.languageModel('gemini-3-pro-preview');
+    const { content, finishReason } = await model.doGenerate({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.google_search',
+          name: 'google_search',
+          args: {},
+        },
+        {
+          type: 'function',
+          name: 'weather',
+          inputSchema: {
+            type: 'object',
+            properties: { location: { type: 'string' } },
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{"query":"San Francisco weather"}",
+          "providerExecuted": true,
+          "providerMetadata": {
+            "google": {
+              "serverToolCallId": "server-call-1",
+              "serverToolType": "GOOGLE_SEARCH_WEB",
+              "thoughtSignature": "sig-abc",
+            },
+          },
+          "toolCallId": "server-call-1",
+          "toolName": "server:GOOGLE_SEARCH_WEB",
+          "type": "tool-call",
+        },
+        {
+          "providerMetadata": {
+            "google": {
+              "serverToolCallId": "server-call-1",
+              "serverToolType": "GOOGLE_SEARCH_WEB",
+              "thoughtSignature": "sig-def",
+            },
+          },
+          "result": {
+            "results": [
+              {
+                "title": "Weather in SF",
+              },
+            ],
+          },
+          "toolCallId": "server-call-1",
+          "toolName": "server:GOOGLE_SEARCH_WEB",
+          "type": "tool-result",
+        },
+        {
+          "providerMetadata": undefined,
+          "text": "The weather in San Francisco is sunny.",
+          "type": "text",
+        },
+      ]
+    `);
+
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "stop",
+      }
+    `);
+  });
+
+  it('should return stop finish reason for server tool calls (provider-executed)', async () => {
+    server.urls[TEST_URL_GEMINI_3_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  toolCall: {
+                    toolType: 'GOOGLE_SEARCH_WEB',
+                    args: {},
+                    id: 'sc-1',
+                  },
+                },
+                {
+                  toolResponse: {
+                    toolType: 'GOOGLE_SEARCH_WEB',
+                    response: { results: [] },
+                    id: 'sc-1',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 5,
+          candidatesTokenCount: 10,
+          totalTokenCount: 15,
+        },
+      },
+    };
+
+    const model = provider.languageModel('gemini-3-pro-preview');
+    const { finishReason } = await model.doGenerate({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.google_search',
+          name: 'google_search',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "STOP",
+        "unified": "stop",
+      }
+    `);
+  });
+
   describe('search tool selection', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
@@ -3222,12 +3395,16 @@ describe('doStream', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent';
 
+  const TEST_URL_GEMINI_3_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:streamGenerateContent';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
+    [TEST_URL_GEMINI_3_PRO]: {},
   });
 
   function prepareChunksFixtureResponse(
@@ -4091,6 +4268,142 @@ describe('doStream', () => {
 
     // Provider-executed tools should not trigger 'tool-calls' finish reason
     // since they don't require SDK iteration - allows structured output to work
+    expect(finishEvent).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        raw: 'STOP',
+        unified: 'stop',
+      },
+    });
+  });
+
+  it('should stream server-side toolCall and toolResponse parts (tool combination)', async () => {
+    server.urls[TEST_URL_GEMINI_3_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    toolCall: {
+                      toolType: 'GOOGLE_SEARCH_WEB',
+                      args: { query: 'SF weather' },
+                      id: 'sc-1',
+                    },
+                    thoughtSignature: 'sig-1',
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    toolResponse: {
+                      toolType: 'GOOGLE_SEARCH_WEB',
+                      response: { results: [{ title: 'Weather' }] },
+                      id: 'sc-1',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'It is sunny.' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const model = provider.languageModel('gemini-3-pro-preview');
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.google_search',
+          name: 'google_search',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const toolEvents = events.filter(
+      e => e.type === 'tool-call' || e.type === 'tool-result',
+    );
+
+    expect(toolEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "input": "{"query":"SF weather"}",
+          "providerExecuted": true,
+          "providerMetadata": {
+            "google": {
+              "serverToolCallId": "sc-1",
+              "serverToolType": "GOOGLE_SEARCH_WEB",
+              "thoughtSignature": "sig-1",
+            },
+          },
+          "toolCallId": "sc-1",
+          "toolName": "server:GOOGLE_SEARCH_WEB",
+          "type": "tool-call",
+        },
+        {
+          "providerMetadata": {
+            "google": {
+              "serverToolCallId": "sc-1",
+              "serverToolType": "GOOGLE_SEARCH_WEB",
+            },
+          },
+          "result": {
+            "results": [
+              {
+                "title": "Weather",
+              },
+            ],
+          },
+          "toolCallId": "sc-1",
+          "toolName": "server:GOOGLE_SEARCH_WEB",
+          "type": "tool-result",
+        },
+      ]
+    `);
+
+    const textEvents = events.filter(e => e.type === 'text-delta');
+    expect(textEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "delta": "It is sunny.",
+          "id": "0",
+          "providerMetadata": undefined,
+          "type": "text-delta",
+        },
+      ]
+    `);
+
+    const finishEvent = events.find(e => e.type === 'finish');
     expect(finishEvent).toMatchObject({
       type: 'finish',
       finishReason: {
