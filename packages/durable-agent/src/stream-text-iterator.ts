@@ -4,13 +4,14 @@ import type {
   LanguageModelV4ToolCall,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type {
-  Experimental_ModelCallStreamPart as ModelCallStreamPart,
-  StepResult,
-  StreamTextOnStepFinishCallback,
-  ToolCallRepairFunction,
-  ToolChoice,
-  ToolSet,
+import {
+  experimental_filterActiveTools as filterActiveTools,
+  type Experimental_ModelCallStreamPart as ModelCallStreamPart,
+  type StepResult,
+  type StreamTextOnStepFinishCallback,
+  type ToolCallRepairFunction,
+  type ToolChoice,
+  type ToolSet,
 } from 'ai';
 import {
   doStreamStep,
@@ -53,6 +54,7 @@ export async function* streamTextIterator({
   tools = {},
   writable,
   model,
+  activeTools,
   stopConditions,
   maxSteps,
   onStepFinish,
@@ -70,6 +72,7 @@ export async function* streamTextIterator({
   tools: ToolSet;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
   model: string | (() => Promise<CompatibleLanguageModel>);
+  activeTools?: string[];
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
   onStepFinish?: StreamTextOnStepFinishCallback<any>;
@@ -92,7 +95,7 @@ export async function* streamTextIterator({
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
   let currentContext = experimental_context;
-  let currentActiveTools: string[] | undefined;
+  let currentActiveTools: string[] | undefined = activeTools;
 
   const steps: StepResult<any>[] = [];
   let done = false;
@@ -237,9 +240,10 @@ export async function* streamTextIterator({
     try {
       // Filter tools if activeTools is specified
       const effectiveTools =
-        currentActiveTools && currentActiveTools.length > 0
-          ? filterToolSet(tools, currentActiveTools)
-          : tools;
+        filterActiveTools({
+          tools,
+          activeTools: currentActiveTools,
+        }) ?? tools;
 
       // Serialize tools before crossing the step boundary — zod schemas
       // contain functions that can't be serialized by the workflow runtime.
@@ -380,19 +384,6 @@ export async function* streamTextIterator({
   }
 
   return conversationPrompt;
-}
-
-/**
- * Filter a tool set to only include the specified active tools.
- */
-function filterToolSet(tools: ToolSet, activeTools: string[]): ToolSet {
-  const filtered: ToolSet = {};
-  for (const toolName of activeTools) {
-    if (toolName in tools) {
-      filtered[toolName] = tools[toolName];
-    }
-  }
-  return filtered;
 }
 
 /**
