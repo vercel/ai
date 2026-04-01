@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- 01fa606: feat(provider/google): support combining built-in tools with function calling on Gemini 3
+
 ## 4.0.0-beta.18
 
 ### Patch Changes

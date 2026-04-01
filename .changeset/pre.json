@@ -80,7 +80,8 @@
     "analyze-downloads": "0.0.0",
     "eslint-config-vercel-ai": "0.0.0",
     "generate-llms-txt": "0.0.0",
-    "@vercel/ai-tsconfig": "0.0.0"
+    "@vercel/ai-tsconfig": "0.0.0",
+    "@ai-sdk/otel": "0.0.0"
   },
   "changesets": [
     "angry-tigers-heal",
@@ -121,7 +122,9 @@
     "gorgeous-onions-admire",
     "gorgeous-snails-sing",
     "great-cows-rush",
+    "grumpy-buttons-know",
     "healthy-toes-roll",
+    "heavy-brooms-pretend",
     "heavy-tables-fetch",
     "hip-cats-rule",
     "honest-steaks-nail",
@@ -132,6 +135,7 @@
     "little-ads-dance",
     "llifc-pwefy-oqcti",
     "makte-zcmfv-flvls",
+    "many-bikes-begin",
     "mgagt-pnprv-bkcnm",
     "multimodal-embedding-content",
     "myqnx-ggjyk-eerir",
@@ -183,6 +187,7 @@
     "ten-bobcats-breathe",
     "thirty-spoons-eat",
     "tiny-meals-melt",
+    "twelve-ducks-beam",
     "twelve-spiders-call",
     "twenty-sheep-punch",
     "two-fireants-notice",
