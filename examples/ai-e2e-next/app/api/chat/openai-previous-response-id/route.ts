@@ -8,7 +8,7 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   InferUITools,
-  stepCountIs,
+  isStepCount,
   streamText,
   UIMessage,
 } from 'ai';
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
         // Send only the latest user message; OpenAI will fetch prior turns via previousResponseId.
         messages: await convertToModelMessages([message]),
         tools,
-        stopWhen: stepCountIs(20),
+        stopWhen: isStepCount(20),
         reasoning: 'low',
         providerOptions: {
           openai: {

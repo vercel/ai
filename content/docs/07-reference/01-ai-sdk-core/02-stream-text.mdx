@@ -588,7 +588,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>>',
       isOptional: true,
       description:
-        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: stepCountIs(1).',
+        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: isStepCount(1).',
     },
     {
       name: 'prepareStep',

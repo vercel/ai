@@ -39,17 +39,15 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
-import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
-import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
 import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
 } from '../types/usage';
 import { StepResult } from './step-result';
-import { stepCountIs } from './stop-condition';
+import { isLoopFinished, isStepCount } from './stop-condition';
 import {
   streamText,
   StreamTextOnFinishCallback,
@@ -2180,7 +2178,7 @@ describe('streamText', () => {
             execute: async () => 'result1',
           },
         },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         onError,
       });
 
@@ -5655,7 +5653,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         timeout: { totalMs: 5000, stepMs: 1000 },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         experimental_onStart: async event => {
           startEvent = event;
         },
@@ -5789,7 +5787,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         experimental_onStepStart: async event => {
           stepStartEvents.push(event);
         },
@@ -5926,7 +5924,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         prepareStep: async ({ stepNumber }) => {
           if (stepNumber === 1) {
             return { model: alternateModel };
@@ -6796,7 +6794,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(4),
+        stopWhen: isStepCount(4),
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
@@ -8026,14 +8024,12 @@ describe('streamText', () => {
     let result: StreamTextResult<any, any>;
     let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
     let onStepFinishResults: StepResult<any>[];
-    let tracer: MockTracer;
     let stepInputs: Array<any>;
 
     beforeEach(() => {
       result = undefined as any;
       onFinishResult = undefined as any;
       onStepFinishResults = [];
-      tracer = new MockTracer();
       stepInputs = [];
     });
 
@@ -8116,11 +8112,7 @@ describe('streamText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          experimental_telemetry: {
-            isEnabled: true,
-            integrations: new OpenTelemetryIntegration({ tracer }),
-          },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
@@ -9262,11 +9254,6 @@ describe('streamText', () => {
         });
       });
 
-      it('should record telemetry data for each step', async () => {
-        await result.consumeStream();
-        expect(tracer.jsonSpans).toMatchSnapshot();
-      });
-
       it('should have correct ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
@@ -9417,7 +9404,7 @@ describe('streamText', () => {
           },
           experimental_context: { context: 'state1' },
           prompt: 'test-input',
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: () => 'test-call-id',
             generateCallId: () => 'test-telemetry-call-id',
@@ -9587,7 +9574,9 @@ describe('streamText', () => {
               "seed": undefined,
               "stopSequences": undefined,
               "temperature": undefined,
-              "toolChoice": undefined,
+              "toolChoice": {
+                "type": "auto",
+              },
               "tools": undefined,
               "topK": undefined,
               "topP": undefined,
@@ -10140,11 +10129,7 @@ describe('streamText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          experimental_telemetry: {
-            isEnabled: true,
-            integrations: new OpenTelemetryIntegration({ tracer }),
-          },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
@@ -11160,161 +11145,6 @@ describe('streamText', () => {
         });
       });
 
-      it('should record telemetry data for each step', async () => {
-        await result.consumeStream();
-        expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-          [
-            {
-              "attributes": {
-                "ai.model.id": "mock-model-id",
-                "ai.model.provider": "mock-provider",
-                "ai.operationId": "ai.streamText",
-                "ai.prompt": "{"prompt":"test-input"}",
-                "ai.response.finishReason": "stop",
-                "ai.response.text": "Hello, world!",
-                "ai.settings.maxRetries": 2,
-                "ai.usage.cachedInputTokens": 0,
-                "ai.usage.inputTokenDetails.cacheReadTokens": 0,
-                "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
-                "ai.usage.inputTokenDetails.noCacheTokens": 6,
-                "ai.usage.inputTokens": 6,
-                "ai.usage.outputTokenDetails.reasoningTokens": 10,
-                "ai.usage.outputTokenDetails.textTokens": 20,
-                "ai.usage.outputTokens": 20,
-                "ai.usage.reasoningTokens": 10,
-                "ai.usage.totalTokens": 26,
-                "operation.name": "ai.streamText",
-              },
-              "events": [],
-              "name": "ai.streamText",
-            },
-            {
-              "attributes": {
-                "ai.model.id": "mock-model-id",
-                "ai.model.provider": "mock-provider",
-                "ai.operationId": "ai.streamText.doStream",
-                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-                "ai.prompt.toolChoice": "{"type":"auto"}",
-                "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
-                ],
-                "ai.response.avgOutputTokensPerSecond": 20,
-                "ai.response.finishReason": "tool-calls",
-                "ai.response.id": "id-0",
-                "ai.response.model": "mock-model-id",
-                "ai.response.msToFinish": 500,
-                "ai.response.msToFirstChunk": 100,
-                "ai.response.reasoning": "thinking",
-                "ai.response.text": "",
-                "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-                "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
-                "ai.settings.maxRetries": 2,
-                "ai.usage.inputTokenDetails.noCacheTokens": 3,
-                "ai.usage.inputTokens": 3,
-                "ai.usage.outputTokenDetails.textTokens": 10,
-                "ai.usage.outputTokens": 10,
-                "ai.usage.totalTokens": 13,
-                "gen_ai.request.model": "mock-model-id",
-                "gen_ai.response.finish_reasons": [
-                  "tool-calls",
-                ],
-                "gen_ai.response.id": "id-0",
-                "gen_ai.response.model": "mock-model-id",
-                "gen_ai.system": "mock-provider",
-                "gen_ai.usage.input_tokens": 3,
-                "gen_ai.usage.output_tokens": 10,
-                "operation.name": "ai.streamText.doStream",
-              },
-              "events": [
-                {
-                  "attributes": {
-                    "ai.response.msToFirstChunk": 100,
-                  },
-                  "name": "ai.stream.firstChunk",
-                },
-                {
-                  "attributes": {
-                    "ai.response.avgOutputTokensPerSecond": 20,
-                    "ai.response.msToFinish": 500,
-                  },
-                  "name": "ai.stream.finish",
-                },
-              ],
-              "name": "ai.streamText.doStream",
-            },
-            {
-              "attributes": {
-                "ai.operationId": "ai.toolCall",
-                "ai.toolCall.args": "{"value":"value"}",
-                "ai.toolCall.id": "call-1",
-                "ai.toolCall.name": "tool1",
-                "ai.toolCall.result": ""result1"",
-                "operation.name": "ai.toolCall",
-              },
-              "events": [],
-              "name": "ai.toolCall",
-            },
-            {
-              "attributes": {
-                "ai.model.id": "mock-model-id",
-                "ai.model.provider": "mock-provider",
-                "ai.operationId": "ai.streamText.doStream",
-                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"text","value":"RESULT1"}}]}]",
-                "ai.prompt.toolChoice": "{"type":"auto"}",
-                "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
-                ],
-                "ai.response.avgOutputTokensPerSecond": 25,
-                "ai.response.finishReason": "stop",
-                "ai.response.id": "id-1",
-                "ai.response.model": "mock-model-id",
-                "ai.response.msToFinish": 400,
-                "ai.response.msToFirstChunk": 400,
-                "ai.response.text": "Hello, world!",
-                "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-                "ai.settings.maxRetries": 2,
-                "ai.usage.cachedInputTokens": 0,
-                "ai.usage.inputTokenDetails.cacheReadTokens": 0,
-                "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
-                "ai.usage.inputTokenDetails.noCacheTokens": 3,
-                "ai.usage.inputTokens": 3,
-                "ai.usage.outputTokenDetails.reasoningTokens": 10,
-                "ai.usage.outputTokenDetails.textTokens": 10,
-                "ai.usage.outputTokens": 10,
-                "ai.usage.reasoningTokens": 10,
-                "ai.usage.totalTokens": 13,
-                "gen_ai.request.model": "mock-model-id",
-                "gen_ai.response.finish_reasons": [
-                  "stop",
-                ],
-                "gen_ai.response.id": "id-1",
-                "gen_ai.response.model": "mock-model-id",
-                "gen_ai.system": "mock-provider",
-                "gen_ai.usage.input_tokens": 3,
-                "gen_ai.usage.output_tokens": 10,
-                "operation.name": "ai.streamText.doStream",
-              },
-              "events": [
-                {
-                  "attributes": {
-                    "ai.response.msToFirstChunk": 400,
-                  },
-                  "name": "ai.stream.firstChunk",
-                },
-                {
-                  "attributes": {
-                    "ai.response.avgOutputTokensPerSecond": 25,
-                    "ai.response.msToFinish": 400,
-                  },
-                  "name": "ai.stream.finish",
-                },
-              ],
-              "name": "ai.streamText.doStream",
-            },
-          ]
-        `);
-      });
-
       it('should have correct ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
@@ -11453,10 +11283,6 @@ describe('streamText', () => {
             },
           },
           prompt: 'test-input',
-          experimental_telemetry: {
-            isEnabled: true,
-            integrations: new OpenTelemetryIntegration({ tracer }),
-          },
           stopWhen: [
             ({ steps }) => {
               stopConditionCalls.push({ number: 0, steps });
@@ -11707,6 +11533,77 @@ describe('streamText', () => {
         `);
       });
     });
+
+    it('should complete tool loop with isLoopFinished()', async () => {
+      let responseCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call',
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                  response: {},
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Done!' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                  response: {},
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isLoopFinished(),
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toBe('Done!');
+      expect((await result.steps).length).toBe(2);
+    });
   });
 
   describe('options.headers', () => {
@@ -11820,7 +11717,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(4),
+          stopWhen: isStepCount(4),
         });
       });
 
@@ -12138,7 +12035,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(4),
+          stopWhen: isStepCount(4),
         });
 
         const chunks = await convertReadableStreamToArray(
@@ -12291,7 +12188,7 @@ describe('streamText', () => {
             }),
           },
           prompt: 'test-input',
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
         });
 
         await result.consumeStream();
@@ -13065,7 +12962,7 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
         timeout: { stepMs: 5000 },
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
         onError: () => {},
       });
 
@@ -13272,394 +13169,6 @@ describe('streamText', () => {
       });
 
       await result.consumeStream();
-    });
-  });
-
-  describe('telemetry', () => {
-    let tracer: MockTracer;
-
-    beforeEach(() => {
-      tracer = new MockTracer();
-    });
-
-    it('should not record any telemetry data when not explicitly enabled', async () => {
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-        _internal: {
-          now: mockValues(0, 100, 500),
-        },
-      });
-
-      await result.consumeStream();
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should record telemetry data when enabled', async () => {
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-        topK: 0.1,
-        topP: 0.2,
-        frequencyPenalty: 0.3,
-        presencePenalty: 0.4,
-        temperature: 0.5,
-        stopSequences: ['stop'],
-        headers: {
-          header1: 'value1',
-          header2: 'value2',
-        },
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'test-function-id',
-          metadata: {
-            test1: 'value1',
-            test2: false,
-          },
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-        _internal: { now: mockValues(0, 100, 500) },
-      });
-
-      await result.consumeStream();
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should record successful tool call', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-        _internal: { now: mockValues(0, 100, 500) },
-      });
-
-      await result.consumeStream();
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should record error on tool call', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => {
-              throw new Error('Tool execution failed');
-            },
-          },
-        },
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-        _internal: { now: mockValues(0, 100, 500) },
-      });
-
-      await result.consumeStream();
-
-      expect(tracer.jsonSpans).toHaveLength(3);
-
-      // Check that we have the expected spans
-      expect(tracer.jsonSpans[0].name).toBe('ai.streamText');
-      expect(tracer.jsonSpans[1].name).toBe('ai.streamText.doStream');
-      expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
-
-      // Check that the tool call span has error status
-      const toolCallSpan = tracer.jsonSpans[2];
-      expect(toolCallSpan.status).toEqual({
-        code: 2,
-        message: 'Tool execution failed',
-      });
-
-      // Check that the tool call span has exception event
-      expect(toolCallSpan.events).toHaveLength(1);
-      const exceptionEvent = toolCallSpan.events[0];
-      expect(exceptionEvent.name).toBe('exception');
-      expect(exceptionEvent.attributes).toMatchObject({
-        'exception.message': 'Tool execution failed',
-        'exception.name': 'Error',
-      });
-      expect(exceptionEvent.attributes?.['exception.stack']).toContain(
-        'Tool execution failed',
-      );
-      expect(exceptionEvent.time).toEqual([0, 0]);
-    });
-
-    it('should not record telemetry inputs / outputs when disabled', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          recordInputs: false,
-          recordOutputs: false,
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-        _internal: { now: mockValues(0, 100, 500) },
-      });
-
-      await result.consumeStream();
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should record reasoning in telemetry when present', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            { type: 'reasoning-start', id: '1' },
-            {
-              type: 'reasoning-delta',
-              id: '1',
-              delta: 'This is my reasoning ',
-            },
-            {
-              type: 'reasoning-delta',
-              id: '1',
-              delta: 'about the problem.',
-            },
-            { type: 'reasoning-end', id: '1' },
-            { type: 'text-start', id: '2' },
-            { type: 'text-delta', id: '2', delta: 'Hello, world!' },
-            { type: 'text-end', id: '2' },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-        _internal: { now: mockValues(0, 100, 500) },
-      });
-
-      await result.consumeStream();
-
-      // Check that reasoning is recorded in both spans
-      const rootSpan = tracer.jsonSpans.find(
-        span => span.name === 'ai.streamText',
-      );
-      const doStreamSpan = tracer.jsonSpans.find(
-        span => span.name === 'ai.streamText.doStream',
-      );
-
-      expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
-        'This is my reasoning about the problem.',
-      );
-      expect(doStreamSpan?.attributes['ai.response.reasoning']).toBe(
-        'This is my reasoning about the problem.',
-      );
-    });
-
-    it('should execute subagent streamText inside executeToolCall context', async () => {
-      let activeContext: string | undefined;
-      let capturedContext: string | undefined;
-      const otelIntegration = new OpenTelemetryIntegration({ tracer });
-
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'researchTool',
-              input: '{ "city": "Tokyo" }',
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          researchTool: tool({
-            inputSchema: z.object({ city: z.string() }),
-            execute: async ({ city }) => {
-              capturedContext = activeContext;
-
-              const innerResult = streamText({
-                model: createTestModel({
-                  stream: convertArrayToReadableStream([
-                    {
-                      type: 'response-metadata',
-                      id: 'inner-id-0',
-                      modelId: 'mock-model-id',
-                      timestamp: new Date(0),
-                    },
-                    { type: 'text-start', id: '1' },
-                    {
-                      type: 'text-delta',
-                      id: '1',
-                      delta: `Weather in ${city}: sunny`,
-                    },
-                    { type: 'text-end', id: '1' },
-                    {
-                      type: 'finish',
-                      finishReason: { unified: 'stop', raw: 'stop' },
-                      usage: testUsage,
-                    },
-                  ]),
-                }),
-                prompt: `Weather for ${city}`,
-                experimental_telemetry: {
-                  isEnabled: true,
-                  functionId: `sub-agent-${city.toLowerCase()}`,
-                  integrations: otelIntegration,
-                },
-                _internal: { now: mockValues(0, 100, 500) },
-                onError: () => {},
-              });
-
-              return await innerResult.text;
-            },
-          }),
-        },
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'weather-agent',
-          integrations: [
-            otelIntegration,
-            {
-              executeTool: async ({ callId, toolCallId, execute }) => {
-                activeContext = `${callId}:${toolCallId}`;
-                try {
-                  return await execute();
-                } finally {
-                  activeContext = undefined;
-                }
-              },
-            },
-          ],
-        },
-        _internal: {
-          now: mockValues(0, 100, 500),
-          generateId: mockId({ prefix: 'id' }),
-          generateCallId: () => 'outer-test-call-id',
-        },
-        onError: () => {},
-      });
-
-      await result.consumeStream();
-
-      expect(capturedContext).toBe('outer-test-call-id:call-1');
-
-      expect(tracer.spans.map(s => s.name)).toEqual([
-        'ai.streamText',
-        'ai.streamText.doStream',
-        'ai.toolCall',
-        'ai.streamText',
-        'ai.streamText.doStream',
-      ]);
-
-      const toolCallSpan = tracer.spans[2];
-      expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
-
-      const innerRootSpan = tracer.spans[3];
-      expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
-        'sub-agent-tokyo',
-      );
-
-      const innerStepSpan = tracer.spans[4];
-      expect(innerStepSpan.attributes['ai.response.text']).toBe(
-        'Weather in Tokyo: sunny',
-      );
     });
   });
 
@@ -15351,59 +14860,6 @@ describe('streamText', () => {
         `);
       });
 
-      it('telemetry should record transformed data when enabled', async () => {
-        const tracer = new MockTracer();
-
-        const result = streamText({
-          model: createTestModel({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: 'Hello' },
-              { type: 'text-delta', id: '1', delta: ', ' },
-              {
-                type: 'tool-call',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                input: `{ "value": "value" }`,
-              },
-              { type: 'text-delta', id: '1', delta: 'world!' },
-              { type: 'text-end', id: '1' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-                providerMetadata: {
-                  testProvider: { testKey: 'testValue' },
-                },
-              },
-            ]),
-          }),
-          tools: {
-            tool1: tool({
-              inputSchema: z.object({ value: z.string() }),
-              execute: async ({ value }) => `${value}-result`,
-            }),
-          },
-          prompt: 'test-input',
-          experimental_transform: upperCaseTransform,
-          experimental_telemetry: {
-            isEnabled: true,
-            integrations: new OpenTelemetryIntegration({ tracer }),
-          },
-          _internal: { now: mockValues(0, 100, 500) },
-        });
-
-        await result.consumeStream();
-
-        expect(tracer.jsonSpans).toMatchSnapshot();
-      });
-
       it('it should send transformed chunks to onChunk', async () => {
         const result: Array<
           Extract<
@@ -16006,7 +15462,9 @@ describe('streamText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,
@@ -17708,7 +17166,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             },
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           ...defaultSettings(),
           onError: error => {
             onErrorCalls.push({ error });
@@ -18039,7 +17497,7 @@ describe('streamText', () => {
               },
             },
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
         });
       });
 
@@ -19498,7 +18956,7 @@ describe('streamText', () => {
             }),
           },
           prompt: 'Play a dice game between two players.',
-          stopWhen: stepCountIs(10),
+          stopWhen: isStepCount(10),
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
           },
@@ -20785,7 +20243,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(2),
+          stopWhen: isStepCount(2),
         });
 
         // Consume the stream
@@ -20916,7 +20374,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
         });
 
         // Consume the stream
@@ -21059,7 +20517,7 @@ describe('streamText', () => {
             execute: async () => 'result',
           },
         },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         ...defaultSettings(),
       });
 
@@ -21365,7 +20823,7 @@ describe('streamText', () => {
               },
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
@@ -21690,7 +21148,7 @@ describe('streamText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -21994,7 +21452,7 @@ describe('streamText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
           },
@@ -22118,7 +21576,7 @@ describe('streamText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -22447,7 +21905,7 @@ describe('streamText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -23415,7 +22873,9 @@ describe('streamText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,

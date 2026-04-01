@@ -1,5 +1,5 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { streamText, tool, stepCountIs } from 'ai';
+import { streamText, tool, isStepCount } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -8,7 +8,7 @@ run(async () => {
   const result = streamText({
     model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     prompt: 'Find out weather data in SF',
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     tools: {
       toolSearch: bedrockAnthropic.tools.toolSearchRegex_20251119(),
 

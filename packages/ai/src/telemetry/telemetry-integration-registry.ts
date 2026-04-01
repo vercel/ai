@@ -15,8 +15,3 @@ export function registerTelemetryIntegration(
 export function getGlobalTelemetryIntegrations(): TelemetryIntegration[] {
   return globalThis.AI_SDK_TELEMETRY_INTEGRATIONS ?? [];
 }
-
-// TODO remove when OTel is moved to a separate package
-export function hasIntegration(integration: TelemetryIntegration): boolean {
-  return (globalThis.AI_SDK_TELEMETRY_INTEGRATIONS ?? []).includes(integration);
-}

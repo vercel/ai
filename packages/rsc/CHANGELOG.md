@@ -1,5 +1,61 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [b3c9f6a]
+  - ai@7.0.0-beta.55
+
+## 3.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [5d0f18e]
+  - ai@7.0.0-beta.54
+
+## 3.0.0-beta.54
+
+### Patch Changes
+
+- Updated dependencies [9b47dea]
+  - ai@7.0.0-beta.53
+
+## 3.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [b56301c]
+  - ai@7.0.0-beta.52
+
+## 3.0.0-beta.52
+
+### Patch Changes
+
+- 6abd098: split `prepareToolsAndToolChoice()` into `prepareTools()` and `prepareToolChoice()`
+- Updated dependencies [6abd098]
+  - ai@7.0.0-beta.51
+
+## 3.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [3debdb7]
+  - ai@7.0.0-beta.50
+
+## 3.0.0-beta.50
+
+### Patch Changes
+
+- ai@7.0.0-beta.49
+
+## 3.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [5c4d910]
+  - ai@7.0.0-beta.48
+
 ## 3.0.0-beta.48
 
 ### Patch Changes

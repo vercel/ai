@@ -1,13 +1,8 @@
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import { asArray } from '../util/as-array';
-import { OpenTelemetryIntegration } from './open-telemetry-integration';
 import type { TelemetryIntegration } from './telemetry-integration';
-import {
-  getGlobalTelemetryIntegrations,
-  hasIntegration,
-  registerTelemetryIntegration,
-} from './telemetry-integration-registry';
+import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
 
 /**
  * Wraps a telemetry integration with bound methods.
@@ -24,6 +19,8 @@ export function bindTelemetryIntegration(
     onToolCallFinish: integration.onToolCallFinish?.bind(integration),
     onChunk: integration.onChunk?.bind(integration),
     onStepFinish: integration.onStepFinish?.bind(integration),
+    onObjectStepStart: integration.onObjectStepStart?.bind(integration),
+    onObjectStepFinish: integration.onObjectStepFinish?.bind(integration),
     onEmbedStart: integration.onEmbedStart?.bind(integration),
     onEmbedFinish: integration.onEmbedFinish?.bind(integration),
     onRerankStart: integration.onRerankStart?.bind(integration),
@@ -34,19 +31,12 @@ export function bindTelemetryIntegration(
   };
 }
 
-// global otel integration TODO remove when OTel is moved to a separate package
-const otelIntegration = new OpenTelemetryIntegration();
-
 export function getGlobalTelemetryIntegration<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
 >(): (args?: {
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }) => TelemetryIntegration {
-  if (!hasIntegration(otelIntegration)) {
-    registerTelemetryIntegration(otelIntegration);
-  }
-
   const globalIntegrations = getGlobalTelemetryIntegrations();
 
   return ({
@@ -95,6 +85,12 @@ export function getGlobalTelemetryIntegration<
       onChunk: createTelemetryComposite(integration => integration.onChunk),
       onStepFinish: createTelemetryComposite(
         integration => integration.onStepFinish,
+      ),
+      onObjectStepStart: createTelemetryComposite(
+        integration => integration.onObjectStepStart,
+      ),
+      onObjectStepFinish: createTelemetryComposite(
+        integration => integration.onObjectStepFinish,
       ),
       onEmbedStart: createTelemetryComposite(
         integration => integration.onEmbedStart,

@@ -1443,7 +1443,7 @@ They are available via the `tools` property of the provider instance.
 
 ```ts
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
@@ -1456,7 +1456,7 @@ const result = await generateText({
     }),
   },
   prompt: 'List the files in my directory.',
-  stopWhen: stepCountIs(2),
+  stopWhen: isStepCount(2),
 });
 ```
 
@@ -1464,7 +1464,7 @@ const result = await generateText({
 
 ```ts
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 const result = await generateText({
   model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
@@ -1477,7 +1477,7 @@ const result = await generateText({
     }),
   },
   prompt: 'Update my README file.',
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 ```
 
@@ -1485,7 +1485,7 @@ const result = await generateText({
 
 ```ts
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import fs from 'fs';
 
 const result = await generateText({
@@ -1520,7 +1520,7 @@ const result = await generateText({
     }),
   },
   prompt: 'Take a screenshot.',
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 ```
 

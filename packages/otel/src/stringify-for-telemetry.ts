@@ -2,7 +2,7 @@ import {
   LanguageModelV4Message,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import { convertDataContentToBase64String } from '../prompt/data-content';
+import { convertDataContentToBase64String } from 'ai';
 
 /**
  * Helper utility to serialize prompt content for OpenTelemetry tracing.

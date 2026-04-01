@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import { ToolLoopAgent, tool, stepCountIs } from 'ai';
+import { ToolLoopAgent, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -29,7 +29,7 @@ run(async () => {
         },
       }),
     },
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
     experimental_telemetry: {
       isEnabled: true,
       functionId: 'child-agent',
@@ -59,7 +59,7 @@ run(async () => {
         },
       }),
     },
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
     experimental_telemetry: {
       isEnabled: true,
       functionId: 'parent-agent',
