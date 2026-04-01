@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.55
+
+### Major Changes
+
+- b3c9f6a: feat(ai): create new opentelemetry package (@ai-sdk/otel)
+
 ## 7.0.0-beta.54
 
 ### Patch Changes
