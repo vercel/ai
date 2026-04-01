@@ -468,7 +468,7 @@ describe('bedrock-anthropic-provider', () => {
       secretAccessKey: 'test-secret',
     });
 
-    expect(provider.specificationVersion).toBe('v3');
+    expect(provider.specificationVersion).toBe('v4');
   });
 
   it('should provide languageModel as alias', () => {
@@ -480,6 +480,36 @@ describe('bedrock-anthropic-provider', () => {
 
     expect(provider.languageModel).toBeDefined();
     expect(typeof provider.languageModel).toBe('function');
+  });
+
+  it('should add tool-search-tool beta when tool search tools are present', () => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        tools: [
+          { type: 'tool_search_tool_regex_20251119', name: 'tool_search' },
+          { type: 'tool_search_tool_bm25_20251119', name: 'tool_search_bm25' },
+        ],
+      },
+      new Set(),
+    );
+
+    expect(transformedBody?.anthropic_beta).toContain(
+      'tool-search-tool-2025-10-19',
+    );
   });
 
   it('should handle models with us. prefix for inference profiles', () => {

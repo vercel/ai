@@ -1,8 +1,8 @@
+import { Agent } from '../agent/agent';
 import { Output } from '../generate-text/output';
 import { UIMessageStreamOptions } from '../generate-text/stream-text-result';
 import { ExpandedContext, ToolSet } from '../generate-text/tool-set';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
-import { Agent } from '../agent/agent';
 import { ChatTransport } from './chat-transport';
 import { convertToModelMessages } from './convert-to-model-messages';
 import { InferUITools, UIMessage } from './ui-messages';
@@ -57,8 +57,7 @@ export class DirectChatTransport<
     never,
     InferUITools<TOOLS>
   >,
-> implements ChatTransport<UI_MESSAGE>
-{
+> implements ChatTransport<UI_MESSAGE> {
   private readonly agent: Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>;
   private readonly agentOptions: CALL_OPTIONS | undefined;
   private readonly uiMessageStreamOptions: Omit<

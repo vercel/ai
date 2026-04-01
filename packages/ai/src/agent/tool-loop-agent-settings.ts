@@ -11,13 +11,13 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
-} from '../generate-text/callback-events';
+} from '../generate-text/core-events';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import { ExpandedContext, ToolSet } from '../generate-text/tool-set';
-import { CallSettings } from '../prompt/call-settings';
+import { CallSettings, TimeoutConfiguration } from '../prompt/call-settings';
 import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
@@ -66,6 +66,14 @@ export type ToolLoopAgentSettings<
   OUTPUT extends Output = never,
 > = Omit<CallSettings, 'abortSignal'> & {
   /**
+   * Timeout in milliseconds. The call will be aborted if it takes longer
+   * than the specified timeout. Can be used alongside abortSignal.
+   *
+   * Can be specified as a number (milliseconds) or as an object with `totalMs`.
+   */
+  timeout?: TimeoutConfiguration<TOOLS>;
+
+  /**
    * The id of the agent.
    */
   id?: string;
@@ -96,7 +104,7 @@ export type ToolLoopAgentSettings<
    * Condition for stopping the generation when there are tool results in the last step.
    * When the condition is an array, any of the conditions can be met to stop the generation.
    *
-   * @default stepCountIs(20)
+   * @default isStepCount(20)
    */
   stopWhen?:
     | StopCondition<NoInfer<TOOLS>, CONTEXT>

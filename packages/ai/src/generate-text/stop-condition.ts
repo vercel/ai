@@ -1,4 +1,3 @@
-import { Context } from '@ai-sdk/provider-utils';
 import { StepResult } from './step-result';
 import { ExpandedContext, ToolSet } from './tool-set';
 
@@ -9,8 +8,12 @@ export type StopCondition<
   steps: Array<StepResult<TOOLS, CONTEXT>>;
 }) => PromiseLike<boolean> | boolean;
 
-export function stepCountIs(stepCount: number): StopCondition<any, any> {
+export function isStepCount(stepCount: number): StopCondition<any, any> {
   return ({ steps }) => steps.length === stepCount;
+}
+
+export function isLoopFinished(): StopCondition<any, any> {
+  return () => false;
 }
 
 export function hasToolCall(toolName: string): StopCondition<any, any> {

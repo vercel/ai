@@ -1,4 +1,4 @@
-import { Context, ReasoningPart } from '@ai-sdk/provider-utils';
+import { ReasoningFilePart, ReasoningPart } from '@ai-sdk/provider-utils';
 import {
   CallWarning,
   FinishReason,
@@ -10,6 +10,12 @@ import { Source } from '../types/language-model';
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
+import { asReasoningText } from './reasoning';
+import {
+  ReasoningFileOutput,
+  ReasoningOutput,
+  convertFromReasoningOutputs,
+} from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
 import {
@@ -26,6 +32,11 @@ export type StepResult<
   TOOLS extends ToolSet,
   CONTEXT extends ExpandedContext<TOOLS>,
 > = {
+  /**
+   * Unique identifier for the generation call this step belongs to.
+   */
+  readonly callId: string;
+
   /**
    * Zero-based index of this step.
    */
@@ -71,7 +82,7 @@ export type StepResult<
   /**
    * The reasoning that was generated during the generation.
    */
-  readonly reasoning: Array<ReasoningPart>;
+  readonly reasoning: Array<ReasoningPart | ReasoningFilePart>;
 
   /**
    * The reasoning text that was generated during the generation.
@@ -171,8 +182,8 @@ export type StepResult<
 export class DefaultStepResult<
   TOOLS extends ToolSet,
   CONTEXT extends ExpandedContext<TOOLS>,
-> implements StepResult<TOOLS, CONTEXT>
-{
+> implements StepResult<TOOLS, CONTEXT> {
+  readonly callId: StepResult<TOOLS, CONTEXT>['callId'];
   readonly stepNumber: StepResult<TOOLS, CONTEXT>['stepNumber'];
   readonly model: StepResult<TOOLS, CONTEXT>['model'];
   readonly functionId: StepResult<TOOLS, CONTEXT>['functionId'];
@@ -191,8 +202,10 @@ export class DefaultStepResult<
   readonly providerMetadata: StepResult<TOOLS, CONTEXT>['providerMetadata'];
 
   constructor({
+    callId,
     stepNumber,
-    model,
+    provider,
+    modelId,
     functionId,
     metadata,
     experimental_context,
@@ -205,8 +218,10 @@ export class DefaultStepResult<
     response,
     providerMetadata,
   }: {
+    callId: StepResult<TOOLS, CONTEXT>['callId'];
     stepNumber: StepResult<TOOLS, CONTEXT>['stepNumber'];
-    model: StepResult<TOOLS, CONTEXT>['model'];
+    provider: StepResult<TOOLS, CONTEXT>['model']['provider'];
+    modelId: StepResult<TOOLS, CONTEXT>['model']['modelId'];
     functionId: StepResult<TOOLS, CONTEXT>['functionId'];
     metadata: StepResult<TOOLS, CONTEXT>['metadata'];
     experimental_context: StepResult<TOOLS, CONTEXT>['experimental_context'];
@@ -219,8 +234,9 @@ export class DefaultStepResult<
     response: StepResult<TOOLS, CONTEXT>['response'];
     providerMetadata: StepResult<TOOLS, CONTEXT>['providerMetadata'];
   }) {
+    this.callId = callId;
     this.stepNumber = stepNumber;
-    this.model = model;
+    this.model = { provider, modelId };
     this.functionId = functionId;
     this.metadata = metadata;
     this.experimental_context = experimental_context;
@@ -241,14 +257,17 @@ export class DefaultStepResult<
       .join('');
   }
 
-  get reasoning() {
-    return this.content.filter(part => part.type === 'reasoning');
+  get reasoning(): Array<ReasoningPart | ReasoningFilePart> {
+    return convertFromReasoningOutputs(
+      this.content.filter(
+        (part): part is ReasoningOutput | ReasoningFileOutput =>
+          part.type === 'reasoning' || part.type === 'reasoning-file',
+      ),
+    );
   }
 
   get reasoningText() {
-    return this.reasoning.length === 0
-      ? undefined
-      : this.reasoning.map(part => part.text).join('');
+    return asReasoningText(this.reasoning);
   }
 
   get files() {

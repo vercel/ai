@@ -76,6 +76,11 @@ It also contains the following helper functions:
       href: '/docs/reference/ai-sdk-core/tool',
     },
     {
+      title: 'experimental_filterActiveTools()',
+      description: 'Filters a tool set to only the currently active tools.',
+      href: '/docs/reference/ai-sdk-core/filter-active-tools',
+    },
+    {
       title: 'createMCPClient()',
       description: 'Creates a client for connecting to MCP servers.',
       href: '/docs/reference/ai-sdk-core/create-mcp-client',
@@ -129,6 +134,24 @@ It also contains the following helper functions:
       description:
         'Extracts JSON from text content by stripping markdown code fences.',
       href: '/docs/reference/ai-sdk-core/extract-json-middleware',
+    },
+    {
+      title: 'isStepCount()',
+      description:
+        'Creates a stop condition that triggers after a specified number of steps.',
+      href: '/docs/reference/ai-sdk-core/is-step-count',
+    },
+    {
+      title: 'hasToolCall()',
+      description:
+        'Creates a stop condition that triggers when a specific tool is called.',
+      href: '/docs/reference/ai-sdk-core/has-tool-call',
+    },
+    {
+      title: 'isLoopFinished()',
+      description:
+        'Creates a stop condition that lets the agent loop run until it naturally finishes.',
+      href: '/docs/reference/ai-sdk-core/loop-finished',
     },
     {
       title: 'simulateStreamingMiddleware()',

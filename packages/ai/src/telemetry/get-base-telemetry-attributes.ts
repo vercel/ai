@@ -1,5 +1,5 @@
 import { Attributes, AttributeValue } from '@opentelemetry/api';
-import { CallSettings, getTotalTimeoutMs } from '../prompt/call-settings';
+import { CallSettings } from '../prompt/call-settings';
 import { TelemetrySettings } from './telemetry-settings';
 
 export function getBaseTelemetryAttributes({
@@ -19,24 +19,16 @@ export function getBaseTelemetryAttributes({
 
     // settings:
     ...Object.entries(settings).reduce((attributes, [key, value]) => {
-      // Handle timeout specially since it can be a number or object
-      if (key === 'timeout') {
-        const totalTimeoutMs = getTotalTimeoutMs(
-          value as Parameters<typeof getTotalTimeoutMs>[0],
-        );
-        if (totalTimeoutMs != null) {
-          attributes[`ai.settings.${key}`] = totalTimeoutMs;
-        }
-      } else {
-        attributes[`ai.settings.${key}`] = value as AttributeValue;
-      }
+      attributes[`ai.settings.${key}`] = value as AttributeValue;
       return attributes;
     }, {} as Attributes),
 
     // add metadata as attributes:
     ...Object.entries(telemetry?.metadata ?? {}).reduce(
       (attributes, [key, value]) => {
-        attributes[`ai.telemetry.metadata.${key}`] = value;
+        if (value != undefined) {
+          attributes[`ai.telemetry.metadata.${key}`] = value as AttributeValue;
+        }
         return attributes;
       },
       {} as Attributes,

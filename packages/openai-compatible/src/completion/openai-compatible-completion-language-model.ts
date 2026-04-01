@@ -1,13 +1,13 @@
 import {
   APICallError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -45,13 +45,11 @@ type OpenAICompatibleCompletionConfig = {
   /**
    * The supported URLs for the model.
    */
-  supportedUrls?: () => LanguageModelV3['supportedUrls'];
+  supportedUrls?: () => LanguageModelV4['supportedUrls'];
 };
 
-export class OpenAICompatibleCompletionLanguageModel
-  implements LanguageModelV3
-{
-  readonly specificationVersion = 'v3';
+export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAICompatibleCompletionModelId;
   private readonly config: OpenAICompatibleCompletionConfig;
@@ -100,8 +98,8 @@ export class OpenAICompatibleCompletionLanguageModel
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const completionOptions =
@@ -167,8 +165,8 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -191,7 +189,7 @@ export class OpenAICompatibleCompletionLanguageModel
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     if (choice.text != null && choice.text.length > 0) {
@@ -216,8 +214,8 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -245,7 +243,7 @@ export class OpenAICompatibleCompletionLanguageModel
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -262,7 +260,7 @@ export class OpenAICompatibleCompletionLanguageModel
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

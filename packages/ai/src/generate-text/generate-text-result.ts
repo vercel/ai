@@ -7,7 +7,7 @@ import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { InferCompleteOutput } from './output-utils';
-import { ReasoningOutput } from './reasoning-output';
+import { ReasoningOutput, ReasoningFileOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
@@ -40,7 +40,7 @@ export interface GenerateTextResult<
   /**
    * The full reasoning that the model has generated in the last step.
    */
-  readonly reasoning: Array<ReasoningOutput>;
+  readonly reasoning: Array<ReasoningOutput | ReasoningFileOutput>;
 
   /**
    * The reasoning text that the model has generated in the last step. Can be undefined if the model

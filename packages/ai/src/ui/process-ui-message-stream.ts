@@ -14,6 +14,7 @@ import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { UIDataTypesToSchemas } from './chat';
 import {
+  CustomContentUIPart,
   DataUIPart,
   DynamicToolUIPart,
   getStaticToolName,
@@ -400,6 +401,17 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
+            case 'custom': {
+              const customPart: CustomContentUIPart = {
+                type: 'custom',
+                kind: chunk.kind,
+                providerMetadata: chunk.providerMetadata,
+              };
+              state.message.parts.push(customPart);
+              write();
+              break;
+            }
+
             case 'reasoning-start': {
               const reasoningPart: ReasoningUIPart = {
                 type: 'reasoning',
@@ -451,9 +463,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               break;
             }
 
-            case 'file': {
+            case 'file':
+            case 'reasoning-file': {
               state.message.parts.push({
-                type: 'file',
+                type: chunk.type,
                 mediaType: chunk.mediaType,
                 url: chunk.url,
                 ...(chunk.providerMetadata != null

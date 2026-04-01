@@ -1,4 +1,4 @@
-import { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -36,8 +36,8 @@ interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
   };
 }
 
-export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -52,8 +52,8 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const elevenlabsOptions = await parseProviderOptions({
@@ -111,8 +111,8 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 

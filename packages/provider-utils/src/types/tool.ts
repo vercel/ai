@@ -202,6 +202,8 @@ export type Tool<
      * Optional conversion function that maps the tool result to an output that can be used by the language model.
      *
      * If not provided, the tool result will be sent as a JSON object.
+     *
+     * This function is invoked on the server by `convertToModelMessages`, so ensure that you pass the same "tools" (ToolSet) to both "convertToModelMessages" and "streamText" (or other generation APIs).
      */
     toModelOutput?: (options: {
       /**

@@ -42,7 +42,7 @@ export async function createAgentUIStream<
   agent: Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
-  timeout?: TimeoutConfiguration;
+  timeout?: TimeoutConfiguration<TOOLS>;
   options?: CALL_OPTIONS;
   experimental_transform?:
     | StreamTextTransform<TOOLS>

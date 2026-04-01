@@ -1,7 +1,7 @@
 import { ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { GeneratedFile } from './generated-file';
-import { ReasoningOutput } from './reasoning-output';
+import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
@@ -10,9 +10,15 @@ import { ToolSet } from './tool-set';
 
 export type ContentPart<TOOLS extends ToolSet = ToolSet> =
   | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }
+  | {
+      type: 'custom';
+      kind: `${string}.${string}`;
+      providerMetadata?: ProviderMetadata;
+    }
   | ReasoningOutput
+  | ReasoningFileOutput
   | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata } // different because of GeneratedFile object
+  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata }
   | ({ type: 'tool-call' } & TypedToolCall<TOOLS> & {
         providerMetadata?: ProviderMetadata;
       })
