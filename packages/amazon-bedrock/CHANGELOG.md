@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- 4b20a5d: fix(provider/amazon-bedrock): transform bedrock/anthropic error responses to anthropic format
+
 ## 5.0.0-beta.14
 
 ### Patch Changes
