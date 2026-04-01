@@ -1,6 +1,8 @@
 import {
   AISDKError,
   type FilesV4,
+  type FilesV4UploadFileCallOptions,
+  type FilesV4UploadFileResult,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -45,8 +47,8 @@ export class GoogleGenerativeAIFiles implements FilesV4 {
   constructor(private readonly config: GoogleGenerativeAIFilesConfig) {}
 
   async uploadFile(
-    options: Parameters<FilesV4['uploadFile']>[0],
-  ): Promise<Awaited<ReturnType<FilesV4['uploadFile']>>> {
+    options: FilesV4UploadFileCallOptions,
+  ): Promise<FilesV4UploadFileResult> {
     const googleOptions = (await parseProviderOptions({
       provider: 'google',
       providerOptions: options.providerOptions,
