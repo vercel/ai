@@ -295,6 +295,33 @@ describe('prepareTools', () => {
         }
       `);
     });
+
+    it('should correctly prepare code_execution_20260120 without beta header', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'anthropic.code_execution_20260120',
+            name: 'code_execution',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "name": "code_execution",
+              "type": "code_execution_20260120",
+            },
+          ],
+        }
+      `);
+    });
   });
 
   it('should add warnings for unsupported tools', async () => {
