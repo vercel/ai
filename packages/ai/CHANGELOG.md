@@ -1,5 +1,17 @@
 # ai
 
+## 7.0.0-beta.53
+
+### Patch Changes
+
+- 9b47dea: fix(ai): remove otel Tracer api from telemetry settings
+
+## 7.0.0-beta.52
+
+### Patch Changes
+
+- b56301c: feat(ai): decouple otel from generate/streamObject
+
 ## 7.0.0-beta.51
 
 ### Patch Changes

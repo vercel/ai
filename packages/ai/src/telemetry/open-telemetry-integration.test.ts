@@ -1,3 +1,14 @@
+import {
+  EmbeddingModelV4,
+  LanguageModelV4StreamPart,
+  LanguageModelV4Usage,
+} from '@ai-sdk/provider';
+import { tool } from '@ai-sdk/provider-utils';
+import {
+  convertArrayToReadableStream,
+  mockId,
+} from '@ai-sdk/provider-utils/test';
+import assert from 'node:assert';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   Attributes,
@@ -6,8 +17,26 @@ import {
   SpanStatusCode,
   Tracer,
 } from '@opentelemetry/api';
+import { z } from 'zod/v4';
+import { embed } from '../embed/embed';
+import { embedMany } from '../embed/embed-many';
+import { generateText } from '../generate-text/generate-text';
+import { isStepCount } from '../generate-text/stop-condition';
+import { streamText } from '../generate-text/stream-text';
+import { rerank } from '../rerank/rerank';
+import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
+import { MockTracer as IntegrationMockTracer } from '../test/mock-tracer';
+import { Embedding, EmbeddingModelUsage } from '../types';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
+import { mockValues } from '../test/mock-values';
 import { OpenTelemetryIntegration } from './open-telemetry-integration';
 import type { TelemetryIntegration } from './telemetry-integration';
+
+vi.mock('../version', () => ({
+  VERSION: '0.0.0-test',
+}));
 
 type MockSpan = Span & {
   name: string;
@@ -1198,5 +1227,1398 @@ describe('OpenTelemetryIntegration', () => {
       expect(attrs['ai.telemetry.metadata.userId']).toBe('user-123');
       expect(attrs['ai.telemetry.metadata.sessionId']).toBe('sess-456');
     });
+  });
+});
+
+const integrationTestUsage: LanguageModelV4Usage = {
+  inputTokens: {
+    total: 3,
+    noCache: 3,
+    cacheRead: undefined,
+    cacheWrite: undefined,
+  },
+  outputTokens: {
+    total: 10,
+    text: 10,
+    reasoning: undefined,
+  },
+};
+
+const integrationDummyResponseValues = {
+  finishReason: { unified: 'stop', raw: 'stop' } as const,
+  usage: integrationTestUsage,
+  warnings: [],
+};
+
+const integrationModelWithReasoning = new MockLanguageModelV4({
+  doGenerate: {
+    ...integrationDummyResponseValues,
+    content: [
+      {
+        type: 'reasoning',
+        text: 'I will open the conversation with witty banter.',
+        providerMetadata: {
+          testProvider: {
+            signature: 'signature',
+          },
+        },
+      },
+      {
+        type: 'reasoning',
+        text: '',
+        providerMetadata: {
+          testProvider: {
+            redactedData: 'redacted-reasoning-data',
+          },
+        },
+      },
+      { type: 'text', text: 'Hello, world!' },
+    ],
+  },
+});
+
+describe('OpenTelemetryIntegration integration with generateText', () => {
+  let tracer: IntegrationMockTracer;
+
+  beforeEach(() => {
+    tracer = new IntegrationMockTracer();
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async ({}) => ({
+          ...integrationDummyResponseValues,
+          content: [{ type: 'text', text: 'Hello, world!' }],
+        }),
+      }),
+      prompt: 'prompt',
+      experimental_telemetry: {
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async ({}) => ({
+          ...integrationDummyResponseValues,
+          content: [{ type: 'text', text: 'Hello, world!' }],
+          response: {
+            id: 'test-id-from-model',
+            timestamp: new Date(10000),
+            modelId: 'test-response-model-id',
+          },
+          providerMetadata: {
+            testProvider: {
+              testKey: 'testValue',
+            },
+          },
+        }),
+      }),
+      prompt: 'prompt',
+      topK: 0.1,
+      topP: 0.2,
+      frequencyPenalty: 0.3,
+      presencePenalty: 0.4,
+      temperature: 0.5,
+      stopSequences: ['stop'],
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record successful tool call', async () => {
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async ({}) => ({
+          ...integrationDummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+          ],
+          response: {
+            id: 'test-id',
+            timestamp: new Date(0),
+            modelId: 'mock-model-id',
+          },
+        }),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: {
+        generateId: () => 'test-id',
+        generateCallId: () => 'test-telemetry-call-id',
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.generateText",
+            "ai.prompt": "{"prompt":"test-input"}",
+            "ai.request.headers.user-agent": "ai/0.0.0-test",
+            "ai.response.finishReason": "stop",
+            "ai.response.text": "",
+            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.inputTokenDetails.noCacheTokens": 3,
+            "ai.usage.inputTokens": 3,
+            "ai.usage.outputTokenDetails.textTokens": 10,
+            "ai.usage.outputTokens": 10,
+            "ai.usage.totalTokens": 13,
+            "operation.name": "ai.generateText",
+          },
+          "events": [],
+          "name": "ai.generateText",
+        },
+        {
+          "attributes": {
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.generateText.doGenerate",
+            "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+            "ai.prompt.toolChoice": "{"type":"auto"}",
+            "ai.prompt.tools": [
+              "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
+            ],
+            "ai.request.headers.user-agent": "ai/0.0.0-test",
+            "ai.response.finishReason": "stop",
+            "ai.response.id": "test-id",
+            "ai.response.model": "mock-model-id",
+            "ai.response.text": "",
+            "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+            "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.inputTokenDetails.noCacheTokens": 3,
+            "ai.usage.inputTokens": 3,
+            "ai.usage.outputTokenDetails.textTokens": 10,
+            "ai.usage.outputTokens": 10,
+            "ai.usage.totalTokens": 13,
+            "gen_ai.request.model": "mock-model-id",
+            "gen_ai.response.finish_reasons": [
+              "stop",
+            ],
+            "gen_ai.response.id": "test-id",
+            "gen_ai.response.model": "mock-model-id",
+            "gen_ai.system": "mock-provider",
+            "gen_ai.usage.input_tokens": 3,
+            "gen_ai.usage.output_tokens": 10,
+            "operation.name": "ai.generateText.doGenerate",
+          },
+          "events": [],
+          "name": "ai.generateText.doGenerate",
+        },
+        {
+          "attributes": {
+            "ai.operationId": "ai.toolCall",
+            "ai.toolCall.args": "{"value":"value"}",
+            "ai.toolCall.id": "call-1",
+            "ai.toolCall.name": "tool1",
+            "ai.toolCall.result": ""result1"",
+            "operation.name": "ai.toolCall",
+          },
+          "events": [],
+          "name": "ai.toolCall",
+        },
+      ]
+    `);
+  });
+
+  it('should record error on tool call', async () => {
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async ({}) => ({
+          ...integrationDummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+          ],
+        }),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => {
+            throw new Error('Tool execution failed');
+          },
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: {
+        generateId: () => 'test-id',
+        generateCallId: () => 'test-telemetry-call-id',
+      },
+    });
+
+    expect(tracer.jsonSpans).toHaveLength(3);
+
+    expect(tracer.jsonSpans[0].name).toBe('ai.generateText');
+    expect(tracer.jsonSpans[1].name).toBe('ai.generateText.doGenerate');
+    expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
+
+    const toolCallSpan = tracer.jsonSpans[2];
+    expect(toolCallSpan.status).toEqual({
+      code: 2,
+      message: 'Tool execution failed',
+    });
+
+    expect(toolCallSpan.events).toHaveLength(1);
+    const exceptionEvent = toolCallSpan.events[0];
+    expect(exceptionEvent.name).toBe('exception');
+    expect(exceptionEvent.attributes).toMatchObject({
+      'exception.message': 'Tool execution failed',
+      'exception.name': 'Error',
+    });
+    expect(exceptionEvent.attributes?.['exception.stack']).toContain(
+      'Tool execution failed',
+    );
+    expect(exceptionEvent.time).toEqual([0, 0]);
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async ({}) => ({
+          ...integrationDummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+          ],
+          response: {
+            id: 'test-id',
+            timestamp: new Date(0),
+            modelId: 'mock-model-id',
+          },
+        }),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: {
+        generateId: () => 'test-id',
+        generateCallId: () => 'test-telemetry-call-id',
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record reasoning in telemetry when present', async () => {
+    await generateText({
+      model: integrationModelWithReasoning,
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+    });
+
+    const rootSpan = tracer.jsonSpans.find(
+      span => span.name === 'ai.generateText',
+    );
+    const doGenerateSpan = tracer.jsonSpans.find(
+      span => span.name === 'ai.generateText.doGenerate',
+    );
+
+    expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
+      'I will open the conversation with witty banter.\n',
+    );
+    expect(doGenerateSpan?.attributes['ai.response.reasoning']).toBe(
+      'I will open the conversation with witty banter.\n',
+    );
+  });
+
+  it('should record total usage across steps in root span', async () => {
+    let responseCount = 0;
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => {
+          switch (responseCount++) {
+            case 0:
+              return {
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: undefined,
+                },
+                usage: {
+                  inputTokens: {
+                    total: 5,
+                    noCache: 5,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 20,
+                    text: 20,
+                    reasoning: undefined,
+                  },
+                },
+                warnings: [],
+                content: [
+                  {
+                    type: 'tool-call' as const,
+                    toolCallType: 'function' as const,
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{ "value": "value" }',
+                  },
+                ],
+              };
+            case 1:
+            default:
+              return {
+                finishReason: {
+                  unified: 'stop' as const,
+                  raw: 'stop',
+                },
+                usage: {
+                  inputTokens: {
+                    total: 10,
+                    noCache: 10,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 15,
+                    text: 15,
+                    reasoning: undefined,
+                  },
+                },
+                warnings: [],
+                content: [{ type: 'text' as const, text: 'Final answer.' }],
+              };
+          }
+        },
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => 'result1',
+        },
+      },
+      stopWhen: isStepCount(2),
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+    });
+
+    const rootSpan = tracer.jsonSpans.find(
+      span => span.name === 'ai.generateText',
+    );
+
+    expect(rootSpan?.attributes['ai.usage.inputTokens']).toBe(15);
+    expect(rootSpan?.attributes['ai.usage.outputTokens']).toBe(35);
+    expect(rootSpan?.attributes['ai.usage.totalTokens']).toBe(50);
+  });
+
+  it('should execute subagent generateText inside executeToolCall context', async () => {
+    let activeContext: string | undefined;
+    let capturedContext: string | undefined;
+    const otelIntegration = new OpenTelemetryIntegration({ tracer });
+
+    await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => ({
+          ...integrationDummyResponseValues,
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'researchTool',
+              input: '{ "city": "Tokyo" }',
+            },
+          ],
+        }),
+      }),
+      tools: {
+        researchTool: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute: async ({ city }) => {
+            capturedContext = activeContext;
+
+            const subResult = await generateText({
+              model: new MockLanguageModelV4({
+                doGenerate: async () => ({
+                  ...integrationDummyResponseValues,
+                  content: [
+                    { type: 'text', text: `Weather in ${city}: sunny` },
+                  ],
+                }),
+              }),
+              prompt: `Weather for ${city}`,
+              experimental_telemetry: {
+                isEnabled: true,
+                functionId: `sub-agent-${city.toLowerCase()}`,
+                integrations: otelIntegration,
+              },
+            });
+            return subResult.text;
+          },
+        }),
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'weather-agent',
+        integrations: [
+          otelIntegration,
+          {
+            executeTool: async ({ callId, toolCallId, execute }) => {
+              activeContext = `${callId}:${toolCallId}`;
+              try {
+                return await execute();
+              } finally {
+                activeContext = undefined;
+              }
+            },
+          },
+        ],
+      },
+      _internal: {
+        generateId: () => 'outer-test-id',
+        generateCallId: () => 'outer-test-call-id',
+      },
+    });
+
+    expect(capturedContext).toBe('outer-test-call-id:call-1');
+
+    expect(tracer.spans.map(s => s.name)).toEqual([
+      'ai.generateText',
+      'ai.generateText.doGenerate',
+      'ai.toolCall',
+      'ai.generateText',
+      'ai.generateText.doGenerate',
+    ]);
+
+    const toolCallSpan = tracer.spans[2];
+    expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
+
+    const innerRootSpan = tracer.spans[3];
+    expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
+      'sub-agent-tokyo',
+    );
+
+    const innerStepSpan = tracer.spans[4];
+    expect(innerStepSpan.attributes['ai.response.text']).toBe(
+      'Weather in Tokyo: sunny',
+    );
+  });
+});
+
+function createStreamTestModel({
+  stream = convertArrayToReadableStream([
+    {
+      type: 'stream-start' as const,
+      warnings: [],
+    },
+    {
+      type: 'response-metadata' as const,
+      id: 'id-0',
+      modelId: 'mock-model-id',
+      timestamp: new Date(0),
+    },
+    { type: 'text-start' as const, id: '1' },
+    { type: 'text-delta' as const, id: '1', delta: 'Hello' },
+    { type: 'text-delta' as const, id: '1', delta: ', ' },
+    { type: 'text-delta' as const, id: '1', delta: 'world!' },
+    { type: 'text-end' as const, id: '1' },
+    {
+      type: 'finish' as const,
+      finishReason: { unified: 'stop' as const, raw: 'stop' },
+      usage: integrationTestUsage,
+      providerMetadata: {
+        testProvider: { testKey: 'testValue' },
+      },
+    },
+  ]),
+}: {
+  stream?: ReadableStream<LanguageModelV4StreamPart>;
+} = {}) {
+  return new MockLanguageModelV4({
+    doStream: async () => ({ stream }),
+  });
+}
+
+describe('OpenTelemetryIntegration integration with streamText', () => {
+  let tracer: IntegrationMockTracer;
+
+  beforeEach(() => {
+    tracer = new IntegrationMockTracer();
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    const result = streamText({
+      model: createStreamTestModel(),
+      prompt: 'test-input',
+      _internal: {
+        now: mockValues(0, 100, 500),
+      },
+    });
+
+    await result.consumeStream();
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    const result = streamText({
+      model: createStreamTestModel(),
+      prompt: 'test-input',
+      topK: 0.1,
+      topP: 0.2,
+      frequencyPenalty: 0.3,
+      presencePenalty: 0.4,
+      temperature: 0.5,
+      stopSequences: ['stop'],
+      headers: {
+        header1: 'value1',
+        header2: 'value2',
+      },
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: { now: mockValues(0, 100, 500) },
+    });
+
+    await result.consumeStream();
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record successful tool call', async () => {
+    const result = streamText({
+      model: createStreamTestModel({
+        stream: convertArrayToReadableStream([
+          {
+            type: 'response-metadata',
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            input: `{ "value": "value" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: integrationTestUsage,
+          },
+        ]),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: { now: mockValues(0, 100, 500) },
+    });
+
+    await result.consumeStream();
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record error on tool call', async () => {
+    const result = streamText({
+      model: createStreamTestModel({
+        stream: convertArrayToReadableStream([
+          {
+            type: 'response-metadata',
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            input: `{ "value": "value" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: integrationTestUsage,
+          },
+        ]),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => {
+            throw new Error('Tool execution failed');
+          },
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: { now: mockValues(0, 100, 500) },
+    });
+
+    await result.consumeStream();
+
+    expect(tracer.jsonSpans).toHaveLength(3);
+
+    expect(tracer.jsonSpans[0].name).toBe('ai.streamText');
+    expect(tracer.jsonSpans[1].name).toBe('ai.streamText.doStream');
+    expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
+
+    const toolCallSpan = tracer.jsonSpans[2];
+    expect(toolCallSpan.status).toEqual({
+      code: 2,
+      message: 'Tool execution failed',
+    });
+
+    expect(toolCallSpan.events).toHaveLength(1);
+    const exceptionEvent = toolCallSpan.events[0];
+    expect(exceptionEvent.name).toBe('exception');
+    expect(exceptionEvent.attributes).toMatchObject({
+      'exception.message': 'Tool execution failed',
+      'exception.name': 'Error',
+    });
+    expect(exceptionEvent.attributes?.['exception.stack']).toContain(
+      'Tool execution failed',
+    );
+    expect(exceptionEvent.time).toEqual([0, 0]);
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    const result = streamText({
+      model: createStreamTestModel({
+        stream: convertArrayToReadableStream([
+          {
+            type: 'response-metadata',
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            input: `{ "value": "value" }`,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: integrationTestUsage,
+          },
+        ]),
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        },
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: { now: mockValues(0, 100, 500) },
+    });
+
+    await result.consumeStream();
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record reasoning in telemetry when present', async () => {
+    const result = streamText({
+      model: createStreamTestModel({
+        stream: convertArrayToReadableStream([
+          {
+            type: 'response-metadata',
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          { type: 'reasoning-start', id: '1' },
+          {
+            type: 'reasoning-delta',
+            id: '1',
+            delta: 'This is my reasoning ',
+          },
+          {
+            type: 'reasoning-delta',
+            id: '1',
+            delta: 'about the problem.',
+          },
+          { type: 'reasoning-end', id: '1' },
+          { type: 'text-start', id: '2' },
+          { type: 'text-delta', id: '2', delta: 'Hello, world!' },
+          { type: 'text-end', id: '2' },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: integrationTestUsage,
+          },
+        ]),
+      }),
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
+      _internal: { now: mockValues(0, 100, 500) },
+    });
+
+    await result.consumeStream();
+
+    const rootSpan = tracer.jsonSpans.find(
+      span => span.name === 'ai.streamText',
+    );
+    const doStreamSpan = tracer.jsonSpans.find(
+      span => span.name === 'ai.streamText.doStream',
+    );
+
+    expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
+      'This is my reasoning about the problem.',
+    );
+    expect(doStreamSpan?.attributes['ai.response.reasoning']).toBe(
+      'This is my reasoning about the problem.',
+    );
+  });
+
+  it('should execute subagent streamText inside executeToolCall context', async () => {
+    let activeContext: string | undefined;
+    let capturedContext: string | undefined;
+    const otelIntegration = new OpenTelemetryIntegration({ tracer });
+
+    const result = streamText({
+      model: createStreamTestModel({
+        stream: convertArrayToReadableStream([
+          {
+            type: 'response-metadata',
+            id: 'id-0',
+            modelId: 'mock-model-id',
+            timestamp: new Date(0),
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'researchTool',
+            input: '{ "city": "Tokyo" }',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: integrationTestUsage,
+          },
+        ]),
+      }),
+      tools: {
+        researchTool: tool({
+          inputSchema: z.object({ city: z.string() }),
+          execute: async ({ city }) => {
+            capturedContext = activeContext;
+
+            const innerResult = streamText({
+              model: createStreamTestModel({
+                stream: convertArrayToReadableStream([
+                  {
+                    type: 'response-metadata',
+                    id: 'inner-id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  { type: 'text-start', id: '1' },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: `Weather in ${city}: sunny`,
+                  },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: integrationTestUsage,
+                  },
+                ]),
+              }),
+              prompt: `Weather for ${city}`,
+              experimental_telemetry: {
+                isEnabled: true,
+                functionId: `sub-agent-${city.toLowerCase()}`,
+                integrations: otelIntegration,
+              },
+              _internal: { now: mockValues(0, 100, 500) },
+              onError: () => {},
+            });
+
+            return await innerResult.text;
+          },
+        }),
+      },
+      prompt: 'test-input',
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'weather-agent',
+        integrations: [
+          otelIntegration,
+          {
+            executeTool: async ({ callId, toolCallId, execute }) => {
+              activeContext = `${callId}:${toolCallId}`;
+              try {
+                return await execute();
+              } finally {
+                activeContext = undefined;
+              }
+            },
+          },
+        ],
+      },
+      _internal: {
+        now: mockValues(0, 100, 500),
+        generateId: mockId({ prefix: 'id' }),
+        generateCallId: () => 'outer-test-call-id',
+      },
+      onError: () => {},
+    });
+
+    await result.consumeStream();
+
+    expect(capturedContext).toBe('outer-test-call-id:call-1');
+
+    expect(tracer.spans.map(s => s.name)).toEqual([
+      'ai.streamText',
+      'ai.streamText.doStream',
+      'ai.toolCall',
+      'ai.streamText',
+      'ai.streamText.doStream',
+    ]);
+
+    const toolCallSpan = tracer.spans[2];
+    expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
+
+    const innerRootSpan = tracer.spans[3];
+    expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
+      'sub-agent-tokyo',
+    );
+
+    const innerStepSpan = tracer.spans[4];
+    expect(innerStepSpan.attributes['ai.response.text']).toBe(
+      'Weather in Tokyo: sunny',
+    );
+  });
+});
+
+const rerankModel = new MockRerankingModelV4({
+  doRerank: async () => ({
+    ranking: [
+      { index: 2, relevanceScore: 0.9 },
+      { index: 0, relevanceScore: 0.8 },
+      { index: 1, relevanceScore: 0.7 },
+    ],
+    providerMetadata: {
+      aProvider: {
+        someResponseKey: 'someResponseValue',
+      },
+    },
+    response: {
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: {
+        id: '123',
+      },
+    },
+  }),
+});
+
+describe('OpenTelemetryIntegration integration with rerank', () => {
+  let tracer: IntegrationMockTracer;
+
+  beforeEach(() => {
+    tracer = new IntegrationMockTracer();
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await rerank({
+      model: rerankModel,
+      documents: [
+        'sunny day at the beach',
+        'rainy day in the city',
+        'cloudy day in the mountains',
+      ],
+      query: 'rainy day',
+      topN: 3,
+    });
+
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should record telemetry data when enabled (single call path)', async () => {
+    await rerank({
+      model: rerankModel,
+      documents: [
+        'sunny day at the beach',
+        'rainy day in the city',
+        'cloudy day in the mountains',
+      ],
+      query: 'rainy day',
+      topN: 3,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.documents": [
+              ""sunny day at the beach"",
+              ""rainy day in the city"",
+              ""cloudy day in the mountains"",
+            ],
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.rerank",
+            "ai.settings.maxRetries": 2,
+            "ai.telemetry.functionId": "test-function-id",
+            "ai.telemetry.metadata.test1": "value1",
+            "ai.telemetry.metadata.test2": false,
+            "operation.name": "ai.rerank test-function-id",
+            "resource.name": "test-function-id",
+          },
+          "events": [],
+          "name": "ai.rerank",
+        },
+        {
+          "attributes": {
+            "ai.documents": [
+              ""sunny day at the beach"",
+              ""rainy day in the city"",
+              ""cloudy day in the mountains"",
+            ],
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.rerank.doRerank",
+            "ai.ranking": [
+              "{"index":2,"relevanceScore":0.9}",
+              "{"index":0,"relevanceScore":0.8}",
+              "{"index":1,"relevanceScore":0.7}",
+            ],
+            "ai.ranking.type": "text",
+            "ai.settings.maxRetries": 2,
+            "ai.telemetry.functionId": "test-function-id",
+            "ai.telemetry.metadata.test1": "value1",
+            "ai.telemetry.metadata.test2": false,
+            "operation.name": "ai.rerank.doRerank test-function-id",
+            "resource.name": "test-function-id",
+          },
+          "events": [],
+          "name": "ai.rerank.doRerank",
+        },
+      ]
+    `);
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    await rerank({
+      model: rerankModel,
+      documents: [
+        'sunny day at the beach',
+        'rainy day in the city',
+        'cloudy day in the mountains',
+      ],
+      query: 'rainy day',
+      topN: 3,
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.rerank",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.rerank",
+          },
+          "events": [],
+          "name": "ai.rerank",
+        },
+        {
+          "attributes": {
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.rerank.doRerank",
+            "ai.ranking.type": "text",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.rerank.doRerank",
+          },
+          "events": [],
+          "name": "ai.rerank.doRerank",
+        },
+      ]
+    `);
+  });
+});
+
+// --- embed integration fixtures ---
+
+const embedDummyEmbedding = [0.1, 0.2, 0.3];
+const embedTestValue = 'sunny day at the beach';
+
+function mockEmbedSingle(
+  expectedValues: Array<string>,
+  embeddings: Array<Embedding>,
+  usage?: EmbeddingModelUsage,
+  response: Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>['response'] = {
+    headers: {},
+    body: {},
+  },
+  providerMetadata?: Awaited<
+    ReturnType<EmbeddingModelV4['doEmbed']>
+  >['providerMetadata'],
+  warnings: Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>['warnings'] = [],
+): EmbeddingModelV4['doEmbed'] {
+  return async ({ values }) => {
+    assert.deepStrictEqual(expectedValues, values);
+    return { embeddings, usage, response, providerMetadata, warnings };
+  };
+}
+
+describe('OpenTelemetryIntegration integration with embed', () => {
+  let tracer: IntegrationMockTracer;
+
+  beforeEach(() => {
+    tracer = new IntegrationMockTracer();
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding]),
+      }),
+      value: embedTestValue,
+      experimental_telemetry: {
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record telemetry data when enabled', async () => {
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding], {
+          tokens: 10,
+        }),
+      }),
+      value: embedTestValue,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding], {
+          tokens: 10,
+        }),
+      }),
+      value: embedTestValue,
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+// --- embedMany integration fixtures ---
+
+const embedManyDummyEmbeddings = [
+  [0.1, 0.2, 0.3],
+  [0.4, 0.5, 0.6],
+  [0.7, 0.8, 0.9],
+];
+
+const embedManyTestValues = [
+  'sunny day at the beach',
+  'rainy afternoon in the city',
+  'snowy night in the mountains',
+];
+
+function mockEmbedMany(
+  expectedValues: Array<string>,
+  embeddings: Array<Embedding>,
+  usage?: EmbeddingModelUsage,
+  response: Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>['response'] = {
+    headers: {},
+    body: {},
+  },
+  providerMetadata?: Awaited<
+    ReturnType<EmbeddingModelV4['doEmbed']>
+  >['providerMetadata'],
+): EmbeddingModelV4['doEmbed'] {
+  return async ({ values }) => {
+    assert.deepStrictEqual(expectedValues, values);
+    return { embeddings, usage, response, providerMetadata, warnings: [] };
+  };
+}
+
+describe('OpenTelemetryIntegration integration with embedMany', () => {
+  let tracer: IntegrationMockTracer;
+
+  beforeEach(() => {
+    tracer = new IntegrationMockTracer();
+  });
+
+  it('should not record any telemetry data when not explicitly enabled', async () => {
+    await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 5,
+        doEmbed: mockEmbedMany(embedManyTestValues, embedManyDummyEmbeddings),
+      }),
+      values: embedManyTestValues,
+      experimental_telemetry: {
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record telemetry data when enabled (multiple calls path)', async () => {
+    let callCount = 0;
+
+    await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async ({ values }) => {
+          switch (callCount++) {
+            case 0:
+              assert.deepStrictEqual(values, embedManyTestValues.slice(0, 2));
+              return {
+                embeddings: embedManyDummyEmbeddings.slice(0, 2),
+                usage: { tokens: 10 },
+                warnings: [],
+              };
+            case 1:
+              assert.deepStrictEqual(values, embedManyTestValues.slice(2));
+              return {
+                embeddings: embedManyDummyEmbeddings.slice(2),
+                usage: { tokens: 20 },
+                warnings: [],
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      values: embedManyTestValues,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should record telemetry data when enabled (single call path)', async () => {
+    await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: null,
+        doEmbed: mockEmbedMany(embedManyTestValues, embedManyDummyEmbeddings, {
+          tokens: 10,
+        }),
+      }),
+      values: embedManyTestValues,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: 'test-function-id',
+        metadata: {
+          test1: 'value1',
+          test2: false,
+        },
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should not record telemetry inputs / outputs when disabled', async () => {
+    await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: null,
+        doEmbed: mockEmbedMany(embedManyTestValues, embedManyDummyEmbeddings, {
+          tokens: 10,
+        }),
+      }),
+      values: embedManyTestValues,
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: false,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+
+  it('should correctly track telemetry spans for parallel doEmbed calls', async () => {
+    const resolvables = [
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+    ];
+
+    let callCount = 0;
+
+    const embedManyPromise = embedMany({
+      model: new MockEmbeddingModelV4({
+        supportsParallelCalls: true,
+        maxEmbeddingsPerCall: 1,
+        doEmbed: async () => {
+          const index = callCount++;
+          await resolvables[index].promise;
+          return {
+            embeddings: [embedManyDummyEmbeddings[index]],
+            usage: { tokens: (index + 1) * 10 },
+            warnings: [],
+          };
+        },
+      }),
+      values: embedManyTestValues,
+      experimental_telemetry: {
+        isEnabled: true,
+        integrations: [new OpenTelemetryIntegration({ tracer })],
+      },
+    });
+
+    resolvables[0].resolve();
+    resolvables[1].resolve();
+    resolvables[2].resolve();
+
+    await embedManyPromise;
+
+    const doEmbedSpans = tracer.jsonSpans.filter(
+      s => s.name === 'ai.embedMany.doEmbed',
+    );
+
+    expect(doEmbedSpans).toHaveLength(3);
+
+    expect(doEmbedSpans[0].attributes['ai.usage.tokens']).toBe(10);
+    expect(doEmbedSpans[1].attributes['ai.usage.tokens']).toBe(20);
+    expect(doEmbedSpans[2].attributes['ai.usage.tokens']).toBe(30);
   });
 });
