@@ -80,7 +80,8 @@
     "analyze-downloads": "0.0.0",
     "eslint-config-vercel-ai": "0.0.0",
     "generate-llms-txt": "0.0.0",
-    "@vercel/ai-tsconfig": "0.0.0"
+    "@vercel/ai-tsconfig": "0.0.0",
+    "@ai-sdk/otel": "0.0.0"
   },
   "changesets": [
     "angry-tigers-heal",
@@ -121,6 +122,7 @@
     "gorgeous-onions-admire",
     "gorgeous-snails-sing",
     "great-cows-rush",
+    "grumpy-buttons-know",
     "healthy-toes-roll",
     "heavy-brooms-pretend",
     "heavy-tables-fetch",

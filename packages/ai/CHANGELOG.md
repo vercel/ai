@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.54
+
+### Patch Changes
+
+- 5d0f18e: feat(ai): move opentelemetry to new package
+
 ## 7.0.0-beta.53
 
 ### Patch Changes
