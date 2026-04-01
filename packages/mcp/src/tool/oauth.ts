@@ -449,7 +449,7 @@ export async function startAuthorization(
   }
 
   if (resource) {
-    authorizationUrl.searchParams.set('resource', resource.href);
+    authorizationUrl.searchParams.set('resource', resource.href.replace(/\/$/, ''));
   }
 
   return { authorizationUrl, codeVerifier };
@@ -673,7 +673,7 @@ export async function exchangeAuthorization(
   }
 
   if (resource) {
-    params.set('resource', resource.href);
+    params.set('resource', resource.href.replace(/\/$/, ''));
   }
 
   const response = await (fetchFn ?? fetch)(tokenUrl, {
@@ -760,7 +760,7 @@ export async function refreshAuthorization(
   }
 
   if (resource) {
-    params.set('resource', resource.href);
+    params.set('resource', resource.href.replace(/\/$/, ''));
   }
 
   const response = await (fetchFn ?? fetch)(tokenUrl, {
