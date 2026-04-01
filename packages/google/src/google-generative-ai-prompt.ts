@@ -39,6 +39,22 @@ export type GoogleGenerativeAIContentPart =
       fileData: { mimeType: string; fileUri: string };
       thought?: boolean;
       thoughtSignature?: string;
+    }
+  | {
+      toolCall: {
+        toolType: string;
+        args?: unknown;
+        id: string;
+      };
+      thoughtSignature?: string;
+    }
+  | {
+      toolResponse: {
+        toolType: string;
+        response?: unknown;
+        id: string;
+      };
+      thoughtSignature?: string;
     };
 
 export type GoogleGenerativeAIFunctionResponsePart = {
