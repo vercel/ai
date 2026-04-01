@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
+    "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
     "clean": "del-cli dist *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",
@@ -69,6 +69,7 @@
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"
   },
+  "sideEffects": false,
   "keywords": [
     "ai",
     "agent",

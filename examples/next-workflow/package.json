@@ -11,8 +11,8 @@
   "dependencies": {
     "@ai-sdk/anthropic": "4.0.0-beta.10",
     "@ai-sdk/durable-agent": "0.0.1",
-    "@ai-sdk/react": "workspace:*",
-    "ai": "workspace:*",
+    "@ai-sdk/react": "4.0.0-beta.47",
+    "ai": "7.0.0-beta.47",
     "next": "^15.5.9",
     "react": "^18",
     "react-dom": "^18",
@@ -24,8 +24,6 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",
-    "eslint": "8.57.1",
-    "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "5.8.3"
