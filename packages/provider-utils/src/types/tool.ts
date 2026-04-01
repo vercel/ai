@@ -273,24 +273,6 @@ export type Tool<
   );
 
 /**
- * Infer the input type of a tool.
- */
-export type InferToolInput<TOOL extends Tool> =
-  TOOL extends Tool<infer INPUT, any, any> ? INPUT : never;
-
-/**
- * Infer the output type of a tool.
- */
-export type InferToolOutput<TOOL extends Tool> =
-  TOOL extends Tool<any, infer OUTPUT, any> ? OUTPUT : never;
-
-/**
- * Infer the context type of a tool.
- */
-export type InferToolContext<TOOL extends Tool> =
-  TOOL extends Tool<any, any, infer CONTEXT> ? CONTEXT : never;
-
-/**
  * Helper function for inferring the execute args of a tool.
  */
 // Note: overload order is important for auto-completion

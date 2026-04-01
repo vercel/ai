@@ -16,15 +16,15 @@ export type {
 export type { Context } from './context';
 export type { DataContent } from './data-content';
 export { executeTool } from './execute-tool';
+export type { InferToolContext } from './infer-tool-context';
+export type { InferToolInput } from './infer-tool-input';
+export type { InferToolOutput } from './infer-tool-output';
 export type { ModelMessage } from './model-message';
 export type { ProviderOptions } from './provider-options';
 export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,
   tool,
-  type InferToolContext,
-  type InferToolInput,
-  type InferToolOutput,
   type Tool,
   type ToolExecuteFunction,
   type ToolExecutionOptions,
