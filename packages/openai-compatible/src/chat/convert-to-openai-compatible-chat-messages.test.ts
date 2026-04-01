@@ -457,7 +457,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -506,7 +506,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -632,7 +632,7 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call1',
@@ -999,7 +999,7 @@ describe('provider-specific metadata merging', () => {
         role: 'assistant',
         cacheControl: { type: 'default' },
         sharedKey: 'assistantLevel',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'collisionToolCall',
@@ -1041,7 +1041,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'function-call-1',
@@ -1134,7 +1134,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     // Verify both signatures are preserved
     expect(result[1]).toEqual({
       role: 'assistant',
-      content: '',
+      content: null,
       tool_calls: [
         {
           id: 'function-call-1',
@@ -1154,7 +1154,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
 
     expect(result[3]).toEqual({
       role: 'assistant',
-      content: '',
+      content: null,
       tool_calls: [
         {
           id: 'function-call-2',
@@ -1203,7 +1203,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'function-call-paris',
@@ -1250,7 +1250,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call-1',
@@ -1259,7 +1259,6 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
               name: 'some_tool',
               arguments: JSON.stringify({ param: 'value' }),
             },
-            // No extra_content field
           },
         ],
       },
