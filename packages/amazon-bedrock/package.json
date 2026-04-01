@@ -3,9 +3,8 @@
   "version": "5.0.0-beta.16",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist/**/*",
     "docs/**/*",
@@ -37,14 +36,14 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.mjs"
     },
     "./anthropic": {
-      "types": "./dist/anthropic/index.d.ts",
+      "types": "./dist/anthropic/index.d.mts",
       "import": "./dist/anthropic/index.mjs",
-      "require": "./dist/anthropic/index.js"
+      "default": "./dist/anthropic/index.mjs"
     }
   },
   "dependencies": {

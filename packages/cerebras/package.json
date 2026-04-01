@@ -3,9 +3,8 @@
   "version": "3.0.0-beta.10",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist/**/*",
     "docs/**/*",
@@ -36,9 +35,9 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.mjs"
     }
   },
   "dependencies": {
@@ -74,6 +73,5 @@
     "ai"
   ],
   "description": "The **Cerebras provider** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for [Cerebras](https://cerebras.ai), offering high-speed AI model inference powered by Cerebras Wafer-Scale Engines and CS-3 systems.",
-  "author": "",
-  "type": "commonjs"
+  "author": ""
 }

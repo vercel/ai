@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   {
     entry: ['src/index.ts'],
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     define: {
@@ -16,7 +16,7 @@ export default defineConfig([
   {
     entry: ['src/anthropic/index.ts'],
     outDir: 'dist/anthropic',
-    format: ['cjs', 'esm'],
+    format: ['esm'],
     dts: true,
     sourcemap: true,
     define: {

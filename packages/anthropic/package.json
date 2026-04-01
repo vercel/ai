@@ -3,9 +3,8 @@
   "version": "4.0.0-beta.12",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist/**/*",
     "docs/**/*",
@@ -37,15 +36,14 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.mjs"
     },
     "./internal": {
-      "types": "./dist/internal/index.d.ts",
+      "types": "./dist/internal/index.d.mts",
       "import": "./dist/internal/index.mjs",
-      "module": "./dist/internal/index.mjs",
-      "require": "./dist/internal/index.js"
+      "default": "./dist/internal/index.mjs"
     }
   },
   "dependencies": {

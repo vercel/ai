@@ -4,9 +4,8 @@
   "description": "AI SDK by Vercel - build apps like ChatGPT, Claude, Gemini, and more with a single interface for any model using the Vercel AI Gateway or go direct to OpenAI, Anthropic, Google, or any other model provider.",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "source": "./src/index.ts",
   "files": [
     "dist/**/*",
@@ -40,21 +39,19 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.mjs"
     },
     "./internal": {
-      "types": "./dist/internal/index.d.ts",
+      "types": "./dist/internal/index.d.mts",
       "import": "./dist/internal/index.mjs",
-      "module": "./dist/internal/index.mjs",
-      "require": "./dist/internal/index.js"
+      "default": "./dist/internal/index.mjs"
     },
     "./test": {
-      "types": "./dist/test/index.d.ts",
+      "types": "./dist/test/index.d.mts",
       "import": "./dist/test/index.mjs",
-      "module": "./dist/test/index.mjs",
-      "require": "./dist/test/index.js"
+      "default": "./dist/test/index.mjs"
     }
   },
   "dependencies": {

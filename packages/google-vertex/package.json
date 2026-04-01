@@ -3,9 +3,8 @@
   "version": "5.0.0-beta.26",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist/**/*",
     "docs/**/*",
@@ -41,34 +40,34 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "default": "./dist/index.mjs"
     },
     "./edge": {
-      "types": "./dist/edge/index.d.ts",
+      "types": "./dist/edge/index.d.mts",
       "import": "./dist/edge/index.mjs",
-      "require": "./dist/edge/index.js"
+      "default": "./dist/edge/index.mjs"
     },
     "./anthropic": {
-      "types": "./dist/anthropic/index.d.ts",
+      "types": "./dist/anthropic/index.d.mts",
       "import": "./dist/anthropic/index.mjs",
-      "require": "./dist/anthropic/index.js"
+      "default": "./dist/anthropic/index.mjs"
     },
     "./anthropic/edge": {
-      "types": "./dist/anthropic/edge/index.d.ts",
+      "types": "./dist/anthropic/edge/index.d.mts",
       "import": "./dist/anthropic/edge/index.mjs",
-      "require": "./dist/anthropic/edge/index.js"
+      "default": "./dist/anthropic/edge/index.mjs"
     },
     "./maas": {
-      "types": "./dist/maas/index.d.ts",
+      "types": "./dist/maas/index.d.mts",
       "import": "./dist/maas/index.mjs",
-      "require": "./dist/maas/index.js"
+      "default": "./dist/maas/index.mjs"
     },
     "./maas/edge": {
-      "types": "./dist/maas/edge/index.d.ts",
+      "types": "./dist/maas/edge/index.d.mts",
       "import": "./dist/maas/edge/index.mjs",
-      "require": "./dist/maas/edge/index.js"
+      "default": "./dist/maas/edge/index.mjs"
     }
   },
   "dependencies": {
