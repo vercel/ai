@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
+  isProviderReference,
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 import {
@@ -45,11 +46,7 @@ export async function convertToXaiResponsesInput({
             }
 
             case 'file': {
-              if (
-                typeof block.data === 'object' &&
-                !(block.data instanceof Uint8Array) &&
-                !(block.data instanceof URL)
-              ) {
+              if (isProviderReference(block.data)) {
                 contentParts.push({
                   type: 'input_file',
                   file_id: resolveProviderReference({
