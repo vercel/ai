@@ -439,7 +439,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         !tools?.some(
           tool =>
             tool.type === 'provider-defined' &&
-            tool.id === 'anthropic.code_execution_20250825',
+            (tool.id === 'anthropic.code_execution_20250825' ||
+              tool.id === 'anthropic.code_execution_20260120'),
         )
       ) {
         warnings.push({

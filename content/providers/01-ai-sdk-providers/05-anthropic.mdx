@@ -709,7 +709,7 @@ You can enable code execution using the provider-defined code execution tool:
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
-const codeExecutionTool = anthropic.tools.codeExecution_20250825();
+const codeExecutionTool = anthropic.tools.codeExecution_20260120();
 
 const result = await generateText({
   model: anthropic('claude-opus-4-20250514'),
@@ -720,6 +720,13 @@ const result = await generateText({
   },
 });
 ```
+
+<Note>
+  Three versions are available: `codeExecution_20260120` (recommended, does not
+  require a beta header, supports Claude Opus 4.6, Sonnet 4.6, Sonnet 4.5, and
+  Opus 4.5), `codeExecution_20250825` (supports Python and Bash with enhanced
+  file operations), and `codeExecution_20250522` (supports Bash only).
+</Note>
 
 #### Error Handling
 
@@ -794,7 +801,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
-    code_execution: anthropic.tools.codeExecution_20250825(),
+    code_execution: anthropic.tools.codeExecution_20260120(),
   },
   prompt: 'Create a presentation about renewable energy with 5 slides',
   providerOptions: {
@@ -821,7 +828,7 @@ You can also use custom skills by specifying `type: 'custom'`:
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
   tools: {
-    code_execution: anthropic.tools.codeExecution_20250825(),
+    code_execution: anthropic.tools.codeExecution_20260120(),
   },
   prompt: 'Use my custom skill to process this data',
   providerOptions: {
