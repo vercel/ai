@@ -1,4 +1,4 @@
-import { TelemetrySettings } from './telemetry-settings';
+import type { TelemetrySettings } from 'ai';
 
 export function assembleOperationName({
   operationId,

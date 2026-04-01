@@ -1161,12 +1161,12 @@ import {
   anthropic,
   forwardAnthropicContainerIdFromLastStep,
 } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   prompt:
     'Get the weather for Tokyo, Sydney, and London, then calculate the average temperature.',
   tools: {

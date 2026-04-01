@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { generateText, tool, ModelMessage, stepCountIs } from 'ai';
+import { generateText, tool, ModelMessage, isStepCount } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -47,7 +47,7 @@ run(async () => {
     tools,
     prompt:
       'Check flight status for AA100 and book a taxi 2 hours before if delayed.',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     onStepFinish: ({ toolCalls, toolResults }) => {
       if (toolCalls) {
         toolCalls.forEach(call => {
@@ -114,7 +114,7 @@ run(async () => {
       model,
       messages: messagesForTurn2,
       tools,
-      stopWhen: stepCountIs(1),
+      stopWhen: isStepCount(1),
     });
 
     console.log('Turn 2 response:');
@@ -141,7 +141,7 @@ run(async () => {
       }),
     },
     prompt: 'Check the weather in Paris and London.',
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
     onStepFinish: ({ toolCalls }) => {
       if (toolCalls && toolCalls.length > 1) {
         console.log('Parallel tool calls:');

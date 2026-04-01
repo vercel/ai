@@ -13,6 +13,9 @@ export interface BedrockConverseInput {
   };
   additionalModelRequestFields?: Record<string, unknown>;
   additionalModelResponseFieldPaths?: string[];
+  serviceTier?: {
+    type: string;
+  };
   guardrailConfig?:
     | BedrockGuardrailConfiguration
     | BedrockGuardrailStreamConfiguration
