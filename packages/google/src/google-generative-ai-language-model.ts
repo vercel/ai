@@ -1,5 +1,4 @@
 import {
-<<<<<<< HEAD
   LanguageModelV3,
   LanguageModelV3CallOptions,
   LanguageModelV3Content,
@@ -8,21 +7,9 @@ import {
   LanguageModelV3Source,
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
+  JSONObject,
   SharedV3ProviderMetadata,
   SharedV3Warning,
-=======
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4Source,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  JSONObject,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
->>>>>>> 01fa606a9 (feat(provider/google): support combining built-in tools with function calling on Gemini 3 (#13920))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,

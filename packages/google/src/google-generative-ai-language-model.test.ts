@@ -355,12 +355,16 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
+  const TEST_URL_GEMINI_3_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
+    [TEST_URL_GEMINI_3_PRO]: {},
   });
 
   function prepareJsonFixtureResponse(
