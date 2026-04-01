@@ -4,7 +4,7 @@ The **[Google Vertex provider](https://ai-sdk.dev/providers/ai-sdk-providers/goo
 
 This library includes a Google Vertex Anthropic provider and a Google Vertex MaaS provider. These providers closely follow the core Google Vertex library's usage patterns. See more in the [Google Vertex Anthropic Provider](#google-vertex-anthropic-provider) and [Google Vertex MaaS Provider](#google-vertex-maas-provider) sections below.
 
-> **Deploying on Vercel?** The AI Gateway lets you reach OpenAI (and other providers) by changing a single string — no provider packages or API keys needed. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+> **Deploying to Vercel?** The AI Gateway lets you reach Google Vertex AI (and other providers) by changing a single string — no provider packages or API keys needed. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
 

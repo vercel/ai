@@ -2,7 +2,7 @@
 
 The **[Anthropic provider](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post).
 
-> **Deploying on Vercel?** The AI Gateway lets you reach OpenAI (and other providers) by changing a single string — no provider packages or API keys needed. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+> **Deploying to Vercel?** The AI Gateway lets you reach Anthropic (and other providers) by changing a single string — no provider packages or API keys needed. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
 

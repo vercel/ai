@@ -3,7 +3,7 @@
 The **[Groq provider](https://ai-sdk.dev/providers/ai-sdk-providers/groq)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains language model support for the Groq chat and completion APIs, transcription support, and browser search tool.
 
-> **Deploying on Vercel?** The AI Gateway lets you reach OpenAI (and other providers) by changing a single string — no provider packages or API keys needed. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+> **Deploying to Vercel?** The AI Gateway lets you reach Groq (and other providers) by changing a single string — no provider packages or API keys needed. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
 
