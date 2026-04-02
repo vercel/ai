@@ -133,6 +133,10 @@ export class ToolLoopAgent<
       ...(await this.prepareCall(options)),
       abortSignal,
       timeout,
+      _internal: {
+        usedDefaultStopWhen: this.settings.stopWhen === undefined,
+        defaultStopStepCount: 20,
+      },
       experimental_onStart: this.mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart,
@@ -179,6 +183,10 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       experimental_transform,
+      _internal: {
+        usedDefaultStopWhen: this.settings.stopWhen === undefined,
+        defaultStopStepCount: 20,
+      },
       experimental_onStart: this.mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart,
