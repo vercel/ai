@@ -29,7 +29,7 @@ import {
   CallToolResult,
   CallToolResultSchema,
   ClientCapabilities,
-  Configuration as ClientConfiguration,
+  Implementation,
   ElicitationRequest,
   ElicitationRequestSchema,
   ElicitResult,
@@ -119,6 +119,11 @@ export async function createMCPClient(
 }
 
 export interface MCPClient {
+  /**
+   * Server information returned during the MCP initialize handshake.
+   */
+  readonly serverInfo: Implementation;
+
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
@@ -193,7 +198,7 @@ export interface MCPClient {
 class DefaultMCPClient implements MCPClient {
   private transport: MCPTransport;
   private onUncaughtError?: (error: unknown) => void;
-  private clientInfo: ClientConfiguration;
+  private clientInfo: Implementation;
   private clientCapabilities: ClientCapabilities;
   private requestMessageId = 0;
   private responseHandlers: Map<
@@ -205,6 +210,11 @@ class DefaultMCPClient implements MCPClient {
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
   ) => Promise<ElicitResult> | ElicitResult;
+  #serverInfo!: Implementation;
+
+  get serverInfo(): Implementation {
+    return this.#serverInfo;
+  }
 
   constructor({
     transport: transportConfig,
@@ -277,6 +287,7 @@ class DefaultMCPClient implements MCPClient {
       }
 
       this.serverCapabilities = result.capabilities;
+      this.#serverInfo = result.serverInfo;
 
       // Complete initialization handshake:
       await this.notification({

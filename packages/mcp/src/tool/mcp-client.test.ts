@@ -10,7 +10,7 @@ import {
   ReadResourceResult,
   ListPromptsResult,
   GetPromptResult,
-  Configuration,
+  Implementation,
   ElicitationRequestSchema,
 } from './types';
 import { JSONRPCRequest } from './json-rpc-message';
@@ -914,6 +914,32 @@ describe('MCPClient', () => {
     }
   });
 
+  it('should expose serverInfo from initialize result', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          initializeResult: {
+            protocolVersion: '2025-11-25',
+            serverInfo: {
+              name: 'my-server',
+              version: '2.0.0',
+              title: 'My Awesome Server',
+            },
+            capabilities: { tools: {} },
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expectTypeOf(client.serverInfo).toEqualTypeOf<Implementation>();
+    expect(client.serverInfo.name).toBe('my-server');
+    expect(client.serverInfo.version).toBe('2.0.0');
+    expect(client.serverInfo.title).toBe('My Awesome Server');
+  });
+
   it('should close transport when client is closed', async () => {
     const mockTransport = new MockMCPTransport();
     const closeSpy = vi.spyOn(mockTransport, 'close');
@@ -1112,7 +1138,7 @@ describe('MCPClient', () => {
     const originalSend = mockTransport.send.bind(mockTransport);
     mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
       if (message.method === 'initialize' && message.params) {
-        capturedClientInfo = message.params.clientInfo as Configuration;
+        capturedClientInfo = message.params.clientInfo as Implementation;
       }
       return originalSend(message);
     });
@@ -1133,7 +1159,7 @@ describe('MCPClient', () => {
     const originalSend = mockTransport.send.bind(mockTransport);
     mockTransport.send = vi.fn(async (message: JSONRPCRequest) => {
       if (message.method === 'initialize' && message.params) {
-        capturedClientInfo = message.params.clientInfo as Configuration;
+        capturedClientInfo = message.params.clientInfo as Implementation;
       }
       return originalSend(message);
     });
