@@ -2,7 +2,11 @@ import {
   LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  isProviderReference,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
 import {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
@@ -203,25 +207,40 @@ export function convertToGoogleGenerativeAIMessages(
             }
 
             case 'file': {
-              // default to image/jpeg for unknown image/* types
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
-              parts.push(
-                part.data instanceof URL
-                  ? {
-                      fileData: {
-                        mimeType: mediaType,
-                        fileUri: part.data.toString(),
-                      },
-                    }
-                  : {
-                      inlineData: {
-                        mimeType: mediaType,
-                        data: convertToBase64(part.data),
-                      },
-                    },
-              );
+              if (part.data instanceof URL) {
+                parts.push({
+                  fileData: {
+                    mimeType: mediaType,
+                    fileUri: part.data.toString(),
+                  },
+                });
+              } else if (isProviderReference(part.data)) {
+                if (providerOptionsName === 'vertex') {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
+                parts.push({
+                  fileData: {
+                    mimeType: mediaType,
+                    fileUri: resolveProviderReference({
+                      reference: part.data,
+                      provider: 'google',
+                    }),
+                  },
+                });
+              } else {
+                parts.push({
+                  inlineData: {
+                    mimeType: mediaType,
+                    data: convertToBase64(part.data),
+                  },
+                });
+              }
 
               break;
             }
@@ -293,6 +312,28 @@ export function convertToGoogleGenerativeAIMessages(
                       functionality:
                         'File data URLs in assistant messages are not supported',
                     });
+                  }
+
+                  if (isProviderReference(part.data)) {
+                    if (providerOptionsName === 'vertex') {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'file parts with provider references',
+                      });
+                    }
+
+                    return {
+                      fileData: {
+                        mimeType: part.mediaType,
+                        fileUri: resolveProviderReference({
+                          reference: part.data,
+                          provider: 'google',
+                        }),
+                      },
+                      ...(providerOpts?.thought === true
+                        ? { thought: true }
+                        : {}),
+                      thoughtSignature,
+                    };
                   }
 
                   return {
