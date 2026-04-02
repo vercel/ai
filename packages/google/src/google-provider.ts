@@ -4,6 +4,8 @@ import {
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -26,6 +28,7 @@ import {
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
 import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
 import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+import { GoogleRealtimeModel } from './realtime/google-realtime-model';
 
 export interface GoogleGenerativeAIProvider extends ProviderV4 {
   (modelId: GoogleGenerativeAIModelId): LanguageModelV4;
@@ -80,6 +83,8 @@ export interface GoogleGenerativeAIProvider extends ProviderV4 {
   videoModel(
     modelId: GoogleGenerativeAIVideoModelId,
   ): Experimental_VideoModelV4;
+
+  realtime: RealtimeFactoryV4;
 
   tools: typeof googleTools;
 }
@@ -194,6 +199,33 @@ export function createGoogleGenerativeAI(
       generateId: options.generateId ?? generateId,
     });
 
+  const createRealtimeModel = (modelId: string) =>
+    new GoogleRealtimeModel(modelId, {
+      provider: `${providerName}.realtime`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  const realtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
@@ -216,6 +248,7 @@ export function createGoogleGenerativeAI(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.realtime = realtimeFactory;
   provider.tools = googleTools;
 
   return provider as GoogleGenerativeAIProvider;

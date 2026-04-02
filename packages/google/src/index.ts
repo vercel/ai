@@ -26,4 +26,6 @@ export type {
   GoogleGenerativeAIProvider,
   GoogleGenerativeAIProviderSettings,
 } from './google-provider';
+export { GoogleRealtimeModel } from './realtime/google-realtime-model';
+export type { GoogleRealtimeModelConfig } from './realtime/google-realtime-model';
 export { VERSION } from './version';

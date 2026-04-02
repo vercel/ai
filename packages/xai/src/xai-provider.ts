@@ -4,6 +4,8 @@ import {
   LanguageModelV4,
   NoSuchModelError,
   ProviderV4,
+  Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
+  Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -18,6 +20,7 @@ import { XaiImageModel } from './xai-image-model';
 import { XaiImageModelId } from './xai-image-settings';
 import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
 import { XaiResponsesModelId } from './responses/xai-responses-options';
+import { XaiRealtimeModel } from './realtime/xai-realtime-model';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
 import { XaiVideoModel } from './xai-video-model';
@@ -60,6 +63,8 @@ export interface XaiProvider extends ProviderV4 {
    * Creates an Xai video model for video generation.
    */
   videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
+
+  realtime: RealtimeFactoryV4;
 
   /**
    * Server-side agentic tools for use with the responses API.
@@ -150,6 +155,34 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
+  const createRealtimeModel = (modelId: string) => {
+    return new XaiRealtimeModel(modelId, {
+      provider: 'xai.realtime',
+      baseURL: baseURL ?? 'https://api.x.ai/v1',
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
+  const realtimeFactory = Object.assign(
+    (modelId: string) => createRealtimeModel(modelId),
+    {
+      getToken: async (tokenOptions: RealtimeFactoryV4GetTokenOptions) => {
+        const model = createRealtimeModel(tokenOptions.model);
+        const secret = await model.doCreateClientSecret({
+          sessionConfig: tokenOptions.sessionConfig,
+          expiresAfterSeconds: tokenOptions.expiresAfterSeconds,
+        });
+
+        return {
+          token: secret.token,
+          url: secret.url,
+          expiresAt: secret.expiresAt,
+        };
+      },
+    },
+  ) as RealtimeFactoryV4;
+
   const provider = (modelId: XaiResponsesModelId) =>
     createResponsesLanguageModel(modelId);
 
@@ -165,6 +198,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.image = createImageModel;
   provider.videoModel = createVideoModel;
   provider.video = createVideoModel;
+  provider.realtime = realtimeFactory;
   provider.tools = xaiTools;
 
   return provider;

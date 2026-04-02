@@ -22,6 +22,8 @@ export type {
 } from './xai-video-options';
 export { createXai, xai } from './xai-provider';
 export type { XaiProvider, XaiProviderSettings } from './xai-provider';
+export { XaiRealtimeModel } from './realtime/xai-realtime-model';
+export type { XaiRealtimeModelConfig } from './realtime/xai-realtime-model';
 export {
   codeExecution,
   mcpServer,
