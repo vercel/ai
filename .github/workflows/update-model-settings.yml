@@ -5,7 +5,7 @@ on:
     # Run every weekday at 8:00 AM Pacific Time (4:00 PM UTC)
     - cron: '0 16 * * 1-5'
   workflow_dispatch:
-  
+
 permissions:
   contents: write
   pull-requests: write
