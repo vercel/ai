@@ -5,6 +5,7 @@
 .envrc
 .next
 .turbo
+.well-known
 .workflow-vitest
 dist
 dist-ssr
