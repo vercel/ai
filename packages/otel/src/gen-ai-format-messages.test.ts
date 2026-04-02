@@ -12,57 +12,103 @@ import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 
 describe('mapProviderName', () => {
   it('should map known providers to well-known values', () => {
-    expect(mapProviderName('anthropic.messages')).toBe('anthropic');
-    expect(mapProviderName('openai.chat')).toBe('openai');
-    expect(mapProviderName('google.generative-ai')).toBe('gcp.gen_ai');
-    expect(mapProviderName('mistral.chat')).toBe('mistral_ai');
-    expect(mapProviderName('groq.chat')).toBe('groq');
-    expect(mapProviderName('deepseek.chat')).toBe('deepseek');
+    expect({
+      anthropic: mapProviderName('anthropic.messages'),
+      openai: mapProviderName('openai.chat'),
+      google: mapProviderName('google.generative-ai'),
+      mistral: mapProviderName('mistral.chat'),
+      groq: mapProviderName('groq.chat'),
+      deepseek: mapProviderName('deepseek.chat'),
+    }).toMatchInlineSnapshot(`
+      {
+        "anthropic": "anthropic",
+        "deepseek": "deepseek",
+        "google": "gcp.gen_ai",
+        "groq": "groq",
+        "mistral": "mistral_ai",
+        "openai": "openai",
+      }
+    `);
   });
 
   it('should map bedrock provider', () => {
-    expect(mapProviderName('amazon-bedrock.chat')).toBe('aws.bedrock');
-    expect(mapProviderName('bedrock.chat')).toBe('aws.bedrock');
+    expect({
+      amazonBedrock: mapProviderName('amazon-bedrock.chat'),
+      bedrock: mapProviderName('bedrock.chat'),
+    }).toMatchInlineSnapshot(`
+      {
+        "amazonBedrock": "aws.bedrock",
+        "bedrock": "aws.bedrock",
+      }
+    `);
   });
 
   it('should return the original string for unknown providers', () => {
-    expect(mapProviderName('custom-provider.chat')).toBe(
-      'custom-provider.chat',
+    expect(mapProviderName('custom-provider.chat')).toMatchInlineSnapshot(
+      `"custom-provider.chat"`,
     );
   });
 });
 
 describe('mapOperationName', () => {
   it('should map generateText/streamText to invoke_agent', () => {
-    expect(mapOperationName('ai.generateText')).toBe('invoke_agent');
-    expect(mapOperationName('ai.streamText')).toBe('invoke_agent');
+    expect({
+      generateText: mapOperationName('ai.generateText'),
+      streamText: mapOperationName('ai.streamText'),
+    }).toMatchInlineSnapshot(`
+      {
+        "generateText": "invoke_agent",
+        "streamText": "invoke_agent",
+      }
+    `);
   });
 
   it('should map generateObject/streamObject to invoke_agent', () => {
-    expect(mapOperationName('ai.generateObject')).toBe('invoke_agent');
-    expect(mapOperationName('ai.streamObject')).toBe('invoke_agent');
+    expect({
+      generateObject: mapOperationName('ai.generateObject'),
+      streamObject: mapOperationName('ai.streamObject'),
+    }).toMatchInlineSnapshot(`
+      {
+        "generateObject": "invoke_agent",
+        "streamObject": "invoke_agent",
+      }
+    `);
   });
 
   it('should map embed/embedMany to embeddings', () => {
-    expect(mapOperationName('ai.embed')).toBe('embeddings');
-    expect(mapOperationName('ai.embedMany')).toBe('embeddings');
+    expect({
+      embed: mapOperationName('ai.embed'),
+      embedMany: mapOperationName('ai.embedMany'),
+    }).toMatchInlineSnapshot(`
+      {
+        "embed": "embeddings",
+        "embedMany": "embeddings",
+      }
+    `);
   });
 
   it('should map rerank to rerank', () => {
-    expect(mapOperationName('ai.rerank')).toBe('rerank');
+    expect(mapOperationName('ai.rerank')).toMatchInlineSnapshot(`"rerank"`);
   });
 
   it('should return the original string for unknown operations', () => {
-    expect(mapOperationName('ai.unknown')).toBe('ai.unknown');
+    expect(mapOperationName('ai.unknown')).toMatchInlineSnapshot(
+      `"ai.unknown"`,
+    );
   });
 });
 
 describe('formatSystemInstructions', () => {
   it('should format a system string into SemConv system instructions', () => {
-    const result = formatSystemInstructions('You are a helpful assistant.');
-    expect(result).toEqual([
-      { type: 'text', content: 'You are a helpful assistant.' },
-    ]);
+    expect(formatSystemInstructions('You are a helpful assistant.'))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "content": "You are a helpful assistant.",
+          "type": "text",
+        },
+      ]
+    `);
   });
 });
 
@@ -75,7 +121,9 @@ describe('extractSystemFromPrompt', () => {
         content: [{ type: 'text', text: 'Hello' }],
       },
     ];
-    expect(extractSystemFromPrompt(prompt)).toBe('Be helpful');
+    expect(extractSystemFromPrompt(prompt)).toMatchInlineSnapshot(
+      `"Be helpful"`,
+    );
   });
 
   it('should return undefined when no system message', () => {
@@ -85,7 +133,7 @@ describe('extractSystemFromPrompt', () => {
         content: [{ type: 'text', text: 'Hello' }],
       },
     ];
-    expect(extractSystemFromPrompt(prompt)).toBeUndefined();
+    expect(extractSystemFromPrompt(prompt)).toMatchInlineSnapshot(`undefined`);
   });
 });
 
@@ -97,13 +145,19 @@ describe('formatInputMessages', () => {
         content: [{ type: 'text', text: 'What is the weather?' }],
       },
     ];
-    const result = formatInputMessages(prompt);
-    expect(result).toEqual([
-      {
-        role: 'user',
-        parts: [{ type: 'text', content: 'What is the weather?' }],
-      },
-    ]);
+    expect(formatInputMessages(prompt)).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "content": "What is the weather?",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should exclude system messages', () => {
@@ -114,9 +168,19 @@ describe('formatInputMessages', () => {
         content: [{ type: 'text', text: 'Hello' }],
       },
     ];
-    const result = formatInputMessages(prompt);
-    expect(result).toHaveLength(1);
-    expect(result[0].role).toBe('user');
+    expect(formatInputMessages(prompt)).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "content": "Hello",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should convert assistant messages with tool calls', () => {
@@ -133,20 +197,23 @@ describe('formatInputMessages', () => {
         ],
       },
     ];
-    const result = formatInputMessages(prompt);
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        parts: [
-          {
-            type: 'tool_call',
-            id: 'call_123',
-            name: 'get_weather',
-            arguments: { city: 'Paris' },
-          },
-        ],
-      },
-    ]);
+    expect(formatInputMessages(prompt)).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "arguments": {
+                "city": "Paris",
+              },
+              "id": "call_123",
+              "name": "get_weather",
+              "type": "tool_call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should convert tool result messages', () => {
@@ -163,19 +230,20 @@ describe('formatInputMessages', () => {
         ],
       },
     ];
-    const result = formatInputMessages(prompt);
-    expect(result).toEqual([
-      {
-        role: 'tool',
-        parts: [
-          {
-            type: 'tool_call_response',
-            id: 'call_123',
-            response: 'Sunny, 72°F',
-          },
-        ],
-      },
-    ]);
+    expect(formatInputMessages(prompt)).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "id": "call_123",
+              "response": "Sunny, 72°F",
+              "type": "tool_call_response",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
   });
 
   it('should convert file parts to blob parts', () => {
@@ -191,20 +259,21 @@ describe('formatInputMessages', () => {
         ],
       },
     ];
-    const result = formatInputMessages(prompt);
-    expect(result).toEqual([
-      {
-        role: 'user',
-        parts: [
-          {
-            type: 'blob',
-            modality: 'image',
-            mime_type: 'image/png',
-            content: 'base64data',
-          },
-        ],
-      },
-    ]);
+    expect(formatInputMessages(prompt)).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "content": "base64data",
+              "mime_type": "image/png",
+              "modality": "image",
+              "type": "blob",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should convert URL file parts to uri parts', () => {
@@ -220,20 +289,21 @@ describe('formatInputMessages', () => {
         ],
       },
     ];
-    const result = formatInputMessages(prompt);
-    expect(result).toEqual([
-      {
-        role: 'user',
-        parts: [
-          {
-            type: 'uri',
-            modality: 'image',
-            mime_type: 'image/png',
-            uri: 'https://example.com/image.png',
-          },
-        ],
-      },
-    ]);
+    expect(formatInputMessages(prompt)).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "mime_type": "image/png",
+              "modality": "image",
+              "type": "uri",
+              "uri": "https://example.com/image.png",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
   });
 
   it('should convert reasoning parts', () => {
@@ -248,151 +318,216 @@ describe('formatInputMessages', () => {
         ],
       },
     ];
-    const result = formatInputMessages(prompt);
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        parts: [
-          {
-            type: 'reasoning',
-            content: 'Let me think about this...',
-          },
-        ],
-      },
-    ]);
+    expect(formatInputMessages(prompt)).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "content": "Let me think about this...",
+              "type": "reasoning",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });
 
 describe('formatOutputMessages', () => {
   it('should format text-only output', () => {
-    const result = formatOutputMessages({
-      text: 'Hello world',
-      finishReason: 'stop',
-    });
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        parts: [{ type: 'text', content: 'Hello world' }],
-        finish_reason: 'stop',
-      },
-    ]);
+    expect(
+      formatOutputMessages({
+        text: 'Hello world',
+        finishReason: 'stop',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finish_reason": "stop",
+          "parts": [
+            {
+              "content": "Hello world",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should format output with reasoning', () => {
-    const result = formatOutputMessages({
-      text: 'The answer is 42',
-      reasoning: [{ text: 'Let me think...' }],
-      finishReason: 'stop',
-    });
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        parts: [
-          { type: 'reasoning', content: 'Let me think...' },
-          { type: 'text', content: 'The answer is 42' },
-        ],
-        finish_reason: 'stop',
-      },
-    ]);
+    expect(
+      formatOutputMessages({
+        text: 'The answer is 42',
+        reasoning: [{ text: 'Let me think...' }],
+        finishReason: 'stop',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finish_reason": "stop",
+          "parts": [
+            {
+              "content": "Let me think...",
+              "type": "reasoning",
+            },
+            {
+              "content": "The answer is 42",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should format output with tool calls', () => {
-    const result = formatOutputMessages({
-      toolCalls: [
-        {
-          toolCallId: 'call_abc',
-          toolName: 'get_weather',
-          input: { city: 'Paris' },
-        },
-      ],
-      finishReason: 'tool-calls',
-    });
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        parts: [
+    expect(
+      formatOutputMessages({
+        toolCalls: [
           {
-            type: 'tool_call',
-            id: 'call_abc',
-            name: 'get_weather',
-            arguments: { city: 'Paris' },
+            toolCallId: 'call_abc',
+            toolName: 'get_weather',
+            input: { city: 'Paris' },
           },
         ],
-        finish_reason: 'tool_call',
-      },
-    ]);
+        finishReason: 'tool-calls',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finish_reason": "tool_call",
+          "parts": [
+            {
+              "arguments": {
+                "city": "Paris",
+              },
+              "id": "call_abc",
+              "name": "get_weather",
+              "type": "tool_call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should format output with files', () => {
-    const result = formatOutputMessages({
-      files: [{ mediaType: 'image/png', base64: 'abc123' }],
-      finishReason: 'stop',
-    });
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        parts: [
-          {
-            type: 'blob',
-            modality: 'image',
-            mime_type: 'image/png',
-            content: 'abc123',
-          },
-        ],
-        finish_reason: 'stop',
-      },
-    ]);
+    expect(
+      formatOutputMessages({
+        files: [{ mediaType: 'image/png', base64: 'abc123' }],
+        finishReason: 'stop',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finish_reason": "stop",
+          "parts": [
+            {
+              "content": "abc123",
+              "mime_type": "image/png",
+              "modality": "image",
+              "type": "blob",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should combine reasoning, text, tool calls, and files', () => {
-    const result = formatOutputMessages({
-      text: 'Here is the result',
-      reasoning: [{ text: 'Thinking...' }],
-      toolCalls: [
+    expect(
+      formatOutputMessages({
+        text: 'Here is the result',
+        reasoning: [{ text: 'Thinking...' }],
+        toolCalls: [
+          {
+            toolCallId: 'tc1',
+            toolName: 'search',
+            input: { q: 'test' },
+          },
+        ],
+        files: [{ mediaType: 'image/jpeg', base64: 'data' }],
+        finishReason: 'stop',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
         {
-          toolCallId: 'tc1',
-          toolName: 'search',
-          input: { q: 'test' },
+          "finish_reason": "stop",
+          "parts": [
+            {
+              "content": "Thinking...",
+              "type": "reasoning",
+            },
+            {
+              "content": "Here is the result",
+              "type": "text",
+            },
+            {
+              "arguments": {
+                "q": "test",
+              },
+              "id": "tc1",
+              "name": "search",
+              "type": "tool_call",
+            },
+            {
+              "content": "data",
+              "mime_type": "image/jpeg",
+              "modality": "image",
+              "type": "blob",
+            },
+          ],
+          "role": "assistant",
         },
-      ],
-      files: [{ mediaType: 'image/jpeg', base64: 'data' }],
-      finishReason: 'stop',
-    });
-    expect(result[0].parts).toHaveLength(4);
-    expect(result[0].parts[0].type).toBe('reasoning');
-    expect(result[0].parts[1].type).toBe('text');
-    expect(result[0].parts[2].type).toBe('tool_call');
-    expect(result[0].parts[3].type).toBe('blob');
+      ]
+    `);
   });
 
   it('should map finish reasons correctly', () => {
-    expect(
-      formatOutputMessages({ finishReason: 'stop' })[0].finish_reason,
-    ).toBe('stop');
-    expect(
-      formatOutputMessages({ finishReason: 'length' })[0].finish_reason,
-    ).toBe('length');
-    expect(
-      formatOutputMessages({ finishReason: 'tool-calls' })[0].finish_reason,
-    ).toBe('tool_call');
-    expect(
-      formatOutputMessages({ finishReason: 'content-filter' })[0].finish_reason,
-    ).toBe('content_filter');
+    expect({
+      stop: formatOutputMessages({ finishReason: 'stop' })[0].finish_reason,
+      length: formatOutputMessages({ finishReason: 'length' })[0].finish_reason,
+      toolCalls: formatOutputMessages({ finishReason: 'tool-calls' })[0]
+        .finish_reason,
+      contentFilter: formatOutputMessages({ finishReason: 'content-filter' })[0]
+        .finish_reason,
+    }).toMatchInlineSnapshot(`
+      {
+        "contentFilter": "content_filter",
+        "length": "length",
+        "stop": "stop",
+        "toolCalls": "tool_call",
+      }
+    `);
   });
 });
 
 describe('formatObjectOutputMessages', () => {
   it('should format object output as text content', () => {
-    const result = formatObjectOutputMessages({
-      objectText: '{"name":"test"}',
-      finishReason: 'stop',
-    });
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        parts: [{ type: 'text', content: '{"name":"test"}' }],
-        finish_reason: 'stop',
-      },
-    ]);
+    expect(
+      formatObjectOutputMessages({
+        objectText: '{"name":"test"}',
+        finishReason: 'stop',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finish_reason": "stop",
+          "parts": [
+            {
+              "content": "{"name":"test"}",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });

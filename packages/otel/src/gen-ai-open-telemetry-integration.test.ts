@@ -88,6 +88,44 @@ function getStartSpanAttributes(
   );
 }
 
+function serializeSpan(span: MockSpan, tracer: MockTracer) {
+  const spanIndex = tracer.spans.indexOf(span);
+  const initAttributes =
+    spanIndex >= 0 ? getStartSpanAttributes(tracer, spanIndex) : {};
+
+  return {
+    name: span.name,
+    ended: span.ended,
+    ...(span.status ? { status: span.status } : {}),
+    initAttributes,
+    runtimeAttributes: span.attributes,
+    ...(span.events.length > 0 ? { events: span.events } : {}),
+    ...(span.exceptions.length > 0 ? { exceptions: span.exceptions } : {}),
+  };
+}
+
+function serializeTrace(tracer: MockTracer) {
+  return tracer.spans.map(span => serializeSpan(span, tracer));
+}
+
+function parseJsonAttributes(
+  attrs: Attributes,
+  ...keys: string[]
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key of keys) {
+    const value = attrs[key];
+    if (typeof value === 'string') {
+      try {
+        result[key] = JSON.parse(value);
+      } catch {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
+}
+
 let callId: string;
 let callIdCounter = 0;
 
@@ -311,49 +349,45 @@ describe('GenAIOpenTelemetryIntegration', () => {
   });
 
   describe('onStart (generateText)', () => {
-    it('creates a root span named invoke_agent {model}', () => {
+    it('creates root span with correct attributes', () => {
       integration.onStart!(makeOnStartEvent());
 
       expect(tracer.startSpan).toHaveBeenCalledTimes(1);
-      expect(tracer.spans[0].name).toBe('invoke_agent gpt-4');
-    });
-
-    it('sets gen_ai.operation.name to invoke_agent', () => {
-      integration.onStart!(makeOnStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['gen_ai.operation.name']).toBe('invoke_agent');
-    });
-
-    it('maps provider name to well-known value', () => {
-      integration.onStart!(makeOnStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['gen_ai.provider.name']).toBe('openai');
-    });
-
-    it('sets gen_ai.request.model', () => {
-      integration.onStart!(makeOnStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['gen_ai.request.model']).toBe('gpt-4');
-    });
-
-    it('sets request parameters', () => {
-      integration.onStart!(makeOnStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['gen_ai.request.max_tokens']).toBe(100);
-      expect(attrs['gen_ai.request.temperature']).toBe(0.7);
+      expect(serializeSpan(tracer.spans[0], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.ai_sdk.settings.maxOutputTokens": 100,
+            "gen_ai.ai_sdk.settings.maxRetries": 2,
+            "gen_ai.ai_sdk.settings.temperature": 0.7,
+            "gen_ai.input.messages": "{"prompt":"Hello"}",
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          "name": "invoke_agent gpt-4",
+          "runtimeAttributes": {},
+        }
+      `);
     });
 
     it('sets system_instructions when system is provided', () => {
       integration.onStart!(makeOnStartEvent({ system: 'You are helpful' }));
 
       const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['gen_ai.system_instructions']).toBe(
-        JSON.stringify([{ type: 'text', content: 'You are helpful' }]),
-      );
+      expect(parseJsonAttributes(attrs, 'gen_ai.system_instructions'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.system_instructions": [
+            {
+              "content": "You are helpful",
+              "type": "text",
+            },
+          ],
+        }
+      `);
     });
 
     it('does not create a span when telemetry is disabled', () => {
@@ -362,58 +396,49 @@ describe('GenAIOpenTelemetryIntegration', () => {
       expect(tracer.startSpan).not.toHaveBeenCalled();
     });
 
-    it('preserves AI SDK metadata as gen_ai.ai_sdk attributes', () => {
+    it('preserves AI SDK metadata and functionId', () => {
       integration.onStart!(
         makeOnStartEvent({
           metadata: { environment: 'test' },
+          functionId: 'my-agent',
         }),
       );
 
       const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['gen_ai.ai_sdk.telemetry.metadata.environment']).toBe(
-        'test',
-      );
-    });
-
-    it('preserves functionId as gen_ai.agent.name', () => {
-      integration.onStart!(makeOnStartEvent({ functionId: 'my-agent' }));
-
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['gen_ai.agent.name']).toBe('my-agent');
+      expect({
+        agentName: attrs['gen_ai.agent.name'],
+        metadata: attrs['gen_ai.ai_sdk.telemetry.metadata.environment'],
+        functionId: attrs['gen_ai.ai_sdk.telemetry.function_id'],
+      }).toMatchInlineSnapshot(`
+        {
+          "agentName": "my-agent",
+          "functionId": "my-agent",
+          "metadata": "test",
+        }
+      `);
     });
   });
 
   describe('onStepStart', () => {
-    it('creates a chat span as child of root span', () => {
+    it('creates a chat span with correct attributes', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
 
       expect(tracer.startSpan).toHaveBeenCalledTimes(2);
-      expect(tracer.spans[1].name).toBe('chat gpt-4');
-    });
-
-    it('sets gen_ai.operation.name to chat', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 1);
-      expect(attrs['gen_ai.operation.name']).toBe('chat');
-    });
-
-    it('sets gen_ai.provider.name on step span', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 1);
-      expect(attrs['gen_ai.provider.name']).toBe('openai');
-    });
-
-    it('sets gen_ai.request.model on step span', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 1);
-      expect(attrs['gen_ai.request.model']).toBe('gpt-4');
+      expect(serializeSpan(tracer.spans[1], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          "name": "chat gpt-4",
+          "runtimeAttributes": {},
+        }
+      `);
     });
 
     it('sets gen_ai.input.messages when promptMessages provided', () => {
@@ -430,13 +455,22 @@ describe('GenAIOpenTelemetryIntegration', () => {
       );
 
       const attrs = getStartSpanAttributes(tracer, 1);
-      const messages = JSON.parse(attrs['gen_ai.input.messages'] as string);
-      expect(messages).toEqual([
+      expect(parseJsonAttributes(attrs, 'gen_ai.input.messages'))
+        .toMatchInlineSnapshot(`
         {
-          role: 'user',
-          parts: [{ type: 'text', content: 'Hello' }],
-        },
-      ]);
+          "gen_ai.input.messages": [
+            {
+              "parts": [
+                {
+                  "content": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+        }
+      `);
     });
 
     it('sets gen_ai.tool.definitions when stepTools provided', () => {
@@ -447,50 +481,77 @@ describe('GenAIOpenTelemetryIntegration', () => {
       integration.onStepStart!(makeStepStartEvent({ stepTools: tools }));
 
       const attrs = getStartSpanAttributes(tracer, 1);
-      expect(attrs['gen_ai.tool.definitions']).toBe(JSON.stringify(tools));
+      expect(parseJsonAttributes(attrs, 'gen_ai.tool.definitions'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.tool.definitions": [
+            {
+              "description": "Get weather",
+              "name": "get_weather",
+              "type": "function",
+            },
+          ],
+        }
+      `);
     });
   });
 
   describe('onStepFinish', () => {
-    it('sets gen_ai response attributes on step span', () => {
+    it('sets response attributes and token usage on step span', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onStepFinish!(makeStepFinishEvent());
 
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.attributes['gen_ai.response.finish_reasons']).toEqual([
-        'stop',
-      ]);
-      expect(stepSpan.attributes['gen_ai.response.id']).toBe('resp-1');
-      expect(stepSpan.attributes['gen_ai.response.model']).toBe('gpt-4-0613');
-    });
-
-    it('sets gen_ai token usage attributes', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onStepFinish!(makeStepFinishEvent());
-
-      const stepSpan = tracer.spans[1];
-      expect(stepSpan.attributes['gen_ai.usage.input_tokens']).toBe(10);
-      expect(stepSpan.attributes['gen_ai.usage.output_tokens']).toBe(20);
-    });
-
-    it('sets gen_ai.output.messages in SemConv format', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onStepFinish!(makeStepFinishEvent());
-
-      const stepSpan = tracer.spans[1];
-      const outputMessages = JSON.parse(
-        stepSpan.attributes['gen_ai.output.messages'] as string,
-      );
-      expect(outputMessages).toEqual([
+      expect(serializeSpan(tracer.spans[1], tracer)).toMatchInlineSnapshot(`
         {
-          role: 'assistant',
-          parts: [{ type: 'text', content: 'Hello world' }],
-          finish_reason: 'stop',
-        },
-      ]);
+          "ended": true,
+          "initAttributes": {
+            "gen_ai.operation.name": "chat",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          "name": "chat gpt-4",
+          "runtimeAttributes": {
+            "gen_ai.ai_sdk.response.timestamp": "2025-01-01T00:00:00.000Z",
+            "gen_ai.ai_sdk.usage.total_tokens": 30,
+            "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+            "gen_ai.response.finish_reasons": [
+              "stop",
+            ],
+            "gen_ai.response.id": "resp-1",
+            "gen_ai.response.model": "gpt-4-0613",
+            "gen_ai.usage.input_tokens": 10,
+            "gen_ai.usage.output_tokens": 20,
+          },
+        }
+      `);
+    });
+
+    it('formats output messages in SemConv format', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onStepFinish!(makeStepFinishEvent());
+
+      const stepSpan = tracer.spans[1];
+      expect(parseJsonAttributes(stepSpan.attributes, 'gen_ai.output.messages'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "content": "Hello world",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        }
+      `);
     });
 
     it('includes tool calls in output messages', () => {
@@ -512,19 +573,30 @@ describe('GenAIOpenTelemetryIntegration', () => {
       );
 
       const stepSpan = tracer.spans[1];
-      const outputMessages = JSON.parse(
-        stepSpan.attributes['gen_ai.output.messages'] as string,
-      );
-      expect(outputMessages[0].parts[0]).toEqual({
-        type: 'tool_call',
-        id: 'tc1',
-        name: 'search',
-        arguments: { q: 'test' },
-      });
-      expect(outputMessages[0].finish_reason).toBe('tool_call');
+      expect(parseJsonAttributes(stepSpan.attributes, 'gen_ai.output.messages'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "tool_call",
+              "parts": [
+                {
+                  "arguments": {
+                    "q": "test",
+                  },
+                  "id": "tc1",
+                  "name": "search",
+                  "type": "tool_call",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        }
+      `);
     });
 
-    it('sets cache token attributes when available', () => {
+    it('sets cache and reasoning token attributes when available', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onStepFinish!(
@@ -549,57 +621,63 @@ describe('GenAIOpenTelemetryIntegration', () => {
       );
 
       const stepSpan = tracer.spans[1];
-      expect(stepSpan.attributes['gen_ai.usage.cache_read.input_tokens']).toBe(
-        20,
-      );
-      expect(
-        stepSpan.attributes['gen_ai.usage.cache_creation.input_tokens'],
-      ).toBe(10);
-      expect(stepSpan.attributes['gen_ai.ai_sdk.usage.reasoning_tokens']).toBe(
-        10,
-      );
-    });
-
-    it('ends the step span', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onStepFinish!(makeStepFinishEvent());
-
-      expect(tracer.spans[1].ended).toBe(true);
+      expect({
+        inputTokens: stepSpan.attributes['gen_ai.usage.input_tokens'],
+        outputTokens: stepSpan.attributes['gen_ai.usage.output_tokens'],
+        cacheRead: stepSpan.attributes['gen_ai.usage.cache_read.input_tokens'],
+        cacheCreation:
+          stepSpan.attributes['gen_ai.usage.cache_creation.input_tokens'],
+        reasoning: stepSpan.attributes['gen_ai.ai_sdk.usage.reasoning_tokens'],
+        totalTokens: stepSpan.attributes['gen_ai.ai_sdk.usage.total_tokens'],
+        noCacheTokens:
+          stepSpan.attributes[
+            'gen_ai.ai_sdk.usage.input_token_details.no_cache_tokens'
+          ],
+        textTokens:
+          stepSpan.attributes[
+            'gen_ai.ai_sdk.usage.output_token_details.text_tokens'
+          ],
+        outputReasoningTokens:
+          stepSpan.attributes[
+            'gen_ai.ai_sdk.usage.output_token_details.reasoning_tokens'
+          ],
+      }).toMatchInlineSnapshot(`
+        {
+          "cacheCreation": 10,
+          "cacheRead": 20,
+          "inputTokens": 100,
+          "noCacheTokens": 70,
+          "outputReasoningTokens": 10,
+          "outputTokens": 50,
+          "reasoning": 10,
+          "textTokens": 40,
+          "totalTokens": 150,
+        }
+      `);
     });
   });
 
   describe('onToolCallStart / onToolCallFinish', () => {
-    it('creates an execute_tool span', () => {
+    it('creates an execute_tool span with correct attributes', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onToolCallStart!(makeToolCallStartEvent());
 
       expect(tracer.spans).toHaveLength(3);
-      expect(tracer.spans[2].name).toBe('execute_tool myTool');
-    });
-
-    it('sets gen_ai tool attributes', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onToolCallStart!(makeToolCallStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 2);
-      expect(attrs['gen_ai.operation.name']).toBe('execute_tool');
-      expect(attrs['gen_ai.tool.name']).toBe('myTool');
-      expect(attrs['gen_ai.tool.call.id']).toBe('tool-call-1');
-      expect(attrs['gen_ai.tool.type']).toBe('function');
-    });
-
-    it('sets gen_ai.tool.call.arguments', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onToolCallStart!(makeToolCallStartEvent());
-
-      const attrs = getStartSpanAttributes(tracer, 2);
-      expect(attrs['gen_ai.tool.call.arguments']).toBe(
-        JSON.stringify({ query: 'test' }),
-      );
+      expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.arguments": "{"query":"test"}",
+            "gen_ai.tool.call.id": "tool-call-1",
+            "gen_ai.tool.name": "myTool",
+            "gen_ai.tool.type": "function",
+          },
+          "name": "execute_tool myTool",
+          "runtimeAttributes": {},
+        }
+      `);
     });
 
     it('sets gen_ai.tool.call.result on success', () => {
@@ -608,11 +686,22 @@ describe('GenAIOpenTelemetryIntegration', () => {
       integration.onToolCallStart!(makeToolCallStartEvent());
       integration.onToolCallFinish!(makeToolCallFinishEvent(true));
 
-      const toolSpan = tracer.spans[2];
-      expect(toolSpan.attributes['gen_ai.tool.call.result']).toBe(
-        JSON.stringify({ result: 'ok' }),
-      );
-      expect(toolSpan.ended).toBe(true);
+      expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": true,
+          "initAttributes": {
+            "gen_ai.operation.name": "execute_tool",
+            "gen_ai.tool.call.arguments": "{"query":"test"}",
+            "gen_ai.tool.call.id": "tool-call-1",
+            "gen_ai.tool.name": "myTool",
+            "gen_ai.tool.type": "function",
+          },
+          "name": "execute_tool myTool",
+          "runtimeAttributes": {
+            "gen_ai.tool.call.result": "{"result":"ok"}",
+          },
+        }
+      `);
     });
 
     it('records error on tool failure', () => {
@@ -622,55 +711,85 @@ describe('GenAIOpenTelemetryIntegration', () => {
       integration.onToolCallFinish!(makeToolCallFinishEvent(false));
 
       const toolSpan = tracer.spans[2];
-      expect(toolSpan.status).toEqual({
-        code: SpanStatusCode.ERROR,
-        message: 'tool failed',
-      });
-      expect(toolSpan.ended).toBe(true);
+      expect({
+        status: toolSpan.status,
+        ended: toolSpan.ended,
+      }).toMatchInlineSnapshot(`
+        {
+          "ended": true,
+          "status": {
+            "code": 2,
+            "message": "tool failed",
+          },
+        }
+      `);
     });
   });
 
   describe('onFinish (generateText)', () => {
-    it('sets total usage on root span', () => {
+    it('sets total usage and output on root span', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onFinish!(makeFinishEvent());
+
+      expect(serializeSpan(tracer.spans[0], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": true,
+          "initAttributes": {
+            "gen_ai.ai_sdk.settings.maxOutputTokens": 100,
+            "gen_ai.ai_sdk.settings.maxRetries": 2,
+            "gen_ai.ai_sdk.settings.temperature": 0.7,
+            "gen_ai.input.messages": "{"prompt":"Hello"}",
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.max_tokens": 100,
+            "gen_ai.request.model": "gpt-4",
+            "gen_ai.request.temperature": 0.7,
+          },
+          "name": "invoke_agent gpt-4",
+          "runtimeAttributes": {
+            "gen_ai.ai_sdk.usage.total_tokens": 30,
+            "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+            "gen_ai.response.finish_reasons": [
+              "stop",
+            ],
+            "gen_ai.usage.input_tokens": 10,
+            "gen_ai.usage.output_tokens": 20,
+          },
+        }
+      `);
+    });
+
+    it('formats output messages on root span', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onStepFinish!(makeStepFinishEvent());
       integration.onFinish!(makeFinishEvent());
 
       const rootSpan = tracer.spans[0];
-      expect(rootSpan.attributes['gen_ai.usage.input_tokens']).toBe(10);
-      expect(rootSpan.attributes['gen_ai.usage.output_tokens']).toBe(20);
-      expect(rootSpan.attributes['gen_ai.response.finish_reasons']).toEqual([
-        'stop',
-      ]);
-    });
-
-    it('sets gen_ai.output.messages on root span', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
-
-      const rootSpan = tracer.spans[0];
-      const outputMessages = JSON.parse(
-        rootSpan.attributes['gen_ai.output.messages'] as string,
-      );
-      expect(outputMessages[0].role).toBe('assistant');
-      expect(outputMessages[0].finish_reason).toBe('stop');
-    });
-
-    it('ends the root span', () => {
-      integration.onStart!(makeOnStartEvent());
-      integration.onStepStart!(makeStepStartEvent());
-      integration.onStepFinish!(makeStepFinishEvent());
-      integration.onFinish!(makeFinishEvent());
-
-      expect(tracer.spans[0].ended).toBe(true);
+      expect(parseJsonAttributes(rootSpan.attributes, 'gen_ai.output.messages'))
+        .toMatchInlineSnapshot(`
+        {
+          "gen_ai.output.messages": [
+            {
+              "finish_reason": "stop",
+              "parts": [
+                {
+                  "content": "Hello world",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+        }
+      `);
     });
   });
 
   describe('onStart (generateObject)', () => {
-    it('creates a root span with output.type json', () => {
+    it('creates a root span with output.type json and schema attributes', () => {
       integration.onStart!(
         makeOnStartEvent({
           operationId: 'ai.generateObject',
@@ -682,9 +801,21 @@ describe('GenAIOpenTelemetryIntegration', () => {
       );
 
       const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['gen_ai.operation.name']).toBe('invoke_agent');
-      expect(attrs['gen_ai.output.type']).toBe('json');
-      expect(attrs['gen_ai.ai_sdk.schema.name']).toBe('TestSchema');
+      expect({
+        operationName: attrs['gen_ai.operation.name'],
+        outputType: attrs['gen_ai.output.type'],
+        schemaName: attrs['gen_ai.ai_sdk.schema.name'],
+        schemaDescription: attrs['gen_ai.ai_sdk.schema.description'],
+        settingsOutput: attrs['gen_ai.ai_sdk.settings.output'],
+      }).toMatchInlineSnapshot(`
+        {
+          "operationName": "invoke_agent",
+          "outputType": "json",
+          "schemaDescription": "A test schema",
+          "schemaName": "TestSchema",
+          "settingsOutput": "object",
+        }
+      `);
     });
   });
 
@@ -697,14 +828,25 @@ describe('GenAIOpenTelemetryIntegration', () => {
         }),
       );
 
-      expect(tracer.spans[0].name).toBe('embeddings gpt-4');
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['gen_ai.operation.name']).toBe('embeddings');
+      expect(serializeSpan(tracer.spans[0], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.ai_sdk.settings.maxRetries": 2,
+            "gen_ai.ai_sdk.value": ""test text"",
+            "gen_ai.operation.name": "embeddings",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.model": "gpt-4",
+          },
+          "name": "embeddings gpt-4",
+          "runtimeAttributes": {},
+        }
+      `);
     });
   });
 
   describe('onStart (rerank)', () => {
-    it('creates a rerank span with custom operation name', () => {
+    it('creates a rerank span', () => {
       integration.onStart!(
         makeOnStartEvent({
           operationId: 'ai.rerank',
@@ -712,14 +854,27 @@ describe('GenAIOpenTelemetryIntegration', () => {
         }),
       );
 
-      expect(tracer.spans[0].name).toBe('rerank gpt-4');
-      const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['gen_ai.operation.name']).toBe('rerank');
+      expect(serializeSpan(tracer.spans[0], tracer)).toMatchInlineSnapshot(`
+        {
+          "ended": false,
+          "initAttributes": {
+            "gen_ai.ai_sdk.documents": [
+              "{"text":"doc1"}",
+            ],
+            "gen_ai.ai_sdk.settings.maxRetries": 2,
+            "gen_ai.operation.name": "rerank",
+            "gen_ai.provider.name": "openai",
+            "gen_ai.request.model": "gpt-4",
+          },
+          "name": "rerank gpt-4",
+          "runtimeAttributes": {},
+        }
+      `);
     });
   });
 
   describe('onChunk (streaming events)', () => {
-    it('maps ai.stream.firstChunk to gen_ai.ai_sdk.stream.first_chunk', () => {
+    it('maps ai.stream.firstChunk to gen_ai event', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
 
@@ -727,21 +882,27 @@ describe('GenAIOpenTelemetryIntegration', () => {
         chunk: {
           type: 'ai.stream.firstChunk',
           callId,
+          stepNumber: 0,
           attributes: {
             'ai.stream.msToFirstChunk': 150,
           },
         },
-      } as any);
+      });
 
       const stepSpan = tracer.spans[1];
-      expect(stepSpan.events).toHaveLength(1);
-      expect(stepSpan.events[0].name).toBe('gen_ai.ai_sdk.stream.first_chunk');
-      expect(
-        stepSpan.events[0].attributes?.['gen_ai.ai_sdk.stream.msToFirstChunk'],
-      ).toBe(150);
+      expect(stepSpan.events).toMatchInlineSnapshot(`
+        [
+          {
+            "attributes": {
+              "gen_ai.ai_sdk.stream.msToFirstChunk": 150,
+            },
+            "name": "gen_ai.ai_sdk.stream.first_chunk",
+          },
+        ]
+      `);
     });
 
-    it('maps ai.stream.finish to gen_ai.ai_sdk.stream.finish', () => {
+    it('maps ai.stream.finish to gen_ai event', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
 
@@ -749,12 +910,20 @@ describe('GenAIOpenTelemetryIntegration', () => {
         chunk: {
           type: 'ai.stream.finish',
           callId,
+          stepNumber: 0,
           attributes: {},
         },
-      } as any);
+      });
 
       const stepSpan = tracer.spans[1];
-      expect(stepSpan.events[0].name).toBe('gen_ai.ai_sdk.stream.finish');
+      expect(stepSpan.events).toMatchInlineSnapshot(`
+        [
+          {
+            "attributes": {},
+            "name": "gen_ai.ai_sdk.stream.finish",
+          },
+        ]
+      `);
     });
   });
 
@@ -768,19 +937,32 @@ describe('GenAIOpenTelemetryIntegration', () => {
         error: new Error('something went wrong'),
       });
 
-      const rootSpan = tracer.spans[0];
-      const stepSpan = tracer.spans[1];
-
-      expect(rootSpan.status).toEqual({
-        code: SpanStatusCode.ERROR,
-        message: 'something went wrong',
-      });
-      expect(stepSpan.status).toEqual({
-        code: SpanStatusCode.ERROR,
-        message: 'something went wrong',
-      });
-      expect(rootSpan.ended).toBe(true);
-      expect(stepSpan.ended).toBe(true);
+      expect(
+        tracer.spans.map(s => ({
+          name: s.name,
+          status: s.status,
+          ended: s.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "name": "invoke_agent gpt-4",
+            "status": {
+              "code": 2,
+              "message": "something went wrong",
+            },
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+            "status": {
+              "code": 2,
+              "message": "something went wrong",
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -800,13 +982,195 @@ describe('GenAIOpenTelemetryIntegration', () => {
 
       integration.onFinish!(makeFinishEvent());
 
-      expect(tracer.spans).toHaveLength(5);
-      expect(tracer.spans[0].name).toBe('invoke_agent gpt-4');
-      expect(tracer.spans[1].name).toBe('chat gpt-4');
-      expect(tracer.spans[2].name).toBe('execute_tool myTool');
-      expect(tracer.spans[3].name).toBe('chat gpt-4');
+      expect(
+        tracer.spans.map(s => ({
+          name: s.name,
+          ended: s.ended,
+        })),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "name": "invoke_agent gpt-4",
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+          },
+          {
+            "ended": true,
+            "name": "execute_tool myTool",
+          },
+          {
+            "ended": true,
+            "name": "chat gpt-4",
+          },
+        ]
+      `);
+    });
 
-      expect(tracer.spans.every(s => s.ended)).toBe(true);
+    it('full trace snapshot for single-step generateText', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onStepFinish!(makeStepFinishEvent());
+      integration.onFinish!(makeFinishEvent());
+
+      expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.ai_sdk.settings.maxOutputTokens": 100,
+              "gen_ai.ai_sdk.settings.maxRetries": 2,
+              "gen_ai.ai_sdk.settings.temperature": 0.7,
+              "gen_ai.input.messages": "{"prompt":"Hello"}",
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "invoke_agent gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.ai_sdk.usage.total_tokens": 30,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "chat gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.ai_sdk.response.timestamp": "2025-01-01T00:00:00.000Z",
+              "gen_ai.ai_sdk.usage.total_tokens": 30,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.response.id": "resp-1",
+              "gen_ai.response.model": "gpt-4-0613",
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+        ]
+      `);
+    });
+
+    it('full trace snapshot for multi-step tool loop', () => {
+      integration.onStart!(makeOnStartEvent());
+
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onToolCallStart!(makeToolCallStartEvent());
+      integration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      integration.onStepFinish!(
+        makeStepFinishEvent({ finishReason: 'tool-calls' }),
+      );
+
+      integration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
+
+      integration.onFinish!(makeFinishEvent());
+
+      expect(serializeTrace(tracer)).toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.ai_sdk.settings.maxOutputTokens": 100,
+              "gen_ai.ai_sdk.settings.maxRetries": 2,
+              "gen_ai.ai_sdk.settings.temperature": 0.7,
+              "gen_ai.input.messages": "{"prompt":"Hello"}",
+              "gen_ai.operation.name": "invoke_agent",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "invoke_agent gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.ai_sdk.usage.total_tokens": 30,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "chat gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.ai_sdk.response.timestamp": "2025-01-01T00:00:00.000Z",
+              "gen_ai.ai_sdk.usage.total_tokens": 30,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"tool_call"}]",
+              "gen_ai.response.finish_reasons": [
+                "tool-calls",
+              ],
+              "gen_ai.response.id": "resp-1",
+              "gen_ai.response.model": "gpt-4-0613",
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.tool.call.arguments": "{"query":"test"}",
+              "gen_ai.tool.call.id": "tool-call-1",
+              "gen_ai.tool.name": "myTool",
+              "gen_ai.tool.type": "function",
+            },
+            "name": "execute_tool myTool",
+            "runtimeAttributes": {
+              "gen_ai.tool.call.result": "{"result":"ok"}",
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.provider.name": "openai",
+              "gen_ai.request.max_tokens": 100,
+              "gen_ai.request.model": "gpt-4",
+              "gen_ai.request.temperature": 0.7,
+            },
+            "name": "chat gpt-4",
+            "runtimeAttributes": {
+              "gen_ai.ai_sdk.response.timestamp": "2025-01-01T00:00:00.000Z",
+              "gen_ai.ai_sdk.usage.total_tokens": 30,
+              "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.response.finish_reasons": [
+                "stop",
+              ],
+              "gen_ai.response.id": "resp-1",
+              "gen_ai.response.model": "gpt-4-0613",
+              "gen_ai.usage.input_tokens": 10,
+              "gen_ai.usage.output_tokens": 20,
+            },
+          },
+        ]
+      `);
     });
 
     it('does not use ai.* attribute prefix anywhere', () => {

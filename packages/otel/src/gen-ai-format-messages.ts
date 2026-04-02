@@ -1,8 +1,26 @@
 import {
+  LanguageModelV4CustomPart,
+  LanguageModelV4FilePart,
   LanguageModelV4Message,
   LanguageModelV4Prompt,
+  LanguageModelV4ReasoningFilePart,
+  LanguageModelV4ReasoningPart,
+  LanguageModelV4TextPart,
+  LanguageModelV4ToolApprovalResponsePart,
+  LanguageModelV4ToolCallPart,
+  LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import { convertDataContentToBase64String } from 'ai';
+
+type LanguageModelV4ContentPart =
+  | LanguageModelV4TextPart
+  | LanguageModelV4FilePart
+  | LanguageModelV4CustomPart
+  | LanguageModelV4ReasoningPart
+  | LanguageModelV4ReasoningFilePart
+  | LanguageModelV4ToolCallPart
+  | LanguageModelV4ToolResultPart
+  | LanguageModelV4ToolApprovalResponsePart;
 
 type SemConvPart =
   | { type: 'text'; content: string }
@@ -108,30 +126,25 @@ export function formatSystemInstructions(
 }
 
 function convertMessagePartToSemConv(
-  part: LanguageModelV4Message extends { content: infer C }
-    ? C extends Array<infer P>
-      ? P
-      : never
-    : never,
+  part: LanguageModelV4ContentPart,
 ): SemConvPart {
-  const p = part as Record<string, unknown>;
-  switch (p.type) {
+  switch (part.type) {
     case 'text':
-      return { type: 'text', content: p.text as string };
+      return { type: 'text', content: part.text };
 
     case 'reasoning':
-      return { type: 'reasoning', content: p.text as string };
+      return { type: 'reasoning', content: part.text };
 
     case 'tool-call':
       return {
         type: 'tool_call',
-        id: (p.toolCallId as string) ?? null,
-        name: p.toolName as string,
-        arguments: p.input,
+        id: part.toolCallId ?? null,
+        name: part.toolName,
+        arguments: part.input,
       };
 
     case 'tool-result': {
-      const output = p.output as { type: string; value?: unknown } | undefined;
+      const output = part.output;
       let response: unknown;
       if (output) {
         if (output.type === 'text' || output.type === 'error-text') {
@@ -139,32 +152,29 @@ function convertMessagePartToSemConv(
         } else if (output.type === 'json' || output.type === 'error-json') {
           response = output.value;
         } else if (output.type === 'execution-denied') {
-          response = { denied: true, reason: (output as any).reason };
+          response = { denied: true, reason: output.reason };
         } else {
-          response = output.value ?? output;
+          response = output;
         }
       }
       return {
         type: 'tool_call_response',
-        id: (p.toolCallId as string) ?? null,
+        id: part.toolCallId ?? null,
         response,
       };
     }
 
     case 'file': {
-      const data = p.data;
+      const data = part.data;
       let content: string;
       if (data instanceof Uint8Array) {
         content = convertDataContentToBase64String(data);
       } else if (typeof data === 'string') {
-        if (
-          typeof data === 'string' &&
-          (data.startsWith('http://') || data.startsWith('https://'))
-        ) {
+        if (data.startsWith('http://') || data.startsWith('https://')) {
           return {
             type: 'uri',
-            modality: getModality(p.mediaType as string),
-            mime_type: (p.mediaType as string) ?? null,
+            modality: getModality(part.mediaType),
+            mime_type: part.mediaType ?? null,
             uri: data,
           };
         }
@@ -174,8 +184,8 @@ function convertMessagePartToSemConv(
       }
       return {
         type: 'blob',
-        modality: getModality(p.mediaType as string),
-        mime_type: (p.mediaType as string) ?? null,
+        modality: getModality(part.mediaType),
+        mime_type: part.mediaType ?? null,
         content,
       };
     }
@@ -183,16 +193,21 @@ function convertMessagePartToSemConv(
     case 'tool-approval-response':
       return {
         type: 'tool_approval_response',
-        approval_id: p.approvalId,
-        approved: p.approved,
-        reason: p.reason,
+        approval_id: part.approvalId,
+        approved: part.approved,
+        reason: part.reason,
       };
 
     case 'custom':
-      return { type: 'custom', kind: p.kind };
+      return { type: 'custom', kind: part.kind };
 
-    default:
-      return { type: String(p.type) };
+    case 'reasoning-file':
+      return { type: String(part.type) };
+
+    default: {
+      const _exhaustive: never = part;
+      return { type: String((_exhaustive as { type: string }).type) };
+    }
   }
 }
 
