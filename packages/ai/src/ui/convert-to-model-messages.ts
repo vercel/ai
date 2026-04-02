@@ -44,6 +44,33 @@ import {
  *
  * @returns An array of ModelMessages.
  */
+/**
+ * Safely extract tool input from a UI part, handling the case where
+ * rawInput is an invalid JSON string (e.g., when streaming JSON parsing failed).
+ * Anthropic and other providers require tool_use.input to be a valid object.
+ */
+function getSafeToolInput(
+  part: { input?: unknown; rawInput?: unknown },
+): unknown {
+  if (part.input !== undefined) {
+    return part.input;
+  }
+  if ('rawInput' in part && part.rawInput !== undefined) {
+    // rawInput may be a string if JSON parsing failed during streaming
+    if (typeof part.rawInput === 'string') {
+      try {
+        return JSON.parse(part.rawInput);
+      } catch {
+        // Invalid JSON string — return empty object to avoid provider rejection.
+        // The actual error is already captured in errorText.
+        return {};
+      }
+    }
+    return part.rawInput;
+  }
+  return undefined;
+}
+
 export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
   messages: Array<Omit<UI_MESSAGE, 'id'>>,
   options?: {
@@ -204,8 +231,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     toolName,
                     input:
                       part.state === 'output-error'
-                        ? (part.input ??
-                          ('rawInput' in part ? part.rawInput : undefined))
+                        ? getSafeToolInput(part)
                         : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
