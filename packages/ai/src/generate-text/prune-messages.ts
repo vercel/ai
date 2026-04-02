@@ -100,6 +100,40 @@ export function pruneMessages({
       }
     }
 
+    // Transitively keep tool calls referenced by caller.toolId in providerOptions.
+    // When Anthropic's programmatic tool calling invokes a tool from another tool,
+    // the child tool-call has providerOptions.anthropic.caller.toolId pointing to
+    // the parent. If we prune the parent but keep the child, the API rejects it.
+    if (keptToolCallIds.size > 0) {
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const message of messages) {
+          if (
+            (message.role === 'assistant' || message.role === 'tool') &&
+            typeof message.content !== 'string'
+          ) {
+            for (const part of message.content) {
+              if (
+                part.type === 'tool-call' &&
+                keptToolCallIds.has(part.toolCallId)
+              ) {
+                const callerToolId = (
+                  part.providerOptions?.anthropic as
+                    | { caller?: { toolId?: string } }
+                    | undefined
+                )?.caller?.toolId;
+                if (callerToolId && !keptToolCallIds.has(callerToolId)) {
+                  keptToolCallIds.add(callerToolId);
+                  changed = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
     messages = messages.map((message, messageIndex) => {
       if (
         (message.role !== 'assistant' && message.role !== 'tool') ||

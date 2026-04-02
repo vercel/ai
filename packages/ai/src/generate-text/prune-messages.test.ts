@@ -718,3 +718,179 @@ describe('pruneMessages', () => {
     });
   });
 });
+
+describe('caller dependency tracking', () => {
+  it('should keep parent tool call when child references it via providerOptions.anthropic.caller.toolId', () => {
+    // Scenario: tool-call A (parent) triggers tool-call B (child) via Anthropic's
+    // programmatic tool calling. B has providerOptions.anthropic.caller.toolId = A.
+    // When pruning with before-last-3-messages, B is in the kept window but A is not.
+    // The fix ensures A is transitively kept because B references it.
+    const messages = pruneMessages({
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'What is the weather?' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'parent-tc-1',
+              toolName: 'code_execution',
+              input: { code: 'fetch_weather()' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'parent-tc-1',
+              toolName: 'code_execution',
+              result: { output: 'calling get_weather...' },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'child-tc-2',
+              toolName: 'get_weather',
+              input: { city: 'Tokyo' },
+              providerOptions: {
+                anthropic: {
+                  caller: {
+                    type: 'code_execution_20250825',
+                    toolId: 'parent-tc-1',
+                  },
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'child-tc-2',
+              toolName: 'get_weather',
+              result: { temp: 72 },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'The weather in Tokyo is 72 degrees.',
+            },
+          ],
+        },
+      ],
+      toolCalls: 'before-last-3-messages',
+    });
+
+    // child-tc-2 is within the last 3 messages so it's kept.
+    // parent-tc-1 is outside the window but referenced by child-tc-2's
+    // caller.toolId, so it must be transitively kept.
+    const toolCallIds = messages.flatMap(m =>
+      typeof m.content !== 'string'
+        ? m.content
+            .filter(
+              (p): p is { type: 'tool-call'; toolCallId: string } =>
+                p.type === 'tool-call',
+            )
+            .map(p => p.toolCallId)
+        : [],
+    );
+
+    expect(toolCallIds).toContain('parent-tc-1');
+    expect(toolCallIds).toContain('child-tc-2');
+  });
+
+  it('should not keep unrelated tool calls outside the window', () => {
+    const messages = pruneMessages({
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'unrelated-tc-0',
+              toolName: 'search',
+              input: { q: 'test' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'unrelated-tc-0',
+              toolName: 'search',
+              result: { results: [] },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'kept-tc-1',
+              toolName: 'get_weather',
+              input: { city: 'Tokyo' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'kept-tc-1',
+              toolName: 'get_weather',
+              result: { temp: 72 },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Done.',
+            },
+          ],
+        },
+      ],
+      toolCalls: 'before-last-3-messages',
+    });
+
+    const toolCallIds = messages.flatMap(m =>
+      typeof m.content !== 'string'
+        ? m.content
+            .filter(
+              (p): p is { type: 'tool-call'; toolCallId: string } =>
+                p.type === 'tool-call',
+            )
+            .map(p => p.toolCallId)
+        : [],
+    );
+
+    // unrelated-tc-0 has no caller dependency, should be pruned
+    expect(toolCallIds).not.toContain('unrelated-tc-0');
+    expect(toolCallIds).toContain('kept-tc-1');
+  });
+});
