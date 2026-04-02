@@ -1,13 +1,17 @@
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
+import { StepResult } from '../generate-text/step-result';
 import { stepCountIs } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
-import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
+import {
+  ToolLoopAgentOnStepFinishCallback,
+  ToolLoopAgentSettings,
+} from './tool-loop-agent-settings';
 
 /**
  * A tool loop agent is an agent that runs tools in a loop. In each step,
@@ -24,8 +28,7 @@ export class ToolLoopAgent<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
   OUTPUT extends Output = never,
-> implements Agent<CALL_OPTIONS, TOOLS, OUTPUT>
-{
+> implements Agent<CALL_OPTIONS, TOOLS, OUTPUT> {
   readonly version = 'agent-v1';
 
   private readonly settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>;
@@ -55,29 +58,14 @@ export class ToolLoopAgent<
   }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
-      | 'prepareCall'
-      | 'instructions'
-      | 'experimental_onStart'
-      | 'experimental_onStepStart'
-      | 'experimental_onToolCallStart'
-      | 'experimental_onToolCallFinish'
-      | 'onStepFinish'
-      | 'onFinish'
+      'prepareCall' | 'instructions' | 'onStepFinish'
     > &
       Prompt
   > {
-    const {
-      experimental_onStart: _settingsOnStart,
-      experimental_onStepStart: _settingsOnStepStart,
-      experimental_onToolCallStart: _settingsOnToolCallStart,
-      experimental_onToolCallFinish: _settingsOnToolCallFinish,
-      onStepFinish: _settingsOnStepFinish,
-      onFinish: _settingsOnFinish,
-      ...settingsWithoutCallbacks
-    } = this.settings;
-
+    const { onStepFinish: _settingsOnStepFinish, ...settingsWithoutCallback } =
+      this.settings;
     const baseCallArgs = {
-      ...settingsWithoutCallbacks,
+      ...settingsWithoutCallback,
       stopWhen: this.settings.stopWhen ?? stepCountIs(20),
       ...options,
     };
@@ -101,17 +89,19 @@ export class ToolLoopAgent<
     };
   }
 
-  private mergeCallbacks<T extends (event: any) => PromiseLike<void> | void>(
-    settingsCallback: T | undefined,
-    methodCallback: T | undefined,
-  ): T | undefined {
-    if (methodCallback && settingsCallback) {
-      return (async (event: Parameters<T>[0]) => {
-        await settingsCallback(event);
-        await methodCallback(event);
-      }) as unknown as T;
+  private mergeOnStepFinishCallbacks(
+    methodCallback: ToolLoopAgentOnStepFinishCallback<TOOLS> | undefined,
+  ): ToolLoopAgentOnStepFinishCallback<TOOLS> | undefined {
+    const constructorCallback = this.settings.onStepFinish;
+
+    if (methodCallback && constructorCallback) {
+      return async (stepResult: StepResult<TOOLS>) => {
+        await constructorCallback(stepResult);
+        await methodCallback(stepResult);
+      };
     }
-    return methodCallback ?? settingsCallback;
+
+    return methodCallback ?? constructorCallback;
   }
 
   /**
@@ -120,12 +110,7 @@ export class ToolLoopAgent<
   async generate({
     abortSignal,
     timeout,
-    experimental_onStart,
-    experimental_onStepStart,
-    experimental_onToolCallStart,
-    experimental_onToolCallFinish,
     onStepFinish,
-    onFinish,
     ...options
   }: AgentCallParameters<CALL_OPTIONS, TOOLS>): Promise<
     GenerateTextResult<TOOLS, OUTPUT>
@@ -134,27 +119,7 @@ export class ToolLoopAgent<
       ...(await this.prepareCall(options)),
       abortSignal,
       timeout,
-      experimental_onStart: this.mergeCallbacks(
-        this.settings.experimental_onStart,
-        experimental_onStart,
-      ),
-      experimental_onStepStart: this.mergeCallbacks(
-        this.settings.experimental_onStepStart,
-        experimental_onStepStart,
-      ),
-      experimental_onToolCallStart: this.mergeCallbacks(
-        this.settings.experimental_onToolCallStart,
-        experimental_onToolCallStart,
-      ),
-      experimental_onToolCallFinish: this.mergeCallbacks(
-        this.settings.experimental_onToolCallFinish,
-        experimental_onToolCallFinish,
-      ),
-      onStepFinish: this.mergeCallbacks(
-        this.settings.onStepFinish,
-        onStepFinish,
-      ),
-      onFinish: this.mergeCallbacks(this.settings.onFinish, onFinish),
+      onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
     });
   }
 
@@ -165,12 +130,7 @@ export class ToolLoopAgent<
     abortSignal,
     timeout,
     experimental_transform,
-    experimental_onStart,
-    experimental_onStepStart,
-    experimental_onToolCallStart,
-    experimental_onToolCallFinish,
     onStepFinish,
-    onFinish,
     ...options
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
     StreamTextResult<TOOLS, OUTPUT>
@@ -180,27 +140,7 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       experimental_transform,
-      experimental_onStart: this.mergeCallbacks(
-        this.settings.experimental_onStart,
-        experimental_onStart,
-      ),
-      experimental_onStepStart: this.mergeCallbacks(
-        this.settings.experimental_onStepStart,
-        experimental_onStepStart,
-      ),
-      experimental_onToolCallStart: this.mergeCallbacks(
-        this.settings.experimental_onToolCallStart,
-        experimental_onToolCallStart,
-      ),
-      experimental_onToolCallFinish: this.mergeCallbacks(
-        this.settings.experimental_onToolCallFinish,
-        experimental_onToolCallFinish,
-      ),
-      onStepFinish: this.mergeCallbacks(
-        this.settings.onStepFinish,
-        onStepFinish,
-      ),
-      onFinish: this.mergeCallbacks(this.settings.onFinish, onFinish),
+      onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
     });
   }
 }

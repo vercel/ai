@@ -1,0 +1,49 @@
+// Ultracite oxfmt Configuration
+// https://oxc.rs/docs/guide/usage/formatter/config-file-reference.html
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "arrowParens": "avoid",
+  "bracketSameLine": false,
+  "bracketSpacing": true,
+  "endOfLine": "lf",
+  "ignorePatterns": [
+    "**/*.html",
+    "**/*.md",
+    "**/*.mdx",
+    "**/*.mjs",
+    "**/__fixtures__/**",
+    "**/__snapshots__/**",
+    "**/__testfixtures__/**",
+    "**/tsconfig*.json",
+    "**/turbo.json",
+    "tools/tsconfig/**",
+    "packages/codemod/src/test/__testfixtures__/import-LanguageModelV2-from-provider-package.output.ts",
+    "ai-gateway/**",
+    "ai-studio/**",
+    "workflow/**",
+  ],
+  "jsxSingleQuote": false,
+  "printWidth": 80,
+  "quoteProps": "as-needed",
+  "semi": true,
+  "singleQuote": true,
+  "sortPackageJson": false,
+  "tabWidth": 2,
+  "trailingComma": "all",
+  "useTabs": false,
+  "overrides": [
+    {
+      "files": ["**/*.css"],
+      "options": {
+        "singleQuote": false,
+      },
+    },
+    {
+      "files": ["**/*.json5"],
+      "options": {
+        "singleQuote": false,
+        "trailingComma": "none",
+      },
+    },
+  ],
+}

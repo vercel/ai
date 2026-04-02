@@ -1,5 +1,91 @@
 # @ai-sdk/svelte
 
+## 4.0.143
+
+### Patch Changes
+
+- ai@6.0.143
+
+## 4.0.142
+
+### Patch Changes
+
+- Updated dependencies [6f75953]
+  - ai@6.0.142
+
+## 4.0.141
+
+### Patch Changes
+
+- ai@6.0.141
+
+## 4.0.140
+
+### Patch Changes
+
+- ai@6.0.140
+
+## 4.0.139
+
+### Patch Changes
+
+- ai@6.0.139
+
+## 4.0.138
+
+### Patch Changes
+
+- ai@6.0.138
+
+## 4.0.137
+
+### Patch Changes
+
+- ai@6.0.137
+
+## 4.0.136
+
+### Patch Changes
+
+- ai@6.0.136
+
+## 4.0.135
+
+### Patch Changes
+
+- Updated dependencies [df6a330]
+  - ai@6.0.135
+
+## 4.0.134
+
+### Patch Changes
+
+- Updated dependencies [ed6876b]
+  - ai@6.0.134
+
+## 4.0.133
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+  - ai@6.0.133
+
+## 4.0.132
+
+### Patch Changes
+
+- Updated dependencies [28fd5a5]
+  - ai@6.0.132
+
+## 4.0.131
+
+### Patch Changes
+
+- Updated dependencies [14f25f9]
+  - ai@6.0.131
+
 ## 4.0.130
 
 ### Patch Changes

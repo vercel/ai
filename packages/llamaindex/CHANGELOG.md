@@ -1,5 +1,90 @@
 # @ai-sdk/llamaindex
 
+## 2.0.143
+
+### Patch Changes
+
+- ai@6.0.143
+
+## 2.0.142
+
+### Patch Changes
+
+- Updated dependencies [6f75953]
+  - ai@6.0.142
+
+## 2.0.141
+
+### Patch Changes
+
+- ai@6.0.141
+
+## 2.0.140
+
+### Patch Changes
+
+- ai@6.0.140
+
+## 2.0.139
+
+### Patch Changes
+
+- ai@6.0.139
+
+## 2.0.138
+
+### Patch Changes
+
+- ai@6.0.138
+
+## 2.0.137
+
+### Patch Changes
+
+- ai@6.0.137
+
+## 2.0.136
+
+### Patch Changes
+
+- ai@6.0.136
+
+## 2.0.135
+
+### Patch Changes
+
+- Updated dependencies [df6a330]
+  - ai@6.0.135
+
+## 2.0.134
+
+### Patch Changes
+
+- Updated dependencies [ed6876b]
+  - ai@6.0.134
+
+## 2.0.133
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - ai@6.0.133
+
+## 2.0.132
+
+### Patch Changes
+
+- Updated dependencies [28fd5a5]
+  - ai@6.0.132
+
+## 2.0.131
+
+### Patch Changes
+
+- Updated dependencies [14f25f9]
+  - ai@6.0.131
+
 ## 2.0.130
 
 ### Patch Changes

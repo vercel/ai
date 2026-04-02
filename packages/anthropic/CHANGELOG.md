@@ -1,5 +1,27 @@
 # @ai-sdk/anthropic
 
+## 3.0.65
+
+### Patch Changes
+
+- 94aed06: fix(anthropic): allow both temperature and topP for non-Anthropic models using the Anthropic-compatible API
+
+  The temperature/topP mutual exclusivity check now only applies to known Anthropic models (model IDs starting with `claude-`). Non-Anthropic models using the Anthropic-compatible API (e.g. Minimax) can now send both parameters as required by their APIs.
+
+## 3.0.64
+
+### Patch Changes
+
+- 05b8ca2: feat (provider/anthropic): support passing metadata.user_id
+
+## 3.0.63
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 3.0.62
 
 ### Patch Changes
@@ -440,13 +462,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - f33a018: chore: add model ID for Haiku 4.5
@@ -786,13 +808,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

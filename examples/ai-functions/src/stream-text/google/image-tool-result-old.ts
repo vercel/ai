@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { generateText, stepCountIs, tool } from 'ai';
+import { stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -15,7 +15,7 @@ const imageAnalysisTool = tool({
   inputSchema: z.object({}),
   execute: async ({}) => {
     try {
-      const imagePath = path.join(__dirname, '../../data/comic-cat.png');
+      const imagePath = path.join(__dirname, '../../../data/comic-cat.png');
       const base64Image = await fileToBase64(imagePath);
 
       return {
@@ -50,7 +50,7 @@ run(async () => {
     '🔍 Testing Google model image analysis with tool-returned images...\n',
   );
 
-  const result = await generateText({
+  const result = streamText({
     model: google('gemini-2.5-flash'),
     tools: {
       analyzeImage: imageAnalysisTool,
@@ -59,22 +59,32 @@ run(async () => {
     prompt: `Whats in this image?`,
   });
 
-  console.log('📋 Analysis Result: \n');
-  console.log('='.repeat(60));
-  console.log(`${JSON.stringify(result.text, null, 2)}\n`);
-  // console.log(JSON.stringify(result.steps, null, 2));
-
-  if (result.toolCalls && result.toolCalls.length > 0) {
-    console.log('🔧 Tool Calls Made: \n');
-    result.toolCalls.forEach((call, index) => {
-      console.log(`${index + 1}. ${call.toolName}:`);
-      console.log(`   Input: ${JSON.stringify(call.input, null, 2)}`);
-    });
-    console.log();
+  for await (const part of result.fullStream) {
+    switch (part.type) {
+      case 'text-delta':
+        process.stdout.write(part.text);
+        break;
+      case 'tool-call':
+        process.stdout.write(
+          `Tool call: ${part.toolName}(${JSON.stringify(part.input)})\n`,
+        );
+        break;
+      case 'tool-result':
+        process.stdout.write(
+          `Tool result: ${part.toolName} -> ${JSON.stringify(part.output)}\n`,
+        );
+        break;
+      case 'finish-step':
+        process.stdout.write('\n');
+        process.stdout.write(`Finish step: ${part.finishReason}\n`);
+        break;
+      case 'finish':
+        process.stdout.write('\n');
+        process.stdout.write(`Finish reason: ${part.finishReason}\n`);
+        break;
+      case 'error':
+        process.stderr.write(`Error: ${part.error}\n`);
+        break;
+    }
   }
-
-  console.log('📊 Usage: \n');
-  console.log(`Input tokens: ${result.usage.inputTokens}`);
-  console.log(`Output tokens: ${result.usage.outputTokens}`);
-  console.log(`Total tokens: ${result.usage.totalTokens}`);
 });

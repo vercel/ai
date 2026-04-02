@@ -106,6 +106,7 @@ export type OpenAIResponsesFunctionCallOutput = {
         | { type: 'input_text'; text: string }
         | { type: 'input_image'; image_url: string }
         | { type: 'input_file'; filename: string; file_data: string }
+        | { type: 'input_file'; file_url: string }
       >;
 };
 
@@ -493,6 +494,31 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               .object({ reasoning_tokens: z.number().nullish() })
               .nullish(),
           }),
+          service_tier: z.string().nullish(),
+        }),
+      }),
+      z.object({
+        type: z.literal('response.failed'),
+        response: z.object({
+          error: z
+            .object({
+              code: z.string().nullish(),
+              message: z.string(),
+            })
+            .nullish(),
+          incomplete_details: z.object({ reason: z.string() }).nullish(),
+          usage: z
+            .object({
+              input_tokens: z.number(),
+              input_tokens_details: z
+                .object({ cached_tokens: z.number().nullish() })
+                .nullish(),
+              output_tokens: z.number(),
+              output_tokens_details: z
+                .object({ reasoning_tokens: z.number().nullish() })
+                .nullish(),
+            })
+            .nullish(),
           service_tier: z.string().nullish(),
         }),
       }),

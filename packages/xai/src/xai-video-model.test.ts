@@ -574,6 +574,33 @@ describe('XaiVideoModel', () => {
         },
       });
     });
+
+    it('should include costInUsdTicks when returned in usage', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          ...doneStatusResponse,
+          usage: { cost_in_usd_ticks: 4000000000 },
+        },
+      };
+
+      const model = createModel();
+      const result = await model.doGenerate({ ...defaultOptions });
+
+      expect(result.providerMetadata).toStrictEqual({
+        xai: {
+          requestId: 'req-123',
+          videoUrl: 'https://vidgen.x.ai/output/video-001.mp4',
+          duration: 5,
+          costInUsdTicks: 4000000000,
+        },
+      });
+
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
   });
 
   describe('error handling', () => {
@@ -635,6 +662,31 @@ describe('XaiVideoModel', () => {
       );
 
       // Reset
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: doneStatusResponse,
+      };
+    });
+
+    it('should throw when respect_moderation is false', async () => {
+      server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
+        type: 'json-value',
+        body: {
+          status: 'done',
+          video: {
+            url: '',
+            respect_moderation: false,
+          },
+          model: 'grok-imagine-video',
+        },
+      };
+
+      const model = createModel();
+
+      await expect(model.doGenerate({ ...defaultOptions })).rejects.toThrow(
+        'content policy violation',
+      );
+
       server.urls[`${TEST_BASE_URL}/videos/req-123`].response = {
         type: 'json-value',
         body: doneStatusResponse,

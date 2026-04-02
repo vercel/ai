@@ -1168,6 +1168,26 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(requestBody.temperature).toBeUndefined();
         expect(requestBody.top_p).toBeUndefined();
       });
+
+      it('should send both temperature and topP for non-Anthropic models', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const nonAnthropicModel = provider('MiniMax-M2.7');
+        const { warnings } = await nonAnthropicModel.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.7,
+          topP: 0.9,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBe(0.7);
+        expect(requestBody.top_p).toBe(0.9);
+        expect(warnings).not.toContainEqual(
+          expect.objectContaining({
+            feature: 'topP',
+          }),
+        );
+      });
     });
 
     it('should limit max output tokens to the model max and warn', async () => {
@@ -4435,6 +4455,42 @@ describe('AnthropicMessagesLanguageModel', () => {
               "role": "user",
             },
           ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should pass metadata with user_id to request body', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            metadata: { userId: 'test-user-id' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "metadata": {
+            "user_id": "test-user-id",
+          },
           "model": "claude-3-haiku-20240307",
         }
       `);
@@ -8678,9 +8734,8 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       prepareTransformJsonResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {
@@ -8721,9 +8776,8 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       prepareTransformStreamResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {
@@ -8763,9 +8817,8 @@ describe('AnthropicMessagesLanguageModel', () => {
     it('should work without transformRequestBody', async () => {
       prepareTransformJsonResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {

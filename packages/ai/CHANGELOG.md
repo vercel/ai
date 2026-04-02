@@ -1,5 +1,96 @@
 # ai
 
+## 6.0.143
+
+### Patch Changes
+
+- Updated dependencies [85e476d]
+  - @ai-sdk/gateway@3.0.85
+
+## 6.0.142
+
+### Patch Changes
+
+- 6f75953: feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps
+- Updated dependencies [70322b4]
+  - @ai-sdk/gateway@3.0.84
+
+## 6.0.141
+
+### Patch Changes
+
+- Updated dependencies [768a9d6]
+  - @ai-sdk/gateway@3.0.83
+
+## 6.0.140
+
+### Patch Changes
+
+- Updated dependencies [95fedf0]
+  - @ai-sdk/gateway@3.0.82
+
+## 6.0.139
+
+### Patch Changes
+
+- Updated dependencies [e69062d]
+  - @ai-sdk/gateway@3.0.81
+
+## 6.0.138
+
+### Patch Changes
+
+- Updated dependencies [0db5cd8]
+  - @ai-sdk/gateway@3.0.80
+
+## 6.0.137
+
+### Patch Changes
+
+- Updated dependencies [3caa544]
+  - @ai-sdk/gateway@3.0.79
+
+## 6.0.136
+
+### Patch Changes
+
+- Updated dependencies [763e178]
+  - @ai-sdk/gateway@3.0.78
+
+## 6.0.135
+
+### Patch Changes
+
+- df6a330: chore(ai): remove all experimental agent events
+
+## 6.0.134
+
+### Patch Changes
+
+- ed6876b: chore(ai): remove all experimental embed events
+
+## 6.0.133
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [d99eb91]
+- Updated dependencies [055cd68]
+  - @ai-sdk/gateway@3.0.77
+  - @ai-sdk/provider-utils@4.0.21
+
+## 6.0.132
+
+### Patch Changes
+
+- 28fd5a5: README updates
+
+## 6.0.131
+
+### Patch Changes
+
+- 14f25f9: feat(ai): introduce experimental callbacks for embed function
+
 ## 6.0.130
 
 ### Patch Changes
@@ -958,13 +1049,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
@@ -987,15 +1078,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 - 90e5bdd: chore(ai): restructure agent files
@@ -1515,13 +1606,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1868,15 +1959,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ## 6.0.0-beta.71
@@ -2795,7 +2886,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2808,7 +2899,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3008,10 +3099,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -3674,7 +3765,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -3687,7 +3778,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3785,10 +3876,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

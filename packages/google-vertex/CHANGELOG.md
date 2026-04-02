@@ -1,5 +1,57 @@
 # @ai-sdk/google-vertex
 
+## 4.0.99
+
+### Patch Changes
+
+- Updated dependencies [94aed06]
+  - @ai-sdk/anthropic@3.0.65
+
+## 4.0.98
+
+### Patch Changes
+
+- Updated dependencies [bdde9d4]
+  - @ai-sdk/google@3.0.55
+
+## 4.0.97
+
+### Patch Changes
+
+- afb6886: feat (provider/google-vertex): add support for maas models
+
+## 4.0.96
+
+### Patch Changes
+
+- Updated dependencies [4e22c2c]
+  - @ai-sdk/google@3.0.54
+
+## 4.0.95
+
+### Patch Changes
+
+- Updated dependencies [05b8ca2]
+  - @ai-sdk/anthropic@3.0.64
+
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [2e5adff]
+  - @ai-sdk/google@3.0.53
+
+## 4.0.93
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+- Updated dependencies [47114a3]
+  - @ai-sdk/provider-utils@4.0.21
+  - @ai-sdk/anthropic@3.0.63
+  - @ai-sdk/google@3.0.52
+
 ## 4.0.92
 
 ### Patch Changes
@@ -731,13 +783,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
@@ -1221,13 +1273,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -2182,7 +2234,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2195,7 +2247,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2585,7 +2637,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2598,7 +2650,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

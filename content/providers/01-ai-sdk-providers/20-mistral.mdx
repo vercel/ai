@@ -197,6 +197,30 @@ console.log('ANSWER:', result.text);
 
 The SDK automatically parses Mistral's native reasoning format and provides separate `reasoningText` and `text` properties in the result. No middleware is needed.
 
+#### Configurable Reasoning
+
+Some Mistral models support configurable reasoning, which you can control via the `reasoningEffort` option.
+
+```ts
+import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: mistral('mistral-small-latest'),
+  prompt: 'What is 15 * 24?',
+  providerOptions: {
+    mistral: {
+      reasoningEffort: 'high',
+    } satisfies MistralLanguageModelOptions,
+  },
+});
+
+console.log('REASONING:', result.reasoningText);
+console.log('ANSWER:', result.text);
+```
+
+So far, Mistral only supports `'high'` and `'none'` as effort levels.
+
 ### Example
 
 You can use Mistral language models to generate text with the `generateText` function:

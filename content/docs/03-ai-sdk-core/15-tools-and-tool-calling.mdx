@@ -226,6 +226,14 @@ When using `useChat`, the approval flow is handled through UI state. See [Chatbo
 
 With the `stopWhen` setting, you can enable multi-step calls in `generateText` and `streamText`. When `stopWhen` is set and the model generates a tool call, the AI SDK will trigger a new generation passing in the tool result until there are no further tool calls or the stopping condition is met.
 
+The AI SDK provides several built-in stopping conditions:
+
+- `stepCountIs(count)` — stops after a specified number of steps (default: `stepCountIs(20)`)
+- `hasToolCall(toolName)` — stops when a specific tool is called
+- `isLoopFinished()` — never triggers, letting the loop run until naturally finished
+
+You can also combine multiple conditions in an array or create custom conditions. See [Loop Control](/docs/agents/loop-control) for more details.
+
 <Note>
   The `stopWhen` conditions are only evaluated when the last step contains tool
   results.
@@ -1027,9 +1035,13 @@ const { text } = await generateText({
 ## Multi-modal Tool Results
 
 <Note type="warning">
-  Multi-modal tool results are experimental and only supported by Anthropic and
-  OpenAI.
+  Multi-modal tool results are experimental and supported by Anthropic, OpenAI,
+  and Google (Gemini 3 models).
 </Note>
+
+For Google, use base64 media parts (`image-data` / `file-data`) or base64
+`data:` URLs in URL-style parts. Remote HTTP(S) URLs in tool-result URL parts
+are not supported.
 
 In order to send multi-modal tool results, e.g. screenshots, back to the model,
 they need to be converted into a specific format.

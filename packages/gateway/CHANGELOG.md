@@ -1,5 +1,62 @@
 # @ai-sdk/gateway
 
+## 3.0.85
+
+### Patch Changes
+
+- 85e476d: feat (provider/gateway): add disallowPromptTraining gateway provider option
+
+## 3.0.84
+
+### Patch Changes
+
+- 70322b4: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.83
+
+### Patch Changes
+
+- 768a9d6: feat (provider/gateway): add get-generation support
+
+## 3.0.82
+
+### Patch Changes
+
+- 95fedf0: feat (provider/gateway): add spend reporting support
+
+## 3.0.81
+
+### Patch Changes
+
+- e69062d: chore(provider/gateway): rename GatewayLanguageModelOptions back to GatewayProviderOptions
+
+## 3.0.80
+
+### Patch Changes
+
+- 0db5cd8: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.79
+
+### Patch Changes
+
+- 3caa544: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
+## 3.0.78
+
+### Patch Changes
+
+- 763e178: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.77
+
+### Patch Changes
+
+- d99eb91: Backport: chore(provider/gateway): update gateway model settings files
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 3.0.76
 
 ### Patch Changes
@@ -520,13 +577,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - aaf5ebf: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
@@ -808,13 +865,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

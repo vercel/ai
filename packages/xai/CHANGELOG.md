@@ -1,5 +1,32 @@
 # @ai-sdk/xai
 
+## 3.0.75
+
+### Patch Changes
+
+- 5d61547: fix(provider/xai): correct finish reason for tool calls
+
+## 3.0.74
+
+### Patch Changes
+
+- 3caa544: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
+## 3.0.73
+
+### Patch Changes
+
+- 12e972c: feat(provider/xai): add moderation error, and costInUsdTicks to video model
+
+## 3.0.72
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/openai-compatible@2.0.37
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 3.0.71
 
 ### Patch Changes
@@ -521,13 +548,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -785,13 +812,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 8514146: add grok-4-1 model IDs
@@ -1334,7 +1361,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1347,7 +1374,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1663,7 +1690,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1676,7 +1703,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

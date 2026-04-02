@@ -16,13 +16,19 @@ The AI SDK provides built-in loop control through two parameters: `stopWhen` for
 
 ## Stop Conditions
 
-The `stopWhen` parameter controls when to stop execution when there are tool results in the last step. By default, agents stop after 20 steps using `stepCountIs(20)`.
+The `stopWhen` parameter controls when to stop execution when there are tool results in the last step. By default, agents stop after 20 steps using `stepCountIs(20)`. This default is a safety measure to prevent runaway loops that could result in excessive API calls and costs.
 
 When you provide `stopWhen`, the agent continues executing after tool calls until a stopping condition is met. When the condition is an array, execution stops when any of the conditions are met.
 
 ### Use Built-in Conditions
 
 The AI SDK provides several built-in stopping conditions:
+
+- `stepCountIs(count)` — stops after a specified number of steps
+- `hasToolCall(toolName)` — stops when a specific tool is called
+- `isLoopFinished()` — never triggers, letting the loop run until the agent is naturally finished
+
+### Run Up to a Maximum Number of Steps
 
 ```ts
 import { ToolLoopAgent, stepCountIs } from 'ai';
@@ -33,13 +39,40 @@ const agent = new ToolLoopAgent({
   tools: {
     // your tools
   },
-  stopWhen: stepCountIs(20), // Default state: stop after 20 steps maximum
+  stopWhen: stepCountIs(50), // Increasing the default of 20 to 50.
 });
 
 const result = await agent.generate({
   prompt: 'Analyze this dataset and create a summary report',
 });
 ```
+
+### Run Until Finished
+
+If you want the agent to run until the model naturally stops making tool calls, use `isLoopFinished()`. This removes the default step limit:
+
+```ts
+import { ToolLoopAgent, isLoopFinished } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    // your tools
+  },
+  stopWhen: isLoopFinished(), // No maximum step limit.
+});
+
+const result = await agent.generate({
+  prompt: 'Analyze this dataset and create a summary report',
+});
+```
+
+<Note>
+  Use `isLoopFinished()` with caution. Without a step limit, the agent could
+  potentially run indefinitely or incur significant costs if the model keeps
+  making tool calls.
+</Note>
 
 ### Combine Multiple Conditions
 

@@ -1,7 +1,0 @@
-.next
-.nuxt
-node_modules
-dist
-.svelte-kit
-_nuxt
-__testfixtures__
