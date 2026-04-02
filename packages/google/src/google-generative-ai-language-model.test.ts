@@ -5626,6 +5626,119 @@ describe('doStream', () => {
     ).toMatchInlineSnapshot(`undefined`);
   });
 
+  it('should default streamFunctionCallArguments to true for Vertex provider even without provider option', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+    });
+
+    expect((await server.calls[0].requestBodyJson).toolConfig)
+      .toMatchInlineSnapshot(`
+      {
+        "functionCallingConfig": {
+          "streamFunctionCallArguments": true,
+        },
+      }
+    `);
+  });
+
+  it('should allow Vertex provider to opt out of streamFunctionCallArguments by setting it to false', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Hello' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          inputSchema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      providerOptions: {
+        vertex: {
+          streamFunctionCallArguments: false,
+        },
+      },
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).toolConfig?.functionCallingConfig
+        ?.streamFunctionCallArguments,
+    ).toBeUndefined();
+  });
+
   it('should only pass valid provider options', async () => {
     prepareChunksFixtureResponse('google-text');
 

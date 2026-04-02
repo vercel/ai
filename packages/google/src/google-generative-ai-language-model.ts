@@ -230,7 +230,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
           toolConfig: googleToolConfig,
           retrievalConfig: googleOptions?.retrievalConfig,
           streamFunctionCallArguments: isVertexProvider
-            ? googleOptions?.streamFunctionCallArguments
+            ? (googleOptions?.streamFunctionCallArguments ?? true)
             : undefined,
         }),
         cachedContent: googleOptions?.cachedContent,
