@@ -340,9 +340,11 @@ export interface PrepareCallOptions<
 /**
  * Result of the prepareCall callback. All fields are optional —
  * only returned fields override the defaults.
+ * Note: `tools` cannot be overridden via prepareCall because they are
+ * bound at construction time for type safety.
  */
 export type PrepareCallResult<TTools extends ToolSet = ToolSet> = Partial<
-  PrepareCallOptions<TTools>
+  Omit<PrepareCallOptions<TTools>, 'tools'>
 >;
 
 /**
