@@ -272,6 +272,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
+    const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
+
     const supportsStructuredOutput =
       (this.config.supportsNativeStructuredOutput ?? true) &&
       modelSupportsStructuredOutput;
@@ -535,8 +537,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       // adjust max tokens to account for thinking:
       baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
     } else {
-      // Only check temperature/topP mutual exclusivity when thinking is not enabled
-      if (topP != null && temperature != null) {
+      // Only check temperature/topP mutual exclusivity for known Anthropic models
+      // when thinking is not enabled. Non-Anthropic models using the Anthropic-compatible
+      // API (e.g. Minimax) may require both parameters to be set.
+      if (isAnthropicModel && topP != null && temperature != null) {
         warnings.push({
           type: 'unsupported',
           feature: 'topP',
