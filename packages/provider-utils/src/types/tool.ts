@@ -82,6 +82,9 @@ type NeverOptional<N, T> = 0 extends 1 & N
     ? Partial<Record<keyof T, undefined>>
     : T;
 
+/**
+ * Helper type to determine the output properties of a tool.
+ */
 type ToolOutputProperties<
   INPUT,
   OUTPUT,
