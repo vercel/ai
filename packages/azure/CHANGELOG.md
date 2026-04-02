@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/openai@4.0.0-beta.20
+
 ## 4.0.0-beta.19
 
 ### Patch Changes

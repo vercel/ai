@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.60
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
 ## 7.0.0-beta.59
 
 ### Patch Changes

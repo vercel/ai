@@ -1,5 +1,13 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-beta.15
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/openai-compatible@3.0.0-beta.13
+
 ## 2.0.0-beta.14
 
 ### Patch Changes
