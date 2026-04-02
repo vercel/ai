@@ -4,6 +4,7 @@ import {
   LanguageModelV4StreamPart,
   SharedV4Headers,
 } from '@ai-sdk/provider';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import {
   ModelMessage,
   ProviderOptions,
@@ -30,7 +31,6 @@ import {
 } from '../util/async-iterable-stream';
 import { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
-import { prepareRetries } from '../util/prepare-retries';
 import { DefaultGeneratedFileWithType } from './generated-file';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
@@ -49,7 +49,6 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export type ModelCallStreamPart<TOOLS extends ToolSet = ToolSet> =
   | Exclude<
@@ -103,6 +102,53 @@ export type ModelCallStreamPart<TOOLS extends ToolSet = ToolSet> =
       modelId?: string;
     };
 
+/**
+ * Streams a single language model call after standardizing the prompt and tools.
+ *
+ * The returned stream emits model call parts together with request and response
+ * metadata when available.
+ *
+ * @param model - The language model to use.
+ * @param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
+ * @param output - Output configuration that controls the response format requested from the model.
+ * @param toolChoice - The tool choice strategy for the model call.
+ *
+ * @param system - A system message that will be part of the prompt.
+ * @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
+ * @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+ *
+ * @param maxOutputTokens - Maximum number of tokens to generate.
+ * @param temperature - Temperature setting.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * It is recommended to set either `temperature` or `topP`, but not both.
+ * @param topP - Nucleus sampling.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * It is recommended to set either `temperature` or `topP`, but not both.
+ * @param topK - Only sample from the top K options for each subsequent token.
+ * Used to remove "long tail" low probability responses.
+ * Recommended for advanced use cases only. You usually only need to use temperature.
+ * @param presencePenalty - Presence penalty setting.
+ * It affects the likelihood of the model to repeat information that is already in the prompt.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * @param frequencyPenalty - Frequency penalty setting.
+ * It affects the likelihood of the model to repeatedly use the same words or phrases.
+ * The value is passed through to the provider. The range depends on the provider and model.
+ * @param stopSequences - Stop sequences.
+ * If set, the model will stop generating text when one of the stop sequences is generated.
+ * @param seed - The seed (integer) to use for random sampling.
+ * If set and supported by the model, calls will generate deterministic results.
+ * @param reasoning - Reasoning configuration for the model call.
+ *
+ * @param download - A function that downloads URLs as part of prompt conversion.
+ * @param abortSignal - An optional abort signal that can be used to cancel the call.
+ * @param headers - Additional HTTP headers to be sent with the request.
+ * @param includeRawChunks - Whether to include raw provider stream chunks in the model stream.
+ * @param providerOptions - Additional provider-specific options.
+ * @param repairToolCall - A function that can repair invalid tool calls before they are emitted.
+ * @param onStart - A callback that receives the fully converted prompt before the model call starts.
+ *
+ * @returns A stream of model call parts together with request and response metadata when available.
+ */
 export async function streamModelCall<
   TOOLS extends ToolSet,
   OUTPUT extends Output = Output,
@@ -111,7 +157,6 @@ export async function streamModelCall<
   tools,
   output,
   toolChoice,
-  activeTools,
   prompt,
   system,
   messages,
@@ -128,7 +173,6 @@ export async function streamModelCall<
   tools?: TOOLS;
   output?: OUTPUT;
   toolChoice?: ToolChoice<TOOLS>;
-  activeTools?: Array<keyof NoInfer<TOOLS>>;
   download?: DownloadFunction;
   headers?: Record<string, string | undefined>;
   includeRawChunks?: boolean;

@@ -1614,7 +1614,6 @@ class DefaultStreamTextResult<
             streamModelCall({
               model: prepareStepResult?.model ?? model,
               tools: stepActiveTools,
-              activeTools: prepareStepResult?.activeTools ?? activeTools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               system: stepSystem,
               messages: stepMessages,
