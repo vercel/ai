@@ -5,8 +5,7 @@ on:
     # Run every weekday at 8:00 AM Pacific Time (4:00 PM UTC)
     - cron: '0 16 * * 1-5'
   workflow_dispatch:
-  pull_request:
-
+  
 permissions:
   contents: write
   pull-requests: write
@@ -200,4 +199,4 @@ jobs:
           PR_COUNT: ${{ steps.check-prs.outputs.pr-count }}
           PR_URL: 'https://github.com/vercel/ai/pulls?q=is%3Apr+chore%28provider%2Fgateway%29%3A+update+gateway+model+settings+files+is%3Aopen'
           CHANNEL_ID: 'C099VQB75TP'
-          REVIEWER: 'U0A54KMV02E'
+          REVIEWER: 'U074PVAPV4J'
