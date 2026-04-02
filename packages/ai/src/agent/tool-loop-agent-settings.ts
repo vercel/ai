@@ -233,9 +233,8 @@ export type ToolLoopAgentSettings<
         | 'experimental_telemetry'
         | 'activeTools'
         | 'providerOptions'
-        | 'experimental_context'
         | 'experimental_download'
-      >,
+      > & { experimental_context: CONTEXT },
   ) => MaybePromiseLike<
     Pick<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, CONTEXT, NoInfer<OUTPUT>>,

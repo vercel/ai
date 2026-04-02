@@ -1,3 +1,4 @@
+import { tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output, StreamTextOnFinishCallback } from '../generate-text';
@@ -137,6 +138,48 @@ describe('ToolLoopAgent', () => {
       expectTypeOf<typeof partialOutputStream>().toEqualTypeOf<
         AsyncIterableStream<DeepPartial<{ value: string }>>
       >();
+    });
+  });
+
+  describe('experimental_context', () => {
+    it('should infer typed experimental_context with one tool context and prepareStep', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools: {
+          weather: tool({
+            inputSchema: z.object({
+              city: z.string(),
+            }),
+            contextSchema: z.object({
+              userId: z.string(),
+            }),
+            execute: async (_input, { experimental_context }) => {
+              expectTypeOf(experimental_context).toMatchObjectType<{
+                userId: string;
+              }>();
+
+              return 'sunny';
+            },
+          }),
+        },
+        experimental_context: {
+          userId: 'test-user',
+          role: 'admin',
+        },
+        prepareStep: ({ experimental_context }) => {
+          expectTypeOf(experimental_context).toMatchObjectType<{
+            userId: string;
+            role: string;
+          }>();
+
+          return {
+            experimental_context: {
+              userId: experimental_context.userId,
+              role: experimental_context.role,
+            },
+          };
+        },
+      });
     });
   });
 });

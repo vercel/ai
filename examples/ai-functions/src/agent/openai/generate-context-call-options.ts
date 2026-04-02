@@ -29,7 +29,7 @@ const agent = new ToolLoopAgent({
   },
   experimental_context: {
     weatherApiKey: 'not-set',
-    somethingElse: 'not-set',
+    somethingElse: 'other-context',
   },
   callOptionsSchema: z.object({
     weatherApiKey: z.string(),
@@ -37,8 +37,8 @@ const agent = new ToolLoopAgent({
   prepareCall: ({ options, experimental_context, ...rest }) => ({
     ...rest,
     experimental_context: {
-      somethingElse: 'other-context',
-      weatherApiKey: options?.weatherApiKey,
+      ...experimental_context,
+      weatherApiKey: options.weatherApiKey,
     },
   }),
   prepareStep: async ({ experimental_context: context }) => {
