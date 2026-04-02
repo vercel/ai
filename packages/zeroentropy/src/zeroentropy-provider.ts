@@ -2,6 +2,7 @@ import {
   EmbeddingModelV4,
   NoSuchModelError,
   ProviderV4,
+  RerankingModelV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -14,6 +15,8 @@ import {
   ZeroEntropyEmbeddingModelId,
   ZeroEntropyEmbeddingModelOptions,
 } from './zeroentropy-embedding-options';
+import { ZeroEntropyRerankingModel } from './reranking/zeroentropy-reranking-model';
+import { ZeroEntropyRerankingModelId } from './reranking/zeroentropy-reranking-options';
 import { VERSION } from './version';
 
 export interface ZeroEntropyProvider extends ProviderV4 {
@@ -48,6 +51,16 @@ export interface ZeroEntropyProvider extends ProviderV4 {
     modelId: ZeroEntropyEmbeddingModelId,
     options?: ZeroEntropyEmbeddingModelOptions,
   ): EmbeddingModelV4;
+
+  /**
+   * Creates a model for reranking documents.
+   */
+  reranking(modelId: ZeroEntropyRerankingModelId): RerankingModelV4;
+
+  /**
+   * Creates a model for reranking documents.
+   */
+  rerankingModel(modelId: ZeroEntropyRerankingModelId): RerankingModelV4;
 }
 
 export interface ZeroEntropyProviderSettings {
@@ -108,12 +121,22 @@ export function createZeroEntropy(
       fetch: options.fetch,
     });
 
+  const createRerankingModel = (modelId: ZeroEntropyRerankingModelId) =>
+    new ZeroEntropyRerankingModel(modelId, {
+      provider: 'zeroentropy.reranking',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = {
     specificationVersion: 'v4' as const,
     embedding: createEmbeddingModel,
     embeddingModel: createEmbeddingModel,
     textEmbedding: createEmbeddingModel,
     textEmbeddingModel: createEmbeddingModel,
+    reranking: createRerankingModel,
+    rerankingModel: createRerankingModel,
     languageModel: (modelId: string) => {
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
     },

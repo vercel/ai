@@ -102,3 +102,34 @@ const documentModel = zeroentropy.embedding('zembed-1', { inputType: 'document' 
 | Model      | Default Dimensions | Description                                     |
 | ---------- | ------------------ | ----------------------------------------------- |
 | `zembed-1` | 2560               | Multilingual embedding model, supports Matryoshka dimensions |
+
+## Reranking Models
+
+Use the `.rerankingModel()` method to create a reranking model:
+
+```ts
+import { zeroentropy } from '@ai-sdk/zeroentropy';
+import { rerank } from 'ai';
+
+const result = await rerank({
+  model: zeroentropy.rerankingModel('zerank-2'),
+  query: 'talk about rain',
+  documents: ['sunny day at the beach', 'rainy day in the city'],
+  topN: 2,
+});
+```
+
+### Provider Options
+
+| Option    | Type               | Description                                                             |
+| --------- | ------------------ | ----------------------------------------------------------------------- |
+| `latency` | `'fast' \| 'slow'` | `'fast'` for sub-second latency; `'slow'` for higher throughput limits  |
+
+### Available Models
+
+| Model           | Description                                      |
+| --------------- | ------------------------------------------------ |
+| `zerank-2`      | Flagship state-of-the-art cross-encoder reranker |
+| `zerank-2-nano` | Compact zerank-2 variant for lower-latency use cases |
+| `zerank-1`      | Previous generation reranker                     |
+| `zerank-1-small`| Lightweight reranker for lower-latency use cases |

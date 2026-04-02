@@ -1,0 +1,17 @@
+{
+  "results": [
+    {
+      "index": 1,
+      "relevance_score": 0.9321
+    },
+    {
+      "index": 0,
+      "relevance_score": 0.1234
+    }
+  ],
+  "total_bytes": 512,
+  "total_tokens": 64,
+  "actual_latency_mode": "fast",
+  "e2e_latency": 123.4,
+  "inference_latency": 98.7
+}
