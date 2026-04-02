@@ -63,6 +63,23 @@ describe('getErrorMessage', () => {
       );
     });
 
+    it('should respect custom toString() overrides', () => {
+      class MyApiError extends Error {
+        code: number;
+        constructor(message: string, code: number) {
+          super(message);
+          this.name = 'MyApiError';
+          this.code = code;
+        }
+        toString() {
+          return `API Error ${this.code}: ${this.message}`;
+        }
+      }
+      expect(getErrorMessage(new MyApiError('rate limited', 429))).toBe(
+        'API Error 429: rate limited',
+      );
+    });
+
     it('should handle custom error subclass with empty message', () => {
       class CustomError extends Error {
         constructor() {
