@@ -246,7 +246,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object that flows through the entire generation lifecycle.',
             },
@@ -357,7 +357,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object. May be updated from prepareStep between steps.',
             },
@@ -417,7 +417,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -483,7 +483,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -525,10 +525,10 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_context',
-      type: 'unknown',
+      type: 'CONTEXT',
       isOptional: true,
       description:
-        'Experimental: Custom context object passed to each tool call.',
+        'Experimental: User-defined context object passed to `prepareStep`, tool execution, and lifecycle callbacks.',
     },
     {
       name: 'experimental_telemetry',

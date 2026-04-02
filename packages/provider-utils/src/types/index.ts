@@ -13,19 +13,21 @@ export type {
   ToolResultOutput,
   ToolResultPart,
 } from './content-part';
+export type { Context } from './context';
 export type { DataContent } from './data-content';
 export { executeTool } from './execute-tool';
+export type { InferToolContext } from './infer-tool-context';
+export type { InferToolInput } from './infer-tool-input';
+export type { InferToolOutput } from './infer-tool-output';
 export type { ModelMessage } from './model-message';
 export type { ProviderOptions } from './provider-options';
 export type { SystemModelMessage } from './system-model-message';
 export {
   dynamicTool,
   tool,
-  type InferToolInput,
-  type InferToolOutput,
   type Tool,
-  type ToolExecutionOptions,
   type ToolExecuteFunction,
+  type ToolExecutionOptions,
   type ToolNeedsApprovalFunction,
 } from './tool';
 export type { ToolApprovalRequest } from './tool-approval-request';
@@ -34,9 +36,12 @@ export type { ToolCall } from './tool-call';
 export type { ToolContent, ToolModelMessage } from './tool-model-message';
 export type { ToolResult } from './tool-result';
 export type { UserContent, UserModelMessage } from './user-model-message';
+
+import type { Context } from './context';
 import type { ToolExecutionOptions } from './tool';
 
 /**
  * @deprecated Use ToolExecutionOptions instead.
  */
-export type ToolCallOptions = ToolExecutionOptions;
+export type ToolCallOptions<CONTEXT extends Context> =
+  ToolExecutionOptions<CONTEXT>;

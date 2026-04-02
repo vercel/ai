@@ -1,10 +1,11 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool } from 'ai';
+import { streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
+import { printFullStream } from '../../lib/print-full-stream';
 
 run(async () => {
-  const result = await generateText({
+  const result = streamText({
     model: openai('gpt-5-mini'),
     tools: {
       weather: tool({
@@ -63,5 +64,5 @@ run(async () => {
     prompt: 'What is the weather in San Francisco?',
   });
 
-  console.log(JSON.stringify(result.toolResults, null, 2));
+  await printFullStream({ result });
 });

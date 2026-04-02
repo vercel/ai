@@ -9,10 +9,14 @@ import {
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
 import { TypedToolCall } from './tool-call';
-import { ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from './tool-set';
 import { ModelCallStreamPart } from './stream-model-call';
 
-export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
+export function createExecuteToolsTransformation<
+  TOOLS extends ToolSet,
+  CONTEXT extends GenerationContext<TOOLS>,
+>({
   tools,
   telemetry,
   callId,
@@ -34,7 +38,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_context: unknown;
+  experimental_context: CONTEXT;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
