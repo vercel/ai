@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import {
   GoogleStreamToolCallArguments,
@@ -9,6 +10,14 @@ function createHandler(providerOptionsName = 'google') {
     () => 'test-id',
     providerOptionsName,
   );
+}
+
+function loadFixtureChunks(filename: string) {
+  return fs
+    .readFileSync(`src/__fixtures__/${filename}.chunks.txt`, 'utf8')
+    .split('\n')
+    .filter(line => line.trim().length > 0)
+    .map(line => JSON.parse(line));
 }
 
 describe('GoogleStreamToolCallArguments', () => {
@@ -511,5 +520,105 @@ describe('GoogleStreamToolCallArguments', () => {
         },
       ]
     `);
+  });
+
+  it('should process real Vertex AI fixture with parallel getWeather calls', () => {
+    const chunks = loadFixtureChunks('google-stream-tool-call-arguments');
+    const handler = createHandler('vertex');
+
+    const allEvents = [];
+    let toolCallCount = 0;
+
+    for (const chunk of chunks) {
+      const parts = chunk.candidates?.[0]?.content?.parts;
+      if (!parts) continue;
+
+      const result = handler.processStreamingFunctionCallParts(parts);
+      allEvents.push(...result.events);
+      if (result.hasToolCalls) toolCallCount++;
+    }
+
+    expect(allEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "providerMetadata": {
+            "vertex": {
+              "thoughtSignature": "CiMBjz1rX25KieIB4d4AwFn8/WbsHTRNHBXso88PtemwfsSfRAp6AY89a1/e2FrmrE2HtlOxvV7vy8Kn5Og9n6CepcBKYW9aBT5QdXtTD4PGv9pDDWLEDAfsd86Et6k7HDEV976M3kC0ahLS8FCrwRntUKr+GF5uiUfPvgpzqNl5m8d8EwYykfwo1VwuTStR7q3mr/TzDcNzepafpVLdZloKYQGPPWtfkohmdau0GqGi3DuPbFTUBe5Ac/UbCvUk+P7KFbCGb93vFmnjmmTV7228DcAddqtWfe4iVePtSumw3JptYE6PIeVao2r8q7FXZKazzEiA9c04nmq6Vv9lOtt5NsgKrwEBjz1rX1ajIx3yeG/QI78uO+MsKoqgwrCI7PAEaDRqbyDCW/NX/4Vfuz1wp96oT3h/ttJ5ejzQyGamOrYreUUFvJBR/0TvFBdWOXwwCOWtvJ0Jh7SinV9HNqBDM1WWH8e+tGWY0r7xU/o/M1Fkwd73bvyp3BmSm5orrQL4jUZ1TN6ECqw7T7wHEkIfuBXGMZhQwAPzaapGVCdn0LjFJwd1aVReWmt6pE4ut993/K+0CqsBAY89a1+ts0Nggt7GZxVw/dQhH2Gc6KxRbAZKFMTuYRcNufJ5CyTvq85rMWEhTPWQxlQe1V7NIOlsQzyDhlejiCVbq0chDVrwRY23BmLrhSLi+SfKukEc0M+V9LdFiqxxLgUBrVdCvxA17g11j6HGdmXiNze2WDKm7ZXgMYvEiVmglpRZOb4JeJzxNPFsxhv2k6VkKB+GRtO48XwNz/i2taQ8Nq+LO5tED6HhCp4BAY89a18wBKoSkBT2IRo530FeNq/lpVozY0+k+p+H//TAtKoWZBamKCwra81idaMm1TTaWZGlX85Pq0kBvx1sQLFEhILeQrbH0O3Iuk9JlKLKctAwnBj8BZUGJEGtbigTKaSgWcMBhW+jfKWi1xwSxyJLRkIcXmE8U3FE/XHCLeiBy0NRa0yKn3xh62JU9087Q2nOMClxy5Zy5VsZ0qQ=",
+            },
+          },
+          "toolName": "getWeather",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"location":"Boston",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""}",
+          "id": "test-id",
+          "providerMetadata": {
+            "vertex": {
+              "thoughtSignature": "CiMBjz1rX25KieIB4d4AwFn8/WbsHTRNHBXso88PtemwfsSfRAp6AY89a1/e2FrmrE2HtlOxvV7vy8Kn5Og9n6CepcBKYW9aBT5QdXtTD4PGv9pDDWLEDAfsd86Et6k7HDEV976M3kC0ahLS8FCrwRntUKr+GF5uiUfPvgpzqNl5m8d8EwYykfwo1VwuTStR7q3mr/TzDcNzepafpVLdZloKYQGPPWtfkohmdau0GqGi3DuPbFTUBe5Ac/UbCvUk+P7KFbCGb93vFmnjmmTV7228DcAddqtWfe4iVePtSumw3JptYE6PIeVao2r8q7FXZKazzEiA9c04nmq6Vv9lOtt5NsgKrwEBjz1rX1ajIx3yeG/QI78uO+MsKoqgwrCI7PAEaDRqbyDCW/NX/4Vfuz1wp96oT3h/ttJ5ejzQyGamOrYreUUFvJBR/0TvFBdWOXwwCOWtvJ0Jh7SinV9HNqBDM1WWH8e+tGWY0r7xU/o/M1Fkwd73bvyp3BmSm5orrQL4jUZ1TN6ECqw7T7wHEkIfuBXGMZhQwAPzaapGVCdn0LjFJwd1aVReWmt6pE4ut993/K+0CqsBAY89a1+ts0Nggt7GZxVw/dQhH2Gc6KxRbAZKFMTuYRcNufJ5CyTvq85rMWEhTPWQxlQe1V7NIOlsQzyDhlejiCVbq0chDVrwRY23BmLrhSLi+SfKukEc0M+V9LdFiqxxLgUBrVdCvxA17g11j6HGdmXiNze2WDKm7ZXgMYvEiVmglpRZOb4JeJzxNPFsxhv2k6VkKB+GRtO48XwNz/i2taQ8Nq+LO5tED6HhCp4BAY89a18wBKoSkBT2IRo530FeNq/lpVozY0+k+p+H//TAtKoWZBamKCwra81idaMm1TTaWZGlX85Pq0kBvx1sQLFEhILeQrbH0O3Iuk9JlKLKctAwnBj8BZUGJEGtbigTKaSgWcMBhW+jfKWi1xwSxyJLRkIcXmE8U3FE/XHCLeiBy0NRa0yKn3xh62JU9087Q2nOMClxy5Zy5VsZ0qQ=",
+            },
+          },
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": {
+            "vertex": {
+              "thoughtSignature": "CiMBjz1rX25KieIB4d4AwFn8/WbsHTRNHBXso88PtemwfsSfRAp6AY89a1/e2FrmrE2HtlOxvV7vy8Kn5Og9n6CepcBKYW9aBT5QdXtTD4PGv9pDDWLEDAfsd86Et6k7HDEV976M3kC0ahLS8FCrwRntUKr+GF5uiUfPvgpzqNl5m8d8EwYykfwo1VwuTStR7q3mr/TzDcNzepafpVLdZloKYQGPPWtfkohmdau0GqGi3DuPbFTUBe5Ac/UbCvUk+P7KFbCGb93vFmnjmmTV7228DcAddqtWfe4iVePtSumw3JptYE6PIeVao2r8q7FXZKazzEiA9c04nmq6Vv9lOtt5NsgKrwEBjz1rX1ajIx3yeG/QI78uO+MsKoqgwrCI7PAEaDRqbyDCW/NX/4Vfuz1wp96oT3h/ttJ5ejzQyGamOrYreUUFvJBR/0TvFBdWOXwwCOWtvJ0Jh7SinV9HNqBDM1WWH8e+tGWY0r7xU/o/M1Fkwd73bvyp3BmSm5orrQL4jUZ1TN6ECqw7T7wHEkIfuBXGMZhQwAPzaapGVCdn0LjFJwd1aVReWmt6pE4ut993/K+0CqsBAY89a1+ts0Nggt7GZxVw/dQhH2Gc6KxRbAZKFMTuYRcNufJ5CyTvq85rMWEhTPWQxlQe1V7NIOlsQzyDhlejiCVbq0chDVrwRY23BmLrhSLi+SfKukEc0M+V9LdFiqxxLgUBrVdCvxA17g11j6HGdmXiNze2WDKm7ZXgMYvEiVmglpRZOb4JeJzxNPFsxhv2k6VkKB+GRtO48XwNz/i2taQ8Nq+LO5tED6HhCp4BAY89a18wBKoSkBT2IRo530FeNq/lpVozY0+k+p+H//TAtKoWZBamKCwra81idaMm1TTaWZGlX85Pq0kBvx1sQLFEhILeQrbH0O3Iuk9JlKLKctAwnBj8BZUGJEGtbigTKaSgWcMBhW+jfKWi1xwSxyJLRkIcXmE8U3FE/XHCLeiBy0NRa0yKn3xh62JU9087Q2nOMClxy5Zy5VsZ0qQ=",
+            },
+          },
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"location":"Boston"}",
+          "providerMetadata": {
+            "vertex": {
+              "thoughtSignature": "CiMBjz1rX25KieIB4d4AwFn8/WbsHTRNHBXso88PtemwfsSfRAp6AY89a1/e2FrmrE2HtlOxvV7vy8Kn5Og9n6CepcBKYW9aBT5QdXtTD4PGv9pDDWLEDAfsd86Et6k7HDEV976M3kC0ahLS8FCrwRntUKr+GF5uiUfPvgpzqNl5m8d8EwYykfwo1VwuTStR7q3mr/TzDcNzepafpVLdZloKYQGPPWtfkohmdau0GqGi3DuPbFTUBe5Ac/UbCvUk+P7KFbCGb93vFmnjmmTV7228DcAddqtWfe4iVePtSumw3JptYE6PIeVao2r8q7FXZKazzEiA9c04nmq6Vv9lOtt5NsgKrwEBjz1rX1ajIx3yeG/QI78uO+MsKoqgwrCI7PAEaDRqbyDCW/NX/4Vfuz1wp96oT3h/ttJ5ejzQyGamOrYreUUFvJBR/0TvFBdWOXwwCOWtvJ0Jh7SinV9HNqBDM1WWH8e+tGWY0r7xU/o/M1Fkwd73bvyp3BmSm5orrQL4jUZ1TN6ECqw7T7wHEkIfuBXGMZhQwAPzaapGVCdn0LjFJwd1aVReWmt6pE4ut993/K+0CqsBAY89a1+ts0Nggt7GZxVw/dQhH2Gc6KxRbAZKFMTuYRcNufJ5CyTvq85rMWEhTPWQxlQe1V7NIOlsQzyDhlejiCVbq0chDVrwRY23BmLrhSLi+SfKukEc0M+V9LdFiqxxLgUBrVdCvxA17g11j6HGdmXiNze2WDKm7ZXgMYvEiVmglpRZOb4JeJzxNPFsxhv2k6VkKB+GRtO48XwNz/i2taQ8Nq+LO5tED6HhCp4BAY89a18wBKoSkBT2IRo530FeNq/lpVozY0+k+p+H//TAtKoWZBamKCwra81idaMm1TTaWZGlX85Pq0kBvx1sQLFEhILeQrbH0O3Iuk9JlKLKctAwnBj8BZUGJEGtbigTKaSgWcMBhW+jfKWi1xwSxyJLRkIcXmE8U3FE/XHCLeiBy0NRa0yKn3xh62JU9087Q2nOMClxy5Zy5VsZ0qQ=",
+            },
+          },
+          "toolCallId": "test-id",
+          "toolName": "getWeather",
+          "type": "tool-call",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "toolName": "getWeather",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"location":"San Francisco",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "delta": ""}",
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "test-id",
+          "providerMetadata": undefined,
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"location":"San Francisco"}",
+          "providerMetadata": undefined,
+          "toolCallId": "test-id",
+          "toolName": "getWeather",
+          "type": "tool-call",
+        },
+      ]
+    `);
+
+    expect(toolCallCount).toBe(2);
   });
 });
