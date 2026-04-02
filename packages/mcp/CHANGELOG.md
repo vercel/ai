@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.32
+
+### Patch Changes
+
+- 47c6af0: fix(mcp): strip trailing slash from OAuth resource parameter
+
 ## 1.0.31
 
 ### Patch Changes
