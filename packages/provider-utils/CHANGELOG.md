@@ -1,5 +1,14 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.8
+
+### Major Changes
+
+- 986c6fd: feat(ai): change type of experimental_context from unknown to generic
+- 493295c: Remove the deprecated `ToolCallOptions` export.
+
+  Use `ToolExecutionOptions` instead.
+
 ## 5.0.0-beta.7
 
 ### Patch Changes
