@@ -1,14 +1,14 @@
 import { ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { GeneratedFile } from './generated-file';
-import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import { ReasoningOutput, ReasoningFileOutput } from './reasoning-output';
 import { TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 import { ToolSet } from './tool-set';
 
-export type ContentPart<TOOLS extends ToolSet = ToolSet> =
+export type ContentPart<TOOLS extends ToolSet> =
   | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }
   | {
       type: 'custom';
