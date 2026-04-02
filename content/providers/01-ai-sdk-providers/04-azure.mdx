@@ -537,6 +537,96 @@ The code interpreter tool can be configured with:
   Source Document Parts](#typed-providermetadata-in-source-document-parts).
 </Note>
 
+#### MCP Tool
+
+The Azure OpenAI responses API supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers through the `azure.tools.mcp` tool. This allows models to call tools exposed by remote MCP servers or service connectors.
+
+```ts
+import { azure } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure('gpt-5'),
+  prompt: 'Search the web for the latest news about AI developments',
+  tools: {
+    mcp: azure.tools.mcp({
+      serverLabel: 'web-search',
+      serverUrl: 'https://mcp.exa.ai/mcp',
+      serverDescription: 'A web-search API for AI agents',
+    }),
+  },
+});
+```
+
+The MCP tool can be configured with:
+
+- **serverLabel** _string_ (required)
+
+  A label to identify the MCP server. This label is used in tool calls to distinguish between multiple MCP servers.
+
+- **serverUrl** _string_ (required if `connectorId` is not provided)
+
+  The URL for the MCP server. Either `serverUrl` or `connectorId` must be provided.
+
+- **connectorId** _string_ (required if `serverUrl` is not provided)
+
+  Identifier for a service connector. Either `serverUrl` or `connectorId` must be provided.
+
+- **serverDescription** _string_ (optional)
+
+  Optional description of the MCP server that helps the model understand its purpose.
+
+- **allowedTools** _string[] | object_ (optional)
+
+  Controls which tools from the MCP server are available. Can be:
+
+  - An array of tool names: `['tool1', 'tool2']`
+  - An object with filters:
+    ```ts
+    {
+      readOnly: true, // Only allow read-only tools
+      toolNames: ['tool1', 'tool2'] // Specific tool names
+    }
+    ```
+
+- **authorization** _string_ (optional)
+
+  OAuth access token for authenticating with the MCP server or connector.
+
+- **headers** _Record&lt;string, string&gt;_ (optional)
+
+  Optional HTTP headers to include in requests to the MCP server.
+
+- **requireApproval** _'always' | 'never' | object_ (optional)
+
+  Controls which MCP tool calls require user approval before execution. Can be:
+
+  - `'always'`: All MCP tool calls require approval
+  - `'never'`: No MCP tool calls require approval (default)
+  - An object with filters:
+    ```ts
+    {
+      never: {
+        toolNames: ['safe_tool', 'another_safe_tool']; // Skip approval for these tools
+      }
+    }
+    ```
+
+  When approval is required, the model will return a `tool-approval-request` content part that you can use to prompt the user for approval. See [Human in the Loop](/cookbook/next/human-in-the-loop) for more details on implementing approval workflows.
+
+<Note>
+  When `requireApproval` is not set, tool calls are approved by default. Be sure
+  to connect to only trusted MCP servers, who you trust to share your data with.
+</Note>
+
+<Note>
+  The Azure OpenAI MCP tool is different from the general MCP client approach
+  documented in [MCP Tools](/docs/ai-sdk-core/mcp-tools). The Azure OpenAI MCP
+  tool is a built-in provider-defined tool that allows Azure OpenAI models to
+  directly connect to MCP servers, while the general MCP client requires you to
+  convert MCP tools to AI SDK tools first.
+</Note>
+
 #### PDF support
 
 The Azure OpenAI provider supports reading PDF files.
