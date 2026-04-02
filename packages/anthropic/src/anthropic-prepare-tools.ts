@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-messages-api';
 import { CacheControlValidator } from './get-cache-control';
+import { sanitizeJsonSchema } from './sanitize-json-schema';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20260209ArgsSchema } from './tool/web-search_20260209';
 import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
@@ -89,7 +90,7 @@ export async function prepareTools({
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
-          input_schema: tool.inputSchema,
+          input_schema: sanitizeJsonSchema(tool.inputSchema),
           cache_control: cacheControl,
           ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
           ...(supportsStrictTools === true && tool.strict != null
