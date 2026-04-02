@@ -960,8 +960,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: 'encrypted_content_001',
+              encrypted_content: undefined,
               summary: [
                 {
                   type: 'summary_text',
@@ -1002,7 +1001,6 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: 'encrypted_content_001',
               summary: [
                 {
@@ -1044,8 +1042,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: 'encrypted_content_001',
+              encrypted_content: null,
               summary: [
                 {
                   type: 'summary_text',
@@ -1088,8 +1085,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: 'encrypted_content_001',
+              encrypted_content: undefined,
               summary: [],
             },
           ]);
@@ -1125,7 +1121,6 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: 'encrypted_content_001',
               summary: [],
             },
@@ -1171,8 +1166,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: 'encrypted_content_001',
+              encrypted_content: undefined,
               summary: [
                 {
                   type: 'summary_text',
@@ -1233,7 +1227,6 @@ describe('convertToOpenAIResponsesInput', () => {
             [
               {
                 "encrypted_content": "encrypted_content_001",
-                "id": "reasoning_001",
                 "summary": [
                   {
                     "text": "First reasoning step",
@@ -1335,8 +1328,7 @@ describe('convertToOpenAIResponsesInput', () => {
           expect(result.input).toEqual([
             {
               type: 'reasoning',
-              id: 'reasoning_001',
-              encrypted_content: 'encrypted_content_001',
+              encrypted_content: undefined,
               summary: [
                 {
                   type: 'summary_text',
@@ -1346,8 +1338,7 @@ describe('convertToOpenAIResponsesInput', () => {
             },
             {
               type: 'reasoning',
-              id: 'reasoning_002',
-              encrypted_content: 'encrypted_content_002',
+              encrypted_content: undefined,
               summary: [
                 {
                   type: 'summary_text',
@@ -1530,74 +1521,48 @@ describe('convertToOpenAIResponsesInput', () => {
             store: false,
           });
 
-          expect(result.input).toMatchInlineSnapshot(`
-            [
-              {
-                "content": [
-                  {
-                    "text": "First user question",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-              {
-                "encrypted_content": "encrypted_content_001",
-                "id": "reasoning_001",
-                "summary": [
-                  {
-                    "text": "First reasoning step (message 1)",
-                    "type": "summary_text",
-                  },
-                  {
-                    "text": "Second reasoning step (message 1)",
-                    "type": "summary_text",
-                  },
-                ],
-                "type": "reasoning",
-              },
-              {
-                "content": [
-                  {
-                    "text": "First response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "text": "Second user question",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-              {
-                "encrypted_content": "encrypted_content_002",
-                "id": "reasoning_002",
-                "summary": [
-                  {
-                    "text": "First reasoning step (message 2)",
-                    "type": "summary_text",
-                  },
-                ],
-                "type": "reasoning",
-              },
-              {
-                "content": [
-                  {
-                    "text": "Second response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
-                "role": "assistant",
-              },
-            ]
-          `);
+          expect(result.input).toEqual([
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'First user question' }],
+            },
+            {
+              type: 'reasoning',
+              encrypted_content: undefined,
+              summary: [
+                {
+                  type: 'summary_text',
+                  text: 'First reasoning step (message 1)',
+                },
+                {
+                  type: 'summary_text',
+                  text: 'Second reasoning step (message 1)',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'output_text', text: 'First response' }],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Second user question' }],
+            },
+            {
+              type: 'reasoning',
+              encrypted_content: undefined,
+              summary: [
+                {
+                  type: 'summary_text',
+                  text: 'First reasoning step (message 2)',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [{ type: 'output_text', text: 'Second response' }],
+            },
+          ]);
 
           expect(result.warnings).toHaveLength(0);
         });
@@ -1732,7 +1697,6 @@ describe('convertToOpenAIResponsesInput', () => {
             // First reasoning block (2 parts merged)
             {
               type: 'reasoning',
-              id: 'reasoning_001',
               encrypted_content: 'encrypted_content_001',
               summary: [
                 {
@@ -1761,7 +1725,6 @@ describe('convertToOpenAIResponsesInput', () => {
             // Second reasoning block (3 parts merged)
             {
               type: 'reasoning',
-              id: 'reasoning_002',
               encrypted_content: 'encrypted_content_002',
               summary: [
                 {
