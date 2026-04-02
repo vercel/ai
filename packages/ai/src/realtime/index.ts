@@ -11,6 +11,10 @@ export type {
   RealtimeState,
   RealtimeStatus,
 } from './realtime-session';
+export {
+  createRealtimeToolToken,
+  verifyRealtimeToolToken,
+} from './realtime-tool-token';
 export type {
   RealtimeSetupResponse,
   RealtimeToolsExecuteRequestBody,

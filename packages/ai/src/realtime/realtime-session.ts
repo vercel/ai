@@ -51,6 +51,7 @@ export abstract class AbstractRealtimeSession {
   onEvent: ((event: RealtimeServerEvent) => void) | undefined;
   onError: ((error: Error) => void) | undefined;
 
+  private toolToken: string | null = null;
   private ws: WebSocket | null = null;
 
   private captureContext: AudioContext | null = null;
@@ -115,7 +116,16 @@ export abstract class AbstractRealtimeSession {
         throw new Error(`Failed to fetch realtime setup: ${response.status}`);
       }
       const setupData = await response.json();
-      const { token, url, tools: toolDefinitions } = setupData;
+      const { token, url, tools: toolDefinitions, toolToken } = setupData;
+
+      if (!toolToken) {
+        throw new Error(
+          'Setup response is missing toolToken. ' +
+            'Ensure AI_REALTIME_SECRET is set and createRealtimeToolToken() is called in your setup endpoint.',
+        );
+      }
+
+      this.toolToken = toolToken;
 
       const config: RealtimeSessionConfig = {
         ...this.sessionConfig,
@@ -537,6 +547,7 @@ export abstract class AbstractRealtimeSession {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          toolToken: this.toolToken,
           tools: {
             [callId]: { name, inputs: parsedArgs },
           },

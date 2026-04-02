@@ -2,13 +2,28 @@ import { openai } from '@ai-sdk/openai';
 import { google } from '@ai-sdk/google';
 import { xai } from '@ai-sdk/xai';
 import { elevenlabs } from '@ai-sdk/elevenlabs';
-import { tool, getRealtimeToolDefinitions, executeRealtimeTool } from 'ai';
+import {
+  tool,
+  getRealtimeToolDefinitions,
+  executeRealtimeTool,
+  createRealtimeToolToken,
+  verifyRealtimeToolToken,
+} from 'ai';
 import type {
   RealtimeFactory,
   RealtimeSessionConfig,
   RealtimeToolsExecuteRequestBody,
 } from 'ai';
 import { z } from 'zod';
+
+const REALTIME_SECRET = process.env.AI_REALTIME_SECRET;
+
+if (!REALTIME_SECRET) {
+  throw new Error(
+    'AI_REALTIME_SECRET environment variable is required. ' +
+      'Generate one with: openssl rand -base64 32',
+  );
+}
 
 const tools = {
   getWeather: tool({
@@ -73,12 +88,32 @@ export async function POST(
       sessionConfig: { ...sessionConfig, tools: toolDefs },
     });
 
-    return Response.json({ ...tokenResult, tools: toolDefs });
+    // Create an HMAC-signed token authorizing execution of these tools
+    const toolToken = await createRealtimeToolToken({
+      tools: Object.keys(tools),
+      secret: REALTIME_SECRET,
+    });
+
+    return Response.json({ ...tokenResult, tools: toolDefs, toolToken });
   }
 
   if (route === 'execute-tools') {
-    const { tools: toolsToExecute }: RealtimeToolsExecuteRequestBody =
+    const { toolToken, tools: toolsToExecute }: RealtimeToolsExecuteRequestBody =
       await request.json();
+
+    // Verify the HMAC-signed tool token before executing anything
+    const verification = await verifyRealtimeToolToken({
+      token: toolToken,
+      secret: REALTIME_SECRET,
+      toolNames: Object.values(toolsToExecute).map(t => t.name),
+    });
+
+    if (!verification.valid) {
+      return Response.json(
+        { error: verification.error },
+        { status: 403 },
+      );
+    }
 
     const toolResults: Record<string, unknown> = {};
 
