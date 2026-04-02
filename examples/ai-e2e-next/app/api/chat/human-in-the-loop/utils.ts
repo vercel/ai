@@ -86,7 +86,7 @@ export async function processToolCalls<
           result = await toolInstance(part.input, {
             messages: await convertToModelMessages(messages),
             toolCallId: part.toolCallId,
-            experimental_context: {},
+            context: {},
           });
         } else {
           result = 'Error: No execute function found on tool';
