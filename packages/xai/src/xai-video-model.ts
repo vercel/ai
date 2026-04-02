@@ -167,6 +167,11 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
+    // output.upload_url: signed URL for xAI to PUT the video
+    if (xaiOptions?.uploadUrl != null) {
+      body.output = { upload_url: xaiOptions.uploadUrl };
+    }
+
     if (xaiOptions != null) {
       for (const [key, value] of Object.entries(xaiOptions)) {
         if (
@@ -175,6 +180,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
             'pollTimeoutMs',
             'resolution',
             'videoUrl',
+            'uploadUrl',
           ].includes(key)
         ) {
           body[key] = value;
@@ -239,11 +245,12 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
         statusResponse.status === 'done' ||
         (statusResponse.status == null && statusResponse.video?.url)
       ) {
+        // respect_moderation === false means content was rejected; URL will be empty
         if (statusResponse.video?.respect_moderation === false) {
           throw new AISDKError({
-            name: 'XAI_VIDEO_MODERATION_ERROR',
+            name: 'XAI_VIDEO_GENERATION_MODERATION',
             message:
-              'Video generation was blocked due to a content policy violation.',
+              'Video generation was blocked by content moderation policy.',
           });
         }
 
@@ -291,7 +298,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
         });
       }
 
-      // 'pending' → continue polling
+      // status === 'pending' (or HTTP 202 in-progress) → continue polling
     }
   }
 }
