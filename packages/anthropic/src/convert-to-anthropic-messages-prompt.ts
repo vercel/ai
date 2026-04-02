@@ -486,11 +486,15 @@ export async function convertToAnthropicMessagesPrompt({
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
-                  anthropicContent.push({
-                    type: 'compaction',
-                    content: part.text,
-                    cache_control: cacheControl,
-                  });
+                  // Skip compaction blocks with empty content — the API
+                  // rejects them with "content can't be empty".
+                  if (part.text) {
+                    anthropicContent.push({
+                      type: 'compaction',
+                      content: part.text,
+                      cache_control: cacheControl,
+                    });
+                  }
                 } else {
                   anthropicContent.push({
                     type: 'text',
