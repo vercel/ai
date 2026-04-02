@@ -42,8 +42,8 @@ function createMockWritable(): WritableStream<
  * Helper to create a minimal step result for testing
  */
 function createMockStepResult(
-  overrides: Partial<StepResult<ToolSet>> = {},
-): StepResult<ToolSet> {
+  overrides: Partial<StepResult<ToolSet, any>> = {},
+): StepResult<ToolSet, any> {
   return {
     content: [],
     text: '',
@@ -82,7 +82,7 @@ function createMockStepResult(
     },
     providerMetadata: {},
     ...overrides,
-  } as StepResult<ToolSet>;
+  } as StepResult<ToolSet, any>;
 }
 
 const mockUsage = {
@@ -120,7 +120,7 @@ function createMockDoStreamStepResult({
   toolCalls?: ParsedToolCall[];
   finishReason?: 'stop' | 'tool-calls';
   finishRaw?: string;
-  stepOverrides?: Partial<StepResult<ToolSet>>;
+  stepOverrides?: Partial<StepResult<ToolSet, any>>;
 } = {}) {
   return {
     toolCalls,

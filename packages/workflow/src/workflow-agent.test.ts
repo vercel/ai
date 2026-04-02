@@ -1796,7 +1796,7 @@ describe('WorkflowAgent', () => {
       });
 
       const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockStep: StepResult<any> = {
+      const mockStep: StepResult<any, any> = {
         content: [{ type: 'text', text: 'Hello' }],
         text: 'Hello',
         reasoningText: undefined,
@@ -1815,7 +1815,7 @@ describe('WorkflowAgent', () => {
         },
         warnings: [],
         // We're missing some properties that aren't relevant for the test
-      } as unknown as StepResult<any>;
+      } as unknown as StepResult<any, any>;
       const mockMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ];
@@ -1968,7 +1968,7 @@ describe('WorkflowAgent', () => {
         close: vi.fn(),
       });
 
-      const mockStep: StepResult<any> = {
+      const mockStep: StepResult<any, any> = {
         content: [{ type: 'text', text: 'Hello' }],
         text: 'Hello',
         reasoningText: undefined,
@@ -1987,7 +1987,7 @@ describe('WorkflowAgent', () => {
         },
         warnings: [],
         // We're missing some properties that aren't relevant for the test
-      } as unknown as StepResult<any>;
+      } as unknown as StepResult<any, any>;
       const finalMessages: LanguageModelV4Prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
         { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
