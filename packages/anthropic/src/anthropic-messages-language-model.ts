@@ -269,7 +269,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
-      isKnownModel,
+      isKnownAnthropicModel,
     } = getModelCapabilities(this.modelId);
 
     const supportsStructuredOutput =
@@ -535,8 +535,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       // adjust max tokens to account for thinking:
       baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
     } else {
-      // Only check temperature/topP mutual exclusivity when thinking is not enabled
-      if (topP != null && temperature != null) {
+      // Only check temperature/topP mutual exclusivity for known Anthropic models
+      // when thinking is not enabled. Non-Anthropic models using the Anthropic-compatible
+      // API (e.g. Minimax) may require both parameters to be set.
+      if (isKnownAnthropicModel && topP != null && temperature != null) {
         warnings.push({
           type: 'unsupported',
           feature: 'topP',
@@ -547,7 +549,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:
-    if (isKnownModel && baseArgs.max_tokens > maxOutputTokensForModel) {
+    if (
+      isKnownAnthropicModel &&
+      baseArgs.max_tokens > maxOutputTokensForModel
+    ) {
       // only warn if max output tokens is provided as input:
       if (maxOutputTokens != null) {
         warnings.push({
@@ -2277,7 +2282,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
   supportsStructuredOutput: boolean;
-  isKnownModel: boolean;
+  isKnownAnthropicModel: boolean;
 } {
   if (
     modelId.includes('claude-sonnet-4-6') ||
@@ -2286,7 +2291,7 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
-      isKnownModel: true,
+      isKnownAnthropicModel: true,
     };
   } else if (
     modelId.includes('claude-sonnet-4-5') ||
@@ -2296,37 +2301,37 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: true,
-      isKnownModel: true,
+      isKnownAnthropicModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
-      isKnownModel: true,
+      isKnownAnthropicModel: true,
     };
   } else if (modelId.includes('claude-sonnet-4-')) {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
-      isKnownModel: true,
+      isKnownAnthropicModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: false,
-      isKnownModel: true,
+      isKnownAnthropicModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
-      isKnownModel: true,
+      isKnownAnthropicModel: true,
     };
   } else {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
-      isKnownModel: false,
+      isKnownAnthropicModel: modelId.startsWith('claude-'),
     };
   }
 }
