@@ -21,7 +21,7 @@
     "@ai-sdk/mcp": "2.0.0-beta.12",
     "@ai-sdk/mistral": "4.0.0-beta.10",
     "@ai-sdk/openai": "4.0.0-beta.18",
-    "@ai-sdk/otel": "1.0.0-beta.1",
+    "@ai-sdk/otel": "1.0.0-beta.3",
     "@ai-sdk/perplexity": "4.0.0-beta.11",
     "@ai-sdk/provider-utils": "5.0.0-beta.8",
     "@ai-sdk/react": "4.0.0-beta.57",
