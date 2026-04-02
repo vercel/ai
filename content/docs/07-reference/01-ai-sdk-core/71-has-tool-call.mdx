@@ -71,7 +71,7 @@ const result = await generateText({
 You can combine multiple stop conditions in an array:
 
 ```ts
-import { generateText, hasToolCall, stepCountIs } from 'ai';
+import { generateText, hasToolCall, isStepCount } from 'ai';
 
 const result = await generateText({
   model: yourModel,
@@ -84,7 +84,7 @@ const result = await generateText({
   stopWhen: [
     hasToolCall('weather'),
     hasToolCall('finalAnswer'),
-    stepCountIs(5),
+    isStepCount(5),
   ],
 });
 ```
@@ -115,6 +115,6 @@ const result = await generateText({
 
 ## See also
 
-- [`stepCountIs()`](/docs/reference/ai-sdk-core/step-count-is)
+- [`isStepCount()`](/docs/reference/ai-sdk-core/is-step-count)
 - [`generateText()`](/docs/reference/ai-sdk-core/generate-text)
 - [`streamText()`](/docs/reference/ai-sdk-core/stream-text)

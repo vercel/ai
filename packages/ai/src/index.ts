@@ -18,7 +18,6 @@ export {
   type Tool,
   type ToolApprovalRequest,
   type ToolApprovalResponse,
-  type ToolCallOptions,
   type ToolExecutionOptions,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';

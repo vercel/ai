@@ -383,6 +383,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
     const {
       reasoningConfig: _,
       additionalModelRequestFields: __,
+      serviceTier: ___,
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
@@ -401,6 +402,11 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
         }),
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
+        }),
+        ...(bedrockOptions.serviceTier != null && {
+          serviceTier: {
+            type: bedrockOptions.serviceTier,
+          },
         }),
         ...filteredBedrockOptions,
         ...(toolConfig.tools !== undefined && toolConfig.tools.length > 0

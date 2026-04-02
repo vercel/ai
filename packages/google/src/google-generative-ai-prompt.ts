@@ -31,7 +31,23 @@ export type GoogleGenerativeAIContentPart =
         parts?: Array<GoogleGenerativeAIFunctionResponsePart>;
       };
     }
-  | { fileData: { mimeType: string; fileUri: string } };
+  | { fileData: { mimeType: string; fileUri: string } }
+  | {
+      toolCall: {
+        toolType: string;
+        args?: unknown;
+        id: string;
+      };
+      thoughtSignature?: string;
+    }
+  | {
+      toolResponse: {
+        toolType: string;
+        response?: unknown;
+        id: string;
+      };
+      thoughtSignature?: string;
+    };
 
 export type GoogleGenerativeAIFunctionResponsePart = {
   inlineData: { mimeType: string; data: string };
@@ -54,4 +70,5 @@ export interface GoogleGenerativeAIProviderMetadata {
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
   usageMetadata: GoogleGenerativeAIUsageMetadata | null;
   finishMessage: string | null;
+  serviceTier: string | null;
 }

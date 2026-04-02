@@ -2,10 +2,11 @@ import {
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
-  Tool,
 } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
+import type { GenerationContext } from './generation-context';
 import { StepResult } from './step-result';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -21,12 +22,13 @@ import { StepResult } from './step-result';
  * If you return undefined (or for undefined settings), the settings from the outer level will be used.
  */
 export type PrepareStepFunction<
-  TOOLS extends Record<string, Tool> = Record<string, Tool>,
+  TOOLS extends ToolSet,
+  CONTEXT extends GenerationContext<TOOLS>,
 > = (options: {
   /**
    * The steps that have been executed so far.
    */
-  steps: Array<StepResult<NoInfer<TOOLS>>>;
+  steps: Array<StepResult<NoInfer<TOOLS>, NoInfer<CONTEXT>>>;
 
   /**
    * The number of the step that is being executed.
@@ -46,15 +48,18 @@ export type PrepareStepFunction<
   /**
    * The context passed via the experimental_context setting (experimental).
    */
-  experimental_context: unknown;
-}) => PromiseLike<PrepareStepResult<TOOLS>> | PrepareStepResult<TOOLS>;
+  experimental_context: CONTEXT;
+}) =>
+  | PromiseLike<PrepareStepResult<TOOLS, CONTEXT>>
+  | PrepareStepResult<TOOLS, CONTEXT>;
 
 /**
  * The result type returned by a {@link PrepareStepFunction},
  * allowing per-step overrides of model, tools, or messages.
  */
 export type PrepareStepResult<
-  TOOLS extends Record<string, Tool> = Record<string, Tool>,
+  TOOLS extends ToolSet,
+  CONTEXT extends GenerationContext<TOOLS>,
 > =
   | {
       /**
@@ -90,7 +95,7 @@ export type PrepareStepResult<
        * Changing the context will affect the context in this step
        * and all subsequent steps.
        */
-      experimental_context?: unknown;
+      experimental_context?: CONTEXT;
 
       /**
        * Additional provider-specific options for this step.

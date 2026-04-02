@@ -1,5 +1,56 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 4552cbf: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- 70a9aae: feat (provider/gateway): add disallowPromptTraining gateway provider option
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- 294cbe7: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- 435895b: feat (provider/gateway): add get-generation support
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- d30466c: feat (provider/gateway): add spend reporting support
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- 4ec78cd: chore(provider/gateway): rename GatewayLanguageModelOptions back to GatewayProviderOptions
+
 ## 4.0.0-beta.22
 
 ### Patch Changes

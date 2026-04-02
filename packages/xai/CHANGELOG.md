@@ -1,5 +1,36 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/openai-compatible@3.0.0-beta.13
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+  - @ai-sdk/openai-compatible@3.0.0-beta.12
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/openai-compatible@3.0.0-beta.11
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 9f20868: fix(provider/xai): correct finish reason for tool calls
+
 ## 4.0.0-beta.17
 
 ### Patch Changes

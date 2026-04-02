@@ -61,6 +61,7 @@ export type GatewayModelId =
   | 'inception/mercury-2'
   | 'inception/mercury-coder-small'
   | 'kwaipilot/kat-coder-pro-v1'
+  | 'kwaipilot/kat-coder-pro-v2'
   | 'meituan/longcat-flash-chat'
   | 'meituan/longcat-flash-thinking'
   | 'meituan/longcat-flash-thinking-2601'
@@ -105,6 +106,7 @@ export type GatewayModelId =
   | 'morph/morph-v3-fast'
   | 'morph/morph-v3-large'
   | 'nvidia/nemotron-3-nano-30b-a3b'
+  | 'nvidia/nemotron-3-super-120b-a12b'
   | 'nvidia/nemotron-nano-12b-v2-vl'
   | 'nvidia/nemotron-nano-9b-v2'
   | 'openai/gpt-3.5-turbo'
@@ -180,4 +182,5 @@ export type GatewayModelId =
   | 'zai/glm-4.7-flashx'
   | 'zai/glm-5'
   | 'zai/glm-5-turbo'
+  | 'zai/glm-5v-turbo'
   | (string & {});

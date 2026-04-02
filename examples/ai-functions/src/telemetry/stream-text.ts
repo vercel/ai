@@ -2,7 +2,8 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import { streamText } from 'ai';
+import { streamText, registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { run } from '../lib/run';
 
 const sdk = new NodeSDK({
@@ -11,6 +12,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 run(async () => {
   const result = streamText({

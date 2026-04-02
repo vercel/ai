@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -43,7 +43,7 @@ run(async () => {
         slowApiMs: 1000,
       },
     },
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
     prompt: 'Search for "hello" using both the fast API and slow API',
   });
 
