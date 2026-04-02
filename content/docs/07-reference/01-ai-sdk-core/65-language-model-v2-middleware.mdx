@@ -1,24 +1,20 @@
 ---
-title: LanguageModelV4Middleware
+title: LanguageModelMiddleware
 description: Middleware for enhancing language model behavior (API Reference)
 ---
 
-# `LanguageModelV4Middleware`
+# `LanguageModelMiddleware`
 
-<Note type="warning">
-  Language model middleware is an experimental feature.
-</Note>
-
-Language model middleware provides a way to enhance the behavior of language models
-by intercepting and modifying the calls to the language model. It can be used to add
-features like guardrails, RAG, caching, and logging in a language model agnostic way.
+`LanguageModelMiddleware` is the stable, user-facing middleware type exported from `ai`.
+It enhances language model behavior by intercepting and modifying calls to the model.
+You can use it to add features like guardrails, RAG, caching, and logging in a language model agnostic way.
 
 See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more information.
 
 ## Import
 
 <Snippet
-  text={`import { LanguageModelV4Middleware } from "ai"`}
+  text={`import { LanguageModelMiddleware } from "ai"`}
   prompt={false}
 />
 
@@ -28,8 +24,10 @@ See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more informati
   content={[
     {
       name: 'specificationVersion',
-      type: "'v3'",
-      description: 'The specification version of the middleware. Must be "v3".',
+      type: 'string',
+      isOptional: true,
+      description:
+        'Optional middleware specification version for compatibility with underlying provider middleware versions.',
     },
     {
       name: 'transformParams',
