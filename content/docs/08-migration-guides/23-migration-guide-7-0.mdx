@@ -116,6 +116,28 @@ Potential breaking issues:
 - If you have helper types or wrappers that assumed `experimental_context` was `unknown`, update them to accept a generic `CONTEXT` type.
 - If you were relying on a tool callback seeing the entire runtime context object, that code may need to move to `prepareStep` or the tool's `contextSchema` may need to be expanded to include the required fields.
 
+### Tools: Remove Deprecated `ToolCallOptions` Type
+
+The deprecated `ToolCallOptions` type has been removed in AI SDK 7. Replace all remaining usages with `ToolExecutionOptions`.
+
+If you already migrated away from the deprecated name in AI SDK 6, no changes are needed. Otherwise, update imports and type references:
+
+```tsx filename="AI SDK 6"
+import { ToolCallOptions } from 'ai';
+
+function executeWithOptions(options: ToolCallOptions) {
+  // ...
+}
+```
+
+```tsx filename="AI SDK 7"
+import { ToolExecutionOptions } from 'ai';
+
+function executeWithOptions(options: ToolExecutionOptions) {
+  // ...
+}
+```
+
 ## MCP Package
 
 ### MCP Transport: `redirect` Default Changed from `'follow'` to `'error'`
