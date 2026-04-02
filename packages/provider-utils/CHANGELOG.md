@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- 2e17091: fix(types): move shared tool set utility types into provider-utils
+
+  Moved `ToolSet`, `InferToolSetContext`, and `UnionToIntersection` into `@ai-sdk/provider-utils` and updated `ai` internals to import them directly from there. This keeps the shared tool typing utilities colocated with the core tool type definitions.
+
 ## 5.0.0-beta.8
 
 ### Major Changes
