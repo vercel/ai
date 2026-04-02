@@ -1,5 +1,41 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [f57c702]
+  - @ai-sdk/anthropic@4.0.0-beta.15
+
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+  - @ai-sdk/anthropic@4.0.0-beta.14
+
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/anthropic@4.0.0-beta.13
+
+## 5.0.0-beta.16
+
+### Patch Changes
+
+- 6d8716c: feat(bedrock): add support for service tier for model inference
+
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- 4b20a5d: fix(provider/amazon-bedrock): transform bedrock/anthropic error responses to anthropic format
+
 ## 5.0.0-beta.14
 
 ### Patch Changes

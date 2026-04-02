@@ -77,6 +77,31 @@ describe('groqLanguageModelOptions', () => {
     });
   });
 
+  describe('serviceTier', () => {
+    it('accepts valid serviceTier values', () => {
+      const validValues = ['on_demand', 'performance', 'flex', 'auto'] as const;
+
+      validValues.forEach(value => {
+        const result = groqLanguageModelOptions.safeParse({
+          serviceTier: value,
+        });
+        expect(result.success).toBe(true);
+        expect(result.data?.serviceTier).toBe(value);
+      });
+    });
+
+    it('rejects invalid serviceTier values', () => {
+      const invalidValues = ['priority', 'default', 'turbo', ''];
+
+      invalidValues.forEach(value => {
+        const result = groqLanguageModelOptions.safeParse({
+          serviceTier: value,
+        });
+        expect(result.success).toBe(false);
+      });
+    });
+  });
+
   describe('all reasoningEffort enum variants', () => {
     it('validates all reasoningEffort variants individually', () => {
       const variants: Array<'none' | 'default' | 'low' | 'medium' | 'high'> = [

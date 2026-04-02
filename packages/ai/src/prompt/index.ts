@@ -7,6 +7,7 @@ export {
   userModelMessageSchema,
 } from './message';
 export type { Prompt } from './prompt';
+export { convertDataContentToBase64String } from './data-content';
 
 // re-export types from provider-utils
 export type {

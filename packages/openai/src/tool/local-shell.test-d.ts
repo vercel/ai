@@ -13,7 +13,8 @@ describe('local-shell tool type', () => {
     expectTypeOf(localShellTool).toEqualTypeOf<
       Tool<
         InferSchema<typeof localShellInputSchema>,
-        InferSchema<typeof localShellOutputSchema>
+        InferSchema<typeof localShellOutputSchema>,
+        {}
       >
     >();
   });

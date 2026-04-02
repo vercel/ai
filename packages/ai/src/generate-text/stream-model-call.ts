@@ -13,7 +13,8 @@ import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-f
 import { resolveLanguageModel } from '../model/resolve-model';
 import { CallSettings, Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
+import { prepareToolChoice } from '../prompt/prepare-tool-choice';
+import { prepareTools } from '../prompt/prepare-tools';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import {
   CallWarning,
@@ -48,7 +49,7 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export type ModelCallStreamPart<TOOLS extends ToolSet = ToolSet> =
   | Exclude<
@@ -181,11 +182,13 @@ export async function streamModelCall<
     download,
   });
 
-  const { toolChoice: stepToolChoice, tools: stepTools } =
-    await prepareToolsAndToolChoice({
-      tools,
-      toolChoice,
-    });
+  const stepTools = await prepareTools({
+    tools,
+  });
+
+  const stepToolChoice = prepareToolChoice({
+    toolChoice,
+  });
 
   await notify({
     event: { promptMessages },

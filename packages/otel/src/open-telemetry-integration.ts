@@ -1,27 +1,24 @@
 import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
-  context,
-  trace,
-  Span,
-  Context,
   Attributes,
   AttributeValue,
+  context,
+  Context,
+  Span,
   SpanStatusCode,
+  trace,
   Tracer,
 } from '@opentelemetry/api';
 import type {
-  EmbedOnStartEvent,
-  EmbedOnFinishEvent,
-  EmbedStartEvent,
   EmbedFinishEvent,
-} from '../embed/embed-events';
-import type {
-  RerankOnStartEvent,
-  RerankOnFinishEvent,
-  RerankStartEvent,
-  RerankFinishEvent,
-} from '../rerank/rerank-events';
-import type {
+  EmbedOnFinishEvent,
+  EmbedOnStartEvent,
+  EmbedStartEvent,
+  GenerationContext,
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -29,14 +26,18 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
-} from '../generate-text/core-events';
-import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
+  OutputInterface as Output,
+  RerankFinishEvent,
+  RerankOnFinishEvent,
+  RerankOnStartEvent,
+  RerankStartEvent,
+  TelemetryIntegration,
+  TelemetrySettings,
+  ToolSet,
+} from 'ai';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
-import { TelemetrySettings } from './telemetry-settings';
-import type { TelemetryIntegration } from './telemetry-integration';
 
 function recordSpanError(span: Span, error: unknown): void {
   if (error instanceof Error) {
@@ -109,8 +110,9 @@ function selectAttributes(
 
 interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
-> extends OnStepStartEvent<TOOLS, OUTPUT> {
+> extends OnStepStartEvent<TOOLS, CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
   readonly stepToolChoice?: unknown;
@@ -175,6 +177,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
   onStart(
     event:
       | OnStartEvent<ToolSet, Output>
+      | ObjectOnStartEvent
       | EmbedOnStartEvent
       | RerankOnStartEvent,
   ): void {
@@ -190,6 +193,14 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
 
     if (event.operationId === 'ai.rerank') {
       this.onRerankOperationStart(event as RerankOnStartEvent);
+      return;
+    }
+
+    if (
+      event.operationId === 'ai.generateObject' ||
+      event.operationId === 'ai.streamObject'
+    ) {
+      this.onObjectOperationStart(event as ObjectOnStartEvent);
       return;
     }
 
@@ -258,6 +269,178 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       baseTelemetryAttributes,
       settings,
     });
+  }
+
+  private onObjectOperationStart(event: ObjectOnStartEvent): void {
+    const telemetry: TelemetrySettings = {
+      isEnabled: event.isEnabled,
+      recordInputs: event.recordInputs,
+      recordOutputs: event.recordOutputs,
+      functionId: event.functionId,
+      metadata: event.metadata,
+    };
+
+    const settings: Record<string, unknown> = {
+      maxOutputTokens: event.maxOutputTokens,
+      temperature: event.temperature,
+      topP: event.topP,
+      topK: event.topK,
+      presencePenalty: event.presencePenalty,
+      frequencyPenalty: event.frequencyPenalty,
+      seed: event.seed,
+      maxRetries: event.maxRetries,
+    };
+
+    const baseTelemetryAttributes = getBaseTelemetryAttributes({
+      model: { provider: event.provider, modelId: event.modelId },
+      telemetry,
+      headers: event.headers,
+      settings,
+    });
+
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: event.operationId,
+        telemetry,
+      }),
+      ...baseTelemetryAttributes,
+      'ai.prompt': {
+        input: () =>
+          JSON.stringify({
+            system: event.system,
+            prompt: event.prompt,
+            messages: event.messages,
+          }),
+      },
+      'ai.schema': event.schema
+        ? { input: () => JSON.stringify(event.schema) }
+        : undefined,
+      'ai.schema.name': event.schemaName,
+      'ai.schema.description': event.schemaDescription,
+      'ai.settings.output': event.output,
+    });
+
+    const rootSpan = this.tracer.startSpan(event.operationId, { attributes });
+    const rootContext = trace.setSpan(context.active(), rootSpan);
+
+    this.callStates.set(event.callId, {
+      operationId: event.operationId,
+      telemetry,
+      rootSpan,
+      rootContext,
+      stepSpan: undefined,
+      stepContext: undefined,
+      embedSpans: new Map(),
+      rerankSpan: undefined,
+      toolSpans: new Map(),
+      baseTelemetryAttributes,
+      settings,
+    });
+  }
+
+  /** @deprecated */
+  onObjectStepStart(event: ObjectOnStepStartEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan || !state.rootContext) return;
+
+    const { telemetry } = state;
+
+    const stepOperationId =
+      state.operationId === 'ai.streamObject'
+        ? 'ai.streamObject.doStream'
+        : 'ai.generateObject.doGenerate';
+
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({
+        operationId: stepOperationId,
+        telemetry,
+      }),
+      ...state.baseTelemetryAttributes,
+      'ai.prompt.messages': {
+        input: () =>
+          event.promptMessages
+            ? stringifyForTelemetry(event.promptMessages)
+            : undefined,
+      },
+
+      'gen_ai.system': event.provider,
+      'gen_ai.request.model': event.modelId,
+      'gen_ai.request.frequency_penalty': state.settings.frequencyPenalty as
+        | number
+        | undefined,
+      'gen_ai.request.max_tokens': state.settings.maxOutputTokens as
+        | number
+        | undefined,
+      'gen_ai.request.presence_penalty': state.settings.presencePenalty as
+        | number
+        | undefined,
+      'gen_ai.request.temperature': (state.settings.temperature ?? undefined) as
+        | number
+        | undefined,
+      'gen_ai.request.top_k': state.settings.topK as number | undefined,
+      'gen_ai.request.top_p': state.settings.topP as number | undefined,
+    });
+
+    state.stepSpan = this.tracer.startSpan(
+      stepOperationId,
+      { attributes },
+      state.rootContext,
+    );
+    state.stepContext = trace.setSpan(state.rootContext, state.stepSpan);
+  }
+
+  /** @deprecated */
+  onObjectStepFinish(event: ObjectOnStepFinishEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.stepSpan) return;
+
+    const { telemetry } = state;
+
+    state.stepSpan.setAttributes(
+      selectAttributes(telemetry, {
+        'ai.response.finishReason': event.finishReason,
+        'ai.response.object': {
+          output: () => {
+            try {
+              return JSON.stringify(JSON.parse(event.objectText));
+            } catch {
+              return event.objectText;
+            }
+          },
+        },
+        'ai.response.id': event.response.id,
+        'ai.response.model': event.response.modelId,
+        'ai.response.timestamp': event.response.timestamp.toISOString(),
+        'ai.response.providerMetadata': event.providerMetadata
+          ? JSON.stringify(event.providerMetadata)
+          : undefined,
+
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
+        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
+        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
+
+        'gen_ai.response.finish_reasons': [event.finishReason],
+        'gen_ai.response.id': event.response.id,
+        'gen_ai.response.model': event.response.modelId,
+        'gen_ai.usage.input_tokens': event.usage.inputTokens,
+        'gen_ai.usage.output_tokens': event.usage.outputTokens,
+      }),
+    );
+
+    if (event.msToFirstChunk != null) {
+      state.stepSpan.addEvent('ai.stream.firstChunk', {
+        'ai.stream.msToFirstChunk': event.msToFirstChunk,
+      });
+      state.stepSpan.setAttributes({
+        'ai.stream.msToFirstChunk': event.msToFirstChunk,
+      });
+    }
+
+    state.stepSpan.end();
+    state.stepSpan = undefined;
+    state.stepContext = undefined;
   }
 
   private onEmbedOperationStart(event: EmbedOnStartEvent): void {
@@ -529,7 +712,11 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
   }
 
   onFinish(
-    event: OnFinishEvent<ToolSet> | EmbedOnFinishEvent | RerankOnFinishEvent,
+    event:
+      | OnFinishEvent<ToolSet>
+      | ObjectOnFinishEvent<unknown>
+      | EmbedOnFinishEvent
+      | RerankOnFinishEvent,
   ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
@@ -544,6 +731,14 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
 
     if (state.operationId === 'ai.rerank') {
       this.onRerankOperationFinish(event as RerankOnFinishEvent);
+      return;
+    }
+
+    if (
+      state.operationId === 'ai.generateObject' ||
+      state.operationId === 'ai.streamObject'
+    ) {
+      this.onObjectOperationFinish(event as ObjectOnFinishEvent<unknown>);
       return;
     }
 
@@ -614,6 +809,35 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
           event.totalUsage.outputTokenDetails?.textTokens,
         'ai.usage.outputTokenDetails.reasoningTokens':
           event.totalUsage.outputTokenDetails?.reasoningTokens,
+      }),
+    );
+
+    state.rootSpan.end();
+    this.cleanupCallState(event.callId);
+  }
+
+  private onObjectOperationFinish(event: ObjectOnFinishEvent<unknown>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    const { telemetry } = state;
+
+    state.rootSpan.setAttributes(
+      selectAttributes(telemetry, {
+        'ai.response.finishReason': event.finishReason,
+        'ai.response.object': {
+          output: () =>
+            event.object != null ? JSON.stringify(event.object) : undefined,
+        },
+        'ai.response.providerMetadata': event.providerMetadata
+          ? JSON.stringify(event.providerMetadata)
+          : undefined,
+
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
+        'ai.usage.reasoningTokens': event.usage.reasoningTokens,
+        'ai.usage.cachedInputTokens': event.usage.cachedInputTokens,
       }),
     );
 
