@@ -782,11 +782,11 @@ The following gateway provider options are available:
 
 - **zeroDataRetention** _boolean_
 
-  Restricts routing requests to providers that have zero data retention agreements with Vercel for AI Gateway. If there are no providers available for the model with zero data retention, the request will fail. BYOK credentials are skipped when `zeroDataRetention` is set to `true` to ensure that requests are only routed to providers that support ZDR compliance. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
+  Restricts routing to providers that have zero data retention agreements with Vercel for AI Gateway. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers with zero data retention agreements will be used. If there are no providers available for the model with zero data retention, the request will fail. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
 
 - **disallowPromptTraining** _boolean_
 
-  Restricts routing requests to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. If there are no providers available for the model that disallow prompt training, the request will fail. BYOK credentials are skipped when `disallowPromptTraining` is set to `true` to ensure that requests are only routed to providers that do not train on prompt data.
+  Restricts routing to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail.
 
 
 - **providerTimeouts** _object_
@@ -842,7 +842,7 @@ const { text } = await generateText({
 
 #### Zero Data Retention Example
 
-Set `zeroDataRetention` to true to route requests to providers that have zero data retention agreements with Vercel for AI Gateway. If there are no providers available for the model with zero data retention, the request will fail. When `zeroDataRetention` is `false` or not specified, there is no enforcement of restricting routing. BYOK credentials are skipped when `zeroDataRetention` is set to `true` to ensure that requests are only routed to providers that support ZDR compliance. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
+Set `zeroDataRetention` to true to route requests to providers that have zero data retention agreements with Vercel for AI Gateway. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers with zero data retention agreements will be used. If there are no providers available for the model with zero data retention, the request will fail. When `zeroDataRetention` is `false` or not specified, there is no enforcement of restricting routing. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
@@ -861,7 +861,7 @@ const { text } = await generateText({
 
 #### Disallow Prompt Training Example
 
-Set `disallowPromptTraining` to true to route requests to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. If there are no providers available for the model that disallow prompt training, the request will fail. When `disallowPromptTraining` is `false` or not specified, there is no enforcement of restricting routing. BYOK credentials are skipped when `disallowPromptTraining` is set to `true` to ensure that requests are only routed to providers that do not train on prompt data.
+Set `disallowPromptTraining` to true to route requests to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail. When `disallowPromptTraining` is `false` or not specified, there is no enforcement of restricting routing.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
