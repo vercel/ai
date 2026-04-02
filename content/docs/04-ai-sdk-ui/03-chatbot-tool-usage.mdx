@@ -517,7 +517,7 @@ Dynamic tools are useful when integrating with:
 
 ## Tool call streaming
 
-Tool call streaming is **enabled by default** in AI SDK 5.0, allowing you to stream tool calls while they are being generated. This provides a better user experience by showing tool inputs as they are generated in real-time.
+Tool call streaming is **enabled by default** in AI SDK 6.0, allowing you to stream tool calls while they are being generated. This provides a better user experience by showing tool inputs as they are generated in real-time.
 
 ```tsx filename='app/api/chat/route.ts'
 export async function POST(req: Request) {
@@ -526,7 +526,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: __MODEL__,
     messages: await convertToModelMessages(messages),
-    // toolCallStreaming is enabled by default in v5
+    // toolCallStreaming is enabled by default in v6
     // ...
   });
 
