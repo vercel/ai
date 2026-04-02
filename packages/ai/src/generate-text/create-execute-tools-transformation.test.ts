@@ -58,7 +58,7 @@ describe('createExecuteToolsTransformation', () => {
         messages: [],
         timeout: undefined,
         abortSignal: undefined,
-        experimental_context: undefined,
+        experimental_context: {},
       }),
     );
 
@@ -136,7 +136,7 @@ describe('createExecuteToolsTransformation', () => {
       messages: [],
       abortSignal: undefined,
       timeout: undefined,
-      experimental_context: undefined,
+      experimental_context: {},
     });
 
     expect(
@@ -231,7 +231,7 @@ describe('createExecuteToolsTransformation', () => {
         messages: [],
         abortSignal: undefined,
         timeout: undefined,
-        experimental_context: undefined,
+        experimental_context: {},
       }),
     );
 
@@ -274,7 +274,7 @@ describe('createExecuteToolsTransformation', () => {
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: undefined,
+          experimental_context: {},
           onToolCallStart: async () => {
             callOrder.push('onToolCallStart');
           },
@@ -324,7 +324,7 @@ describe('createExecuteToolsTransformation', () => {
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: undefined,
+          experimental_context: {},
           stepNumber: 2,
           provider: 'test-provider',
           modelId: 'test-model',
@@ -397,7 +397,7 @@ describe('createExecuteToolsTransformation', () => {
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: undefined,
+          experimental_context: {},
           onToolCallFinish: async event => {
             finishEvents.push(event);
           },
@@ -454,7 +454,7 @@ describe('createExecuteToolsTransformation', () => {
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: undefined,
+          experimental_context: {},
           onToolCallFinish: async event => {
             finishEvents.push(event);
           },
@@ -504,7 +504,7 @@ describe('createExecuteToolsTransformation', () => {
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: undefined,
+          experimental_context: {},
           onToolCallStart: async event => {
             startEvents.push(event);
           },
@@ -557,7 +557,7 @@ describe('createExecuteToolsTransformation', () => {
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: undefined,
+          experimental_context: {},
           onToolCallStart: async event => {
             startEvents.push(event.toolCall.toolCallId);
           },
@@ -613,7 +613,7 @@ describe('createExecuteToolsTransformation', () => {
           messages: [],
           timeout: undefined,
           abortSignal: undefined,
-          experimental_context: undefined,
+          experimental_context: {},
           onToolCallStart: async event => {
             startEvents.push(event);
           },
@@ -667,7 +667,7 @@ describe('createExecuteToolsTransformation', () => {
           messages: [],
           abortSignal: undefined,
           timeout: undefined,
-          experimental_context: undefined,
+          experimental_context: {},
         }),
       );
 
@@ -753,7 +753,7 @@ describe('createExecuteToolsTransformation', () => {
           callId: 'test-telemetry-call-id',
           messages: [],
           abortSignal: undefined,
-          experimental_context: undefined,
+          experimental_context: {},
         }),
       );
 

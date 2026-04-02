@@ -30,10 +30,11 @@ export function prepareTools({
   toolConfig:
     | undefined
     | {
-        functionCallingConfig: {
+        functionCallingConfig?: {
           mode: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
           allowedFunctionNames?: string[];
         };
+        includeServerSideToolInvocations?: boolean;
       };
   toolWarnings: SharedV4Warning[];
 } {
@@ -54,6 +55,7 @@ export function prepareTools({
     modelId.includes('gemini-3') ||
     modelId.includes('nano-banana') ||
     isLatest;
+  const isGemini3orNewer = modelId.includes('gemini-3');
   const supportsFileSearch =
     modelId.includes('gemini-2.5') || modelId.includes('gemini-3');
 
@@ -65,7 +67,7 @@ export function prepareTools({
   const hasFunctionTools = tools.some(tool => tool.type === 'function');
   const hasProviderTools = tools.some(tool => tool.type === 'provider');
 
-  if (hasFunctionTools && hasProviderTools) {
+  if (hasFunctionTools && hasProviderTools && !isGemini3orNewer) {
     toolWarnings.push({
       type: 'unsupported',
       feature: `combination of function and provider-defined tools`,
@@ -177,6 +179,59 @@ export function prepareTools({
           break;
       }
     });
+
+    if (hasFunctionTools && isGemini3orNewer && googleTools.length > 0) {
+      const functionDeclarations: Array<{
+        name: string;
+        description: string;
+        parameters: unknown;
+      }> = [];
+      for (const tool of tools) {
+        if (tool.type === 'function') {
+          functionDeclarations.push({
+            name: tool.name,
+            description: tool.description ?? '',
+            parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
+          });
+        }
+      }
+
+      const combinedToolConfig: {
+        functionCallingConfig: {
+          mode: 'VALIDATED' | 'ANY' | 'NONE';
+          allowedFunctionNames?: string[];
+        };
+        includeServerSideToolInvocations: true;
+      } = {
+        functionCallingConfig: { mode: 'VALIDATED' },
+        includeServerSideToolInvocations: true,
+      };
+
+      if (toolChoice != null) {
+        switch (toolChoice.type) {
+          case 'auto':
+            break;
+          case 'none':
+            combinedToolConfig.functionCallingConfig = { mode: 'NONE' };
+            break;
+          case 'required':
+            combinedToolConfig.functionCallingConfig = { mode: 'ANY' };
+            break;
+          case 'tool':
+            combinedToolConfig.functionCallingConfig = {
+              mode: 'ANY',
+              allowedFunctionNames: [toolChoice.toolName],
+            };
+            break;
+        }
+      }
+
+      return {
+        tools: [...googleTools, { functionDeclarations }],
+        toolConfig: combinedToolConfig,
+        toolWarnings,
+      };
+    }
 
     return {
       tools: googleTools.length > 0 ? googleTools : undefined,

@@ -501,6 +501,98 @@ describe('user messages', () => {
       ],
     });
   });
+
+  it('should convert file parts with provider reference to fileData', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              google:
+                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              openai: 'file-xyz789',
+            },
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/png',
+                fileUri:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should convert image file parts with provider reference to fileData', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              google:
+                'https://generativelanguage.googleapis.com/v1beta/files/img456',
+            },
+            mediaType: 'image/jpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/jpeg',
+                fileUri:
+                  'https://generativelanguage.googleapis.com/v1beta/files/img456',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should throw when provider reference is missing google key in user file part', async () => {
+    expect(() =>
+      convertToGoogleGenerativeAIMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { openai: 'file-xyz789' },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "No provider reference found for provider 'google'. Available providers: openai",
+    );
+  });
 });
 
 describe('tool messages', () => {
@@ -1094,6 +1186,103 @@ describe('assistant messages', () => {
       ]),
     ).toThrow('File data URLs in assistant messages are not supported');
   });
+
+  it('should convert assistant file parts with provider reference to fileData', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'file',
+            data: {
+              google:
+                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+            },
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'model',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/png',
+                fileUri:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
+              thoughtSignature: undefined,
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should convert assistant file parts with provider reference and thought flag', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'file',
+            data: {
+              google:
+                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+            },
+            mediaType: 'image/png',
+            providerOptions: {
+              google: { thought: true, thoughtSignature: 'sig1' },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'model',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/png',
+                fileUri:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
+              thought: true,
+              thoughtSignature: 'sig1',
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should throw when provider reference is missing google key in assistant file part', async () => {
+    expect(() =>
+      convertToGoogleGenerativeAIMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              data: { openai: 'file-xyz789' },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "No provider reference found for provider 'google'. Available providers: openai",
+    );
+  });
 });
 
 describe('parallel tool calls', () => {
@@ -1188,5 +1377,186 @@ describe('tool results with thought signatures', () => {
     });
 
     expect(result.contents[1].parts[0]).not.toHaveProperty('thoughtSignature');
+  });
+});
+
+describe('server tool combination round-trip', () => {
+  it('should convert assistant tool-call with serverToolCallId to toolCall wire format', () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'tc-1',
+            toolName: 'server:GOOGLE_SEARCH_WEB',
+            input: JSON.stringify({ query: 'test' }),
+            providerOptions: {
+              google: {
+                serverToolCallId: 'server-id-1',
+                serverToolType: 'GOOGLE_SEARCH_WEB',
+                thoughtSignature: 'sig-abc',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      toolCall: {
+        toolType: 'GOOGLE_SEARCH_WEB',
+        args: { query: 'test' },
+        id: 'server-id-1',
+      },
+      thoughtSignature: 'sig-abc',
+    });
+  });
+
+  it('should convert assistant tool-call without serverToolCallId to functionCall wire format', () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'tc-1',
+            toolName: 'weather',
+            input: { location: 'SF' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        name: 'weather',
+        args: { location: 'SF' },
+      },
+      thoughtSignature: undefined,
+    });
+  });
+
+  it('should convert tool result with serverToolCallId to toolResponse on last model content', () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'tc-1',
+            toolName: 'server:GOOGLE_SEARCH_WEB',
+            input: JSON.stringify({ query: 'test' }),
+            providerOptions: {
+              google: {
+                serverToolCallId: 'server-id-1',
+                serverToolType: 'GOOGLE_SEARCH_WEB',
+              },
+            },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'tc-1',
+            toolName: 'server:GOOGLE_SEARCH_WEB',
+            output: { type: 'json', value: { results: ['a'] } },
+            providerOptions: {
+              google: {
+                serverToolCallId: 'server-id-1',
+                serverToolType: 'GOOGLE_SEARCH_WEB',
+                thoughtSignature: 'sig-resp',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].role).toBe('model');
+    expect(result.contents[0].parts).toHaveLength(2);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      toolCall: {
+        toolType: 'GOOGLE_SEARCH_WEB',
+        args: { query: 'test' },
+        id: 'server-id-1',
+      },
+      thoughtSignature: undefined,
+    });
+
+    expect(result.contents[0].parts[1]).toEqual({
+      toolResponse: {
+        toolType: 'GOOGLE_SEARCH_WEB',
+        response: { results: ['a'] },
+        id: 'server-id-1',
+      },
+      thoughtSignature: 'sig-resp',
+    });
+  });
+
+  it('should parse string input for server tool call args', () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'tc-1',
+            toolName: 'server:GOOGLE_SEARCH_WEB',
+            input: '{"query":"hello"}',
+            providerOptions: {
+              google: {
+                serverToolCallId: 'sid-1',
+                serverToolType: 'GOOGLE_SEARCH_WEB',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      toolCall: {
+        toolType: 'GOOGLE_SEARCH_WEB',
+        args: { query: 'hello' },
+        id: 'sid-1',
+      },
+      thoughtSignature: undefined,
+    });
+  });
+
+  it('should pass object input directly for server tool call args', () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'tc-1',
+            toolName: 'server:GOOGLE_SEARCH_WEB',
+            input: { query: 'hello' },
+            providerOptions: {
+              google: {
+                serverToolCallId: 'sid-1',
+                serverToolType: 'GOOGLE_SEARCH_WEB',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      toolCall: {
+        toolType: 'GOOGLE_SEARCH_WEB',
+        args: { query: 'hello' },
+        id: 'sid-1',
+      },
+      thoughtSignature: undefined,
+    });
   });
 });

@@ -1,5 +1,6 @@
 import { JSONValue } from '../../json-value/json-value';
 import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
+import { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provider-reference';
 import { LanguageModelV4DataContent } from './language-model-v4-data-content';
 
 /**
@@ -99,7 +100,7 @@ export interface LanguageModelV4ReasoningFilePart {
   type: 'reasoning-file';
 
   /**
-   * File data. Can be a Uint8Array, base64 encoded data as a string or a URL.
+   * File data. Can be a Uint8Array or base64 encoded data as a string.
    */
   data: LanguageModelV4DataContent;
 
@@ -150,9 +151,10 @@ export interface LanguageModelV4FilePart {
   filename?: string;
 
   /**
-   * File data. Can be a Uint8Array, base64 encoded data as a string or a URL.
+   * File data. Can be a Uint8Array, base64 encoded data as a string, a URL,
+   * or a provider reference mapping provider names to provider-specific file IDs.
    */
-  data: LanguageModelV4DataContent;
+  data: LanguageModelV4DataContent | SharedV4ProviderReference;
 
   /**
    * IANA media type of the file.
@@ -378,17 +380,13 @@ export type LanguageModelV4ToolResultOutput =
             providerOptions?: SharedV4ProviderOptions;
           }
         | {
-            type: 'file-id';
+            type: 'file-reference';
 
             /**
-             * ID of the file.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
+             * Provider-specific references for the file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
              */
-            fileId: string | Record<string, string>;
+            providerReference: SharedV4ProviderReference;
 
             /**
              * Provider-specific options.
@@ -435,19 +433,15 @@ export type LanguageModelV4ToolResultOutput =
           }
         | {
             /**
-             * Images that are referenced using a provider file id.
+             * Images that are referenced using a provider reference.
              */
-            type: 'image-file-id';
+            type: 'image-file-reference';
 
             /**
-             * Image that is referenced using a provider file id.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
+             * Provider-specific references for the image file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
              */
-            fileId: string | Record<string, string>;
+            providerReference: SharedV4ProviderReference;
 
             /**
              * Provider-specific options.

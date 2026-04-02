@@ -1,5 +1,5 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { stepCountIs, streamText } from 'ai';
+import { isStepCount, streamText } from 'ai';
 import fs from 'fs';
 import 'dotenv/config';
 import { run } from '../../lib/run';
@@ -42,7 +42,7 @@ run(async () => {
       }),
     },
     prompt: 'Take a screenshot of my screen and describe what you see.',
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
   });
 
   for await (const part of result.fullStream) {

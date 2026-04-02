@@ -256,9 +256,9 @@ const result = await generateText({
     },
     {
       name: 'experimental_context',
-      type: 'unknown',
+      type: 'CONTEXT',
       description:
-        'User-defined context object that flows through the entire generation lifecycle.',
+        'User-defined runtime context object that flows through the entire generation lifecycle.',
     },
   ]}
 />
@@ -370,9 +370,9 @@ const result = await generateText({
     },
     {
       name: 'experimental_context',
-      type: 'unknown',
+      type: 'CONTEXT',
       description:
-        'User-defined context object. May be updated from prepareStep between steps.',
+        'User-defined runtime context object. May be updated from prepareStep between steps.',
     },
   ]}
 />
@@ -462,9 +462,9 @@ const result = await generateText({
     },
     {
       name: 'experimental_context',
-      type: 'unknown',
+      type: 'CONTEXT',
       description:
-        'User-defined context object flowing through the generation.',
+        'User-defined runtime context object flowing through the generation.',
     },
   ]}
 />
@@ -565,9 +565,9 @@ const result = await generateText({
     },
     {
       name: 'experimental_context',
-      type: 'unknown',
+      type: 'CONTEXT',
       description:
-        'User-defined context object flowing through the generation.',
+        'User-defined runtime context object flowing through the generation.',
     },
     {
       name: 'success',
@@ -719,9 +719,9 @@ const result = await generateText({
     },
     {
       name: 'experimental_context',
-      type: 'unknown',
+      type: 'CONTEXT',
       description:
-        'User-defined context object flowing through the generation.',
+        'User-defined runtime context object flowing through the generation.',
     },
     {
       name: 'providerMetadata',
@@ -872,8 +872,8 @@ const result = await generateText({
     },
     {
       name: 'experimental_context',
-      type: 'unknown',
-      description: 'The final state of the user-defined context object.',
+      type: 'CONTEXT',
+      description: 'The final state of the user-defined runtime context object.',
     },
     {
       name: 'providerMetadata',

@@ -18,9 +18,28 @@ to see providers that offer monitoring and tracing for AI SDK applications.
 
 ## Enabling telemetry
 
-For Next.js applications, please follow the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) to enable telemetry first.
+### Step 1: Register the OpenTelemetry integration
 
-You can then use the `experimental_telemetry` option to enable telemetry on specific function calls while the feature is experimental:
+OpenTelemetry span collection requires the `@ai-sdk/otel` package. Install it and register the integration once at application startup:
+
+```bash
+pnpm install @ai-sdk/otel
+```
+
+```ts
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+```
+
+For Next.js applications, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup. See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
+
+For Node.js applications (without Next.js), register the integration at the top level of your entry file.
+
+### Step 2: Enable telemetry on individual calls
+
+Use the `experimental_telemetry` option to enable telemetry on specific function calls:
 
 ```ts highlight="4"
 const result = await generateText({
@@ -58,28 +77,40 @@ const result = await generateText({
 
 ## Custom Tracer
 
-You may provide a `tracer` which must return an OpenTelemetry `Tracer`. This is useful in situations where
-you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton.
+If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetryIntegration` constructor:
 
-```ts highlight="7"
+```ts highlight="6-8"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
 const tracerProvider = new NodeTracerProvider();
-const result = await generateText({
-  model: __MODEL__,
-  prompt: 'Write a short story about a cat.',
-  experimental_telemetry: {
-    isEnabled: true,
+registerTelemetryIntegration(
+  new OpenTelemetryIntegration({
     tracer: tracerProvider.getTracer('ai'),
-  },
-});
+  }),
+);
 ```
 
 ## Telemetry Integrations
 
-Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and pass it via `experimental_telemetry.integrations`.
+Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and register it globally or pass it via `experimental_telemetry.integrations`.
 
-### Using an integration
+The `OpenTelemetryIntegration` from `@ai-sdk/otel` is the primary integration for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
 
-Pass one or more integrations to any `generateText` or `streamText` call:
+### Registering integrations globally
+
+Use `registerTelemetryIntegration` to register an integration once for all AI SDK calls:
+
+```ts
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+```
+
+### Per-call integrations
+
+You can also pass one or more integrations to individual `generateText` or `streamText` calls. Per-call integrations run after any globally registered integrations:
 
 ```ts highlight="6-8"
 import { streamText } from 'ai';
@@ -100,7 +131,7 @@ You can combine multiple integrations — they all receive the same lifecycle ev
 ```ts
 experimental_telemetry: {
   isEnabled: true,
-  integrations: [devToolsIntegration(), otelIntegration(), customLogger()],
+  integrations: [devToolsIntegration(), customLogger()],
 },
 ```
 
