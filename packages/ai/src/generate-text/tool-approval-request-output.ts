@@ -1,5 +1,5 @@
 import { TypedToolCall } from './tool-call';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Output part that indicates that a tool approval request has been made.

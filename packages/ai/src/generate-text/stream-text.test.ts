@@ -39,10 +39,8 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
-import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
-import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
 import {
   asLanguageModelUsage,
@@ -59,7 +57,7 @@ import {
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 const defaultSettings = () =>
   ({
@@ -4968,7 +4966,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5111,7 +5109,7 @@ describe('streamText', () => {
                 "url": "https://example.com/2",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5199,7 +5197,7 @@ describe('streamText', () => {
                 "type": "file",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5309,7 +5307,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -7041,7 +7039,7 @@ describe('streamText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<StreamTextOnFinishCallback<any>>[0];
+      let result!: Parameters<StreamTextOnFinishCallback<any, any>>[0];
 
       const resultObject = streamText({
         model: createTestModel({
@@ -7121,7 +7119,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
+          "experimental_context": {},
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -7241,7 +7239,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -7436,7 +7434,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
+          "experimental_context": {},
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -7531,7 +7529,7 @@ describe('streamText', () => {
                   "url": "https://example.com/2",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -7698,7 +7696,7 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
+          "experimental_context": {},
           "files": [
             DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
@@ -7787,7 +7785,7 @@ describe('streamText', () => {
                   "type": "file",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -8023,17 +8021,15 @@ describe('streamText', () => {
   });
 
   describe('options.stopWhen', () => {
-    let result: StreamTextResult<any, any>;
-    let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
-    let onStepFinishResults: StepResult<any>[];
-    let tracer: MockTracer;
+    let result: StreamTextResult<any, any, any>;
+    let onFinishResult: Parameters<StreamTextOnFinishCallback<any, any>>[0];
+    let onStepFinishResults: StepResult<any, any>[];
     let stepInputs: Array<any>;
 
     beforeEach(() => {
       result = undefined as any;
       onFinishResult = undefined as any;
       onStepFinishResults = [];
-      tracer = new MockTracer();
       stepInputs = [];
     });
 
@@ -8115,10 +8111,6 @@ describe('streamText', () => {
           },
           onStepFinish: async event => {
             onStepFinishResults.push(event);
-          },
-          experimental_telemetry: {
-            isEnabled: true,
-            integrations: new OpenTelemetryIntegration({ tracer }),
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -8428,7 +8420,7 @@ describe('streamText', () => {
               ],
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
@@ -8531,7 +8523,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -8615,7 +8607,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -8775,7 +8767,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -8859,7 +8851,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9037,7 +9029,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9121,7 +9113,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9262,11 +9254,6 @@ describe('streamText', () => {
         });
       });
 
-      it('should record telemetry data for each step', async () => {
-        await result.consumeStream();
-        expect(tracer.jsonSpans).toMatchSnapshot();
-      });
-
       it('should have correct ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
@@ -9344,7 +9331,7 @@ describe('streamText', () => {
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
         experimental_context: unknown;
       }>;
@@ -10142,10 +10129,6 @@ describe('streamText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          experimental_telemetry: {
-            isEnabled: true,
-            integrations: new OpenTelemetryIntegration({ tracer }),
-          },
           stopWhen: isStepCount(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
@@ -10332,7 +10315,7 @@ describe('streamText', () => {
               ],
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
@@ -10435,7 +10418,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -10519,7 +10502,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -10679,7 +10662,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -10763,7 +10746,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -10937,7 +10920,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -11021,7 +11004,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -11162,161 +11145,6 @@ describe('streamText', () => {
         });
       });
 
-      it('should record telemetry data for each step', async () => {
-        await result.consumeStream();
-        expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-          [
-            {
-              "attributes": {
-                "ai.model.id": "mock-model-id",
-                "ai.model.provider": "mock-provider",
-                "ai.operationId": "ai.streamText",
-                "ai.prompt": "{"prompt":"test-input"}",
-                "ai.response.finishReason": "stop",
-                "ai.response.text": "Hello, world!",
-                "ai.settings.maxRetries": 2,
-                "ai.usage.cachedInputTokens": 0,
-                "ai.usage.inputTokenDetails.cacheReadTokens": 0,
-                "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
-                "ai.usage.inputTokenDetails.noCacheTokens": 6,
-                "ai.usage.inputTokens": 6,
-                "ai.usage.outputTokenDetails.reasoningTokens": 10,
-                "ai.usage.outputTokenDetails.textTokens": 20,
-                "ai.usage.outputTokens": 20,
-                "ai.usage.reasoningTokens": 10,
-                "ai.usage.totalTokens": 26,
-                "operation.name": "ai.streamText",
-              },
-              "events": [],
-              "name": "ai.streamText",
-            },
-            {
-              "attributes": {
-                "ai.model.id": "mock-model-id",
-                "ai.model.provider": "mock-provider",
-                "ai.operationId": "ai.streamText.doStream",
-                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-                "ai.prompt.toolChoice": "{"type":"auto"}",
-                "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
-                ],
-                "ai.response.avgOutputTokensPerSecond": 20,
-                "ai.response.finishReason": "tool-calls",
-                "ai.response.id": "id-0",
-                "ai.response.model": "mock-model-id",
-                "ai.response.msToFinish": 500,
-                "ai.response.msToFirstChunk": 100,
-                "ai.response.reasoning": "thinking",
-                "ai.response.text": "",
-                "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-                "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
-                "ai.settings.maxRetries": 2,
-                "ai.usage.inputTokenDetails.noCacheTokens": 3,
-                "ai.usage.inputTokens": 3,
-                "ai.usage.outputTokenDetails.textTokens": 10,
-                "ai.usage.outputTokens": 10,
-                "ai.usage.totalTokens": 13,
-                "gen_ai.request.model": "mock-model-id",
-                "gen_ai.response.finish_reasons": [
-                  "tool-calls",
-                ],
-                "gen_ai.response.id": "id-0",
-                "gen_ai.response.model": "mock-model-id",
-                "gen_ai.system": "mock-provider",
-                "gen_ai.usage.input_tokens": 3,
-                "gen_ai.usage.output_tokens": 10,
-                "operation.name": "ai.streamText.doStream",
-              },
-              "events": [
-                {
-                  "attributes": {
-                    "ai.response.msToFirstChunk": 100,
-                  },
-                  "name": "ai.stream.firstChunk",
-                },
-                {
-                  "attributes": {
-                    "ai.response.avgOutputTokensPerSecond": 20,
-                    "ai.response.msToFinish": 500,
-                  },
-                  "name": "ai.stream.finish",
-                },
-              ],
-              "name": "ai.streamText.doStream",
-            },
-            {
-              "attributes": {
-                "ai.operationId": "ai.toolCall",
-                "ai.toolCall.args": "{"value":"value"}",
-                "ai.toolCall.id": "call-1",
-                "ai.toolCall.name": "tool1",
-                "ai.toolCall.result": ""result1"",
-                "operation.name": "ai.toolCall",
-              },
-              "events": [],
-              "name": "ai.toolCall",
-            },
-            {
-              "attributes": {
-                "ai.model.id": "mock-model-id",
-                "ai.model.provider": "mock-provider",
-                "ai.operationId": "ai.streamText.doStream",
-                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"text","value":"RESULT1"}}]}]",
-                "ai.prompt.toolChoice": "{"type":"auto"}",
-                "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
-                ],
-                "ai.response.avgOutputTokensPerSecond": 25,
-                "ai.response.finishReason": "stop",
-                "ai.response.id": "id-1",
-                "ai.response.model": "mock-model-id",
-                "ai.response.msToFinish": 400,
-                "ai.response.msToFirstChunk": 400,
-                "ai.response.text": "Hello, world!",
-                "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-                "ai.settings.maxRetries": 2,
-                "ai.usage.cachedInputTokens": 0,
-                "ai.usage.inputTokenDetails.cacheReadTokens": 0,
-                "ai.usage.inputTokenDetails.cacheWriteTokens": 0,
-                "ai.usage.inputTokenDetails.noCacheTokens": 3,
-                "ai.usage.inputTokens": 3,
-                "ai.usage.outputTokenDetails.reasoningTokens": 10,
-                "ai.usage.outputTokenDetails.textTokens": 10,
-                "ai.usage.outputTokens": 10,
-                "ai.usage.reasoningTokens": 10,
-                "ai.usage.totalTokens": 13,
-                "gen_ai.request.model": "mock-model-id",
-                "gen_ai.response.finish_reasons": [
-                  "stop",
-                ],
-                "gen_ai.response.id": "id-1",
-                "gen_ai.response.model": "mock-model-id",
-                "gen_ai.system": "mock-provider",
-                "gen_ai.usage.input_tokens": 3,
-                "gen_ai.usage.output_tokens": 10,
-                "operation.name": "ai.streamText.doStream",
-              },
-              "events": [
-                {
-                  "attributes": {
-                    "ai.response.msToFirstChunk": 400,
-                  },
-                  "name": "ai.stream.firstChunk",
-                },
-                {
-                  "attributes": {
-                    "ai.response.avgOutputTokensPerSecond": 25,
-                    "ai.response.msToFinish": 400,
-                  },
-                  "name": "ai.stream.finish",
-                },
-              ],
-              "name": "ai.streamText.doStream",
-            },
-          ]
-        `);
-      });
-
       it('should have correct ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
@@ -11392,7 +11220,7 @@ describe('streamText', () => {
     describe('2 stop conditions', () => {
       let stopConditionCalls: Array<{
         number: number;
-        steps: StepResult<any>[];
+        steps: StepResult<any, any>[];
       }>;
 
       beforeEach(async () => {
@@ -11455,10 +11283,6 @@ describe('streamText', () => {
             },
           },
           prompt: 'test-input',
-          experimental_telemetry: {
-            isEnabled: true,
-            integrations: new OpenTelemetryIntegration({ tracer }),
-          },
           stopWhen: [
             ({ steps }) => {
               stopConditionCalls.push({ number: 0, steps });
@@ -11518,7 +11342,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -11628,7 +11452,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -11820,7 +11644,7 @@ describe('streamText', () => {
 
   describe('provider-executed tools', () => {
     describe('single provider-executed tool call and result', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -12455,7 +12279,7 @@ describe('streamText', () => {
 
   describe('dynamic tools', () => {
     describe('single dynamic tool call and result', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -12824,6 +12648,7 @@ describe('streamText', () => {
         {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
+          experimental_context: {},
           messages: expect.any(Array),
         },
       );
@@ -13451,7 +13276,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "messages": [
                 {
                   "content": "test-input",
@@ -13465,7 +13290,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": "{"",
               "messages": [
                 {
@@ -13480,7 +13305,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": "value",
               "messages": [
                 {
@@ -13495,7 +13320,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": "":"",
               "messages": [
                 {
@@ -13510,7 +13335,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": "Spark",
               "messages": [
                 {
@@ -13525,7 +13350,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": "le",
               "messages": [
                 {
@@ -13540,7 +13365,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": " Day",
               "messages": [
                 {
@@ -13555,7 +13380,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "inputTextDelta": ""}",
               "messages": [
                 {
@@ -13570,7 +13395,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "experimental_context": {},
               "input": {
                 "value": "Sparkle Day",
               },
@@ -13713,7 +13538,7 @@ describe('streamText', () => {
   });
 
   describe('tool execution errors', () => {
-    let result: StreamTextResult<any, any>;
+    let result: StreamTextResult<any, any, any>;
 
     beforeEach(async () => {
       result = streamText({
@@ -13865,7 +13690,7 @@ describe('streamText', () => {
                 "type": "tool-error",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -14370,7 +14195,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -14604,7 +14429,7 @@ describe('streamText', () => {
             ],
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
@@ -14724,7 +14549,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -14954,7 +14779,7 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -15034,59 +14859,6 @@ describe('streamText', () => {
             "warnings": [],
           }
         `);
-      });
-
-      it('telemetry should record transformed data when enabled', async () => {
-        const tracer = new MockTracer();
-
-        const result = streamText({
-          model: createTestModel({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: 'Hello' },
-              { type: 'text-delta', id: '1', delta: ', ' },
-              {
-                type: 'tool-call',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                input: `{ "value": "value" }`,
-              },
-              { type: 'text-delta', id: '1', delta: 'world!' },
-              { type: 'text-end', id: '1' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-                providerMetadata: {
-                  testProvider: { testKey: 'testValue' },
-                },
-              },
-            ]),
-          }),
-          tools: {
-            tool1: tool({
-              inputSchema: z.object({ value: z.string() }),
-              execute: async ({ value }) => `${value}-result`,
-            }),
-          },
-          prompt: 'test-input',
-          experimental_transform: upperCaseTransform,
-          experimental_telemetry: {
-            isEnabled: true,
-            integrations: new OpenTelemetryIntegration({ tracer }),
-          },
-          _internal: { now: mockValues(0, 100, 500) },
-        });
-
-        await result.consumeStream();
-
-        expect(tracer.jsonSpans).toMatchSnapshot();
       });
 
       it('it should send transformed chunks to onChunk', async () => {
@@ -15461,7 +15233,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -15906,7 +15678,7 @@ describe('streamText', () => {
             ],
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
-            "experimental_context": undefined,
+            "experimental_context": {},
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
@@ -15952,7 +15724,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "experimental_context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -16045,7 +15817,7 @@ describe('streamText', () => {
     });
 
     describe('array output', () => {
-      let result: StreamTextResult<any, any> | undefined;
+      let result: StreamTextResult<any, any, any> | undefined;
 
       let onFinishResult:
         | Parameters<Required<Parameters<typeof streamText>[0]>['onFinish']>[0]
@@ -16796,7 +16568,7 @@ describe('streamText', () => {
 
   describe('mixed multi content streaming with interleaving parts', () => {
     describe('mixed text and reasoning blocks', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -17048,7 +16820,7 @@ describe('streamText', () => {
                   "type": "reasoning",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -17120,9 +16892,9 @@ describe('streamText', () => {
 
   describe('abort signal', () => {
     describe('basic abort', () => {
-      let result: StreamTextResult<ToolSet, never>;
+      let result: StreamTextResult<ToolSet, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<ToolSet>[] }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<ToolSet, any>[] }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -17301,9 +17073,9 @@ describe('streamText', () => {
     });
 
     describe('abort in 2nd step', () => {
-      let result: StreamTextResult<any, never>;
+      let result: StreamTextResult<any, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<any, any>[] }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -17439,7 +17211,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "experimental_context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -17619,9 +17391,9 @@ describe('streamText', () => {
     });
 
     describe('abort during tool execution', () => {
-      let result: StreamTextResult<any, never>;
+      let result: StreamTextResult<any, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<any, any>[] }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -17906,7 +17678,7 @@ describe('streamText', () => {
 
   describe('invalid tool calls', () => {
     describe('single invalid tool call', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -18203,7 +17975,7 @@ describe('streamText', () => {
 
   describe('tools with preliminary results', () => {
     describe('single tool with preliminary results', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -18494,7 +18266,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "experimental_context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -18574,7 +18346,7 @@ describe('streamText', () => {
 
   describe('provider-executed dynamic tools', () => {
     describe('single provider-executed dynamic tool with input streaming', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -18882,14 +18654,14 @@ describe('streamText', () => {
 
   describe('programmatic tool calling', () => {
     describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
-      let result: StreamTextResult<any, any>;
-      let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
-      let onStepFinishResults: StepResult<any>[];
+      let result: StreamTextResult<any, any, any>;
+      let onFinishResult: Parameters<StreamTextOnFinishCallback<any, any>>[0];
+      let onStepFinishResults: StepResult<any, any>[];
       let doStreamCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
       }>;
       let rollDieExecutions: Array<{ player: string }>;
@@ -20788,7 +20560,7 @@ describe('streamText', () => {
 
   describe('tool execution approval', () => {
     describe('when a single tool needs approval', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -21012,7 +20784,7 @@ describe('streamText', () => {
     });
 
     describe('when a single tool has a needsApproval function', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
       let needsApprovalCalls: Array<{ input: any; options: any }> = [];
 
       beforeEach(async () => {
@@ -21340,9 +21112,9 @@ describe('streamText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -21644,7 +21416,7 @@ describe('streamText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
@@ -21767,7 +21539,7 @@ describe('streamText', () => {
     });
 
     describe('when a call from a single tool with preliminary results that needs approval is approved', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
@@ -22097,9 +21869,9 @@ describe('streamText', () => {
     });
 
     describe('when a call from a single tool that needs approval is denied', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -22389,7 +22161,7 @@ describe('streamText', () => {
 
     describe('provider-executed tool (MCP) approval', () => {
       describe('when a provider-executed tool emits tool-approval-request', () => {
-        let result: StreamTextResult<any, any>;
+        let result: StreamTextResult<any, any, any>;
 
         beforeEach(async () => {
           result = streamText({
@@ -22624,7 +22396,7 @@ describe('streamText', () => {
       });
 
       describe('when a provider-executed tool approval is approved', () => {
-        let result: StreamTextResult<any, any>;
+        let result: StreamTextResult<any, any, any>;
         let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
@@ -22813,7 +22585,7 @@ describe('streamText', () => {
       });
 
       describe('when a provider-executed tool approval is denied', () => {
-        let result: StreamTextResult<any, any>;
+        let result: StreamTextResult<any, any, any>;
         let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {

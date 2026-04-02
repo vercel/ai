@@ -1,13 +1,8 @@
 import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { asArray } from '../util/as-array';
-import { OpenTelemetryIntegration } from './open-telemetry-integration';
 import type { TelemetryIntegration } from './telemetry-integration';
-import {
-  getGlobalTelemetryIntegrations,
-  hasIntegration,
-  registerTelemetryIntegration,
-} from './telemetry-integration-registry';
+import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
 
 /**
  * Wraps a telemetry integration with bound methods.
@@ -36,19 +31,12 @@ export function bindTelemetryIntegration(
   };
 }
 
-// global otel integration TODO remove when OTel is moved to a separate package
-const otelIntegration = new OpenTelemetryIntegration();
-
 export function getGlobalTelemetryIntegration<
   TOOLS extends ToolSet = ToolSet,
   OUTPUT extends Output = Output,
 >(): (args?: {
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }) => TelemetryIntegration {
-  if (!hasIntegration(otelIntegration)) {
-    registerTelemetryIntegration(otelIntegration);
-  }
-
   const globalIntegrations = getGlobalTelemetryIntegrations();
 
   return ({

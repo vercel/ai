@@ -1,5 +1,5 @@
 import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
-import type { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Timeout configuration for API calls. Can be specified as:
