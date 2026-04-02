@@ -37,7 +37,6 @@ import type {
 } from 'ai';
 import type { OutputInterface as Output } from 'ai';
 import {
-  extractSystemFromPrompt,
   formatInputMessages,
   formatModelMessages,
   formatObjectOutputMessages,
@@ -267,9 +266,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
             }),
           ),
       },
-      'gen_ai.ai_sdk.telemetry.function_id': telemetry.functionId,
-      ...metadataAttributes(telemetry),
-      ...settingsAttributes(settings),
     });
 
     const spanName = `${operationName} ${event.modelId}`;
@@ -348,15 +344,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
             }),
           ),
       },
-      'gen_ai.ai_sdk.schema': event.schema
-        ? { input: () => JSON.stringify(event.schema) }
-        : undefined,
-      'gen_ai.ai_sdk.schema.name': event.schemaName,
-      'gen_ai.ai_sdk.schema.description': event.schemaDescription,
-      'gen_ai.ai_sdk.settings.output': event.output,
-      'gen_ai.ai_sdk.telemetry.function_id': telemetry.functionId,
-      ...metadataAttributes(telemetry),
-      ...settingsAttributes(settings),
     });
 
     const spanName = `${operationName} ${event.modelId}`;
@@ -441,13 +428,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
         'gen_ai.usage.input_tokens': event.usage.inputTokens,
         'gen_ai.usage.output_tokens': event.usage.outputTokens,
         'gen_ai.usage.cache_read.input_tokens': event.usage.cachedInputTokens,
-        'gen_ai.ai_sdk.usage.reasoning_tokens': event.usage.reasoningTokens,
-        'gen_ai.ai_sdk.usage.total_tokens': event.usage.totalTokens,
-        'gen_ai.ai_sdk.response.timestamp':
-          event.response.timestamp.toISOString(),
-        'gen_ai.ai_sdk.response.provider_metadata': event.providerMetadata
-          ? JSON.stringify(event.providerMetadata)
-          : undefined,
         'gen_ai.output.messages': {
           output: () => {
             try {
@@ -464,15 +444,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
         },
       }),
     );
-
-    if (event.msToFirstChunk != null) {
-      state.stepSpan.addEvent('gen_ai.ai_sdk.stream.first_chunk', {
-        'gen_ai.ai_sdk.stream.ms_to_first_chunk': event.msToFirstChunk,
-      });
-      state.stepSpan.setAttributes({
-        'gen_ai.ai_sdk.stream.ms_to_first_chunk': event.msToFirstChunk,
-      });
-    }
 
     state.stepSpan.end();
     state.stepSpan = undefined;
@@ -493,27 +464,11 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
     };
 
     const providerName = mapProviderName(event.provider);
-    const isMany = event.operationId === 'ai.embedMany';
 
     const attributes = selectAttributes(telemetry, {
       'gen_ai.operation.name': 'embeddings',
       'gen_ai.provider.name': providerName,
       'gen_ai.request.model': event.modelId,
-      'gen_ai.ai_sdk.telemetry.function_id': telemetry.functionId,
-      ...metadataAttributes(telemetry),
-      ...settingsAttributes(settings),
-      ...(isMany
-        ? {
-            'gen_ai.ai_sdk.values': {
-              input: () =>
-                (event.value as string[]).map(v => JSON.stringify(v)),
-            },
-          }
-        : {
-            'gen_ai.ai_sdk.value': {
-              input: () => JSON.stringify(event.value),
-            },
-          }),
     });
 
     const spanName = `embeddings ${event.modelId}`;
@@ -667,19 +622,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
           event.usage.cachedInputTokens,
         'gen_ai.usage.cache_creation.input_tokens':
           event.usage.inputTokenDetails?.cacheWriteTokens,
-        'gen_ai.ai_sdk.usage.reasoning_tokens': event.usage.reasoningTokens,
-        'gen_ai.ai_sdk.usage.total_tokens': event.usage.totalTokens,
-        'gen_ai.ai_sdk.usage.input_token_details.no_cache_tokens':
-          event.usage.inputTokenDetails?.noCacheTokens,
-        'gen_ai.ai_sdk.usage.output_token_details.text_tokens':
-          event.usage.outputTokenDetails?.textTokens,
-        'gen_ai.ai_sdk.usage.output_token_details.reasoning_tokens':
-          event.usage.outputTokenDetails?.reasoningTokens,
-        'gen_ai.ai_sdk.response.timestamp':
-          event.response.timestamp.toISOString(),
-        'gen_ai.ai_sdk.response.provider_metadata': event.providerMetadata
-          ? JSON.stringify(event.providerMetadata)
-          : undefined,
         'gen_ai.output.messages': {
           output: () =>
             JSON.stringify(
@@ -750,18 +692,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
           event.totalUsage.cachedInputTokens,
         'gen_ai.usage.cache_creation.input_tokens':
           event.totalUsage.inputTokenDetails?.cacheWriteTokens,
-        'gen_ai.ai_sdk.usage.reasoning_tokens':
-          event.totalUsage.reasoningTokens,
-        'gen_ai.ai_sdk.usage.total_tokens': event.totalUsage.totalTokens,
-        'gen_ai.ai_sdk.usage.input_token_details.no_cache_tokens':
-          event.totalUsage.inputTokenDetails?.noCacheTokens,
-        'gen_ai.ai_sdk.usage.output_token_details.text_tokens':
-          event.totalUsage.outputTokenDetails?.textTokens,
-        'gen_ai.ai_sdk.usage.output_token_details.reasoning_tokens':
-          event.totalUsage.outputTokenDetails?.reasoningTokens,
-        'gen_ai.ai_sdk.response.provider_metadata': event.providerMetadata
-          ? JSON.stringify(event.providerMetadata)
-          : undefined,
         'gen_ai.output.messages': {
           output: () =>
             JSON.stringify(
@@ -793,11 +723,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
         'gen_ai.usage.input_tokens': event.usage.inputTokens,
         'gen_ai.usage.output_tokens': event.usage.outputTokens,
         'gen_ai.usage.cache_read.input_tokens': event.usage.cachedInputTokens,
-        'gen_ai.ai_sdk.usage.reasoning_tokens': event.usage.reasoningTokens,
-        'gen_ai.ai_sdk.usage.total_tokens': event.usage.totalTokens,
-        'gen_ai.ai_sdk.response.provider_metadata': event.providerMetadata
-          ? JSON.stringify(event.providerMetadata)
-          : undefined,
         'gen_ai.output.messages': {
           output: () =>
             event.object != null
@@ -821,23 +746,10 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
     if (!state?.rootSpan) return;
 
     const { telemetry } = state;
-    const isMany = state.operationId === 'ai.embedMany';
 
     state.rootSpan.setAttributes(
       selectAttributes(telemetry, {
         'gen_ai.usage.input_tokens': event.usage.tokens,
-        ...(isMany
-          ? {
-              'gen_ai.ai_sdk.embeddings': {
-                output: () =>
-                  (event.embedding as number[][]).map(e => JSON.stringify(e)),
-              },
-            }
-          : {
-              'gen_ai.ai_sdk.embedding': {
-                output: () => JSON.stringify(event.embedding),
-              },
-            }),
       }),
     );
 
@@ -856,9 +768,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
       'gen_ai.operation.name': 'embeddings',
       'gen_ai.provider.name': providerName,
       'gen_ai.request.model': state.modelId,
-      'gen_ai.ai_sdk.values': {
-        input: () => event.values.map(v => JSON.stringify(v)),
-      },
     });
 
     const spanName = `embeddings ${state.modelId}`;
@@ -887,10 +796,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
 
     span.setAttributes(
       selectAttributes(telemetry, {
-        'gen_ai.ai_sdk.embeddings': {
-          output: () =>
-            event.embeddings.map(embedding => JSON.stringify(embedding)),
-        },
         'gen_ai.usage.input_tokens': event.usage.tokens,
       }),
     );
@@ -918,12 +823,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
       'gen_ai.operation.name': 'rerank',
       'gen_ai.provider.name': providerName,
       'gen_ai.request.model': event.modelId,
-      'gen_ai.ai_sdk.telemetry.function_id': telemetry.functionId,
-      ...metadataAttributes(telemetry),
-      ...settingsAttributes(settings),
-      'gen_ai.ai_sdk.documents': {
-        input: () => event.documents.map(d => JSON.stringify(d)),
-      },
     });
 
     const spanName = `rerank ${event.modelId}`;
@@ -968,9 +867,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
       'gen_ai.operation.name': 'rerank',
       'gen_ai.provider.name': providerName,
       'gen_ai.request.model': state.modelId,
-      'gen_ai.ai_sdk.documents': {
-        input: () => event.documents.map(d => JSON.stringify(d)),
-      },
     });
 
     const spanName = `rerank ${state.modelId}`;
@@ -989,63 +885,13 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
     if (!state?.rerankSpan) return;
 
     const { span } = state.rerankSpan;
-    const { telemetry } = state;
-
-    span.setAttributes(
-      selectAttributes(telemetry, {
-        'gen_ai.ai_sdk.ranking.type': event.documentsType,
-        'gen_ai.ai_sdk.ranking': {
-          output: () => event.ranking.map(r => JSON.stringify(r)),
-        },
-      }),
-    );
 
     span.end();
     state.rerankSpan = undefined;
   }
 
-  onChunk(event: OnChunkEvent<ToolSet>): void {
-    const chunk = event.chunk as {
-      type: string;
-      callId?: unknown;
-      attributes?: unknown;
-    };
-
-    if (typeof chunk.callId !== 'string') {
-      return;
-    }
-
-    if (
-      chunk.type !== 'ai.stream.firstChunk' &&
-      chunk.type !== 'ai.stream.finish'
-    ) {
-      return;
-    }
-
-    const state = this.getCallState(chunk.callId);
-    if (!state?.stepSpan) return;
-
-    const rawAttributes = Object.fromEntries(
-      Object.entries(
-        (chunk.attributes as Record<string, unknown>) ?? {},
-      ).filter(([, value]) => value != null),
-    ) as Attributes;
-
-    const genAiEventName =
-      chunk.type === 'ai.stream.firstChunk'
-        ? 'gen_ai.ai_sdk.stream.first_chunk'
-        : 'gen_ai.ai_sdk.stream.finish';
-
-    const genAiAttributes: Attributes = {};
-    for (const [key, value] of Object.entries(rawAttributes)) {
-      const mappedKey = key.replace(/^ai\./, 'gen_ai.ai_sdk.');
-      genAiAttributes[mappedKey] = value;
-    }
-
-    state.stepSpan.addEvent(genAiEventName, genAiAttributes);
-    if (Object.keys(genAiAttributes).length > 0) {
-      state.stepSpan.setAttributes(genAiAttributes);
-    }
+  onChunk(_event: OnChunkEvent<ToolSet>): void {
+    // No-op: streaming chunk events are not part of the GenAI SemConv.
   }
 
   onError(error: unknown): void {
@@ -1079,30 +925,4 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
     state.rootSpan.end();
     this.cleanupCallState(event.callId);
   }
-}
-
-function metadataAttributes(
-  telemetry: TelemetrySettings | undefined,
-): Record<string, AttributeValue | undefined> {
-  if (!telemetry?.metadata) return {};
-  const result: Record<string, AttributeValue | undefined> = {};
-  for (const [key, value] of Object.entries(telemetry.metadata)) {
-    if (value != null) {
-      result[`gen_ai.ai_sdk.telemetry.metadata.${key}`] =
-        value as AttributeValue;
-    }
-  }
-  return result;
-}
-
-function settingsAttributes(
-  settings: Record<string, unknown>,
-): Record<string, AttributeValue | undefined> {
-  const result: Record<string, AttributeValue | undefined> = {};
-  for (const [key, value] of Object.entries(settings)) {
-    if (value != null) {
-      result[`gen_ai.ai_sdk.settings.${key}`] = value as AttributeValue;
-    }
-  }
-  return result;
 }

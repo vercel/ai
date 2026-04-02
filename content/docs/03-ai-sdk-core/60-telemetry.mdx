@@ -247,7 +247,7 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.request.model`: the requested model ID
   - `gen_ai.agent.name`: the `functionId` from telemetry settings
   - `gen_ai.system_instructions`: system instructions formatted as a JSON array of parts (when `recordInputs` is enabled)
-  - `gen_ai.input.messages`: the full input (system, prompt, messages) as stringified JSON (when `recordInputs` is enabled)
+  - `gen_ai.input.messages`: the input messages in [GenAI SemConv message format](#genai-message-format) (when `recordInputs` is enabled)
   - `gen_ai.request.temperature`: the temperature setting
   - `gen_ai.request.max_tokens`: the maximum output tokens
   - `gen_ai.request.top_p`: the topP setting
@@ -256,9 +256,6 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.request.presence_penalty`: the presence penalty
   - `gen_ai.request.stop_sequences`: the stop sequences
   - `gen_ai.request.seed`: the seed value
-  - `gen_ai.ai_sdk.telemetry.function_id`: the telemetry function ID
-  - `gen_ai.ai_sdk.telemetry.metadata.*`: custom metadata key-value pairs
-  - `gen_ai.ai_sdk.settings.*`: additional model settings (e.g. `maxRetries`)
 
   Attributes set on finish:
   - `gen_ai.response.finish_reasons`: array of finish reasons (e.g. `["stop"]`, `["tool_call"]`)
@@ -266,12 +263,6 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.usage.output_tokens`: the number of output tokens used
   - `gen_ai.usage.cache_read.input_tokens`: cached input tokens read
   - `gen_ai.usage.cache_creation.input_tokens`: cached input tokens created
-  - `gen_ai.ai_sdk.usage.reasoning_tokens`: reasoning tokens used
-  - `gen_ai.ai_sdk.usage.total_tokens`: total tokens used
-  - `gen_ai.ai_sdk.usage.input_token_details.no_cache_tokens`: non-cached input tokens
-  - `gen_ai.ai_sdk.usage.output_token_details.text_tokens`: text output tokens
-  - `gen_ai.ai_sdk.usage.output_token_details.reasoning_tokens`: reasoning output tokens
-  - `gen_ai.ai_sdk.response.provider_metadata`: provider-specific metadata (stringified JSON)
   - `gen_ai.output.messages`: the output in [GenAI SemConv message format](#genai-message-format) (when `recordOutputs` is enabled)
 
 - **`chat {modelId}`** (step span, `CLIENT`): one span per LLM provider call, nested under the root span.
@@ -292,18 +283,7 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.usage.output_tokens`: output tokens used in this step
   - `gen_ai.usage.cache_read.input_tokens`: cached input tokens read
   - `gen_ai.usage.cache_creation.input_tokens`: cached input tokens created
-  - `gen_ai.ai_sdk.usage.reasoning_tokens`: reasoning tokens
-  - `gen_ai.ai_sdk.usage.total_tokens`: total tokens
-  - `gen_ai.ai_sdk.usage.input_token_details.no_cache_tokens`: non-cached input tokens
-  - `gen_ai.ai_sdk.usage.output_token_details.text_tokens`: text output tokens
-  - `gen_ai.ai_sdk.usage.output_token_details.reasoning_tokens`: reasoning output tokens
-  - `gen_ai.ai_sdk.response.timestamp`: the response timestamp (ISO 8601)
-  - `gen_ai.ai_sdk.response.provider_metadata`: provider-specific metadata (stringified JSON)
   - `gen_ai.output.messages`: the output in [GenAI SemConv message format](#genai-message-format) (when `recordOutputs` is enabled)
-
-  For `streamText`, the step span also records events:
-  - `gen_ai.ai_sdk.stream.first_chunk` (event): emitted when the first chunk is received, with `gen_ai.ai_sdk.stream.ms_to_first_chunk`
-  - `gen_ai.ai_sdk.stream.finish` (event): emitted when the stream finishes
 
 - **`execute_tool {toolName}`** (tool span, `INTERNAL`): one span per tool execution, nested under the step span. See [GenAI tool call spans](#genai-tool-call-spans) for details.
 
@@ -317,10 +297,6 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
 The deprecated object APIs emit the same span hierarchy as `generateText`/`streamText` with these additional attributes on the root span:
 
 - `gen_ai.output.type`: `"json"`
-- `gen_ai.ai_sdk.schema`: the output schema (stringified JSON, when `recordInputs` is enabled)
-- `gen_ai.ai_sdk.schema.name`: the schema name
-- `gen_ai.ai_sdk.schema.description`: the schema description
-- `gen_ai.ai_sdk.settings.output`: the output mode
 
 The step spans also include `gen_ai.output.type: "json"`, and `gen_ai.output.messages` contains the generated object as a text part.
 
@@ -334,16 +310,9 @@ For `embed` and `embedMany`, the integration records spans with `CLIENT` kind:
   - `gen_ai.operation.name`: `"embeddings"`
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the requested model ID
-  - `gen_ai.ai_sdk.telemetry.function_id`: the telemetry function ID
-  - `gen_ai.ai_sdk.telemetry.metadata.*`: custom metadata
-  - `gen_ai.ai_sdk.settings.*`: additional settings
-  - `gen_ai.ai_sdk.value`: the input value (for `embed`, when `recordInputs` is enabled)
-  - `gen_ai.ai_sdk.values`: the input values array (for `embedMany`, when `recordInputs` is enabled)
 
   Attributes set on finish:
   - `gen_ai.usage.input_tokens`: the number of tokens used
-  - `gen_ai.ai_sdk.embedding`: the embedding result (for `embed`, when `recordOutputs` is enabled)
-  - `gen_ai.ai_sdk.embeddings`: the embeddings array (for `embedMany`, when `recordOutputs` is enabled)
 
 - **`embeddings {modelId}`** (inner span, `embedMany` only): one span per provider batch call, nested under the root span.
 
@@ -351,10 +320,8 @@ For `embed` and `embedMany`, the integration records spans with `CLIENT` kind:
   - `gen_ai.operation.name`: `"embeddings"`
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the model ID
-  - `gen_ai.ai_sdk.values`: the batch values (when `recordInputs` is enabled)
 
   Attributes set on finish:
-  - `gen_ai.ai_sdk.embeddings`: the batch embeddings (when `recordOutputs` is enabled)
   - `gen_ai.usage.input_tokens`: the number of tokens used
 
 #### rerank
@@ -367,10 +334,6 @@ For `rerank`, the integration records spans with `CLIENT` kind:
   - `gen_ai.operation.name`: `"rerank"`
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the requested model ID
-  - `gen_ai.ai_sdk.telemetry.function_id`: the telemetry function ID
-  - `gen_ai.ai_sdk.telemetry.metadata.*`: custom metadata
-  - `gen_ai.ai_sdk.settings.*`: additional settings
-  - `gen_ai.ai_sdk.documents`: the documents to rerank (when `recordInputs` is enabled)
 
 - **`rerank {modelId}`** (inner span): one span per provider rerank call, nested under the root span.
 
@@ -378,11 +341,6 @@ For `rerank`, the integration records spans with `CLIENT` kind:
   - `gen_ai.operation.name`: `"rerank"`
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the model ID
-  - `gen_ai.ai_sdk.documents`: the documents (when `recordInputs` is enabled)
-
-  Attributes set on finish:
-  - `gen_ai.ai_sdk.ranking.type`: the document type
-  - `gen_ai.ai_sdk.ranking`: the ranking results (when `recordOutputs` is enabled)
 
 #### GenAI span details
 
@@ -410,7 +368,7 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 - `gen_ai.tool.name`: the name of the tool
 - `gen_ai.tool.call.id`: the tool call ID
 - `gen_ai.tool.type`: `"function"`
-- `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordOutputs` is enabled)
+- `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
 - `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
 
 ### Legacy AI SDK Spans (`OpenTelemetryIntegration`)

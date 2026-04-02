@@ -357,9 +357,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
         {
           "ended": false,
           "initAttributes": {
-            "gen_ai.ai_sdk.settings.maxOutputTokens": 100,
-            "gen_ai.ai_sdk.settings.maxRetries": 2,
-            "gen_ai.ai_sdk.settings.temperature": 0.7,
             "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
             "gen_ai.operation.name": "invoke_agent",
             "gen_ai.provider.name": "openai",
@@ -396,10 +393,9 @@ describe('GenAIOpenTelemetryIntegration', () => {
       expect(tracer.startSpan).not.toHaveBeenCalled();
     });
 
-    it('preserves AI SDK metadata and functionId', () => {
+    it('preserves functionId as gen_ai.agent.name', () => {
       integration.onStart!(
         makeOnStartEvent({
-          metadata: { environment: 'test' },
           functionId: 'my-agent',
         }),
       );
@@ -407,13 +403,9 @@ describe('GenAIOpenTelemetryIntegration', () => {
       const attrs = getStartSpanAttributes(tracer, 0);
       expect({
         agentName: attrs['gen_ai.agent.name'],
-        metadata: attrs['gen_ai.ai_sdk.telemetry.metadata.environment'],
-        functionId: attrs['gen_ai.ai_sdk.telemetry.function_id'],
       }).toMatchInlineSnapshot(`
         {
           "agentName": "my-agent",
-          "functionId": "my-agent",
-          "metadata": "test",
         }
       `);
     });
@@ -514,8 +506,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
           },
           "name": "chat gpt-4",
           "runtimeAttributes": {
-            "gen_ai.ai_sdk.response.timestamp": "2025-01-01T00:00:00.000Z",
-            "gen_ai.ai_sdk.usage.total_tokens": 30,
             "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
             "gen_ai.response.finish_reasons": [
               "stop",
@@ -596,7 +586,7 @@ describe('GenAIOpenTelemetryIntegration', () => {
       `);
     });
 
-    it('sets cache and reasoning token attributes when available', () => {
+    it('sets cache token attributes when available', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
       integration.onStepFinish!(
@@ -627,31 +617,12 @@ describe('GenAIOpenTelemetryIntegration', () => {
         cacheRead: stepSpan.attributes['gen_ai.usage.cache_read.input_tokens'],
         cacheCreation:
           stepSpan.attributes['gen_ai.usage.cache_creation.input_tokens'],
-        reasoning: stepSpan.attributes['gen_ai.ai_sdk.usage.reasoning_tokens'],
-        totalTokens: stepSpan.attributes['gen_ai.ai_sdk.usage.total_tokens'],
-        noCacheTokens:
-          stepSpan.attributes[
-            'gen_ai.ai_sdk.usage.input_token_details.no_cache_tokens'
-          ],
-        textTokens:
-          stepSpan.attributes[
-            'gen_ai.ai_sdk.usage.output_token_details.text_tokens'
-          ],
-        outputReasoningTokens:
-          stepSpan.attributes[
-            'gen_ai.ai_sdk.usage.output_token_details.reasoning_tokens'
-          ],
       }).toMatchInlineSnapshot(`
         {
           "cacheCreation": 10,
           "cacheRead": 20,
           "inputTokens": 100,
-          "noCacheTokens": 70,
-          "outputReasoningTokens": 10,
           "outputTokens": 50,
-          "reasoning": 10,
-          "textTokens": 40,
-          "totalTokens": 150,
         }
       `);
     });
@@ -737,9 +708,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
         {
           "ended": true,
           "initAttributes": {
-            "gen_ai.ai_sdk.settings.maxOutputTokens": 100,
-            "gen_ai.ai_sdk.settings.maxRetries": 2,
-            "gen_ai.ai_sdk.settings.temperature": 0.7,
             "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
             "gen_ai.operation.name": "invoke_agent",
             "gen_ai.provider.name": "openai",
@@ -749,7 +717,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
           },
           "name": "invoke_agent gpt-4",
           "runtimeAttributes": {
-            "gen_ai.ai_sdk.usage.total_tokens": 30,
             "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
             "gen_ai.response.finish_reasons": [
               "stop",
@@ -789,7 +756,7 @@ describe('GenAIOpenTelemetryIntegration', () => {
   });
 
   describe('onStart (generateObject)', () => {
-    it('creates a root span with output.type json and schema attributes', () => {
+    it('creates a root span with output.type json', () => {
       integration.onStart!(
         makeOnStartEvent({
           operationId: 'ai.generateObject',
@@ -804,16 +771,10 @@ describe('GenAIOpenTelemetryIntegration', () => {
       expect({
         operationName: attrs['gen_ai.operation.name'],
         outputType: attrs['gen_ai.output.type'],
-        schemaName: attrs['gen_ai.ai_sdk.schema.name'],
-        schemaDescription: attrs['gen_ai.ai_sdk.schema.description'],
-        settingsOutput: attrs['gen_ai.ai_sdk.settings.output'],
       }).toMatchInlineSnapshot(`
         {
           "operationName": "invoke_agent",
           "outputType": "json",
-          "schemaDescription": "A test schema",
-          "schemaName": "TestSchema",
-          "settingsOutput": "object",
         }
       `);
     });
@@ -832,8 +793,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
         {
           "ended": false,
           "initAttributes": {
-            "gen_ai.ai_sdk.settings.maxRetries": 2,
-            "gen_ai.ai_sdk.value": ""test text"",
             "gen_ai.operation.name": "embeddings",
             "gen_ai.provider.name": "openai",
             "gen_ai.request.model": "gpt-4",
@@ -858,10 +817,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
         {
           "ended": false,
           "initAttributes": {
-            "gen_ai.ai_sdk.documents": [
-              "{"text":"doc1"}",
-            ],
-            "gen_ai.ai_sdk.settings.maxRetries": 2,
             "gen_ai.operation.name": "rerank",
             "gen_ai.provider.name": "openai",
             "gen_ai.request.model": "gpt-4",
@@ -874,7 +829,7 @@ describe('GenAIOpenTelemetryIntegration', () => {
   });
 
   describe('onChunk (streaming events)', () => {
-    it('maps ai.stream.firstChunk to gen_ai event', () => {
+    it('is a no-op for stream chunk events', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
 
@@ -890,19 +845,10 @@ describe('GenAIOpenTelemetryIntegration', () => {
       });
 
       const stepSpan = tracer.spans[1];
-      expect(stepSpan.events).toMatchInlineSnapshot(`
-        [
-          {
-            "attributes": {
-              "gen_ai.ai_sdk.stream.msToFirstChunk": 150,
-            },
-            "name": "gen_ai.ai_sdk.stream.first_chunk",
-          },
-        ]
-      `);
+      expect(stepSpan.events).toMatchInlineSnapshot(`[]`);
     });
 
-    it('maps ai.stream.finish to gen_ai event', () => {
+    it('does not emit events for stream finish', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
 
@@ -916,14 +862,7 @@ describe('GenAIOpenTelemetryIntegration', () => {
       });
 
       const stepSpan = tracer.spans[1];
-      expect(stepSpan.events).toMatchInlineSnapshot(`
-        [
-          {
-            "attributes": {},
-            "name": "gen_ai.ai_sdk.stream.finish",
-          },
-        ]
-      `);
+      expect(stepSpan.events).toMatchInlineSnapshot(`[]`);
     });
   });
 
@@ -1020,9 +959,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
           {
             "ended": true,
             "initAttributes": {
-              "gen_ai.ai_sdk.settings.maxOutputTokens": 100,
-              "gen_ai.ai_sdk.settings.maxRetries": 2,
-              "gen_ai.ai_sdk.settings.temperature": 0.7,
               "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
               "gen_ai.operation.name": "invoke_agent",
               "gen_ai.provider.name": "openai",
@@ -1032,7 +968,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
             },
             "name": "invoke_agent gpt-4",
             "runtimeAttributes": {
-              "gen_ai.ai_sdk.usage.total_tokens": 30,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -1052,8 +987,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
             },
             "name": "chat gpt-4",
             "runtimeAttributes": {
-              "gen_ai.ai_sdk.response.timestamp": "2025-01-01T00:00:00.000Z",
-              "gen_ai.ai_sdk.usage.total_tokens": 30,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -1088,9 +1021,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
           {
             "ended": true,
             "initAttributes": {
-              "gen_ai.ai_sdk.settings.maxOutputTokens": 100,
-              "gen_ai.ai_sdk.settings.maxRetries": 2,
-              "gen_ai.ai_sdk.settings.temperature": 0.7,
               "gen_ai.input.messages": "[{"role":"user","parts":[{"type":"text","content":"Hello"}]}]",
               "gen_ai.operation.name": "invoke_agent",
               "gen_ai.provider.name": "openai",
@@ -1100,7 +1030,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
             },
             "name": "invoke_agent gpt-4",
             "runtimeAttributes": {
-              "gen_ai.ai_sdk.usage.total_tokens": 30,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
@@ -1120,8 +1049,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
             },
             "name": "chat gpt-4",
             "runtimeAttributes": {
-              "gen_ai.ai_sdk.response.timestamp": "2025-01-01T00:00:00.000Z",
-              "gen_ai.ai_sdk.usage.total_tokens": 30,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"tool_call"}]",
               "gen_ai.response.finish_reasons": [
                 "tool-calls",
@@ -1157,8 +1084,6 @@ describe('GenAIOpenTelemetryIntegration', () => {
             },
             "name": "chat gpt-4",
             "runtimeAttributes": {
-              "gen_ai.ai_sdk.response.timestamp": "2025-01-01T00:00:00.000Z",
-              "gen_ai.ai_sdk.usage.total_tokens": 30,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
               "gen_ai.response.finish_reasons": [
                 "stop",
