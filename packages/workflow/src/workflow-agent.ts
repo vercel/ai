@@ -1042,6 +1042,11 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         throw err;
       }
       if (mergedOnToolCallFinish) {
+        const isError =
+          result.output &&
+          'type' in result.output &&
+          (result.output.type === 'error-text' ||
+            result.output.type === 'error-json');
         await mergedOnToolCallFinish({
           toolCall: {
             type: 'tool-call',
@@ -1049,10 +1054,17 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
             toolName: toolCall.toolName,
             input: toolCall.input,
           },
-          result:
-            result.output && 'value' in result.output
-              ? result.output.value
-              : undefined,
+          ...(isError
+            ? {
+                error:
+                  'value' in result.output ? result.output.value : undefined,
+              }
+            : {
+                result:
+                  result.output && 'value' in result.output
+                    ? result.output.value
+                    : undefined,
+              }),
         });
       }
       return result;
