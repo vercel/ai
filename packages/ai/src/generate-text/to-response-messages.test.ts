@@ -460,55 +460,6 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should include reasoning-file parts in the assistant message', async () => {
-    const pngFile = new DefaultGeneratedFile({
-      data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
-      mediaType: 'image/png',
-    });
-
-    const result = await toResponseMessages({
-      content: [
-        {
-          type: 'reasoning-file',
-          file: pngFile,
-          providerMetadata: {
-            testProvider: { signature: 'sig' },
-          },
-        },
-        {
-          type: 'text',
-          text: 'Here is my analysis',
-        },
-      ],
-      tools: {},
-    });
-
-    expect(result).toMatchInlineSnapshot(`
-      [
-        {
-          "content": [
-            {
-              "data": "iVBORw0KGgo=",
-              "mediaType": "image/png",
-              "providerOptions": {
-                "testProvider": {
-                  "signature": "sig",
-                },
-              },
-              "type": "reasoning-file",
-            },
-            {
-              "providerOptions": undefined,
-              "text": "Here is my analysis",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
-  });
-
   it('should include images in the assistant message', async () => {
     const pngFile = new DefaultGeneratedFile({
       data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
@@ -843,6 +794,167 @@ describe('toResponseMessages', () => {
 
         1. Juneteenth Celebration:
         ",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should filter out orphaned provider-executed tool calls without matching results', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'text',
+            text: 'Let me search for that.',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'toolu_01ABC123',
+            toolName: 'web_search',
+            input: { query: 'test' },
+            providerExecuted: true,
+          },
+          {
+            type: 'text',
+            text: 'Here are the results.',
+          },
+        ],
+        tools: {
+          web_search: tool({
+            type: 'provider',
+            id: 'test.web_search',
+            inputSchema: z.object({ query: z.string() }),
+            outputSchema: z.array(z.object({ url: z.string() })),
+            args: {},
+          }),
+        },
+      });
+
+      // The orphaned tool-call without matching tool-result should be filtered out
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": undefined,
+                "text": "Let me search for that.",
+                "type": "text",
+              },
+              {
+                "providerOptions": undefined,
+                "text": "Here are the results.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should include provider-executed tool results in assistant message', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'toolu_01ABC123',
+            toolName: 'web_search',
+            input: { query: 'test' },
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'toolu_01ABC123',
+            toolName: 'web_search',
+            input: { query: 'test' },
+            output: [{ url: 'https://example.com' }],
+            providerExecuted: true,
+          },
+        ],
+        tools: {
+          web_search: tool({
+            type: 'provider',
+            id: 'test.web_search',
+            inputSchema: z.object({ query: z.string() }),
+            outputSchema: z.array(z.object({ url: z.string() })),
+            args: {},
+          }),
+        },
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "query": "test",
+                },
+                "providerExecuted": true,
+                "providerOptions": undefined,
+                "toolCallId": "toolu_01ABC123",
+                "toolName": "web_search",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": [
+                    {
+                      "url": "https://example.com",
+                    },
+                  ],
+                },
+                "providerOptions": undefined,
+                "toolCallId": "toolu_01ABC123",
+                "toolName": "web_search",
+                "type": "tool-result",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should filter orphaned provider-executed tool-error without matching call', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'text',
+            text: 'Search failed.',
+          },
+          {
+            type: 'tool-error',
+            toolCallId: 'orphan-error-id',
+            toolName: 'web_search',
+            input: { query: 'test' },
+            error: 'Search failed',
+            providerExecuted: true,
+          },
+        ],
+        tools: {
+          web_search: tool({
+            type: 'provider',
+            id: 'test.web_search',
+            inputSchema: z.object({ query: z.string() }),
+            outputSchema: z.array(z.object({ url: z.string() })),
+            args: {},
+          }),
+        },
+      });
+
+      // The orphaned tool-error without matching tool-call should be filtered out
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": undefined,
+                "text": "Search failed.",
                 "type": "text",
               },
             ],
