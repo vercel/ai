@@ -37,10 +37,6 @@ const RESOLUTION_MAP: Record<string, string> = {
   '640x480': '480p',
 };
 
-<<<<<<< HEAD
-export class XaiVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
-=======
 function resolveVideoMode(
   options: XaiParsedVideoModelOptions | undefined,
 ): XaiParsedVideoModelOptions['mode'] | undefined {
@@ -62,9 +58,8 @@ function resolveVideoMode(
   return undefined;
 }
 
-export class XaiVideoModel implements Experimental_VideoModelV4 {
-  readonly specificationVersion = 'v4';
->>>>>>> f51c95e96 (feat(provider/xai): add video extension and reference-to-video (R2V) support (#13887))
+export class XaiVideoModel implements Experimental_VideoModelV3 {
+  readonly specificationVersion = 'v3';
   readonly maxVideosPerCall = 1;
 
   get provider(): string {
