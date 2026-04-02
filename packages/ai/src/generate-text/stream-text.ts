@@ -313,7 +313,7 @@ export function streamText<
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   experimental_download: download,
-  includeRawChunks = false,
+  includeRawChunks: includeRawChunksDeprecated = false,
   onChunk,
   onError = ({ error }) => {
     console.error(error);
@@ -442,6 +442,8 @@ export function streamText<
      * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
      * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
      * Defaults to false.
+     *
+     * @deprecated Use `experimental_include: { rawChunks: true }` instead.
      */
     includeRawChunks?: boolean;
 
@@ -525,6 +527,16 @@ export function streamText<
        * @default true
        */
       requestBody?: boolean;
+
+      /**
+       * Whether to include raw chunks from the provider in the stream.
+       * When enabled, you will receive raw chunks with type 'raw' that
+       * contain the unprocessed data from the provider.
+       * This allows access to cutting-edge provider features not yet
+       * wrapped by the AI SDK.
+       * @default false
+       */
+      rawChunks?: boolean;
     };
 
     /**
@@ -536,6 +548,9 @@ export function streamText<
       generateCallId?: IdGenerator;
     };
   }): StreamTextResult<TOOLS, OUTPUT> {
+  // include.rawChunks takes precedence over deprecated includeRawChunks
+  const includeRawChunks = include?.rawChunks ?? includeRawChunksDeprecated;
+
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
@@ -805,7 +820,7 @@ class DefaultStreamTextResult<
     originalAbortSignal: AbortSignal | undefined;
     experimental_context: unknown;
     download: DownloadFunction | undefined;
-    include: { requestBody?: boolean } | undefined;
+    include: { requestBody?: boolean; rawChunks?: boolean } | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
