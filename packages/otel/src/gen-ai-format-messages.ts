@@ -10,6 +10,7 @@ import {
   LanguageModelV4ToolCallPart,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
+import type { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
 import { convertDataContentToBase64String } from 'ai';
 
 type LanguageModelV4ContentPart =
@@ -64,29 +65,47 @@ interface SemConvSystemInstruction {
 /**
  * Maps an AI SDK provider string (e.g. "anthropic.messages", "openai.chat")
  * to a well-known gen_ai.provider.name value per the OTel GenAI SemConv.
+ *
+ * Provider strings come in formats like:
+ *   "openai.chat", "google.generative-ai", "google.vertex.chat",
+ *   "google-vertex", "amazon-bedrock.chat", "azure.chat"
+ *
+ * We match against longest-prefix-first to handle multi-segment prefixes
+ * like "google.vertex" and "google.generative-ai" before the single-segment "google".
  */
 export function mapProviderName(provider: string): string {
-  const prefix = provider.split('.')[0].toLowerCase();
+  const lower = provider.toLowerCase();
 
-  const wellKnownProviders: Record<string, string> = {
-    anthropic: 'anthropic',
-    openai: 'openai',
-    'azure-openai': 'azure.ai.openai',
-    azure: 'azure.ai.inference',
-    google: 'gcp.gen_ai',
-    'google-vertex': 'gcp.vertex_ai',
-    'google-generative-ai': 'gcp.gemini',
-    mistral: 'mistral_ai',
-    cohere: 'cohere',
-    'amazon-bedrock': 'aws.bedrock',
-    bedrock: 'aws.bedrock',
-    groq: 'groq',
-    deepseek: 'deepseek',
-    perplexity: 'perplexity',
-    xai: 'x_ai',
-  };
+  const wellKnownPrefixes: Array<[string, string]> = [
+    ['google.vertex', 'gcp.vertex_ai'],
+    ['google.generative-ai', 'gcp.gemini'],
+    ['google-vertex', 'gcp.vertex_ai'],
+    ['amazon-bedrock', 'aws.bedrock'],
+    ['azure-openai', 'azure.ai.openai'],
+    ['anthropic', 'anthropic'],
+    ['openai', 'openai'],
+    ['azure', 'azure.ai.inference'],
+    ['google', 'gcp.gemini'],
+    ['mistral', 'mistral_ai'],
+    ['cohere', 'cohere'],
+    ['bedrock', 'aws.bedrock'],
+    ['groq', 'groq'],
+    ['deepseek', 'deepseek'],
+    ['perplexity', 'perplexity'],
+    ['xai', 'x_ai'],
+  ];
 
-  return wellKnownProviders[prefix] ?? provider;
+  for (const [prefix, mapped] of wellKnownPrefixes) {
+    if (
+      lower === prefix ||
+      lower.startsWith(prefix + '.') ||
+      lower.startsWith(prefix + '-')
+    ) {
+      return mapped;
+    }
+  }
+
+  return provider;
 }
 
 /**
@@ -239,6 +258,208 @@ export function formatInputMessages(
       const parts = message.content.map(convertMessagePartToSemConv);
       return { role: message.role, parts };
     });
+}
+
+/**
+ * Converts user-facing ModelMessage[] (and optional prompt string) to the
+ * gen_ai.input.messages SemConv format. System messages are excluded
+ * (they belong in gen_ai.system_instructions).
+ */
+export function formatModelMessages({
+  prompt,
+  messages,
+}: {
+  prompt: string | Array<ModelMessage> | undefined;
+  messages: Array<ModelMessage> | undefined;
+}): SemConvInputMessage[] {
+  const result: SemConvInputMessage[] = [];
+
+  if (typeof prompt === 'string') {
+    result.push({
+      role: 'user',
+      parts: [{ type: 'text', content: prompt }],
+    });
+  } else if (Array.isArray(prompt)) {
+    for (const msg of prompt) {
+      const converted = convertModelMessageToSemConv(msg);
+      if (converted) result.push(converted);
+    }
+  }
+
+  if (messages) {
+    for (const msg of messages) {
+      const converted = convertModelMessageToSemConv(msg);
+      if (converted) result.push(converted);
+    }
+  }
+
+  return result;
+}
+
+function convertModelMessageToSemConv(
+  msg: ModelMessage,
+): SemConvInputMessage | undefined {
+  if (msg.role === 'system') return undefined;
+
+  if (msg.role === 'user') {
+    if (typeof msg.content === 'string') {
+      return {
+        role: 'user',
+        parts: [{ type: 'text', content: msg.content }],
+      };
+    }
+    const parts: SemConvPart[] = msg.content.map(part => {
+      switch (part.type) {
+        case 'text':
+          return { type: 'text' as const, content: part.text };
+        case 'image': {
+          const data = part.image;
+          if (data instanceof URL) {
+            return {
+              type: 'uri' as const,
+              modality: 'image',
+              mime_type: part.mediaType ?? null,
+              uri: data.toString(),
+            };
+          }
+          if (typeof data === 'string') {
+            if (data.startsWith('http://') || data.startsWith('https://')) {
+              return {
+                type: 'uri' as const,
+                modality: 'image',
+                mime_type: part.mediaType ?? null,
+                uri: data,
+              };
+            }
+            return {
+              type: 'blob' as const,
+              modality: 'image',
+              mime_type: part.mediaType ?? null,
+              content: data,
+            };
+          }
+          return {
+            type: 'blob' as const,
+            modality: 'image',
+            mime_type: part.mediaType ?? null,
+            content: convertDataContentToBase64String(data as Uint8Array),
+          };
+        }
+        case 'file': {
+          const data = part.data;
+          if (data instanceof URL) {
+            return {
+              type: 'uri' as const,
+              modality: getModality(part.mediaType),
+              mime_type: part.mediaType ?? null,
+              uri: data.toString(),
+            };
+          }
+          if (typeof data === 'string') {
+            if (data.startsWith('http://') || data.startsWith('https://')) {
+              return {
+                type: 'uri' as const,
+                modality: getModality(part.mediaType),
+                mime_type: part.mediaType ?? null,
+                uri: data,
+              };
+            }
+            return {
+              type: 'blob' as const,
+              modality: getModality(part.mediaType),
+              mime_type: part.mediaType ?? null,
+              content: data,
+            };
+          }
+          return {
+            type: 'blob' as const,
+            modality: getModality(part.mediaType),
+            mime_type: part.mediaType ?? null,
+            content: convertDataContentToBase64String(data as Uint8Array),
+          };
+        }
+        default:
+          return { type: String((part as { type: string }).type) };
+      }
+    });
+    return { role: 'user', parts };
+  }
+
+  if (msg.role === 'assistant') {
+    if (typeof msg.content === 'string') {
+      return {
+        role: 'assistant',
+        parts: [{ type: 'text', content: msg.content }],
+      };
+    }
+    const parts: SemConvPart[] = msg.content.map(part => {
+      switch (part.type) {
+        case 'text':
+          return { type: 'text' as const, content: part.text };
+        case 'reasoning':
+          return { type: 'reasoning' as const, content: part.text };
+        case 'tool-call':
+          return {
+            type: 'tool_call' as const,
+            id: part.toolCallId ?? null,
+            name: part.toolName,
+            arguments: part.input,
+          };
+        case 'tool-result': {
+          const output = part.output;
+          let response: unknown;
+          if (output) {
+            if (output.type === 'text' || output.type === 'error-text') {
+              response = output.value;
+            } else if (output.type === 'json' || output.type === 'error-json') {
+              response = output.value;
+            } else if (output.type === 'execution-denied') {
+              response = { denied: true, reason: output.reason };
+            } else {
+              response = output;
+            }
+          }
+          return {
+            type: 'tool_call_response' as const,
+            id: part.toolCallId ?? null,
+            response,
+          };
+        }
+        default:
+          return { type: String((part as { type: string }).type) };
+      }
+    });
+    return { role: 'assistant', parts };
+  }
+
+  if (msg.role === 'tool') {
+    const parts: SemConvPart[] = msg.content.map(part => {
+      if (part.type === 'tool-result') {
+        const output = part.output;
+        let response: unknown;
+        if (output) {
+          if (output.type === 'text' || output.type === 'error-text') {
+            response = output.value;
+          } else if (output.type === 'json' || output.type === 'error-json') {
+            response = output.value;
+          } else if (output.type === 'execution-denied') {
+            response = { denied: true, reason: output.reason };
+          } else {
+            response = output;
+          }
+        }
+        return {
+          type: 'tool_call_response' as const,
+          id: part.toolCallId ?? null,
+          response,
+        };
+      }
+      return { type: String((part as { type: string }).type) };
+    });
+    return { role: 'tool', parts };
+  }
+
+  return undefined;
 }
 
 /**

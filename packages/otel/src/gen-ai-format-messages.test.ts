@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   formatInputMessages,
+  formatModelMessages,
   formatOutputMessages,
   formatObjectOutputMessages,
   formatSystemInstructions,
@@ -15,7 +16,7 @@ describe('mapProviderName', () => {
     expect({
       anthropic: mapProviderName('anthropic.messages'),
       openai: mapProviderName('openai.chat'),
-      google: mapProviderName('google.generative-ai'),
+      googleGemini: mapProviderName('google.generative-ai'),
       mistral: mapProviderName('mistral.chat'),
       groq: mapProviderName('groq.chat'),
       deepseek: mapProviderName('deepseek.chat'),
@@ -23,12 +24,34 @@ describe('mapProviderName', () => {
       {
         "anthropic": "anthropic",
         "deepseek": "deepseek",
-        "google": "gcp.gen_ai",
+        "googleGemini": "gcp.gemini",
         "groq": "groq",
         "mistral": "mistral_ai",
         "openai": "openai",
       }
     `);
+  });
+
+  it('should map google vertex provider strings', () => {
+    expect({
+      vertexChat: mapProviderName('google.vertex.chat'),
+      vertexEmbedding: mapProviderName('google.vertex.embedding'),
+      vertexImage: mapProviderName('google.vertex.image'),
+      googleVertex: mapProviderName('google-vertex'),
+    }).toMatchInlineSnapshot(`
+      {
+        "googleVertex": "gcp.vertex_ai",
+        "vertexChat": "gcp.vertex_ai",
+        "vertexEmbedding": "gcp.vertex_ai",
+        "vertexImage": "gcp.vertex_ai",
+      }
+    `);
+  });
+
+  it('should map bare google prefix to gcp.gemini', () => {
+    expect(mapProviderName('google.chat')).toMatchInlineSnapshot(
+      `"gcp.gemini"`,
+    );
   });
 
   it('should map bedrock provider', () => {
@@ -39,6 +62,18 @@ describe('mapProviderName', () => {
       {
         "amazonBedrock": "aws.bedrock",
         "bedrock": "aws.bedrock",
+      }
+    `);
+  });
+
+  it('should map azure providers', () => {
+    expect({
+      azureChat: mapProviderName('azure.chat'),
+      azureOpenai: mapProviderName('azure-openai.chat'),
+    }).toMatchInlineSnapshot(`
+      {
+        "azureChat": "azure.ai.inference",
+        "azureOpenai": "azure.ai.openai",
       }
     `);
   });
@@ -529,5 +564,165 @@ describe('formatObjectOutputMessages', () => {
         },
       ]
     `);
+  });
+});
+
+describe('formatModelMessages', () => {
+  it('should convert a prompt string to a user message', () => {
+    expect(formatModelMessages({ prompt: 'Hello', messages: undefined }))
+      .toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "content": "Hello",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should convert ModelMessage array from prompt', () => {
+    expect(
+      formatModelMessages({
+        prompt: [
+          { role: 'user', content: 'Hi there' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tc1',
+                toolName: 'weather',
+                input: { city: 'NYC' },
+              },
+            ],
+          },
+        ],
+        messages: undefined,
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "content": "Hi there",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "parts": [
+            {
+              "arguments": {
+                "city": "NYC",
+              },
+              "id": "tc1",
+              "name": "weather",
+              "type": "tool_call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
+  it('should exclude system messages', () => {
+    expect(
+      formatModelMessages({
+        prompt: undefined,
+        messages: [
+          { role: 'system', content: 'Be helpful' },
+          { role: 'user', content: 'Hello' },
+        ],
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "content": "Hello",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should convert tool messages', () => {
+    expect(
+      formatModelMessages({
+        prompt: undefined,
+        messages: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'tc1',
+                toolName: 'weather',
+                output: { type: 'text', value: 'Sunny' },
+              },
+            ],
+          },
+        ],
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "id": "tc1",
+              "response": "Sunny",
+              "type": "tool_call_response",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
+  });
+
+  it('should combine prompt and messages', () => {
+    expect(
+      formatModelMessages({
+        prompt: 'First message',
+        messages: [{ role: 'user', content: 'Second message' }],
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "parts": [
+            {
+              "content": "First message",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "parts": [
+            {
+              "content": "Second message",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should return empty array when both prompt and messages are undefined', () => {
+    expect(
+      formatModelMessages({ prompt: undefined, messages: undefined }),
+    ).toMatchInlineSnapshot(`[]`);
   });
 });

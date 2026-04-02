@@ -39,6 +39,7 @@ import type { OutputInterface as Output } from 'ai';
 import {
   extractSystemFromPrompt,
   formatInputMessages,
+  formatModelMessages,
   formatObjectOutputMessages,
   formatOutputMessages,
   formatSystemInstructions,
@@ -259,11 +260,12 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
         : undefined,
       'gen_ai.input.messages': {
         input: () =>
-          JSON.stringify({
-            system: event.system,
-            prompt: event.prompt,
-            messages: event.messages,
-          }),
+          JSON.stringify(
+            formatModelMessages({
+              prompt: event.prompt,
+              messages: event.messages,
+            }),
+          ),
       },
       'gen_ai.ai_sdk.telemetry.function_id': telemetry.functionId,
       ...metadataAttributes(telemetry),
@@ -339,11 +341,12 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
         : undefined,
       'gen_ai.input.messages': {
         input: () =>
-          JSON.stringify({
-            system: event.system,
-            prompt: event.prompt,
-            messages: event.messages,
-          }),
+          JSON.stringify(
+            formatModelMessages({
+              prompt: event.prompt,
+              messages: event.messages,
+            }),
+          ),
       },
       'gen_ai.ai_sdk.schema': event.schema
         ? { input: () => JSON.stringify(event.schema) }
@@ -598,7 +601,7 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
       'gen_ai.tool.call.id': toolCall.toolCallId,
       'gen_ai.tool.type': 'function',
       'gen_ai.tool.call.arguments': {
-        output: () => JSON.stringify(toolCall.input),
+        input: () => JSON.stringify(toolCall.input),
       },
     });
 
