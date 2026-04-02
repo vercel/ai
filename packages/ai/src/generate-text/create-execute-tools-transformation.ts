@@ -23,7 +23,7 @@ export function createExecuteToolsTransformation<
   messages,
   abortSignal,
   timeout,
-  experimental_context,
+  context,
   generateId,
   stepNumber,
   provider,
@@ -38,7 +38,7 @@ export function createExecuteToolsTransformation<
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_context: CONTEXT;
+  context: CONTEXT;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
@@ -85,7 +85,7 @@ export function createExecuteToolsTransformation<
               tool,
               toolCall: chunk,
               messages,
-              experimental_context,
+              context,
             })
           ) {
             controller.enqueue({
@@ -119,7 +119,7 @@ export function createExecuteToolsTransformation<
                   messages,
                   abortSignal,
                   timeout,
-                  experimental_context,
+                  context,
                   stepNumber,
                   provider,
                   modelId,

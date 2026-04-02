@@ -140,7 +140,7 @@ export interface OnStartEvent<
    * User-defined context object that flows through the entire generation lifecycle.
    * Can be accessed and modified in `prepareStep` and tool `execute` functions.
    */
-  readonly experimental_context: unknown;
+  readonly context: unknown;
 }
 
 /**
@@ -236,7 +236,7 @@ export interface OnStepStartEvent<
   /**
    * User-defined context object. May be updated from `prepareStep` between steps.
    */
-  readonly experimental_context: unknown;
+  readonly context: unknown;
 }
 
 /**
@@ -273,7 +273,7 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   readonly metadata: Record<string, unknown> | undefined;
 
   /** User-defined context object flowing through the generation. */
-  readonly experimental_context: unknown;
+  readonly context: unknown;
 }
 
 /**
@@ -314,7 +314,7 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   readonly metadata: Record<string, unknown> | undefined;
 
   /** User-defined context object flowing through the generation. */
-  readonly experimental_context: unknown;
+  readonly context: unknown;
 } & (
   | {
       /** Indicates the tool call succeeded. */
@@ -397,7 +397,7 @@ export type OnFinishEvent<
    *
    * @default undefined
    */
-  experimental_context: CONTEXT;
+  context: CONTEXT;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;

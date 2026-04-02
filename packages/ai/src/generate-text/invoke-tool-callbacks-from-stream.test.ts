@@ -12,7 +12,7 @@ describe('invokeToolCallbacksFromStream', () => {
   it('should invoke tool callbacks in order and pass through the stream', async () => {
     const recordedCalls: unknown[] = [];
     const abortController = new AbortController();
-    const experimentalContext = { requestId: 'req-1' };
+    const context = { requestId: 'req-1' };
     const stepInputMessages: Array<ModelMessage> = [
       { role: 'user', content: 'test-input' },
     ];
@@ -51,7 +51,7 @@ describe('invokeToolCallbacksFromStream', () => {
       tools,
       stepInputMessages,
       abortSignal: abortController.signal,
-      experimental_context: experimentalContext,
+      context,
     });
     const resultChunks = await convertReadableStreamToArray(result);
     const recordedCallsForSnapshot = recordedCalls.map(call => ({
@@ -103,7 +103,7 @@ describe('invokeToolCallbacksFromStream', () => {
         {
           "options": {
             "abortSignal": "[AbortSignal]",
-            "experimental_context": {
+            "context": {
               "requestId": "req-1",
             },
             "messages": [
@@ -119,7 +119,7 @@ describe('invokeToolCallbacksFromStream', () => {
         {
           "options": {
             "abortSignal": "[AbortSignal]",
-            "experimental_context": {
+            "context": {
               "requestId": "req-1",
             },
             "inputTextDelta": "{"value":"",
@@ -136,7 +136,7 @@ describe('invokeToolCallbacksFromStream', () => {
         {
           "options": {
             "abortSignal": "[AbortSignal]",
-            "experimental_context": {
+            "context": {
               "requestId": "req-1",
             },
             "inputTextDelta": "Sparkle Day"}",
@@ -153,7 +153,7 @@ describe('invokeToolCallbacksFromStream', () => {
         {
           "options": {
             "abortSignal": "[AbortSignal]",
-            "experimental_context": {
+            "context": {
               "requestId": "req-1",
             },
             "input": {

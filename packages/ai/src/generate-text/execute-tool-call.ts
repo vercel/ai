@@ -39,7 +39,7 @@ export async function executeToolCall<
   messages,
   abortSignal,
   timeout,
-  experimental_context,
+  context,
   stepNumber,
   provider,
   modelId,
@@ -54,7 +54,7 @@ export async function executeToolCall<
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  experimental_context: CONTEXT;
+  context: CONTEXT;
   timeout?: TimeoutConfiguration<TOOLS>;
   stepNumber?: number;
   provider?: string;
@@ -89,7 +89,7 @@ export async function executeToolCall<
     abortSignal,
     functionId: telemetry?.functionId,
     metadata: telemetry?.metadata as Record<string, unknown> | undefined,
-    experimental_context,
+    context,
   };
 
   let output: unknown;
@@ -124,7 +124,7 @@ export async function executeToolCall<
             toolCallId,
             messages,
             abortSignal: toolAbortSignal,
-            experimental_context,
+            context,
           },
         });
 

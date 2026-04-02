@@ -187,11 +187,16 @@ export type ToolLoopAgentSettings<
   providerOptions?: ProviderOptions;
 
   /**
-   * Context that is passed into tool calls.
+   * User-defined runtime context.
    *
-   * Experimental (can break in patch releases).
+   * Treat the context object as immutable inside tools.
+   * Mutating the context object can lead to race conditions and unexpected results
+   * when tools are called in parallel.
+   *
+   * If you need to mutate the context, analyze the tool calls and results
+   * in `prepareStep` and update it there.
    */
-  experimental_context?: CONTEXT;
+  context?: CONTEXT;
 
   /**
    * Custom download function to use for URLs.
@@ -234,7 +239,7 @@ export type ToolLoopAgentSettings<
         | 'activeTools'
         | 'providerOptions'
         | 'experimental_download'
-      > & { experimental_context: CONTEXT },
+      > & { context: CONTEXT },
   ) => MaybePromiseLike<
     Pick<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, CONTEXT, NoInfer<OUTPUT>>,
@@ -254,7 +259,7 @@ export type ToolLoopAgentSettings<
       | 'experimental_telemetry'
       | 'activeTools'
       | 'providerOptions'
-      | 'experimental_context'
+      | 'context'
       | 'experimental_download'
     > &
       Omit<Prompt, 'system'>
