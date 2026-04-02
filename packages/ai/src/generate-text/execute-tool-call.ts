@@ -1,20 +1,21 @@
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
-import { notify } from '../util/notify';
 import {
   getToolTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/call-settings';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { notify } from '../util/notify';
 import { now } from '../util/now';
 import {
   GenerateTextOnToolCallFinishCallback,
   GenerateTextOnToolCallStartCallback,
 } from './generate-text';
 import { TypedToolCall } from './tool-call';
-import { ToolOutput } from './tool-output';
-import { ToolSet } from './tool-set';
-import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
+import { ToolOutput } from './tool-output';
+import { TypedToolResult } from './tool-result';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from './tool-set';
 
 /**
  * Executes a single tool call and manages its lifecycle callbacks.
@@ -27,7 +28,10 @@ import { TypedToolError } from './tool-error';
  *
  * @returns The tool output (result or error), or undefined if the tool has no execute function.
  */
-export async function executeToolCall<TOOLS extends ToolSet>({
+export async function executeToolCall<
+  TOOLS extends ToolSet,
+  CONTEXT extends GenerationContext<TOOLS>,
+>({
   toolCall,
   tools,
   telemetry,
@@ -50,8 +54,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
+  experimental_context: CONTEXT;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_context: unknown;
   stepNumber?: number;
   provider?: string;
   modelId?: string;

@@ -1,5 +1,20 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/anthropic@4.0.0-beta.13
+
+## 5.0.0-beta.16
+
+### Patch Changes
+
+- 6d8716c: feat(bedrock): add support for service tier for model inference
+
 ## 5.0.0-beta.15
 
 ### Patch Changes
