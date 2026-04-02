@@ -1,5 +1,12 @@
 # @ai-sdk/mistral
 
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
 ## 2.0.29
 
 ### Patch Changes
@@ -151,12 +158,12 @@
 - 3429644: feat(provider/mistral): `MistralLanguageModelOptions` type
 
   ```ts
-  import { mistral, type MistralLanguageModelOptions } from '@ai-sdk/mistral';
-  import { generateText } from 'ai';
+  import { mistral, type MistralLanguageModelOptions } from "@ai-sdk/mistral";
+  import { generateText } from "ai";
 
   await generateText({
-    model: mistral('open-mistral-7b'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: mistral("open-mistral-7b"),
+    prompt: "Invent a new holiday and describe its traditions.",
     providerOptions: {
       mistral: {
         safePrompt: true,
