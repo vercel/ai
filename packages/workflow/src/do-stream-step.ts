@@ -15,7 +15,7 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
-import { resolveLanguageModel } from 'ai/internal';
+import { gateway } from 'ai';
 import type { ProviderOptions, TelemetrySettings } from './workflow-agent.js';
 import {
   resolveSerializableTools,
@@ -97,7 +97,7 @@ export async function doStreamStep(
   // Resolve model inside step (must happen here for serialization boundary)
   let model: CompatibleLanguageModel;
   if (typeof modelInit === 'string') {
-    model = resolveLanguageModel(modelInit) as CompatibleLanguageModel;
+    model = gateway.languageModel(modelInit) as CompatibleLanguageModel;
   } else if (typeof modelInit === 'function') {
     model = await modelInit();
   } else {
