@@ -195,6 +195,41 @@ describe('convertToLanguageModelPrompt', () => {
           },
         ]);
       });
+
+      it('should not download image data URLs (inline base64)', async () => {
+        const downloadFn = vi.fn();
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'image',
+                    image: 'data:image/png;base64,/9j/3Q==',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: createDefaultDownloadFunction(downloadFn),
+        });
+
+        expect(downloadFn).not.toHaveBeenCalled();
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/jpeg',
+                data: '/9j/3Q==',
+              },
+            ],
+          },
+        ]);
+      });
     });
 
     describe('file parts', () => {
@@ -470,6 +505,42 @@ describe('convertToLanguageModelPrompt', () => {
                 type: 'file',
                 mediaType: 'application/pdf',
                 data: new Uint8Array([0, 1, 2, 3]),
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should not download file data URLs (inline base64)', async () => {
+        const downloadFn = vi.fn();
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: 'data:application/pdf;base64,dGVzdA==',
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: createDefaultDownloadFunction(downloadFn),
+        });
+
+        expect(downloadFn).not.toHaveBeenCalled();
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: 'dGVzdA==',
               },
             ],
           },
