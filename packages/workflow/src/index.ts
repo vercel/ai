@@ -20,6 +20,10 @@ export {
   type StreamTextTransform,
   type TelemetrySettings,
   type ToolCallRepairFunction,
+  type WorkflowAgentOnStartCallback,
+  type WorkflowAgentOnStepStartCallback,
+  type WorkflowAgentOnToolCallStartCallback,
+  type WorkflowAgentOnToolCallFinishCallback,
 } from './workflow-agent.js';
 
 export {

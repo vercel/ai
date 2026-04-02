@@ -105,6 +105,31 @@ export async function chat(messages: UIMessage[]) {
         steps: event.steps.length,
       });
     },
+    experimental_onStart: async ({ model, messages }) => {
+      console.log('[onStart]', {
+        model: typeof model === 'string' ? model : 'factory',
+        messageCount: messages.length,
+      });
+    },
+    experimental_onStepStart: async ({ stepNumber, model }) => {
+      console.log('[onStepStart]', {
+        stepNumber,
+        model: typeof model === 'string' ? model : 'factory',
+      });
+    },
+    experimental_onToolCallStart: async ({ toolCall }) => {
+      console.log('[onToolCallStart]', {
+        toolName: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+      });
+    },
+    experimental_onToolCallFinish: async ({ toolCall, result, error }) => {
+      console.log('[onToolCallFinish]', {
+        toolName: toolCall.toolName,
+        result: result !== undefined ? 'ok' : 'n/a',
+        error: error !== undefined,
+      });
+    },
   });
 
   // WorkflowAgent streams ModelCallStreamPart chunks to the writable

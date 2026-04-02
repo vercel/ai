@@ -6,6 +6,7 @@ import type {
 } from '@ai-sdk/provider';
 import type {
   Experimental_ModelCallStreamPart as ModelCallStreamPart,
+  ModelMessage,
   StepResult,
   StreamTextOnStepFinishCallback,
   ToolCallRepairFunction,
@@ -24,6 +25,7 @@ import type {
   PrepareStepCallback,
   StreamTextOnErrorCallback,
   TelemetrySettings,
+  WorkflowAgentOnStepStartCallback,
 } from './workflow-agent.js';
 import type { CompatibleLanguageModel } from './types.js';
 
@@ -56,6 +58,7 @@ export async function* streamTextIterator({
   stopConditions,
   maxSteps,
   onStepFinish,
+  onStepStart,
   onError,
   prepareStep,
   generationSettings,
@@ -73,6 +76,7 @@ export async function* streamTextIterator({
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
   onStepFinish?: StreamTextOnStepFinishCallback<any>;
+  onStepStart?: WorkflowAgentOnStepStartCallback;
   onError?: StreamTextOnErrorCallback;
   prepareStep?: PrepareStepCallback<any>;
   generationSettings?: GenerationSettings;
@@ -232,6 +236,14 @@ export async function* streamTextIterator({
       if (prepareResult.toolChoice !== undefined) {
         currentToolChoice = prepareResult.toolChoice;
       }
+    }
+
+    if (onStepStart) {
+      await onStepStart({
+        stepNumber,
+        model: currentModel,
+        messages: conversationPrompt as unknown as ModelMessage[],
+      });
     }
 
     try {
