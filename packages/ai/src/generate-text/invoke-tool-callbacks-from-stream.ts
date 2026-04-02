@@ -1,6 +1,6 @@
 import { GenerationContext } from './generation-context';
 import { ModelCallStreamPart } from './stream-model-call';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { ModelMessage } from '@ai-sdk/provider-utils';
 
 export function invokeToolCallbacksFromStream<

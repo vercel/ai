@@ -1,6 +1,6 @@
 import type { Context } from '@ai-sdk/provider-utils';
-import type { InferToolSetContext } from './infer-tool-set-context';
-import type { ToolSet } from './tool-set';
+import type { InferToolSetContext } from '@ai-sdk/provider-utils';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * The context type for a generation call.

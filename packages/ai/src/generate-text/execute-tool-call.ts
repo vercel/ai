@@ -15,7 +15,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import type { GenerationContext } from './generation-context';
-import type { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Executes a single tool call and manages its lifecycle callbacks.

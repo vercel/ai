@@ -1,6 +1,6 @@
 import { StepResult } from './step-result';
 import type { GenerationContext } from './generation-context';
-import type { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export type StopCondition<
   TOOLS extends ToolSet,

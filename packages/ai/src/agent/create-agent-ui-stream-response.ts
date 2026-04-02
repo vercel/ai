@@ -1,7 +1,7 @@
 import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
 import type { GenerationContext } from '../generate-text/generation-context';
-import type { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import { createUIMessageStreamResponse } from '../ui-message-stream';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';

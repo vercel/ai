@@ -10,7 +10,7 @@ import {
 } from './stream-text';
 import { TypedToolCall } from './tool-call';
 import type { GenerationContext } from './generation-context';
-import type { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { ModelCallStreamPart } from './stream-model-call';
 
 export function createExecuteToolsTransformation<

@@ -49,7 +49,7 @@ import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export type ModelCallStreamPart<TOOLS extends ToolSet = ToolSet> =
   | Exclude<

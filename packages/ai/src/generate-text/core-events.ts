@@ -13,7 +13,7 @@ import type { StopCondition } from './stop-condition';
 import { TextStreamPart } from './stream-text-result';
 import type { TypedToolCall } from './tool-call';
 import type { GenerationContext } from './generation-context';
-import type { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Common model information used across callback events.

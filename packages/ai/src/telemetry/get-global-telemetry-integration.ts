@@ -1,5 +1,5 @@
 import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { asArray } from '../util/as-array';
 import type { TelemetryIntegration } from './telemetry-integration';
 import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
