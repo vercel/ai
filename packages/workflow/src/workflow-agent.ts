@@ -28,7 +28,7 @@ import {
   mergeAbortSignals,
   standardizePrompt,
 } from 'ai/internal';
-import { mergeCallbacks } from './merge-callbacks.js';
+import { mergeCallbacks } from 'ai/internal';
 import { recordSpan } from './telemetry.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 import type { CompatibleLanguageModel } from './types.js';
