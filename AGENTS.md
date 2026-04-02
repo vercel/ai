@@ -1,4 +1,4 @@
-# AGENTS.md
+# AI Coding Agent Instructions
 
 This file provides context for AI coding assistants (Cursor, GitHub Copilot, Claude Code, etc.) working with the Vercel AI SDK repository.
 
@@ -240,16 +240,39 @@ For a focused conceptual walkthrough of AI functions, model specifications, and 
 2. Add to root `tsconfig.json` references
 3. Run `pnpm update-references` if adding dependencies between packages
 
+## Skills
+
+This repository includes agent skills in `skills/` that provide step-by-step workflows for common tasks:
+
+| Skill | Purpose |
+| --- | --- |
+| `use-ai-sdk` | Correct AI SDK usage patterns, common errors, gateway setup |
+| `add-provider-package` | Step-by-step guide for creating a new provider package |
+| `update-provider-models` | Workflow for adding, updating, or removing provider models |
+| `develop-ai-functions-example` | Creating examples in `examples/ai-functions/` |
+| `capture-api-response-test-fixture` | Recording real API responses as test fixtures |
+| `adr-skill` | Creating and managing Architecture Decision Records |
+| `list-npm-package-content` | Inspecting published npm package contents |
+
 ## Contributing Guides
 
-| Task                  | Guide                                   |
-| --------------------- | --------------------------------------- |
-| Add new provider      | `contributing/add-new-provider.md`      |
-| Add new model         | `contributing/add-new-model.md`         |
-| Testing & fixtures    | `contributing/testing.md`               |
+| Task | Guide |
+| --- | --- |
+| Add new provider | `contributing/add-new-provider.md` |
+| Add new model | `contributing/add-new-model.md` |
 | Provider architecture | `contributing/provider-architecture.md` |
+| Providers overview | `contributing/providers.md` |
 | Building new features | `contributing/building-new-features.md` |
-| Codemods              | `contributing/codemods.md`              |
+| Testing & fixtures | `contributing/testing.md` |
+| Naming conventions | `contributing/naming-conventions.md` |
+| Packages overview | `contributing/packages.md` |
+| Zod usage | `contributing/zod.md` |
+| Documentation | `contributing/documentation.md` |
+| Codemods | `contributing/codemods.md` |
+| Releases | `contributing/releases.md` |
+| Pre-release cycle | `contributing/pre-release-cycle.md` |
+| Add tool to registry | `contributing/add-new-tool-to-registry.md` |
+| Project philosophies | `contributing/project-philosophies.md` |
 
 ## Changesets
 
