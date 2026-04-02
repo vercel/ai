@@ -19,12 +19,11 @@ async function getWeather(input: { city: string }): Promise<{
   condition: string;
 }> {
   'use step';
-  // Fake weather data based on city name
   const hash = input.city
     .toLowerCase()
     .split('')
     .reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const temperature = 40 + (hash % 60); // 40-99°F
+  const temperature = 40 + (hash % 60);
   const conditions = [
     'sunny',
     'cloudy',
@@ -41,7 +40,6 @@ async function calculate(input: {
   expression: string;
 }): Promise<{ expression: string; result: number }> {
   'use step';
-  // Only allow numbers, operators, parentheses, and whitespace
   const translated = input.expression.replace(/\s/g, '').replace(/\^/g, '**');
   if (!/^[0-9+\-*/().]+$/.test(translated)) {
     throw new Error(`Invalid expression: ${input.expression}`);
@@ -50,8 +48,16 @@ async function calculate(input: {
   return { expression: input.expression, result };
 }
 
+async function deleteFileStep(input: {
+  path: string;
+}): Promise<{ deleted: string }> {
+  'use step';
+  console.log('[deleteFile] Deleting:', input.path);
+  return { deleted: input.path };
+}
+
 // ============================================================================
-// Chat workflow — orchestrates the WorkflowAgent
+// Chat workflow
 // ============================================================================
 
 const tools = {
@@ -74,115 +80,90 @@ const tools = {
     execute: calculate,
   },
   deleteFile: {
-    description: 'Delete a file from the filesystem. Always requires approval.',
+    description: 'Delete a file from the filesystem.',
     inputSchema: z.object({
       path: z.string().describe('The file path to delete'),
     }),
-    execute: async (input: { path: string }) => {
-      'use step';
-      console.log('[deleteFile] Would delete:', input.path);
-      return { deleted: input.path };
-    },
+    execute: deleteFileStep,
     needsApproval: true as const,
   },
-  sendEmail: {
-    description:
-      'Send an email. Requires approval only for external recipients.',
-    inputSchema: z.object({
-      to: z.string().describe('Email recipient'),
-      subject: z.string().describe('Email subject'),
-    }),
-    execute: async (input: { to: string; subject: string }) => {
-      'use step';
-      console.log('[sendEmail] Would send to:', input.to);
-      return { sent: true, to: input.to, subject: input.subject };
-    },
-    needsApproval: async (input: { to: string; subject: string }) => {
-      const isExternal = !input.to.endsWith('@company.com');
-      console.log(
-        '[sendEmail needsApproval]',
-        input.to,
-        isExternal ? '→ needs approval' : '→ auto-approved',
-      );
-      return isExternal;
-    },
-  },
 };
+
 const repairToolCall: ToolCallRepairFunction<typeof tools> = async ({
   toolCall,
 }) => {
   'use step';
-
   console.log('Repairing tool call', { toolCall });
-
   return toolCall;
 };
+
+/**
+ * Patch UIMessages to add placeholder tool results for any unresolved
+ * tool calls. This prevents AI_MissingToolResultsError when the user
+ * approves/denies a tool that was paused by needsApproval.
+ */
+function patchUnresolvedToolCalls(messages: UIMessage[]): UIMessage[] {
+  // Collect all tool call IDs and tool result IDs
+  const toolCallIds = new Set<string>();
+  const toolResultIds = new Set<string>();
+
+  for (const msg of messages) {
+    for (const part of msg.parts) {
+      const p = part as any;
+      if (
+        p.type?.startsWith('tool-') &&
+        p.toolCallId &&
+        p.state !== undefined
+      ) {
+        toolCallIds.add(p.toolCallId);
+        if (p.state === 'output-available') {
+          toolResultIds.add(p.toolCallId);
+        }
+      }
+    }
+  }
+
+  // Find unresolved tool calls
+  const unresolvedIds = [...toolCallIds].filter(id => !toolResultIds.has(id));
+  if (unresolvedIds.length === 0) return messages;
+
+  // Strip assistant messages that contain only unresolved tool calls
+  return messages.filter(msg => {
+    if (msg.role !== 'assistant') return true;
+    const hasOnlyUnresolvedTools = msg.parts.every(part => {
+      const p = part as any;
+      if (p.type?.startsWith('tool-') && p.toolCallId) {
+        return unresolvedIds.includes(p.toolCallId);
+      }
+      // Keep step-start and other non-content parts
+      return p.type === 'step-start';
+    });
+    return !hasOnlyUnresolvedTools;
+  });
+}
 
 export async function chat(messages: UIMessage[]) {
   'use workflow';
 
-  const modelMessages = await convertToModelMessages(messages);
+  const patchedMessages = patchUnresolvedToolCalls(messages);
+  const modelMessages = await convertToModelMessages(patchedMessages);
 
   const agent = new WorkflowAgent({
     model: anthropic('claude-sonnet-4-20250514'),
     instructions:
-      'You are a helpful assistant with access to weather and calculator tools. Use them when the user asks about weather in a city or needs math calculations. Keep responses concise.',
+      'You are a helpful assistant with access to weather, calculator, and file deletion tools. Always use the appropriate tool when the user asks to perform an action — never just say you will do it, actually call the tool. Keep responses concise.',
     tools,
-    prepareCall: async options => {
-      console.log('[prepareCall]', {
-        model: typeof options.model === 'string' ? options.model : 'factory',
-        messageCount: options.messages.length,
-        hasTools: Object.keys(options.tools).length > 0,
-      });
-      return options;
-    },
-    onStepFinish: async stepResult => {
-      console.log('[agent-chat] step finished:', {
-        finishReason: stepResult.finishReason,
-        text: stepResult.text?.slice(0, 100),
-      });
-    },
-    onFinish: async event => {
-      console.log('[agent-chat] finished:', {
-        finishReason: event.finishReason,
-        steps: event.steps.length,
-      });
-    },
-    experimental_onStart: async ({ model, messages }) => {
-      console.log('[onStart]', {
-        model: typeof model === 'string' ? model : 'factory',
-        messageCount: messages.length,
-      });
-    },
-    experimental_onStepStart: async ({ stepNumber, model }) => {
-      console.log('[onStepStart]', {
-        stepNumber,
-        model: typeof model === 'string' ? model : 'factory',
-      });
-    },
-    experimental_onToolCallStart: async ({ toolCall }) => {
-      console.log('[onToolCallStart]', {
-        toolName: toolCall.toolName,
-        toolCallId: toolCall.toolCallId,
-      });
-    },
-    experimental_onToolCallFinish: async ({ toolCall, result, error }) => {
-      console.log('[onToolCallFinish]', {
-        toolName: toolCall.toolName,
-        result: result !== undefined ? 'ok' : 'n/a',
-        error: error !== undefined,
-      });
-    },
   });
 
-  // WorkflowAgent streams ModelCallStreamPart chunks to the writable
-  // in real-time. The route handler converts to UIMessageChunks at the
-  // response boundary using createUIMessageChunkTransform().
   const result = await agent.stream({
     messages: modelMessages,
     writable: getWritable<ModelCallStreamPart>(),
     experimental_repairToolCall: repairToolCall as any,
   });
 
-  return { messages: result.messages };
+  return {
+    messages: result.messages,
+    toolCalls: result.toolCalls,
+    toolResults: result.toolResults,
+  };
 }

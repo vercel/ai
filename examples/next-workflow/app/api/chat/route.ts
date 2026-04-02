@@ -7,8 +7,6 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
   const run = await start(chat, [messages]);
 
-  // The workflow streams ModelCallStreamPart chunks.
-  // Convert to UIMessageChunks at the response boundary.
   return createUIMessageStreamResponse({
     stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
     headers: {
