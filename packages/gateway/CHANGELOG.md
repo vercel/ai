@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.85
+
+### Patch Changes
+
+- 85e476d: feat (provider/gateway): add disallowPromptTraining gateway provider option
+
 ## 3.0.84
 
 ### Patch Changes
