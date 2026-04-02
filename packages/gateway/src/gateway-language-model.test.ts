@@ -1535,5 +1535,45 @@ describe('GatewayLanguageModel', () => {
         },
       });
     });
+
+    it('should pass zeroDataRetention option', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            zeroDataRetention: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { zeroDataRetention: true },
+      });
+    });
+
+    it('should pass disallowPromptTraining option', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            disallowPromptTraining: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { disallowPromptTraining: true },
+      });
+    });
   });
 });

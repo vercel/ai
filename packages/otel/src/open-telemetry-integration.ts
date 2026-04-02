@@ -1,27 +1,27 @@
 import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
-  context,
-  trace,
-  Span,
-  Context,
   Attributes,
   AttributeValue,
+  context,
+  Context,
+  Span,
   SpanStatusCode,
+  trace,
   Tracer,
 } from '@opentelemetry/api';
 import type {
-  EmbedOnStartEvent,
-  EmbedOnFinishEvent,
-  EmbedStartEvent,
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
+  TelemetryIntegration,
+  TelemetrySettings,
+} from 'ai';
+import type {
   EmbedFinishEvent,
-} from '../embed/embed-events';
-import type {
-  RerankOnStartEvent,
-  RerankOnFinishEvent,
-  RerankStartEvent,
-  RerankFinishEvent,
-} from '../rerank/rerank-events';
-import type {
+  EmbedOnFinishEvent,
+  EmbedOnStartEvent,
+  EmbedStartEvent,
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -29,21 +29,17 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
+  RerankFinishEvent,
+  RerankOnFinishEvent,
+  RerankOnStartEvent,
+  RerankStartEvent,
 } from '../generate-text/core-events';
-import type { Output } from '../generate-text/output';
 import type { GenerationContext } from '../generate-text/generation-context';
+import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
-import type {
-  ObjectOnStartEvent,
-  ObjectOnFinishEvent,
-  ObjectOnStepStartEvent,
-  ObjectOnStepFinishEvent,
-} from '../generate-object/structured-output-events';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
-import { TelemetrySettings } from './telemetry-settings';
-import type { TelemetryIntegration } from './telemetry-integration';
 
 function recordSpanError(span: Span, error: unknown): void {
   if (error instanceof Error) {
