@@ -10,6 +10,10 @@ type BaseToolCall = {
   providerMetadata?: ProviderMetadata;
 };
 
+/**
+ * A tool call whose `toolName` maps to a tool in the declared tool set,
+ * with an `input` type inferred from that tool's input schema.
+ */
 export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
   [NAME in keyof TOOLS]: BaseToolCall & {
     toolName: NAME & string;
@@ -21,6 +25,10 @@ export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
   };
 }>;
 
+/**
+ * A tool call whose `toolName` is only known at runtime, such as an invalid
+ * or otherwise untyped call that cannot be matched to the declared tool set.
+ */
 export type DynamicToolCall = BaseToolCall & {
   toolName: string;
   input: unknown;
@@ -42,6 +50,10 @@ export type DynamicToolCall = BaseToolCall & {
   error?: unknown;
 };
 
+/**
+ * A tool call returned by text generation, either statically typed from the
+ * declared tool set or dynamically typed when the tool cannot be inferred.
+ */
 export type TypedToolCall<TOOLS extends ToolSet> =
   | StaticToolCall<TOOLS>
   | DynamicToolCall;
