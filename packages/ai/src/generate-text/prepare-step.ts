@@ -1,12 +1,11 @@
 import {
-  Context,
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
-import { StepResult } from './step-result';
 import type { GenerationContext } from './generation-context';
+import { StepResult } from './step-result';
 import type { ToolSet } from './tool-set';
 
 /**
@@ -29,7 +28,7 @@ export type PrepareStepFunction<
   /**
    * The steps that have been executed so far.
    */
-  steps: Array<StepResult<TOOLS, CONTEXT>>;
+  steps: Array<StepResult<NoInfer<TOOLS>, NoInfer<CONTEXT>>>;
 
   /**
    * The number of the step that is being executed.
