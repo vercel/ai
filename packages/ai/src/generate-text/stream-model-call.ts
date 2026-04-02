@@ -116,7 +116,6 @@ export async function streamModelCall<
   system,
   messages,
   download,
-  maxRetries,
   abortSignal,
   headers,
   includeRawChunks,
@@ -148,7 +147,7 @@ export async function streamModelCall<
     promptMessages: LanguageModelV4Prompt;
   }) => Promise<void> | void;
 } & Prompt &
-  CallSettings): Promise<{
+  Omit<CallSettings, 'maxRetries'>): Promise<{
   stream: AsyncIterableStream<ModelCallStreamPart<TOOLS>>;
   request?: {
     /**
@@ -164,8 +163,6 @@ export async function streamModelCall<
   };
 }> {
   const resolvedModel = resolveLanguageModel(model);
-
-  const { retry } = prepareRetries({ maxRetries, abortSignal });
 
   const standardizedPrompt = await standardizePrompt({
     system,
@@ -199,19 +196,17 @@ export async function streamModelCall<
     stream: languageModelStream,
     response,
     request,
-  } = await retry(async () =>
-    resolvedModel.doStream({
-      ...callSettings,
-      tools: stepTools,
-      toolChoice: stepToolChoice,
-      responseFormat: await output?.responseFormat,
-      prompt: promptMessages,
-      providerOptions,
-      abortSignal,
-      headers,
-      includeRawChunks,
-    }),
-  );
+  } = await resolvedModel.doStream({
+    ...callSettings,
+    tools: stepTools,
+    toolChoice: stepToolChoice,
+    responseFormat: await output?.responseFormat,
+    prompt: promptMessages,
+    providerOptions,
+    abortSignal,
+    headers,
+    includeRawChunks,
+  });
 
   const standardizedStream = languageModelStream.pipeThrough(
     createLanguageModelStreamPartToModelCallStreamPartTransform({
