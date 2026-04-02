@@ -16,6 +16,7 @@ import {
   anthropicTools,
   AnthropicMessagesLanguageModel,
 } from '@ai-sdk/anthropic/internal';
+import { resolvePartitionDomain } from '../bedrock-partition';
 import {
   BedrockCredentials,
   createApiKeyFetchFunction,
@@ -232,16 +233,19 @@ export function createBedrockAnthropic(
   // Wrap with Bedrock event stream to SSE transformer for streaming support
   const fetchFunction = createBedrockAnthropicFetch(baseFetchFunction);
 
-  const getBaseURL = (): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-runtime.${loadSetting({
-          settingValue: options.region,
-          settingName: 'region',
-          environmentVariableName: 'AWS_REGION',
-          description: 'AWS region',
-        })}.amazonaws.com`,
-    ) ?? 'https://bedrock-runtime.us-east-1.amazonaws.com';
+  const getBaseURL = (): string => {
+    if (options.baseURL) {
+      return withoutTrailingSlash(options.baseURL) ?? options.baseURL;
+    }
+    const region = loadSetting({
+      settingValue: options.region,
+      settingName: 'region',
+      environmentVariableName: 'AWS_REGION',
+      description: 'AWS region',
+    });
+    const domain = resolvePartitionDomain(region);
+    return `https://bedrock-runtime.${region}.${domain}`;
+  };
 
   const getHeaders = async () => {
     const baseHeaders = (await resolve(options.headers)) ?? {};
