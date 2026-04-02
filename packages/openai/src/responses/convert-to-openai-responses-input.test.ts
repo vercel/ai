@@ -4634,4 +4634,155 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
   });
+
+  describe('duplicate item deduplication', () => {
+    it('should deduplicate function_call items with the same toolCallId across messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'fc_duplicate_123',
+                toolName: 'get_weather',
+                input: { city: 'NYC' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'fc_duplicate_123',
+                toolName: 'get_weather',
+                output: { type: 'text', value: 'Sunny' },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'fc_duplicate_123',
+                toolName: 'get_weather',
+                input: { city: 'NYC' },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        toolNameMapping: testToolNameMapping,
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      const functionCalls = result.input.filter(
+        (item: any) =>
+          item.type === 'function_call' && item.call_id === 'fc_duplicate_123',
+      );
+      expect(functionCalls).toHaveLength(1);
+    });
+
+    it('should deduplicate item_reference entries with the same id when store is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'fc_stored_456',
+                toolName: 'search',
+                input: { q: 'test' },
+                providerOptions: {
+                  openai: { itemId: 'item_abc' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'fc_stored_456',
+                toolName: 'search',
+                output: { type: 'text', value: 'results' },
+                providerOptions: {
+                  openai: { itemId: 'item_def' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'fc_stored_456',
+                toolName: 'search',
+                input: { q: 'test' },
+                providerOptions: {
+                  openai: { itemId: 'item_abc' },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        toolNameMapping: testToolNameMapping,
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      const itemRefs = result.input.filter(
+        (item: any) => item.type === 'item_reference' && item.id === 'item_abc',
+      );
+      expect(itemRefs).toHaveLength(1);
+    });
+
+    it('should deduplicate custom_tool_call items with the same toolCallId', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_dup',
+                toolName: 'my_tool',
+                input: { data: 'test' },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_dup',
+                toolName: 'my_tool',
+                input: { data: 'test' },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        toolNameMapping: testToolNameMapping,
+        providerOptionsName: 'openai',
+        store: false,
+        customProviderToolNames: new Set(['my_tool']),
+      });
+
+      const customCalls = result.input.filter(
+        (item: any) =>
+          item.type === 'custom_tool_call' &&
+          item.call_id === 'call_custom_dup',
+      );
+      expect(customCalls).toHaveLength(1);
+    });
+  });
 });

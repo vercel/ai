@@ -79,6 +79,7 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
   const processedApprovalIds = new Set<string>();
+  const processedItemIds = new Set<string>();
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -154,7 +155,9 @@ export async function convertToOpenAIResponsesInput({
                           isFileId(part.data, fileIdPrefixes)
                         ? { file_id: part.data }
                         : {
-                            image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                            image_url: `data:${mediaType};base64,${convertToBase64(
+                              part.data,
+                            )}`,
                           }),
                     detail:
                       part.providerOptions?.[providerOptionsName]?.imageDetail,
@@ -173,7 +176,9 @@ export async function convertToOpenAIResponsesInput({
                       ? { file_id: part.data }
                       : {
                           filename: part.filename ?? `part-${index}.pdf`,
-                          file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                          file_data: `data:application/pdf;base64,${convertToBase64(
+                            part.data,
+                          )}`,
                         }),
                   };
                 } else {
@@ -210,7 +215,10 @@ export async function convertToOpenAIResponsesInput({
 
               // item references reduce the payload size
               if (store && id != null) {
-                input.push({ type: 'item_reference', id });
+                if (!processedItemIds.has(id)) {
+                  processedItemIds.add(id);
+                  input.push({ type: 'item_reference', id });
+                }
                 break;
               }
 
@@ -276,13 +284,19 @@ export async function convertToOpenAIResponsesInput({
 
               if (part.providerExecuted) {
                 if (store && id != null) {
-                  input.push({ type: 'item_reference', id });
+                  if (!processedItemIds.has(id)) {
+                    processedItemIds.add(id);
+                    input.push({ type: 'item_reference', id });
+                  }
                 }
                 break;
               }
 
               if (store && id != null) {
-                input.push({ type: 'item_reference', id });
+                if (!processedItemIds.has(id)) {
+                  processedItemIds.add(id);
+                  input.push({ type: 'item_reference', id });
+                }
                 break;
               }
 
@@ -345,26 +359,32 @@ export async function convertToOpenAIResponsesInput({
               }
 
               if (customProviderToolNames?.has(resolvedToolName)) {
-                input.push({
-                  type: 'custom_tool_call',
-                  call_id: part.toolCallId,
-                  name: resolvedToolName,
-                  input:
-                    typeof part.input === 'string'
-                      ? part.input
-                      : JSON.stringify(part.input),
-                  id,
-                });
+                if (!processedItemIds.has(part.toolCallId)) {
+                  processedItemIds.add(part.toolCallId);
+                  input.push({
+                    type: 'custom_tool_call',
+                    call_id: part.toolCallId,
+                    name: resolvedToolName,
+                    input:
+                      typeof part.input === 'string'
+                        ? part.input
+                        : JSON.stringify(part.input),
+                    id,
+                  });
+                }
                 break;
               }
 
-              input.push({
-                type: 'function_call',
-                call_id: part.toolCallId,
-                name: resolvedToolName,
-                arguments: JSON.stringify(part.input),
-                id,
-              });
+              if (!processedItemIds.has(part.toolCallId)) {
+                processedItemIds.add(part.toolCallId);
+                input.push({
+                  type: 'function_call',
+                  call_id: part.toolCallId,
+                  name: resolvedToolName,
+                  arguments: JSON.stringify(part.input),
+                  id,
+                });
+              }
               break;
             }
 
@@ -460,7 +480,10 @@ export async function convertToOpenAIResponsesInput({
                       | { itemId?: string }
                       | undefined
                   )?.itemId ?? part.toolCallId;
-                input.push({ type: 'item_reference', id: itemId });
+                if (!processedItemIds.has(itemId)) {
+                  processedItemIds.add(itemId);
+                  input.push({ type: 'item_reference', id: itemId });
+                }
               } else {
                 warnings.push({
                   type: 'other',
@@ -514,7 +537,9 @@ export async function convertToOpenAIResponsesInput({
                   } else if (reasoningMessage !== undefined) {
                     warnings.push({
                       type: 'other',
-                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                      message: `Cannot append empty reasoning part to existing reasoning sequence. Skipping reasoning part: ${JSON.stringify(
+                        part,
+                      )}.`,
                     });
                   }
 
@@ -565,7 +590,9 @@ export async function convertToOpenAIResponsesInput({
                 } else {
                   warnings.push({
                     type: 'other',
-                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(part)}.`,
+                    message: `Non-OpenAI reasoning parts are not supported. Skipping reasoning part: ${JSON.stringify(
+                      part,
+                    )}.`,
                   });
                 }
               }
@@ -619,10 +646,13 @@ export async function convertToOpenAIResponsesInput({
             processedApprovalIds.add(approvalResponse.approvalId);
 
             if (store) {
-              input.push({
-                type: 'item_reference',
-                id: approvalResponse.approvalId,
-              });
+              if (!processedItemIds.has(approvalResponse.approvalId)) {
+                processedItemIds.add(approvalResponse.approvalId);
+                input.push({
+                  type: 'item_reference',
+                  id: approvalResponse.approvalId,
+                });
+              }
             }
 
             input.push({
