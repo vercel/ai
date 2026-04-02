@@ -16,7 +16,14 @@ import type {
 } from 'ai';
 import { z } from 'zod';
 
-const REALTIME_SECRET = process.env.AI_REALTIME_SECRET ?? '';
+const REALTIME_SECRET = process.env.AI_REALTIME_SECRET;
+
+if (!REALTIME_SECRET) {
+  throw new Error(
+    'AI_REALTIME_SECRET environment variable is required. ' +
+      'Generate one with: openssl rand -base64 32',
+  );
+}
 
 const tools = {
   getWeather: tool({
@@ -82,12 +89,10 @@ export async function POST(
     });
 
     // Create an HMAC-signed token authorizing execution of these tools
-    const toolToken = REALTIME_SECRET
-      ? await createRealtimeToolToken({
-          tools: Object.keys(tools),
-          secret: REALTIME_SECRET,
-        })
-      : undefined;
+    const toolToken = await createRealtimeToolToken({
+      tools: Object.keys(tools),
+      secret: REALTIME_SECRET,
+    });
 
     return Response.json({ ...tokenResult, tools: toolDefs, toolToken });
   }
@@ -97,19 +102,17 @@ export async function POST(
       await request.json();
 
     // Verify the HMAC-signed tool token before executing anything
-    if (REALTIME_SECRET) {
-      const verification = await verifyRealtimeToolToken({
-        token: toolToken ?? '',
-        secret: REALTIME_SECRET,
-        toolNames: Object.values(toolsToExecute).map(t => t.name),
-      });
+    const verification = await verifyRealtimeToolToken({
+      token: toolToken,
+      secret: REALTIME_SECRET,
+      toolNames: Object.values(toolsToExecute).map(t => t.name),
+    });
 
-      if (!verification.valid) {
-        return Response.json(
-          { error: verification.error },
-          { status: 403 },
-        );
-      }
+    if (!verification.valid) {
+      return Response.json(
+        { error: verification.error },
+        { status: 403 },
+      );
     }
 
     const toolResults: Record<string, unknown> = {};

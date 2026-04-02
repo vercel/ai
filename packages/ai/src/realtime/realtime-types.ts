@@ -18,7 +18,7 @@ export type RealtimeSetupResponse = {
    *
    * Created with `createRealtimeToolToken()`.
    */
-  toolToken?: string;
+  toolToken: string;
 };
 
 /**
@@ -31,7 +31,7 @@ export type RealtimeToolsExecuteRequestBody = {
    * The server verifies this with `verifyRealtimeToolToken()` before
    * executing any tools.
    */
-  toolToken?: string;
+  toolToken: string;
 
   tools: Record<
     string,

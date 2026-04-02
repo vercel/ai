@@ -118,7 +118,14 @@ export abstract class AbstractRealtimeSession {
       const setupData = await response.json();
       const { token, url, tools: toolDefinitions, toolToken } = setupData;
 
-      this.toolToken = toolToken ?? null;
+      if (!toolToken) {
+        throw new Error(
+          'Setup response is missing toolToken. ' +
+            'Ensure AI_REALTIME_SECRET is set and createRealtimeToolToken() is called in your setup endpoint.',
+        );
+      }
+
+      this.toolToken = toolToken;
 
       const config: RealtimeSessionConfig = {
         ...this.sessionConfig,
@@ -540,7 +547,7 @@ export abstract class AbstractRealtimeSession {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(this.toolToken != null ? { toolToken: this.toolToken } : {}),
+          toolToken: this.toolToken,
           tools: {
             [callId]: { name, inputs: parsedArgs },
           },
