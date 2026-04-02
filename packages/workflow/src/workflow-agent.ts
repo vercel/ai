@@ -323,6 +323,38 @@ export type PrepareStepCallback<TTools extends ToolSet = ToolSet> = (
 ) => PrepareStepResult | Promise<PrepareStepResult>;
 
 /**
+ * Options passed to the prepareCall callback.
+ */
+export interface PrepareCallOptions<
+  TTools extends ToolSet = ToolSet,
+> extends Partial<GenerationSettings> {
+  model: string | (() => Promise<CompatibleLanguageModel>);
+  tools: TTools;
+  instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
+  toolChoice?: ToolChoice<TTools>;
+  experimental_telemetry?: TelemetrySettings;
+  experimental_context?: unknown;
+  messages: ModelMessage[];
+}
+
+/**
+ * Result of the prepareCall callback. All fields are optional —
+ * only returned fields override the defaults.
+ * Note: `tools` cannot be overridden via prepareCall because they are
+ * bound at construction time for type safety.
+ */
+export type PrepareCallResult<TTools extends ToolSet = ToolSet> = Partial<
+  Omit<PrepareCallOptions<TTools>, 'tools'>
+>;
+
+/**
+ * Callback called once before the agent loop starts to transform call parameters.
+ */
+export type PrepareCallCallback<TTools extends ToolSet = ToolSet> = (
+  options: PrepareCallOptions<TTools>,
+) => PrepareCallResult<TTools> | Promise<PrepareCallResult<TTools>>;
+
+/**
  * Configuration options for creating a {@link WorkflowAgent} instance.
  */
 export interface WorkflowAgentOptions<
@@ -412,6 +444,13 @@ export interface WorkflowAgentOptions<
    * Callback called after a tool execution completes.
    */
   experimental_onToolCallFinish?: WorkflowAgentOnToolCallFinishCallback;
+
+  /**
+   * Prepare the parameters for the stream call.
+   * Called once before the agent loop starts. Use this to transform
+   * model, tools, instructions, or other settings based on runtime context.
+   */
+  prepareCall?: PrepareCallCallback<TTools>;
 }
 
 /**
@@ -851,6 +890,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private constructorOnStepStart?: WorkflowAgentOnStepStartCallback;
   private constructorOnToolCallStart?: WorkflowAgentOnToolCallStartCallback;
   private constructorOnToolCallFinish?: WorkflowAgentOnToolCallFinishCallback;
+  private prepareCall?: PrepareCallCallback<TBaseTools>;
 
   constructor(options: WorkflowAgentOptions<TBaseTools>) {
     this.model = options.model;
@@ -867,6 +907,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     this.constructorOnStepStart = options.experimental_onStepStart;
     this.constructorOnToolCallStart = options.experimental_onToolCallStart;
     this.constructorOnToolCallFinish = options.experimental_onToolCallFinish;
+    this.prepareCall = options.prepareCall;
 
     // Extract generation settings
     this.generationSettings = {
@@ -896,9 +937,69 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   >(
     options: WorkflowAgentStreamOptions<TTools, OUTPUT, PARTIAL_OUTPUT>,
   ): Promise<WorkflowAgentStreamResult<TTools, OUTPUT>> {
+    // Call prepareCall to transform parameters before the agent loop
+    let effectiveModel: string | (() => Promise<CompatibleLanguageModel>) =
+      this.model;
+    let effectiveInstructions = options.system ?? this.instructions;
+    let effectiveMessages = options.messages;
+    let effectiveGenerationSettings = { ...this.generationSettings };
+    let effectiveExperimentalContext =
+      options.experimental_context ?? this.experimentalContext;
+    let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
+    let effectiveTelemetryFromPrepare =
+      options.experimental_telemetry ?? this.telemetry;
+
+    if (this.prepareCall) {
+      const prepared = await this.prepareCall({
+        model: effectiveModel,
+        tools: this.tools,
+        instructions: effectiveInstructions,
+        toolChoice: effectiveToolChoiceFromPrepare as ToolChoice<TBaseTools>,
+        experimental_telemetry: effectiveTelemetryFromPrepare,
+        experimental_context: effectiveExperimentalContext,
+        messages: effectiveMessages as ModelMessage[],
+        ...effectiveGenerationSettings,
+      } as PrepareCallOptions<TBaseTools>);
+
+      if (prepared.model !== undefined) effectiveModel = prepared.model;
+      if (prepared.instructions !== undefined)
+        effectiveInstructions = prepared.instructions;
+      if (prepared.messages !== undefined)
+        effectiveMessages =
+          prepared.messages as WorkflowAgentStreamOptions<TTools>['messages'];
+      if (prepared.experimental_context !== undefined)
+        effectiveExperimentalContext = prepared.experimental_context;
+      if (prepared.toolChoice !== undefined)
+        effectiveToolChoiceFromPrepare =
+          prepared.toolChoice as ToolChoice<TBaseTools>;
+      if (prepared.experimental_telemetry !== undefined)
+        effectiveTelemetryFromPrepare = prepared.experimental_telemetry;
+      if (prepared.maxOutputTokens !== undefined)
+        effectiveGenerationSettings.maxOutputTokens = prepared.maxOutputTokens;
+      if (prepared.temperature !== undefined)
+        effectiveGenerationSettings.temperature = prepared.temperature;
+      if (prepared.topP !== undefined)
+        effectiveGenerationSettings.topP = prepared.topP;
+      if (prepared.topK !== undefined)
+        effectiveGenerationSettings.topK = prepared.topK;
+      if (prepared.presencePenalty !== undefined)
+        effectiveGenerationSettings.presencePenalty = prepared.presencePenalty;
+      if (prepared.frequencyPenalty !== undefined)
+        effectiveGenerationSettings.frequencyPenalty =
+          prepared.frequencyPenalty;
+      if (prepared.stopSequences !== undefined)
+        effectiveGenerationSettings.stopSequences = prepared.stopSequences;
+      if (prepared.seed !== undefined)
+        effectiveGenerationSettings.seed = prepared.seed;
+      if (prepared.headers !== undefined)
+        effectiveGenerationSettings.headers = prepared.headers;
+      if (prepared.providerOptions !== undefined)
+        effectiveGenerationSettings.providerOptions = prepared.providerOptions;
+    }
+
     const prompt = await standardizePrompt({
-      system: options.system ?? this.instructions,
-      messages: options.messages,
+      system: effectiveInstructions,
+      messages: effectiveMessages,
     });
 
     const modelPrompt = await convertToLanguageModelPrompt({
@@ -908,15 +1009,15 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     });
 
     const effectiveAbortSignal = mergeAbortSignals(
-      options.abortSignal ?? this.generationSettings.abortSignal,
+      options.abortSignal ?? effectiveGenerationSettings.abortSignal,
       options.timeout != null
         ? AbortSignal.timeout(options.timeout)
         : undefined,
     );
 
-    // Merge generation settings: constructor defaults < stream options
+    // Merge generation settings: constructor defaults < prepareCall < stream options
     const mergedGenerationSettings: GenerationSettings = {
-      ...this.generationSettings,
+      ...effectiveGenerationSettings,
       ...(options.maxOutputTokens !== undefined && {
         maxOutputTokens: options.maxOutputTokens,
       }),
@@ -978,10 +1079,10 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     );
 
     // Determine effective tool choice
-    const effectiveToolChoice = options.toolChoice ?? this.toolChoice;
+    const effectiveToolChoice = effectiveToolChoiceFromPrepare;
 
     // Merge telemetry settings
-    const effectiveTelemetry = options.experimental_telemetry ?? this.telemetry;
+    const effectiveTelemetry = effectiveTelemetryFromPrepare;
 
     // Filter tools if activeTools is specified
     const effectiveTools =
@@ -990,8 +1091,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         : this.tools;
 
     // Initialize context
-    let experimentalContext =
-      options.experimental_context ?? this.experimentalContext;
+    let experimentalContext = effectiveExperimentalContext;
 
     const steps: StepResult<TTools>[] = [];
 
@@ -1002,8 +1102,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // Call onStart before the agent loop
     if (mergedOnStart) {
       await mergedOnStart({
-        model: this.model,
-        messages: options.messages,
+        model: effectiveModel,
+        messages: effectiveMessages as ModelMessage[],
       });
     }
 
@@ -1085,7 +1185,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     }
 
     const iterator = streamTextIterator({
-      model: this.model,
+      model: effectiveModel,
       tools: effectiveTools as ToolSet,
       writable: options.writable,
       prompt: modelPrompt,

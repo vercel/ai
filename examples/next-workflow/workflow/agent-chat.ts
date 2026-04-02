@@ -93,6 +93,14 @@ export async function chat(messages: UIMessage[]) {
     instructions:
       'You are a helpful assistant with access to weather and calculator tools. Use them when the user asks about weather in a city or needs math calculations. Keep responses concise.',
     tools,
+    prepareCall: async options => {
+      console.log('[prepareCall]', {
+        model: typeof options.model === 'string' ? options.model : 'factory',
+        messageCount: options.messages.length,
+        hasTools: Object.keys(options.tools).length > 0,
+      });
+      return options;
+    },
     onStepFinish: async stepResult => {
       console.log('[agent-chat] step finished:', {
         finishReason: stepResult.finishReason,
