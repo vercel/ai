@@ -1,27 +1,24 @@
 import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import {
-  context,
-  trace,
-  Span,
-  Context,
   Attributes,
   AttributeValue,
+  context,
+  Context,
+  Span,
   SpanStatusCode,
+  trace,
   Tracer,
 } from '@opentelemetry/api';
 import type {
-  EmbedOnStartEvent,
-  EmbedOnFinishEvent,
-  EmbedStartEvent,
   EmbedFinishEvent,
-} from '../embed/embed-events';
-import type {
-  RerankOnStartEvent,
-  RerankOnFinishEvent,
-  RerankStartEvent,
-  RerankFinishEvent,
-} from '../rerank/rerank-events';
-import type {
+  EmbedOnFinishEvent,
+  EmbedOnStartEvent,
+  EmbedStartEvent,
+  GenerationContext,
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -29,20 +26,18 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
-} from '../generate-text/core-events';
-import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
-import type {
-  ObjectOnStartEvent,
-  ObjectOnFinishEvent,
-  ObjectOnStepStartEvent,
-  ObjectOnStepFinishEvent,
-} from '../generate-object/structured-output-events';
+  OutputInterface as Output,
+  RerankFinishEvent,
+  RerankOnFinishEvent,
+  RerankOnStartEvent,
+  RerankStartEvent,
+  TelemetryIntegration,
+  TelemetrySettings,
+  ToolSet,
+} from 'ai';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
-import { TelemetrySettings } from './telemetry-settings';
-import type { TelemetryIntegration } from './telemetry-integration';
 
 function recordSpanError(span: Span, error: unknown): void {
   if (error instanceof Error) {
@@ -115,8 +110,9 @@ function selectAttributes(
 
 interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
-> extends OnStepStartEvent<TOOLS, OUTPUT> {
+> extends OnStepStartEvent<TOOLS, CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
   readonly stepToolChoice?: unknown;

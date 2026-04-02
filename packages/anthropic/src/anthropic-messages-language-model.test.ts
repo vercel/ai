@@ -1527,6 +1527,26 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(requestBody.temperature).toBeUndefined();
         expect(requestBody.top_p).toBeUndefined();
       });
+
+      it('should send both temperature and topP for non-Anthropic models', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const nonAnthropicModel = provider('MiniMax-M2.7');
+        const { warnings } = await nonAnthropicModel.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.7,
+          topP: 0.9,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBe(0.7);
+        expect(requestBody.top_p).toBe(0.9);
+        expect(warnings).not.toContainEqual(
+          expect.objectContaining({
+            feature: 'topP',
+          }),
+        );
+      });
     });
 
     it('should limit max output tokens to the model max and warn', async () => {

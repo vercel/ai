@@ -1,5 +1,43 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.30
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/anthropic@4.0.0-beta.16
+  - @ai-sdk/google@4.0.0-beta.22
+  - @ai-sdk/openai-compatible@3.0.0-beta.13
+
+## 5.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [f57c702]
+  - @ai-sdk/anthropic@4.0.0-beta.15
+
+## 5.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+  - @ai-sdk/anthropic@4.0.0-beta.14
+  - @ai-sdk/google@4.0.0-beta.21
+  - @ai-sdk/openai-compatible@3.0.0-beta.12
+
+## 5.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/anthropic@4.0.0-beta.13
+  - @ai-sdk/google@4.0.0-beta.20
+  - @ai-sdk/openai-compatible@3.0.0-beta.11
+
 ## 5.0.0-beta.26
 
 ### Patch Changes

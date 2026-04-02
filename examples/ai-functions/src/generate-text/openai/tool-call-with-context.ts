@@ -5,17 +5,21 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-5-mini'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
         inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
-        execute: async ({ location }, { experimental_context: context }) => {
-          const typedContext = context as { weatherApiKey: string }; // or use type validation library
-
-          console.log(typedContext);
+        contextSchema: z.object({
+          weatherApiKey: z.string().describe('The API key for the weather API'),
+        }),
+        execute: async (
+          { location },
+          { experimental_context: { weatherApiKey } },
+        ) => {
+          console.log('weather tool api key:', weatherApiKey);
 
           return {
             location,
@@ -23,8 +27,39 @@ run(async () => {
           };
         },
       }),
+      calculator: tool({
+        description: 'Calculate mathematical expressions',
+        inputSchema: z.object({
+          expression: z
+            .string()
+            .describe('The mathematical expression to calculate'),
+        }),
+        contextSchema: z.object({
+          calculatorApiKey: z
+            .string()
+            .describe('The API key for the calculator API'),
+        }),
+        execute: async (
+          { expression },
+          { experimental_context: { calculatorApiKey } },
+        ) => {
+          console.log('calculator tool api key:', calculatorApiKey);
+          return {
+            expression,
+            result: eval(expression),
+          };
+        },
+      }),
     },
-    experimental_context: { weatherApiKey: '123' },
+    experimental_context: {
+      weatherApiKey: 'weather-123',
+      calculatorApiKey: 'calculator-456',
+      somethingElse: 'other-context',
+    },
+    prepareStep: async ({ experimental_context: context }) => {
+      console.log('prepareStep context:', context);
+      return {};
+    },
     prompt: 'What is the weather in San Francisco?',
   });
 

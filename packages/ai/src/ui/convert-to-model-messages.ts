@@ -8,7 +8,7 @@ import {
   ToolApprovalResponse,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
 import {

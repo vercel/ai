@@ -1,5 +1,6 @@
 export type { ContentPart } from './content-part';
 export type {
+  OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
@@ -23,7 +24,9 @@ export {
   type GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v7
   type GeneratedFile,
 } from './generated-file';
+export type { GenerationContext } from './generation-context';
 export * as Output from './output';
+export type { Output as OutputInterface } from './output';
 export type {
   InferCompleteOutput as InferGenerateOutput,
   InferPartialOutput as InferStreamOutput,
@@ -86,4 +89,4 @@ export type {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-export type { ToolSet } from './tool-set';
+export type { ToolSet } from '@ai-sdk/provider-utils';
