@@ -4,11 +4,16 @@ import { Output } from '../generate-text/output';
 import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
-import { ToolSet } from '../generate-text/tool-set';
+import type { GenerationContext } from '../generate-text/generation-context';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
 import { mergeCallbacks } from './merge-callbacks';
-import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
+import {
+  ToolLoopAgentOnStartCallback,
+  ToolLoopAgentOnStepStartCallback,
+  ToolLoopAgentSettings,
+} from './tool-loop-agent-settings';
 
 /**
  * A tool loop agent is an agent that runs tools in a loop. In each step,
@@ -24,13 +29,21 @@ import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
 export class ToolLoopAgent<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = never,
-> implements Agent<CALL_OPTIONS, TOOLS, OUTPUT> {
+> implements Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT> {
   readonly version = 'agent-v1';
 
-  private readonly settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>;
+  private readonly settings: ToolLoopAgentSettings<
+    CALL_OPTIONS,
+    TOOLS,
+    CONTEXT,
+    OUTPUT
+  >;
 
-  constructor(settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>) {
+  constructor(
+    settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>,
+  ) {
     this.settings = settings;
   }
 
@@ -54,7 +67,7 @@ export class ToolLoopAgent<
     options?: CALL_OPTIONS;
   }): Promise<
     Omit<
-      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
+      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>,
       | 'prepareCall'
       | 'instructions'
       | 'experimental_onStart'
@@ -86,7 +99,12 @@ export class ToolLoopAgent<
       (await this.settings.prepareCall?.(
         baseCallArgs as Parameters<
           NonNullable<
-            ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>['prepareCall']
+            ToolLoopAgentSettings<
+              CALL_OPTIONS,
+              TOOLS,
+              CONTEXT,
+              OUTPUT
+            >['prepareCall']
           >
         >[0],
       )) ?? baseCallArgs;
@@ -115,7 +133,7 @@ export class ToolLoopAgent<
     onFinish,
     ...options
   }: AgentCallParameters<CALL_OPTIONS, TOOLS>): Promise<
-    GenerateTextResult<TOOLS, OUTPUT>
+    GenerateTextResult<TOOLS, CONTEXT, OUTPUT>
   > {
     return generateText({
       ...(await this.prepareCall(options)),
@@ -123,11 +141,15 @@ export class ToolLoopAgent<
       timeout,
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
-        experimental_onStart,
+        experimental_onStart as
+          | ToolLoopAgentOnStartCallback<TOOLS, CONTEXT, OUTPUT>
+          | undefined,
       ),
       experimental_onStepStart: mergeCallbacks(
         this.settings.experimental_onStepStart,
-        experimental_onStepStart,
+        experimental_onStepStart as
+          | ToolLoopAgentOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>
+          | undefined,
       ),
       experimental_onToolCallStart: mergeCallbacks(
         this.settings.experimental_onToolCallStart,
@@ -157,7 +179,7 @@ export class ToolLoopAgent<
     onFinish,
     ...options
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
-    StreamTextResult<TOOLS, OUTPUT>
+    StreamTextResult<TOOLS, CONTEXT, OUTPUT>
   > {
     return streamText({
       ...(await this.prepareCall(options)),
@@ -166,11 +188,15 @@ export class ToolLoopAgent<
       experimental_transform,
       experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
-        experimental_onStart,
+        experimental_onStart as
+          | ToolLoopAgentOnStartCallback<TOOLS, CONTEXT, OUTPUT>
+          | undefined,
       ),
       experimental_onStepStart: mergeCallbacks(
         this.settings.experimental_onStepStart,
-        experimental_onStepStart,
+        experimental_onStepStart as
+          | ToolLoopAgentOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>
+          | undefined,
       ),
       experimental_onToolCallStart: mergeCallbacks(
         this.settings.experimental_onToolCallStart,

@@ -28,6 +28,8 @@ OTEL_EXPORTER_OTLP_HEADERS="x-api-key:<PATRONUS_API_KEY>"
 import { registerOTel } from '@vercel/otel';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 
 export function register() {
   registerOTel({
@@ -44,6 +46,8 @@ export function register() {
     ],
   });
 }
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 ```
 
 <Note>
@@ -52,9 +56,9 @@ export function register() {
   `https://otel.patronus.ai:4317`.
 </Note>
 
-### 2. Enable telemetry on individual calls
+### 2. Register the integration and enable telemetry
 
-The AI SDK emits a span only when you opt in with `experimental_telemetry`:
+After you've installed `@ai-sdk/otel` and added `registerTelemetryIntegration` to your `instrumentation.ts`, opt in with `experimental_telemetry`:
 
 ```ts
 import { generateText } from 'ai';

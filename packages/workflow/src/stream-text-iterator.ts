@@ -42,7 +42,7 @@ export interface StreamTextIteratorYieldValue {
   /** The conversation messages up to (and including) the tool call request */
   messages: LanguageModelV4Prompt;
   /** The step result from the current step */
-  step?: StepResult<ToolSet>;
+  step?: StepResult<ToolSet, any>;
   /** The current experimental context */
   context?: unknown;
   /** Provider-executed tool results (keyed by tool call ID) */
@@ -75,7 +75,7 @@ export async function* streamTextIterator({
   model: string | (() => Promise<CompatibleLanguageModel>);
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
-  onStepFinish?: StreamTextOnStepFinishCallback<any>;
+  onStepFinish?: StreamTextOnStepFinishCallback<any, any>;
   onStepStart?: WorkflowAgentOnStepStartCallback;
   onError?: StreamTextOnErrorCallback;
   prepareStep?: PrepareStepCallback<any>;
@@ -98,11 +98,11 @@ export async function* streamTextIterator({
   let currentContext = experimental_context;
   let currentActiveTools: string[] | undefined;
 
-  const steps: StepResult<any>[] = [];
+  const steps: StepResult<any, any>[] = [];
   let done = false;
   let isFirstIteration = true;
   let stepNumber = 0;
-  let lastStep: StepResult<any> | undefined;
+  let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
 
   // Default maxSteps to Infinity to preserve backwards compatibility

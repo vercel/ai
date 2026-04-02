@@ -260,7 +260,7 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
   /**
    * All previous steps with their results.
    */
-  steps: StepResult<TTools>[];
+  steps: StepResult<TTools, any>[];
 
   /**
    * The messages that will be sent to the model.
@@ -418,7 +418,7 @@ export interface WorkflowAgentOptions<
   /**
    * Callback function to be called after each step completes.
    */
-  onStepFinish?: StreamTextOnStepFinishCallback<ToolSet>;
+  onStepFinish?: StreamTextOnStepFinishCallback<ToolSet, any>;
 
   /**
    * Callback that is called when the LLM response and all request tool executions are finished.
@@ -463,7 +463,7 @@ export type StreamTextOnFinishCallback<
   /**
    * Details for all steps.
    */
-  readonly steps: StepResult<TTools>[];
+  readonly steps: StepResult<TTools, any>[];
 
   /**
    * The final messages including all tool calls and results.
@@ -512,7 +512,7 @@ export type StreamTextOnAbortCallback<TTools extends ToolSet = ToolSet> =
     /**
      * Details for all previously finished steps.
      */
-    readonly steps: StepResult<TTools>[];
+    readonly steps: StepResult<TTools, any>[];
   }) => PromiseLike<void> | void;
 
 /**
@@ -604,8 +604,8 @@ export interface WorkflowAgentStreamOptions<
    * When the condition is an array, any of the conditions can be met to stop the generation.
    */
   stopWhen?:
-    | StopCondition<NoInfer<ToolSet>>
-    | Array<StopCondition<NoInfer<ToolSet>>>;
+    | StopCondition<NoInfer<ToolSet>, any>
+    | Array<StopCondition<NoInfer<ToolSet>, any>>;
 
   /**
    * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
@@ -694,7 +694,7 @@ export interface WorkflowAgentStreamOptions<
   /**
    * Callback function to be called after each step completes.
    */
-  onStepFinish?: StreamTextOnStepFinishCallback<TTools>;
+  onStepFinish?: StreamTextOnStepFinishCallback<TTools, any>;
 
   /**
    * Callback that is invoked when an error occurs during streaming.
@@ -806,7 +806,7 @@ export interface WorkflowAgentStreamResult<
   /**
    * Details for all steps.
    */
-  steps: StepResult<TTools>[];
+  steps: StepResult<TTools, any>[];
 
   /**
    * The tool calls from the last step.
@@ -884,7 +884,10 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private telemetry?: TelemetrySettings;
   private experimentalContext: unknown;
   private prepareStep?: PrepareStepCallback<TBaseTools>;
-  private constructorOnStepFinish?: StreamTextOnStepFinishCallback<ToolSet>;
+  private constructorOnStepFinish?: StreamTextOnStepFinishCallback<
+    ToolSet,
+    any
+  >;
   private constructorOnFinish?: StreamTextOnFinishCallback<ToolSet>;
   private constructorOnStart?: WorkflowAgentOnStartCallback;
   private constructorOnStepStart?: WorkflowAgentOnStepStartCallback;
@@ -1051,7 +1054,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // Merge constructor + stream callbacks (constructor first, then stream)
     const mergedOnStepFinish = mergeCallbacks(
       this.constructorOnStepFinish as
-        | StreamTextOnStepFinishCallback<TTools>
+        | StreamTextOnStepFinishCallback<TTools, any>
         | undefined,
       options.onStepFinish,
     );
@@ -1093,7 +1096,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // Initialize context
     let experimentalContext = effectiveExperimentalContext;
 
-    const steps: StepResult<TTools>[] = [];
+    const steps: StepResult<TTools, any>[] = [];
 
     // Track tool calls and results from the last step for the result
     let lastStepToolCalls: ToolCall[] = [];
@@ -1232,7 +1235,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           providerExecutedToolResults,
         } = result.value;
         if (step) {
-          steps.push(step as unknown as StepResult<TTools>);
+          steps.push(step as unknown as StepResult<TTools, any>);
         }
         if (context !== undefined) {
           experimentalContext = context;
@@ -1479,7 +1482,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 /**
  * Aggregate token usage across all steps.
  */
-function aggregateUsage(steps: StepResult<any>[]): LanguageModelUsage {
+function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
   let inputTokens = 0;
   let outputTokens = 0;
   for (const step of steps) {

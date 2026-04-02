@@ -25,7 +25,7 @@ import type { CompatibleLanguageModel } from './types.js';
 
 export type { Experimental_ModelCallStreamPart as ModelCallStreamPart } from 'ai';
 
-export type ModelStopCondition = StopCondition<NoInfer<ToolSet>>;
+export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
 
 /**
  * Provider-executed tool result captured from the stream.
@@ -126,7 +126,6 @@ export async function doStreamStep(
     toolChoice: options?.toolChoice,
     includeRawChunks: options?.includeRawChunks,
     providerOptions: options?.providerOptions,
-    maxRetries: options?.maxRetries,
     abortSignal: options?.abortSignal,
     headers: options?.headers,
     maxOutputTokens: options?.maxOutputTokens,
@@ -240,7 +239,7 @@ export async function doStreamStep(
   // Build StepResult
   const reasoningText = reasoningParts.map(r => r.text).join('') || undefined;
 
-  const step: StepResult<ToolSet> = {
+  const step: StepResult<ToolSet, any> = {
     callId: 'workflow-agent',
     stepNumber: 0,
     model: {
@@ -319,7 +318,7 @@ export async function doStreamStep(
       messages: [],
     },
     providerMetadata: finish?.providerMetadata ?? {},
-  } as StepResult<ToolSet>;
+  } as StepResult<ToolSet, any>;
 
   return {
     toolCalls,

@@ -23,15 +23,19 @@ Next.js has built-in support for OpenTelemetry instrumentation via the [instrume
 **Step 1.** Install dependencies
 
 ```bash
-npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources
+npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources @ai-sdk/otel
 ```
 
-**Step 2.** Create an `instrumentation.ts` file in your project root
+**Step 2.** Create an `instrumentation.ts` file in your project root and register the AI SDK telemetry integration alongside your OTel setup:
 
 ```ts filename="instrumentation.ts"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PostHogTraceExporter } from '@posthog/ai/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 export function register() {
   const sdk = new NodeSDK({
@@ -49,7 +53,7 @@ export function register() {
 
 **Step 3.** Use the AI SDK with telemetry enabled in your route handlers or server actions
 
-```ts highlight="6-13"
+```ts highlight="6-12"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -72,7 +76,7 @@ const result = await generateText({
 **Step 1.** Install dependencies
 
 ```bash
-npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources
+npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources @ai-sdk/otel
 ```
 
 **Step 2.** Initialize the OpenTelemetry SDK with PostHog's trace exporter
@@ -81,6 +85,8 @@ npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PostHogTraceExporter } from '@posthog/ai/otel';
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
@@ -92,6 +98,7 @@ const sdk = new NodeSDK({
   }),
 });
 sdk.start();
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 ```
 
 **Step 3.** Use the AI SDK with telemetry enabled

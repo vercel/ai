@@ -1,5 +1,47 @@
 # ai
 
+## 7.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [4552cbf]
+  - @ai-sdk/gateway@4.0.0-beta.30
+
+## 7.0.0-beta.58
+
+### Patch Changes
+
+- 2e17091: fix(types): move shared tool set utility types into provider-utils
+
+  Moved `ToolSet`, `InferToolSetContext`, and `UnionToIntersection` into `@ai-sdk/provider-utils` and updated `ai` internals to import them directly from there. This keeps the shared tool typing utilities colocated with the core tool type definitions.
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+  - @ai-sdk/gateway@4.0.0-beta.29
+
+## 7.0.0-beta.57
+
+### Major Changes
+
+- 986c6fd: feat(ai): change type of experimental_context from unknown to generic
+- 493295c: Remove the deprecated `ToolCallOptions` export.
+
+  Use `ToolExecutionOptions` instead.
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/gateway@4.0.0-beta.28
+
+## 7.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [70a9aae]
+  - @ai-sdk/gateway@4.0.0-beta.27
+
 ## 7.0.0-beta.55
 
 ### Major Changes

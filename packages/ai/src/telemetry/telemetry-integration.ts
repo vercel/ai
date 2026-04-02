@@ -8,7 +8,7 @@ import type {
   OnToolCallStartEvent,
 } from '../generate-text/core-events';
 import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import type {
   EmbedOnStartEvent,
   EmbedOnFinishEvent,
