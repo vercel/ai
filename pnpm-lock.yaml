@@ -101,6 +101,9 @@ importers:
       '@ai-sdk/openai':
         specifier: 4.0.0-beta.18
         version: link:../../packages/openai
+      '@ai-sdk/otel':
+        specifier: 1.0.0-beta.1
+        version: 1.0.0-beta.1(zod@3.25.76)
       '@ai-sdk/perplexity':
         specifier: 4.0.0-beta.11
         version: link:../../packages/perplexity
@@ -119,6 +122,12 @@ importers:
       '@ai-sdk/xai':
         specifier: 4.0.0-beta.19
         version: link:../../packages/xai
+      '@langfuse/otel':
+        specifier: ^4.6.1
+        version: 4.6.1(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-http@0.211.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))
+      '@langfuse/tracing':
+        specifier: ^5.0.2
+        version: 5.0.2(@opentelemetry/api@1.9.0)
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
         version: 1.27.1(@cfworker/json-schema@4.1.1)(zod@3.25.76)
@@ -3161,6 +3170,26 @@ packages:
 
   '@adobe/css-tools@4.4.0':
     resolution: {integrity: sha512-Ff9+ksdQQB3rMncgqDK78uLznstjyfIf2Arnh22pW8kBpLs6rpKDwgnZT46hin5Hl1WzazzK64DOrhSwYpS7bQ==}
+
+  '@ai-sdk/gateway@4.0.0-beta.26':
+    resolution: {integrity: sha512-P+Yfx4MDLQ9pmoUB1Jv8uKjBHKcQC3lCS+cs37N4BnfzIO8QnMK+MHDHedsPwfm+kXdjufU1PxhT2tddbYytRA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/otel@1.0.0-beta.1':
+    resolution: {integrity: sha512-p3Xbb95XpyeNDwaoja76U6rrCDUwkvI9zmH16nsDNdteEXvupzxCnAE7omtKSz+3BSdBUNYM5wTu/XS3UT/xcA==}
+    engines: {node: '>=18'}
+
+  '@ai-sdk/provider-utils@5.0.0-beta.7':
+    resolution: {integrity: sha512-oQqukJG/h5mS0cGx/GHUSyhhhrvVvCRRxgtvnRttEnB3C4S+oc3m8+nO3u81IO5pRggCh4ZUtqzIbqH+Famhjg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider@4.0.0-beta.5':
+    resolution: {integrity: sha512-+07aGNCVXEKgGXtAXjjROPcpHMudWfvsm5UvlZ4LtTfjX9cT61x7h3W0pSSpWY/H7doymdm8PmuX6Z8AvP03WQ==}
+    engines: {node: '>=18'}
 
   '@algolia/abtesting@1.1.0':
     resolution: {integrity: sha512-sEyWjw28a/9iluA37KLGu8vjxEIlb60uxznfTUmXImy7H5NvbpSO6yYgmgH5KiD7j+zTUUihiST0jEP12IoXow==}
@@ -7063,6 +7092,11 @@ packages:
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
 
+  '@langfuse/core@5.0.2':
+    resolution: {integrity: sha512-KUFaaxWqZbTfZ2Uh2jNDh6gQfsL7Kxc/4/C4XbwZ/Ip7wZ+CuwuIrs5DupmzC+xWQTNlRWuTzm4OWLO5xvkz8Q==}
+    peerDependencies:
+      '@opentelemetry/api': ^1.9.0
+
   '@langfuse/otel@4.6.1':
     resolution: {integrity: sha512-ZUa+nV5und6IYK2b5w1vXoNzU/Hfpl1MJ2uu9Woyb74ZBQi36nBwo7SeX+NLvy+n/UzKcJMetOYrA5ywlXvnuA==}
     engines: {node: '>=20'}
@@ -7071,6 +7105,12 @@ packages:
       '@opentelemetry/core': ^2.0.1
       '@opentelemetry/exporter-trace-otlp-http': '>=0.202.0 <1.0.0'
       '@opentelemetry/sdk-trace-base': ^2.0.1
+
+  '@langfuse/tracing@5.0.2':
+    resolution: {integrity: sha512-m+R0ifDY9eICR3Z7fD+peRlpQoYYeAYpKQzWCkTHKiNyCLNi1Bq/RUjufOMoSE/XEHsgBA+LkWX/ErHSpKQNyw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@opentelemetry/api': ^1.9.0
 
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
@@ -11139,6 +11179,12 @@ packages:
   aggregate-error@4.0.1:
     resolution: {integrity: sha512-0poP0T7el6Vq3rstR8Mn4V/IQrpBLO6POkUSrN7RhyY+GF/InCFShQzsQ39T25gkHhLgSLByyAz+Kjb+c2L98w==}
     engines: {node: '>=12'}
+
+  ai@7.0.0-beta.55:
+    resolution: {integrity: sha512-XP3Q+/t3hx1vuOlBKN+u6ujsqwUixDslVx2k/fe0ZxqCa+1PY3+WlDQKkflFylXn/75cqbva0otCkmQt7hdHkg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
 
   ajv-formats@2.1.1:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
@@ -19899,6 +19945,32 @@ snapshots:
 
   '@adobe/css-tools@4.4.0': {}
 
+  '@ai-sdk/gateway@4.0.0-beta.26(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.0-beta.5
+      '@ai-sdk/provider-utils': 5.0.0-beta.7(zod@3.25.76)
+      '@vercel/oidc': 3.2.0
+      zod: 3.25.76
+
+  '@ai-sdk/otel@1.0.0-beta.1(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.0-beta.5
+      '@opentelemetry/api': 1.9.0
+      ai: 7.0.0-beta.55(zod@3.25.76)
+    transitivePeerDependencies:
+      - zod
+
+  '@ai-sdk/provider-utils@5.0.0-beta.7(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.0-beta.5
+      '@standard-schema/spec': 1.1.0
+      eventsource-parser: 3.0.6
+      zod: 3.25.76
+
+  '@ai-sdk/provider@4.0.0-beta.5':
+    dependencies:
+      json-schema: 0.4.0
+
   '@algolia/abtesting@1.1.0':
     dependencies:
       '@algolia/client-common': 5.35.0
@@ -25045,6 +25117,10 @@ snapshots:
     dependencies:
       '@opentelemetry/api': 1.9.0
 
+  '@langfuse/core@5.0.2(@opentelemetry/api@1.9.0)':
+    dependencies:
+      '@opentelemetry/api': 1.9.0
+
   '@langfuse/otel@4.6.1(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-http@0.211.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))':
     dependencies:
       '@langfuse/core': 4.6.1(@opentelemetry/api@1.9.0)
@@ -25052,6 +25128,11 @@ snapshots:
       '@opentelemetry/core': 2.5.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/exporter-trace-otlp-http': 0.211.0(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-base': 2.5.1(@opentelemetry/api@1.9.0)
+
+  '@langfuse/tracing@5.0.2(@opentelemetry/api@1.9.0)':
+    dependencies:
+      '@langfuse/core': 5.0.2(@opentelemetry/api@1.9.0)
+      '@opentelemetry/api': 1.9.0
 
   '@leichtgewicht/ip-codec@2.0.5': {}
 
@@ -29989,6 +30070,13 @@ snapshots:
     dependencies:
       clean-stack: 4.2.0
       indent-string: 5.0.0
+
+  ai@7.0.0-beta.55(zod@3.25.76):
+    dependencies:
+      '@ai-sdk/gateway': 4.0.0-beta.26(zod@3.25.76)
+      '@ai-sdk/provider': 4.0.0-beta.5
+      '@ai-sdk/provider-utils': 5.0.0-beta.7(zod@3.25.76)
+      zod: 3.25.76
 
   ajv-formats@2.1.1(ajv@8.12.0):
     optionalDependencies:
