@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.77
+
+### Patch Changes
+
+- bacdae4: feat(provider/xai): add video extension and reference-to-video (R2V) support
+
 ## 3.0.76
 
 ### Patch Changes
