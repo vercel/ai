@@ -1,0 +1,103 @@
+---
+title: Vertex MaaS (OpenAI-Compatible)
+description: Learn how to use the Vertex MaaS community provider with Google ADC authentication.
+---
+
+# Vertex MaaS Provider
+
+`@amanm/vertex-maas` is a community provider for the AI SDK that targets **Vertex AI models exposed via OpenAI-compatible endpoints**.
+
+Unlike most OpenAI-compatible providers that use static API keys, Vertex commonly requires **Google Application Default Credentials (ADC)**. This provider uses ADC (service account JSON, workload identity, etc.) to automatically fetch and refresh access tokens.
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @amanm/vertex-maas" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm i @amanm/vertex-maas" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @amanm/vertex-maas" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @amanm/vertex-maas" dark />
+  </Tab>
+</Tabs>
+
+Configure Google ADC. For service accounts, this commonly means setting:
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+```
+
+If you want the provider to auto-compute the Vertex OpenAI-compatible base URL, also set:
+
+```bash
+GOOGLE_VERTEX_PROJECT=your-gcp-project-id
+GOOGLE_VERTEX_LOCATION=global # or e.g. us-central1
+```
+
+## Provider Instance
+
+You can create a provider instance with env-based settings:
+
+```ts
+import { createVertexMaaS } from '@amanm/vertex-maas';
+
+const vertex = createVertexMaaS({
+  project: process.env.GOOGLE_VERTEX_PROJECT!,
+  location: process.env.GOOGLE_VERTEX_LOCATION!,
+});
+```
+
+Or provide a fully specified OpenAI-compatible base URL:
+
+```ts
+import { createVertexMaaS } from '@amanm/vertex-maas';
+
+const vertex = createVertexMaaS({
+  baseURL:
+    'https://aiplatform.googleapis.com/v1beta1/projects/<PROJECT>/locations/global/endpoints/openapi',
+});
+```
+
+## Example
+
+```ts
+import { generateText } from 'ai';
+import { createVertexMaaS } from '@amanm/vertex-maas';
+
+const vertex = createVertexMaaS({
+  project: process.env.GOOGLE_VERTEX_PROJECT!,
+  location: process.env.GOOGLE_VERTEX_LOCATION!,
+});
+
+const { text } = await generateText({
+  model: vertex('zai-org/glm-4.7-maas'),
+  prompt: "Explain Amdahl's Law in one paragraph.",
+});
+
+console.log(text);
+```
+
+## Settings
+
+- `baseURL`: Optional. Use a fixed OpenAI-compatible base URL.
+- `project` / `location`: Optional. Used to compute `baseURL` if not provided.
+- `apiVersion`: Optional. Defaults to `v1beta1`.
+- `apiBase`: Optional. Override the Vertex API host.
+- `googleAuthOptions`: Optional. Passed to `google-auth-library`.
+- `headers`: Optional custom headers.
+- `queryParams`: Optional query params appended to request URLs.
+- `fetch`: Optional custom fetch implementation.
+
+## OpenCode
+
+If you use this provider inside OpenCode, set `opencodeCompat: true` to map the streaming finish reason to a string.
+
+## Links
+
+- GitHub: https://github.com/amanmprojects/vertex-maas
+- npm: https://www.npmjs.com/package/@amanm/vertex-maas
