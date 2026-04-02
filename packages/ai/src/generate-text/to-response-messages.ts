@@ -35,12 +35,6 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
       continue;
     }
 
-    // Preserve empty text parts: they are structurally significant when
-    // reasoning/thinking blocks are present. Providers (e.g. Bedrock)
-    // validate that the content block structure is unchanged, so dropping
-    // an empty text part shifts indices and causes validation failures.
-    // See: https://github.com/vercel/ai/issues/XXXXX
-
     switch (part.type) {
       case 'text':
         content.push({
