@@ -28,6 +28,7 @@ import {
   mergeAbortSignals,
   standardizePrompt,
 } from 'ai/internal';
+import { mergeCallbacks } from 'ai/internal';
 import { recordSpan } from './telemetry.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 import type { CompatibleLanguageModel } from './types.js';
@@ -391,6 +392,26 @@ export interface WorkflowAgentOptions<
    * Callback that is called when the LLM response and all request tool executions are finished.
    */
   onFinish?: StreamTextOnFinishCallback<ToolSet>;
+
+  /**
+   * Callback called when the agent starts streaming, before any LLM calls.
+   */
+  experimental_onStart?: WorkflowAgentOnStartCallback;
+
+  /**
+   * Callback called before each step (LLM call) begins.
+   */
+  experimental_onStepStart?: WorkflowAgentOnStepStartCallback;
+
+  /**
+   * Callback called before a tool's execute function runs.
+   */
+  experimental_onToolCallStart?: WorkflowAgentOnToolCallStartCallback;
+
+  /**
+   * Callback called after a tool execution completes.
+   */
+  experimental_onToolCallFinish?: WorkflowAgentOnToolCallFinishCallback;
 }
 
 /**
@@ -454,6 +475,48 @@ export type StreamTextOnAbortCallback<TTools extends ToolSet = ToolSet> =
      */
     readonly steps: StepResult<TTools>[];
   }) => PromiseLike<void> | void;
+
+/**
+ * Callback that is called when the agent starts streaming, before any LLM calls.
+ */
+export type WorkflowAgentOnStartCallback = (event: {
+  /** The model being used */
+  readonly model: string | (() => Promise<CompatibleLanguageModel>);
+  /** The messages being sent */
+  readonly messages: ModelMessage[];
+}) => PromiseLike<void> | void;
+
+/**
+ * Callback that is called before each step (LLM call) begins.
+ */
+export type WorkflowAgentOnStepStartCallback = (event: {
+  /** The current step number (0-based) */
+  readonly stepNumber: number;
+  /** The model being used for this step */
+  readonly model: string | (() => Promise<CompatibleLanguageModel>);
+  /** The messages being sent for this step */
+  readonly messages: ModelMessage[];
+}) => PromiseLike<void> | void;
+
+/**
+ * Callback that is called before a tool's execute function runs.
+ */
+export type WorkflowAgentOnToolCallStartCallback = (event: {
+  /** The tool call being executed */
+  readonly toolCall: ToolCall;
+}) => PromiseLike<void> | void;
+
+/**
+ * Callback that is called after a tool execution completes.
+ */
+export type WorkflowAgentOnToolCallFinishCallback = (event: {
+  /** The tool call that was executed */
+  readonly toolCall: ToolCall;
+  /** The tool result (undefined if execution failed) */
+  readonly result?: unknown;
+  /** The error if execution failed */
+  readonly error?: unknown;
+}) => PromiseLike<void> | void;
 
 /**
  * Options for the {@link WorkflowAgent.stream} method.
@@ -612,6 +675,26 @@ export interface WorkflowAgentStreamOptions<
   onAbort?: StreamTextOnAbortCallback<TTools>;
 
   /**
+   * Callback called when the agent starts streaming, before any LLM calls.
+   */
+  experimental_onStart?: WorkflowAgentOnStartCallback;
+
+  /**
+   * Callback called before each step (LLM call) begins.
+   */
+  experimental_onStepStart?: WorkflowAgentOnStepStartCallback;
+
+  /**
+   * Callback called before a tool's execute function runs.
+   */
+  experimental_onToolCallStart?: WorkflowAgentOnToolCallStartCallback;
+
+  /**
+   * Callback called after a tool execution completes.
+   */
+  experimental_onToolCallFinish?: WorkflowAgentOnToolCallFinishCallback;
+
+  /**
    * Callback function called before each step in the agent loop.
    * Use this to modify settings, manage context, or inject messages dynamically.
    *
@@ -764,6 +847,10 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private prepareStep?: PrepareStepCallback<TBaseTools>;
   private constructorOnStepFinish?: StreamTextOnStepFinishCallback<ToolSet>;
   private constructorOnFinish?: StreamTextOnFinishCallback<ToolSet>;
+  private constructorOnStart?: WorkflowAgentOnStartCallback;
+  private constructorOnStepStart?: WorkflowAgentOnStepStartCallback;
+  private constructorOnToolCallStart?: WorkflowAgentOnToolCallStartCallback;
+  private constructorOnToolCallFinish?: WorkflowAgentOnToolCallFinishCallback;
 
   constructor(options: WorkflowAgentOptions<TBaseTools>) {
     this.model = options.model;
@@ -776,6 +863,10 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     this.prepareStep = options.prepareStep;
     this.constructorOnStepFinish = options.onStepFinish;
     this.constructorOnFinish = options.onFinish;
+    this.constructorOnStart = options.experimental_onStart;
+    this.constructorOnStepStart = options.experimental_onStepStart;
+    this.constructorOnToolCallStart = options.experimental_onToolCallStart;
+    this.constructorOnToolCallFinish = options.experimental_onToolCallFinish;
 
     // Extract generation settings
     this.generationSettings = {
@@ -857,42 +948,34 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     };
 
     // Merge constructor + stream callbacks (constructor first, then stream)
-    const mergedOnStepFinish:
-      | StreamTextOnStepFinishCallback<TTools>
-      | undefined =
-      this.constructorOnStepFinish || options.onStepFinish
-        ? async event => {
-            if (this.constructorOnStepFinish) {
-              await (
-                this
-                  .constructorOnStepFinish as unknown as StreamTextOnStepFinishCallback<TTools>
-              )(event);
-            }
-            if (options.onStepFinish) {
-              await options.onStepFinish(event);
-            }
-          }
-        : undefined;
-
-    const mergedOnFinish:
-      | StreamTextOnFinishCallback<TTools, OUTPUT>
-      | undefined =
-      this.constructorOnFinish || options.onFinish
-        ? async event => {
-            if (this.constructorOnFinish) {
-              await (
-                this
-                  .constructorOnFinish as unknown as StreamTextOnFinishCallback<
-                  TTools,
-                  OUTPUT
-                >
-              )(event);
-            }
-            if (options.onFinish) {
-              await options.onFinish(event);
-            }
-          }
-        : undefined;
+    const mergedOnStepFinish = mergeCallbacks(
+      this.constructorOnStepFinish as
+        | StreamTextOnStepFinishCallback<TTools>
+        | undefined,
+      options.onStepFinish,
+    );
+    const mergedOnFinish = mergeCallbacks(
+      this.constructorOnFinish as
+        | StreamTextOnFinishCallback<TTools, OUTPUT>
+        | undefined,
+      options.onFinish,
+    );
+    const mergedOnStart = mergeCallbacks(
+      this.constructorOnStart,
+      options.experimental_onStart,
+    );
+    const mergedOnStepStart = mergeCallbacks(
+      this.constructorOnStepStart,
+      options.experimental_onStepStart,
+    );
+    const mergedOnToolCallStart = mergeCallbacks(
+      this.constructorOnToolCallStart,
+      options.experimental_onToolCallStart,
+    );
+    const mergedOnToolCallFinish = mergeCallbacks(
+      this.constructorOnToolCallFinish,
+      options.experimental_onToolCallFinish,
+    );
 
     // Determine effective tool choice
     const effectiveToolChoice = options.toolChoice ?? this.toolChoice;
@@ -916,6 +999,77 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     let lastStepToolCalls: ToolCall[] = [];
     let lastStepToolResults: ToolResult[] = [];
 
+    // Call onStart before the agent loop
+    if (mergedOnStart) {
+      await mergedOnStart({
+        model: this.model,
+        messages: options.messages,
+      });
+    }
+
+    // Helper to wrap executeTool with onToolCallStart/onToolCallFinish callbacks
+    const executeToolWithCallbacks = async (
+      toolCall: { toolCallId: string; toolName: string; input: unknown },
+      tools: ToolSet,
+      messages: LanguageModelV4Prompt,
+      context?: unknown,
+    ): Promise<LanguageModelV4ToolResultPart> => {
+      if (mergedOnToolCallStart) {
+        await mergedOnToolCallStart({
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            input: toolCall.input,
+          },
+        });
+      }
+      let result: LanguageModelV4ToolResultPart;
+      try {
+        result = await executeTool(toolCall, tools, messages, context);
+      } catch (err) {
+        if (mergedOnToolCallFinish) {
+          await mergedOnToolCallFinish({
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: toolCall.toolCallId,
+              toolName: toolCall.toolName,
+              input: toolCall.input,
+            },
+            error: err,
+          });
+        }
+        throw err;
+      }
+      if (mergedOnToolCallFinish) {
+        const isError =
+          result.output &&
+          'type' in result.output &&
+          (result.output.type === 'error-text' ||
+            result.output.type === 'error-json');
+        await mergedOnToolCallFinish({
+          toolCall: {
+            type: 'tool-call',
+            toolCallId: toolCall.toolCallId,
+            toolName: toolCall.toolName,
+            input: toolCall.input,
+          },
+          ...(isError
+            ? {
+                error:
+                  'value' in result.output ? result.output.value : undefined,
+              }
+            : {
+                result:
+                  result.output && 'value' in result.output
+                    ? result.output.value
+                    : undefined,
+              }),
+        });
+      }
+      return result;
+    };
+
     // Check for abort before starting
     if (mergedGenerationSettings.abortSignal?.aborted) {
       if (options.onAbort) {
@@ -938,6 +1092,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       stopConditions: options.stopWhen,
       maxSteps: options.maxSteps,
       onStepFinish: mergedOnStepFinish,
+      onStepStart: mergedOnStepStart,
       onError: options.onError,
       prepareStep:
         options.prepareStep ??
@@ -1011,7 +1166,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
             const executableResults = await Promise.all(
               executableToolCalls.map(
                 (toolCall): Promise<LanguageModelV4ToolResultPart> =>
-                  executeTool(
+                  executeToolWithCallbacks(
                     toolCall,
                     effectiveTools as ToolSet,
                     iterMessages,
@@ -1082,7 +1237,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           const clientToolResults = await Promise.all(
             nonProviderToolCalls.map(
               (toolCall): Promise<LanguageModelV4ToolResultPart> =>
-                executeTool(
+                executeToolWithCallbacks(
                   toolCall,
                   effectiveTools as ToolSet,
                   iterMessages,
