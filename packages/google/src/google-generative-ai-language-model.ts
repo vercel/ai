@@ -47,6 +47,7 @@ import {
   GoogleGenerativeAIProviderMetadata,
 } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
+import { GoogleStreamToolCallArguments } from './google-stream-tool-call-arguments';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
 type GoogleGenerativeAIConfig = {
@@ -504,8 +505,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
 
-    // Track streaming function call arguments across chunks
-    const activeStreamingToolCalls: ActiveStreamingToolCall[] = [];
+    const streamingToolCallHandler = new GoogleStreamToolCallArguments(
+      generateId,
+      providerOptionsName,
+    );
 
     return {
       stream: response.pipeThrough(
@@ -761,15 +764,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
               }
 
               // Handle streaming partial function call args
-              if (
-                processStreamingFunctionCallParts({
-                  parts: content.parts,
-                  activeStreamingToolCalls,
-                  generateId,
-                  providerOptionsName,
-                  controller,
-                })
-              ) {
+              const streamingResult =
+                streamingToolCallHandler.processStreamingFunctionCallParts(
+                  content.parts,
+                );
+              for (const event of streamingResult.events) {
+                controller.enqueue(event);
+              }
+              if (streamingResult.hasToolCalls) {
                 hasToolCalls = true;
               }
 
@@ -1035,201 +1037,6 @@ function getCompleteFunctionCallsFromParts({
             }
           : undefined,
       }));
-}
-
-type ActiveStreamingToolCall = {
-  toolCallId: string;
-  toolName: string;
-  accumulatedArgs: Record<string, unknown>;
-  jsonText: string;
-  providerMetadata?: SharedV4ProviderMetadata;
-};
-
-function processStreamingFunctionCallParts({
-  parts,
-  activeStreamingToolCalls,
-  generateId,
-  providerOptionsName,
-  controller,
-}: {
-  parts: ContentSchema['parts'];
-  activeStreamingToolCalls: ActiveStreamingToolCall[];
-  generateId: () => string;
-  providerOptionsName: string;
-  controller: TransformStreamDefaultController<LanguageModelV4StreamPart>;
-}): boolean {
-  if (parts == null) return false;
-
-  let hasToolCalls = false;
-
-  for (const part of parts) {
-    if (!('functionCall' in part)) continue;
-
-    const fc = part.functionCall;
-    const providerMeta = part.thoughtSignature
-      ? {
-          [providerOptionsName]: {
-            thoughtSignature: part.thoughtSignature,
-          },
-        }
-      : undefined;
-
-    const isStreamingChunk =
-      fc.partialArgs != null || (fc.name != null && fc.willContinue === true);
-    const isTerminalChunk =
-      'functionCall' in part &&
-      fc.name == null &&
-      fc.args == null &&
-      fc.partialArgs == null &&
-      fc.willContinue == null;
-
-    if (isStreamingChunk) {
-      if (fc.name != null && fc.willContinue === true) {
-        const toolCallId = generateId();
-        activeStreamingToolCalls.push({
-          toolCallId,
-          toolName: fc.name,
-          accumulatedArgs: {},
-          jsonText: '',
-          providerMetadata: providerMeta,
-        });
-
-        controller.enqueue({
-          type: 'tool-input-start',
-          id: toolCallId,
-          toolName: fc.name,
-          providerMetadata: providerMeta,
-        });
-
-        if (fc.partialArgs != null) {
-          const delta = applyPartialArgs(
-            activeStreamingToolCalls[activeStreamingToolCalls.length - 1],
-            fc.partialArgs,
-          );
-          if (delta.length > 0) {
-            controller.enqueue({
-              type: 'tool-input-delta',
-              id: toolCallId,
-              delta,
-              providerMetadata: providerMeta,
-            });
-          }
-        }
-      } else if (
-        fc.partialArgs != null &&
-        activeStreamingToolCalls.length > 0
-      ) {
-        const active =
-          activeStreamingToolCalls[activeStreamingToolCalls.length - 1];
-        const delta = applyPartialArgs(active, fc.partialArgs);
-        if (delta.length > 0) {
-          controller.enqueue({
-            type: 'tool-input-delta',
-            id: active.toolCallId,
-            delta,
-            providerMetadata: providerMeta,
-          });
-        }
-      }
-    } else if (isTerminalChunk && activeStreamingToolCalls.length > 0) {
-      const active = activeStreamingToolCalls.pop()!;
-      const finalArgs = JSON.stringify(active.accumulatedArgs);
-
-      const closingDelta = finalArgs.slice(active.jsonText.length);
-      if (closingDelta.length > 0) {
-        controller.enqueue({
-          type: 'tool-input-delta',
-          id: active.toolCallId,
-          delta: closingDelta,
-          providerMetadata: active.providerMetadata,
-        });
-      }
-
-      controller.enqueue({
-        type: 'tool-input-end',
-        id: active.toolCallId,
-        providerMetadata: active.providerMetadata,
-      });
-
-      controller.enqueue({
-        type: 'tool-call',
-        toolCallId: active.toolCallId,
-        toolName: active.toolName,
-        input: finalArgs,
-        providerMetadata: active.providerMetadata,
-      });
-
-      hasToolCalls = true;
-    }
-  }
-
-  return hasToolCalls;
-}
-
-function resolvePartialArgValue(arg: {
-  stringValue?: string | null;
-  numberValue?: number | null;
-  boolValue?: boolean | null;
-  nullValue?: unknown;
-}): { value: unknown; json: string } | undefined {
-  if (arg.stringValue != null)
-    return { value: arg.stringValue, json: JSON.stringify(arg.stringValue) };
-  if (arg.numberValue != null)
-    return { value: arg.numberValue, json: JSON.stringify(arg.numberValue) };
-  if (arg.boolValue != null)
-    return { value: arg.boolValue, json: JSON.stringify(arg.boolValue) };
-  if ('nullValue' in arg) return { value: null, json: 'null' };
-  return undefined;
-}
-
-function applyPartialArgs(
-  active: ActiveStreamingToolCall,
-  partialArgs: Array<{
-    jsonPath: string;
-    stringValue?: string | null;
-    numberValue?: number | null;
-    boolValue?: boolean | null;
-    nullValue?: unknown;
-    willContinue?: boolean | null;
-  }>,
-): string {
-  let delta = '';
-
-  for (const arg of partialArgs) {
-    const key = arg.jsonPath.replace(/^\$\./, '');
-    if (!key) continue;
-
-    const isStringContinuation =
-      arg.stringValue != null && key in active.accumulatedArgs;
-
-    if (isStringContinuation) {
-      const escaped = JSON.stringify(arg.stringValue).slice(1, -1);
-      active.accumulatedArgs[key] =
-        (active.accumulatedArgs[key] as string) + arg.stringValue;
-      active.jsonText += escaped;
-      delta += escaped;
-      continue;
-    }
-
-    const resolved = resolvePartialArgValue(arg);
-    if (resolved == null) continue;
-
-    active.accumulatedArgs[key] = resolved.value;
-
-    // For strings that will continue, strip the closing quote
-    const valueJson =
-      arg.stringValue != null && arg.willContinue
-        ? resolved.json.slice(0, -1)
-        : resolved.json;
-
-    const prefix =
-      active.jsonText === '' ? '{' : active.jsonText.endsWith('{') ? '' : ',';
-    const fragment = `${prefix}${JSON.stringify(key)}:${valueJson}`;
-    active.jsonText += fragment;
-    delta += fragment;
-  }
-
-  return delta;
 }
 
 function extractSources({
