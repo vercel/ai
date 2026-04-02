@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- f51c95e: feat(provider/xai): add video extension and reference-to-video (R2V) support
+
 ## 4.0.0-beta.21
 
 ### Patch Changes
