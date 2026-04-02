@@ -1,5 +1,15 @@
 # ai
 
+## 6.0.144
+
+### Patch Changes
+
+- 0469aed: fix: allow inline data URLs in download validation
+- Updated dependencies [0469aed]
+- Updated dependencies [15bfbd2]
+  - @ai-sdk/provider-utils@4.0.22
+  - @ai-sdk/gateway@3.0.86
+
 ## 6.0.143
 
 ### Patch Changes
