@@ -10,18 +10,15 @@ import {
   Tracer,
 } from '@opentelemetry/api';
 import type {
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
-  TelemetryIntegration,
-  TelemetrySettings,
-} from 'ai';
-import type {
   EmbedFinishEvent,
   EmbedOnFinishEvent,
   EmbedOnStartEvent,
   EmbedStartEvent,
+  GenerationContext,
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -29,14 +26,15 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
+  OutputInterface as Output,
   RerankFinishEvent,
   RerankOnFinishEvent,
   RerankOnStartEvent,
   RerankStartEvent,
-} from '../generate-text/core-events';
-import type { GenerationContext } from '../generate-text/generation-context';
-import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
+  TelemetryIntegration,
+  TelemetrySettings,
+  ToolSet,
+} from 'ai';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
