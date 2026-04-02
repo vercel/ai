@@ -23,7 +23,11 @@ import {
   type ToolSet,
   type UIMessage,
 } from 'ai';
-import { convertToLanguageModelPrompt, standardizePrompt } from 'ai/internal';
+import {
+  convertToLanguageModelPrompt,
+  mergeAbortSignals,
+  standardizePrompt,
+} from 'ai/internal';
 import { recordSpan } from './telemetry.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 import type { CompatibleLanguageModel } from './types.js';
@@ -812,31 +816,12 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       download: options.experimental_download,
     });
 
-    // Build effective abort signal: merge timeout + explicit abortSignal
-    let effectiveAbortSignal =
-      options.abortSignal ?? this.generationSettings.abortSignal;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    if (
-      options.timeout !== undefined &&
-      typeof AbortController !== 'undefined'
-    ) {
-      const timeoutController = new AbortController();
-      timeoutId = setTimeout(() => timeoutController.abort(), options.timeout);
-      const timeoutSignal = timeoutController.signal;
-      if (effectiveAbortSignal) {
-        // Combine: whichever fires first wins
-        const combined = new AbortController();
-        effectiveAbortSignal.addEventListener('abort', () => combined.abort(), {
-          once: true,
-        });
-        timeoutSignal.addEventListener('abort', () => combined.abort(), {
-          once: true,
-        });
-        effectiveAbortSignal = combined.signal;
-      } else {
-        effectiveAbortSignal = timeoutSignal;
-      }
-    }
+    const effectiveAbortSignal = mergeAbortSignals(
+      options.abortSignal ?? this.generationSettings.abortSignal,
+      options.timeout != null
+        ? AbortSignal.timeout(options.timeout)
+        : undefined,
+    );
 
     // Merge generation settings: constructor defaults < stream options
     const mergedGenerationSettings: GenerationSettings = {
@@ -1172,11 +1157,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         await options.onError({ error });
       }
       // Don't throw yet - we want to call onFinish first
-    } finally {
-      // Clean up the timeout timer if it was set
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-      }
     }
 
     // Use the final messages from the iterator, or fall back to original messages
