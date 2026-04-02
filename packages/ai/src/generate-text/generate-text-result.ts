@@ -17,7 +17,7 @@ import {
   TypedToolResult,
 } from './tool-result';
 import type { GenerationContext } from './generation-context';
-import type { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * The result of a `generateText` call.

@@ -1,7 +1,8 @@
-import { Context, tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
+import type { Context } from './context';
 import type { InferToolSetContext } from './infer-tool-set-context';
+import { tool } from './tool';
 
 describe('InferToolSetContext', () => {
   it('infers the intersection of context types across a tool set', () => {

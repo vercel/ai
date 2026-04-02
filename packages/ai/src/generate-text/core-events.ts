@@ -13,7 +13,7 @@ import type { StopCondition } from './stop-condition';
 import { TextStreamPart } from './stream-text-result';
 import type { TypedToolCall } from './tool-call';
 import type { GenerationContext } from './generation-context';
-import type { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Common model information used across callback events.
@@ -91,7 +91,7 @@ export interface OnStartEvent<
 
   /**
    * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs, toolMs, and per-tool overrides via tools.
    */
   readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
@@ -200,7 +200,7 @@ export interface OnStepStartEvent<
 
   /**
    * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs, toolMs, and per-tool overrides via tools.
    */
   readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
