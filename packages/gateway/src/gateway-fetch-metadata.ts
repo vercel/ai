@@ -87,6 +87,7 @@ const gatewayAvailableModelsResponseSchema = lazySchema(() =>
               input_cache_read: z.string().nullish(),
               input_cache_write: z.string().nullish(),
             })
+            .passthrough() // Allow additional pricing fields (e.g., image, video_duration_pricing)
             .transform(
               ({ input, output, input_cache_read, input_cache_write }) => ({
                 input,
@@ -108,7 +109,7 @@ const gatewayAvailableModelsResponseSchema = lazySchema(() =>
           modelType: z
             .enum(['embedding', 'image', 'language', 'video'])
             .nullish(),
-        }),
+        }).passthrough(), // Allow additional model fields (e.g., tags, input_tiers, output_tiers, etc.)
       ),
     }),
   ),
