@@ -47,6 +47,7 @@ type OpenAIChatConfig = {
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  fileIdPrefixes?: readonly string[];
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV4 {
@@ -117,6 +118,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
           (isReasoningModel
             ? 'developer'
             : modelCapabilities.systemMessageMode),
+        fileIdPrefixes: this.config.fileIdPrefixes,
       },
     );
 
