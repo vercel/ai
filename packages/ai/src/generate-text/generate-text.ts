@@ -234,7 +234,8 @@ export type GenerateTextOnFinishCallback<
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
- * @param experimental_context - User-defined context object that flows through the entire generation lifecycle.
+ * @param context - User-defined runtime context that flows through the entire generation lifecycle.
+ *
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
  * Receives step number, messages (in ModelMessage format), tools, and context.
@@ -274,7 +275,7 @@ export async function generateText<
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
-  experimental_context = {} as CONTEXT,
+  context = {} as CONTEXT,
   experimental_include: include,
   _internal: {
     generateId = originalGenerateId,
@@ -427,13 +428,16 @@ export async function generateText<
     onFinish?: GenerateTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<CONTEXT>>;
 
     /**
-     * Context that is passed into tool execution.
+     * User-defined runtime context.
      *
-     * Experimental (can break in patch releases).
+     * Treat the context object as immutable inside tools.
+     * Mutating the context object can lead to race conditions and unexpected results
+     * when tools are called in parallel.
      *
-     * @default undefined
+     * If you need to mutate the context, analyze the tool calls and results
+     * in `prepareStep` and update it there.
      */
-    experimental_context?: CONTEXT;
+    context?: CONTEXT;
 
     /**
      * Settings for controlling what data is included in step results.
@@ -536,7 +540,7 @@ export async function generateText<
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata,
-      experimental_context,
+      context,
     },
     callbacks: [
       onStart,
@@ -571,7 +575,7 @@ export async function generateText<
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
         timeout,
-        experimental_context,
+        context,
         stepNumber: 0,
         provider: model.provider,
         modelId: model.modelId,
@@ -696,7 +700,7 @@ export async function generateText<
           steps,
           stepNumber: steps.length,
           messages: stepInputMessages,
-          experimental_context,
+          context,
         });
 
         const stepModel = resolveLanguageModel(
@@ -712,8 +716,7 @@ export async function generateText<
           download,
         });
 
-        experimental_context =
-          prepareStepResult?.experimental_context ?? experimental_context;
+        context = prepareStepResult?.context ?? context;
 
         const stepActiveTools = filterActiveTools({
           tools,
@@ -757,7 +760,7 @@ export async function generateText<
           include,
           functionId: telemetry?.functionId,
           metadata: telemetry?.metadata as Record<string, unknown> | undefined,
-          experimental_context,
+          context,
           promptMessages,
           stepTools,
           stepToolChoice,
@@ -838,7 +841,7 @@ export async function generateText<
               toolCallId: toolCall.toolCallId,
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
-              experimental_context,
+              context,
             });
           }
 
@@ -847,7 +850,7 @@ export async function generateText<
               tool,
               toolCall,
               messages: stepInputMessages,
-              experimental_context,
+              context,
             })
           ) {
             toolApprovalRequests[toolCall.toolCallId] = {
@@ -896,7 +899,7 @@ export async function generateText<
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
               timeout,
-              experimental_context,
+              context,
               stepNumber: steps.length,
               provider: stepModel.provider,
               modelId: stepModel.modelId,
@@ -1002,7 +1005,7 @@ export async function generateText<
             metadata: telemetry?.metadata as
               | Record<string, unknown>
               | undefined,
-            experimental_context,
+            context,
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
             rawFinishReason: currentModelResponse.finishReason.raw,
@@ -1067,7 +1070,7 @@ export async function generateText<
       model: lastStep.model,
       functionId: lastStep.functionId,
       metadata: lastStep.metadata,
-      experimental_context: lastStep.experimental_context,
+      context: lastStep.context,
       finishReason: lastStep.finishReason,
       rawFinishReason: lastStep.rawFinishReason,
       usage: lastStep.usage,
@@ -1137,7 +1140,7 @@ async function executeTools<
   messages,
   abortSignal,
   timeout,
-  experimental_context,
+  context,
   stepNumber,
   provider,
   modelId,
@@ -1152,7 +1155,7 @@ async function executeTools<
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_context: CONTEXT;
+  context: CONTEXT;
   stepNumber: number;
   provider: string;
   modelId: string;
@@ -1170,7 +1173,7 @@ async function executeTools<
         messages,
         abortSignal,
         timeout,
-        experimental_context,
+        context,
         stepNumber,
         provider,
         modelId,
