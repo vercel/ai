@@ -91,7 +91,7 @@ export interface OnStartEvent<
 
   /**
    * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs, toolMs, and per-tool overrides via tools.
    */
   readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
@@ -200,7 +200,7 @@ export interface OnStepStartEvent<
 
   /**
    * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs, toolMs, and per-tool overrides via tools.
    */
   readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
