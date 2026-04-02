@@ -173,8 +173,12 @@ export function createGatewayProvider(
   let lastFetchTime = 0;
 
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v3/ai';
+    withoutTrailingSlash(
+      loadOptionalSetting({
+        settingValue: options.baseURL,
+        environmentVariableName: 'AI_GATEWAY_BASE_URL',
+      }),
+    ) ?? 'https://ai-gateway.vercel.sh/v3/ai';
 
   const getHeaders = async () => {
     try {
