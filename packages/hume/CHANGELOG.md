@@ -1,5 +1,11 @@
 # @ai-sdk/hume
 
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
 ## 3.0.0-beta.9
 
 ### Patch Changes

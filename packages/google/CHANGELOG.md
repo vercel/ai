@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
 ## 4.0.0-beta.21
 
 ### Patch Changes

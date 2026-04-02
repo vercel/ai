@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.20
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/anthropic@4.0.0-beta.16
+
 ## 5.0.0-beta.19
 
 ### Patch Changes
