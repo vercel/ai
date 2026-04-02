@@ -1227,7 +1227,7 @@ describe('convertToLanguageModelMessage', () => {
     });
 
     describe('text parts', () => {
-      it('should ignore empty text parts when there are no provider options', async () => {
+      it('should preserve empty text parts in assistant messages', async () => {
         const result = convertToLanguageModelMessage({
           message: {
             role: 'assistant',
@@ -1250,6 +1250,10 @@ describe('convertToLanguageModelMessage', () => {
         expect(result).toEqual({
           role: 'assistant',
           content: [
+            {
+              type: 'text',
+              text: '',
+            },
             {
               type: 'tool-call',
               input: {},

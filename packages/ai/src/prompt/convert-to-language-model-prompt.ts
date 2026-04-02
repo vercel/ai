@@ -224,13 +224,6 @@ export function convertToLanguageModelMessage({
         role: 'assistant',
         content: message.content
           .filter(
-            // remove empty text parts (no text, and no provider options):
-            part =>
-              part.type !== 'text' ||
-              part.text !== '' ||
-              part.providerOptions != null,
-          )
-          .filter(
             (
               part,
             ): part is
