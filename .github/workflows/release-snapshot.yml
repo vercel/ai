@@ -63,6 +63,9 @@ jobs:
       - name: Install Dependencies
         run: pnpm i
 
+      - name: Delete pre.json if it exists
+        run: rm -f .changeset/pre.json
+
       - name: Version Packages
         run: pnpm changeset version --snapshot ${SHORT_SHA}
         env:
