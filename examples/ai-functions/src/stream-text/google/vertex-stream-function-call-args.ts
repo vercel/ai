@@ -2,6 +2,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
+import { saveRawChunks } from '../../lib/save-raw-chunks';
 
 run(async () => {
   const result = streamText({
@@ -15,11 +16,7 @@ run(async () => {
         }),
       },
     },
-    providerOptions: {
-      vertex: {
-        streamFunctionCallArguments: true,
-      },
-    },
+    includeRawChunks: true,
   });
 
   for await (const part of result.fullStream) {
@@ -48,4 +45,9 @@ run(async () => {
         break;
     }
   }
+
+  await saveRawChunks({
+    result,
+    filename: 'google-vertex-stream-function-call-args-default.1',
+  });
 });
