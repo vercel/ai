@@ -1,0 +1,232 @@
+---
+title: Context Compression Middleware
+description: Learn how to compress LLM context to reduce token usage and costs in agentic applications.
+tags: ['next', 'streaming', 'middleware', 'agents', 'tools', 'compression']
+---
+
+# Context Compression Middleware
+
+In agentic applications, context grows with every tool call. A search returns 500 results. A database query returns 200 rows. A file read dumps 5,000 lines. Each step adds thousands of tokens, and most of it is repetitive structure — not the information the model needs.
+
+This recipe shows how to build a [`LanguageModelMiddleware`](/docs/ai-sdk-core/middleware) that automatically compresses tool outputs and conversation history before they reach the model. We'll use [Headroom](https://github.com/chopratejas/headroom) as the compression engine.
+
+**What you'll build:**
+- A Next.js chat app with tool-calling
+- Middleware that compresses context automatically
+- Same answer quality with 70-90% fewer input tokens
+
+## How It Works
+
+```
+User message → Agent calls tools → Tool results (large) → Compression middleware → LLM (small context)
+```
+
+The middleware intercepts messages in `transformParams` before the model sees them. It sends messages to a compression server that uses content-aware algorithms (statistical selection for JSON arrays, pattern deduplication for logs, AST-aware compression for code). The compressed messages are returned in the same format — the model and the rest of your application never know compression happened.
+
+## Setup
+
+Install the AI SDK and Headroom:
+
+```bash
+npm install ai @ai-sdk/openai headroom-ai
+```
+
+Start the Headroom compression server:
+
+```bash
+pip install "headroom-ai[proxy]"
+headroom proxy --port 8787
+```
+
+## Middleware
+
+Create the compression middleware. It uses `transformParams` to compress messages before every `generateText` and `streamText` call:
+
+```ts filename='ai/compression-middleware.ts'
+import { compress } from 'headroom-ai';
+import {
+  type LanguageModelV4Middleware,
+} from 'ai';
+
+export const compressionMiddleware: LanguageModelV4Middleware = {
+  transformParams: async ({ params }) => {
+    const prompt = params.prompt;
+    if (!prompt || prompt.length === 0) return params;
+
+    // compress() auto-detects AI SDK message format
+    const result = await compress(prompt, {
+      model: params.modelId ?? 'gpt-4o',
+    });
+
+    if (!result.compressed) return params;
+
+    console.log(
+      `Compressed: ${result.tokensBefore} → ${result.tokensAfter} tokens ` +
+        `(saved ${result.tokensSaved})`,
+    );
+
+    return { ...params, prompt: result.messages };
+  },
+};
+```
+
+<Note>
+  `compress()` auto-detects AI SDK, OpenAI, and Anthropic message formats and
+  returns compressed messages in the same format. No manual conversion needed.
+</Note>
+
+## Server
+
+Create the API route. Wrap your model with `wrapLanguageModel` and pass the compression middleware:
+
+```ts filename='app/api/chat/route.ts'
+import { compressionMiddleware } from '@/ai/compression-middleware';
+import { wrapLanguageModel, streamText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: compressionMiddleware,
+});
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model,
+    system: 'You are an SRE assistant. Analyze infrastructure data concisely.',
+    messages,
+    tools: {
+      getServerStatus: tool({
+        description: 'Get status of all servers in the fleet',
+        parameters: z.object({}),
+        execute: async () => {
+          // Returns a large API response — 100 servers, ~5,000 tokens
+          return Array.from({ length: 100 }, (_, i) => ({
+            id: i + 1,
+            name: `server-${i + 1}`,
+            status: i % 15 === 0 ? 'critical' : i % 5 === 0 ? 'warning' : 'healthy',
+            cpu: Math.round(Math.random() * 100),
+            memory: Math.round(Math.random() * 100),
+            region: ['us-east-1', 'eu-west-1', 'ap-southeast-1'][i % 3],
+            description: `Production server ${i + 1} running service-${['auth', 'payment', 'user', 'api'][i % 4]}`,
+            lastAlert:
+              i % 15 === 0
+                ? `Disk usage at ${90 + (i % 10)}%`
+                : null,
+          }));
+          // Headroom compresses this to ~900 tokens (82% saved)
+          // keeping critical/warning servers and omitting 85 healthy ones
+        },
+      }),
+      searchLogs: tool({
+        description: 'Search application logs',
+        parameters: z.object({
+          service: z.string().describe('Service name to search logs for'),
+        }),
+        execute: async ({ service }) => {
+          // Returns 100 log entries — ~5,000 tokens
+          return Array.from({ length: 100 }, (_, i) => ({
+            timestamp: new Date(Date.now() - i * 1000).toISOString(),
+            level: i === 42 ? 'FATAL' : i % 10 === 0 ? 'ERROR' : 'INFO',
+            service,
+            message:
+              i === 42
+                ? 'Connection pool exhausted — max_connections=100 reached, 47 pending requests'
+                : `Request processed in ${Math.round(Math.random() * 500)}ms for endpoint /${['login', 'checkout', 'profile', 'notify'][i % 4]}`,
+            traceId: `trace-${Math.random().toString(36).substring(2, 10)}`,
+          }));
+          // Headroom compresses to ~850 tokens (83% saved)
+          // keeping the FATAL error, ERROR entries, and boundary items
+        },
+      }),
+    },
+    maxSteps: 5,
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+Without compression, this agent sends ~5,000 tokens of server data to the model. With the middleware, it sends ~900 tokens (82% saved) — and the model still identifies all the critical servers and the fatal connection pool error.
+
+## Client
+
+A standard chat interface using `useChat`:
+
+```tsx filename='app/page.tsx'
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat();
+
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      <div className="space-y-4">
+        {messages.map(m => (
+          <div key={m.id} className="whitespace-pre-wrap">
+            <div className="font-bold">{m.role}</div>
+            {m.toolInvocations ? (
+              <pre className="text-sm bg-gray-100 p-2 rounded">
+                {m.toolInvocations.map(t => `${t.toolName}: ${t.state}`).join('\n')}
+              </pre>
+            ) : (
+              <p>{m.content}</p>
+            )}
+          </div>
+        ))}
+      </div>
+      <form onSubmit={handleSubmit}>
+        <input
+          className="fixed bottom-0 w-full max-w-md p-2 mb-8 border border-gray-300 rounded shadow-xl"
+          value={input}
+          placeholder="Ask about your infrastructure..."
+          onChange={handleInputChange}
+        />
+      </form>
+    </div>
+  );
+}
+```
+
+## How Compression Preserves Accuracy
+
+When Headroom compresses 100 server records to 15, it doesn't randomly sample. It uses statistical analysis to keep:
+
+- **Anomalies**: Servers with `critical` or `warning` status (statistically rare values)
+- **Boundaries**: First and last items (context anchors)
+- **High-information items**: Entries with non-null `lastAlert` fields (high entropy)
+- **A summary**: "100 items compressed to 15. Omitted: 85 healthy."
+
+The model sees the important items and knows what was omitted. In benchmarks, accuracy is preserved at 97-100% across SQuAD, BFCL, and GSM8K evaluations.
+
+## Combining with Other Middleware
+
+Compression middleware composes with other middleware using the array syntax:
+
+```ts
+import { wrapLanguageModel } from 'ai';
+import { compressionMiddleware } from '@/ai/compression-middleware';
+import { loggingMiddleware } from '@/ai/logging-middleware';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: [compressionMiddleware, loggingMiddleware],
+});
+```
+
+Compression runs first (reducing tokens), then logging sees the compressed request.
+
+## When to Use This
+
+Context compression is most valuable when your application:
+
+- **Calls tools that return large results** — search APIs, database queries, file reads
+- **Runs multi-step agents** — each step adds context that accumulates
+- **Processes logs or structured data** — repetitive formats compress well
+- **Hits token limits** — compression lets you fit more context in the same window
+
+For simple text-only conversations without tools, the overhead of compression may outweigh the savings.

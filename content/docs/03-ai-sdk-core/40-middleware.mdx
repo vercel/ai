@@ -266,6 +266,38 @@ const model = wrapLanguageModel({
 
 Find more examples at this [link](https://github.com/minpeter/ai-sdk-tool-call-middleware/tree/main/examples/core/src).
 
+### Context compression
+
+The [Headroom](https://github.com/chopratejas/headroom) middleware compresses tool outputs, search results, and other large context before it reaches the model. In agentic applications where tool calls accumulate, context can grow to tens of thousands of tokens — most of it repetitive structure. Headroom compresses it away using content-aware algorithms (statistical selection for JSON arrays, pattern deduplication for logs, AST-aware compression for code), typically saving 70-90% of input tokens while preserving errors, anomalies, and key information.
+
+```ts
+import { headroomMiddleware } from 'headroom-ai/vercel-ai';
+import { wrapLanguageModel } from 'ai';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: headroomMiddleware(),
+});
+```
+
+Or build your own compression middleware with the `compress()` function:
+
+```ts
+import { compress } from 'headroom-ai';
+
+const compressionMiddleware = {
+  transformParams: async ({ params }) => {
+    const result = await compress(params.prompt, {
+      model: params.modelId ?? 'gpt-4o',
+    });
+    if (!result.compressed) return params;
+    return { ...params, prompt: result.messages };
+  },
+};
+```
+
+See the [Headroom provider documentation](/providers/community-providers/headroom) and the [context compression cookbook](/cookbook/next/context-compression-middleware) for a full Next.js example.
+
 ## Implementing Language Model Middleware
 
 <Note>
