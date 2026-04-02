@@ -1478,10 +1478,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
   describe('tool approval', () => {
     describe('stream', () => {
-      it.fails('should pause agent when tool has needsApproval: true', async () => {
-        // GAP: WorkflowAgent does not support tool approval.
-        // When a tool has needsApproval: true, the agent should pause
-        // and emit a tool-approval-request before executing the tool.
+      it('should pause agent when tool has needsApproval: true', async () => {
         const agent = new WorkflowAgent({
           model: asModelFactory(createToolCallStreamMockModel()),
           tools: {
@@ -1509,9 +1506,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         expect(result.toolResults.length).toBe(0);
       });
 
-      it.fails('should support needsApproval as a function', async () => {
-        // GAP: needsApproval can be a function that receives the tool input
-        // and returns a boolean (or promise of boolean).
+      it('should support needsApproval as a function', async () => {
         let approvalInput: any = null;
 
         const agent = new WorkflowAgent({

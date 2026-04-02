@@ -1284,22 +1284,45 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           );
           const providerToolCalls = toolCalls.filter(tc => tc.providerExecuted);
 
-          // Further split non-provider tool calls into executable (has execute function)
-          // and client-side (no execute function, needs external resolution)
-          // Note: missing tools (!tool) are left to executeTool which will throw —
-          // only tools that exist but lack execute are treated as client-side.
-          const executableToolCalls = nonProviderToolCalls.filter(tc => {
+          // Check which tools need approval (can be async)
+          const approvalNeeded = await Promise.all(
+            nonProviderToolCalls.map(async tc => {
+              const tool = (effectiveTools as ToolSet)[tc.toolName];
+              if (!tool) return false;
+              if (tool.needsApproval == null) return false;
+              if (typeof tool.needsApproval === 'boolean')
+                return tool.needsApproval;
+              return tool.needsApproval(tc.input, {
+                toolCallId: tc.toolCallId,
+                messages: iterMessages as unknown as ModelMessage[],
+                experimental_context: experimentalContext,
+              });
+            }),
+          );
+
+          // Further split non-provider tool calls into:
+          // - executable: has execute function and doesn't need approval
+          // - paused: no execute function (client-side) OR needs approval
+          // Note: missing tools (!tool) are left to executeTool which will throw.
+          const executableToolCalls = nonProviderToolCalls.filter((tc, i) => {
             const tool = (effectiveTools as ToolSet)[tc.toolName];
-            return !tool || typeof tool.execute === 'function';
+            return (
+              (!tool || typeof tool.execute === 'function') &&
+              !approvalNeeded[i]
+            );
           });
-          const clientSideToolCalls = nonProviderToolCalls.filter(tc => {
+          const pausedToolCalls = nonProviderToolCalls.filter((tc, i) => {
             const tool = (effectiveTools as ToolSet)[tc.toolName];
-            return tool && typeof tool.execute !== 'function';
+            return (
+              (tool && typeof tool.execute !== 'function') || approvalNeeded[i]
+            );
           });
 
-          // If there are client-side tool calls, stop the loop and return them
-          // This matches AI SDK behavior: tools without execute pause the agent loop
-          if (clientSideToolCalls.length > 0) {
+          // If there are paused tool calls (client-side or needing approval),
+          // stop the loop and return them.
+          // This matches AI SDK behavior: tools without execute or needing
+          // approval pause the agent loop.
+          if (pausedToolCalls.length > 0) {
             // Execute any executable tools that were also called in this step
             const executableResults = await Promise.all(
               executableToolCalls.map(
