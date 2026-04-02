@@ -269,11 +269,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
-      isKnownAnthropicModel,
+      isKnownModel,
     } = getModelCapabilities(this.modelId);
 
-    const isAnthropicModel =
-      isKnownAnthropicModel || this.modelId.startsWith('claude-');
+    const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
 
     const supportsStructuredOutput =
       (this.config.supportsNativeStructuredOutput ?? true) &&
@@ -552,10 +551,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     }
 
     // limit to max output tokens for known models to enable model switching without breaking it:
-    if (
-      isKnownAnthropicModel &&
-      baseArgs.max_tokens > maxOutputTokensForModel
-    ) {
+    if (isKnownModel && baseArgs.max_tokens > maxOutputTokensForModel) {
       // only warn if max output tokens is provided as input:
       if (maxOutputTokens != null) {
         warnings.push({
@@ -2285,7 +2281,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
   supportsStructuredOutput: boolean;
-  isKnownAnthropicModel: boolean;
+  isKnownModel: boolean;
 } {
   if (
     modelId.includes('claude-sonnet-4-6') ||
@@ -2294,7 +2290,7 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
-      isKnownAnthropicModel: true,
+      isKnownModel: true,
     };
   } else if (
     modelId.includes('claude-sonnet-4-5') ||
@@ -2304,37 +2300,37 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: true,
-      isKnownAnthropicModel: true,
+      isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
-      isKnownAnthropicModel: true,
+      isKnownModel: true,
     };
   } else if (modelId.includes('claude-sonnet-4-')) {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
-      isKnownAnthropicModel: true,
+      isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: false,
-      isKnownAnthropicModel: true,
+      isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
-      isKnownAnthropicModel: true,
+      isKnownModel: true,
     };
   } else {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
-      isKnownAnthropicModel: false,
+      isKnownModel: false,
     };
   }
 }
