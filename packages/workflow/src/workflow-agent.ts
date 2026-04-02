@@ -759,6 +759,18 @@ export interface WorkflowAgentStreamOptions<
    * If both `timeout` and `abortSignal` are provided, whichever triggers first will abort.
    */
   timeout?: number;
+
+  /**
+   * Whether to send a 'finish' chunk to the writable stream when streaming completes.
+   * @default true
+   */
+  sendFinish?: boolean;
+
+  /**
+   * Whether to prevent the writable stream from being closed after streaming completes.
+   * @default false
+   */
+  preventClose?: boolean;
 }
 
 /**
@@ -1327,6 +1339,15 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
               });
             }
 
+            // Close the stream before returning for paused tools
+            if (options.writable) {
+              const sendFinish = options.sendFinish ?? true;
+              const preventClose = options.preventClose ?? false;
+              if (sendFinish || !preventClose) {
+                await closeStream(options.writable, preventClose, sendFinish);
+              }
+            }
+
             return {
               messages,
               steps,
@@ -1463,7 +1484,24 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
     // Re-throw any error that occurred
     if (encounteredError) {
+      // Close the stream before throwing
+      if (options.writable) {
+        const sendFinish = options.sendFinish ?? true;
+        const preventClose = options.preventClose ?? false;
+        if (sendFinish || !preventClose) {
+          await closeStream(options.writable, preventClose, sendFinish);
+        }
+      }
       throw encounteredError;
+    }
+
+    // Close the writable stream
+    if (options.writable) {
+      const sendFinish = options.sendFinish ?? true;
+      const preventClose = options.preventClose ?? false;
+      if (sendFinish || !preventClose) {
+        await closeStream(options.writable, preventClose, sendFinish);
+      }
     }
 
     return {
@@ -1482,6 +1520,30 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 /**
  * Aggregate token usage across all steps.
  */
+/**
+ * Close the writable stream, optionally sending a finish chunk first.
+ * This is a step function because writable.getWriter() and writable.close()
+ * cannot be called in workflow context (sandbox limitation).
+ */
+async function closeStream(
+  writable: WritableStream<any>,
+  preventClose?: boolean,
+  sendFinish?: boolean,
+) {
+  'use step';
+  if (sendFinish) {
+    const writer = writable.getWriter();
+    try {
+      await writer.write({ type: 'finish' });
+    } finally {
+      writer.releaseLock();
+    }
+  }
+  if (!preventClose) {
+    await writable.close();
+  }
+}
+
 function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
   let inputTokens = 0;
   let outputTokens = 0;
