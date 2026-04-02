@@ -6,7 +6,7 @@ import { ProviderOptions } from './provider-options';
 import { Context } from './context';
 
 /**
- * Additional options that are sent into each tool call.
+ * Additional options that are sent into each tool execution.
  */
 export interface ToolExecutionOptions<CONTEXT extends Context> {
   /**
@@ -66,6 +66,9 @@ export type ToolNeedsApprovalFunction<INPUT, CONTEXT extends Context> = (
   },
 ) => boolean | PromiseLike<boolean>;
 
+/**
+ * Function that executes the tool and returns either a single result or a stream of results.
+ */
 export type ToolExecuteFunction<INPUT, OUTPUT, CONTEXT extends Context> = (
   input: INPUT,
   options: ToolExecutionOptions<CONTEXT>,
@@ -149,6 +152,11 @@ export type Tool<
    */
   inputExamples?: Array<{ input: NoInfer<INPUT> }>;
 
+  /**
+   * An optional schema describing the context that the tool expects.
+   *
+   * The context is passed to execute function as part of the execution options.
+   */
   contextSchema?: FlexibleSchema<CONTEXT>;
 
   /**

@@ -70,6 +70,59 @@ describe('tool type', () => {
     });
   });
 
+  describe('context type', () => {
+    it('should infer context type from contextSchema in execute', () => {
+      const contextSchema = z.object({
+        userId: z.string(),
+        isAdmin: z.boolean(),
+      });
+
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        contextSchema,
+        execute: async (input, options) => {
+          expectTypeOf(input).toEqualTypeOf<{ number: number }>();
+          expectTypeOf(options.experimental_context).toEqualTypeOf<
+            z.infer<typeof contextSchema>
+          >();
+          return 'test' as const;
+        },
+      });
+
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<{ number: number }, 'test', z.infer<typeof contextSchema>>
+      >();
+    });
+
+    it('should infer context type from contextSchema in input lifecycle callbacks', () => {
+      const contextSchema = z.object({
+        requestId: z.string(),
+      });
+
+      tool({
+        inputSchema: z.object({ number: z.number() }),
+        contextSchema,
+        onInputStart: options => {
+          expectTypeOf(options.experimental_context).toEqualTypeOf<
+            z.infer<typeof contextSchema>
+          >();
+        },
+        onInputDelta: options => {
+          expectTypeOf(options.inputTextDelta).toEqualTypeOf<string>();
+          expectTypeOf(options.experimental_context).toEqualTypeOf<
+            z.infer<typeof contextSchema>
+          >();
+        },
+        onInputAvailable: options => {
+          expectTypeOf(options.input).toEqualTypeOf<{ number: number }>();
+          expectTypeOf(options.experimental_context).toEqualTypeOf<
+            z.infer<typeof contextSchema>
+          >();
+        },
+      });
+    });
+  });
+
   describe('output type', () => {
     it('should derive output type from execute function', () => {
       const aTool = tool({
@@ -225,6 +278,40 @@ describe('tool type', () => {
               toolCallId: string;
               messages: ModelMessage[];
               experimental_context: Context;
+            },
+          ) => boolean | PromiseLike<boolean>)
+        | undefined
+      >();
+    });
+
+    it('should infer needsApproval context from contextSchema', () => {
+      const contextSchema = z.object({
+        sessionId: z.string(),
+        userRole: z.enum(['user', 'admin']),
+      });
+
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        contextSchema,
+        needsApproval: (input, options) => {
+          expectTypeOf(input).toEqualTypeOf<{ number: number }>();
+          expectTypeOf(options).toEqualTypeOf<{
+            toolCallId: string;
+            messages: ModelMessage[];
+            experimental_context: z.infer<typeof contextSchema>;
+          }>();
+          return true;
+        },
+      });
+
+      expectTypeOf(aTool.needsApproval).toMatchTypeOf<
+        | boolean
+        | ((
+            input: { number: number },
+            options: {
+              toolCallId: string;
+              messages: ModelMessage[];
+              experimental_context: z.infer<typeof contextSchema>;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined
