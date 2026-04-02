@@ -1,16 +1,4 @@
 import type {
-  EmbedFinishEvent,
-  EmbedOnFinishEvent,
-  EmbedOnStartEvent,
-  EmbedStartEvent,
-} from '../embed/embed-events';
-import type {
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
-} from '../generate-object/structured-output-events';
-import type {
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -22,10 +10,22 @@ import type {
 import type { Output } from '../generate-text/output';
 import type { ToolSet } from '../generate-text/tool-set';
 import type {
-  RerankFinishEvent,
-  RerankOnFinishEvent,
+  EmbedOnStartEvent,
+  EmbedOnFinishEvent,
+  EmbedStartEvent,
+  EmbedFinishEvent,
+} from '../embed/embed-events';
+import type {
+  ObjectOnStartEvent,
+  ObjectOnFinishEvent,
+  ObjectOnStepStartEvent,
+  ObjectOnStepFinishEvent,
+} from '../generate-object/structured-output-events';
+import type {
   RerankOnStartEvent,
+  RerankOnFinishEvent,
   RerankStartEvent,
+  RerankFinishEvent,
 } from '../rerank/rerank-events';
 import { Listener } from '../util/notify';
 
