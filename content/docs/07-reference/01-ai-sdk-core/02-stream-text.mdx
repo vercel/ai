@@ -631,11 +631,11 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The messages that will be sent to the model for the current step.',
                     },
                     {
-                      name: 'experimental_context',
+                      name: 'context',
                       type: 'CONTEXT',
                       isOptional: true,
                       description:
-                        'The context passed via the experimental_context setting (experimental).',
+                        'The context passed via the `context` setting.',
                     },
                   ],
                 },
@@ -684,11 +684,11 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Optionally override the full set of messages sent to the model for this step.',
             },
             {
-              name: 'experimental_context',
+              name: 'context',
               type: 'CONTEXT',
               isOptional: true,
               description:
-                'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
+                'Context that is passed into tool execution. Changing the context will affect the context in this step and all subsequent steps.',
             },
             {
               name: 'providerOptions',
@@ -702,11 +702,11 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_context',
+      name: 'context',
       type: 'CONTEXT',
       isOptional: true,
       description:
-        'User-defined context object passed to `prepareStep`, tool execution, and lifecycle callbacks. Experimental (can break in patch releases).',
+        'User-defined context object passed to `prepareStep`, tool execution, and lifecycle callbacks.',
     },
     {
       name: 'experimental_download',
@@ -1768,7 +1768,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
-              name: 'experimental_context',
+              name: 'context',
               type: 'CONTEXT',
               description:
                 'The final state of the user-defined context object when the stream is aborted.',
@@ -1939,7 +1939,7 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'Additional metadata passed to the generation.',
             },
             {
-              name: 'experimental_context',
+              name: 'context',
               type: 'CONTEXT',
               description:
                 'User-defined context object that flows through the entire generation lifecycle.',
@@ -2050,7 +2050,7 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'Additional metadata from telemetry settings.',
             },
             {
-              name: 'experimental_context',
+              name: 'context',
               type: 'CONTEXT',
               description:
                 'User-defined context object. May be updated from prepareStep between steps.',
@@ -2110,7 +2110,7 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'Additional metadata from telemetry settings.',
             },
             {
-              name: 'experimental_context',
+              name: 'context',
               type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
@@ -2176,7 +2176,7 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'Additional metadata from telemetry settings.',
             },
             {
-              name: 'experimental_context',
+              name: 'context',
               type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
