@@ -1,5 +1,8 @@
-import type { Tool } from '@ai-sdk/provider-utils';
+import type { Tool } from './tool';
 
+/**
+ * A mapping of tool names to tool definitions.
+ */
 export type ToolSet = Record<
   string,
   (
