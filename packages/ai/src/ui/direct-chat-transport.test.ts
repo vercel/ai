@@ -421,6 +421,110 @@ describe('DirectChatTransport', () => {
         }),
       ).rejects.toThrow();
     });
+
+    it('should filter incomplete tool calls when ignoreIncompleteToolCalls is true', async () => {
+      let receivedPrompt: unknown;
+
+      const mockModelWithCapture = new MockLanguageModelV3({
+        doStream: async options => {
+          receivedPrompt = options.prompt;
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'response' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: {
+                  inputTokens: {
+                    total: 1,
+                    noCache: 1,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: { total: 1, text: 1, reasoning: undefined },
+                },
+              },
+            ]),
+          };
+        },
+      });
+
+      const agent = new ToolLoopAgent({ model: mockModelWithCapture });
+      const transport = new DirectChatTransport({ agent });
+
+      const stream = await transport.sendMessages({
+        chatId: 'chat-1',
+        messageId: undefined,
+        trigger: 'submit-message',
+        messages: [
+          {
+            id: 'msg-1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'screenshot',
+                state: 'output-available',
+                toolCallId: 'call-1',
+                input: { value: 'value-1' },
+                output: 'result-1',
+              },
+              // Incomplete tool calls that should be filtered out
+              {
+                type: 'dynamic-tool',
+                toolName: 'screenshot',
+                state: 'input-streaming',
+                toolCallId: 'call-2',
+                input: { value: 'value-2' },
+              },
+              {
+                type: 'dynamic-tool',
+                toolName: 'screenshot',
+                state: 'input-available',
+                toolCallId: 'call-3',
+                input: { value: 'value-3' },
+              },
+              { type: 'text', text: 'response', state: 'done' },
+            ],
+          },
+          {
+            id: 'msg-2',
+            role: 'user',
+            parts: [{ type: 'text', text: 'Thanks!' }],
+          },
+        ],
+        abortSignal: undefined,
+        ignoreIncompleteToolCalls: true,
+      });
+
+      // Consume the stream
+      const reader = stream.getReader();
+      while (true) {
+        const { done } = await reader.read();
+        if (done) break;
+      }
+
+      // Verify that incomplete tool calls were filtered out
+      // The prompt should only contain call-1 (output-available), not call-2 or call-3
+      const promptString = JSON.stringify(receivedPrompt);
+
+      // call-1 should be present
+      expect(promptString).toContain('call-1');
+
+      // Incomplete tool calls should be filtered out
+      expect(promptString).not.toContain('call-2');
+      expect(promptString).not.toContain('call-3');
+    });
   });
 
   describe('reconnectToStream', () => {
