@@ -1,5 +1,14 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
 ## 3.0.0-beta.13
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+
 ## 4.0.0-beta.5
 
 ### Patch Changes
