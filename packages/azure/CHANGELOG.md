@@ -1,5 +1,15 @@
 # @ai-sdk/azure
 
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+  - @ai-sdk/openai@4.0.0-beta.21
+
 ## 4.0.0-beta.20
 
 ### Patch Changes
