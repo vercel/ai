@@ -14,7 +14,7 @@ Luma Photon and Photon Flash are groundbreaking image generation models that del
 
 For more detailed information about the Luma models and their capabilities, please visit [Luma AI](https://lumalabs.ai/).
 
-> **Deploying to Vercel?** The AI Gateway lets you reach Luma (and other providers) by changing a single string — no provider packages or API keys needed. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Luma (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
 
