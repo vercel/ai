@@ -6,7 +6,7 @@ import {
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import type { GenerationContext } from './generation-context';
 import { StepResult } from './step-result';
-import type { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Function that you can use to provide different settings for a step.

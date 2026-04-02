@@ -89,4 +89,4 @@ export type {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-export type { ToolSet } from './tool-set';
+export type { ToolSet } from '@ai-sdk/provider-utils';
