@@ -266,7 +266,7 @@ describe('doGenerate', () => {
 
     expect(await server.calls[1].requestBodyJson).toMatchObject({
       audio_url: 'https://storage.assemblyai.com/mock-upload-url',
-      speech_model: 'best',
+      speech_models: ['best'],
     });
   });
 
