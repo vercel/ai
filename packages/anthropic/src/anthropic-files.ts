@@ -63,9 +63,7 @@ export class AnthropicFiles implements FilesV4 {
     const fileBytes =
       data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
 
-    const resolvedMediaType = mediaType ?? 'application/octet-stream';
-
-    const blob = new Blob([fileBytes], { type: resolvedMediaType });
+    const blob = new Blob([fileBytes], { type: mediaType });
 
     const formData = new FormData();
     if (filename != null) {
@@ -90,7 +88,7 @@ export class AnthropicFiles implements FilesV4 {
     return {
       warnings: [],
       providerReference: { anthropic: response.id },
-      mediaType: response.mime_type ?? resolvedMediaType,
+      mediaType: response.mime_type ?? mediaType,
       filename: response.filename ?? filename,
       providerMetadata: {
         anthropic: {

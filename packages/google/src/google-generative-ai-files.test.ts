@@ -167,30 +167,11 @@ describe('GoogleGenerativeAIFiles', () => {
 
       await files.uploadFile({
         data: new Uint8Array([1]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
       expect(JSON.parse(capturedBody!)).toEqual({ file: {} });
-    });
-
-    it('should use application/octet-stream as default media type', async () => {
-      let capturedHeaders: Record<string, string> | undefined;
-      const { files } = createMockFiles({
-        onRequest: (url, init) => {
-          if (url.includes('/upload/v1beta/files')) {
-            capturedHeaders = init?.headers as Record<string, string>;
-          }
-        },
-      });
-
-      await files.uploadFile({
-        data: new Uint8Array([1]),
-        providerOptions: {},
-      });
-
-      expect(capturedHeaders!['X-Goog-Upload-Header-Content-Type']).toBe(
-        'application/octet-stream',
-      );
     });
 
     it('should send file data to the upload URL with correct headers', async () => {
@@ -208,6 +189,7 @@ describe('GoogleGenerativeAIFiles', () => {
       const data = new Uint8Array([10, 20, 30]);
       await files.uploadFile({
         data,
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -224,6 +206,7 @@ describe('GoogleGenerativeAIFiles', () => {
 
       const result = await files.uploadFile({
         data: new Uint8Array([1]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -237,6 +220,7 @@ describe('GoogleGenerativeAIFiles', () => {
 
       const result = await files.uploadFile({
         data: new Uint8Array([1]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -248,6 +232,7 @@ describe('GoogleGenerativeAIFiles', () => {
 
       const result = await files.uploadFile({
         data: new Uint8Array([1]),
+        mediaType: 'application/octet-stream',
         filename: 'test.pdf',
         providerOptions: {},
       });
@@ -262,6 +247,7 @@ describe('GoogleGenerativeAIFiles', () => {
 
       const result = await files.uploadFile({
         data: new Uint8Array([1]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -296,6 +282,7 @@ describe('GoogleGenerativeAIFiles', () => {
       const base64Data = btoa('hello');
       await files.uploadFile({
         data: base64Data,
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -319,6 +306,7 @@ describe('GoogleGenerativeAIFiles', () => {
 
         const result = await files.uploadFile({
           data: new Uint8Array([1]),
+          mediaType: 'application/octet-stream',
           providerOptions: {
             google: { pollIntervalMs: 10 },
           },
@@ -337,6 +325,7 @@ describe('GoogleGenerativeAIFiles', () => {
 
         await files.uploadFile({
           data: new Uint8Array([1]),
+          mediaType: 'application/octet-stream',
           providerOptions: {},
         });
 
@@ -357,6 +346,7 @@ describe('GoogleGenerativeAIFiles', () => {
         await expect(
           files.uploadFile({
             data: new Uint8Array([1]),
+            mediaType: 'application/octet-stream',
             providerOptions: {},
           }),
         ).rejects.toThrow(/File processing failed/);
@@ -408,6 +398,7 @@ describe('GoogleGenerativeAIFiles', () => {
         await expect(
           files.uploadFile({
             data: new Uint8Array([1]),
+            mediaType: 'application/octet-stream',
             providerOptions: {
               google: {
                 pollIntervalMs: 10,
@@ -426,6 +417,7 @@ describe('GoogleGenerativeAIFiles', () => {
         await expect(
           files.uploadFile({
             data: new Uint8Array([1]),
+            mediaType: 'application/octet-stream',
             providerOptions: {},
           }),
         ).rejects.toThrow(/Failed to initiate resumable upload/);
@@ -448,6 +440,7 @@ describe('GoogleGenerativeAIFiles', () => {
         await expect(
           files.uploadFile({
             data: new Uint8Array([1]),
+            mediaType: 'application/octet-stream',
             providerOptions: {},
           }),
         ).rejects.toThrow(/No upload URL/);
@@ -459,6 +452,7 @@ describe('GoogleGenerativeAIFiles', () => {
         await expect(
           files.uploadFile({
             data: new Uint8Array([1]),
+            mediaType: 'application/octet-stream',
             providerOptions: {},
           }),
         ).rejects.toThrow(/Failed to upload file data/);
@@ -489,6 +483,7 @@ describe('GoogleGenerativeAIFiles', () => {
 
         const result = await files.uploadFile({
           data: new Uint8Array([1]),
+          mediaType: 'application/octet-stream',
           providerOptions: {},
         });
 
@@ -552,6 +547,7 @@ describe('GoogleGenerativeAIFiles', () => {
 
         const result = await files.uploadFile({
           data: new Uint8Array([1]),
+          mediaType: 'application/octet-stream',
           providerOptions: {},
         });
 

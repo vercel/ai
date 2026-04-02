@@ -42,6 +42,7 @@ describe('OpenAI Files - uploadFile', () => {
 
     await files.uploadFile({
       data: new Uint8Array([1, 2, 3]),
+      mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants' },
       },
@@ -62,6 +63,7 @@ describe('OpenAI Files - uploadFile', () => {
 
     const result = await files.uploadFile({
       data: new Uint8Array([1, 2, 3]),
+      mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants' },
       },
@@ -78,6 +80,7 @@ describe('OpenAI Files - uploadFile', () => {
 
     const result = await files.uploadFile({
       data: new Uint8Array([1, 2, 3]),
+      mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants' },
       },
@@ -102,6 +105,7 @@ describe('OpenAI Files - uploadFile', () => {
 
     await files.uploadFile({
       data: new Uint8Array([1, 2, 3]),
+      mediaType: 'application/octet-stream',
     });
 
     const multipart = await server.calls[0].requestBodyMultipart;
@@ -118,6 +122,7 @@ describe('OpenAI Files - uploadFile', () => {
 
     await files.uploadFile({
       data: new Uint8Array([1, 2, 3]),
+      mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants', expiresAfter: 3600 },
       },
@@ -142,6 +147,7 @@ describe('OpenAI Files - uploadFile', () => {
 
     await files.uploadFile({
       data: new Uint8Array([1, 2, 3]),
+      mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants' },
       },
@@ -163,6 +169,7 @@ describe('OpenAI Files - uploadFile', () => {
 
     const result = await files.uploadFile({
       data: btoa('hello world'),
+      mediaType: 'application/octet-stream',
       providerOptions: {
         openai: { purpose: 'assistants' },
       },

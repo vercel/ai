@@ -47,7 +47,7 @@ export type FilesV4UploadFileCallOptions = {
   /**
    * The IANA media type of the file (e.g. `'application/pdf'`).
    */
-  mediaType?: string;
+  mediaType: string;
 
   /**
    * The filename of the file.

@@ -30,6 +30,7 @@ describe('uploadFile', () => {
 
     expect(uploadFileSpy).toHaveBeenCalledWith({
       data,
+      mediaType: 'application/octet-stream',
       filename: undefined,
       providerOptions: undefined,
     });
@@ -108,6 +109,7 @@ describe('uploadFile', () => {
 
     expect(uploadFileSpy).toHaveBeenCalledWith({
       data: new Uint8Array([1]),
+      mediaType: 'application/octet-stream',
       filename: undefined,
       providerOptions,
     });
@@ -123,6 +125,7 @@ describe('uploadFile', () => {
 
     expect(uploadFileSpy).toHaveBeenCalledWith({
       data: new Uint8Array([1]),
+      mediaType: 'application/octet-stream',
       filename: undefined,
       providerOptions: undefined,
     });

@@ -43,6 +43,7 @@ describe('AnthropicFiles', () => {
       const files = createFiles();
       await files.uploadFile({
         data: new Uint8Array([1, 2, 3]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -63,6 +64,7 @@ describe('AnthropicFiles', () => {
       const files = createFiles();
       await files.uploadFile({
         data: new Uint8Array([1, 2, 3]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -76,6 +78,7 @@ describe('AnthropicFiles', () => {
       const files = createFiles();
       await files.uploadFile({
         data: new Uint8Array([1, 2, 3]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -91,6 +94,7 @@ describe('AnthropicFiles', () => {
       const files = createFiles();
       await files.uploadFile({
         data: new Uint8Array([1, 2, 3]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -106,6 +110,7 @@ describe('AnthropicFiles', () => {
       const files = createFiles();
       await files.uploadFile({
         data: new Uint8Array([1, 2, 3]),
+        mediaType: 'application/octet-stream',
         filename: 'custom-name.pdf',
         providerOptions: {},
       });
@@ -130,21 +135,6 @@ describe('AnthropicFiles', () => {
       expect(file.type).toBe('application/pdf');
     });
 
-    it('defaults mediaType to application/octet-stream', async () => {
-      server.urls['https://api.anthropic.com/v1/files'].response =
-        successfulResponse;
-
-      const files = createFiles();
-      await files.uploadFile({
-        data: new Uint8Array([1, 2, 3]),
-        providerOptions: {},
-      });
-
-      const multipart = await server.calls[0].requestBodyMultipart;
-      const file = multipart!.file as File;
-      expect(file.type).toBe('application/octet-stream');
-    });
-
     it('returns providerReference with anthropic key set to file ID', async () => {
       server.urls['https://api.anthropic.com/v1/files'].response =
         successfulResponse;
@@ -152,6 +142,7 @@ describe('AnthropicFiles', () => {
       const files = createFiles();
       const result = await files.uploadFile({
         data: new Uint8Array([1, 2, 3]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -165,6 +156,7 @@ describe('AnthropicFiles', () => {
       const files = createFiles();
       const result = await files.uploadFile({
         data: new Uint8Array([1, 2, 3]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -196,6 +188,7 @@ describe('AnthropicFiles', () => {
       const files = createFiles();
       const result = await files.uploadFile({
         data: new Uint8Array([1, 2, 3]),
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 
@@ -211,6 +204,7 @@ describe('AnthropicFiles', () => {
       const files = createFiles();
       const result = await files.uploadFile({
         data: 'AQID',
+        mediaType: 'application/octet-stream',
         providerOptions: {},
       });
 

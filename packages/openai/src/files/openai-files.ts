@@ -50,7 +50,7 @@ export class OpenAIFiles implements FilesV4 {
       data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
 
     const blob = new Blob([fileBytes], {
-      type: mediaType ?? 'application/octet-stream',
+      type: mediaType,
     });
 
     const formData = new FormData();

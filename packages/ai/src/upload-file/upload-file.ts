@@ -9,9 +9,11 @@ import { ProviderMetadata } from '../types/provider-metadata';
 import { ProviderReference } from '../types/provider-reference';
 import { Warning } from '../types/warning';
 import {
+  audioMediaTypeSignatures,
   detectMediaType,
   documentMediaTypeSignatures,
   imageMediaTypeSignatures,
+  videoMediaTypeSignatures,
 } from '../util/detect-media-type';
 import { UploadFileResult } from './upload-file-result';
 
@@ -71,9 +73,14 @@ export async function uploadFile({
     mediaTypeArg ??
     detectMediaType({
       data,
-      signatures: [...imageMediaTypeSignatures, ...documentMediaTypeSignatures],
+      signatures: [
+        ...imageMediaTypeSignatures,
+        ...documentMediaTypeSignatures,
+        ...audioMediaTypeSignatures,
+        ...videoMediaTypeSignatures,
+      ],
     }) ??
-    (isLikelyText(data) ? 'text/plain' : undefined);
+    (isLikelyText(data) ? 'text/plain' : 'application/octet-stream');
 
   const result = await api.uploadFile({
     data,

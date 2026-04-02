@@ -67,7 +67,7 @@ export class GoogleGenerativeAIFiles implements FilesV4 {
         ? data
         : Uint8Array.from(atob(data), c => c.charCodeAt(0));
 
-    const mediaType = options.mediaType ?? 'application/octet-stream';
+    const mediaType = options.mediaType;
     const displayName = googleOptions?.displayName;
 
     const baseOrigin = this.config.baseURL.replace(/\/v1beta$/, '');
