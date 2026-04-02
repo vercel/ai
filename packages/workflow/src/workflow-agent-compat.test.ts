@@ -966,7 +966,6 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallStart: async (e: any) => {
             event = e;
           },
@@ -1107,7 +1106,6 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         await agent.stream({
           messages: [{ role: 'user' as const, content: 'test' }],
           writable,
-          // @ts-expect-error - not yet implemented on WorkflowAgent
           experimental_onToolCallFinish: async (e: any) => {
             event = e;
           },
