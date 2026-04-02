@@ -267,20 +267,14 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       });
     });
 
-    // GAP: WorkflowAgent doesn't expose prepareCall in its API yet.
-    // The underlying streamText now supports it, so it.fails() no longer applies.
-    // Skipped until WorkflowAgent wires prepareCall through its own API.
-    it.skip('should use prepareCall', async () => {
-      // WorkflowAgent has prepareStep on stream options, but prepareCall is different —
-      // it transforms the generateText/streamText call params.
-      // @ts-expect-error - not yet implemented on WorkflowAgent
-      const agent = new WorkflowAgent<{ value: string }>({
+    it('should use prepareCall', async () => {
+      const agent = new WorkflowAgent({
         model: asModelFactory(mockModel),
-        prepareCall: ({ options, ...rest }: any) => {
+        prepareCall: options => {
           return {
-            ...rest,
+            ...options,
             providerOptions: {
-              test: { value: options.value },
+              test: { value: 'from-prepareCall' },
             },
           };
         },
@@ -288,7 +282,6 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
       const { writable } = createMockWritable();
 
-      // DIVERGENCE: WorkflowAgent uses messages + writable instead of prompt
       await agent.stream({
         messages: [{ role: 'user' as const, content: 'Hello, world!' }],
         writable,
@@ -297,7 +290,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       expect(doStreamOptions?.providerOptions).toMatchInlineSnapshot(`
         {
           "test": {
-            "value": "test",
+            "value": "from-prepareCall",
           },
         }
       `);
