@@ -73,6 +73,40 @@ const tools = {
     }),
     execute: calculate,
   },
+  deleteFile: {
+    description: 'Delete a file from the filesystem. Always requires approval.',
+    inputSchema: z.object({
+      path: z.string().describe('The file path to delete'),
+    }),
+    execute: async (input: { path: string }) => {
+      'use step';
+      console.log('[deleteFile] Would delete:', input.path);
+      return { deleted: input.path };
+    },
+    needsApproval: true as const,
+  },
+  sendEmail: {
+    description:
+      'Send an email. Requires approval only for external recipients.',
+    inputSchema: z.object({
+      to: z.string().describe('Email recipient'),
+      subject: z.string().describe('Email subject'),
+    }),
+    execute: async (input: { to: string; subject: string }) => {
+      'use step';
+      console.log('[sendEmail] Would send to:', input.to);
+      return { sent: true, to: input.to, subject: input.subject };
+    },
+    needsApproval: async (input: { to: string; subject: string }) => {
+      const isExternal = !input.to.endsWith('@company.com');
+      console.log(
+        '[sendEmail needsApproval]',
+        input.to,
+        isExternal ? '→ needs approval' : '→ auto-approved',
+      );
+      return isExternal;
+    },
+  },
 };
 const repairToolCall: ToolCallRepairFunction<typeof tools> = async ({
   toolCall,
