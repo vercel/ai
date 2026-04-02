@@ -15,6 +15,7 @@ import { ToolOutput } from './tool-output';
 import { ToolSet } from './tool-set';
 import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
+import { LanguageModelV3 } from '@ai-sdk/provider';
 
 /**
  * Executes a single tool call and manages its lifecycle callbacks.
@@ -40,6 +41,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   provider,
   modelId,
   onPreliminaryToolResult,
+  currentModelResponse,
   onToolCallStart,
   onToolCallFinish,
   executeToolInTelemetryContext = async ({ execute }) => execute(),
@@ -56,6 +58,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   provider?: string;
   modelId?: string;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
+  currentModelResponse?: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
   onToolCallStart?:
     | GenerateTextOnToolCallStartCallback<TOOLS>
     | Array<GenerateTextOnToolCallStartCallback<TOOLS> | undefined | null>;
@@ -121,6 +124,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
             messages,
             abortSignal: toolAbortSignal,
             experimental_context,
+            currentModelResponse,
           },
         });
 

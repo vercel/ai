@@ -123,6 +123,13 @@ export const weatherTool = tool({
                       description:
                         'Context that is passed into tool execution. Experimental (can break in patch releases).',
                     },
+                    {
+                      name: 'currentModelResponse',
+                      type: 'LanguageModelV3GenerateResult',
+                      isOptional: true,
+                      description:
+                        'The assistant response that contains the tool call.',
+                    },
                   ],
                 },
               ],

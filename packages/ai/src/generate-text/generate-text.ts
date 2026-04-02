@@ -779,9 +779,6 @@ export async function generateText<
             body: result.response?.body,
           };
 
-          return { ...result, response: responseData };
-        });
-
         // parse tool calls:
         const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
           currentModelResponse.content
@@ -883,6 +880,7 @@ export async function generateText<
               abortSignal: mergedAbortSignal,
               timeout,
               experimental_context,
+              currentModelResponse: currentModelResponse,
               stepNumber: steps.length,
               provider: stepModel.provider,
               modelId: stepModel.modelId,
@@ -1118,6 +1116,7 @@ async function executeTools<TOOLS extends ToolSet>({
   abortSignal,
   timeout,
   experimental_context,
+  currentModelResponse,
   stepNumber,
   provider,
   modelId,
@@ -1133,6 +1132,7 @@ async function executeTools<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_context: unknown;
+  currentModelResponse?: Awaited<ReturnType<LanguageModelV3['doGenerate']>>;
   stepNumber: number;
   provider: string;
   modelId: string;
@@ -1151,6 +1151,7 @@ async function executeTools<TOOLS extends ToolSet>({
         abortSignal,
         timeout,
         experimental_context,
+        currentModelResponse,
         stepNumber,
         provider,
         modelId,
