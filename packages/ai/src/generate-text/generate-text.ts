@@ -115,8 +115,8 @@ type GenerateTextIncludeSettings = {
  * @param event - The event object containing generation configuration.
  */
 export type GenerateTextOnStartCallback<
-  TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
 > = (
   event: OnStartEvent<TOOLS, CONTEXT, OUTPUT, GenerateTextIncludeSettings>,
@@ -132,8 +132,8 @@ export type GenerateTextOnStartCallback<
  * @param event - The event object containing step configuration.
  */
 export type GenerateTextOnStepStartCallback<
-  TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
 > = (
   event: OnStepStartEvent<TOOLS, CONTEXT, OUTPUT, GenerateTextIncludeSettings>,
@@ -147,9 +147,9 @@ export type GenerateTextOnStepStartCallback<
  *
  * @param event - The event object containing tool call information.
  */
-export type GenerateTextOnToolCallStartCallback<TOOLS extends ToolSet> = (
-  event: OnToolCallStartEvent<TOOLS>,
-) => PromiseLike<void> | void;
+export type GenerateTextOnToolCallStartCallback<
+  TOOLS extends ToolSet = ToolSet,
+> = (event: OnToolCallStartEvent<TOOLS>) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `experimental_onToolCallFinish` option.
@@ -163,9 +163,9 @@ export type GenerateTextOnToolCallStartCallback<TOOLS extends ToolSet> = (
  *
  * @param event - The event object containing tool call result information.
  */
-export type GenerateTextOnToolCallFinishCallback<TOOLS extends ToolSet> = (
-  event: OnToolCallFinishEvent<TOOLS>,
-) => PromiseLike<void> | void;
+export type GenerateTextOnToolCallFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+> = (event: OnToolCallFinishEvent<TOOLS>) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `onStepFinish` option.
@@ -176,8 +176,8 @@ export type GenerateTextOnToolCallFinishCallback<TOOLS extends ToolSet> = (
  * @param stepResult - The result of the step.
  */
 export type GenerateTextOnStepFinishCallback<
-  TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
 > = (event: OnStepFinishEvent<TOOLS, CONTEXT>) => Promise<void> | void;
 
 /**
@@ -190,8 +190,8 @@ export type GenerateTextOnStepFinishCallback<
  * @param event - The final result along with aggregated step data.
  */
 export type GenerateTextOnFinishCallback<
-  TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  TOOLS extends ToolSet = ToolSet,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
 > = (event: OnFinishEvent<TOOLS, CONTEXT>) => PromiseLike<void> | void;
 
 /**
