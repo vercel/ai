@@ -1,0 +1,42 @@
+{
+  "id": "chatcmpl-1fd017fc-60b8-44eb-a736-375b8e1bc3e8",
+  "object": "chat.completion",
+  "created": 1770770815,
+  "model": "gemma2-9b-it",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "tool_calls": [
+          {
+            "id": "ax9fskhew",
+            "type": "function",
+            "function": {
+              "name": "json",
+              "arguments": "{\"value\":\"Sparkle Day\"}"
+            }
+          }
+        ]
+      },
+      "logprobs": null,
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "queue_time": 0.041876985,
+    "prompt_tokens": 45,
+    "prompt_time": 0.001954727,
+    "completion_tokens": 20,
+    "completion_time": 0.044602289,
+    "total_tokens": 65,
+    "total_time": 0.046557016
+  },
+  "usage_breakdown": null,
+  "system_fingerprint": "fp_f8b414701e",
+  "x_groq": {
+    "id": "req_01kh52madzem68scv0bcz3vm01",
+    "seed": 167346302
+  },
+  "service_tier": "on_demand"
+}

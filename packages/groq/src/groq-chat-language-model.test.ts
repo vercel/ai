@@ -627,12 +627,12 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should pass response format information as json_object when structuredOutputs explicitly disabled', async () => {
-    prepareJsonFixtureResponse('groq-text');
+  it('should inject json tool and force tool_choice when structuredOutputs explicitly disabled', async () => {
+    prepareJsonFixtureResponse('groq-json-tool-call');
 
     const model = provider('gemma2-9b-it');
 
-    const { warnings } = await model.doGenerate({
+    const { content, warnings } = await model.doGenerate({
       providerOptions: {
         groq: {
           structuredOutputs: false,
@@ -662,18 +662,45 @@ describe('doGenerate', () => {
           },
         ],
         "model": "gemma2-9b-it",
-        "response_format": {
-          "type": "json_object",
+        "tool_choice": {
+          "function": {
+            "name": "json",
+          },
+          "type": "function",
         },
+        "tools": [
+          {
+            "function": {
+              "description": "Respond with a JSON object.",
+              "name": "json",
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+            },
+            "type": "function",
+          },
+        ],
       }
     `);
 
-    expect(warnings).toMatchInlineSnapshot(`
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+
+    // The json tool call arguments are surfaced as text content
+    expect(content).toMatchInlineSnapshot(`
       [
         {
-          "details": "JSON response format schema is only supported with structuredOutputs",
-          "feature": "responseFormat",
-          "type": "unsupported",
+          "text": "{"value":"Sparkle Day"}",
+          "type": "text",
         },
       ]
     `);
@@ -953,8 +980,8 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should include warnings when structured outputs explicitly disabled but schema provided', async () => {
-    prepareJsonFixtureResponse('groq-text');
+  it('should produce no warnings when structuredOutputs disabled but schema provided (uses json tool fallback)', async () => {
+    prepareJsonFixtureResponse('groq-json-tool-call');
 
     const { warnings } = await model.doGenerate({
       providerOptions: {
@@ -975,15 +1002,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(warnings).toMatchInlineSnapshot(`
-      [
-        {
-          "details": "JSON response format schema is only supported with structuredOutputs",
-          "feature": "responseFormat",
-          "type": "unsupported",
-        },
-      ]
-    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
   it('should send request body', async () => {
@@ -1049,6 +1068,67 @@ describe('doStream', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
+    });
+  });
+
+  describe('json tool fallback (structuredOutputs: false)', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('groq-json-tool-call');
+    });
+
+    it('should stream json tool call arguments as text deltas', async () => {
+      const result = await model.doStream({
+        providerOptions: {
+          groq: {
+            structuredOutputs: false,
+          },
+        },
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+      const textParts = parts.filter(
+        p =>
+          p.type === 'text-start' ||
+          p.type === 'text-delta' ||
+          p.type === 'text-end',
+      );
+
+      expect(textParts).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "txt-0",
+            "type": "text-start",
+          },
+          {
+            "delta": "{"value":",
+            "id": "txt-0",
+            "type": "text-delta",
+          },
+          {
+            "delta": ""Sparkle Day"}",
+            "id": "txt-0",
+            "type": "text-delta",
+          },
+          {
+            "id": "txt-0",
+            "type": "text-end",
+          },
+        ]
+      `);
+
+      // No tool-input or tool-call events should be emitted for the json tool
+      expect(parts.filter(p => p.type === 'tool-call')).toHaveLength(0);
     });
   });
 
