@@ -8,7 +8,6 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asSchema,
-  convertToModelMessages,
   type Experimental_ModelCallStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModelResponseMetadata,
@@ -1015,14 +1014,12 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     }
 
     // Handle tool approval responses from previous turns.
-    // convertToModelMessages transforms UIMessage approval parts into
-    // tool-approval-request / tool-approval-response ModelMessage parts.
-    // collectToolApprovals then finds these and tells us which tools to execute.
-    const modelMessagesForApproval = await convertToModelMessages(
-      effectiveMessages as UIMessage[],
-    );
+    // Messages are already ModelMessage[] (converted by the workflow function).
+    // collectToolApprovals scans for tool-approval-response parts in the
+    // last tool message and matches them with tool-approval-request parts
+    // in assistant messages.
     const { approvedToolApprovals, deniedToolApprovals } = collectToolApprovals(
-      { messages: modelMessagesForApproval },
+      { messages: effectiveMessages as unknown as ModelMessage[] },
     );
 
     if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
@@ -1034,7 +1031,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           const { execute } = tool;
           const result = await execute(approval.toolCall.input, {
             toolCallId: approval.toolCall.toolCallId,
-            messages: modelMessagesForApproval,
+            messages: effectiveMessages as unknown as ModelMessage[],
             experimental_context:
               options.experimental_context ?? this.experimentalContext,
           });
@@ -1064,11 +1061,34 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       }
 
       if (toolContent.length > 0) {
-        // Append tool results to the model messages and use those directly
-        effectiveMessages = [
-          ...modelMessagesForApproval,
-          { role: 'tool', content: toolContent },
-        ] as any;
+        // Rebuild messages: strip approval-related parts from assistant and tool
+        // messages, replace with clean tool-call + tool-result pairs
+        const msgs: ModelMessage[] = [];
+        for (const m of effectiveMessages as unknown as ModelMessage[]) {
+          if (m.role === 'assistant' && typeof m.content !== 'string') {
+            // Keep tool-call parts, strip approval-request parts
+            const content = m.content.filter(
+              (p: any) => p.type !== 'tool-approval-request',
+            );
+            if (content.length > 0) {
+              msgs.push({ ...m, content });
+            }
+          } else if (m.role === 'tool') {
+            // Strip approval-response parts from tool messages
+            const content = (m.content as any[]).filter(
+              (p: any) => p.type !== 'tool-approval-response',
+            );
+            if (content.length > 0) {
+              msgs.push({ ...m, content });
+            }
+            // Skip empty tool messages (only had approval responses)
+          } else {
+            msgs.push(m);
+          }
+        }
+        // Append the actual tool results
+        msgs.push({ role: 'tool' as const, content: toolContent });
+        effectiveMessages = msgs as any;
       }
     }
 
