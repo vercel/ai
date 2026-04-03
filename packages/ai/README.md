@@ -236,3 +236,5 @@ Contributions to the AI SDK are welcome and highly appreciated. However, before 
 ## Authors
 
 This library is created by [Vercel](https://vercel.com) and [Next.js](https://nextjs.org) team members, with contributions from the [Open Source Community](https://github.com/vercel/ai/graphs/contributors).
+
+hello
