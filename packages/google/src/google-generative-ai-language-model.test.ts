@@ -485,13 +485,11 @@ describe('doGenerate', () => {
         id: response?.id,
         timestamp: response?.timestamp,
         modelId: response?.modelId,
-      }).toMatchInlineSnapshot(`
-        {
-          "id": undefined,
-          "modelId": undefined,
-          "timestamp": undefined,
-        }
-      `);
+      }).toMatchObject({
+        id: undefined,
+        modelId: 'gemini-pro',
+        timestamp: expect.any(Date),
+      });
     });
   });
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
@@ -518,7 +516,7 @@ describe('doGenerate', () => {
       },
     };
 
-    const { content, finishReason } = await model.doGenerate({
+    const { content, finishReason, response } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
@@ -529,6 +527,10 @@ describe('doGenerate', () => {
         "unified": "error",
       }
     `);
+    expect(response).toMatchObject({
+      modelId: 'gemini-2.0-flash-lite',
+      timestamp: expect.any(Date),
+    });
   });
 
   it('should expose finishMessage in provider metadata', async () => {
