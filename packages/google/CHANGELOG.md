@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.58
+
+### Patch Changes
+
+- f20ba77: feat(provider/google): preserve per-modality token details in usage data
+
 ## 3.0.57
 
 ### Patch Changes
