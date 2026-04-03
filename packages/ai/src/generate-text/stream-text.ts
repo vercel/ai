@@ -629,6 +629,7 @@ function createOutputTransformStream<
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
   let lastPublishedJson = '';
+  const isTextOutput = output.name === 'text';
 
   function publishTextChunk({
     controller,
@@ -695,6 +696,17 @@ function createOutputTransformStream<
       text += chunk.text;
       textChunk += chunk.text;
       textProviderMetadata = chunk.providerMetadata ?? textProviderMetadata;
+
+      // For text output, every text-delta always changes the partial output,
+      // so we can publish immediately and avoid the expensive JSON.stringify
+      // comparison that causes O(n²) memory growth with large responses.
+      if (isTextOutput) {
+        publishTextChunk({
+          controller,
+          partialOutput: text as InferPartialOutput<OUTPUT>,
+        });
+        return;
+      }
 
       // only publish if partial json can be parsed:
       const result = await output.parsePartialOutput({ text });
