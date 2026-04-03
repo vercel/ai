@@ -383,6 +383,11 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_2_5_FLASH]: {},
   });
 
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+  });
+
   function prepareJsonFixtureResponse(
     filename: string,
     {
@@ -486,9 +491,9 @@ describe('doGenerate', () => {
         timestamp: response?.timestamp,
         modelId: response?.modelId,
       }).toMatchObject({
-        id: undefined,
-        modelId: 'gemini-pro',
-        timestamp: expect.any(Date),
+        id: 'Un6LacrVMcjUxs0PmJfWoQc',
+        modelId: 'gemini-3-pro-preview',
+        timestamp: new Date('2024-01-01T00:00:00.000Z'),
       });
     });
   });
