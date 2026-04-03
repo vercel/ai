@@ -12,6 +12,9 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FalConfig } from './fal-config';
@@ -72,6 +75,17 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](inst: FalTranscriptionModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FalTranscriptionModelId;
+    config: FalTranscriptionModelConfig;
+  }) {
+    return new FalTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -138,7 +152,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
         path: `https://queue.fal.run/fal-ai/${this.modelId}`,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         audio_url: audioUrl,
@@ -170,7 +184,7 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
             path: `https://queue.fal.run/fal-ai/${this.modelId}/requests/${queueResponse.request_id}`,
             modelId: this.modelId,
           }),
-          headers: combineHeaders(this.config.headers(), options.headers),
+          headers: combineHeaders(this.config.headers?.(), options.headers),
           failedResponseHandler: async ({
             requestBodyValues,
             response,
