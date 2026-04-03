@@ -4,19 +4,29 @@ import { useChat } from '@ai-sdk/react';
 import { useRef, useEffect } from 'react';
 
 export default function Chat() {
-  const { status, sendMessage, messages } = useChat();
+  const { status, sendMessage, messages, addToolApprovalResponse } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const handleApproval = async (
+    approvalId: string,
+    approved: boolean,
+    reason?: string,
+  ) => {
+    await addToolApprovalResponse({ id: approvalId, approved, reason });
+    // Manually trigger resubmission after approval response is set
+    sendMessage({ text: '' });
+  };
+
   return (
     <div className="flex flex-col h-screen max-w-2xl mx-auto">
       <header className="p-4 border-b">
         <h1 className="text-lg font-semibold">WorkflowAgent Chat</h1>
         <p className="text-sm text-gray-500">
-          A workflow AI agent with weather and calculator tools
+          A workflow AI agent with weather, calculator, and file tools
         </p>
       </header>
 
@@ -34,32 +44,99 @@ export default function Chat() {
               }`}
             >
               {message.parts.map((part, index) => {
-                switch (part.type) {
-                  case 'text':
-                    return (
-                      <div key={index} className="whitespace-pre-wrap">
-                        {part.text}
-                      </div>
-                    );
-                  case 'dynamic-tool':
+                const p = part as any;
+                if (part.type === 'text') {
+                  return (
+                    <div key={index} className="whitespace-pre-wrap">
+                      {part.text}
+                    </div>
+                  );
+                }
+                if (p.type?.startsWith('tool-') && p.toolCallId) {
+                  const toolName = p.type.replace('tool-', '');
+
+                  if (p.state === 'approval-requested' && p.approval?.id) {
                     return (
                       <div
                         key={index}
-                        className="my-2 p-2 bg-white/50 rounded text-sm border"
+                        className="my-2 p-3 bg-amber-50 rounded border border-amber-200"
                       >
-                        <div className="font-mono text-xs text-gray-500">
-                          {part.toolName}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-amber-600 text-lg">
+                            &#9888;
+                          </span>
+                          <span className="font-semibold text-amber-800">
+                            Approval Required
+                          </span>
                         </div>
-                        {part.state === 'output-available' && (
-                          <pre className="mt-1 text-xs overflow-x-auto">
-                            {JSON.stringify(part.output, null, 2)}
-                          </pre>
-                        )}
+                        <p className="text-sm text-gray-700 mb-1">
+                          The assistant wants to use{' '}
+                          <code className="bg-amber-100 px-1 rounded font-semibold">
+                            {toolName}
+                          </code>
+                        </p>
+                        <pre className="text-xs bg-white rounded p-2 mb-3 border overflow-x-auto">
+                          {JSON.stringify(p.input, null, 2)}
+                        </pre>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleApproval(p.approval.id, true)}
+                            className="rounded-lg bg-green-500 px-4 py-1.5 text-sm text-white hover:bg-green-600 transition-colors"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleApproval(
+                                p.approval.id,
+                                false,
+                                'User denied the operation.',
+                              )
+                            }
+                            className="rounded-lg bg-red-500 px-4 py-1.5 text-sm text-white hover:bg-red-600 transition-colors"
+                          >
+                            Deny
+                          </button>
+                        </div>
                       </div>
                     );
-                  default:
-                    return null;
+                  }
+
+                  if (p.state === 'approval-responded') {
+                    return (
+                      <div
+                        key={index}
+                        className={`my-2 p-2 rounded text-sm border ${
+                          p.approval?.approved
+                            ? 'bg-green-50 border-green-200 text-green-800'
+                            : 'bg-red-50 border-red-200 text-red-800'
+                        }`}
+                      >
+                        <code>{toolName}</code>{' '}
+                        {p.approval?.approved
+                          ? 'approved — executing...'
+                          : 'denied'}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={index}
+                      className="my-2 p-2 bg-white/50 rounded text-sm border"
+                    >
+                      <div className="font-mono text-xs text-gray-500">
+                        {toolName}
+                      </div>
+                      {p.state === 'output-available' && (
+                        <pre className="mt-1 text-xs overflow-x-auto">
+                          {JSON.stringify(p.output, null, 2)}
+                        </pre>
+                      )}
+                    </div>
+                  );
                 }
+                return null;
               })}
             </div>
           </div>
@@ -83,7 +160,7 @@ export default function Chat() {
         <input
           name="message"
           type="text"
-          placeholder="Ask about weather or math..."
+          placeholder="Ask about weather, math, or file operations..."
           className="flex-1 rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           disabled={status === 'streaming' || status === 'submitted'}
         />

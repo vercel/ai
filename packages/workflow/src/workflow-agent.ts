@@ -26,9 +26,9 @@ import {
 import {
   convertToLanguageModelPrompt,
   mergeAbortSignals,
+  mergeCallbacks,
   standardizePrompt,
 } from 'ai/internal';
-import { mergeCallbacks } from 'ai/internal';
 import { recordSpan } from './telemetry.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 import type { CompatibleLanguageModel } from './types.js';
@@ -1261,22 +1261,45 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           );
           const providerToolCalls = toolCalls.filter(tc => tc.providerExecuted);
 
-          // Further split non-provider tool calls into executable (has execute function)
-          // and client-side (no execute function, needs external resolution)
-          // Note: missing tools (!tool) are left to executeTool which will throw —
-          // only tools that exist but lack execute are treated as client-side.
-          const executableToolCalls = nonProviderToolCalls.filter(tc => {
+          // Check which tools need approval (can be async)
+          const approvalNeeded = await Promise.all(
+            nonProviderToolCalls.map(async tc => {
+              const tool = (effectiveTools as ToolSet)[tc.toolName];
+              if (!tool) return false;
+              if (tool.needsApproval == null) return false;
+              if (typeof tool.needsApproval === 'boolean')
+                return tool.needsApproval;
+              return tool.needsApproval(tc.input, {
+                toolCallId: tc.toolCallId,
+                messages: iterMessages as unknown as ModelMessage[],
+                experimental_context: experimentalContext,
+              });
+            }),
+          );
+
+          // Further split non-provider tool calls into:
+          // - executable: has execute function and doesn't need approval
+          // - paused: no execute function (client-side) OR needs approval
+          // Note: missing tools (!tool) are left to executeTool which will throw.
+          const executableToolCalls = nonProviderToolCalls.filter((tc, i) => {
             const tool = (effectiveTools as ToolSet)[tc.toolName];
-            return !tool || typeof tool.execute === 'function';
+            return (
+              (!tool || typeof tool.execute === 'function') &&
+              !approvalNeeded[i]
+            );
           });
-          const clientSideToolCalls = nonProviderToolCalls.filter(tc => {
+          const pausedToolCalls = nonProviderToolCalls.filter((tc, i) => {
             const tool = (effectiveTools as ToolSet)[tc.toolName];
-            return tool && typeof tool.execute !== 'function';
+            return (
+              (tool && typeof tool.execute !== 'function') || approvalNeeded[i]
+            );
           });
 
-          // If there are client-side tool calls, stop the loop and return them
-          // This matches AI SDK behavior: tools without execute pause the agent loop
-          if (clientSideToolCalls.length > 0) {
+          // If there are paused tool calls (client-side or needing approval),
+          // stop the loop and return them.
+          // This matches AI SDK behavior: tools without execute or needing
+          // approval pause the agent loop.
+          if (pausedToolCalls.length > 0) {
             // Execute any executable tools that were also called in this step
             const executableResults = await Promise.all(
               executableToolCalls.map(
@@ -1337,6 +1360,26 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                 experimental_context: experimentalContext,
                 experimental_output: undefined as OUTPUT,
               });
+            }
+
+            // Emit tool-approval-request chunks for tools that need approval
+            // so useChat can show the approval UI
+            if (options.writable) {
+              const approvalToolCalls = pausedToolCalls.filter((_, i) => {
+                const tcIndex = nonProviderToolCalls.indexOf(
+                  pausedToolCalls[i],
+                );
+                return approvalNeeded[tcIndex];
+              });
+              if (approvalToolCalls.length > 0) {
+                await writeApprovalRequests(
+                  options.writable,
+                  approvalToolCalls.map(tc => ({
+                    toolCallId: tc.toolCallId,
+                    toolName: tc.toolName,
+                  })),
+                );
+              }
             }
 
             // Close the stream before returning for paused tools
@@ -1541,6 +1584,29 @@ async function closeStream(
   }
   if (!preventClose) {
     await writable.close();
+  }
+}
+
+/**
+ * Write tool-approval-request chunks to the writable stream.
+ * These are consumed by useChat to show the approval UI.
+ */
+async function writeApprovalRequests(
+  writable: WritableStream<any>,
+  toolCalls: Array<{ toolCallId: string; toolName: string }>,
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const tc of toolCalls) {
+      await writer.write({
+        type: 'tool-approval-request',
+        approvalId: `approval-${tc.toolCallId}`,
+        toolCallId: tc.toolCallId,
+      });
+    }
+  } finally {
+    writer.releaseLock();
   }
 }
 
