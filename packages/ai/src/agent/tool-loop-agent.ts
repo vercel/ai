@@ -8,6 +8,7 @@ import type { GenerationContext } from '../generate-text/generation-context';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
+import { mergeCallbacks } from './merge-callbacks';
 import {
   ToolLoopAgentOnStartCallback,
   ToolLoopAgentOnStepStartCallback,
@@ -118,19 +119,6 @@ export class ToolLoopAgent<
     };
   }
 
-  private mergeCallbacks<T extends (event: any) => PromiseLike<void> | void>(
-    settingsCallback: T | undefined,
-    methodCallback: T | undefined,
-  ): T | undefined {
-    if (methodCallback && settingsCallback) {
-      return (async (event: Parameters<T>[0]) => {
-        await settingsCallback(event);
-        await methodCallback(event);
-      }) as unknown as T;
-    }
-    return methodCallback ?? settingsCallback;
-  }
-
   /**
    * Generates an output from the agent (non-streaming).
    */
@@ -151,31 +139,28 @@ export class ToolLoopAgent<
       ...(await this.prepareCall(options)),
       abortSignal,
       timeout,
-      experimental_onStart: this.mergeCallbacks(
+      experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
           | ToolLoopAgentOnStartCallback<TOOLS, CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onStepStart: this.mergeCallbacks(
+      experimental_onStepStart: mergeCallbacks(
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
           | ToolLoopAgentOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onToolCallStart: this.mergeCallbacks(
+      experimental_onToolCallStart: mergeCallbacks(
         this.settings.experimental_onToolCallStart,
         experimental_onToolCallStart,
       ),
-      experimental_onToolCallFinish: this.mergeCallbacks(
+      experimental_onToolCallFinish: mergeCallbacks(
         this.settings.experimental_onToolCallFinish,
         experimental_onToolCallFinish,
       ),
-      onStepFinish: this.mergeCallbacks(
-        this.settings.onStepFinish,
-        onStepFinish,
-      ),
-      onFinish: this.mergeCallbacks(this.settings.onFinish, onFinish),
+      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
     });
   }
 
@@ -201,31 +186,28 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       experimental_transform,
-      experimental_onStart: this.mergeCallbacks(
+      experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
           | ToolLoopAgentOnStartCallback<TOOLS, CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onStepStart: this.mergeCallbacks(
+      experimental_onStepStart: mergeCallbacks(
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
           | ToolLoopAgentOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onToolCallStart: this.mergeCallbacks(
+      experimental_onToolCallStart: mergeCallbacks(
         this.settings.experimental_onToolCallStart,
         experimental_onToolCallStart,
       ),
-      experimental_onToolCallFinish: this.mergeCallbacks(
+      experimental_onToolCallFinish: mergeCallbacks(
         this.settings.experimental_onToolCallFinish,
         experimental_onToolCallFinish,
       ),
-      onStepFinish: this.mergeCallbacks(
-        this.settings.onStepFinish,
-        onStepFinish,
-      ),
-      onFinish: this.mergeCallbacks(this.settings.onFinish, onFinish),
+      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
     });
   }
 }
