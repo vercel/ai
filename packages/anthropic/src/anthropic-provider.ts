@@ -1,4 +1,5 @@
 import {
+  FilesV4,
   InvalidArgumentError,
   LanguageModelV4,
   NoSuchModelError,
@@ -12,10 +13,11 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { VERSION } from './version';
+import { AnthropicFiles } from './anthropic-files';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
+import { VERSION } from './version';
 
 export interface AnthropicProvider extends ProviderV4 {
   /**
@@ -36,6 +38,8 @@ export interface AnthropicProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
+
+  files(): FilesV4;
 
   /**
    * Anthropic-specific computer use tool.
@@ -165,6 +169,14 @@ export function createAnthropic(
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+
+  provider.files = () =>
+    new AnthropicFiles({
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   provider.tools = anthropicTools;
 

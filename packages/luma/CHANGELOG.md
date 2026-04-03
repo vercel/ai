@@ -1,5 +1,19 @@
 # @ai-sdk/luma
 
+## 3.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 3.0.0-beta.10
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
 ## 3.0.0-beta.9
 
 ### Patch Changes

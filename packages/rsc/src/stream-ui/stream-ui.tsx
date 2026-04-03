@@ -287,6 +287,7 @@ export async function streamUI<
         prompt: validatedPrompt,
         supportedUrls: await model.supportedUrls,
         download: undefined,
+        provider: model.provider.split('.')[0],
       }),
       providerOptions,
       abortSignal,

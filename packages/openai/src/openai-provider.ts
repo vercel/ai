@@ -1,5 +1,6 @@
 import {
   EmbeddingModelV4,
+  FilesV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
@@ -18,6 +19,7 @@ import { OpenAIChatModelId } from './chat/openai-chat-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
 import { OpenAICompletionModelId } from './completion/openai-completion-options';
 import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
+import { OpenAIFiles } from './files/openai-files';
 import { OpenAIEmbeddingModelId } from './embedding/openai-embedding-options';
 import { OpenAIImageModel } from './image/openai-image-model';
 import { OpenAIImageModelId } from './image/openai-image-options';
@@ -92,6 +94,11 @@ export interface OpenAIProvider extends ProviderV4 {
    * Creates a model for speech generation.
    */
   speech(modelId: OpenAISpeechModelId): SpeechModelV4;
+
+  /**
+   * Returns a FilesV4 interface for uploading files to OpenAI.
+   */
+  files(): FilesV4;
 
   /**
    * OpenAI-specific tools.
@@ -216,6 +223,14 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
+  const createFiles = () =>
+    new OpenAIFiles({
+      provider: `${providerName}.files`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createLanguageModel = (modelId: OpenAIResponsesModelId) => {
     if (new.target) {
       throw new Error(
@@ -232,6 +247,7 @@ export function createOpenAI(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      // Soft-deprecated. TODO: remove in v8
       fileIdPrefixes: ['file-'],
     });
   };
@@ -258,6 +274,8 @@ export function createOpenAI(
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
+
+  provider.files = createFiles;
 
   provider.tools = openaiTools;
 
