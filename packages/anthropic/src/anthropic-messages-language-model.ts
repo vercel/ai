@@ -24,6 +24,7 @@ import {
   generateId,
   InferSchema,
   isCustomReasoning,
+  loadApiKey,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
   parseProviderOptions,
@@ -31,6 +32,7 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  withUserAgentSuffix,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -57,6 +59,7 @@ import {
 } from './convert-anthropic-messages-usage';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
+import { VERSION } from './version';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 function createCitationSource(
@@ -146,6 +149,8 @@ type AnthropicMessagesConfig = {
 export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
+  static readonly classId = '@ai-sdk/anthropic:AnthropicMessagesLanguageModel';
+
   readonly modelId: AnthropicMessagesModelId;
 
   private readonly config: AnthropicMessagesConfig;
@@ -154,15 +159,44 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   static [WORKFLOW_SERIALIZE](inst: AnthropicMessagesLanguageModel) {
     return {
       modelId: inst.modelId,
-      config: inst.config,
+      config: {
+        provider: inst.config.provider,
+        baseURL: inst.config.baseURL,
+        supportsNativeStructuredOutput:
+          inst.config.supportsNativeStructuredOutput,
+        supportsStrictTools: inst.config.supportsStrictTools,
+      },
     };
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: AnthropicMessagesModelId;
-    config: AnthropicMessagesConfig;
+    config: {
+      provider: string;
+      baseURL: string;
+      supportsNativeStructuredOutput?: boolean;
+      supportsStrictTools?: boolean;
+    };
   }) {
-    return new AnthropicMessagesLanguageModel(options.modelId, options.config);
+    return new AnthropicMessagesLanguageModel(options.modelId, {
+      ...options.config,
+      headers: () =>
+        withUserAgentSuffix(
+          {
+            'anthropic-version': '2023-06-01',
+            'x-api-key': loadApiKey({
+              apiKey: undefined,
+              environmentVariableName: 'ANTHROPIC_API_KEY',
+              description: 'Anthropic',
+            }),
+          },
+          `ai-sdk/anthropic/${VERSION}`,
+        ),
+      supportedUrls: () => ({
+        'image/*': [/^https?:\/\/.*$/],
+        'application/pdf': [/^https?:\/\/.*$/],
+      }),
+    });
   }
 
   constructor(
