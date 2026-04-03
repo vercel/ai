@@ -53,16 +53,19 @@ const gatewayProviderOptions = lazySchema(() =>
         .record(z.string(), z.array(z.record(z.string(), z.unknown())))
         .optional(),
       /**
-       * Whether to filter by only providers that state they have zero data
-       * retention with Vercel AI Gateway. When enabled, only providers that
-       * have agreements with Vercel AI Gateway for zero data retention will be
-       * used.
+       * Whether to filter by only providers that have zero data retention
+       * agreements with Vercel for AI Gateway. When using BYOK credentials,
+       * this filter is not applied. If BYOK credentials fail and the request
+       * falls back to system credentials, only providers with zero data
+       * retention agreements will be used.
        */
       zeroDataRetention: z.boolean().optional(),
       /**
        * Whether to filter by only providers that do not train on prompt data.
-       * When enabled, only providers that have agreements with Vercel AI Gateway
-       * to not use prompts for model training will be used.
+       * When using BYOK credentials, this filter is not applied. If BYOK
+       * credentials fail and the request falls back to system credentials,
+       * only providers that have agreements with Vercel for AI Gateway to not
+       * use prompts for model training will be used.
        */
       disallowPromptTraining: z.boolean().optional(),
       /**
