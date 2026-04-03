@@ -523,13 +523,13 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
       providerOptions: {
         google: {
-          serviceTier: 'SERVICE_TIER_FLEX',
+          serviceTier: 'flex',
         },
       },
     });
 
     expect(await server.calls[0].requestBodyJson).toMatchObject({
-      serviceTier: 'SERVICE_TIER_FLEX',
+      serviceTier: 'flex',
     });
   });
 
@@ -563,7 +563,7 @@ describe('doGenerate', () => {
           candidatesTokenCount: 2,
           totalTokenCount: 3,
         },
-        serviceTier: 'SERVICE_TIER_FLEX',
+        serviceTier: 'flex',
       },
     };
 
@@ -571,7 +571,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(providerMetadata?.google.serviceTier).toBe('SERVICE_TIER_FLEX');
+    expect(providerMetadata?.google.serviceTier).toBe('flex');
   });
 
   it('should expose null serviceTier in provider metadata when not present', async () => {
@@ -2808,7 +2808,7 @@ describe('doStream', () => {
             candidatesTokenCount: 2,
             totalTokenCount: 3,
           },
-          serviceTier: 'SERVICE_TIER_FLEX',
+          serviceTier: 'flex',
         })}\n\n`,
       ],
     };
@@ -2823,7 +2823,7 @@ describe('doStream', () => {
     expect(
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.serviceTier,
-    ).toBe('SERVICE_TIER_FLEX');
+    ).toBe('flex');
   });
 
   it('should expose null serviceTier in provider metadata on finish when not present', async () => {
