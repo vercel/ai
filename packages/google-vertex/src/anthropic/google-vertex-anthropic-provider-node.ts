@@ -1,6 +1,6 @@
 import { resolve } from '@ai-sdk/provider-utils';
 import { GoogleAuthOptions } from 'google-auth-library';
-import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
+import { createAuthTokenGenerator } from '../google-vertex-auth-google-auth-library';
 import {
   createVertexAnthropic as createVertexAnthropicOriginal,
   GoogleVertexAnthropicProvider,
@@ -22,12 +22,12 @@ export interface GoogleVertexAnthropicProviderSettings extends GoogleVertexAnthr
 export function createVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
+  const generateAuthToken = createAuthTokenGenerator(options.googleAuthOptions);
+
   return createVertexAnthropicOriginal({
     ...options,
     headers: async () => ({
-      Authorization: `Bearer ${await generateAuthToken(
-        options.googleAuthOptions,
-      )}`,
+      Authorization: `Bearer ${await generateAuthToken()}`,
       ...(await resolve(options.headers)),
     }),
   });

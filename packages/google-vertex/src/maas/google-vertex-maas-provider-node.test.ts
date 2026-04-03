@@ -3,11 +3,15 @@ import {
   createVertexMaas,
   vertexMaas,
 } from './google-vertex-maas-provider-node';
-import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
+import { createAuthTokenGenerator } from '../google-vertex-auth-google-auth-library';
+
+const { generateAuthToken } = vi.hoisted(() => ({
+  generateAuthToken: vi.fn(),
+}));
 
 // Mock the imported modules
 vi.mock('../google-vertex-auth-google-auth-library', () => ({
-  generateAuthToken: vi.fn(),
+  createAuthTokenGenerator: vi.fn(() => generateAuthToken),
 }));
 
 vi.mock('./google-vertex-maas-provider', () => ({
@@ -29,6 +33,7 @@ vi.mock('@ai-sdk/provider-utils', () => ({
 describe('google-vertex-maas-provider-node', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    generateAuthToken.mockReset();
   });
 
   it('should create provider with auth wrapper', async () => {
@@ -66,7 +71,8 @@ describe('google-vertex-maas-provider-node', () => {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    expect(generateAuthToken).toHaveBeenCalledWith(undefined);
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith(undefined);
+    expect(generateAuthToken).toHaveBeenCalledWith();
 
     expect(mockFetch).toHaveBeenCalledWith('https://example.com/test', {
       method: 'POST',
@@ -77,7 +83,7 @@ describe('google-vertex-maas-provider-node', () => {
     });
   });
 
-  it('should pass googleAuthOptions to generateAuthToken', async () => {
+  it('should pass googleAuthOptions to createAuthTokenGenerator', async () => {
     vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
     const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
     global.fetch = mockFetch;
@@ -91,7 +97,8 @@ describe('google-vertex-maas-provider-node', () => {
     const customFetch = (provider as any).fetch;
     await customFetch('https://example.com/test', {});
 
-    expect(generateAuthToken).toHaveBeenCalledWith(googleAuthOptions);
+    expect(createAuthTokenGenerator).toHaveBeenCalledWith(googleAuthOptions);
+    expect(generateAuthToken).toHaveBeenCalledWith();
   });
 
   it('should merge custom headers with auth header', async () => {
@@ -198,6 +205,25 @@ describe('google-vertex-maas-provider-node', () => {
   it('should export default vertexMaas instance', () => {
     expect(vertexMaas).toBeDefined();
     expect(typeof vertexMaas).toBe('function');
+  });
+
+  it('creates the auth token generator once per provider instance', async () => {
+    vi.mocked(generateAuthToken).mockResolvedValue('mock-auth-token');
+    const mockFetch = vi.fn().mockResolvedValue(new Response('{}'));
+    global.fetch = mockFetch;
+
+    const provider = createVertexMaas({
+      project: 'test-project',
+    });
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
+
+    const customFetch = (provider as any).fetch;
+    await customFetch('https://example.com/test-1', {});
+    await customFetch('https://example.com/test-2', {});
+
+    expect(createAuthTokenGenerator).toHaveBeenCalledTimes(1);
+    expect(generateAuthToken).toHaveBeenCalledTimes(2);
   });
 
   it('should set headers to undefined in base provider call', async () => {
