@@ -1,6 +1,6 @@
 import { loadOptionalSetting, resolve } from '@ai-sdk/provider-utils';
 import { GoogleAuthOptions } from 'google-auth-library';
-import { generateAuthToken } from './google-vertex-auth-google-auth-library';
+import { createAuthTokenGenerator } from './google-vertex-auth-google-auth-library';
 import {
   createVertex as createVertexOriginal,
   GoogleVertexProvider,
@@ -28,6 +28,9 @@ export function createVertex(
     environmentVariableName: 'GOOGLE_VERTEX_API_KEY',
   });
 
+  // Create a per-instance auth token generator to avoid reference-equality issues
+  const generateAuthToken = createAuthTokenGenerator(options.googleAuthOptions);
+
   if (apiKey) {
     return createVertexOriginal(options);
   }
@@ -35,9 +38,7 @@ export function createVertex(
   return createVertexOriginal({
     ...options,
     headers: async () => ({
-      Authorization: `Bearer ${await generateAuthToken(
-        options.googleAuthOptions,
-      )}`,
+      Authorization: `Bearer ${await generateAuthToken()}`,
       ...(await resolve(options.headers)),
     }),
   });
