@@ -1,5 +1,13 @@
 # @ai-sdk/assemblyai
 
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
 ## 3.0.0-beta.12
 
 ### Patch Changes

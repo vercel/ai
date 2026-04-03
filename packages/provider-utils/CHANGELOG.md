@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider@4.0.0-beta.7
+
 ## 5.0.0-beta.10
 
 ### Patch Changes
