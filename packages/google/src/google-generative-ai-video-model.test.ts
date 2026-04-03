@@ -393,7 +393,7 @@ describe('GoogleGenerativeAIVideoModel', () => {
   });
 
   describe('Image-to-Video', () => {
-    it('should send image as inlineData', async () => {
+    it('should send image as bytesBase64Encoded', async () => {
       let capturedBody: unknown;
       const model = createMockModel({
         onRequest: (url, body) => {
@@ -414,10 +414,8 @@ describe('GoogleGenerativeAIVideoModel', () => {
 
       const body = capturedBody as { instances: Array<{ image: unknown }> };
       expect(body.instances[0].image).toStrictEqual({
-        inlineData: {
-          mimeType: 'image/png',
-          data: 'base64-image-data',
-        },
+        bytesBase64Encoded: 'base64-image-data',
+        mimeType: 'image/png',
       });
     });
 
@@ -527,10 +525,8 @@ describe('GoogleGenerativeAIVideoModel', () => {
       };
       expect(body.instances[0].referenceImages).toStrictEqual([
         {
-          inlineData: {
-            mimeType: 'image/png',
-            data: 'reference-image-data',
-          },
+          bytesBase64Encoded: 'reference-image-data',
+          mimeType: 'image/png',
         },
         {
           gcsUri: 'gs://bucket/reference.png',
