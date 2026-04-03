@@ -125,6 +125,28 @@ export interface GoogleGenerativeAIProviderSettings {
 }
 
 /**
+ * Returns true if the given model ID supports passing external HTTPS URLs
+ * natively via fileUri (instead of downloading and re-encoding as base64).
+ *
+ * Supported: Gemini 2.5+, Gemini 3+, and current "latest" aliases.
+ * Not supported: Gemini 2.0 and older, gemma-*, tuned model paths (contain '/').
+ */
+function supportsExternalHttpsUrls(modelId: string): boolean {
+  // Tuned models (e.g. "tunedModels/my-model") — be conservative
+  if (modelId.includes('/')) return false;
+
+  const id = modelId.toLowerCase();
+  return (
+    id.includes('gemini-2.5') ||
+    id.includes('gemini-3') ||
+    // "latest" aliases currently resolve to 2.5+ stable
+    id === 'gemini-flash-latest' ||
+    id === 'gemini-pro-latest' ||
+    id === 'gemini-flash-lite-latest'
+  );
+}
+
+/**
  * Create a Google Generative AI provider instance.
  */
 export function createGoogleGenerativeAI(
@@ -165,6 +187,9 @@ export function createGoogleGenerativeAI(
             `^https://(?:www\\.)?youtube\\.com/watch\\?v=[\\w-]+(?:&[\\w=&.-]*)?$`,
           ),
           new RegExp(`^https://youtu\\.be/[\\w-]+(?:\\?[\\w=&.-]*)?$`),
+          // External HTTPS URLs — Gemini 2.5+ supports passing them directly
+          // via fileUri instead of downloading and re-encoding as base64.
+          ...(supportsExternalHttpsUrls(modelId) ? [/^https:\/\/.+/] : []),
         ],
       }),
       fetch: options.fetch,
