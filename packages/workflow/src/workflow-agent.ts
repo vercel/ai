@@ -8,6 +8,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asSchema,
+  convertToModelMessages,
   type Experimental_ModelCallStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModelResponseMetadata,
@@ -24,11 +25,12 @@ import {
   type UIMessage,
 } from 'ai';
 import {
+  collectToolApprovals,
   convertToLanguageModelPrompt,
   mergeAbortSignals,
+  mergeCallbacks,
   standardizePrompt,
 } from 'ai/internal';
-import { mergeCallbacks } from 'ai/internal';
 import { recordSpan } from './telemetry.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 import type { CompatibleLanguageModel } from './types.js';
@@ -1035,6 +1037,64 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         effectiveGenerationSettings.providerOptions = prepared.providerOptions;
     }
 
+    // Handle tool approval responses from previous turns.
+    // convertToModelMessages transforms UIMessage approval parts into
+    // tool-approval-request / tool-approval-response ModelMessage parts.
+    // collectToolApprovals then finds these and tells us which tools to execute.
+    const modelMessagesForApproval = await convertToModelMessages(
+      effectiveMessages as UIMessage[],
+    );
+    const { approvedToolApprovals, deniedToolApprovals } = collectToolApprovals(
+      { messages: modelMessagesForApproval },
+    );
+
+    if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
+      const toolContent: Array<any> = [];
+
+      for (const approval of approvedToolApprovals) {
+        const tool = (this.tools as ToolSet)[approval.toolCall.toolName];
+        if (tool && typeof tool.execute === 'function') {
+          const { execute } = tool;
+          const result = await execute(approval.toolCall.input, {
+            toolCallId: approval.toolCall.toolCallId,
+            messages: modelMessagesForApproval,
+            experimental_context:
+              options.experimental_context ?? this.experimentalContext,
+          });
+          const output =
+            typeof result === 'string'
+              ? { type: 'text' as const, value: result }
+              : { type: 'json' as const, value: result };
+          toolContent.push({
+            type: 'tool-result' as const,
+            toolCallId: approval.toolCall.toolCallId,
+            toolName: approval.toolCall.toolName,
+            output,
+          });
+        }
+      }
+
+      for (const denial of deniedToolApprovals) {
+        toolContent.push({
+          type: 'tool-result' as const,
+          toolCallId: denial.toolCall.toolCallId,
+          toolName: denial.toolCall.toolName,
+          output: {
+            type: 'error-text' as const,
+            value: denial.approvalResponse.reason ?? 'Tool execution denied.',
+          },
+        });
+      }
+
+      if (toolContent.length > 0) {
+        // Append tool results to the model messages and use those directly
+        effectiveMessages = [
+          ...modelMessagesForApproval,
+          { role: 'tool', content: toolContent },
+        ] as any;
+      }
+    }
+
     const prompt = await standardizePrompt({
       system: effectiveInstructions,
       messages: effectiveMessages,
@@ -1385,6 +1445,26 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
               });
             }
 
+            // Emit tool-approval-request chunks for tools that need approval
+            // so useChat can show the approval UI
+            if (options.writable) {
+              const approvalToolCalls = pausedToolCalls.filter((_, i) => {
+                const tcIndex = nonProviderToolCalls.indexOf(
+                  pausedToolCalls[i],
+                );
+                return approvalNeeded[tcIndex];
+              });
+              if (approvalToolCalls.length > 0) {
+                await writeApprovalRequests(
+                  options.writable,
+                  approvalToolCalls.map(tc => ({
+                    toolCallId: tc.toolCallId,
+                    toolName: tc.toolName,
+                  })),
+                );
+              }
+            }
+
             // Close the stream before returning for paused tools
             if (options.writable) {
               const sendFinish = options.sendFinish ?? true;
@@ -1587,6 +1667,29 @@ async function closeStream(
   }
   if (!preventClose) {
     await writable.close();
+  }
+}
+
+/**
+ * Write tool-approval-request chunks to the writable stream.
+ * These are consumed by useChat to show the approval UI.
+ */
+async function writeApprovalRequests(
+  writable: WritableStream<any>,
+  toolCalls: Array<{ toolCallId: string; toolName: string }>,
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const tc of toolCalls) {
+      await writer.write({
+        type: 'tool-approval-request',
+        approvalId: `approval-${tc.toolCallId}`,
+        toolCallId: tc.toolCallId,
+      });
+    }
+  } finally {
+    writer.releaseLock();
   }
 }
 

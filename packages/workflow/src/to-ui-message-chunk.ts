@@ -182,8 +182,18 @@ export function toUIMessageChunk(
     case 'raw':
       return undefined;
 
-    default:
+    default: {
+      // Pass through tool-approval-request and other chunks as-is
+      const p = part as any;
+      if (p.type === 'tool-approval-request') {
+        return {
+          type: 'tool-approval-request',
+          approvalId: p.approvalId,
+          toolCallId: p.toolCallId,
+        } as UIMessageChunk;
+      }
       return undefined;
+    }
   }
 }
 

@@ -97,56 +97,10 @@ const repairToolCall: ToolCallRepairFunction<typeof tools> = async ({
   return toolCall;
 };
 
-/**
- * Patch UIMessages to add placeholder tool results for any unresolved
- * tool calls. This prevents AI_MissingToolResultsError when the user
- * approves/denies a tool that was paused by needsApproval.
- */
-function patchUnresolvedToolCalls(messages: UIMessage[]): UIMessage[] {
-  // Collect all tool call IDs and tool result IDs
-  const toolCallIds = new Set<string>();
-  const toolResultIds = new Set<string>();
-
-  for (const msg of messages) {
-    for (const part of msg.parts) {
-      const p = part as any;
-      if (
-        p.type?.startsWith('tool-') &&
-        p.toolCallId &&
-        p.state !== undefined
-      ) {
-        toolCallIds.add(p.toolCallId);
-        if (p.state === 'output-available') {
-          toolResultIds.add(p.toolCallId);
-        }
-      }
-    }
-  }
-
-  // Find unresolved tool calls
-  const unresolvedIds = [...toolCallIds].filter(id => !toolResultIds.has(id));
-  if (unresolvedIds.length === 0) return messages;
-
-  // Strip assistant messages that contain only unresolved tool calls
-  return messages.filter(msg => {
-    if (msg.role !== 'assistant') return true;
-    const hasOnlyUnresolvedTools = msg.parts.every(part => {
-      const p = part as any;
-      if (p.type?.startsWith('tool-') && p.toolCallId) {
-        return unresolvedIds.includes(p.toolCallId);
-      }
-      // Keep step-start and other non-content parts
-      return p.type === 'step-start';
-    });
-    return !hasOnlyUnresolvedTools;
-  });
-}
-
 export async function chat(messages: UIMessage[]) {
   'use workflow';
 
-  const patchedMessages = patchUnresolvedToolCalls(messages);
-  const modelMessages = await convertToModelMessages(patchedMessages);
+  const modelMessages = await convertToModelMessages(messages);
 
   const agent = new WorkflowAgent({
     model: anthropic('claude-sonnet-4-20250514'),
@@ -161,9 +115,5 @@ export async function chat(messages: UIMessage[]) {
     experimental_repairToolCall: repairToolCall as any,
   });
 
-  return {
-    messages: result.messages,
-    toolCalls: result.toolCalls,
-    toolResults: result.toolResults,
-  };
+  return { messages: result.messages };
 }

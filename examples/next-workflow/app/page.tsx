@@ -1,81 +1,23 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { useRef, useEffect, useState, useCallback } from 'react';
-
-interface PendingApproval {
-  toolCallId: string;
-  toolName: string;
-  input: unknown;
-}
+import { useRef, useEffect } from 'react';
 
 export default function Chat() {
-  const { status, sendMessage, messages } = useChat();
+  const { status, sendMessage, messages, addToolApprovalResponse } = useChat({
+    sendAutomaticallyWhen: message =>
+      message.parts.some(
+        part =>
+          'state' in part &&
+          (part.state === 'approval-responded' ||
+            part.state === 'output-denied'),
+      ),
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>(
-    [],
-  );
-  const [resolvedToolCallIds, setResolvedToolCallIds] = useState<Set<string>>(
-    new Set(),
-  );
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, pendingApprovals]);
-
-  // Detect paused tools: tool-* parts without output after streaming ends
-  useEffect(() => {
-    if (status !== 'ready') return;
-
-    const newApprovals: PendingApproval[] = [];
-    for (const msg of messages) {
-      if (msg.role !== 'assistant') continue;
-      for (const part of msg.parts) {
-        const p = part as any;
-        if (
-          p.type?.startsWith('tool-') &&
-          p.state !== 'output-available' &&
-          p.toolCallId &&
-          !resolvedToolCallIds.has(p.toolCallId)
-        ) {
-          newApprovals.push({
-            toolCallId: p.toolCallId,
-            toolName: p.type.replace('tool-', ''),
-            input: p.input,
-          });
-        }
-      }
-    }
-
-    if (newApprovals.length > 0) {
-      setPendingApprovals(prev => {
-        const existing = new Set(prev.map(a => a.toolCallId));
-        const fresh = newApprovals.filter(a => !existing.has(a.toolCallId));
-        return fresh.length > 0 ? [...prev, ...fresh] : prev;
-      });
-    }
-  }, [status, messages, resolvedToolCallIds]);
-
-  const handleApproval = useCallback(
-    async (approval: PendingApproval, approved: boolean) => {
-      // Remove from pending and mark as resolved
-      setPendingApprovals(prev =>
-        prev.filter(a => a.toolCallId !== approval.toolCallId),
-      );
-      setResolvedToolCallIds(prev => new Set([...prev, approval.toolCallId]));
-
-      if (approved) {
-        sendMessage({
-          text: `Approved. Go ahead and execute ${approval.toolName}.`,
-        });
-      } else {
-        sendMessage({
-          text: `Denied. Do not execute ${approval.toolName}.`,
-        });
-      }
-    },
-    [sendMessage],
-  );
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-screen max-w-2xl mx-auto">
@@ -110,10 +52,80 @@ export default function Chat() {
                 }
                 if (p.type?.startsWith('tool-') && p.toolCallId) {
                   const toolName = p.type.replace('tool-', '');
-                  const isPending = pendingApprovals.some(
-                    a => a.toolCallId === p.toolCallId,
-                  );
-                  const isResolved = resolvedToolCallIds.has(p.toolCallId);
+
+                  // Approval requested — show approve/deny UI
+                  if (p.state === 'approval-requested' && p.approval?.id) {
+                    return (
+                      <div
+                        key={index}
+                        className="my-2 p-3 bg-amber-50 rounded border border-amber-200"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-amber-600 text-lg">
+                            &#9888;
+                          </span>
+                          <span className="font-semibold text-amber-800">
+                            Approval Required
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-1">
+                          The assistant wants to use{' '}
+                          <code className="bg-amber-100 px-1 rounded font-semibold">
+                            {toolName}
+                          </code>
+                        </p>
+                        <pre className="text-xs bg-white rounded p-2 mb-3 border overflow-x-auto">
+                          {JSON.stringify(p.input, null, 2)}
+                        </pre>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() =>
+                              addToolApprovalResponse({
+                                id: p.approval.id,
+                                approved: true,
+                              })
+                            }
+                            className="rounded-lg bg-green-500 px-4 py-1.5 text-sm text-white hover:bg-green-600 transition-colors"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() =>
+                              addToolApprovalResponse({
+                                id: p.approval.id,
+                                approved: false,
+                                reason: 'User denied the operation.',
+                              })
+                            }
+                            className="rounded-lg bg-red-500 px-4 py-1.5 text-sm text-white hover:bg-red-600 transition-colors"
+                          >
+                            Deny
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Approval responded (waiting for resubmission)
+                  if (p.state === 'approval-responded') {
+                    return (
+                      <div
+                        key={index}
+                        className={`my-2 p-2 rounded text-sm border ${
+                          p.approval?.approved
+                            ? 'bg-green-50 border-green-200 text-green-800'
+                            : 'bg-red-50 border-red-200 text-red-800'
+                        }`}
+                      >
+                        <code>{toolName}</code>{' '}
+                        {p.approval?.approved
+                          ? 'approved — executing...'
+                          : 'denied'}
+                      </div>
+                    );
+                  }
+
+                  // Normal tool display
                   return (
                     <div
                       key={index}
@@ -121,14 +133,6 @@ export default function Chat() {
                     >
                       <div className="font-mono text-xs text-gray-500">
                         {toolName}
-                        {isPending && (
-                          <span className="ml-2 text-amber-600">
-                            (awaiting approval)
-                          </span>
-                        )}
-                        {isResolved && p.state !== 'output-available' && (
-                          <span className="ml-2 text-gray-400">(resolved)</span>
-                        )}
                       </div>
                       {p.state === 'output-available' && (
                         <pre className="mt-1 text-xs overflow-x-auto">
@@ -143,44 +147,6 @@ export default function Chat() {
             </div>
           </div>
         ))}
-
-        {/* Pending approval cards */}
-        {pendingApprovals.map(approval => (
-          <div key={approval.toolCallId} className="flex justify-start">
-            <div className="max-w-[80%] rounded-lg px-4 py-3 bg-amber-50 border border-amber-200">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-amber-600 text-lg">&#9888;</span>
-                <span className="font-semibold text-amber-800">
-                  Approval Required
-                </span>
-              </div>
-              <p className="text-sm text-gray-700 mb-1">
-                The assistant wants to use{' '}
-                <code className="bg-amber-100 px-1 rounded font-semibold">
-                  {approval.toolName}
-                </code>
-              </p>
-              <pre className="text-xs bg-white rounded p-2 mb-3 border overflow-x-auto">
-                {JSON.stringify(approval.input, null, 2)}
-              </pre>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleApproval(approval, true)}
-                  className="rounded-lg bg-green-500 px-4 py-1.5 text-sm text-white hover:bg-green-600 transition-colors"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleApproval(approval, false)}
-                  className="rounded-lg bg-red-500 px-4 py-1.5 text-sm text-white hover:bg-red-600 transition-colors"
-                >
-                  Deny
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-
         <div ref={messagesEndRef} />
       </div>
 
@@ -194,8 +160,6 @@ export default function Chat() {
           if (input.value.trim()) {
             sendMessage({ text: input.value });
             input.value = '';
-            setPendingApprovals([]);
-            setResolvedToolCallIds(new Set());
           }
         }}
       >
