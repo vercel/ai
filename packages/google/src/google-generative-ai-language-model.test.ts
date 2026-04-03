@@ -1859,6 +1859,7 @@ describe('doGenerate', () => {
         {
           "data": "base64encodedimagedata",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
@@ -1869,6 +1870,7 @@ describe('doGenerate', () => {
         {
           "data": "anotherbase64encodedimagedata",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "type": "file",
         },
       ]
@@ -1921,11 +1923,13 @@ describe('doGenerate', () => {
         {
           "data": "imagedata1",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
           "data": "imagedata2",
           "mediaType": "image/png",
+          "providerMetadata": undefined,
           "type": "file",
         },
       ]
@@ -2080,11 +2084,13 @@ describe('doGenerate', () => {
         {
           "data": "validimagedata",
           "mediaType": "image/jpeg",
+          "providerMetadata": undefined,
           "type": "file",
         },
         {
           "data": "pdfdata",
           "mediaType": "application/pdf",
+          "providerMetadata": undefined,
           "type": "file",
         },
       ]
