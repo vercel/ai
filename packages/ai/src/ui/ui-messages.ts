@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ToolSet } from '../generate-text';
 import { ProviderMetadata } from '../types/provider-metadata';
+import { ProviderReference } from '../types/provider-reference';
 import { DeepPartial } from '../util/deep-partial';
 import { ValueOf } from '../util/value-of';
 
@@ -117,9 +118,9 @@ export type CustomContentUIPart = {
   type: 'custom';
 
   /**
-   * The kind of custom content, in the format `{provider}-{provider-type}`.
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
    */
-  kind: string;
+  kind: `${string}.${string}`;
 
   /**
    * The provider metadata.
@@ -195,6 +196,13 @@ export type FileUIPart = {
    * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
    */
   url: string;
+
+  /**
+   * Provider reference for files uploaded via `uploadFile`.
+   * Maps provider names to provider-specific file identifiers.
+   * When present, takes precedence over `url` in model messages.
+   */
+  providerReference?: ProviderReference;
 
   /**
    * The provider metadata.

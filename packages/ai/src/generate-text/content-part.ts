@@ -6,13 +6,13 @@ import { ReasoningOutput, ReasoningFileOutput } from './reasoning-output';
 import { TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export type ContentPart<TOOLS extends ToolSet> =
   | { type: 'text'; text: string; providerMetadata?: ProviderMetadata }
   | {
       type: 'custom';
-      kind: string;
+      kind: `${string}.${string}`;
       providerMetadata?: ProviderMetadata;
     }
   | ReasoningOutput

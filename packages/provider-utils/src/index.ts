@@ -23,6 +23,7 @@ export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-a
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
 export { isNonNullable } from './is-non-nullable';
+export { isProviderReference } from './is-provider-reference';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export {
@@ -46,6 +47,7 @@ export {
   type ProviderToolFactoryWithOutputSchema,
 } from './provider-tool-factory';
 export * from './remove-undefined-entries';
+export { resolveProviderReference } from './resolve-provider-reference';
 export * from './resolve';
 export * from './response-handler';
 export {

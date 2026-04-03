@@ -1,4 +1,5 @@
 import { EmbeddingModelV4 } from '../../embedding-model/v4/embedding-model-v4';
+import { FilesV4 } from '../../files/v4/files-v4';
 import { ImageModelV4 } from '../../image-model/v4/image-model-v4';
 import { LanguageModelV4 } from '../../language-model/v4/language-model-v4';
 import { RerankingModelV4 } from '../../reranking-model/v4/reranking-model-v4';
@@ -76,4 +77,12 @@ export interface ProviderV4 {
    * @throws {NoSuchModelError} If no such model exists.
    */
   rerankingModel?(modelId: string): RerankingModelV4;
+
+  /**
+   * Returns the files interface for uploading files to the provider.
+   * The returned interface can be passed to the `uploadFile` function.
+   *
+   * @returns {FilesV4} The files interface for this provider.
+   */
+  files?(): FilesV4;
 }

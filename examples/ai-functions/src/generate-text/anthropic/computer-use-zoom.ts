@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import fs from 'node:fs';
 import { run } from '../../lib/run';
 
@@ -60,7 +60,7 @@ run(async () => {
     },
     prompt:
       'Look at the screen and zoom in on any text that looks small or hard to read.',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log(result.text);

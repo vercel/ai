@@ -2,7 +2,7 @@ import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://vercel.com/docs/ai-gateway/provider-options
-const gatewayLanguageModelOptions = lazySchema(() =>
+const gatewayProviderOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -60,6 +60,12 @@ const gatewayLanguageModelOptions = lazySchema(() =>
        */
       zeroDataRetention: z.boolean().optional(),
       /**
+       * Whether to filter by only providers that do not train on prompt data.
+       * When enabled, only providers that have agreements with Vercel AI Gateway
+       * to not use prompts for model training will be used.
+       */
+      disallowPromptTraining: z.boolean().optional(),
+      /**
        * Per-provider timeouts for BYOK credentials in milliseconds.
        * Controls how long to wait for a provider to start responding
        * before falling back to the next available provider.
@@ -75,6 +81,4 @@ const gatewayLanguageModelOptions = lazySchema(() =>
   ),
 );
 
-export type GatewayLanguageModelOptions = InferSchema<
-  typeof gatewayLanguageModelOptions
->;
+export type GatewayProviderOptions = InferSchema<typeof gatewayProviderOptions>;

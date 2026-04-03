@@ -996,7 +996,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         case 'compaction': {
           content.push({
             type: 'custom',
-            kind: 'openai-compaction',
+            kind: 'openai.compaction',
             providerMetadata: {
               [providerOptionsName]: {
                 type: 'compaction',
@@ -1815,7 +1815,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               } else if (value.item.type === 'compaction') {
                 controller.enqueue({
                   type: 'custom',
-                  kind: 'openai-compaction',
+                  kind: 'openai.compaction',
                   providerMetadata: {
                     [providerOptionsName]: {
                       type: 'compaction',
