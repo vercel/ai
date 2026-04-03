@@ -22,6 +22,9 @@ import {
   mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertGroqUsage } from './convert-groq-usage';
@@ -34,7 +37,7 @@ import { mapGroqFinishReason } from './map-groq-finish-reason';
 
 type GroqChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -49,6 +52,17 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
   };
 
   private readonly config: GroqChatConfig;
+
+  static [WORKFLOW_SERIALIZE](inst: GroqChatLanguageModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GroqChatModelId;
+    config: GroqChatConfig;
+  }) {
+    return new GroqChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: GroqChatModelId, config: GroqChatConfig) {
     this.modelId = modelId;
@@ -195,7 +209,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -264,7 +278,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...args,
         stream: true,

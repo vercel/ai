@@ -27,6 +27,9 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -52,7 +55,7 @@ import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-fi
 type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
 
@@ -69,6 +72,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
 
   private readonly config: GoogleGenerativeAIConfig;
   private readonly generateId: () => string;
+
+  static [WORKFLOW_SERIALIZE](inst: GoogleGenerativeAILanguageModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleGenerativeAIConfig;
+  }) {
+    return new GoogleGenerativeAILanguageModel(options.modelId, options.config);
+  }
 
   constructor(
     modelId: GoogleGenerativeAIModelId,
@@ -235,7 +249,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
 
@@ -447,7 +461,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const headers = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
 

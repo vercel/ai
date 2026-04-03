@@ -4,16 +4,32 @@ import {
   LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
+} from '@ai-sdk/provider-utils';
 
 type DeepInfraChatConfig = {
   provider: string;
   url: (options: { path: string; modelId?: string }) => string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 };
 
 export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageModel {
+  static [WORKFLOW_SERIALIZE](inst: DeepInfraChatLanguageModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: DeepInfraChatConfig;
+  }) {
+    return new DeepInfraChatLanguageModel(options.modelId, options.config);
+  }
+
   constructor(modelId: string, config: DeepInfraChatConfig) {
     super(modelId, config);
   }

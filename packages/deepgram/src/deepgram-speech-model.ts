@@ -4,6 +4,9 @@ import {
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { DeepgramConfig } from './deepgram-config';
@@ -45,6 +48,17 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](inst: DeepgramSpeechModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: DeepgramSpeechModelId;
+    config: DeepgramSpeechModelConfig;
+  }) {
+    return new DeepgramSpeechModel(options.modelId, options.config);
   }
 
   constructor(
@@ -473,7 +487,7 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
         const queryString = new URLSearchParams(queryParams).toString();
         return queryString ? `${baseUrl}?${queryString}` : baseUrl;
       })(),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: deepgramFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),
