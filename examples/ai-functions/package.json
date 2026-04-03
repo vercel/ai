@@ -45,6 +45,7 @@
     "@ai-sdk/valibot": "workspace:*",
     "@ai-sdk/vercel": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
+    "@ai-sdk/zeroentropy": "workspace:*",
     "@google/generative-ai": "0.21.0",
     "@langfuse/otel": "^4.5.0",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",

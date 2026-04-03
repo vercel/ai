@@ -51,7 +51,8 @@
     { "path": "packages/valibot" },
     { "path": "packages/vercel" },
     { "path": "packages/vue" },
-    { "path": "packages/xai" }
+    { "path": "packages/xai" },
+    { "path": "packages/zeroentropy" }
   ],
   "include": [],
   "compilerOptions": {

@@ -61,7 +61,8 @@
         "VERCEL_OIDC_TOKEN",
         "VERCEL_REGION",
         "VERCEL_URL",
-        "XAI_API_KEY"
+        "XAI_API_KEY",
+        "ZEROENTROPY_API_KEY"
       ],
       "outputs": [
         "dist/**",
