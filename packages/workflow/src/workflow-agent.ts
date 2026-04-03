@@ -250,7 +250,7 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
    * The current model configuration (string or function).
    * The function should return a LanguageModelV4 instance.
    */
-  model: string | (() => Promise<CompatibleLanguageModel>);
+  model: string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>);
 
   /**
    * The current step number (0-indexed).
@@ -283,7 +283,7 @@ export interface PrepareStepResult extends Partial<GenerationSettings> {
    * Override the model for this step.
    * The function should return a LanguageModelV4 instance.
    */
-  model?: string | (() => Promise<CompatibleLanguageModel>);
+  model?: string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>);
 
   /**
    * Override the system message for this step.
@@ -328,7 +328,7 @@ export type PrepareStepCallback<TTools extends ToolSet = ToolSet> = (
 export interface PrepareCallOptions<
   TTools extends ToolSet = ToolSet,
 > extends Partial<GenerationSettings> {
-  model: string | (() => Promise<CompatibleLanguageModel>);
+  model: string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>);
   tools: TTools;
   instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
   toolChoice?: ToolChoice<TTools>;
@@ -366,7 +366,7 @@ export interface WorkflowAgentOptions<
    * This should be a string compatible with the Vercel AI Gateway (e.g., 'anthropic/claude-opus'),
    * or a step function that returns a LanguageModelV4 instance.
    */
-  model: string | (() => Promise<CompatibleLanguageModel>);
+  model: string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>);
 
   /**
    * A set of tools available to the agent.
@@ -520,7 +520,7 @@ export type StreamTextOnAbortCallback<TTools extends ToolSet = ToolSet> =
  */
 export type WorkflowAgentOnStartCallback = (event: {
   /** The model being used */
-  readonly model: string | (() => Promise<CompatibleLanguageModel>);
+  readonly model: string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>);
   /** The messages being sent */
   readonly messages: ModelMessage[];
 }) => PromiseLike<void> | void;
@@ -532,7 +532,7 @@ export type WorkflowAgentOnStepStartCallback = (event: {
   /** The current step number (0-based) */
   readonly stepNumber: number;
   /** The model being used for this step */
-  readonly model: string | (() => Promise<CompatibleLanguageModel>);
+  readonly model: string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>);
   /** The messages being sent for this step */
   readonly messages: ModelMessage[];
 }) => PromiseLike<void> | void;
@@ -882,7 +882,7 @@ export interface WorkflowAgentStreamResult<
  * ```
  */
 export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
-  private model: string | (() => Promise<CompatibleLanguageModel>);
+  private model: string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>);
   /**
    * The tool set configured for this agent.
    */
@@ -953,7 +953,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     options: WorkflowAgentStreamOptions<TTools, OUTPUT, PARTIAL_OUTPUT>,
   ): Promise<WorkflowAgentStreamResult<TTools, OUTPUT>> {
     // Call prepareCall to transform parameters before the agent loop
-    let effectiveModel: string | (() => Promise<CompatibleLanguageModel>) =
+    let effectiveModel: string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>) =
       this.model;
     let effectiveInstructions = options.system ?? this.instructions;
     let effectiveMessages = options.messages;

@@ -49,7 +49,7 @@
     "@workflow/vitest": "4.0.1-beta.12",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "workflow": "4.2.0-beta.75",
+    "workflow": "https://workflow-docs-git-fix-class-expr-binding-name-method-reg-28f36b.vercel.sh/workflow.tgz",
     "zod": "3.25.76"
   },
   "peerDependencies": {

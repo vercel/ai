@@ -9,14 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "4.0.0-beta.10",
-    "@ai-sdk/workflow": "0.0.1",
-    "@ai-sdk/react": "4.0.0-beta.47",
-    "ai": "7.0.0-beta.47",
+    "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
+    "@ai-sdk/workflow": "workspace:*",
+    "ai": "workspace:*",
     "next": "^15.5.9",
     "react": "^18",
     "react-dom": "^18",
-    "workflow": "4.2.0-beta.75",
+    "workflow": "https://workflow-docs-git-fix-class-expr-binding-name-method-reg-28f36b.vercel.sh/workflow.tgz",
     "zod": "3.25.76"
   },
   "devDependencies": {
