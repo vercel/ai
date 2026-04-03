@@ -24,7 +24,6 @@ import {
   type UIMessage,
 } from 'ai';
 import {
-  collectToolApprovals,
   convertToLanguageModelPrompt,
   mergeAbortSignals,
   mergeCallbacks,
@@ -1034,85 +1033,6 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         effectiveGenerationSettings.headers = prepared.headers;
       if (prepared.providerOptions !== undefined)
         effectiveGenerationSettings.providerOptions = prepared.providerOptions;
-    }
-
-    // Handle tool approval responses from previous turns.
-    // Messages are already ModelMessage[] (converted by the workflow function).
-    // collectToolApprovals scans for tool-approval-response parts in the
-    // last tool message and matches them with tool-approval-request parts
-    // in assistant messages.
-    const { approvedToolApprovals, deniedToolApprovals } = collectToolApprovals(
-      { messages: effectiveMessages as unknown as ModelMessage[] },
-    );
-
-    if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
-      const toolContent: Array<any> = [];
-
-      for (const approval of approvedToolApprovals) {
-        const tool = (this.tools as ToolSet)[approval.toolCall.toolName];
-        if (tool && typeof tool.execute === 'function') {
-          const { execute } = tool;
-          const result = await execute(approval.toolCall.input, {
-            toolCallId: approval.toolCall.toolCallId,
-            messages: effectiveMessages as unknown as ModelMessage[],
-            experimental_context:
-              options.experimental_context ?? this.experimentalContext,
-          });
-          const output =
-            typeof result === 'string'
-              ? { type: 'text' as const, value: result }
-              : { type: 'json' as const, value: result };
-          toolContent.push({
-            type: 'tool-result' as const,
-            toolCallId: approval.toolCall.toolCallId,
-            toolName: approval.toolCall.toolName,
-            output,
-          });
-        }
-      }
-
-      for (const denial of deniedToolApprovals) {
-        toolContent.push({
-          type: 'tool-result' as const,
-          toolCallId: denial.toolCall.toolCallId,
-          toolName: denial.toolCall.toolName,
-          output: {
-            type: 'error-text' as const,
-            value: denial.approvalResponse.reason ?? 'Tool execution denied.',
-          },
-        });
-      }
-
-      if (toolContent.length > 0) {
-        // Rebuild messages: strip approval-related parts from assistant and tool
-        // messages, replace with clean tool-call + tool-result pairs
-        const msgs: ModelMessage[] = [];
-        for (const m of effectiveMessages as unknown as ModelMessage[]) {
-          if (m.role === 'assistant' && typeof m.content !== 'string') {
-            // Keep tool-call parts, strip approval-request parts
-            const content = m.content.filter(
-              (p: any) => p.type !== 'tool-approval-request',
-            );
-            if (content.length > 0) {
-              msgs.push({ ...m, content });
-            }
-          } else if (m.role === 'tool') {
-            // Strip approval-response parts from tool messages
-            const content = (m.content as any[]).filter(
-              (p: any) => p.type !== 'tool-approval-response',
-            );
-            if (content.length > 0) {
-              msgs.push({ ...m, content });
-            }
-            // Skip empty tool messages (only had approval responses)
-          } else {
-            msgs.push(m);
-          }
-        }
-        // Append the actual tool results
-        msgs.push({ role: 'tool' as const, content: toolContent });
-        effectiveMessages = msgs as any;
-      }
     }
 
     const prompt = await standardizePrompt({
