@@ -8,13 +8,8 @@ run(async () => {
     prompt: 'What color is the sky in one word?',
     providerOptions: {
       google: {
-<<<<<<< HEAD:examples/ai-core/src/generate-text/google-service-tier.ts
-        serviceTier: 'SERVICE_TIER_FLEX',
-      } satisfies GoogleGenerativeAIProviderOptions,
-=======
         serviceTier: 'flex',
-      } satisfies GoogleLanguageModelOptions,
->>>>>>> 0f2b2f11f (Backport: fix(provider/google): fix Gemini service tier enum after upstream update (#14091)):examples/ai-functions/src/generate-text/google/service-tier.ts
+      } satisfies GoogleGenerativeAIProviderOptions,
     },
   });
 
