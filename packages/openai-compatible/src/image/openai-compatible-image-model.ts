@@ -14,6 +14,9 @@ import {
   FetchFunction,
   postFormDataToApi,
   postJsonToApi,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -24,7 +27,7 @@ import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings
 
 export type OpenAICompatibleImageModelConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
@@ -46,6 +49,17 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
    */
   private get providerOptionsKey(): string {
     return this.config.provider.split('.')[0].trim();
+  }
+
+  static [WORKFLOW_SERIALIZE](inst: OpenAICompatibleImageModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleImageModelConfig;
+  }) {
+    return new OpenAICompatibleImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -103,7 +117,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
           path: '/images/edits',
           modelId: this.modelId,
         }),
-        headers: combineHeaders(this.config.headers(), headers),
+        headers: combineHeaders(this.config.headers?.(), headers),
         formData: convertToFormData<OpenAICompatibleFormDataInput>({
           model: this.modelId,
           prompt,
@@ -140,7 +154,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
         path: '/images/generations',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         prompt,

@@ -14,6 +14,9 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   type ParseResult,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
@@ -31,6 +34,17 @@ type GatewayChatConfig = GatewayConfig & {
 export class GatewayLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedUrls = { '*/*': [/.*/] };
+
+  static [WORKFLOW_SERIALIZE](inst: GatewayLanguageModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GatewayModelId;
+    config: GatewayChatConfig;
+  }) {
+    return new GatewayLanguageModel(options.modelId, options.config);
+  }
 
   constructor(
     readonly modelId: GatewayModelId,
@@ -56,7 +70,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers ? await resolve(this.config.headers()) : undefined;
 
     try {
       const {
@@ -98,7 +112,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const { args, warnings } = await this.getArgs(options);
     const { abortSignal } = options;
 
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers ? await resolve(this.config.headers()) : undefined;
 
     try {
       const { value: response, responseHeaders } = await postJsonToApi({

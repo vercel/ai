@@ -8,6 +8,9 @@ import {
   FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -19,7 +22,7 @@ import { cohereFailedResponseHandler } from './cohere-error';
 type CohereEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 };
 
@@ -31,6 +34,17 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
   readonly supportsParallelCalls = true;
 
   private readonly config: CohereEmbeddingConfig;
+
+  static [WORKFLOW_SERIALIZE](inst: CohereEmbeddingModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: CohereEmbeddingModelId;
+    config: CohereEmbeddingConfig;
+  }) {
+    return new CohereEmbeddingModel(options.modelId, options.config);
+  }
 
   constructor(modelId: CohereEmbeddingModelId, config: CohereEmbeddingConfig) {
     this.modelId = modelId;
@@ -70,7 +84,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/embed`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         // The AI SDK only supports 'float' embeddings. Note that the Cohere API

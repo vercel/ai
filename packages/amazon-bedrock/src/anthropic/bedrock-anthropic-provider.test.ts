@@ -6,7 +6,12 @@ import {
 } from '@ai-sdk/anthropic/internal';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
-vi.mock('@ai-sdk/provider-utils', () => ({
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+  WORKFLOW_SERIALIZE: (actual as any).WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE: (actual as any).WORKFLOW_DESERIALIZE,
+  serializeModel: (actual as any).serializeModel,
   loadOptionalSetting: vi.fn().mockImplementation(({ settingValue }) => {
     // Return undefined for API key to test SigV4 flow
     if (settingValue === undefined) return undefined;
@@ -34,7 +39,7 @@ vi.mock('@ai-sdk/provider-utils', () => ({
   createProviderToolFactoryWithOutputSchema: vi.fn(),
   lazySchema: vi.fn(),
   zodSchema: vi.fn(),
-}));
+};});
 
 vi.mock('@ai-sdk/anthropic/internal', async () => {
   const originalModule = await vi.importActual('@ai-sdk/anthropic/internal');

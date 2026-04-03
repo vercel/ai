@@ -19,6 +19,9 @@ import {
   mapReasoningToProviderEffort,
   ParseResult,
   postJsonToApi,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertToOpenResponsesInput } from './convert-to-open-responses-input';
@@ -39,6 +42,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: string;
 
   private readonly config: OpenResponsesConfig;
+
+  static [WORKFLOW_SERIALIZE](inst: OpenResponsesLanguageModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenResponsesConfig;
+  }) {
+    return new OpenResponsesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: string, config: OpenResponsesConfig) {
     this.modelId = modelId;
@@ -179,7 +193,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: openResponsesErrorSchema,
@@ -284,7 +298,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         stream: true,
