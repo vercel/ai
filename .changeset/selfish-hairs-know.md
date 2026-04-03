@@ -6,6 +6,7 @@
 "@ai-sdk/anthropic": patch
 "@ai-sdk/cohere": patch
 "@ai-sdk/groq": patch
+"ai": patch
 ---
 
 fix(provider): preserve error type prefix in getErrorMessage
