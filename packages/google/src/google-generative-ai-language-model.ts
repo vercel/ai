@@ -47,6 +47,7 @@ import {
   GoogleGenerativeAIProviderMetadata,
 } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
+import { GoogleStreamToolCallArguments } from './google-stream-tool-call-arguments';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
 type GoogleGenerativeAIConfig = {
@@ -122,13 +123,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       });
     }
 
-    // Add warning if Vertex rag tools are used with a non-Vertex Google provider
+    const isVertexProvider = this.config.provider.startsWith('google.vertex.');
+
     if (
       tools?.some(
         tool =>
           tool.type === 'provider' && tool.id === 'google.vertex_rag_store',
       ) &&
-      !this.config.provider.startsWith('google.vertex.')
+      !isVertexProvider
     ) {
       warnings.push({
         type: 'other',
@@ -136,6 +138,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
           "The 'vertex_rag_store' tool is only supported with the Google Vertex provider " +
           'and might not be supported or could behave unexpectedly with the current Google provider ' +
           `(${this.config.provider}).`,
+      });
+    }
+
+    if (googleOptions?.streamFunctionCallArguments && !isVertexProvider) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'streamFunctionCallArguments' is only supported on the Vertex AI API " +
+          'and will be ignored with the current Google provider ' +
+          `(${this.config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
       });
     }
 
@@ -214,12 +226,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
         safetySettings: googleOptions?.safetySettings,
         tools: googleTools,
-        toolConfig: googleOptions?.retrievalConfig
-          ? {
-              ...googleToolConfig,
-              retrievalConfig: googleOptions.retrievalConfig,
-            }
-          : googleToolConfig,
+        toolConfig: mergeToolConfig({
+          toolConfig: googleToolConfig,
+          retrievalConfig: googleOptions?.retrievalConfig,
+          streamFunctionCallArguments: isVertexProvider
+            ? (googleOptions?.streamFunctionCallArguments ?? true)
+            : undefined,
+        }),
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
         serviceTier: googleOptions?.serviceTier,
@@ -315,7 +328,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
             providerMetadata: thoughtSignatureMetadata,
           });
         }
-      } else if ('functionCall' in part) {
+      } else if (
+        'functionCall' in part &&
+        part.functionCall.name != null &&
+        part.functionCall.args != null
+      ) {
         content.push({
           type: 'tool-call' as const,
           toolCallId: this.config.generateId(),
@@ -487,6 +504,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     let lastCodeExecutionToolCallId: string | undefined;
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
+
+    const streamingToolCallHandler = new GoogleStreamToolCallArguments(
+      generateId,
+      providerOptionsName,
+    );
 
     return {
       stream: response.pipeThrough(
@@ -741,14 +763,27 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                 }
               }
 
-              const toolCallDeltas = getToolCallsFromParts({
+              // Handle streaming partial function call args
+              const streamingResult =
+                streamingToolCallHandler.processStreamingFunctionCallParts(
+                  content.parts,
+                );
+              for (const event of streamingResult.events) {
+                controller.enqueue(event);
+              }
+              if (streamingResult.hasToolCalls) {
+                hasToolCalls = true;
+              }
+
+              // Handle complete (non-streaming) function calls
+              const completeCalls = getCompleteFunctionCallsFromParts({
                 parts: content.parts,
                 generateId,
                 providerOptionsName,
               });
 
-              if (toolCallDeltas != null) {
-                for (const toolCall of toolCallDeltas) {
+              if (completeCalls != null) {
+                for (const toolCall of completeCalls) {
                   controller.enqueue({
                     type: 'tool-input-start',
                     id: toolCall.toolCallId,
@@ -832,6 +867,33 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       request: { body: args },
     };
   }
+}
+
+function mergeToolConfig({
+  toolConfig,
+  retrievalConfig,
+  streamFunctionCallArguments,
+}: {
+  toolConfig: ReturnType<typeof prepareTools>['toolConfig'];
+  retrievalConfig?: { latLng?: { latitude: number; longitude: number } };
+  streamFunctionCallArguments?: boolean;
+}) {
+  if (!retrievalConfig && !streamFunctionCallArguments) {
+    return toolConfig;
+  }
+
+  const functionCallingConfig = streamFunctionCallArguments
+    ? {
+        ...toolConfig?.functionCallingConfig,
+        streamFunctionCallArguments: true as const,
+      }
+    : toolConfig?.functionCallingConfig;
+
+  return {
+    ...toolConfig,
+    ...(functionCallingConfig && { functionCallingConfig }),
+    ...(retrievalConfig && { retrievalConfig }),
+  };
 }
 
 function isGemini3Model(modelId: string): boolean {
@@ -937,7 +999,7 @@ function resolveGemini25ThinkingConfig({
   return { thinkingBudget };
 }
 
-function getToolCallsFromParts({
+function getCompleteFunctionCallsFromParts({
   parts,
   generateId,
   providerOptionsName,
@@ -946,18 +1008,23 @@ function getToolCallsFromParts({
   generateId: () => string;
   providerOptionsName: string;
 }) {
-  const functionCallParts = parts?.filter(
-    part => 'functionCall' in part,
-  ) as Array<
-    GoogleGenerativeAIContentPart & {
-      functionCall: { name: string; args: unknown };
-      thoughtSignature?: string | null;
-    }
-  >;
+  if (parts == null) return undefined;
 
-  return functionCallParts == null || functionCallParts.length === 0
+  const completeCalls = parts.filter(
+    (
+      part,
+    ): part is typeof part & {
+      functionCall: { name: string; args: unknown };
+    } =>
+      'functionCall' in part &&
+      part.functionCall.name != null &&
+      part.functionCall.args != null &&
+      part.functionCall.partialArgs == null,
+  );
+
+  return completeCalls.length === 0
     ? undefined
-    : functionCallParts.map(part => ({
+    : completeCalls.map(part => ({
         type: 'tool-call' as const,
         toolCallId: generateId(),
         toolName: part.functionCall.name,
@@ -1149,6 +1216,15 @@ export const getGroundingMetadataSchema = () =>
       .nullish(),
   });
 
+const partialArgSchema = z.object({
+  jsonPath: z.string(),
+  stringValue: z.string().nullish(),
+  numberValue: z.number().nullish(),
+  boolValue: z.boolean().nullish(),
+  nullValue: z.unknown().nullish(),
+  willContinue: z.boolean().nullish(),
+});
+
 const getContentSchema = () =>
   z.object({
     parts: z
@@ -1157,8 +1233,10 @@ const getContentSchema = () =>
           // note: order matters since text can be fully empty
           z.object({
             functionCall: z.object({
-              name: z.string(),
-              args: z.unknown(),
+              name: z.string().nullish(),
+              args: z.unknown().nullish(),
+              partialArgs: z.array(partialArgSchema).nullish(),
+              willContinue: z.boolean().nullish(),
             }),
             thoughtSignature: z.string().nullish(),
           }),
