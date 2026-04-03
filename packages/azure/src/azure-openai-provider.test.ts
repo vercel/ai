@@ -1,8 +1,12 @@
 import {
   EmbeddingModelV4Embedding,
+  LanguageModelV4Content,
+  LanguageModelV4FunctionTool,
   LanguageModelV4,
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
+  LanguageModelV4ProviderTool,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -20,6 +24,155 @@ vi.mock('./version', () => ({
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+];
+
+const HOSTED_TOOL_SEARCH_TOOLS: Array<
+  LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+> = [
+  {
+    type: 'provider',
+    id: 'openai.tool_search',
+    name: 'toolSearch',
+    args: {},
+  },
+  {
+    type: 'function',
+    name: 'get_weather',
+    description: 'Get the current weather at a specific location',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        location: { type: 'string' },
+        unit: {
+          type: 'string',
+          enum: ['celsius', 'fahrenheit'],
+        },
+      },
+      required: ['location', 'unit'],
+      additionalProperties: false,
+    },
+    strict: true,
+    providerOptions: {
+      openai: {
+        deferLoading: true,
+      },
+    },
+  },
+  {
+    type: 'function',
+    name: 'search_files',
+    description: 'Search through files in the workspace',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+        file_types: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      required: ['query', 'file_types'],
+      additionalProperties: false,
+    },
+    strict: true,
+    providerOptions: {
+      openai: {
+        deferLoading: true,
+      },
+    },
+  },
+  {
+    type: 'function',
+    name: 'send_email',
+    description: 'Send an email to a recipient',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        to: { type: 'string' },
+        subject: { type: 'string' },
+        body: { type: 'string' },
+      },
+      required: ['to', 'subject', 'body'],
+      additionalProperties: false,
+    },
+    strict: true,
+    providerOptions: {
+      openai: {
+        deferLoading: true,
+      },
+    },
+  },
+];
+
+const CLIENT_TOOL_SEARCH_TOOLS: Array<
+  LanguageModelV4FunctionTool | LanguageModelV4ProviderTool
+> = [
+  {
+    type: 'provider',
+    id: 'openai.tool_search',
+    name: 'toolSearch',
+    args: {
+      execution: 'client',
+      description: 'Search for available tools based on what the user needs.',
+      parameters: {
+        type: 'object',
+        properties: {
+          goal: {
+            type: 'string',
+            description: 'What the user is trying to accomplish',
+          },
+        },
+        required: ['goal'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    name: 'get_weather',
+    description: 'Get the current weather at a specific location',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        location: { type: 'string' },
+        unit: {
+          type: 'string',
+          enum: ['celsius', 'fahrenheit'],
+        },
+      },
+      required: ['location', 'unit'],
+      additionalProperties: false,
+    },
+    strict: true,
+    providerOptions: {
+      openai: {
+        deferLoading: true,
+      },
+    },
+  },
+  {
+    type: 'function',
+    name: 'search_files',
+    description: 'Search through files in the workspace',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string' },
+        file_types: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      required: ['query', 'file_types'],
+      additionalProperties: false,
+    },
+    strict: true,
+    providerOptions: {
+      openai: {
+        deferLoading: true,
+      },
+    },
+  },
 ];
 
 function prepareJsonFixtureResponse(
@@ -1316,6 +1469,358 @@ describe('responses', () => {
       });
     });
 
+    describe('tool search tool', () => {
+      let result: LanguageModelV4GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('azure-tool-search.1');
+
+        result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: HOSTED_TOOL_SEARCH_TOOLS,
+        });
+      });
+
+      it('should send request body with hosted tool search and deferred tools', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "test-deployment",
+            "tools": [
+              {
+                "type": "tool_search",
+              },
+              {
+                "defer_loading": true,
+                "description": "Get the current weather at a specific location",
+                "name": "get_weather",
+                "parameters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                    "unit": {
+                      "enum": [
+                        "celsius",
+                        "fahrenheit",
+                      ],
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                    "unit",
+                  ],
+                  "type": "object",
+                },
+                "strict": true,
+                "type": "function",
+              },
+              {
+                "defer_loading": true,
+                "description": "Search through files in the workspace",
+                "name": "search_files",
+                "parameters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "file_types": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "query": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "query",
+                    "file_types",
+                  ],
+                  "type": "object",
+                },
+                "strict": true,
+                "type": "function",
+              },
+              {
+                "defer_loading": true,
+                "description": "Send an email to a recipient",
+                "name": "send_email",
+                "parameters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "body": {
+                      "type": "string",
+                    },
+                    "subject": {
+                      "type": "string",
+                    },
+                    "to": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "to",
+                    "subject",
+                    "body",
+                  ],
+                  "type": "object",
+                },
+                "strict": true,
+                "type": "function",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should map hosted tool search call and output to provider-executed tool parts', () => {
+        const hostedToolSearchParts = result.content
+          .filter(
+            (
+              part,
+            ): part is Extract<
+              LanguageModelV4Content,
+              { type: 'tool-call' | 'tool-result' }
+            > =>
+              (part.type === 'tool-call' || part.type === 'tool-result') &&
+              part.toolName === 'toolSearch',
+          )
+          .map(part =>
+            part.type === 'tool-call'
+              ? {
+                  ...part,
+                  input: JSON.parse(part.input),
+                }
+              : part,
+          );
+
+        expect(hostedToolSearchParts).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "arguments": {
+                  "paths": [
+                    "get_weather",
+                  ],
+                },
+                "call_id": null,
+              },
+              "providerExecuted": true,
+              "providerMetadata": {
+                "azure": {
+                  "itemId": "tsc_0b650d19425923170069c1706fcf5c8193a22c9ea4ff856a82",
+                },
+              },
+              "toolCallId": "tsc_0b650d19425923170069c1706fcf5c8193a22c9ea4ff856a82",
+              "toolName": "toolSearch",
+              "type": "tool-call",
+            },
+            {
+              "providerMetadata": {
+                "azure": {
+                  "itemId": "tso_0b650d19425923170069c1706fe1388193ac1c9df80af5a125",
+                },
+              },
+              "result": {
+                "tools": [
+                  {
+                    "defer_loading": true,
+                    "description": "Get the current weather at a specific location",
+                    "name": "get_weather",
+                    "parameters": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "location": {
+                          "description": "The city and state, e.g. San Francisco, CA",
+                          "type": "string",
+                        },
+                        "unit": {
+                          "description": "Temperature unit",
+                          "enum": [
+                            "celsius",
+                            "fahrenheit",
+                          ],
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "location",
+                        "unit",
+                      ],
+                      "type": "object",
+                    },
+                    "strict": true,
+                    "type": "function",
+                  },
+                ],
+              },
+              "toolCallId": "tsc_0b650d19425923170069c1706fcf5c8193a22c9ea4ff856a82",
+              "toolName": "toolSearch",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('client tool search tool', () => {
+      it('should send request body with client tool search and deferred tools', async () => {
+        prepareJsonFixtureResponse('azure-client-tool-search.1');
+
+        await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+          providerOptions: { azure: { store: false } },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "test-deployment",
+            "store": false,
+            "tools": [
+              {
+                "description": "Search for available tools based on what the user needs.",
+                "execution": "client",
+                "parameters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "goal": {
+                      "description": "What the user is trying to accomplish",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "goal",
+                  ],
+                  "type": "object",
+                },
+                "type": "tool_search",
+              },
+              {
+                "defer_loading": true,
+                "description": "Get the current weather at a specific location",
+                "name": "get_weather",
+                "parameters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "location": {
+                      "type": "string",
+                    },
+                    "unit": {
+                      "enum": [
+                        "celsius",
+                        "fahrenheit",
+                      ],
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "location",
+                    "unit",
+                  ],
+                  "type": "object",
+                },
+                "strict": true,
+                "type": "function",
+              },
+              {
+                "defer_loading": true,
+                "description": "Search through files in the workspace",
+                "name": "search_files",
+                "parameters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "file_types": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "query": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "query",
+                    "file_types",
+                  ],
+                  "type": "object",
+                },
+                "strict": true,
+                "type": "function",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should map client tool search call to non-provider-executed tool parts', async () => {
+        prepareJsonFixtureResponse('azure-client-tool-search.1');
+
+        const result = await createModel('test-deployment').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+          providerOptions: { azure: { store: false } },
+        });
+
+        const clientToolSearchParts = result.content
+          .filter(
+            (
+              part,
+            ): part is Extract<LanguageModelV4Content, { type: 'tool-call' }> =>
+              part.type === 'tool-call' && part.toolName === 'toolSearch',
+          )
+          .map(part => ({
+            ...part,
+            input: JSON.parse(part.input),
+          }));
+
+        expect(clientToolSearchParts).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "arguments": {
+                  "goal": "find a tool to get current weather in San Francisco",
+                },
+                "call_id": "call_qr2GKQpAP4LSaaSEdSzc6dLd",
+              },
+              "providerMetadata": {
+                "azure": {
+                  "itemId": "tsc_0911d318162227a30169c1706e43c48190a7832911a96b4d70",
+                },
+              },
+              "toolCallId": "call_qr2GKQpAP4LSaaSEdSzc6dLd",
+              "toolName": "toolSearch",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+    });
+
     describe('reasoning', async () => {
       let result: Awaited<ReturnType<LanguageModelV4['doGenerate']>>;
       beforeEach(async () => {
@@ -1706,6 +2211,212 @@ describe('responses', () => {
         expect(
           await convertReadableStreamToArray(result.stream),
         ).toMatchSnapshot();
+      });
+    });
+
+    describe('tool search tool', () => {
+      it('should stream hosted tool search call and output as provider-executed tool parts', async () => {
+        prepareChunksFixtureResponse('azure-tool-search.1');
+
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: HOSTED_TOOL_SEARCH_TOOLS,
+        });
+
+        const hostedToolSearchParts = (
+          await convertReadableStreamToArray(stream)
+        )
+          .filter(
+            (
+              part,
+            ): part is Extract<
+              LanguageModelV4StreamPart,
+              { type: 'tool-call' | 'tool-result' }
+            > =>
+              (part.type === 'tool-call' || part.type === 'tool-result') &&
+              part.toolName === 'toolSearch',
+          )
+          .map(part =>
+            part.type === 'tool-call'
+              ? {
+                  ...part,
+                  input: JSON.parse(part.input),
+                }
+              : part,
+          );
+
+        expect(hostedToolSearchParts).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "arguments": {
+                  "paths": [
+                    "get_weather",
+                  ],
+                },
+                "call_id": null,
+              },
+              "providerExecuted": true,
+              "providerMetadata": {
+                "azure": {
+                  "itemId": "tsc_0b650d19425923170069c1706fcf5c8193a22c9ea4ff856a82",
+                },
+              },
+              "toolCallId": "tsc_0b650d19425923170069c1706fcf5c8193a22c9ea4ff856a82",
+              "toolName": "toolSearch",
+              "type": "tool-call",
+            },
+            {
+              "providerMetadata": {
+                "azure": {
+                  "itemId": "tso_0b650d19425923170069c1706fe1388193ac1c9df80af5a125",
+                },
+              },
+              "result": {
+                "tools": [
+                  {
+                    "defer_loading": true,
+                    "description": "Get the current weather at a specific location",
+                    "name": "get_weather",
+                    "parameters": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "location": {
+                          "description": "The city and state, e.g. San Francisco, CA",
+                          "type": "string",
+                        },
+                        "unit": {
+                          "description": "Temperature unit",
+                          "enum": [
+                            "celsius",
+                            "fahrenheit",
+                          ],
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "location",
+                        "unit",
+                      ],
+                      "type": "object",
+                    },
+                    "strict": true,
+                    "type": "function",
+                  },
+                ],
+              },
+              "toolCallId": "tsc_0b650d19425923170069c1706fcf5c8193a22c9ea4ff856a82",
+              "toolName": "toolSearch",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('client tool search tool', () => {
+      it('should stream client tool search call as non-provider-executed tool parts', async () => {
+        prepareChunksFixtureResponse('azure-client-tool-search.1');
+
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+          providerOptions: { azure: { store: false } },
+        });
+
+        const allParts = await convertReadableStreamToArray(stream);
+        const toolSearchCall = allParts.find(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV4StreamPart,
+            { type: 'tool-call' }
+          > => part.type === 'tool-call' && part.toolName === 'toolSearch',
+        );
+
+        const clientToolSearchParts = allParts
+          .filter(
+            (
+              part,
+            ): part is Extract<
+              LanguageModelV4StreamPart,
+              {
+                type:
+                  | 'tool-input-start'
+                  | 'tool-input-end'
+                  | 'tool-call'
+                  | 'tool-result';
+              }
+            > =>
+              (part.type === 'tool-input-start' &&
+                part.toolName === 'toolSearch') ||
+              (part.type === 'tool-input-end' &&
+                part.id === toolSearchCall?.toolCallId) ||
+              (part.type === 'tool-call' && part.toolName === 'toolSearch'),
+          )
+          .map(part =>
+            part.type === 'tool-call'
+              ? { ...part, input: JSON.parse(part.input) }
+              : part,
+          );
+
+        expect(clientToolSearchParts).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "call_qr2GKQpAP4LSaaSEdSzc6dLd",
+              "toolName": "toolSearch",
+              "type": "tool-input-start",
+            },
+            {
+              "id": "call_qr2GKQpAP4LSaaSEdSzc6dLd",
+              "type": "tool-input-end",
+            },
+            {
+              "input": {
+                "arguments": {
+                  "goal": "find a tool to get current weather in San Francisco",
+                },
+                "call_id": "call_qr2GKQpAP4LSaaSEdSzc6dLd",
+              },
+              "providerMetadata": {
+                "azure": {
+                  "itemId": "tsc_0911d318162227a30169c1706e43c48190a7832911a96b4d70",
+                },
+              },
+              "toolCallId": "call_qr2GKQpAP4LSaaSEdSzc6dLd",
+              "toolName": "toolSearch",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should use final call_id from done chunk for Azure client tool search', async () => {
+        prepareChunksFixtureResponse('azure-client-tool-search.1');
+
+        const { stream } = await createModel('test-deployment').doStream({
+          prompt: TEST_PROMPT,
+          tools: CLIENT_TOOL_SEARCH_TOOLS,
+          providerOptions: { azure: { store: false } },
+        });
+
+        const allParts = await convertReadableStreamToArray(stream);
+
+        const toolCall = allParts.find(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV4StreamPart,
+            { type: 'tool-call' }
+          > => part.type === 'tool-call' && part.toolName === 'toolSearch',
+        );
+
+        const parsedInput = JSON.parse(toolCall!.input);
+
+        expect(toolCall?.toolCallId).toBe('call_qr2GKQpAP4LSaaSEdSzc6dLd');
+        expect(parsedInput.call_id).toBe('call_qr2GKQpAP4LSaaSEdSzc6dLd');
+        expect(toolCall?.toolCallId).not.toBe('call_0xOAk1aYH6BGZk1cvrHvtG5W');
+        expect(toolCall?.toolCallId).toBe(parsedInput.call_id);
       });
     });
 
