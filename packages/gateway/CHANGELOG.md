@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.87
+
+### Patch Changes
+
+- ffd431a: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.86
 
 ### Patch Changes
