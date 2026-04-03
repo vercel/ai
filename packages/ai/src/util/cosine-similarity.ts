@@ -7,8 +7,7 @@ import { InvalidArgumentError } from '../error/invalid-argument-error';
  * @param vector1 - The first vector.
  * @param vector2 - The second vector.
  *
- * @returns The cosine similarity between vector1 and vector2.
- * @returns 0 if either vector is the zero vector.
+ * @returns The cosine similarity between vector1 and vector2, or 0 if either vector is the zero vector.
  *
  * @throws {InvalidArgumentError} If the vectors do not have the same length.
  */

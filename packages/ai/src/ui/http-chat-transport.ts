@@ -3,13 +3,10 @@ import {
   Resolvable,
   normalizeHeaders,
   resolve,
-  withUserAgentSuffix,
-  getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { ChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
-import { VERSION } from '../version';
 
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
@@ -96,37 +93,29 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
   body?: Resolvable<object>;
 
   /**
-  Custom fetch implementation. You can use it as a middleware to intercept requests,
-  or to provide a custom fetch implementation for e.g. testing.
-      */
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 
   /**
    * When a function is provided, it will be used
    * to prepare the request body for the chat API. This can be useful for
    * customizing the request body based on the messages and data in the chat.
-   *
-   * @param id The id of the chat.
-   * @param messages The current messages in the chat.
-   * @param requestBody The request body object passed in the chat request.
    */
   prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
 
   /**
    * When a function is provided, it will be used
-   * to prepare the request body for the chat API. This can be useful for
-   * customizing the request body based on the messages and data in the chat.
-   *
-   * @param id The id of the chat.
-   * @param messages The current messages in the chat.
-   * @param requestBody The request body object passed in the chat request.
+   * to prepare the reconnect request for the chat API. This can be useful for
+   * customizing the request based on the chat session.
    */
   prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 };
 
-export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
-  implements ChatTransport<UI_MESSAGE>
-{
+export abstract class HttpChatTransport<
+  UI_MESSAGE extends UIMessage,
+> implements ChatTransport<UI_MESSAGE> {
   protected api: string;
   protected credentials: HttpChatTransportInitOptions<UI_MESSAGE>['credentials'];
   protected headers: HttpChatTransportInitOptions<UI_MESSAGE>['headers'];
@@ -201,14 +190,10 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
     const response = await fetch(api, {
       method: 'POST',
-      headers: withUserAgentSuffix(
-        {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        `ai-sdk/${VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      ),
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
       body: JSON.stringify(body),
       credentials,
       signal: abortSignal,
@@ -260,11 +245,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
     const response = await fetch(api, {
       method: 'GET',
-      headers: withUserAgentSuffix(
-        headers,
-        `ai-sdk/${VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      ),
+      headers,
       credentials,
     });
 

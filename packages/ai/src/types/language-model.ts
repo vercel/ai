@@ -2,8 +2,9 @@ import { GatewayModelId } from '@ai-sdk/gateway';
 import {
   LanguageModelV2,
   LanguageModelV3,
-  SharedV3Warning,
-  LanguageModelV3Source,
+  LanguageModelV4,
+  SharedV4Warning,
+  LanguageModelV4Source,
 } from '@ai-sdk/provider';
 
 declare global {
@@ -12,7 +13,7 @@ declare global {
    *
    * You can register model IDs in two ways:
    *
-   * 1. Register baesd on Model IDs from a provider package:
+   * 1. Register based on Model IDs from a provider package:
    * @example
    * ```typescript
    * import { openai } from '@ai-sdk/openai';
@@ -52,24 +53,25 @@ export type GlobalProviderModelId = [keyof RegisteredProviderModels] extends [
       | RegisteredProviderModels[keyof RegisteredProviderModels];
 
 /**
-Language model that is used by the AI SDK.
-*/
+ * Language model that is used by the AI SDK.
+ */
 export type LanguageModel =
   | GlobalProviderModelId
+  | LanguageModelV4
   | LanguageModelV3
   | LanguageModelV2;
 
 /**
-Reason why a language model finished generating a response.
-
-Can be one of the following:
-- `stop`: model generated stop sequence
-- `length`: model generated maximum number of tokens
-- `content-filter`: content filter violation stopped the model
-- `tool-calls`: model triggered tool calls
-- `error`: model stopped because of an error
-- `other`: model stopped for other reasons
-*/
+ * Reason why a language model finished generating a response.
+ *
+ * Can be one of the following:
+ * - `stop`: model generated stop sequence
+ * - `length`: model generated maximum number of tokens
+ * - `content-filter`: content filter violation stopped the model
+ * - `tool-calls`: model triggered tool calls
+ * - `error`: model stopped because of an error
+ * - `other`: model stopped for other reasons
+ */
 export type FinishReason =
   | 'stop'
   | 'length'
@@ -79,23 +81,23 @@ export type FinishReason =
   | 'other';
 
 /**
-Warning from the model provider for this call. The call will proceed, but e.g.
-some settings might not be supported, which can lead to suboptimal results.
-*/
-export type CallWarning = SharedV3Warning;
+ * Warning from the model provider for this call. The call will proceed, but e.g.
+ * some settings might not be supported, which can lead to suboptimal results.
+ */
+export type CallWarning = SharedV4Warning;
 
 /**
-A source that has been used as input to generate the response.
-*/
-export type Source = LanguageModelV3Source;
+ * A source that has been used as input to generate the response.
+ */
+export type Source = LanguageModelV4Source;
 
 /**
-Tool choice for the generation. It supports the following settings:
-
-- `auto` (default): the model can choose whether and which tools to call.
-- `required`: the model must call a tool. It can choose which tool to call.
-- `none`: the model must not call tools
-- `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
+ * Tool choice for the generation. It supports the following settings:
+ *
+ * - `auto` (default): the model can choose whether and which tools to call.
+ * - `required`: the model must call a tool. It can choose which tool to call.
+ * - `none`: the model must not call tools
+ * - `{ type: 'tool', toolName: string (typed) }`: the model must call the specified tool
  */
 export type ToolChoice<TOOLS extends Record<string, unknown>> =
   | 'auto'

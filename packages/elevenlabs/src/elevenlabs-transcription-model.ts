@@ -1,4 +1,4 @@
-import { TranscriptionModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -14,7 +14,7 @@ import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-optio
 import { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
 // https://elevenlabs.io/docs/api-reference/speech-to-text/convert
-const elevenLabsProviderOptionsSchema = z.object({
+const elevenLabsTranscriptionModelOptionsSchema = z.object({
   languageCode: z.string().nullish(),
   tagAudioEvents: z.boolean().nullish().default(true),
   numSpeakers: z.number().int().min(1).max(32).nullish(),
@@ -26,8 +26,8 @@ const elevenLabsProviderOptionsSchema = z.object({
   fileFormat: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
 });
 
-export type ElevenLabsTranscriptionCallOptions = z.infer<
-  typeof elevenLabsProviderOptionsSchema
+export type ElevenLabsTranscriptionModelOptions = z.infer<
+  typeof elevenLabsTranscriptionModelOptionsSchema
 >;
 
 interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
@@ -36,8 +36,8 @@ interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
   };
 }
 
-export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -52,14 +52,14 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const elevenlabsOptions = await parseProviderOptions({
       provider: 'elevenlabs',
       providerOptions,
-      schema: elevenLabsProviderOptionsSchema,
+      schema: elevenLabsTranscriptionModelOptionsSchema,
     });
 
     // Create form data with base fields
@@ -111,8 +111,8 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 

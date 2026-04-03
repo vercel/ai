@@ -36,6 +36,7 @@ enabling you to use LangChain models and LangGraph agents with AI SDK UI compone
 
 - Convert AI SDK `UIMessage` to LangChain `BaseMessage` format using `toBaseMessages`
 - Transform LangChain/LangGraph streams to AI SDK `UIMessageStream` using `toUIMessageStream`
+- Support for `streamEvents()` output for granular event streaming and observability
 - `LangSmithDeploymentTransport` for connecting directly to a deployed LangGraph graph
 - Full support for text, tool calls, tool results, and multimodal content
 - Custom data streaming with typed events (`data-{type}`)
@@ -205,6 +206,49 @@ export async function POST(req: Request) {
   });
 }
 ```
+
+## Example: Streaming with streamEvents
+
+LangChain's [`streamEvents()`](https://docs.langchain.com/oss/javascript/langchain/streaming) method provides granular, semantic events with metadata. This is useful for debugging, observability, and migrating existing LCEL applications:
+
+```tsx filename="app/api/stream-events/route.ts"
+import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
+import { ChatOpenAI } from '@langchain/openai';
+import { createUIMessageStreamResponse, UIMessage } from 'ai';
+
+export const maxDuration = 30;
+
+const model = new ChatOpenAI({
+  model: 'gpt-4o-mini',
+  temperature: 0,
+});
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const langchainMessages = await toBaseMessages(messages);
+
+  // Use streamEvents() for granular event streaming
+  // Produces events like on_chat_model_stream, on_tool_start, on_tool_end
+  const streamEvents = model.streamEvents(langchainMessages, {
+    version: 'v2',
+  });
+
+  // The adapter automatically detects and handles streamEvents format
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream(streamEvents),
+  });
+}
+```
+
+<Note>
+  **When to use `streamEvents()` vs `graph.stream()`:** - **`streamEvents()`**:
+  Best for debugging, observability, filtering by event type, agents created
+  with `createAgent`, and migrating existing LCEL applications that rely on
+  callbacks - **`graph.stream()` with `streamMode`**: Best for LangGraph
+  applications where you need structured state updates via `values`, `messages`,
+  or `custom` modes
+</Note>
 
 ## Example: Custom Data Streaming
 
@@ -428,7 +472,7 @@ const langchainMessages = convertModelMessages(modelMessages);
 
 ### `toUIMessageStream(stream)`
 
-Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`. Automatically detects the stream type and handles both direct model streams and LangGraph streams.
+Converts a LangChain/LangGraph stream to an AI SDK `UIMessageStream`. Automatically detects the stream type and handles direct model streams, LangGraph streams, and `streamEvents()` output.
 
 ```ts
 import { toUIMessageStream } from '@ai-sdk/langchain';
@@ -440,7 +484,7 @@ return createUIMessageStreamResponse({
   stream: toUIMessageStream(modelStream),
 });
 
-// Also works with LangGraph streams
+// Works with LangGraph streams
 const graphStream = await graph.stream(
   { messages },
   { streamMode: ['values', 'messages'] },
@@ -448,11 +492,17 @@ const graphStream = await graph.stream(
 return createUIMessageStreamResponse({
   stream: toUIMessageStream(graphStream),
 });
+
+// Works with streamEvents() output
+const streamEvents = model.streamEvents(messages, { version: 'v2' });
+return createUIMessageStreamResponse({
+  stream: toUIMessageStream(streamEvents),
+});
 ```
 
 **Parameters:**
 
-- `stream`: `AsyncIterable<AIMessageChunk> | ReadableStream` - LangChain or LangGraph stream
+- `stream`: `AsyncIterable<AIMessageChunk> | ReadableStream` - LangChain model stream, LangGraph stream, or `streamEvents()` output
 
 **Returns:** `ReadableStream<UIMessageChunk>`
 

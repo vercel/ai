@@ -22,11 +22,11 @@
 import { FlexibleSchema, InferSchema } from '@ai-sdk/provider-utils';
 
 /**
-Create a type from an object with all keys and nested keys set to optional.
-The helper supports normal objects and schemas (which are resolved automatically).
-It always recurses into arrays.
-
-Adopted from [type-fest](https://github.com/sindresorhus/type-fest/tree/main) PartialDeep.
+ * Create a type from an object with all keys and nested keys set to optional.
+ * The helper supports normal objects and schemas (which are resolved automatically).
+ * It always recurses into arrays.
+ *
+ * Adopted from [type-fest](https://github.com/sindresorhus/type-fest/tree/main) PartialDeep.
  */
 
 export type DeepPartial<T> = T extends FlexibleSchema

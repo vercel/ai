@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV3,
+  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -12,7 +12,7 @@ import {
 import { z } from 'zod/v4';
 import {
   CohereEmbeddingModelId,
-  cohereEmbeddingOptions,
+  cohereEmbeddingModelOptions,
 } from './cohere-embedding-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 
@@ -23,8 +23,8 @@ type CohereEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class CohereEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class CohereEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: CohereEmbeddingModelId;
 
   readonly maxEmbeddingsPerCall = 96;
@@ -46,13 +46,13 @@ export class CohereEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     const embeddingOptions = await parseProviderOptions({
       provider: 'cohere',
       providerOptions,
-      schema: cohereEmbeddingOptions,
+      schema: cohereEmbeddingModelOptions,
     });
 
     if (values.length > this.maxEmbeddingsPerCall) {
@@ -80,6 +80,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV3 {
         texts: values,
         input_type: embeddingOptions?.inputType ?? 'search_query',
         truncate: embeddingOptions?.truncate,
+        output_dimension: embeddingOptions?.outputDimension,
       },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

@@ -2,7 +2,9 @@
 
 The **[Google Vertex provider](https://ai-sdk.dev/providers/ai-sdk-providers/google-vertex)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs.
 
-This library includes a Google Vertex Anthropic provider. This provider closely follows the core Google Vertex library's usage patterns. See more in the [Google Vertex Anthropic Provider](#google-vertex-anthropic-provider) section below.
+This library includes a Google Vertex Anthropic provider and a Google Vertex MaaS provider. These providers closely follow the core Google Vertex library's usage patterns. See more in the [Google Vertex Anthropic Provider](#google-vertex-anthropic-provider) and [Google Vertex MaaS Provider](#google-vertex-maas-provider) sections below.
+
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Google Vertex AI (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
 
@@ -12,20 +14,28 @@ The Google Vertex provider is available in the `@ai-sdk/google-vertex` module. Y
 npm i @ai-sdk/google-vertex
 ```
 
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
+```
+
 ## Google Vertex Provider
 
 The Google Vertex provider has two different authentication implementations depending on your runtime environment:
 
 ### Node.js Runtime
 
-The Node.js runtime is the default runtime supported by the AI SDK. You can use the default provider instance to generate text with the `gemini-1.5-flash` model like this:
+The Node.js runtime is the default runtime supported by the AI SDK. You can use the default provider instance to generate text with the `gemini-2.5-flash` model like this:
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-flash'),
+  model: vertex('gemini-2.5-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -36,14 +46,14 @@ This provider supports all standard Google Cloud authentication options through 
 
 The Edge runtime is supported through the `@ai-sdk/google-vertex/edge` module. Note the additional sub-module path `/edge` required to differentiate the Edge provider from the Node.js provider.
 
-You can use the default provider instance to generate text with the `gemini-1.5-flash` model like this:
+You can use the default provider instance to generate text with the `gemini-2.5-flash` model like this:
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex/edge';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-1.5-flash'),
+  model: vertex('gemini-2.5-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -152,7 +162,7 @@ const customProvider = createVertex({
 });
 
 const { text } = await generateText({
-  model: customProvider('gemini-1.5-flash'),
+  model: customProvider('gemini-2.5-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -175,7 +185,7 @@ const customProvider = createVertex({
 });
 
 const { text } = await generateText({
-  model: customProvider('gemini-1.5-flash'),
+  model: customProvider('gemini-2.5-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -212,6 +222,68 @@ const customProvider = createVertexAnthropic({
 
 const { text } = await generateText({
   model: customProvider('claude-3-5-sonnet@20240620'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+## Google Vertex MaaS Provider
+
+The Google Vertex MaaS (Model as a Service) provider offers access to partner and open models hosted on Vertex AI through an OpenAI-compatible Chat Completions API. It is available for both Node.js and Edge runtimes.
+
+### Node.js Runtime
+
+```ts
+import { vertexMaas } from '@ai-sdk/google-vertex/maas';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertexMaas('deepseek-ai/deepseek-v3.2-maas'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+### Edge Runtime
+
+```ts
+import { vertexMaas } from '@ai-sdk/google-vertex/maas/edge';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertexMaas('deepseek-ai/deepseek-v3.2-maas'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+### Google Vertex MaaS Provider Custom Configuration
+
+```ts
+import { createVertexMaas } from '@ai-sdk/google-vertex/maas';
+import { generateText } from 'ai';
+
+const customProvider = createVertexMaas({
+  project: 'your-project-id',
+  location: 'us-east5',
+});
+
+const { text } = await generateText({
+  model: customProvider('deepseek-ai/deepseek-v3.2-maas'),
+  prompt: 'Write a vegetarian lasagna recipe.',
+});
+```
+
+And for the Edge runtime:
+
+```ts
+import { createVertexMaas } from '@ai-sdk/google-vertex/maas/edge';
+import { generateText } from 'ai';
+
+const customProvider = createVertexMaas({
+  project: 'your-project-id',
+  location: 'us-east5',
+});
+
+const { text } = await generateText({
+  model: customProvider('deepseek-ai/deepseek-v3.2-maas'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```

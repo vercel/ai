@@ -195,6 +195,42 @@ describe('convertToLanguageModelPrompt', () => {
           },
         ]);
       });
+
+      it('should pass through provider reference for image parts without conversion', async () => {
+        const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'image',
+                    image: providerRef,
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: undefined,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                filename: undefined,
+                data: providerRef,
+              },
+            ],
+          },
+        ]);
+      });
     });
 
     describe('file parts', () => {
@@ -735,6 +771,43 @@ describe('convertToLanguageModelPrompt', () => {
           ]
         `);
       });
+
+      it('should pass through provider reference for file parts without conversion', async () => {
+        const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: providerRef,
+                    mediaType: 'application/pdf',
+                    filename: 'doc.pdf',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: undefined,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                filename: 'doc.pdf',
+                data: providerRef,
+              },
+            ],
+          },
+        ]);
+      });
     });
 
     describe('provider options', async () => {
@@ -1190,6 +1263,42 @@ describe('convertToLanguageModelMessage', () => {
   });
 
   describe('assistant message', () => {
+    it('should include custom parts', () => {
+      const result = convertToLanguageModelMessage({
+        message: {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'test-provider.compaction',
+              providerOptions: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+        downloadedAssets: {},
+      });
+
+      expect(result).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'custom',
+            kind: 'test-provider.compaction',
+            providerOptions: {
+              openai: {
+                itemId: 'cmp_123',
+              },
+            },
+          },
+        ],
+        providerOptions: undefined,
+      });
+    });
+
     describe('text parts', () => {
       it('should ignore empty text parts when there are no provider options', async () => {
         const result = convertToLanguageModelMessage({
@@ -1368,6 +1477,121 @@ describe('convertToLanguageModelMessage', () => {
             },
           ],
         });
+      });
+    });
+
+    describe('file parts with provider reference', () => {
+      it('should pass through provider reference for assistant file parts without conversion', () => {
+        const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'file',
+                data: providerRef,
+                mediaType: 'application/pdf',
+                filename: 'doc.pdf',
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              data: providerRef,
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+            },
+          ],
+        });
+      });
+    });
+
+    describe('reasoning-file parts', () => {
+      it('should convert reasoning-file part with base64 data', () => {
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning-file',
+                data: 'iVBORw0KGgo=',
+                mediaType: 'image/png',
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                  },
+                },
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "data": "iVBORw0KGgo=",
+                "mediaType": "image/png",
+                "providerOptions": {
+                  "test-provider": {
+                    "key-a": "test-value-1",
+                  },
+                },
+                "type": "reasoning-file",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          }
+        `);
+      });
+
+      it('should convert reasoning-file part with Uint8Array data', () => {
+        const data = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning-file',
+                data,
+                mediaType: 'image/png',
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toMatchInlineSnapshot(`
+          {
+            "content": [
+              {
+                "data": Uint8Array [
+                  137,
+                  80,
+                  78,
+                  71,
+                  13,
+                  10,
+                  26,
+                  10,
+                ],
+                "mediaType": "image/png",
+                "providerOptions": undefined,
+                "type": "reasoning-file",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          }
+        `);
       });
     });
 
@@ -1819,18 +2043,19 @@ describe('convertToLanguageModelMessage', () => {
                     data: 'dGVzdA==',
                     mediaType: 'image/png',
                   },
-                  { type: 'file-id', fileId: 'fileId' },
-                  { type: 'file-id', fileId: { 'test-provider': 'fileId' } },
+                  {
+                    type: 'file-reference',
+                    providerReference: { 'test-provider': 'fileId' },
+                  },
                   {
                     type: 'image-data',
                     data: 'dGVzdA==',
                     mediaType: 'image/png',
                   },
                   { type: 'image-url', url: 'https://example.com/image.png' },
-                  { type: 'image-file-id', fileId: 'fileId' },
                   {
-                    type: 'image-file-id',
-                    fileId: { 'test-provider': 'fileId' },
+                    type: 'image-file-reference',
+                    providerReference: { 'test-provider': 'fileId' },
                   },
                   {
                     type: 'custom',
@@ -1866,14 +2091,10 @@ describe('convertToLanguageModelMessage', () => {
                     "type": "file-data",
                   },
                   {
-                    "fileId": "fileId",
-                    "type": "file-id",
-                  },
-                  {
-                    "fileId": {
+                    "providerReference": {
                       "test-provider": "fileId",
                     },
-                    "type": "file-id",
+                    "type": "file-reference",
                   },
                   {
                     "data": "dGVzdA==",
@@ -1885,14 +2106,10 @@ describe('convertToLanguageModelMessage', () => {
                     "url": "https://example.com/image.png",
                   },
                   {
-                    "fileId": "fileId",
-                    "type": "image-file-id",
-                  },
-                  {
-                    "fileId": {
+                    "providerReference": {
                       "test-provider": "fileId",
                     },
-                    "type": "image-file-id",
+                    "type": "image-file-reference",
                   },
                   {
                     "providerOptions": {

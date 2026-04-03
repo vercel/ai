@@ -17,12 +17,14 @@ export class GatewayAuthenticationError extends GatewayError {
     message = 'Authentication failed',
     statusCode = 401,
     cause,
+    generationId,
   }: {
     message?: string;
     statusCode?: number;
     cause?: unknown;
+    generationId?: string;
   } = {}) {
-    super({ message, statusCode, cause });
+    super({ message, statusCode, cause, generationId });
   }
 
   static isInstance(error: unknown): error is GatewayAuthenticationError {
@@ -38,12 +40,14 @@ export class GatewayAuthenticationError extends GatewayError {
     message = 'Authentication failed',
     statusCode = 401,
     cause,
+    generationId,
   }: {
     apiKeyProvided: boolean;
     oidcTokenProvided: boolean;
     message?: string;
     statusCode?: number;
     cause?: unknown;
+    generationId?: string;
   }): GatewayAuthenticationError {
     let contextualMessage: string;
 
@@ -74,6 +78,7 @@ Run 'npx vercel link' to link your project, then 'vc env pull' to fetch the toke
       message: contextualMessage,
       statusCode,
       cause,
+      generationId,
     });
   }
 }

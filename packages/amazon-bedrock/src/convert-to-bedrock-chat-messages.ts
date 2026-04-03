@@ -1,13 +1,17 @@
 import {
   JSONObject,
-  LanguageModelV3Message,
-  LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
+  LanguageModelV4Message,
+  LanguageModelV4Prompt,
+  SharedV4ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import {
-  BEDROCK_CACHE_POINT,
+  convertToBase64,
+  isProviderReference,
+  parseProviderOptions,
+  stripFileExtension,
+} from '@ai-sdk/provider-utils';
+import {
   BEDROCK_DOCUMENT_MIME_TYPES,
   BEDROCK_IMAGE_MIME_TYPES,
   BedrockAssistantMessage,
@@ -22,15 +26,24 @@ import {
 } from './bedrock-api-types';
 import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
 import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
+import { normalizeToolCallId } from './normalize-tool-call-id';
 
 function getCachePoint(
-  providerMetadata: SharedV3ProviderMetadata | undefined,
+  providerMetadata: SharedV4ProviderMetadata | undefined,
 ): BedrockCachePoint | undefined {
-  return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
+  const cachePointConfig = providerMetadata?.bedrock?.cachePoint as
+    | BedrockCachePoint['cachePoint']
+    | undefined;
+
+  if (!cachePointConfig) {
+    return undefined;
+  }
+
+  return { cachePoint: cachePointConfig };
 }
 
 async function shouldEnableCitations(
-  providerMetadata: SharedV3ProviderMetadata | undefined,
+  providerMetadata: SharedV4ProviderMetadata | undefined,
 ): Promise<boolean> {
   const bedrockOptions = await parseProviderOptions({
     provider: 'bedrock',
@@ -42,7 +55,8 @@ async function shouldEnableCitations(
 }
 
 export async function convertToBedrockChatMessages(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
+  isMistral: boolean = false,
 ): Promise<{
   system: BedrockSystemMessages;
   messages: BedrockMessages;
@@ -71,8 +85,9 @@ export async function convertToBedrockChatMessages(
 
         for (const message of block.messages) {
           system.push({ text: message.content });
-          if (getCachePoint(message.providerOptions)) {
-            system.push(BEDROCK_CACHE_POINT);
+          const cachePoint = getCachePoint(message.providerOptions);
+          if (cachePoint) {
+            system.push(cachePoint);
           }
         }
         break;
@@ -98,6 +113,12 @@ export async function convertToBedrockChatMessages(
                   }
 
                   case 'file': {
+                    if (isProviderReference(part.data)) {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'file parts with provider references',
+                      });
+                    }
+
                     if (part.data instanceof URL) {
                       // The AI SDK automatically downloads files for user file parts with URLs
                       throw new UnsupportedFunctionalityError({
@@ -128,7 +149,9 @@ export async function convertToBedrockChatMessages(
                       bedrockContent.push({
                         document: {
                           format: getBedrockDocumentFormat(part.mediaType),
-                          name: part.filename ?? generateDocumentName(),
+                          name: part.filename
+                            ? stripFileExtension(part.filename)
+                            : generateDocumentName(),
                           source: { bytes: convertToBase64(part.data) },
                           ...(enableCitations && {
                             citations: { enabled: true },
@@ -204,7 +227,7 @@ export async function convertToBedrockChatMessages(
 
                 bedrockContent.push({
                   toolResult: {
-                    toolUseId: part.toolCallId,
+                    toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
                     content: toolResultContent,
                   },
                 });
@@ -218,8 +241,9 @@ export async function convertToBedrockChatMessages(
             }
           }
 
-          if (getCachePoint(providerOptions)) {
-            bedrockContent.push(BEDROCK_CACHE_POINT);
+          const cachePoint = getCachePoint(providerOptions);
+          if (cachePoint) {
+            bedrockContent.push(cachePoint);
           }
         }
 
@@ -270,33 +294,41 @@ export async function convertToBedrockChatMessages(
                   schema: bedrockReasoningMetadataSchema,
                 });
 
-                if (reasoningMetadata != null) {
-                  if (reasoningMetadata.signature != null) {
-                    bedrockContent.push({
-                      reasoningContent: {
-                        reasoningText: {
-                          // trim the last text part if it's the last message in the block
-                          // because Bedrock does not allow trailing whitespace
-                          // in pre-filled assistant responses
-                          text: trimIfLast(
-                            isLastBlock,
-                            isLastMessage,
-                            isLastContentPart,
-                            part.text,
-                          ),
-                          signature: reasoningMetadata.signature,
-                        },
+                if (reasoningMetadata?.signature != null) {
+                  // do not trim reasoning text when a signature is present:
+                  // the signature validates the exact original bytes
+                  bedrockContent.push({
+                    reasoningContent: {
+                      reasoningText: {
+                        text: part.text,
+                        signature: reasoningMetadata.signature,
                       },
-                    });
-                  } else if (reasoningMetadata.redactedData != null) {
-                    bedrockContent.push({
-                      reasoningContent: {
-                        redactedReasoning: {
-                          data: reasoningMetadata.redactedData,
-                        },
+                    },
+                  });
+                } else if (reasoningMetadata?.redactedData != null) {
+                  bedrockContent.push({
+                    reasoningContent: {
+                      redactedReasoning: {
+                        data: reasoningMetadata.redactedData,
                       },
-                    });
-                  }
+                    },
+                  });
+                } else {
+                  // trim the last text part if it's the last message in the block
+                  // because Bedrock does not allow trailing whitespace
+                  // in pre-filled assistant responses
+                  bedrockContent.push({
+                    reasoningContent: {
+                      reasoningText: {
+                        text: trimIfLast(
+                          isLastBlock,
+                          isLastMessage,
+                          isLastContentPart,
+                          part.text,
+                        ),
+                      },
+                    },
+                  });
                 }
 
                 break;
@@ -305,7 +337,7 @@ export async function convertToBedrockChatMessages(
               case 'tool-call': {
                 bedrockContent.push({
                   toolUse: {
-                    toolUseId: part.toolCallId,
+                    toolUseId: normalizeToolCallId(part.toolCallId, isMistral),
                     name: part.toolName,
                     input: part.input as JSONObject,
                   },
@@ -314,8 +346,9 @@ export async function convertToBedrockChatMessages(
               }
             }
           }
-          if (getCachePoint(message.providerOptions)) {
-            bedrockContent.push(BEDROCK_CACHE_POINT);
+          const cachePoint = getCachePoint(message.providerOptions);
+          if (cachePoint) {
+            bedrockContent.push(cachePoint);
           }
         }
 
@@ -382,19 +415,19 @@ function trimIfLast(
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV3Message & { role: 'system' }>;
+  messages: Array<LanguageModelV4Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV3Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV4Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV3Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV4Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

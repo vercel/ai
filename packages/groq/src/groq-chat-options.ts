@@ -26,7 +26,7 @@ export type GroqChatModelId =
   | 'deepseek-r1-distill-qwen-32b'
   | (string & {});
 
-export const groqProviderOptions = z.object({
+export const groqLanguageModelOptions = z.object({
   reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).optional(),
 
   /**
@@ -56,14 +56,24 @@ export const groqProviderOptions = z.object({
   structuredOutputs: z.boolean().optional(),
 
   /**
+   * Whether to use strict JSON schema validation.
+   * When true, the model uses constrained decoding to guarantee schema compliance.
+   * Only used when structured outputs are enabled and a schema is provided.
+   *
+   * @default true
+   */
+  strictJsonSchema: z.boolean().optional(),
+
+  /**
    * Service tier for the request.
    * - 'on_demand': Default tier with consistent performance and fairness
+   * - 'performance': Prioritized tier for latency-sensitive workloads
    * - 'flex': Higher throughput tier optimized for workloads that can handle occasional request failures
    * - 'auto': Uses on_demand rate limits, then falls back to flex tier if exceeded
    *
    * @default 'on_demand'
    */
-  serviceTier: z.enum(['on_demand', 'flex', 'auto']).optional(),
+  serviceTier: z.enum(['on_demand', 'performance', 'flex', 'auto']).optional(),
 });
 
-export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;
+export type GroqLanguageModelOptions = z.infer<typeof groqLanguageModelOptions>;

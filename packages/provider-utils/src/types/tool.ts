@@ -3,11 +3,12 @@ import { FlexibleSchema } from '../schema';
 import { ToolResultOutput } from './content-part';
 import { ModelMessage } from './model-message';
 import { ProviderOptions } from './provider-options';
+import { Context } from './context';
 
 /**
- * Additional options that are sent into each tool call.
+ * Additional options that are sent into each tool execution.
  */
-export interface ToolExecutionOptions {
+export interface ToolExecutionOptions<CONTEXT extends Context> {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
    */
@@ -36,13 +37,13 @@ export interface ToolExecutionOptions {
    *
    * Experimental (can break in patch releases).
    */
-  experimental_context?: unknown;
+  experimental_context: CONTEXT;
 }
 
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
  */
-export type ToolNeedsApprovalFunction<INPUT> = (
+export type ToolNeedsApprovalFunction<INPUT, CONTEXT extends Context> = (
   input: INPUT,
   options: {
     /**
@@ -61,13 +62,16 @@ export type ToolNeedsApprovalFunction<INPUT> = (
      *
      * Experimental (can break in patch releases).
      */
-    experimental_context?: unknown;
+    experimental_context: CONTEXT;
   },
 ) => boolean | PromiseLike<boolean>;
 
-export type ToolExecuteFunction<INPUT, OUTPUT> = (
+/**
+ * Function that executes the tool and returns either a single result or a stream of results.
+ */
+export type ToolExecuteFunction<INPUT, OUTPUT, CONTEXT extends Context> = (
   input: INPUT,
-  options: ToolExecutionOptions,
+  options: ToolExecutionOptions<CONTEXT>,
 ) => AsyncIterable<OUTPUT> | PromiseLike<OUTPUT> | OUTPUT;
 
 // 0 extends 1 & N checks for any
@@ -78,17 +82,24 @@ type NeverOptional<N, T> = 0 extends 1 & N
     ? Partial<Record<keyof T, undefined>>
     : T;
 
-type ToolOutputProperties<INPUT, OUTPUT> = NeverOptional<
+/**
+ * Helper type to determine the output properties of a tool.
+ */
+type ToolOutputProperties<
+  INPUT,
+  OUTPUT,
+  CONTEXT extends Context,
+> = NeverOptional<
   OUTPUT,
   | {
       /**
-An async function that is called with the arguments from the tool call and produces a result.
-If not provided, the tool will not be executed automatically.
-
-@args is the input of the tool call.
-@options.abortSignal is a signal that can be used to abort the tool call.
-    */
-      execute: ToolExecuteFunction<INPUT, OUTPUT>;
+       * An async function that is called with the arguments from the tool call and produces a result.
+       * If not provided, the tool will not be executed automatically.
+       *
+       * @args is the input of the tool call.
+       * @options.abortSignal is a signal that can be used to abort the tool call.
+       */
+      execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
 
       outputSchema?: FlexibleSchema<OUTPUT>;
     }
@@ -100,19 +111,20 @@ If not provided, the tool will not be executed automatically.
 >;
 
 /**
-A tool contains the description and the schema of the input that the tool expects.
-This enables the language model to generate the input.
-
-The tool can also contain an optional execute function for the actual execution function of the tool.
+ * A tool contains the description and the schema of the input that the tool expects.
+ * This enables the language model to generate the input.
+ *
+ * The tool can also contain an optional execute function for the actual execution function of the tool.
  */
 export type Tool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
+  CONTEXT extends Context = Context,
 > = {
   /**
-An optional description of what the tool does.
-Will be used by the language model to decide whether to use the tool.
-Not used for provider-defined tools.
+   * An optional description of what the tool does.
+   * Will be used by the language model to decide whether to use the tool.
+   * Not used for provider-defined tools.
    */
   description?: string;
 
@@ -122,9 +134,9 @@ Not used for provider-defined tools.
   title?: string;
 
   /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
+   * Additional provider-specific metadata. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
    */
   providerOptions?: ProviderOptions;
 
@@ -141,14 +153,24 @@ functionality that can be fully encapsulated in the provider.
    * An optional list of input examples that show the language
    * model what the input should look like.
    */
-  inputExamples?: Array<{ input: INPUT }>;
+  inputExamples?: Array<{ input: NoInfer<INPUT> }>;
+
+  /**
+   * An optional schema describing the context that the tool expects.
+   *
+   * The context is passed to execute function as part of the execution options.
+   */
+  contextSchema?: FlexibleSchema<CONTEXT>;
 
   /**
    * Whether the tool needs approval before it can be executed.
    */
   needsApproval?:
     | boolean
-    | ToolNeedsApprovalFunction<[INPUT] extends [never] ? unknown : INPUT>;
+    | ToolNeedsApprovalFunction<
+        [INPUT] extends [never] ? unknown : INPUT,
+        NoInfer<CONTEXT>
+      >;
 
   /**
    * Strict mode setting for the tool.
@@ -163,14 +185,18 @@ functionality that can be fully encapsulated in the provider.
    * Optional function that is called when the argument streaming starts.
    * Only called when the tool is used in a streaming context.
    */
-  onInputStart?: (options: ToolExecutionOptions) => void | PromiseLike<void>;
+  onInputStart?: (
+    options: ToolExecutionOptions<NoInfer<CONTEXT>>,
+  ) => void | PromiseLike<void>;
 
   /**
    * Optional function that is called when an argument streaming delta is available.
    * Only called when the tool is used in a streaming context.
    */
   onInputDelta?: (
-    options: { inputTextDelta: string } & ToolExecutionOptions,
+    options: { inputTextDelta: string } & ToolExecutionOptions<
+      NoInfer<CONTEXT>
+    >,
   ) => void | PromiseLike<void>;
 
   /**
@@ -180,13 +206,15 @@ functionality that can be fully encapsulated in the provider.
   onInputAvailable?: (
     options: {
       input: [INPUT] extends [never] ? unknown : INPUT;
-    } & ToolExecutionOptions,
+    } & ToolExecutionOptions<NoInfer<CONTEXT>>,
   ) => void | PromiseLike<void>;
-} & ToolOutputProperties<INPUT, OUTPUT> & {
+} & ToolOutputProperties<INPUT, OUTPUT, NoInfer<CONTEXT>> & {
     /**
      * Optional conversion function that maps the tool result to an output that can be used by the language model.
      *
      * If not provided, the tool result will be sent as a JSON object.
+     *
+     * This function is invoked on the server by `convertToModelMessages`, so ensure that you pass the same "tools" (ToolSet) to both "convertToModelMessages" and "streamText" (or other generation APIs).
      */
     toModelOutput?: (options: {
       /**
@@ -211,31 +239,31 @@ functionality that can be fully encapsulated in the provider.
   } & (
     | {
         /**
-Tool with user-defined input and output schemas.
-     */
+         * Tool with user-defined input and output schemas.
+         */
         type?: undefined | 'function';
       }
     | {
         /**
-Tool that is defined at runtime (e.g. an MCP tool).
-The types of input and output are not known at development time.
-       */
+         * Tool that is defined at runtime (e.g. an MCP tool).
+         * The types of input and output are not known at development time.
+         */
         type: 'dynamic';
       }
     | {
         /**
-Tool with provider-defined input and output schemas.
-     */
+         * Tool with provider-defined input and output schemas.
+         */
         type: 'provider';
 
         /**
-The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
-   */
+         * The ID of the tool. Must follow the format `<provider-name>.<unique-tool-name>`.
+         */
         id: `${string}.${string}`;
 
         /**
-The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
-     */
+         * The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
+         */
         args: Record<string, unknown>;
 
         /**
@@ -256,27 +284,21 @@ The arguments for configuring the tool. Must match the expected arguments define
   );
 
 /**
- * Infer the input type of a tool.
- */
-export type InferToolInput<TOOL extends Tool> =
-  TOOL extends Tool<infer INPUT, any> ? INPUT : never;
-
-/**
- * Infer the output type of a tool.
- */
-export type InferToolOutput<TOOL extends Tool> =
-  TOOL extends Tool<any, infer OUTPUT> ? OUTPUT : never;
-
-/**
-Helper function for inferring the execute args of a tool.
+ * Helper function for inferring the execute args of a tool.
  */
 // Note: overload order is important for auto-completion
-export function tool<INPUT, OUTPUT>(
-  tool: Tool<INPUT, OUTPUT>,
-): Tool<INPUT, OUTPUT>;
-export function tool<INPUT>(tool: Tool<INPUT, never>): Tool<INPUT, never>;
-export function tool<OUTPUT>(tool: Tool<never, OUTPUT>): Tool<never, OUTPUT>;
-export function tool(tool: Tool<never, never>): Tool<never, never>;
+export function tool<INPUT, OUTPUT, CONTEXT extends Context>(
+  tool: Tool<INPUT, OUTPUT, CONTEXT>,
+): Tool<INPUT, OUTPUT, CONTEXT>;
+export function tool<INPUT, CONTEXT extends Context>(
+  tool: Tool<INPUT, never, CONTEXT>,
+): Tool<INPUT, never, CONTEXT>;
+export function tool<OUTPUT, CONTEXT extends Context>(
+  tool: Tool<never, OUTPUT, CONTEXT>,
+): Tool<never, OUTPUT, CONTEXT>;
+export function tool<CONTEXT extends Context>(
+  tool: Tool<never, never, CONTEXT>,
+): Tool<never, never, CONTEXT>;
 export function tool(tool: any): any {
   return tool;
 }
@@ -289,7 +311,7 @@ export function dynamicTool(tool: {
   title?: string;
   providerOptions?: ProviderOptions;
   inputSchema: FlexibleSchema<unknown>;
-  execute: ToolExecuteFunction<unknown, unknown>;
+  execute: ToolExecuteFunction<unknown, unknown, Context>;
 
   /**
    * Optional conversion function that maps the tool result to an output that can be used by the language model.
@@ -316,8 +338,8 @@ export function dynamicTool(tool: {
   /**
    * Whether the tool needs approval before it can be executed.
    */
-  needsApproval?: boolean | ToolNeedsApprovalFunction<unknown>;
-}): Tool<unknown, unknown> & {
+  needsApproval?: boolean | ToolNeedsApprovalFunction<unknown, Context>;
+}): Tool<unknown, unknown, Context> & {
   type: 'dynamic';
 } {
   return { ...tool, type: 'dynamic' };

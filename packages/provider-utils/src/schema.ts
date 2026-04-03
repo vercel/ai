@@ -148,9 +148,11 @@ function standardSchema<OBJECT>(
 ): Schema<OBJECT> {
   return jsonSchema(
     () =>
-      standardSchema['~standard'].jsonSchema.input({
-        target: 'draft-07',
-      }),
+      addAdditionalPropertiesToJsonSchema(
+        standardSchema['~standard'].jsonSchema.input({
+          target: 'draft-07',
+        }) as JSONSchema7,
+      ),
     {
       validate: async value => {
         const result = await standardSchema['~standard'].validate(value);

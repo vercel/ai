@@ -1,4 +1,4 @@
-import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -24,8 +24,8 @@ interface TogetherAIImageModelConfig {
   };
 }
 
-export class TogetherAIImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class TogetherAIImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
@@ -47,10 +47,10 @@ export class TogetherAIImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (mask != null) {
       throw new Error(
@@ -74,7 +74,7 @@ export class TogetherAIImageModel implements ImageModelV3 {
     const togetheraiOptions = await parseProviderOptions({
       provider: 'togetherai',
       providerOptions,
-      schema: togetheraiImageProviderOptionsSchema,
+      schema: togetheraiImageModelOptionsSchema,
     });
 
     // Handle image input from files
@@ -100,7 +100,7 @@ export class TogetherAIImageModel implements ImageModelV3 {
         model: this.modelId,
         prompt,
         seed,
-        n,
+        ...(n > 1 ? { n } : {}),
         ...(splitSize && {
           width: parseInt(splitSize[0]),
           height: parseInt(splitSize[1]),
@@ -153,7 +153,7 @@ const togetheraiErrorSchema = z.object({
 /**
  * Provider options schema for Together AI image generation.
  */
-export const togetheraiImageProviderOptionsSchema = lazySchema(() =>
+export const togetheraiImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -183,6 +183,6 @@ export const togetheraiImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type TogetherAIImageProviderOptions = InferSchema<
-  typeof togetheraiImageProviderOptionsSchema
+export type TogetherAIImageModelOptions = InferSchema<
+  typeof togetheraiImageModelOptionsSchema
 >;

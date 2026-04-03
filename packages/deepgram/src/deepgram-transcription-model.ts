@@ -1,4 +1,4 @@
-import { SharedV3Warning, TranscriptionModelV3 } from '@ai-sdk/provider';
+import { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -12,7 +12,7 @@ import { deepgramFailedResponseHandler } from './deepgram-error';
 import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 
 // https://developers.deepgram.com/docs/pre-recorded-audio#results
-const deepgramProviderOptionsSchema = z.object({
+const deepgramTranscriptionModelOptionsSchema = z.object({
   /** Language to use for transcription. If not specified, Deepgram defaults to English. Use `detectLanguage: true` to enable automatic language detection. */
   language: z.string().nullish(),
   /** Whether to enable automatic language detection. When true, Deepgram will detect the language of the audio. */
@@ -51,8 +51,8 @@ const deepgramProviderOptionsSchema = z.object({
   fillerWords: z.boolean().nullish(),
 });
 
-export type DeepgramTranscriptionCallOptions = z.infer<
-  typeof deepgramProviderOptionsSchema
+export type DeepgramTranscriptionModelOptions = z.infer<
+  typeof deepgramTranscriptionModelOptionsSchema
 >;
 
 interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
@@ -61,8 +61,8 @@ interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
   };
 }
 
-export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -75,14 +75,14 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const deepgramOptions = await parseProviderOptions({
       provider: 'deepgram',
       providerOptions,
-      schema: deepgramProviderOptionsSchema,
+      schema: deepgramTranscriptionModelOptionsSchema,
     });
 
     const body: DeepgramTranscriptionAPITypes = {
@@ -125,8 +125,8 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { queryParams, warnings } = await this.getArgs(options);
 

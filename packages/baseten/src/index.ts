@@ -5,4 +5,5 @@ export type {
   BasetenProviderSettings,
   BasetenErrorData,
 } from './baseten-provider';
+export type { BasetenEmbeddingModelOptions } from './baseten-embedding-options';
 export { VERSION } from './version';

@@ -126,14 +126,29 @@ const { ranking } = await rerank({
                 'Additional information to include in the telemetry data.',
             },
             {
-              name: 'tracer',
-              type: 'Tracer',
+              name: 'integrations',
               isOptional: true,
-              description: 'A custom tracer to use for the telemetry data.',
+              type: 'TelemetryIntegration | TelemetryIntegration[]',
+              description:
+                'Per-call telemetry integrations that receive lifecycle events. These run after any globally registered integrations.',
             },
           ],
         },
       ],
+    },
+    {
+      name: 'experimental_onStart',
+      type: '(event: RerankOnStartEvent) => void | Promise<void>',
+      isOptional: true,
+      description:
+        'Called when the rerank operation begins, before the reranking model is called.',
+    },
+    {
+      name: 'experimental_onFinish',
+      type: '(event: RerankOnFinishEvent) => void | Promise<void>',
+      isOptional: true,
+      description:
+        'Called when the rerank operation completes, after the reranking model returns.',
     },
   ]}
 />

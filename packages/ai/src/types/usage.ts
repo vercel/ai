@@ -1,7 +1,7 @@
 import {
-  ImageModelV3Usage,
+  ImageModelV4Usage,
   JSONObject,
-  LanguageModelV3Usage,
+  LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 
 /**
@@ -59,12 +59,12 @@ export type LanguageModelUsage = {
   totalTokens: number | undefined;
 
   /**
-   * @deprecated Use outputTokenDetails.reasoning instead.
+   * @deprecated Use outputTokenDetails.reasoningTokens instead.
    */
   reasoningTokens?: number | undefined;
 
   /**
-   * @deprecated Use inputTokenDetails.cacheRead instead.
+   * @deprecated Use inputTokenDetails.cacheReadTokens instead.
    */
   cachedInputTokens?: number | undefined;
 
@@ -78,18 +78,18 @@ export type LanguageModelUsage = {
 };
 
 /**
-Represents the number of tokens used in an embedding.
+ * Represents the number of tokens used in an embedding.
  */
-// TODO replace with EmbeddingModelV3Usage
+// TODO replace with EmbeddingModelV4Usage once available in @ai-sdk/provider
 export type EmbeddingModelUsage = {
   /**
-The number of tokens used in the embedding.
+   * The number of tokens used in the embedding.
    */
   tokens: number;
 };
 
 export function asLanguageModelUsage(
-  usage: LanguageModelV3Usage,
+  usage: LanguageModelV4Usage,
 ): LanguageModelUsage {
   return {
     inputTokens: usage.inputTokens.total,
@@ -184,9 +184,9 @@ function addTokenCounts(
 }
 
 /**
-Usage information for an image model call.
+ * Usage information for an image model call.
  */
-export type ImageModelUsage = ImageModelV3Usage;
+export type ImageModelUsage = ImageModelV4Usage;
 
 export function addImageModelUsage(
   usage1: ImageModelUsage,

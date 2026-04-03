@@ -2,6 +2,7 @@ export { callCompletionApi } from './call-completion-api';
 export {
   AbstractChat,
   type ChatAddToolApproveResponseFunction,
+  type ChatAddToolOutputFunction,
   type ChatInit,
   type ChatOnDataCallback,
   type ChatOnErrorCallback,
@@ -19,6 +20,10 @@ export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-par
 export { convertToModelMessages } from './convert-to-model-messages';
 export { DefaultChatTransport } from './default-chat-transport';
 export {
+  DirectChatTransport,
+  type DirectChatTransportOptions,
+} from './direct-chat-transport';
+export {
   HttpChatTransport,
   type HttpChatTransportInitOptions,
   type PrepareReconnectToStreamRequest,
@@ -31,18 +36,22 @@ export {
   getStaticToolName,
   getToolName,
   getToolOrDynamicToolName,
+  isCustomContentUIPart,
   isDataUIPart,
   isFileUIPart,
+  isReasoningFileUIPart,
   isReasoningUIPart,
   isStaticToolUIPart,
   isTextUIPart,
   isToolOrDynamicToolUIPart,
   isToolUIPart,
+  type CustomContentUIPart,
   type DataUIPart,
   type DynamicToolUIPart,
   type FileUIPart,
   type InferUITool,
   type InferUITools,
+  type ReasoningFileUIPart,
   type ReasoningUIPart,
   type SourceDocumentUIPart,
   type SourceUrlUIPart,

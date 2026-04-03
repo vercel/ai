@@ -51,21 +51,25 @@ pipeUIMessageStreamToResponse({
     {
       name: 'status',
       type: 'number',
+      isOptional: true,
       description: 'The status code for the response.',
     },
     {
       name: 'statusText',
       type: 'string',
+      isOptional: true,
       description: 'The status text for the response.',
     },
     {
       name: 'headers',
       type: 'Headers | Record<string, string>',
+      isOptional: true,
       description: 'Additional headers for the response.',
     },
     {
       name: 'consumeSseStream',
-      type: '({ stream }: { stream: ReadableStream }) => void',
+      type: '({ stream }: { stream: ReadableStream<string> }) => PromiseLike<void> | void',
+      isOptional: true,
       description:
         'Optional function to consume the SSE stream independently. The stream is teed and this function receives a copy.',
     },

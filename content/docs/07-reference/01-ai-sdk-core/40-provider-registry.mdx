@@ -136,6 +136,7 @@ const { image } = await generateImage({
     {
       name: 'options',
       type: 'object',
+      isOptional: true,
       description: 'Optional configuration for the registry.',
       properties: [
         {
@@ -144,8 +145,23 @@ const { image } = await generateImage({
             {
               name: 'separator',
               type: 'string',
+              isOptional: true,
               description:
                 'Custom separator between provider and model IDs. Defaults to ":".',
+            },
+            {
+              name: 'languageModelMiddleware',
+              type: 'LanguageModelMiddleware | LanguageModelMiddleware[]',
+              isOptional: true,
+              description:
+                'Middleware to wrap all language models obtained from the registry.',
+            },
+            {
+              name: 'imageModelMiddleware',
+              type: 'ImageModelMiddleware | ImageModelMiddleware[]',
+              isOptional: true,
+              description:
+                'Middleware to wrap all image models obtained from the registry.',
             },
           ],
         },

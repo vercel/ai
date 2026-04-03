@@ -4,125 +4,136 @@ import { describe, it, expect } from 'vitest';
 describe('convertXaiChatUsage', () => {
   it('should convert basic usage without reasoning tokens', () => {
     const result = convertXaiChatUsage({
-      prompt_tokens: 100,
-      completion_tokens: 50,
-      total_tokens: 150,
+      prompt_tokens: 12,
+      completion_tokens: 1,
+      total_tokens: 13,
     });
 
-    expect(result).toEqual({
-      inputTokens: {
-        total: 100,
-        noCache: 100,
-        cacheRead: 0,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 50,
-        text: 50,
-        reasoning: 0,
-      },
-      raw: {
-        prompt_tokens: 100,
-        completion_tokens: 50,
-        total_tokens: 150,
-      },
-    });
-  });
-
-  it('should convert usage with reasoning tokens', () => {
-    const result = convertXaiChatUsage({
-      prompt_tokens: 168,
-      completion_tokens: 342,
-      total_tokens: 1038,
-      completion_tokens_details: {
-        reasoning_tokens: 528,
-      },
-    });
-
-    expect(result).toEqual({
-      inputTokens: {
-        total: 168,
-        noCache: 168,
-        cacheRead: 0,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 870, // 342 + 528
-        text: 342,
-        reasoning: 528,
-      },
-      raw: {
-        prompt_tokens: 168,
-        completion_tokens: 342,
-        total_tokens: 1038,
-        completion_tokens_details: {
-          reasoning_tokens: 528,
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 12,
+          "total": 12,
         },
-      },
-    });
+        "outputTokens": {
+          "reasoning": 0,
+          "text": 1,
+          "total": 1,
+        },
+        "raw": {
+          "completion_tokens": 1,
+          "prompt_tokens": 12,
+          "total_tokens": 13,
+        },
+      }
+    `);
   });
 
-  it('should handle reasoning tokens greater than completion tokens', () => {
+  it('should convert usage with reasoning tokens (xai reports separately)', () => {
     const result = convertXaiChatUsage({
-      prompt_tokens: 168,
-      completion_tokens: 342,
-      total_tokens: 1038,
+      prompt_tokens: 12,
+      completion_tokens: 1,
+      total_tokens: 241,
       completion_tokens_details: {
-        reasoning_tokens: 528,
+        reasoning_tokens: 228,
       },
     });
 
-    expect(result.outputTokens.text).toBe(342);
-    expect(result.outputTokens.text).toBeGreaterThanOrEqual(0);
-    expect(result.outputTokens.total).toBe(870);
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": 0,
+          "cacheWrite": undefined,
+          "noCache": 12,
+          "total": 12,
+        },
+        "outputTokens": {
+          "reasoning": 228,
+          "text": 1,
+          "total": 229,
+        },
+        "raw": {
+          "completion_tokens": 1,
+          "completion_tokens_details": {
+            "reasoning_tokens": 228,
+          },
+          "prompt_tokens": 12,
+          "total_tokens": 241,
+        },
+      }
+    `);
   });
 
   it('should convert usage with cached input tokens', () => {
     const result = convertXaiChatUsage({
-      prompt_tokens: 168,
-      completion_tokens: 578,
-      total_tokens: 1204,
+      prompt_tokens: 12,
+      completion_tokens: 2,
+      total_tokens: 438,
       prompt_tokens_details: {
-        text_tokens: 168,
+        text_tokens: 12,
         audio_tokens: 0,
         image_tokens: 0,
-        cached_tokens: 146,
+        cached_tokens: 3,
       },
       completion_tokens_details: {
-        reasoning_tokens: 458,
+        reasoning_tokens: 424,
       },
     });
 
-    expect(result).toEqual({
-      inputTokens: {
-        total: 168,
-        noCache: 22, // 168 - 146
-        cacheRead: 146,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 1036, // 578 + 458
-        text: 578,
-        reasoning: 458,
-      },
-      raw: {
-        prompt_tokens: 168,
-        completion_tokens: 578,
-        total_tokens: 1204,
-        prompt_tokens_details: {
-          text_tokens: 168,
-          audio_tokens: 0,
-          image_tokens: 0,
-          cached_tokens: 146,
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "inputTokens": {
+          "cacheRead": 3,
+          "cacheWrite": undefined,
+          "noCache": 9,
+          "total": 12,
         },
-        completion_tokens_details: {
-          reasoning_tokens: 458,
+        "outputTokens": {
+          "reasoning": 424,
+          "text": 2,
+          "total": 426,
         },
-      },
-    });
+        "raw": {
+          "completion_tokens": 2,
+          "completion_tokens_details": {
+            "reasoning_tokens": 424,
+          },
+          "prompt_tokens": 12,
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cached_tokens": 3,
+            "image_tokens": 0,
+            "text_tokens": 12,
+          },
+          "total_tokens": 438,
+        },
+      }
+    `);
   });
 
-  it('should handle null/undefined token details gracefully', () => {
+  it('should handle cached_tokens exceeding prompt_tokens (non-inclusive reporting)', () => {
+    const result = convertXaiChatUsage({
+      prompt_tokens: 4142,
+      completion_tokens: 254,
+      total_tokens: 8724,
+      prompt_tokens_details: {
+        cached_tokens: 4328,
+      },
+    });
+
+    expect(result.inputTokens).toMatchInlineSnapshot(`
+      {
+        "cacheRead": 4328,
+        "cacheWrite": undefined,
+        "noCache": 4142,
+        "total": 8470,
+      }
+    `);
+  });
+
+  it('should handle null token details', () => {
     const result = convertXaiChatUsage({
       prompt_tokens: 100,
       completion_tokens: 200,
@@ -131,11 +142,11 @@ describe('convertXaiChatUsage', () => {
       completion_tokens_details: null,
     });
 
-    expect(result.inputTokens.cacheRead).toBe(0);
-    expect(result.inputTokens.noCache).toBe(100);
-    expect(result.outputTokens.reasoning).toBe(0);
-    expect(result.outputTokens.text).toBe(200);
-    expect(result.outputTokens.total).toBe(200);
+    expect(result.inputTokens.cacheRead).toMatchInlineSnapshot(`0`);
+    expect(result.inputTokens.noCache).toMatchInlineSnapshot(`100`);
+    expect(result.outputTokens.reasoning).toMatchInlineSnapshot(`0`);
+    expect(result.outputTokens.text).toMatchInlineSnapshot(`200`);
+    expect(result.outputTokens.total).toMatchInlineSnapshot(`200`);
   });
 
   it('should handle zero reasoning tokens', () => {
@@ -148,26 +159,28 @@ describe('convertXaiChatUsage', () => {
       },
     });
 
-    expect(result.outputTokens).toEqual({
-      total: 100,
-      text: 100,
-      reasoning: 0,
-    });
+    expect(result.outputTokens).toMatchInlineSnapshot(`
+      {
+        "reasoning": 0,
+        "text": 100,
+        "total": 100,
+      }
+    `);
   });
 
   it('should preserve raw usage data', () => {
     const rawUsage = {
-      prompt_tokens: 168,
-      completion_tokens: 342,
-      total_tokens: 1038,
+      prompt_tokens: 12,
+      completion_tokens: 2,
+      total_tokens: 331,
       prompt_tokens_details: {
-        text_tokens: 168,
+        text_tokens: 12,
         audio_tokens: 0,
         image_tokens: 0,
-        cached_tokens: 167,
+        cached_tokens: 2,
       },
       completion_tokens_details: {
-        reasoning_tokens: 528,
+        reasoning_tokens: 317,
         audio_tokens: 0,
         accepted_prediction_tokens: 0,
         rejected_prediction_tokens: 0,

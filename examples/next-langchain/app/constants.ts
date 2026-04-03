@@ -6,6 +6,8 @@ import {
   Shield,
   Sparkles,
   Activity,
+  Image,
+  Wand2,
   LucideIcon,
 } from 'lucide-react';
 
@@ -37,18 +39,28 @@ export const navItems: NavItem[] = [
     icon: Cpu,
   },
   {
+    href: '/multimodal',
+    label: 'Vision Input',
+    description: 'Send images for analysis',
+    icon: Image,
+  },
+  {
+    href: '/image-generation',
+    label: 'Image Generation',
+    description: 'Generate images as output',
+    icon: Wand2,
+  },
+  {
     href: '/createAgent',
     label: 'ReAct Agent',
     description: 'Reasoning + multiple tools',
     icon: Wrench,
-    badge: 'Multimodal',
   },
   {
     href: '/hitl',
     label: 'Human-in-the-Loop',
     description: 'Tool approval workflow',
     icon: Shield,
-    badge: 'HITL',
   },
   {
     href: '/custom-data',
@@ -61,6 +73,5 @@ export const navItems: NavItem[] = [
     label: 'LangSmith Deploy',
     description: 'Browser transport',
     icon: Cloud,
-    badge: 'Direct',
   },
 ];

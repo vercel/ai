@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SharedV3Warning } from '@ai-sdk/provider';
+import { SharedV4Warning } from '@ai-sdk/provider';
 import { createToolNameMapping } from '@ai-sdk/provider-utils';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
@@ -133,6 +133,88 @@ describe('user messages', () => {
         system: undefined,
       },
       betas: new Set(),
+    });
+  });
+
+  it('should treat URL strings in image file data as URLs, not base64)', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'https://example.com/image.png', // String URL (as if after JSON deserialization)
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'url',
+                  url: 'https://example.com/image.png',
+                },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
+  it('should treat URL strings in PDF file data as URLs, not base64)', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'https://example.com/document.pdf',
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'url',
+                  url: 'https://example.com/document.pdf',
+                },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['pdfs-2024-09-25']),
     });
   });
 
@@ -286,6 +368,156 @@ describe('user messages', () => {
         toolNameMapping: defaultToolNameMapping,
       }),
     ).rejects.toThrow('media type: video/mp4');
+  });
+
+  it('should convert messages with image file parts using provider reference', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { anthropic: 'file-img-12345' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'file',
+                  file_id: 'file-img-12345',
+                },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+  });
+
+  it('should convert messages with PDF file parts using provider reference', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: { anthropic: 'file-pdf-12345' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'file',
+                  file_id: 'file-pdf-12345',
+                },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+  });
+
+  it('should convert messages with text/plain file parts using provider reference', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: { anthropic: 'file-txt-12345' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'file',
+                  file_id: 'file-txt-12345',
+                },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+  });
+
+  it('should throw when provider reference does not contain anthropic key', async () => {
+    await expect(
+      convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: { openai: 'file-xyz' },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      }),
+    ).rejects.toThrow(
+      "No provider reference found for provider 'anthropic'. Available providers: openai",
+    );
   });
 });
 
@@ -580,6 +812,82 @@ describe('tool messages', () => {
       }
     `);
   });
+
+  it('should handle tool result with custom tool-reference content for custom tool search', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'searchTools',
+              toolCallId: 'search-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'custom',
+                    providerOptions: {
+                      anthropic: {
+                        type: 'tool-reference',
+                        toolName: 'get_weather',
+                      },
+                    },
+                  },
+                  {
+                    type: 'custom',
+                    providerOptions: {
+                      anthropic: {
+                        type: 'tool-reference',
+                        toolName: 'get_forecast',
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "tool_name": "get_weather",
+                      "type": "tool_reference",
+                    },
+                    {
+                      "tool_name": "get_forecast",
+                      "type": "tool_reference",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "search-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
   it('should handle tool result with url-based PDF content', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
@@ -850,7 +1158,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -903,7 +1211,7 @@ describe('assistant messages', () => {
   });
 
   it('should ignore reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -956,7 +1264,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1008,7 +1316,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit reasoning parts without signature when sendReasoning is false', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1055,7 +1363,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_search tool call and result parts', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1137,7 +1445,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_fetch tool call and result parts', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1145,7 +1453,7 @@ describe('assistant messages', () => {
           content: [
             {
               input: {
-                url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
+                url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf',
               },
               providerExecuted: true,
               toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
@@ -1157,7 +1465,7 @@ describe('assistant messages', () => {
                 type: 'json',
                 value: {
                   type: 'web_fetch_result',
-                  url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
+                  url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf',
                   retrievedAt: '2025-01-01T00:00:00.000Z',
                   content: {
                     type: 'document',
@@ -1194,7 +1502,7 @@ describe('assistant messages', () => {
                   "cache_control": undefined,
                   "id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                   "input": {
-                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf",
+                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf",
                   },
                   "name": "web_fetch",
                   "type": "server_tool_use",
@@ -1216,7 +1524,7 @@ describe('assistant messages', () => {
                     },
                     "retrieved_at": "2025-01-01T00:00:00.000Z",
                     "type": "web_fetch_result",
-                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf",
+                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf",
                   },
                   "tool_use_id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                   "type": "web_fetch_tool_result",
@@ -1233,7 +1541,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert anthropic web_fetch tool call with error result', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -1304,9 +1612,209 @@ describe('assistant messages', () => {
     expect(warnings).toMatchInlineSnapshot(`[]`);
   });
 
+  it('should convert anthropic web_fetch tool call with error result as object', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                url: 'https://www.fotball.no/fotballdata/turnering/hjem/?fiksId=193156',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_01JteKo9VRHDKZ1rdMXywnwD',
+              toolName: 'web_fetch',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'error-json',
+                value: {
+                  type: 'web_fetch_tool_result_error',
+                  errorCode: 'url_not_allowed',
+                },
+              },
+              toolCallId: 'srvtoolu_01JteKo9VRHDKZ1rdMXywnwD',
+              toolName: 'web_fetch',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_01JteKo9VRHDKZ1rdMXywnwD",
+                  "input": {
+                    "url": "https://www.fotball.no/fotballdata/turnering/hjem/?fiksId=193156",
+                  },
+                  "name": "web_fetch",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "error_code": "url_not_allowed",
+                    "type": "web_fetch_tool_result_error",
+                  },
+                  "tool_use_id": "srvtoolu_01JteKo9VRHDKZ1rdMXywnwD",
+                  "type": "web_fetch_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should convert anthropic web_fetch tool call with error result as malformed string', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                url: 'https://example.com',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_test123',
+              toolName: 'web_fetch',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'error-json',
+                value: 'not valid json at all',
+              },
+              toolCallId: 'srvtoolu_test123',
+              toolName: 'web_fetch',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages[0].content[1]).toMatchInlineSnapshot(`
+      {
+        "cache_control": undefined,
+        "content": {
+          "error_code": "unavailable",
+          "type": "web_fetch_tool_result_error",
+        },
+        "tool_use_id": "srvtoolu_test123",
+        "type": "web_fetch_tool_result",
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should convert anthropic tool_search_tool_regex tool call and result parts', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                pattern: 'weather|forecast',
+                limit: 10,
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_01SACvPAnp6ucMJsstB5qb3f',
+              toolName: 'tool_search_tool_regex',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    type: 'tool_reference',
+                    toolName: 'get_weather',
+                  },
+                ],
+              },
+              toolCallId: 'srvtoolu_01SACvPAnp6ucMJsstB5qb3f',
+              toolName: 'tool_search_tool_regex',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_01SACvPAnp6ucMJsstB5qb3f",
+                  "input": {
+                    "limit": 10,
+                    "pattern": "weather|forecast",
+                  },
+                  "name": "tool_search_tool_regex",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "tool_references": [
+                      {
+                        "tool_name": "get_weather",
+                        "type": "tool_reference",
+                      },
+                    ],
+                    "type": "tool_search_tool_search_result",
+                  },
+                  "tool_use_id": "srvtoolu_01SACvPAnp6ucMJsstB5qb3f",
+                  "type": "tool_search_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
   describe('code_execution 20250522', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1381,11 +1889,221 @@ describe('assistant messages', () => {
       `);
       expect(warnings).toMatchInlineSnapshot(`[]`);
     });
+
+    it('should pass back encrypted_code_execution_result for multi-turn (web_fetch_20260209/web_search_20260209)', async () => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_webfetch_01',
+                toolName: 'web_fetch',
+                input: { url: 'https://example.com' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_webfetch_01',
+                toolName: 'web_fetch',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'web_fetch_result',
+                    url: 'https://example.com',
+                    retrievedAt: '2026-01-01T00:00:00Z',
+                    content: {
+                      type: 'document',
+                      title: 'Example',
+                      source: {
+                        type: 'text',
+                        mediaType: 'text/plain',
+                        data: 'hello',
+                      },
+                    },
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_codeexec_01',
+                toolName: 'code_execution',
+                input: { code: 'print("done")' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_codeexec_01',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'encrypted_code_execution_result',
+                    encrypted_stdout: 'enc_abc123',
+                    stderr: '',
+                    return_code: 0,
+                    content: [],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      const assistantMessage = result.prompt.messages[0];
+      expect(assistantMessage.role).toBe('assistant');
+      const codeExecResult = (assistantMessage.content as any[]).find(
+        (c: any) => c.type === 'code_execution_tool_result',
+      );
+      expect(codeExecResult).toBeDefined();
+      expect(codeExecResult.content).toEqual({
+        type: 'encrypted_code_execution_result',
+        encrypted_stdout: 'enc_abc123',
+        stderr: '',
+        return_code: 0,
+        content: [],
+      });
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
   });
 
   describe('code_execution 20250825', () => {
     it('should convert anthropic code_execution tool call and result parts', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k',
+                toolName: 'code_execution',
+                input: {
+                  type: 'text_editor_code_execution',
+                  command: 'create',
+                  path: '/tmp/fibonacci.py',
+                  file_text: 'def..',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'text_editor_code_execution_create_result',
+                    is_file_update: false,
+                  },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_0193G3ttnkiTfZASwHQSKc2V',
+                toolName: 'code_execution',
+                input: {
+                  type: 'bash_code_execution',
+                  command: 'python /tmp/fibonacci.py',
+                },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'srvtoolu_0193G3ttnkiTfZASwHQSKc2V',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'bash_code_execution_result',
+                    content: [],
+                    stdout: 'The 10th Fibonacci number is: 34\n',
+                    stderr: '',
+                    return_code: 0,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "prompt": {
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k",
+                    "input": {
+                      "command": "create",
+                      "file_text": "def..",
+                      "path": "/tmp/fibonacci.py",
+                      "type": "text_editor_code_execution",
+                    },
+                    "name": "text_editor_code_execution",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "is_file_update": false,
+                      "type": "text_editor_code_execution_create_result",
+                    },
+                    "tool_use_id": "srvtoolu_01Hq9rR6fZwwDGHkTYRafn7k",
+                    "type": "text_editor_code_execution_tool_result",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
+                    "input": {
+                      "command": "python /tmp/fibonacci.py",
+                      "type": "bash_code_execution",
+                    },
+                    "name": "bash_code_execution",
+                    "type": "server_tool_use",
+                  },
+                  {
+                    "cache_control": undefined,
+                    "content": {
+                      "content": [],
+                      "return_code": 0,
+                      "stderr": "",
+                      "stdout": "The 10th Fibonacci number is: 34
+        ",
+                      "type": "bash_code_execution_result",
+                    },
+                    "tool_use_id": "srvtoolu_0193G3ttnkiTfZASwHQSKc2V",
+                    "type": "bash_code_execution_tool_result",
+                  },
+                ],
+                "role": "assistant",
+              },
+            ],
+            "system": undefined,
+          },
+        }
+      `);
+      expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+  });
+
+  describe('code_execution 20260120', () => {
+    it('should convert anthropic code_execution tool call and result parts', async () => {
+      const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1513,7 +2231,7 @@ describe('assistant messages', () => {
 
   describe('mcp tool use', () => {
     it('should convert anthropic mcp tool use parts', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -1978,7 +2696,7 @@ describe('cache control', () => {
 
   describe('cache control validation', () => {
     it('should reject cache_control on thinking blocks', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const cacheControlValidator = new CacheControlValidator();
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
@@ -2034,7 +2752,7 @@ describe('cache control', () => {
     });
 
     it('should reject cache_control on redacted thinking blocks', async () => {
-      const warnings: SharedV3Warning[] = [];
+      const warnings: SharedV4Warning[] = [];
       const cacheControlValidator = new CacheControlValidator();
       const result = await convertToAnthropicMessagesPrompt({
         prompt: [
@@ -2077,7 +2795,7 @@ describe('cache control', () => {
   });
 
   it('should limit cache breakpoints to 4', async () => {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
     const cacheControlValidator = new CacheControlValidator();
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [

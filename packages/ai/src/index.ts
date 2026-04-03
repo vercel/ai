@@ -18,7 +18,6 @@ export {
   type Tool,
   type ToolApprovalRequest,
   type ToolApprovalResponse,
-  type ToolCallOptions,
   type ToolExecutionOptions,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
@@ -31,6 +30,7 @@ export * from './generate-image';
 export * from './generate-object';
 export * from './generate-speech';
 export * from './generate-text';
+export * from './generate-video';
 export * from './logger';
 export * from './middleware';
 export * from './prompt';
@@ -40,11 +40,10 @@ export * from './text-stream';
 export * from './transcribe';
 export * from './types';
 export * from './ui';
+export * from './upload-file';
 export * from './ui-message-stream';
 export * from './util';
-
-// telemetry types:
-export type { TelemetrySettings } from './telemetry/telemetry-settings';
+export * from './telemetry';
 
 // import globals
 import './global';

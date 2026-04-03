@@ -77,6 +77,175 @@ describe('addAdditionalPropertiesToJsonSchema', () => {
     });
   });
 
+  it('adds additionalProperties: false when type is a union that includes "object"', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        response: {
+          type: ['object', 'null'],
+          properties: {
+            name: { type: 'string' },
+          },
+        },
+      },
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        response: {
+          type: ['object', 'null'],
+          additionalProperties: false,
+          properties: {
+            name: { type: 'string' },
+          },
+        },
+      },
+    });
+  });
+
+  it('adds additionalProperties: false to objects inside anyOf', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        response: {
+          anyOf: [
+            { type: 'object', properties: { name: { type: 'string' } } },
+            { type: 'object', properties: { amount: { type: 'string' } } },
+          ],
+        },
+      },
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        response: {
+          anyOf: [
+            {
+              type: 'object',
+              additionalProperties: false,
+              properties: { name: { type: 'string' } },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              properties: { amount: { type: 'string' } },
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it('adds additionalProperties: false to objects inside allOf', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        response: {
+          allOf: [
+            { type: 'object', properties: { name: { type: 'string' } } },
+            { type: 'object', properties: { age: { type: 'number' } } },
+          ],
+        },
+      },
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        response: {
+          allOf: [
+            {
+              type: 'object',
+              additionalProperties: false,
+              properties: { name: { type: 'string' } },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              properties: { age: { type: 'number' } },
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it('adds additionalProperties: false to objects inside oneOf', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        response: {
+          oneOf: [
+            { type: 'object', properties: { success: { type: 'boolean' } } },
+            { type: 'object', properties: { error: { type: 'string' } } },
+          ],
+        },
+      },
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        response: {
+          oneOf: [
+            {
+              type: 'object',
+              additionalProperties: false,
+              properties: { success: { type: 'boolean' } },
+            },
+            {
+              type: 'object',
+              additionalProperties: false,
+              properties: { error: { type: 'string' } },
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  it('adds additionalProperties: false to object schemas inside definitions (refs)', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        node: { $ref: '#/definitions/Node' },
+      },
+      definitions: {
+        Node: {
+          type: 'object',
+          properties: {
+            value: { type: 'string' },
+            next: { $ref: '#/definitions/Node' }, // recursive reference
+          },
+        },
+      },
+    };
+
+    expect(addAdditionalPropertiesToJsonSchema(schema)).toEqual({
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        node: { $ref: '#/definitions/Node' },
+      },
+      definitions: {
+        Node: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            value: { type: 'string' },
+            next: { $ref: '#/definitions/Node' },
+          },
+        },
+      },
+    });
+  });
+
   it('overwrites existing additionalProperties flags', () => {
     const schema: JSONSchema7 = {
       type: 'object',

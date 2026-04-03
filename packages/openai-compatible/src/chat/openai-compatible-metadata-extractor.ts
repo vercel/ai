@@ -1,10 +1,10 @@
-import { SharedV3ProviderMetadata } from '@ai-sdk/provider';
+import { SharedV4ProviderMetadata } from '@ai-sdk/provider';
 
 /**
-Extracts provider-specific metadata from API responses.
-Used to standardize metadata handling across different LLM providers while allowing
-provider-specific metadata to be captured.
-*/
+ * Extracts provider-specific metadata from API responses.
+ * Used to standardize metadata handling across different LLM providers while allowing
+ * provider-specific metadata to be captured.
+ */
 export type MetadataExtractor = {
   /**
    * Extracts provider metadata from a complete, non-streaming response.
@@ -18,7 +18,7 @@ export type MetadataExtractor = {
     parsedBody,
   }: {
     parsedBody: unknown;
-  }) => Promise<SharedV3ProviderMetadata | undefined>;
+  }) => Promise<SharedV4ProviderMetadata | undefined>;
 
   /**
    * Creates an extractor for handling streaming responses. The returned object provides
@@ -43,6 +43,6 @@ export type MetadataExtractor = {
      * @returns Provider-specific metadata or undefined if no metadata is available.
      *          The metadata should be under a key indicating the provider id.
      */
-    buildMetadata(): SharedV3ProviderMetadata | undefined;
+    buildMetadata(): SharedV4ProviderMetadata | undefined;
   };
 };

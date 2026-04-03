@@ -270,6 +270,7 @@ exports[`zodSchema > zod/v4 > json schema conversion > should use recursive refe
   "additionalProperties": false,
   "definitions": {
     "__schema0": {
+      "additionalProperties": false,
       "properties": {
         "name": {
           "type": "string",
@@ -306,6 +307,7 @@ exports[`zodSchema > zod/v4 > json schema conversion > should use references whe
   "additionalProperties": false,
   "definitions": {
     "__schema0": {
+      "additionalProperties": false,
       "properties": {
         "number": {
           "type": "number",

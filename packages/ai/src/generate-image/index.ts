@@ -1,7 +1,7 @@
 export { generateImage } from './generate-image';
 export type { GenerateImageResult } from './generate-image-result';
 
-// depreacted exports
+// deprecated exports
 
 import { generateImage } from './generate-image';
 /**

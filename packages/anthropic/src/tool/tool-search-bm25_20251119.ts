@@ -64,6 +64,7 @@ const factory = createProviderToolFactoryWithOutputSchema<
   id: 'anthropic.tool_search_bm25_20251119',
   inputSchema: toolSearchBm25_20251119InputSchema,
   outputSchema: toolSearchBm25_20251119OutputSchema,
+  supportsDeferredResults: true,
 });
 
 /**

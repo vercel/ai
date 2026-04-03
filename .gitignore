@@ -1,5 +1,6 @@
 .DS_Store
 .cache
+.claude
 .env
 .envrc
 .next
@@ -16,3 +17,4 @@ tsconfig.vitest-temp.json
 *.log
 *.local
 *.tsbuildinfo
+packages/ai/docs

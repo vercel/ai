@@ -11,6 +11,10 @@ export { convertImageModelFileToDataUri } from './convert-image-model-file-to-da
 export { convertToFormData } from './convert-to-form-data';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
+export {
+  readResponseWithSizeLimit,
+  DEFAULT_MAX_DOWNLOAD_SIZE,
+} from './read-response-with-size-limit';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
@@ -19,8 +23,14 @@ export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-a
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
 export { isNonNullable } from './is-non-nullable';
+export { isProviderReference } from './is-provider-reference';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
+export {
+  isCustomReasoning,
+  mapReasoningToProviderBudget,
+  mapReasoningToProviderEffort,
+} from './map-reasoning-to-provider';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
 export { type MaybePromiseLike } from './maybe-promise-like';
@@ -37,6 +47,7 @@ export {
   type ProviderToolFactoryWithOutputSchema,
 } from './provider-tool-factory';
 export * from './remove-undefined-entries';
+export { resolveProviderReference } from './resolve-provider-reference';
 export * from './resolve';
 export * from './response-handler';
 export {
@@ -50,7 +61,9 @@ export {
   type Schema,
   type ValidationResult,
 } from './schema';
+export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
+export { validateDownloadUrl } from './validate-download-url';
 export * from './validate-types';
 export { VERSION } from './version';
 export { withUserAgentSuffix } from './with-user-agent-suffix';
@@ -60,7 +73,7 @@ export * from './without-trailing-slash';
 export * from './types';
 
 // external re-exports
-export * from '@standard-schema/spec';
+export type * from '@standard-schema/spec';
 export {
   EventSourceParserStream,
   type EventSourceMessage,

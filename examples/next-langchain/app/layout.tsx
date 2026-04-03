@@ -15,7 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="flex flex-col lg:flex-row h-screen overflow-hidden">
+      <body
+        className="flex flex-col lg:flex-row h-screen overflow-hidden"
+        suppressHydrationWarning
+      >
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden bg-[var(--background)] relative">
           <MobileNav />

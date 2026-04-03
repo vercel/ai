@@ -1,7 +1,7 @@
 import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export const falImageProviderOptionsSchema = lazySchema(() =>
+export const falImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -25,6 +25,10 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
           .enum(['1', '2', '3', '4', '5', '6'])
           .or(z.number().min(1).max(6))
           .nullish(),
+        /**
+         * When true, converts multiple input images to `image_urls` array instead of `image_url` string.
+         */
+        useMultipleImages: z.boolean().nullish(),
 
         // Deprecated snake_case versions
         image_url: z.string().nullish(),
@@ -74,6 +78,12 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
         if (data.acceleration !== undefined && data.acceleration !== null) {
           result.acceleration = data.acceleration;
         }
+        if (
+          data.useMultipleImages !== undefined &&
+          data.useMultipleImages !== null
+        ) {
+          result.useMultipleImages = data.useMultipleImages;
+        }
 
         for (const [key, value] of Object.entries(data)) {
           if (
@@ -89,6 +99,7 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
               'strength',
               'acceleration',
               'safetyTolerance',
+              'useMultipleImages',
               // snake_case known keys
               'image_url',
               'mask_url',
@@ -113,6 +124,6 @@ export const falImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type FalImageProviderOptions = InferSchema<
-  typeof falImageProviderOptionsSchema
+export type FalImageModelOptions = InferSchema<
+  typeof falImageModelOptionsSchema
 >;

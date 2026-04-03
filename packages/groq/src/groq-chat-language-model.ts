@@ -1,14 +1,14 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -17,7 +17,9 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  isCustomReasoning,
   isParsableJson,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -25,7 +27,7 @@ import { z } from 'zod/v4';
 import { convertGroqUsage } from './convert-groq-usage';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import { GroqChatModelId, groqProviderOptions } from './groq-chat-options';
+import { GroqChatModelId, groqLanguageModelOptions } from './groq-chat-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
@@ -37,8 +39,8 @@ type GroqChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class GroqChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class GroqChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: GroqChatModelId;
 
@@ -68,22 +70,24 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     stopSequences,
     responseFormat,
     seed,
+    reasoning,
     stream,
     tools,
     toolChoice,
     providerOptions,
-  }: LanguageModelV3CallOptions & {
+  }: LanguageModelV4CallOptions & {
     stream: boolean;
   }) {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     const groqOptions = await parseProviderOptions({
       provider: 'groq',
       providerOptions,
-      schema: groqProviderOptions,
+      schema: groqLanguageModelOptions,
     });
 
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
+    const strictJsonSchema = groqOptions?.strictJsonSchema ?? true;
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -134,6 +138,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
                   type: 'json_schema',
                   json_schema: {
                     schema: responseFormat.schema,
+                    strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
                   },
@@ -143,7 +148,21 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
 
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
-        reasoning_effort: groqOptions?.reasoningEffort,
+        reasoning_effort:
+          groqOptions?.reasoningEffort ??
+          (isCustomReasoning(reasoning) && reasoning !== 'none'
+            ? mapReasoningToProviderEffort({
+                reasoning,
+                effortMap: {
+                  minimal: 'low',
+                  low: 'low',
+                  medium: 'medium',
+                  high: 'high',
+                  xhigh: 'high',
+                },
+                warnings,
+              })
+            : undefined),
         service_tier: groqOptions?.serviceTier,
 
         // messages:
@@ -158,8 +177,8 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs({
       ...options,
       stream: false,
@@ -187,7 +206,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -234,8 +253,8 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs({ ...options, stream: true });
 
     const body = JSON.stringify({ ...args, stream: true });
@@ -267,7 +286,7 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -281,18 +300,24 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
               }
             | null
             | undefined;
+          completion_tokens_details?:
+            | {
+                reasoning_tokens?: number | null | undefined;
+              }
+            | null
+            | undefined;
         }
       | undefined = undefined;
     let isFirstChunk = true;
     let isActiveText = false;
     let isActiveReasoning = false;
 
-    let providerMetadata: SharedV3ProviderMetadata | undefined;
+    let providerMetadata: SharedV4ProviderMetadata | undefined;
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof groqChatChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -371,6 +396,15 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
             }
 
             if (delta.content != null && delta.content.length > 0) {
+              // end active reasoning block before text starts
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: 'txt-0' });
                 isActiveText = true;
@@ -384,6 +418,15 @@ export class GroqChatLanguageModel implements LanguageModelV3 {
             }
 
             if (delta.tool_calls != null) {
+              // end active reasoning block before tool calls start
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               for (const toolCallDelta of delta.tool_calls) {
                 const index = toolCallDelta.index;
 
@@ -565,6 +608,11 @@ const groqChatResponseSchema = z.object({
           cached_tokens: z.number().nullish(),
         })
         .nullish(),
+      completion_tokens_details: z
+        .object({
+          reasoning_tokens: z.number().nullish(),
+        })
+        .nullish(),
     })
     .nullish(),
 });
@@ -611,6 +659,11 @@ const groqChatChunkSchema = z.union([
             prompt_tokens_details: z
               .object({
                 cached_tokens: z.number().nullish(),
+              })
+              .nullish(),
+            completion_tokens_details: z
+              .object({
+                reasoning_tokens: z.number().nullish(),
               })
               .nullish(),
           })

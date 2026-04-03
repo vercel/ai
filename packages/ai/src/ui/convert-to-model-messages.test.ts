@@ -254,6 +254,39 @@ describe('convertToModelMessages', () => {
         },
       ]);
     });
+
+    it('should use providerReference as data for user file parts', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              url: 'data:application/pdf;base64,abc',
+              providerReference: { openai: 'file-abc123' },
+            },
+            { type: 'text', text: 'Summarize this' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              data: { openai: 'file-abc123' },
+            },
+            { type: 'text', text: 'Summarize this' },
+          ],
+        },
+      ]);
+    });
   });
 
   it('should not include filename for user file parts when not provided', async () => {
@@ -285,6 +318,42 @@ describe('convertToModelMessages', () => {
   });
 
   describe('assistant message', () => {
+    it('should convert custom assistant parts', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'custom',
+              kind: 'test-provider.compaction',
+              providerMetadata: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'test-provider.compaction',
+              providerOptions: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+      ] satisfies ModelMessage[]);
+    });
+
     it('should convert a simple assistant text message', async () => {
       const result = await convertToModelMessages([
         {
@@ -436,6 +505,71 @@ describe('convertToModelMessages', () => {
               mediaType: 'image/png',
               data: 'data:image/png;base64,dGVzdA==',
               filename: 'test.png',
+            },
+          ],
+        },
+      ] as unknown as ModelMessage[]);
+    });
+
+    it('should handle assistant message file parts with provider metadata', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              url: 'data:image/png;base64,dGVzdA==',
+              providerMetadata: {
+                testProvider: { signature: 'test-signature' },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'data:image/png;base64,dGVzdA==',
+              providerOptions: {
+                testProvider: { signature: 'test-signature' },
+              },
+            },
+          ],
+        },
+      ] as unknown as ModelMessage[]);
+    });
+
+    it('should use providerReference as data for assistant file parts', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              url: 'data:application/pdf;base64,xyz',
+              providerReference: { anthropic: 'file-xyz789' },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              data: { anthropic: 'file-xyz789' },
             },
           ],
         },
@@ -836,6 +970,72 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should prefer result provider metadata over call provider metadata for provider-executed tool-result', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-calculator',
+              state: 'output-available',
+              toolCallId: 'call1',
+              input: { operation: 'multiply', numbers: [3, 4] },
+              output: '12',
+              providerExecuted: true,
+              callProviderMetadata: {
+                testProvider: {
+                  itemId: 'call-item',
+                },
+              },
+              resultProviderMetadata: {
+                testProvider: {
+                  itemId: 'result-item',
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call1',
+              toolName: 'calculator',
+              input: {
+                operation: 'multiply',
+                numbers: [3, 4],
+              },
+              providerExecuted: true,
+              providerOptions: {
+                testProvider: {
+                  itemId: 'call-item',
+                },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'call1',
+              toolName: 'calculator',
+              output: {
+                type: 'text',
+                value: '12',
+              },
+              providerOptions: {
+                testProvider: {
+                  itemId: 'result-item',
+                },
+              },
+            },
+          ],
+        },
+      ]);
     });
 
     it('should handle assistant message with tool invocations that have multi-part responses', async () => {

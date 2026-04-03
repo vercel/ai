@@ -35,7 +35,7 @@ const xSearchOutputSchema = lazySchema(() =>
 );
 
 const xSearchToolFactory = createProviderToolFactoryWithOutputSchema<
-  Record<string, never>,
+  {},
   {
     query: string;
     posts: Array<{

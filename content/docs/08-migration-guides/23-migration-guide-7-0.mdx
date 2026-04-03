@@ -1,0 +1,189 @@
+---
+title: Migrate AI SDK 6.x to 7.0
+description: Learn how to upgrade AI SDK 6.x to 7.0.
+---
+
+# Migrate AI SDK 6.x to 7.0
+
+## Recommended Migration Process
+
+1. Backup your project. If you use a versioning control system, make sure all previous versions are committed.
+1. Upgrade to AI SDK 7.0.
+1. Follow the breaking changes guide below.
+1. Verify your project is working as expected.
+1. Commit your changes.
+
+An example upgrade command would be:
+
+```
+pnpm install ai@latest @ai-sdk/react@latest @ai-sdk/openai@latest @ai-sdk/otel@latest
+```
+
+## AI SDK Core
+
+### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
+
+OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetryIntegration` globally.
+
+```bash
+pnpm install @ai-sdk/otel
+```
+
+Previously, OpenTelemetry spans were emitted automatically when `experimental_telemetry` was enabled:
+
+```tsx filename="AI SDK 6"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: { isEnabled: true },
+});
+```
+
+Now, you must install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` once at application startup. For Next.js, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup:
+
+```tsx filename="instrumentation"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+
+// ... your OpenTelemetry provider setup (e.g. registerOTel, NodeTracerProvider)
+```
+
+For Node.js applications (without Next.js), register the integration at the top level of your entry file.
+
+This applies to all AI SDK functions that accept `experimental_telemetry`, including `generateText`, `streamText`, `ToolLoopAgent`, `embed`, `embedMany`, and `rerank`.
+
+### Telemetry: `tracer` Property Removed from `experimental_telemetry`
+
+The `tracer` property on `experimental_telemetry` has been removed. If you were passing a custom OpenTelemetry `Tracer`, pass it to the `OpenTelemetryIntegration` constructor instead:
+
+```tsx filename="AI SDK 6"
+import { generateText } from 'ai';
+import { trace } from '@opentelemetry/api';
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: {
+    isEnabled: true,
+    tracer: trace.getTracer('my-app'),
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { trace } from '@opentelemetry/api';
+
+registerTelemetryIntegration(
+  new OpenTelemetryIntegration({
+    tracer: trace.getTracer('my-app'),
+  }),
+);
+```
+
+### Tools: `experimental_context` is Typed via Generic `CONTEXT` and `contextSchema`
+
+Tool callbacks are now generic over a `CONTEXT` type instead of treating `experimental_context` as an untyped value. In practice, this means `tool()` can infer the type of `experimental_context` from a tool's `contextSchema`.
+
+In AI SDK 6, tool code often had to cast `experimental_context` manually:
+
+```tsx filename="AI SDK 6"
+const weather = tool({
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  execute: async (
+    { location },
+    { experimental_context },
+  ) => {
+    const { weatherApiKey } = experimental_context as {
+      weatherApiKey: string;
+    };
+
+    return getWeather(location, weatherApiKey);
+  },
+});
+```
+
+In AI SDK 7, declare the runtime context the tool expects with `contextSchema`. The `execute` callback, approval callback, and tool input lifecycle hooks then receive a typed `experimental_context` automatically:
+
+```tsx filename="AI SDK 7"
+const weather = tool({
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  contextSchema: z.object({
+    weatherApiKey: z.string(),
+  }),
+  execute: async (
+    { location },
+    { experimental_context: { weatherApiKey } },
+  ) => {
+    return getWeather(location, weatherApiKey);
+  },
+});
+```
+
+`prepareStep` still receives the full runtime context object that you pass via `experimental_context`. `contextSchema` only narrows the view that an individual tool receives.
+
+Potential breaking issues:
+
+- If a tool callback accesses fields that are not declared in its `contextSchema`, TypeScript will now report errors. Add those fields to the schema, or read the broader context in `prepareStep` instead.
+- If you have helper types or wrappers that assumed `experimental_context` was `unknown`, update them to accept a generic `CONTEXT` type.
+- If you were relying on a tool callback seeing the entire runtime context object, that code may need to move to `prepareStep` or the tool's `contextSchema` may need to be expanded to include the required fields.
+
+### Tools: Remove Deprecated `ToolCallOptions` Type
+
+The deprecated `ToolCallOptions` type has been removed in AI SDK 7. Replace all remaining usages with `ToolExecutionOptions`.
+
+If you already migrated away from the deprecated name in AI SDK 6, no changes are needed. Otherwise, update imports and type references:
+
+```tsx filename="AI SDK 6"
+import { ToolCallOptions } from 'ai';
+
+function executeWithOptions(options: ToolCallOptions) {
+  // ...
+}
+```
+
+```tsx filename="AI SDK 7"
+import { ToolExecutionOptions } from 'ai';
+
+function executeWithOptions(options: ToolExecutionOptions) {
+  // ...
+}
+```
+
+## MCP Package
+
+### MCP Transport: `redirect` Default Changed from `'follow'` to `'error'`
+
+The `redirect` option on `MCPTransportConfig` (used by both HTTP and SSE transports) now defaults to `'error'` instead of `'follow'`. This means HTTP redirects are rejected by default to prevent server-side request forgery (SSRF) attacks where an MCP server could redirect requests to unintended hosts.
+
+If your MCP server relies on HTTP redirects, explicitly set `redirect: 'follow'` in your transport configuration:
+
+```tsx filename="AI SDK 6"
+const mcpClient = await createMCPClient({
+  transport: {
+    type: 'http',
+    url: 'https://your-server.com/mcp',
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const mcpClient = await createMCPClient({
+  transport: {
+    type: 'http',
+    url: 'https://your-server.com/mcp',
+    redirect: 'follow',
+  },
+});
+```
+
+If the MCP server you use does not issue redirects, no changes are needed — the new default is more secure.

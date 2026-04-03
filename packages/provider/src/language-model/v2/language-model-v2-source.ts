@@ -1,7 +1,7 @@
 import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
 
 /**
-A source that has been used as input to generate the response.
+ * A source that has been used as input to generate the response.
  */
 export type LanguageModelV2Source =
   | {

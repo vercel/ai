@@ -1,5 +1,282 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.10
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- 2e17091: fix(types): move shared tool set utility types into provider-utils
+
+  Moved `ToolSet`, `InferToolSetContext`, and `UnionToIntersection` into `@ai-sdk/provider-utils` and updated `ai` internals to import them directly from there. This keeps the shared tool typing utilities colocated with the core tool type definitions.
+
+## 5.0.0-beta.8
+
+### Major Changes
+
+- 986c6fd: feat(ai): change type of experimental_context from unknown to generic
+- 493295c: Remove the deprecated `ToolCallOptions` export.
+
+  Use `ToolExecutionOptions` instead.
+
+## 5.0.0-beta.7
+
+### Patch Changes
+
+- 1f509d4: fix(ai): force template check on 'kind' param
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 5.0.0-beta.6
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 5.0.0-beta.5
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 5.0.0-beta.4
+
+### Major Changes
+
+- 61753c3: ### `@ai-sdk/openai`: remove redundant `name` argument from `openai.tools.customTool()`
+
+  `openai.tools.customTool()` no longer accepts a `name` field. the tool name is now derived from the sdk tool key (the object key in the `tools` object).
+
+  migration: remove the `name` property from `customTool()` calls. the object key is now used as the tool name sent to the openai api.
+
+  before:
+
+  ```ts
+  tools: {
+    write_sql: openai.tools.customTool({
+      name: 'write_sql',
+      description: '...',
+    }),
+  }
+  ```
+
+  after:
+
+  ```ts
+  tools: {
+    write_sql: openai.tools.customTool({
+      description: '...',
+    }),
+  }
+  ```
+
+  ### `@ai-sdk/provider-utils`: `createToolNameMapping()` no longer accepts the `resolveProviderToolName` parameter
+
+  before: tool name can be set dynamically
+
+  ```ts
+  const toolNameMapping = createToolNameMapping({
+    tools,
+    providerToolNames: {
+      "openai.code_interpreter": "code_interpreter",
+      "openai.file_search": "file_search",
+      "openai.image_generation": "image_generation",
+      "openai.local_shell": "local_shell",
+      "openai.shell": "shell",
+      "openai.web_search": "web_search",
+      "openai.web_search_preview": "web_search_preview",
+      "openai.mcp": "mcp",
+      "openai.apply_patch": "apply_patch",
+    },
+    resolveProviderToolName: (tool) =>
+      tool.id === "openai.custom"
+        ? (tool.args as { name?: string }).name
+        : undefined,
+  });
+  ```
+
+  after: tool name is static based on `tools` keys
+
+  ```
+  const toolNameMapping = createToolNameMapping({
+    tools,
+    providerToolNames: {
+      'openai.code_interpreter': 'code_interpreter',
+      'openai.file_search': 'file_search',
+      'openai.image_generation': 'image_generation',
+      'openai.local_shell': 'local_shell',
+      'openai.shell': 'shell',
+      'openai.web_search': 'web_search',
+      'openai.web_search_preview': 'web_search_preview',
+      'openai.mcp': 'mcp',
+      'openai.apply_patch': 'apply_patch',
+    }
+  });
+  ```
+
+## 5.0.0-beta.3
+
+### Patch Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 5.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+
+## 5.0.0-beta.1
+
+### Patch Changes
+
+- 531251e: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  Both `downloadBlob` and `download` now validate the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
+## 5.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+
+## 4.0.19
+
+### Patch Changes
+
+- ad4cfc2: Add URL validation to `downloadBlob` and `download` to prevent blind SSRF attacks. Private/internal IP addresses, localhost, and non-HTTP protocols are now rejected before fetching.
+
+## 4.0.18
+
+### Patch Changes
+
+- 824b295: fix(provider-utils): prevent unicode escape bypass in secureJsonParse
+
+## 4.0.17
+
+### Patch Changes
+
+- 08336f1: fix(bedrock): strip file extensions from filename
+
+## 4.0.16
+
+### Patch Changes
+
+- 58bc42d: feat(provider/openai): support custom tools with alias mapping
+
+## 4.0.15
+
+### Patch Changes
+
+- 4024a3a: security: prevent unbounded memory growth in download functions
+
+  The `download()` and `downloadBlob()` functions now enforce a default 2 GiB size limit when downloading from user-provided URLs. Downloads that exceed this limit are aborted with a `DownloadError` instead of consuming unbounded memory and crashing the process. The `abortSignal` parameter is now passed through to `fetch()` in all download call sites.
+
+  Added `download` option to `transcribe()` and `experimental_generateVideo()` for providing a custom download function. Use the new `createDownload({ maxBytes })` factory to configure download size limits.
+
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+
+## 4.0.12
+
+### Patch Changes
+
+- 96936e5: fix(provider-utils): export only types from standard-schema package
+
+## 4.0.11
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider@3.0.6
+
+## 4.0.10
+
+### Patch Changes
+
+- 462ad00: fix(provider-utils): recognize bun fetch errors as retryable
+
+## 4.0.9
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+
+## 4.0.8
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+
+## 4.0.7
+
+### Patch Changes
+
+- 46f46e4: fix(provider-utils): improve tool type inference when using `inputExamples` with Zod schemas that use `.optional().default()` or `.refine()`.
+
+## 4.0.6
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider@3.0.3
+
+## 4.0.5
+
+### Patch Changes
+
+- 34d1c8a: fix(provider-utils): add additionalProperties field for standard schema function
+
+## 4.0.4
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+
+## 4.0.3
+
+### Patch Changes
+
+- 0b429d4: fix(provider-utils): handle anyOf/allOf/oneOf and definitions in addAdditionalPropertiesToJsonSchema
+
 ## 4.0.2
 
 ### Patch Changes

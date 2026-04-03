@@ -1,5 +1,651 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.14
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- f51c95e: feat(provider/xai): add video extension and reference-to-video (R2V) support
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/openai-compatible@3.0.0-beta.13
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+  - @ai-sdk/openai-compatible@3.0.0-beta.12
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/openai-compatible@3.0.0-beta.11
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 9f20868: fix(provider/xai): correct finish reason for tool calls
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+  - @ai-sdk/openai-compatible@3.0.0-beta.10
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 4f91b5d: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- 74d520f: feat: migrate providers to support new top-level `reasoning` parameter
+- Updated dependencies [74d520f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.9
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+  - @ai-sdk/openai-compatible@3.0.0-beta.8
+
+## 4.0.0-beta.13
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+  - @ai-sdk/openai-compatible@3.0.0-beta.7
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- d20829e: feat(provider/xai): add moderation error, and costInUsdTicks to video model
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+  - @ai-sdk/openai-compatible@3.0.0-beta.6
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/openai-compatible@3.0.0-beta.5
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/openai-compatible@3.0.0-beta.4
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [8f3e1da]
+  - @ai-sdk/openai-compatible@3.0.0-beta.3
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4799fa5: chore(provider/xai): update provider to use v4 types
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 0f11f10: add reasoningSummary to responses API provider options
+- 12115e9: fix reasoning text extraction from content in responses doGenerate
+
+## 4.0.0-beta.6
+
+### Major Changes
+
+- f62681f: feat(provider/xai): make responses api the default
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 25f1837: feat(xai): add b64_json response format, usage cost tracking, and quality/user parameters for image models
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- f5181ad: feat(provider/xai): support multiple input images for image editing
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [45b3d76]
+- Updated dependencies [f7295cb]
+  - @ai-sdk/openai-compatible@3.0.0-beta.2
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/openai-compatible@3.0.0-beta.1
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/openai-compatible@3.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.67
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/openai-compatible@2.0.35
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/openai-compatible@2.0.34
+
+## 3.0.65
+
+### Patch Changes
+
+- d5801fe: fix(xai): ensure strict mode for tools
+
+## 3.0.64
+
+### Patch Changes
+
+- Updated dependencies [89caf28]
+  - @ai-sdk/openai-compatible@2.0.33
+
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/openai-compatible@2.0.32
+
+## 3.0.62
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+
+## 3.0.61
+
+### Patch Changes
+
+- 2e00e03: add support for `logprobs` and `topLogprobs` in xai chat and responses provider options
+
+## 3.0.60
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/openai-compatible@2.0.31
+
+## 3.0.59
+
+### Patch Changes
+
+- 8641667: Added `resolution` provider option (`"1k"` or `"2k"`) for xAI image models, enabling higher resolution output for grok-imagine models.
+
+## 3.0.58
+
+### Patch Changes
+
+- 6af6c5c: Added `grok-imagine-image-pro` and `grok-2-image-1212` to XaiImageModelId type for better autocomplete support.
+
+## 3.0.57
+
+### Patch Changes
+
+- 56dfdf6: feat (provider/xai): add video support
+
+## 3.0.56
+
+### Patch Changes
+
+- 7ccb902: fix(provider/xai): handle inconsistent cached token reporting
+
+## 3.0.55
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/openai-compatible@2.0.30
+
+## 3.0.54
+
+### Patch Changes
+
+- 902e93b: Add support for `response.function_call_arguments.delta` and `response.function_call_arguments.done` streaming events in the xAI Responses API provider. Previously, xAI Grok models using function tools would fail with `AI_TypeValidationError` because these standard Responses API events were missing from the Zod schema and stream handler.
+
+## 3.0.53
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+- Updated dependencies [99fbed8]
+  - @ai-sdk/openai-compatible@2.0.29
+
+## 3.0.52
+
+### Patch Changes
+
+- c781168: feat(provider/xai): add dedicated XaiImageModel with JSON-based image editing
+
+## 3.0.51
+
+### Patch Changes
+
+- e1d5111: fix(provider/xai): correct usage token calculation for reasoning models
+
+## 3.0.50
+
+### Patch Changes
+
+- de16a00: fix(xai): add dummy usage data when response.usage is missing
+
+## 3.0.49
+
+### Patch Changes
+
+- 8b3e72d: fix (provider/xai): handle new reasoning text chunk parts
+
+## 3.0.48
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/openai-compatible@2.0.28
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.47
+
+### Patch Changes
+
+- Updated dependencies [9e490ad]
+  - @ai-sdk/openai-compatible@2.0.27
+
+## 3.0.46
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/openai-compatible@2.0.26
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.45
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/openai-compatible@2.0.25
+
+## 3.0.44
+
+### Patch Changes
+
+- 9a2427e: chore(xai): remove duplicate schema definition
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/openai-compatible@2.0.24
+
+## 3.0.42
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai-compatible@2.0.23
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [9d056e6]
+  - @ai-sdk/openai-compatible@2.0.22
+
+## 3.0.40
+
+### Patch Changes
+
+- 05f3f36: Add native `file_search` server-side tool support:
+
+  - Add `xai.tools.fileSearch()` for vector store search with `vectorStoreIds` and `maxNumResults` parameters
+  - Add `include` option supporting `file_search_call.results` to get inline search results
+  - Add `file_search_call` handling in language model for both `doGenerate` and `doStream`
+  - Fix invalid `grok-4-1` model type (only `grok-4-1-fast-reasoning` and `grok-4-1-fast-non-reasoning` exist)
+  - Fix `toolChoice` for server-side tools: xAI API doesn't support forcing specific server-side tools, now emits warning instead of sending invalid request
+
+## 3.0.39
+
+### Patch Changes
+
+- 58800f3: fix(xai): emit reasoning-start before reasoning-end for encrypted reasoning
+
+## 3.0.38
+
+### Patch Changes
+
+- 2c70b90: chore: update provider docs
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/openai-compatible@2.0.21
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [a1a0175]
+  - @ai-sdk/openai-compatible@2.0.20
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [6900916]
+  - @ai-sdk/openai-compatible@2.0.19
+
+## 3.0.34
+
+### Patch Changes
+
+- 648c8f3: fix(xai): make usage nullable in responses schema for streaming compatibility
+
+  xAI sends `usage: null` in early streaming events (`response.created`, `response.in_progress`) because token counts aren't available until the stream completes. This change makes the `usage` field nullish in `xaiResponsesResponseSchema` to accept these values without validation errors.
+
+## 3.0.33
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/openai-compatible@2.0.18
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.32
+
+### Patch Changes
+
+- 27d0c05: feat(xai): add mcpServer tool for remote MCP support
+
+## 3.0.31
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.30
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai-compatible@2.0.17
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [78555ad]
+  - @ai-sdk/openai-compatible@2.0.16
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [7116ef3]
+  - @ai-sdk/openai-compatible@2.0.15
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [1612a57]
+  - @ai-sdk/openai-compatible@2.0.14
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/openai-compatible@2.0.13
+  - @ai-sdk/provider-utils@4.0.8
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [78a133a]
+  - @ai-sdk/openai-compatible@2.0.12
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+  - @ai-sdk/openai-compatible@2.0.11
+
+## 3.0.23
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+  - @ai-sdk/openai-compatible@2.0.10
+
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [bc02a3c]
+  - @ai-sdk/openai-compatible@2.0.9
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [78fcb18]
+  - @ai-sdk/openai-compatible@2.0.8
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [cd7bb0e]
+  - @ai-sdk/openai-compatible@2.0.7
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/openai-compatible@2.0.6
+
+## 3.0.18
+
+### Patch Changes
+
+- 9ed771c: feat(provider/xai): add image support to responses api
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [d54c380]
+  - @ai-sdk/openai-compatible@2.0.5
+
+## 3.0.16
+
+### Patch Changes
+
+- f446e23: fix(provider/xai): make streaming providerMetadata structure consistent with non-streaming
+
+## 3.0.15
+
+### Patch Changes
+
+- ed1587d: feat (provider/xai): add support for encrypted reasoning content
+
+## 3.0.14
+
+### Patch Changes
+
+- 0a081cb: fix (provider/xai): set response format to allow object generation
+
+## 3.0.13
+
+### Patch Changes
+
+- 7ac2437: fix(provider/xai): send reasoning-end before text-start in streaming
+
+## 3.0.12
+
+### Patch Changes
+
+- e7bdbc7: fix(provider/xai): handle error responses returned with 200 status
+
+## 3.0.11
+
+### Patch Changes
+
+- 9a53f59: fix (provider/xai): no duplicate text delta in responses api
+
+## 3.0.10
+
+### Patch Changes
+
+- 659c53d: fixed streaming tool input for custom_tool_call types (x_search, view_x_video) which were incorrectly returning empty input values
+
+## 3.0.9
+
+### Patch Changes
+
+- 173dcfd: added support for streaming custom tool input chunks in xAI
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/openai-compatible@2.0.4
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.7
+
+### Patch Changes
+
+- 23179aa: fix (provider/xai): use correct format for function tools
+
+## 3.0.6
+
+### Patch Changes
+
+- 77012ef: fix(xai): correct token counting for reasoning models to prevent negative text_output_tokens
+
+## 3.0.5
+
+### Patch Changes
+
+- e7f0a6f: fix(xai): add missing stream response schema and provider tool name parsing
+
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - @ai-sdk/openai-compatible@2.0.3
+
 ## 3.0.3
 
 ### Patch Changes
@@ -42,13 +688,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -306,13 +952,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 8514146: add grok-4-1 model IDs
@@ -855,7 +1501,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -868,7 +1514,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1184,7 +1830,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1197,7 +1843,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

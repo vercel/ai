@@ -1,4 +1,4 @@
-import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -11,7 +11,7 @@ import { humeFailedResponseHandler } from './hume-error';
 import { HumeSpeechAPITypes } from './hume-api-types';
 
 // https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
-const humeSpeechCallOptionsSchema = z.object({
+const humeSpeechModelOptionsSchema = z.object({
   /**
    * Context for the speech synthesis request.
    * Can be either a generationId for retrieving a previous generation,
@@ -82,7 +82,9 @@ const humeSpeechCallOptionsSchema = z.object({
     .nullish(),
 });
 
-export type HumeSpeechCallOptions = z.infer<typeof humeSpeechCallOptionsSchema>;
+export type HumeSpeechModelOptions = z.infer<
+  typeof humeSpeechModelOptionsSchema
+>;
 
 interface HumeSpeechModelConfig extends HumeConfig {
   _internal?: {
@@ -90,8 +92,8 @@ interface HumeSpeechModelConfig extends HumeConfig {
   };
 }
 
-export class HumeSpeechModel implements SpeechModelV3 {
-  readonly specificationVersion = 'v3';
+export class HumeSpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -110,14 +112,14 @@ export class HumeSpeechModel implements SpeechModelV3 {
     instructions,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const humeOptions = await parseProviderOptions({
       provider: 'hume',
       providerOptions,
-      schema: humeSpeechCallOptionsSchema,
+      schema: humeSpeechModelOptionsSchema,
     });
 
     // Create request body
@@ -199,8 +201,8 @@ export class HumeSpeechModel implements SpeechModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
+    options: Parameters<SpeechModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

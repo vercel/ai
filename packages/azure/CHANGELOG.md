@@ -1,5 +1,512 @@
 # @ai-sdk/azure
 
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+  - @ai-sdk/openai@4.0.0-beta.21
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/openai@4.0.0-beta.20
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+  - @ai-sdk/openai@4.0.0-beta.19
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/openai@4.0.0-beta.18
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [817a1a6]
+  - @ai-sdk/openai@4.0.0-beta.17
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+  - @ai-sdk/openai@4.0.0-beta.16
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [365da1a]
+  - @ai-sdk/openai@4.0.0-beta.15
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [e6376c2]
+  - @ai-sdk/openai@4.0.0-beta.14
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+  - @ai-sdk/openai@4.0.0-beta.13
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [d9a1e9a]
+  - @ai-sdk/openai@4.0.0-beta.12
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+  - @ai-sdk/openai@4.0.0-beta.11
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+  - @ai-sdk/openai@4.0.0-beta.10
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [156cdf0]
+  - @ai-sdk/openai@4.0.0-beta.9
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/openai@4.0.0-beta.8
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/openai@4.0.0-beta.7
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 83f9d04: feat(openai): upgrade v3 specs to v4
+- Updated dependencies [83f9d04]
+  - @ai-sdk/openai@4.0.0-beta.6
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [ac18f89]
+  - @ai-sdk/openai@4.0.0-beta.5
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [a71d345]
+  - @ai-sdk/openai@4.0.0-beta.4
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [45b3d76]
+- Updated dependencies [f7295cb]
+  - @ai-sdk/openai@4.0.0-beta.3
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/openai@4.0.0-beta.2
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [7afaece]
+  - @ai-sdk/openai@4.0.0-beta.1
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/openai@4.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.42
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/openai@3.0.41
+
+## 3.0.41
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/openai@3.0.40
+
+## 3.0.40
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/openai@3.0.39
+
+## 3.0.39
+
+### Patch Changes
+
+- Updated dependencies [64a8fae]
+  - @ai-sdk/openai@3.0.38
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/openai@3.0.37
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [53bdfa5]
+  - @ai-sdk/openai@3.0.36
+
+## 3.0.36
+
+### Patch Changes
+
+- Updated dependencies [5e18272]
+  - @ai-sdk/openai@3.0.35
+
+## 3.0.35
+
+### Patch Changes
+
+- Updated dependencies [66a374c]
+  - @ai-sdk/openai@3.0.34
+
+## 3.0.34
+
+### Patch Changes
+
+- Updated dependencies [624e651]
+  - @ai-sdk/openai@3.0.33
+
+## 3.0.33
+
+### Patch Changes
+
+- Updated dependencies [0c9395b]
+  - @ai-sdk/openai@3.0.32
+
+## 3.0.32
+
+### Patch Changes
+
+- Updated dependencies [d5f7312]
+  - @ai-sdk/openai@3.0.31
+
+## 3.0.31
+
+### Patch Changes
+
+- Updated dependencies [ff12133]
+  - @ai-sdk/openai@3.0.30
+
+## 3.0.30
+
+### Patch Changes
+
+- Updated dependencies [e2ee705]
+  - @ai-sdk/openai@3.0.29
+
+## 3.0.29
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/openai@3.0.28
+
+## 3.0.28
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+- Updated dependencies [99fbed8]
+  - @ai-sdk/openai@3.0.27
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/openai@3.0.26
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.26
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/openai@3.0.25
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.25
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/openai@3.0.24
+
+## 3.0.24
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/openai@3.0.23
+
+## 3.0.23
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+- Updated dependencies [1524271]
+  - @ai-sdk/openai@3.0.22
+
+## 3.0.22
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [2c70b90]
+  - @ai-sdk/openai@3.0.21
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/openai@3.0.20
+
+## 3.0.19
+
+### Patch Changes
+
+- 04c89b1: Provide Responses API providerMetadata types at the message / reasoning level.
+
+  - Export the following types for use in client code:
+    - `OpenaiResponsesProviderMetadata`
+    - `OpenaiResponsesReasoningProviderMetadata`
+    - `AzureResponsesProviderMetadata`
+    - `AzureResponsesReasoningProviderMetadata`
+
+- Updated dependencies [04c89b1]
+  - @ai-sdk/openai@3.0.19
+
+## 3.0.18
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/openai@3.0.18
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.17
+
+### Patch Changes
+
+- Updated dependencies [4218f86]
+  - @ai-sdk/openai@3.0.17
+
+## 3.0.16
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+- Updated dependencies [2b8369d]
+  - @ai-sdk/openai@3.0.16
+
+## 3.0.15
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+- Updated dependencies [8dc54db]
+  - @ai-sdk/openai@3.0.15
+
+## 3.0.14
+
+### Patch Changes
+
+- Updated dependencies [d21d016]
+  - @ai-sdk/openai@3.0.14
+
+## 3.0.13
+
+### Patch Changes
+
+- Updated dependencies [000fa96]
+  - @ai-sdk/openai@3.0.13
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/openai@3.0.12
+  - @ai-sdk/provider-utils@4.0.8
+
+## 3.0.11
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+  - @ai-sdk/openai@3.0.11
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+  - @ai-sdk/openai@3.0.10
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/openai@3.0.9
+
+## 3.0.8
+
+### Patch Changes
+
+- 330bd92: Fix Responses `code_interpreter` annotations and add typed providerMetadata
+
+  - Align Responses API `code_interpreter` annotation types with the official spec.
+  - Add tests to ensure the overlapping parts of the Zod schemas used by `doGenerate` and `doStream` stay in sync.
+  - Export the following types for use in client code:
+    - `OpenaiResponsesTextProviderMetadata`
+    - `OpenaiResponsesSourceDocumentProviderMetadata`
+    - `AzureResponsesTextProviderMetadata`
+    - `AzureResponsesSourceDocumentProviderMetadata`
+
+- Updated dependencies [330bd92]
+  - @ai-sdk/openai@3.0.8
+
+## 3.0.7
+
+### Patch Changes
+
+- Updated dependencies [89202fb]
+  - @ai-sdk/openai@3.0.7
+
+## 3.0.6
+
+### Patch Changes
+
+- Updated dependencies [dc87517]
+  - @ai-sdk/openai@3.0.6
+
+## 3.0.5
+
+### Patch Changes
+
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/openai@3.0.5
+  - @ai-sdk/provider-utils@4.0.4
+
+## 3.0.4
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - @ai-sdk/openai@3.0.4
+
+## 3.0.3
+
+### Patch Changes
+
+- Updated dependencies [55cd1a4]
+  - @ai-sdk/openai@3.0.3
+
 ## 3.0.2
 
 ### Patch Changes
@@ -38,13 +545,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
@@ -431,13 +938,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1268,7 +1775,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1281,7 +1788,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1595,7 +2102,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1608,7 +2115,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

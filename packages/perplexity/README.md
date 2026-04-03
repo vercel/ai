@@ -14,12 +14,22 @@ contains language model support for Perplexity's Sonar API - a powerful answer e
 - Data privacy - no training on customer data
 - Self-serve API access with scalable pricing
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Perplexity (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The Perplexity provider is available in the `@ai-sdk/perplexity` module. You can install it with:
 
 ```bash
 npm i @ai-sdk/perplexity
+```
+
+## Skill for Coding Agents
+
+If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+
+```shell
+npx skills add vercel/ai
 ```
 
 ## Provider Instance

@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   const ip = req.ip ?? 'ip';
   const { success, remaining } = await ratelimit.limit(ip);
 
-  // block the request if unsuccessfull
+  // block the request if unsuccessful
   if (!success) {
     return new Response('Ratelimited!', { status: 429 });
   }

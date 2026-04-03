@@ -56,6 +56,13 @@ export const imageMediaTypeSignatures = [
   },
 ] as const;
 
+export const documentMediaTypeSignatures = [
+  {
+    mediaType: 'application/pdf' as const,
+    bytesPrefix: [0x25, 0x50, 0x44, 0x46], // %PDF
+  },
+] as const;
+
 export const audioMediaTypeSignatures = [
   {
     mediaType: 'audio/mpeg' as const,
@@ -120,6 +127,45 @@ export const audioMediaTypeSignatures = [
   },
 ] as const;
 
+export const videoMediaTypeSignatures = [
+  {
+    mediaType: 'video/mp4' as const,
+    bytesPrefix: [
+      0x00,
+      0x00,
+      0x00,
+      null,
+      0x66,
+      0x74,
+      0x79,
+      0x70, // ftyp
+    ],
+  },
+  {
+    mediaType: 'video/webm' as const,
+    bytesPrefix: [0x1a, 0x45, 0xdf, 0xa3], // EBML
+  },
+  {
+    mediaType: 'video/quicktime' as const,
+    bytesPrefix: [
+      0x00,
+      0x00,
+      0x00,
+      0x14,
+      0x66,
+      0x74,
+      0x79,
+      0x70,
+      0x71,
+      0x74, // ftypqt
+    ],
+  },
+  {
+    mediaType: 'video/x-msvideo' as const,
+    bytesPrefix: [0x52, 0x49, 0x46, 0x46], // RIFF (AVI)
+  },
+] as const;
+
 const stripID3 = (data: Uint8Array | string) => {
   const bytes =
     typeof data === 'string' ? convertBase64ToUint8Array(data) : data;
@@ -152,13 +198,18 @@ function stripID3TagsIfPresent(data: Uint8Array | string): Uint8Array | string {
  * @param signatures - The signatures to use for detection.
  * @returns The media type of the file.
  */
-export function detectMediaType({
+type MediaTypeSignatures = ReadonlyArray<{
+  readonly mediaType: string;
+  readonly bytesPrefix: ReadonlyArray<number | null>;
+}>;
+
+export function detectMediaType<T extends MediaTypeSignatures>({
   data,
   signatures,
 }: {
   data: Uint8Array | string;
-  signatures: typeof audioMediaTypeSignatures | typeof imageMediaTypeSignatures;
-}): (typeof signatures)[number]['mediaType'] | undefined {
+  signatures: T;
+}): T[number]['mediaType'] | undefined {
   const processedData = stripID3TagsIfPresent(data);
 
   // Convert the first ~18 bytes (24 base64 chars) for consistent detection logic:

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -8,7 +8,7 @@ import {
 import { createOpenAICompatible } from '../openai-compatible-provider';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -28,7 +28,7 @@ const server = createTestServer({
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleCompletionLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleCompletionLanguageModel('gpt-5', {
       provider: 'anthropic.beta',
       url: () => '',
       headers: () => ({}),
@@ -38,7 +38,7 @@ describe('config', () => {
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleCompletionLanguageModel('gpt-4', {
+    const model = new OpenAICompatibleCompletionLanguageModel('gpt-5', {
       provider: 'openai',
       url: () => '',
       headers: () => ({}),
@@ -49,7 +49,7 @@ describe('config', () => {
 
   it('should return empty for empty provider', () => {
     const model = new OpenAICompatibleCompletionLanguageModel(
-      'gpt-4',
+      'gpt-5',
 
       {
         provider: '',

@@ -31,7 +31,7 @@ const webSearchOutputSchema = lazySchema(() =>
 );
 
 const webSearchToolFactory = createProviderToolFactoryWithOutputSchema<
-  Record<string, never>,
+  {},
   {
     query: string;
     sources: Array<{

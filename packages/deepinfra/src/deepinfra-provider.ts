@@ -1,11 +1,10 @@
 import {
-  LanguageModelV3,
-  EmbeddingModelV3,
-  ProviderV3,
-  ImageModelV3,
+  LanguageModelV4,
+  EmbeddingModelV4,
+  ProviderV4,
+  ImageModelV4,
 } from '@ai-sdk/provider';
 import {
-  OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
@@ -20,68 +19,69 @@ import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';
 import { DeepInfraCompletionModelId } from './deepinfra-completion-options';
 import { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { DeepInfraImageModel } from './deepinfra-image-model';
+import { DeepInfraChatLanguageModel } from './deepinfra-chat-language-model';
 import { VERSION } from './version';
 
 export interface DeepInfraProviderSettings {
   /**
-DeepInfra API key.
-*/
+   * DeepInfra API key.
+   */
   apiKey?: string;
   /**
-Base URL for the API calls.
-*/
+   * Base URL for the API calls.
+   */
   baseURL?: string;
   /**
-Custom headers to include in the requests.
-*/
+   * Custom headers to include in the requests.
+   */
   headers?: Record<string, string>;
   /**
-Custom fetch implementation. You can use it as a middleware to intercept requests,
-or to provide a custom fetch implementation for e.g. testing.
-*/
+   * Custom fetch implementation. You can use it as a middleware to intercept requests,
+   * or to provide a custom fetch implementation for e.g. testing.
+   */
   fetch?: FetchFunction;
 }
 
-export interface DeepInfraProvider extends ProviderV3 {
+export interface DeepInfraProvider extends ProviderV4 {
   /**
-Creates a model for text generation.
-*/
-  (modelId: DeepInfraChatModelId): LanguageModelV3;
+   * Creates a model for text generation.
+   */
+  (modelId: DeepInfraChatModelId): LanguageModelV4;
 
   /**
-Creates a chat model for text generation.
-*/
-  chatModel(modelId: DeepInfraChatModelId): LanguageModelV3;
+   * Creates a chat model for text generation.
+   */
+  chatModel(modelId: DeepInfraChatModelId): LanguageModelV4;
 
   /**
-Creates a model for image generation.
-  */
-  image(modelId: DeepInfraImageModelId): ImageModelV3;
+   * Creates a model for image generation.
+   */
+  image(modelId: DeepInfraImageModelId): ImageModelV4;
 
   /**
-Creates a model for image generation.
-  */
-  imageModel(modelId: DeepInfraImageModelId): ImageModelV3;
+   * Creates a model for image generation.
+   */
+  imageModel(modelId: DeepInfraImageModelId): ImageModelV4;
 
   /**
-Creates a chat model for text generation.
-*/
-  languageModel(modelId: DeepInfraChatModelId): LanguageModelV3;
+   * Creates a chat model for text generation.
+   */
+  languageModel(modelId: DeepInfraChatModelId): LanguageModelV4;
 
   /**
-Creates a completion model for text generation.
-*/
-  completionModel(modelId: DeepInfraCompletionModelId): LanguageModelV3;
+   * Creates a completion model for text generation.
+   */
+  completionModel(modelId: DeepInfraCompletionModelId): LanguageModelV4;
 
   /**
-Creates a embedding model for text generation.
-*/
-  embeddingModel(modelId: DeepInfraEmbeddingModelId): EmbeddingModelV3;
+   * Creates a embedding model for text generation.
+   */
+  embeddingModel(modelId: DeepInfraEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: DeepInfraEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(modelId: DeepInfraEmbeddingModelId): EmbeddingModelV4;
 }
 
 export function createDeepInfra(
@@ -118,7 +118,7 @@ export function createDeepInfra(
   });
 
   const createChatModel = (modelId: DeepInfraChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(
+    return new DeepInfraChatLanguageModel(
       modelId,
       getCommonModelConfig('chat'),
     );
@@ -146,7 +146,7 @@ export function createDeepInfra(
 
   const provider = (modelId: DeepInfraChatModelId) => createChatModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.image = createImageModel;

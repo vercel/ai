@@ -1,5 +1,89 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- 1f509d4: fix(ai): force template check on 'kind' param
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+
+## 4.0.0-beta.3
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 5c2a5a2: fix(provider): fix v4 spec to not use shared v3 types
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+## 3.0.8
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+
+## 3.0.7
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+
+## 3.0.6
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+
+## 3.0.5
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+
+## 3.0.4
+
+### Patch Changes
+
+- 5c090e7: fix(ai): fix LanguageModelV2ProviderTool type
+
+## 3.0.3
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+
+## 3.0.2
+
+### Patch Changes
+
+- d937c8f: Add Image model middleware support via `wrapImageModel` and `ImageModelV3Middleware`.
+
 ## 3.0.1
 
 ### Patch Changes
@@ -27,13 +111,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - dce03c4: feat: tool input examples
@@ -153,13 +237,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 ## 3.0.0-beta.18
@@ -346,13 +430,13 @@
   Before
 
   ```ts
-  import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+  import { convertUint8ArrayToBase64 } from "@ai-sdk/provider-utils";
 
   // Had to manually convert binary data to base64
   const fileData = new Uint8Array([0, 1, 2, 3]);
   const filePart = {
-    type: 'file',
-    mediaType: 'application/pdf',
+    type: "file",
+    mediaType: "application/pdf",
     data: convertUint8ArrayToBase64(fileData), // Required conversion
   };
   ```
@@ -363,8 +447,8 @@
   // Can use binary data directly
   const fileData = new Uint8Array([0, 1, 2, 3]);
   const filePart = {
-    type: 'file',
-    mediaType: 'application/pdf',
+    type: "file",
+    mediaType: "application/pdf",
     data: fileData, // Direct Uint8Array support
   };
   ```
@@ -380,10 +464,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -542,10 +626,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

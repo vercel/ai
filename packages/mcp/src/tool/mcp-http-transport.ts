@@ -30,6 +30,7 @@ export class HttpMCPTransport implements MCPTransport {
   private resourceMetadataUrl?: URL;
   private sessionId?: string;
   private inboundSseConnection?: { close: () => void };
+  private redirectMode: RequestRedirect;
 
   // Inbound SSE resumption and reconnection state
   private lastInboundEventId?: string;
@@ -49,14 +50,17 @@ export class HttpMCPTransport implements MCPTransport {
     url,
     headers,
     authProvider,
+    redirect = 'error',
   }: {
     url: string;
     headers?: Record<string, string>;
     authProvider?: OAuthClientProvider;
+    redirect?: 'follow' | 'error';
   }) {
     this.url = new URL(url);
     this.headers = headers;
     this.authProvider = authProvider;
+    this.redirectMode = redirect;
   }
 
   private async commonHeaders(
@@ -111,6 +115,7 @@ export class HttpMCPTransport implements MCPTransport {
           method: 'DELETE',
           headers,
           signal: this.abortController.signal,
+          redirect: this.redirectMode,
         }).catch(() => undefined);
       }
     } catch {}
@@ -132,6 +137,7 @@ export class HttpMCPTransport implements MCPTransport {
           headers,
           body: JSON.stringify(message),
           signal: this.abortController?.signal,
+          redirect: this.redirectMode,
         } satisfies RequestInit;
 
         const response = await fetch(this.url, init);
@@ -184,6 +190,13 @@ export class HttpMCPTransport implements MCPTransport {
           });
           this.onerror?.(error);
           throw error;
+        }
+
+        // Notifications (messages without 'id') don't expect a JSON-RPC response
+        // Some servers return 200 with acknowledgment JSON instead of 202
+        const isNotification = !('id' in message);
+        if (isNotification) {
+          return;
         }
 
         const contentType = response.headers.get('content-type') || '';
@@ -305,6 +318,7 @@ export class HttpMCPTransport implements MCPTransport {
         method: 'GET',
         headers,
         signal: this.abortController?.signal,
+        redirect: this.redirectMode,
       });
 
       const sessionId = response.headers.get('mcp-session-id');

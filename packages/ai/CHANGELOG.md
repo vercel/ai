@@ -1,5 +1,1253 @@
 # ai
 
+## 7.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [11746ca]
+  - @ai-sdk/gateway@4.0.0-beta.32
+
+## 7.0.0-beta.61
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+  - @ai-sdk/gateway@4.0.0-beta.31
+
+## 7.0.0-beta.60
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
+## 7.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [4552cbf]
+  - @ai-sdk/gateway@4.0.0-beta.30
+
+## 7.0.0-beta.58
+
+### Patch Changes
+
+- 2e17091: fix(types): move shared tool set utility types into provider-utils
+
+  Moved `ToolSet`, `InferToolSetContext`, and `UnionToIntersection` into `@ai-sdk/provider-utils` and updated `ai` internals to import them directly from there. This keeps the shared tool typing utilities colocated with the core tool type definitions.
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+  - @ai-sdk/gateway@4.0.0-beta.29
+
+## 7.0.0-beta.57
+
+### Major Changes
+
+- 986c6fd: feat(ai): change type of experimental_context from unknown to generic
+- 493295c: Remove the deprecated `ToolCallOptions` export.
+
+  Use `ToolExecutionOptions` instead.
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/gateway@4.0.0-beta.28
+
+## 7.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [70a9aae]
+  - @ai-sdk/gateway@4.0.0-beta.27
+
+## 7.0.0-beta.55
+
+### Major Changes
+
+- b3c9f6a: feat(ai): create new opentelemetry package (@ai-sdk/otel)
+
+## 7.0.0-beta.54
+
+### Patch Changes
+
+- 5d0f18e: feat(ai): move opentelemetry to new package
+
+## 7.0.0-beta.53
+
+### Patch Changes
+
+- 9b47dea: fix(ai): remove otel Tracer api from telemetry settings
+
+## 7.0.0-beta.52
+
+### Patch Changes
+
+- b56301c: feat(ai): decouple otel from generate/streamObject
+
+## 7.0.0-beta.51
+
+### Patch Changes
+
+- 6abd098: split `prepareToolsAndToolChoice()` into `prepareTools()` and `prepareToolChoice()`
+
+## 7.0.0-beta.50
+
+### Patch Changes
+
+- 3debdb7: feat(ai): rename `stepCountIs` to `isStepCount`
+
+## 7.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [294cbe7]
+  - @ai-sdk/gateway@4.0.0-beta.26
+
+## 7.0.0-beta.48
+
+### Patch Changes
+
+- 5c4d910: feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps
+
+## 7.0.0-beta.47
+
+### Patch Changes
+
+- bc67b4f: feat(ai): add experimental callbacks for structured outputs
+
+## 7.0.0-beta.46
+
+### Patch Changes
+
+- 31ee822: refactoring(ai): extract filterActiveTools and expose it as experimental_filterActiveTools
+
+## 7.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [435895b]
+  - @ai-sdk/gateway@4.0.0-beta.25
+
+## 7.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [d30466c]
+  - @ai-sdk/gateway@4.0.0-beta.24
+
+## 7.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [4ec78cd]
+  - @ai-sdk/gateway@4.0.0-beta.23
+
+## 7.0.0-beta.42
+
+### Patch Changes
+
+- a3fd75b: feat(ai): expose Experimental_ModelCallStreamPart type
+
+## 7.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [7ceff62]
+  - @ai-sdk/gateway@4.0.0-beta.22
+
+## 7.0.0-beta.40
+
+### Patch Changes
+
+- 989d3d2: fix(ai): include generated files in OTEL response attributes
+
+## 7.0.0-beta.39
+
+### Patch Changes
+
+- f4cfccd: feat(ai): decouple otel from rerank function
+
+## 7.0.0-beta.38
+
+### Patch Changes
+
+- 1f509d4: fix(ai): force template check on 'kind' param
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+  - @ai-sdk/gateway@4.0.0-beta.21
+
+## 7.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [4f91b5d]
+  - @ai-sdk/gateway@4.0.0-beta.20
+
+## 7.0.0-beta.36
+
+### Patch Changes
+
+- 118b953: feat(ai): decouple otel from embed functions
+
+## 7.0.0-beta.35
+
+### Patch Changes
+
+- 99bf941: feat(ai): extract streamModelCall function for streaming text generation
+
+## 7.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [72889f8]
+  - @ai-sdk/gateway@4.0.0-beta.19
+
+## 7.0.0-beta.33
+
+### Patch Changes
+
+- caf1b6f: feat(ai): introduce experimental callbacks for rerank function
+
+## 7.0.0-beta.32
+
+### Major Changes
+
+- 4b46062: refactoring(ai): extract tool callback invocation into separate function and forward chunks before callback invocation
+
+### Patch Changes
+
+- Updated dependencies [165b97a]
+  - @ai-sdk/gateway@4.0.0-beta.18
+
+## 7.0.0-beta.31
+
+### Patch Changes
+
+- e79e644: chore(ai/core): remove `timeout` from `CallSettings` as it was effectively unused there
+
+## 7.0.0-beta.30
+
+### Patch Changes
+
+- f5a6f89: README updates
+
+## 7.0.0-beta.29
+
+### Patch Changes
+
+- 877bf12: fix(ai): flatten model attributes for telemetry
+
+## 7.0.0-beta.28
+
+### Major Changes
+
+- b9cf502: refactoring(ai): delay tool execution in stream text until model call is finished
+
+## 7.0.0-beta.27
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+  - @ai-sdk/gateway@4.0.0-beta.17
+
+## 7.0.0-beta.26
+
+### Patch Changes
+
+- f0b0b20: feat(ai): add per-tool timeout overrides via toolTimeouts
+
+## 7.0.0-beta.25
+
+### Patch Changes
+
+- ff9ce30: feat(ai): introduce experimental callbacks for embed function
+
+## 7.0.0-beta.24
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+  - @ai-sdk/gateway@4.0.0-beta.16
+
+## 7.0.0-beta.23
+
+### Patch Changes
+
+- 80d4dde: fix(ai): include tool input on tool result for provider executed dynamic tools
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+  - @ai-sdk/gateway@4.0.0-beta.15
+
+## 7.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [ead9144]
+  - @ai-sdk/gateway@4.0.0-beta.14
+
+## 7.0.0-beta.21
+
+### Patch Changes
+
+- 34fd051: feat(ai): add toolMs to timeout configuration
+
+## 7.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [2095655]
+  - @ai-sdk/gateway@4.0.0-beta.13
+
+## 7.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/gateway@4.0.0-beta.12
+
+## 7.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/gateway@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 7.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [4d6ab9a]
+  - @ai-sdk/gateway@4.0.0-beta.10
+
+## 7.0.0-beta.16
+
+### Major Changes
+
+- 5b8c58f: feat(ai): decouple otel from core functions
+
+## 7.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [980f777]
+- Updated dependencies [7185ba2]
+  - @ai-sdk/gateway@4.0.0-beta.9
+
+## 7.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [4adc485]
+  - @ai-sdk/gateway@4.0.0-beta.8
+
+## 7.0.0-beta.13
+
+### Patch Changes
+
+- c26ca8d: Remove custom User-Agent header from HttpChatTransport to fix CORS preflight failures in Safari and Firefox
+
+## 7.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [e046ea3]
+  - @ai-sdk/gateway@4.0.0-beta.7
+
+## 7.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [82288b0]
+  - @ai-sdk/gateway@4.0.0-beta.6
+
+## 7.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [aa5a583]
+  - @ai-sdk/gateway@4.0.0-beta.5
+
+## 7.0.0-beta.9
+
+### Patch Changes
+
+- 1fe058b: fix(anthropic): preserve the error code returned by model
+
+## 7.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [f32d84a]
+  - @ai-sdk/gateway@4.0.0-beta.4
+
+## 7.0.0-beta.7
+
+### Patch Changes
+
+- 210ed3d: feat(ai): pass result provider metadata across the stream
+
+## 7.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [c949e25]
+  - @ai-sdk/gateway@4.0.0-beta.3
+
+## 7.0.0-beta.5
+
+### Patch Changes
+
+- ebd4da2: feat(ai): add missing usage attributes
+
+## 7.0.0-beta.4
+
+### Patch Changes
+
+- 5ceed7d: fix(ai): doStream should reflect transformed values
+
+## 7.0.0-beta.3
+
+### Patch Changes
+
+- 531251e: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  Both `downloadBlob` and `download` now validate the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/gateway@4.0.0-beta.2
+
+## 7.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [7afaece]
+- Updated dependencies [f16c103]
+  - @ai-sdk/gateway@4.0.0-beta.1
+
+## 7.0.0-beta.1
+
+### Patch Changes
+
+- 6a3793e: chore(ai): add optional ChatRequestOptions to `addToolApprovalResponse` and `addToolOutput`
+
+## 7.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/gateway@4.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 6.0.116
+
+### Patch Changes
+
+- ad4cfc2: Add URL validation to `downloadBlob` and `download` to prevent blind SSRF attacks. Private/internal IP addresses, localhost, and non-HTTP protocols are now rejected before fetching.
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/gateway@3.0.66
+
+## 6.0.115
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/gateway@3.0.65
+
+## 6.0.114
+
+### Patch Changes
+
+- 2291047: fix(ai): fix missing support for image thought signatures (e.g. for Gemini image models)
+
+## 6.0.113
+
+### Patch Changes
+
+- 70d3980: fix(ai): use errorMode 'text' in approval continuation to preserve tool error messages
+
+## 6.0.112
+
+### Patch Changes
+
+- Updated dependencies [db3d4ca]
+  - @ai-sdk/gateway@3.0.64
+
+## 6.0.111
+
+### Patch Changes
+
+- 2129c82: feat(ai): register global telemetry integrations
+
+## 6.0.110
+
+### Patch Changes
+
+- Updated dependencies [1b01ec1]
+- Updated dependencies [8df8e11]
+  - @ai-sdk/gateway@3.0.63
+
+## 6.0.109
+
+### Patch Changes
+
+- Updated dependencies [10bec50]
+  - @ai-sdk/gateway@3.0.62
+
+## 6.0.108
+
+### Patch Changes
+
+- 2a4f512: feat(ai): add telemetry interface and registry
+
+## 6.0.107
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/gateway@3.0.61
+
+## 6.0.106
+
+### Patch Changes
+
+- Updated dependencies [29e9f4d]
+  - @ai-sdk/gateway@3.0.60
+
+## 6.0.105
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/gateway@3.0.59
+
+## 6.0.104
+
+### Patch Changes
+
+- Updated dependencies [1330f2f]
+  - @ai-sdk/gateway@3.0.58
+
+## 6.0.103
+
+### Patch Changes
+
+- Updated dependencies [ba63bc2]
+  - @ai-sdk/gateway@3.0.57
+
+## 6.0.102
+
+### Patch Changes
+
+- Updated dependencies [45f0a7f]
+  - @ai-sdk/gateway@3.0.56
+
+## 6.0.101
+
+### Patch Changes
+
+- 5230482: fix(ai): Don't create duplicate tool parts when models call non-existent tools
+
+## 6.0.100
+
+### Patch Changes
+
+- b7fba77: feat(ai): add event notifiers to core functions
+
+## 6.0.99
+
+### Patch Changes
+
+- Updated dependencies [e8172b6]
+  - @ai-sdk/gateway@3.0.55
+
+## 6.0.98
+
+### Patch Changes
+
+- Updated dependencies [0c9395b]
+  - @ai-sdk/gateway@3.0.54
+
+## 6.0.97
+
+### Patch Changes
+
+- ebfdad1: feat(ai): experimental callbacks in ToolLoopAgent
+
+## 6.0.96
+
+### Patch Changes
+
+- 30c9de6: feat(ai): experimental callbacks for streamText
+
+## 6.0.95
+
+### Patch Changes
+
+- Updated dependencies [73b7e09]
+  - @ai-sdk/gateway@3.0.53
+
+## 6.0.94
+
+### Patch Changes
+
+- Updated dependencies [363fa44]
+  - @ai-sdk/gateway@3.0.52
+
+## 6.0.93
+
+### Patch Changes
+
+- d3769ec: feat(ai): add experimental callbacks in generateText
+
+## 6.0.92
+
+### Patch Changes
+
+- Updated dependencies [765b013]
+  - @ai-sdk/gateway@3.0.51
+
+## 6.0.91
+
+### Patch Changes
+
+- Updated dependencies [a433cd3]
+  - @ai-sdk/gateway@3.0.50
+
+## 6.0.90
+
+### Patch Changes
+
+- 98e83ab: Fix `useChat` status briefly flashing to `submitted` on page load when `resume: true` is set and there is no active stream to resume. The `reconnectToStream` check is now performed before setting status to `submitted`, so status stays `ready` when the server responds with 204 (no active stream).
+
+## 6.0.89
+
+### Patch Changes
+
+- Updated dependencies [5f693c8]
+  - @ai-sdk/gateway@3.0.49
+
+## 6.0.88
+
+### Patch Changes
+
+- Updated dependencies [2a1c664]
+  - @ai-sdk/gateway@3.0.48
+
+## 6.0.87
+
+### Patch Changes
+
+- Updated dependencies [6bbd05b]
+  - @ai-sdk/gateway@3.0.47
+
+## 6.0.86
+
+### Patch Changes
+
+- Updated dependencies [f75f18c]
+  - @ai-sdk/gateway@3.0.46
+
+## 6.0.85
+
+### Patch Changes
+
+- Updated dependencies [e858654]
+  - @ai-sdk/gateway@3.0.45
+
+## 6.0.84
+
+### Patch Changes
+
+- 4024a3a: security: prevent unbounded memory growth in download functions
+
+  The `download()` and `downloadBlob()` functions now enforce a default 2 GiB size limit when downloading from user-provided URLs. Downloads that exceed this limit are aborted with a `DownloadError` instead of consuming unbounded memory and crashing the process. The `abortSignal` parameter is now passed through to `fetch()` in all download call sites.
+
+  Added `download` option to `transcribe()` and `experimental_generateVideo()` for providing a custom download function. Use the new `createDownload({ maxBytes })` factory to configure download size limits.
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/gateway@3.0.44
+
+## 6.0.83
+
+### Patch Changes
+
+- Updated dependencies [b424e50]
+  - @ai-sdk/gateway@3.0.43
+
+## 6.0.82
+
+### Patch Changes
+
+- Updated dependencies [1819bc1]
+  - @ai-sdk/gateway@3.0.42
+
+## 6.0.81
+
+### Patch Changes
+
+- ee4beee: feat(ai): add onStepFinish callback to createUIMessageStream
+
+## 6.0.80
+
+### Patch Changes
+
+- Updated dependencies [99fbed8]
+  - @ai-sdk/gateway@3.0.41
+
+## 6.0.79
+
+### Patch Changes
+
+- Updated dependencies [a2208a2]
+  - @ai-sdk/gateway@3.0.40
+
+## 6.0.78
+
+### Patch Changes
+
+- 59fcf30: fix(ai): make experimental_context required in ToolLoopAgentOnFinishCallback
+
+  This fixes a type inconsistency where `ToolLoopAgentOnFinishCallback` had `experimental_context` as optional while `StreamTextOnFinishCallback` and `GenerateTextOnFinishCallback` had it as required. Since `ToolLoopAgent` delegates to `streamText`/`generateText`, and both always pass `experimental_context` when invoking the callback, the types should match.
+
+## 6.0.77
+
+### Patch Changes
+
+- Updated dependencies [eea5d30]
+  - @ai-sdk/gateway@3.0.39
+
+## 6.0.76
+
+### Patch Changes
+
+- Updated dependencies [70028ab]
+  - @ai-sdk/gateway@3.0.38
+
+## 6.0.75
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/gateway@3.0.37
+  - @ai-sdk/provider-utils@4.0.14
+
+## 6.0.74
+
+### Patch Changes
+
+- 471009b: fix(ai): pass reasoning text in telemetry
+
+## 6.0.73
+
+### Patch Changes
+
+- Updated dependencies [9892c58]
+  - @ai-sdk/gateway@3.0.36
+
+## 6.0.72
+
+### Patch Changes
+
+- Updated dependencies [8e2eaac]
+  - @ai-sdk/gateway@3.0.35
+
+## 6.0.71
+
+### Patch Changes
+
+- Updated dependencies [4867635]
+  - @ai-sdk/gateway@3.0.34
+
+## 6.0.70
+
+### Patch Changes
+
+- Updated dependencies [ae30443]
+  - @ai-sdk/gateway@3.0.33
+
+## 6.0.69
+
+### Patch Changes
+
+- d659305: fix(ai): auto-populate `originalMessages` in `createAgentUIStream`
+
+## 6.0.68
+
+### Patch Changes
+
+- 8bf2660: chore(ai): export `DefaultGeneratedFile`
+
+## 6.0.67
+
+### Patch Changes
+
+- 53f6731: feat (ai, provider): experimental generate video support
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/gateway@3.0.32
+  - @ai-sdk/provider-utils@4.0.13
+
+## 6.0.66
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+  - @ai-sdk/gateway@3.0.31
+
+## 6.0.65
+
+### Patch Changes
+
+- Updated dependencies [1a74972]
+  - @ai-sdk/gateway@3.0.30
+
+## 6.0.64
+
+### Patch Changes
+
+- ce9daa3: Fixed 'reasoning part reasoning-0 not found' error by ensuring 'reasoning-start' event is emitted for empty thinking blocks (eg. <think></think>)
+
+## 6.0.63
+
+### Patch Changes
+
+- be95579: fix(ui): respect `Promise<false>` when returned by `sendAutomaticallyWhen`
+
+## 6.0.62
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+  - @ai-sdk/gateway@3.0.29
+
+## 6.0.61
+
+### Patch Changes
+
+- Updated dependencies [1524271]
+  - @ai-sdk/gateway@3.0.28
+
+## 6.0.60
+
+### Patch Changes
+
+- 5fc42fa: feat(ai): add experimental retention setting
+
+## 6.0.59
+
+### Patch Changes
+
+- Updated dependencies [0acff64]
+  - @ai-sdk/gateway@3.0.27
+
+## 6.0.58
+
+### Patch Changes
+
+- Updated dependencies [a8be296]
+  - @ai-sdk/gateway@3.0.26
+
+## 6.0.57
+
+### Patch Changes
+
+- 65865d8: Fix handling of error results in deferrable tools
+
+## 6.0.56
+
+### Patch Changes
+
+- Updated dependencies [15a78c7]
+  - @ai-sdk/gateway@3.0.25
+
+## 6.0.55
+
+### Patch Changes
+
+- 43a74df: chore(ai): add skill to README
+
+## 6.0.54
+
+### Patch Changes
+
+- 2f8ac87: docs(ai): fix incorrect and outdated jsdoc
+
+## 6.0.53
+
+### Patch Changes
+
+- 7ee3f10: chore: updated docs
+
+## 6.0.52
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+  - @ai-sdk/gateway@3.0.24
+
+## 6.0.51
+
+### Patch Changes
+
+- ea0feb5: fix(ai): clean up step timeout when error occurs in streamText
+
+## 6.0.50
+
+### Patch Changes
+
+- Updated dependencies [cbf1704]
+  - @ai-sdk/gateway@3.0.23
+
+## 6.0.49
+
+### Patch Changes
+
+- ded661b: feat(ai): add onStepFinish to agent.generate and agent.stream
+
+## 6.0.48
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/gateway@3.0.22
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 6.0.47
+
+### Patch Changes
+
+- Updated dependencies [2b8369d]
+  - @ai-sdk/gateway@3.0.21
+
+## 6.0.46
+
+### Patch Changes
+
+- Updated dependencies [8dc54db]
+  - @ai-sdk/gateway@3.0.20
+
+## 6.0.45
+
+### Patch Changes
+
+- Updated dependencies [c60fdd8]
+  - @ai-sdk/gateway@3.0.19
+
+## 6.0.44
+
+### Patch Changes
+
+- Updated dependencies [7af4eb4]
+  - @ai-sdk/gateway@3.0.18
+
+## 6.0.43
+
+### Patch Changes
+
+- 2dc9bfa: fix(ai): handle provider-executed tools and tool-approval-response in validation
+
+  - Skip validation for tool calls with `providerExecuted: true` (deferred results)
+  - Map approvalId to toolCallId for proper tool-approval-response handling
+  - Filter out empty tool messages after content filtering
+  - Fixes MissingToolResultError for async and approval-based tool flows
+
+## 6.0.42
+
+### Patch Changes
+
+- Updated dependencies [66d78d5]
+  - @ai-sdk/gateway@3.0.17
+
+## 6.0.41
+
+### Patch Changes
+
+- 84b6e6d: Revert "feat(ai): expose token usage in useChat onFinish callback#11871
+
+## 6.0.40
+
+### Patch Changes
+
+- ab57783: Add usage information to onFinish callback in useChat
+
+## 6.0.39
+
+### Patch Changes
+
+- 4e28ba0: fix(ai): propagate providerMetadata during input-streaming state
+
+  Provider-executed tools (like MCP tools) need to send metadata during the streaming phase, but the implementation only set `callProviderMetadata` when `part.state === "input-available"`. This fix removes the overly-restrictive state check and adds `callProviderMetadata` to the input-streaming state types and schemas.
+
+## 6.0.38
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/gateway@3.0.16
+  - @ai-sdk/provider-utils@4.0.8
+
+## 6.0.37
+
+### Patch Changes
+
+- b5dab9b: fix(ai): maintain OpenTelemetry context across async generator yields
+
+  Fixes an issue where OpenTelemetry context was lost at async generator yield boundaries, causing nested ToolLoopAgent spans to escape to the parent agent's level in observability platforms.
+
+  The fix ensures that when `recordSpan` is used with async generators (e.g., in tool execution), the active context is explicitly maintained using `context.with()`, preventing span hierarchy corruption in nested agent scenarios.
+
+  Closes #11720
+
+## 6.0.36
+
+### Patch Changes
+
+- 46f46e4: fix(provider-utils): improve tool type inference when using `inputExamples` with Zod schemas that use `.optional().default()` or `.refine()`.
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+  - @ai-sdk/gateway@3.0.15
+
+## 6.0.35
+
+### Patch Changes
+
+- d7e7f1f: Add descriptive error messages for malformed UIMessageStream chunks.
+
+## 6.0.34
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+  - @ai-sdk/gateway@3.0.14
+
+## 6.0.33
+
+### Patch Changes
+
+- 0ca078c: fix(ai): pass providerMetadata in smooth stream to preserve thinking tag
+
+## 6.0.32
+
+### Patch Changes
+
+- ec24401: chore(ai): include docs in npm package
+
+## 6.0.31
+
+### Patch Changes
+
+- Updated dependencies [92b339b]
+  - @ai-sdk/gateway@3.0.13
+
+## 6.0.30
+
+### Patch Changes
+
+- Updated dependencies [34d1c8a]
+  - @ai-sdk/provider-utils@4.0.5
+  - @ai-sdk/gateway@3.0.12
+
+## 6.0.29
+
+### Patch Changes
+
+- fdce123: docs: update README with usage example for @ai-sdk/anthropic
+
+## 6.0.28
+
+### Patch Changes
+
+- d4486d2: fix(ai): do not cleanup AsyncIterableStream twice
+
+## 6.0.27
+
+### Patch Changes
+
+- Updated dependencies [891a60a]
+  - @ai-sdk/gateway@3.0.11
+
+## 6.0.26
+
+### Patch Changes
+
+- 40d4997: feat(ai): add middleware for extracting JSON
+
+## 6.0.25
+
+### Patch Changes
+
+- b64f256: Add `elementStream` to `streamText` for streaming individual array elements when using `output: Output.array()`.
+
+## 6.0.24
+
+### Patch Changes
+
+- 4f236c8: feat(ai): per-chunk timeouts for streamText
+
+## 6.0.23
+
+### Patch Changes
+
+- a4c680a: feat(ai): per-step timeouts for generateText and streamText
+- 8c6f067: feat(ai): support Intl.Segmenter in smoothStream
+
+## 6.0.22
+
+### Patch Changes
+
+- f0d29de: chore(ai): remove \_internal.currentDate from streamText
+
+## 6.0.21
+
+### Patch Changes
+
+- 9667780: fix(ai): preserve `rawInput` in `safeValidateUIMessages` for `output-error` tool parts
+
+  Fixes #11406
+
+## 6.0.20
+
+### Patch Changes
+
+- f748c46: Updated Unified Provider Architecture section in README to describe AI Gateway as the default.
+
+## 6.0.19
+
+### Patch Changes
+
+- Updated dependencies [2696fd2]
+  - @ai-sdk/gateway@3.0.10
+
+## 6.0.18
+
+### Patch Changes
+
+- d6ec0e2: chore(ai): remove \_internal.currentDate from generateText
+
+## 6.0.17
+
+### Patch Changes
+
+- af0955e: streamText should throw timeout error with proper cause when it times out
+
+## 6.0.16
+
+### Patch Changes
+
+- 81adf59: feat(ai): introduce timeout configuration object
+
+## 6.0.15
+
+### Patch Changes
+
+- 3a73fb3: Include abort reason in stream chunks and document the new field
+
+## 6.0.14
+
+### Patch Changes
+
+- 3f9453f: feat(ai): add timeout option to generateText, streamText, and Agent
+
+## 6.0.13
+
+### Patch Changes
+
+- e2c445d: feat(ai): smoothStream reasoning support
+
+## 6.0.12
+
+### Patch Changes
+
+- d937c8f: Add Image model middleware support via `wrapImageModel` and `ImageModelV3Middleware`.
+- Updated dependencies [d937c8f]
+  - @ai-sdk/provider@3.0.2
+  - @ai-sdk/gateway@3.0.9
+  - @ai-sdk/provider-utils@4.0.4
+
+## 6.0.11
+
+### Patch Changes
+
+- Updated dependencies [8ec1984]
+  - @ai-sdk/gateway@3.0.8
+
+## 6.0.10
+
+### Patch Changes
+
+- ae26f95: Add missing `.catch()` handler to `executeToolCall` promise in `runToolsTransformation` to prevent potential stream hang when the promise rejects.
+
+## 6.0.9
+
+### Patch Changes
+
+- 4e90233: feat(ui): add DirectChatTransport
+
+## 6.0.8
+
+### Patch Changes
+
+- Updated dependencies [0b429d4]
+  - @ai-sdk/provider-utils@4.0.3
+  - @ai-sdk/gateway@3.0.7
+
+## 6.0.7
+
+### Patch Changes
+
+- Updated dependencies [74c0157]
+  - @ai-sdk/gateway@3.0.6
+
+## 6.0.6
+
+### Patch Changes
+
+- Updated dependencies [7ee2d12]
+  - @ai-sdk/gateway@3.0.5
+
 ## 6.0.5
 
 ### Patch Changes
@@ -70,13 +1318,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
@@ -99,15 +1347,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 - 90e5bdd: chore(ai): restructure agent files
@@ -194,7 +1442,7 @@
 - 81d4308: feat: provider-executed dynamic tools
 - e0d1ea9: fix(ai): align logic of text-end with reasoning-end
 - 2406576: chore(agent): rename messages property on agent ui stream functions to uiMessages
-- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+- b1aeea7: feat(ai): set default stopWhen on Agent to isStepCount(20)
 - dce4e7b: chore(agent): rename system to instructions
 - 4ece5f9: feat(agent): add experimental_download to ToolLoopAgent
 - a417a34: feat(agent): introduce version property
@@ -627,13 +1875,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -980,15 +2228,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ## 6.0.0-beta.71
@@ -1370,7 +2618,7 @@
 
 - aa0515c: feat(ai): move Agent to stable
 - e7d9b00: feat(agent): add optional name property to agent
-- b1aeea7: feat(ai): set default stopWhen on Agent to stepCountIs(20)
+- b1aeea7: feat(ai): set default stopWhen on Agent to isStepCount(20)
 
 ## 5.1.0-beta.18
 
@@ -1907,7 +3155,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1920,7 +3168,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1940,7 +3188,7 @@
 - c7710a9: chore (ai): rename DataStreamToSSETransformStream to JsonToSseTransformStream
 - bfbfc4c: feat (ai): streamText/generateText: totalUsage contains usage for all steps. usage is for a single step.
 - 9ae327d: chore (ui): replace chat store concept with chat instances
-- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to stepCountIs.
+- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to isStepCount.
 - 247ee0c: chore (ai): remove steps from tool invocation ui parts
 - 109c0ac: chore (ai): rename id to chatId (in post request, resume request, and useChat)
 - 954aa73: feat (ui): extended regenerate support
@@ -2120,10 +3368,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -2683,7 +3931,7 @@
 ### Major Changes
 
 - 72d7d72: chore (ai): stable activeTools
-- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to stepCountIs.
+- 9315076: chore (ai): rename continueUntil to stopWhen. Rename maxSteps stop condition to isStepCount.
 
 ### Patch Changes
 
@@ -2786,7 +4034,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2799,7 +4047,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2897,10 +4145,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

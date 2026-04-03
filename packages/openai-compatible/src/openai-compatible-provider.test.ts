@@ -326,4 +326,29 @@ describe('OpenAICompatibleProvider', () => {
       ).toBe(undefined);
     });
   });
+
+  describe('metadataExtractor setting', () => {
+    it('should pass metadataExtractor to chat model', () => {
+      const mockExtractor = {
+        extractMetadata: async () => undefined,
+        createStreamExtractor: () => ({
+          processChunk: () => {},
+          buildMetadata: () => undefined,
+        }),
+      };
+
+      const provider = createOpenAICompatible({
+        baseURL: 'https://api.example.com',
+        name: 'test-provider',
+        metadataExtractor: mockExtractor,
+      });
+
+      provider.chatModel('chat-model');
+
+      expect(
+        OpenAICompatibleChatLanguageModelMock.mock.calls[0][1]
+          .metadataExtractor,
+      ).toBe(mockExtractor);
+    });
+  });
 });

@@ -31,21 +31,21 @@ export const tools: Tool[] = [
     tags: ['code-execution', 'sandbox'],
     apiKeyEnvName: 'VERCEL_OIDC_TOKEN',
     installCommand: {
-      pnpm: 'pnpm install ai-sdk-tool-code-execution',
+      pnpm: 'pnpm add ai-sdk-tool-code-execution',
       npm: 'npm install ai-sdk-tool-code-execution',
       yarn: 'yarn add ai-sdk-tool-code-execution',
       bun: 'bun add ai-sdk-tool-code-execution',
     },
-    codeExample: `import { gateway, generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { executeCode } from 'ai-sdk-tool-code-execution';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-5.1-codex'),
+  model: 'openai/gpt-5.1-codex',
   prompt: 'What is 5 + 5 minus 84 cubed?',
   tools: {
     executeCode: executeCode(),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 
 console.log(text);`,
@@ -63,21 +63,21 @@ console.log(text);`,
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'EXA_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @exalabs/ai-sdk',
+      pnpm: 'pnpm add @exalabs/ai-sdk',
       npm: 'npm install @exalabs/ai-sdk',
       yarn: 'yarn add @exalabs/ai-sdk',
       bun: 'bun add @exalabs/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { webSearch } from '@exalabs/ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3-pro-preview',
   prompt: 'Tell me the latest developments in AI',
   tools: {
     webSearch: webSearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -95,22 +95,22 @@ console.log(text);`,
     tags: ['search', 'web', 'extraction'],
     apiKeyEnvName: 'PARALLEL_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @parallel-web/ai-sdk-tools',
+      pnpm: 'pnpm add @parallel-web/ai-sdk-tools',
       npm: 'npm install @parallel-web/ai-sdk-tools',
       yarn: 'yarn add @parallel-web/ai-sdk-tools',
       bun: 'bun add @parallel-web/ai-sdk-tools',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3-pro-preview',
   prompt: 'When was Vercel Ship AI?',
   tools: {
     webSearch: searchTool,
     webExtract: extractTool,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -127,12 +127,12 @@ console.log(text);`,
     tags: ['code-execution', 'sandbox', 'mcp', 'code-mode'],
     apiKeyEnvName: 'VERCEL_OIDC_TOKEN',
     installCommand: {
-      pnpm: 'pnpm install ctx-zip',
+      pnpm: 'pnpm add ctx-zip',
       npm: 'npm install ctx-zip',
       yarn: 'yarn add ctx-zip',
       bun: 'bun add ctx-zip',
     },
-    codeExample: `import { gateway, generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { createVercelSandboxCodeMode, SANDBOX_SYSTEM_PROMPT } from 'ctx-zip';
 
 const { tools } = await createVercelSandboxCodeMode({
@@ -152,9 +152,9 @@ const { tools } = await createVercelSandboxCodeMode({
 });
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4.1-mini'),
+  model: 'openai/gpt-5.2',
   tools,
-  stopWhen: stepCountIs(20),
+  stopWhen: isStepCount(20),
   system: SANDBOX_SYSTEM_PROMPT,
   messages: [
     {
@@ -180,21 +180,21 @@ console.log(text);
     tags: ['search', 'web'],
     apiKeyEnvName: 'PERPLEXITY_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @perplexity-ai/ai-sdk',
+      pnpm: 'pnpm add @perplexity-ai/ai-sdk',
       npm: 'npm install @perplexity-ai/ai-sdk',
       yarn: 'yarn add @perplexity-ai/ai-sdk',
       bun: 'bun add @perplexity-ai/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { perplexitySearch } from '@perplexity-ai/ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-4o-mini'),
+  model: 'openai/gpt-5.2',
   prompt: 'What are the latest AI developments? Use search to find current information.',
   tools: {
     search: perplexitySearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -212,21 +212,21 @@ console.log(text);`,
     tags: ['search', 'extract', 'crawl'],
     apiKeyEnvName: 'TAVILY_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @tavily/ai-sdk',
+      pnpm: 'pnpm add @tavily/ai-sdk',
       npm: 'npm install @tavily/ai-sdk',
       yarn: 'yarn add @tavily/ai-sdk',
       bun: 'bun add @tavily/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { tavilySearch } from '@tavily/ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3-pro-preview',
   prompt: 'What are the latest developments in agentic search?',
   tools: {
     webSearch: tavilySearch,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -244,21 +244,21 @@ console.log(text);`,
     tags: ['scraping', 'search', 'crawling', 'extraction', 'web'],
     apiKeyEnvName: 'FIRECRAWL_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install firecrawl-aisdk',
+      pnpm: 'pnpm add firecrawl-aisdk',
       npm: 'npm install firecrawl-aisdk',
       yarn: 'yarn add firecrawl-aisdk',
       bun: 'bun add firecrawl-aisdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { scrapeTool } from 'firecrawl-aisdk';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-5-mini'),
+  model: 'openai/gpt-5-mini',
   prompt: 'Scrape https://firecrawl.dev and summarize what it does',
   tools: {
     scrape: scrapeTool,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -276,12 +276,12 @@ console.log(text);`,
     tags: ['code-execution', 'browser-automation', 'sandbox'],
     apiKeyEnvName: 'AWS_ROLE_ARN',
     installCommand: {
-      pnpm: 'pnpm install bedrock-agentcore',
+      pnpm: 'pnpm add bedrock-agentcore',
       npm: 'npm install bedrock-agentcore',
       yarn: 'yarn add bedrock-agentcore',
       bun: 'bun add bedrock-agentcore',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { awsCredentialsProvider } from '@vercel/oidc-aws-credentials-provider';
 import { CodeInterpreterTools } from 'bedrock-agentcore/code-interpreter/vercel-ai';
@@ -302,7 +302,7 @@ try {
       ...codeInterpreter.tools,
       ...browser.tools,
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log(text);
@@ -325,12 +325,12 @@ try {
     tags: ['security', 'guardrails', 'pii', 'prompt-injection', 'verification'],
     apiKeyEnvName: 'SUPERAGENT_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @superagent-ai/ai-sdk',
+      pnpm: 'pnpm add @superagent-ai/ai-sdk',
       npm: 'npm install @superagent-ai/ai-sdk',
       yarn: 'yarn add @superagent-ai/ai-sdk',
       bun: 'bun add @superagent-ai/ai-sdk',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { guard, redact, verify } from '@superagent-ai/ai-sdk';
 import { openai } from '@ai-sdk/openai';
 
@@ -342,7 +342,7 @@ const { text } = await generateText({
     redact: redact(),
     verify: verify(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -350,6 +350,38 @@ console.log(text);`,
     apiKeyUrl: 'https://dashboard.superagent.sh',
     websiteUrl: 'https://superagent.sh',
     npmUrl: 'https://www.npmjs.com/package/@superagent-ai/ai-sdk',
+  },
+  {
+    slug: 'tako-search',
+    name: 'Tako Search',
+    description:
+      "Search Tako's knowledge base for data visualizations, insights, and well-sourced information with charts and analytics.",
+    packageName: '@takoviz/ai-sdk',
+    installCommand: {
+      pnpm: 'pnpm install @takoviz/ai-sdk',
+      npm: 'npm install @takoviz/ai-sdk',
+      yarn: 'yarn add @takoviz/ai-sdk',
+      bun: 'bun add @takoviz/ai-sdk',
+    },
+    codeExample: `import { takoSearch } from '@takoviz/ai-sdk';
+import { generateText, isStepCount } from 'ai';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5.2',
+  prompt: 'What is the stock price of Nvidia?',
+  tools: {
+    takoSearch: takoSearch(),
+  },
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/TakoData/ai-sdk#readme',
+    npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
+    websiteUrl: 'https://tako.com',
+    apiKeyEnvName: 'TAKO_API_KEY',
+    apiKeyUrl: 'https://tako.com',
+    tags: ['search', 'data', 'visualization', 'analytics'],
   },
   {
     slug: 'valyu',
@@ -360,23 +392,23 @@ console.log(text);`,
     tags: ['search', 'web', 'domain-search'],
     apiKeyEnvName: 'VALYU_API_KEY',
     installCommand: {
-      pnpm: 'pnpm install @valyu/ai-sdk',
+      pnpm: 'pnpm add @valyu/ai-sdk',
       npm: 'npm install @valyu/ai-sdk',
       yarn: 'yarn add @valyu/ai-sdk',
       bun: 'bun add @valyu/ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { webSearch } from '@valyu/ai-sdk';
 // Available specialised search tools: financeSearch, paperSearch,
 // bioSearch, patentSearch, secSearch, economicsSearch, companyResearch
 
 const { text } = await generateText({
-  model: gateway('google/gemini-3-pro-preview'),
+  model: 'google/gemini-3-pro-preview',
   prompt: 'Latest data center projects for AI inference?',
   tools: {
     webSearch: webSearch(),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -399,18 +431,18 @@ console.log(text);`,
       yarn: 'yarn add @airweave/vercel-ai-sdk',
       bun: 'bun add @airweave/vercel-ai-sdk',
     },
-    codeExample: `import { generateText, gateway, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { airweaveSearch } from '@airweave/vercel-ai-sdk';
 
 const { text } = await generateText({
-  model: gateway('anthropic/claude-sonnet-4.5'),
+  model: 'anthropic/claude-sonnet-4.5',
   prompt: 'What were the key decisions from last week?',
   tools: {
     search: airweaveSearch({
       defaultCollection: 'my-knowledge-base',
     }),
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 console.log(text);`,
@@ -418,5 +450,70 @@ console.log(text);`,
     apiKeyUrl: 'https://app.airweave.ai/settings/api-keys',
     websiteUrl: 'https://airweave.ai',
     npmUrl: 'https://www.npmjs.com/package/@airweave/vercel-ai-sdk',
+  },
+  {
+    slug: 'bash-tool',
+    name: 'bash-tool',
+    description:
+      'Provides bash, readFile, and writeFile tools for AI agents. Supports @vercel/sandbox for full VM isolation.',
+    packageName: 'bash-tool',
+    tags: ['bash', 'file-system', 'sandbox', 'code-execution'],
+    installCommand: {
+      pnpm: 'pnpm install bash-tool',
+      npm: 'npm install bash-tool',
+      yarn: 'yarn add bash-tool',
+      bun: 'bun add bash-tool',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createBashTool } from 'bash-tool';
+
+const { tools } = await createBashTool({
+  files: { 'src/index.ts': "export const hello = 'world';" },
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4',
+  prompt: 'List the files in src/ and show me the contents of index.ts',
+  tools,
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/vercel/bash-tool',
+    websiteUrl: 'https://github.com/vercel/bash-tool',
+    npmUrl: 'https://www.npmjs.com/package/bash-tool',
+  },
+  {
+    slug: 'browserbase',
+    name: 'Browserbase',
+    description:
+      'Browserbase provides browser automation tools for AI agents powered by Stagehand. Navigate websites, take screenshots, click buttons, fill forms, extract structured data, and execute multi-step browser tasks in cloud-hosted sessions with built-in CAPTCHA solving and anti-bot stealth mode.',
+    packageName: '@browserbasehq/ai-sdk',
+    tags: ['browser', 'browser-automation', 'web', 'extraction'],
+    apiKeyEnvName: 'BROWSERBASE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @browserbasehq/ai-sdk',
+      npm: 'npm install @browserbasehq/ai-sdk',
+      yarn: 'yarn add @browserbasehq/ai-sdk',
+      bun: 'bun add @browserbasehq/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createBrowserbaseTools } from '@browserbasehq/ai-sdk';
+
+const browserbase = createBrowserbaseTools();
+
+const { text } = await generateText({
+  model: 'google/gemini-3-pro-preview',
+  tools: browserbase.tools,
+  stopWhen: isStepCount(10),
+  prompt: 'Open https://news.ycombinator.com and summarize the top 3 stories.',
+});
+
+console.log(text);
+await browserbase.closeSession();`,
+    docsUrl: 'https://docs.browserbase.com',
+    apiKeyUrl: 'https://www.browserbase.com/settings',
+    websiteUrl: 'https://www.browserbase.com',
+    npmUrl: 'https://www.npmjs.com/package/@browserbasehq/ai-sdk',
   },
 ];

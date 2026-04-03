@@ -2,9 +2,10 @@ import { z } from 'zod/v4';
 import { JSONObject } from '@ai-sdk/provider';
 import { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
 
-export const LATEST_PROTOCOL_VERSION = '2025-06-18';
+export const LATEST_PROTOCOL_VERSION = '2025-11-25';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
   LATEST_PROTOCOL_VERSION,
+  '2025-06-18',
   '2025-03-26',
   '2024-11-05',
 ];
@@ -14,26 +15,43 @@ const ToolMetaSchema = z.optional(z.record(z.string(), z.unknown()));
 export type ToolMeta = z.infer<typeof ToolMetaSchema>;
 
 export type ToolSchemas =
-  | Record<string, { inputSchema: FlexibleSchema<JSONObject | unknown> }>
+  | Record<
+      string,
+      {
+        inputSchema: FlexibleSchema<JSONObject | unknown>;
+        outputSchema?: FlexibleSchema<JSONObject | unknown>;
+      }
+    >
   | 'automatic'
   | undefined;
 
 /** Base MCP tool type with execute and _meta */
-type McpToolBase<INPUT = unknown> = Tool<INPUT, CallToolResult> &
-  Required<Pick<Tool<INPUT, CallToolResult>, 'execute'>> & {
+type McpToolBase<INPUT = unknown, OUTPUT = CallToolResult> = Tool<
+  INPUT,
+  OUTPUT
+> &
+  Required<Pick<Tool<INPUT, OUTPUT>, 'execute'>> & {
     _meta?: ToolMeta;
   };
 
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
-  TOOL_SCHEMAS extends Record<string, { inputSchema: FlexibleSchema<any> }>
+  TOOL_SCHEMAS extends Record<
+    string,
+    { inputSchema: FlexibleSchema<any>; outputSchema?: FlexibleSchema<any> }
+  >
     ? {
         [K in keyof TOOL_SCHEMAS]: TOOL_SCHEMAS[K] extends {
           inputSchema: FlexibleSchema<infer INPUT>;
+          outputSchema: FlexibleSchema<infer OUTPUT>;
         }
-          ? McpToolBase<INPUT>
-          : never;
+          ? McpToolBase<INPUT, OUTPUT>
+          : TOOL_SCHEMAS[K] extends {
+                inputSchema: FlexibleSchema<infer INPUT>;
+              }
+            ? McpToolBase<INPUT, CallToolResult>
+            : never;
       }
-    : Record<string, McpToolBase<unknown>>;
+    : Record<string, McpToolBase<unknown, CallToolResult>>;
 
 const ClientOrServerImplementationSchema = z.looseObject({
   name: z.string(),
@@ -121,6 +139,10 @@ const PaginatedResultSchema = ResultSchema.extend({
 const ToolSchema = z
   .object({
     name: z.string(),
+    /**
+     * @see https://modelcontextprotocol.io/specification/2025-11-25/server/tools#tool
+     */
+    title: z.optional(z.string()),
     description: z.optional(z.string()),
     inputSchema: z
       .object({
@@ -128,6 +150,10 @@ const ToolSchema = z
         properties: z.optional(z.object({}).loose()),
       })
       .loose(),
+    /**
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#output-schema
+     */
+    outputSchema: z.optional(z.object({}).loose()),
     annotations: z.optional(
       z
         .object({
@@ -211,6 +237,10 @@ export const CallToolResultSchema = ResultSchema.extend({
   content: z.array(
     z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
   ),
+  /**
+   * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
+   */
+  structuredContent: z.optional(z.unknown()),
   isError: z.boolean().default(false).optional(),
 }).or(
   ResultSchema.extend({

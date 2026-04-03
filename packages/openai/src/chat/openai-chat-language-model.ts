@@ -1,14 +1,14 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -17,6 +17,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  isCustomReasoning,
   isParsableJson,
   parseProviderOptions,
   postJsonToApi,
@@ -37,7 +38,7 @@ import {
 } from './openai-chat-api';
 import {
   OpenAIChatModelId,
-  openaiChatLanguageModelOptions,
+  openaiLanguageModelChatOptions,
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
@@ -48,8 +49,8 @@ type OpenAIChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAIChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAIChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAIChatModelId;
 
@@ -81,19 +82,26 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     seed,
     tools,
     toolChoice,
+    reasoning,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const openaiOptions =
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiChatLanguageModelOptions,
+        schema: openaiLanguageModelChatOptions,
       })) ?? {};
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+
+    // AI SDK reasoning values map directly to the OpenAI reasoning values.
+    const resolvedReasoningEffort =
+      openaiOptions.reasoningEffort ??
+      (isCustomReasoning(reasoning) ? reasoning : undefined);
+
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
 
@@ -168,7 +176,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
+      reasoning_effort: resolvedReasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
       prompt_cache_retention: openaiOptions.promptCacheRetention,
@@ -184,7 +192,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
-        openaiOptions.reasoningEffort !== 'none' ||
+        resolvedReasoningEffort !== 'none' ||
         !modelCapabilities.supportsNonReasoningParameters
       ) {
         if (baseArgs.temperature != null) {
@@ -314,8 +322,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -338,7 +346,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -370,7 +378,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
     const promptTokenDetails = response.usage?.prompt_tokens_details;
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata.openai.acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
@@ -402,8 +410,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -439,7 +447,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -447,13 +455,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     let metadataExtracted = false;
     let isActiveText = false;
 
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIChatChunk>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -551,7 +559,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
                 // Tool call start. OpenAI returns all information except the arguments in the first chunk.
                 if (toolCalls[index] == null) {
-                  if (toolCallDelta.type !== 'function') {
+                  if (
+                    toolCallDelta.type != null &&
+                    toolCallDelta.type !== 'function'
+                  ) {
                     throw new InvalidResponseDataError({
                       data: toolCallDelta,
                       message: `Expected 'function' type.`,

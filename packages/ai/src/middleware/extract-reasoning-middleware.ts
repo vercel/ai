@@ -1,12 +1,12 @@
 import type {
-  LanguageModelV3Content,
-  LanguageModelV3StreamPart,
+  LanguageModelV4Content,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import { LanguageModelMiddleware } from '../types/language-model-middleware';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
- * Extract an XML-tagged reasoning section from the generated text and exposes it
+ * Extracts an XML-tagged reasoning section from the generated text and exposes it
  * as a `reasoning` property on the result.
  *
  * @param tagName - The name of the XML tag to extract reasoning from.
@@ -26,11 +26,11 @@ export function extractReasoningMiddleware({
   const closingTag = `<\/${tagName}>`;
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     wrapGenerate: async ({ doGenerate }) => {
       const { content, ...rest } = await doGenerate();
 
-      const transformedContent: LanguageModelV3Content[] = [];
+      const transformedContent: LanguageModelV4Content[] = [];
       for (const part of content) {
         if (part.type !== 'text') {
           transformedContent.push(part);
@@ -94,13 +94,13 @@ export function extractReasoningMiddleware({
         }
       > = {};
 
-      let delayedTextStart: LanguageModelV3StreamPart | undefined;
+      let delayedTextStart: LanguageModelV4StreamPart | undefined;
 
       return {
         stream: stream.pipeThrough(
           new TransformStream<
-            LanguageModelV3StreamPart,
-            LanguageModelV3StreamPart
+            LanguageModelV4StreamPart,
+            LanguageModelV4StreamPart
           >({
             transform: (chunk, controller) => {
               // do not send `text-start` before `reasoning-start`
@@ -212,8 +212,19 @@ export function extractReasoningMiddleware({
                     startIndex + nextTag.length,
                   );
 
-                  // reasoning part finished:
                   if (activeExtraction.isReasoning) {
+                    // Emit reasoning-start for empty reasoning blocks (no delta was published).
+                    // This handles both cases:
+                    // - startWithReasoning=false: <think></think> (afterSwitch=true)
+                    // - startWithReasoning=true: immediate </think> (afterSwitch=false)
+                    if (activeExtraction.isFirstReasoning) {
+                      controller.enqueue({
+                        type: 'reasoning-start',
+                        id: `reasoning-${activeExtraction.idCounter}`,
+                      });
+                    }
+
+                    // reasoning part finished:
                     controller.enqueue({
                       type: 'reasoning-end',
                       id: `reasoning-${activeExtraction.idCounter++}`,

@@ -25,14 +25,9 @@ AI SDK Core contains the following main functions:
       href: '/docs/reference/ai-sdk-core/stream-text',
     },
     {
-      title: 'generateObject()',
-      description: 'Generate structured data from a language model.',
-      href: '/docs/reference/ai-sdk-core/generate-object',
-    },
-    {
-      title: 'streamObject()',
-      description: 'Stream structured data from a language model.',
-      href: '/docs/reference/ai-sdk-core/stream-object',
+      title: 'Output',
+      description: 'Structured output types for generateText and streamText.',
+      href: '/docs/reference/ai-sdk-core/output',
     },
     {
       title: 'embed()',
@@ -51,6 +46,12 @@ AI SDK Core contains the following main functions:
       description:
         'Generate images based on a given prompt using an image model.',
       href: '/docs/reference/ai-sdk-core/generate-image',
+    },
+    {
+      title: 'experimental_generateVideo()',
+      description:
+        'Generate videos based on a given prompt using a video model.',
+      href: '/docs/reference/ai-sdk-core/generate-video',
     },
     {
       title: 'experimental_transcribe()',
@@ -73,6 +74,11 @@ It also contains the following helper functions:
       title: 'tool()',
       description: 'Type inference helper function for tools.',
       href: '/docs/reference/ai-sdk-core/tool',
+    },
+    {
+      title: 'experimental_filterActiveTools()',
+      description: 'Filters a tool set to only the currently active tools.',
+      href: '/docs/reference/ai-sdk-core/filter-active-tools',
     },
     {
       title: 'createMCPClient()',
@@ -113,10 +119,39 @@ It also contains the following helper functions:
       href: '/docs/reference/ai-sdk-core/wrap-language-model',
     },
     {
+      title: 'wrapImageModel()',
+      description: 'Wraps an image model with middleware.',
+      href: '/docs/reference/ai-sdk-core/wrap-image-model',
+    },
+    {
       title: 'extractReasoningMiddleware()',
       description:
         'Extracts reasoning from the generated text and exposes it as a `reasoning` property on the result.',
       href: '/docs/reference/ai-sdk-core/extract-reasoning-middleware',
+    },
+    {
+      title: 'extractJsonMiddleware()',
+      description:
+        'Extracts JSON from text content by stripping markdown code fences.',
+      href: '/docs/reference/ai-sdk-core/extract-json-middleware',
+    },
+    {
+      title: 'isStepCount()',
+      description:
+        'Creates a stop condition that triggers after a specified number of steps.',
+      href: '/docs/reference/ai-sdk-core/is-step-count',
+    },
+    {
+      title: 'hasToolCall()',
+      description:
+        'Creates a stop condition that triggers when a specific tool is called.',
+      href: '/docs/reference/ai-sdk-core/has-tool-call',
+    },
+    {
+      title: 'isLoopFinished()',
+      description:
+        'Creates a stop condition that lets the agent loop run until it naturally finishes.',
+      href: '/docs/reference/ai-sdk-core/loop-finished',
     },
     {
       title: 'simulateStreamingMiddleware()',
@@ -131,7 +166,7 @@ It also contains the following helper functions:
     },
     {
       title: 'smoothStream()',
-      description: 'Smooths text streaming output.',
+      description: 'Smooths text and reasoning streaming output.',
       href: '/docs/reference/ai-sdk-core/smooth-stream',
     },
     {
