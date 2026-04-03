@@ -4,20 +4,22 @@ import { useChat } from '@ai-sdk/react';
 import { useRef, useEffect } from 'react';
 
 export default function Chat() {
-  const { status, sendMessage, messages, addToolApprovalResponse } = useChat({
-    sendAutomaticallyWhen: message =>
-      message.parts.some(
-        part =>
-          'state' in part &&
-          (part.state === 'approval-responded' ||
-            part.state === 'output-denied'),
-      ),
-  });
+  const { status, sendMessage, messages, addToolApprovalResponse } = useChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handleApproval = async (
+    approvalId: string,
+    approved: boolean,
+    reason?: string,
+  ) => {
+    await addToolApprovalResponse({ id: approvalId, approved, reason });
+    // Manually trigger resubmission after approval response is set
+    sendMessage({ text: '' });
+  };
 
   return (
     <div className="flex flex-col h-screen max-w-2xl mx-auto">
@@ -53,7 +55,6 @@ export default function Chat() {
                 if (p.type?.startsWith('tool-') && p.toolCallId) {
                   const toolName = p.type.replace('tool-', '');
 
-                  // Approval requested — show approve/deny UI
                   if (p.state === 'approval-requested' && p.approval?.id) {
                     return (
                       <div
@@ -79,23 +80,18 @@ export default function Chat() {
                         </pre>
                         <div className="flex gap-2">
                           <button
-                            onClick={() =>
-                              addToolApprovalResponse({
-                                id: p.approval.id,
-                                approved: true,
-                              })
-                            }
+                            onClick={() => handleApproval(p.approval.id, true)}
                             className="rounded-lg bg-green-500 px-4 py-1.5 text-sm text-white hover:bg-green-600 transition-colors"
                           >
                             Approve
                           </button>
                           <button
                             onClick={() =>
-                              addToolApprovalResponse({
-                                id: p.approval.id,
-                                approved: false,
-                                reason: 'User denied the operation.',
-                              })
+                              handleApproval(
+                                p.approval.id,
+                                false,
+                                'User denied the operation.',
+                              )
                             }
                             className="rounded-lg bg-red-500 px-4 py-1.5 text-sm text-white hover:bg-red-600 transition-colors"
                           >
@@ -106,7 +102,6 @@ export default function Chat() {
                     );
                   }
 
-                  // Approval responded (waiting for resubmission)
                   if (p.state === 'approval-responded') {
                     return (
                       <div
@@ -125,7 +120,6 @@ export default function Chat() {
                     );
                   }
 
-                  // Normal tool display
                   return (
                     <div
                       key={index}

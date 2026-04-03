@@ -102,6 +102,20 @@ export async function chat(messages: UIMessage[]) {
 
   const modelMessages = await convertToModelMessages(messages);
 
+  // Debug: check for approval-related parts
+  for (const m of modelMessages) {
+    if (typeof m.content !== 'string' && m.content) {
+      for (const p of m.content) {
+        if (
+          p.type === 'tool-approval-request' ||
+          p.type === 'tool-approval-response'
+        ) {
+          console.log('[chat] approval part found:', JSON.stringify(p));
+        }
+      }
+    }
+  }
+
   const agent = new WorkflowAgent({
     model: anthropic('claude-sonnet-4-20250514'),
     instructions:
