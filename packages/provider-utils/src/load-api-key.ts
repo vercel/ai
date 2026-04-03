@@ -23,7 +23,7 @@ export function loadApiKey({
 
   if (typeof process === 'undefined') {
     throw new LoadAPIKeyError({
-      message: `${description} API key is missing. Pass it using the '${apiKeyParameterName}' parameter. Environment variables is not supported in this environment.`,
+      message: `${description} API key is missing. Pass it using the '${apiKeyParameterName}' parameter. Environment variables are not supported in this environment.`,
     });
   }
 
