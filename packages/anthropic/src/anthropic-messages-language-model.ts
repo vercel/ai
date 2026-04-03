@@ -24,7 +24,6 @@ import {
   generateId,
   InferSchema,
   isCustomReasoning,
-  loadApiKey,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
   parseProviderOptions,
@@ -32,7 +31,7 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
-  withUserAgentSuffix,
+  serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -59,7 +58,6 @@ import {
 } from './convert-anthropic-messages-usage';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
-import { VERSION } from './version';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 function createCitationSource(
@@ -124,7 +122,7 @@ function createCitationSource(
 type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
   transformRequestBody?: (
@@ -149,54 +147,20 @@ type AnthropicMessagesConfig = {
 export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
-  static readonly classId = '@ai-sdk/anthropic:AnthropicMessagesLanguageModel';
-
   readonly modelId: AnthropicMessagesModelId;
 
   private readonly config: AnthropicMessagesConfig;
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](inst: AnthropicMessagesLanguageModel) {
-    return {
-      modelId: inst.modelId,
-      config: {
-        provider: inst.config.provider,
-        baseURL: inst.config.baseURL,
-        supportsNativeStructuredOutput:
-          inst.config.supportsNativeStructuredOutput,
-        supportsStrictTools: inst.config.supportsStrictTools,
-      },
-    };
+    return serializeModel(inst);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: AnthropicMessagesModelId;
-    config: {
-      provider: string;
-      baseURL: string;
-      supportsNativeStructuredOutput?: boolean;
-      supportsStrictTools?: boolean;
-    };
+    config: AnthropicMessagesConfig;
   }) {
-    return new AnthropicMessagesLanguageModel(options.modelId, {
-      ...options.config,
-      headers: () =>
-        withUserAgentSuffix(
-          {
-            'anthropic-version': '2023-06-01',
-            'x-api-key': loadApiKey({
-              apiKey: undefined,
-              environmentVariableName: 'ANTHROPIC_API_KEY',
-              description: 'Anthropic',
-            }),
-          },
-          `ai-sdk/anthropic/${VERSION}`,
-        ),
-      supportedUrls: () => ({
-        'image/*': [/^https?:\/\/.*$/],
-        'application/pdf': [/^https?:\/\/.*$/],
-      }),
-    });
+    return new AnthropicMessagesLanguageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -754,7 +718,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
     headers: Record<string, string | undefined> | undefined;
   }) {
     return combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       headers,
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
     );
@@ -763,9 +727,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   private async getBetasFromHeaders(
     requestHeaders: Record<string, string | undefined> | undefined,
   ) {
-    const configHeaders = await resolve(this.config.headers);
+    const configHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
 
-    const configBetaHeader = configHeaders['anthropic-beta'] ?? '';
+    const configBetaHeader = configHeaders?.['anthropic-beta'] ?? '';
     const requestBetaHeader = requestHeaders?.['anthropic-beta'] ?? '';
 
     return new Set(
