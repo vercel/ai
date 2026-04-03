@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- a05109d: feat(provider/google): preserve per-modality token details in usage data
+
 ## 4.0.0-beta.25
 
 ### Patch Changes
