@@ -112,10 +112,11 @@ const { embedding } = await embed({
                 'Additional information to include in the telemetry data.',
             },
             {
-              name: 'tracer',
-              type: 'Tracer',
+              name: 'integrations',
               isOptional: true,
-              description: 'A custom tracer to use for the telemetry data.',
+              type: 'TelemetryIntegration | TelemetryIntegration[]',
+              description:
+                'Per-call telemetry integrations that receive lifecycle events. These run after any globally registered integrations.',
             },
           ],
         },

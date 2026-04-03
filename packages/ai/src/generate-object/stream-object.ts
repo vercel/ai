@@ -545,6 +545,7 @@ class DefaultStreamObjectResult<
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
           download,
+          provider: model.provider.split('.')[0],
         }),
         providerOptions,
         abortSignal,
