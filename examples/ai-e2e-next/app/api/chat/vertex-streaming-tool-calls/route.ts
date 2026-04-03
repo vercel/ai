@@ -57,11 +57,6 @@ export async function POST(req: Request) {
         }),
       },
     },
-    providerOptions: {
-      vertex: {
-        streamFunctionCallArguments: true,
-      } satisfies GoogleLanguageModelOptions,
-    },
   });
 
   return result.toUIMessageStreamResponse();
