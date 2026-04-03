@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.66
+
+### Patch Changes
+
+- d634323: fix(provider/google): fix Gemini service tier enum after upstream update
+
 ## 2.0.65
 
 ### Patch Changes
