@@ -8835,4 +8835,100 @@ describe('generateText', () => {
       expect(events).toEqual(['first', 'second']);
     });
   });
+
+  describe('empty text blocks between reasoning blocks', () => {
+    it('should preserve empty text blocks in step 2 messages when reasoning blocks are present', async () => {
+      let responseCount = 0;
+      const doGenerateCalls: Array<Parameters<
+        ConstructorParameters<typeof MockLanguageModelV4>[0] & {
+          doGenerate: (...args: any[]) => any;
+        }
+      >> = [];
+
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async options => {
+            doGenerateCalls.push(options as any);
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'reasoning' as const,
+                      text: 'First reasoning block',
+                      signature: 'sig-1',
+                      providerMetadata: {
+                        bedrock: { signature: 'sig-1' },
+                      },
+                    },
+                    { type: 'text' as const, text: '' },
+                    {
+                      type: 'reasoning' as const,
+                      text: 'Second reasoning block',
+                      signature: 'sig-2',
+                      providerMetadata: {
+                        bedrock: { signature: 'sig-2' },
+                      },
+                    },
+                    { type: 'text' as const, text: 'Visible response' },
+                    {
+                      type: 'tool-call' as const,
+                      toolCallType: 'function' as const,
+                      toolCallId: 'call-1',
+                      toolName: 'myTool',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: {
+                    unified: 'tool-calls' as const,
+                    raw: undefined,
+                  },
+                };
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text' as const, text: 'Done.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          myTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+      });
+
+      // Step 2 should have been called
+      expect(doGenerateCalls.length).toBe(2);
+
+      // Get the assistant message from step 2's prompt
+      const step2Prompt = doGenerateCalls[1].prompt;
+      const assistantMessage = step2Prompt.find(
+        (m: any) => m.role === 'assistant',
+      );
+
+      expect(assistantMessage).toBeDefined();
+
+      // The assistant message content must preserve the empty text block
+      // between reasoning blocks. Without this, providers like Bedrock
+      // reject with "thinking blocks cannot be modified" because the
+      // content block indices shift.
+      const contentTypes = assistantMessage!.content.map(
+        (p: any) => p.type + (p.text === '' ? '(empty)' : ''),
+      );
+
+      expect(contentTypes).toEqual([
+        'reasoning',
+        'text(empty)',
+        'reasoning',
+        'text',
+        'tool-call',
+      ]);
+    });
+  });
 });

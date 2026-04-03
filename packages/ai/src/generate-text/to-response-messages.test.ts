@@ -703,7 +703,7 @@ describe('toResponseMessages', () => {
     `);
   });
 
-  it('should not append text parts if text is empty string', async () => {
+  it('should preserve empty text parts', async () => {
     const result = await toResponseMessages({
       content: [
         {
@@ -729,6 +729,98 @@ describe('toResponseMessages', () => {
       [
         {
           "content": [
+            {
+              "providerOptions": undefined,
+              "text": "",
+              "type": "text",
+            },
+            {
+              "input": {},
+              "providerExecuted": undefined,
+              "providerOptions": undefined,
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve empty text between reasoning blocks for structural integrity', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'reasoning',
+          text: 'First reasoning block',
+          providerMetadata: {
+            bedrock: { signature: 'sig-1' },
+          },
+        },
+        {
+          type: 'text',
+          text: '',
+        },
+        {
+          type: 'reasoning',
+          text: 'Second reasoning block',
+          providerMetadata: {
+            bedrock: { signature: 'sig-2' },
+          },
+        },
+        {
+          type: 'text',
+          text: 'Final response',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          input: {},
+        },
+      ],
+      tools: {
+        testTool: tool({
+          description: 'A test tool',
+          inputSchema: z.object({}),
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "providerOptions": {
+                "bedrock": {
+                  "signature": "sig-1",
+                },
+              },
+              "text": "First reasoning block",
+              "type": "reasoning",
+            },
+            {
+              "providerOptions": undefined,
+              "text": "",
+              "type": "text",
+            },
+            {
+              "providerOptions": {
+                "bedrock": {
+                  "signature": "sig-2",
+                },
+              },
+              "text": "Second reasoning block",
+              "type": "reasoning",
+            },
+            {
+              "providerOptions": undefined,
+              "text": "Final response",
+              "type": "text",
+            },
             {
               "input": {},
               "providerExecuted": undefined,

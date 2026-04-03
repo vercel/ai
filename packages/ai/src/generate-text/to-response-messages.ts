@@ -35,11 +35,6 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
       continue;
     }
 
-    // Skip empty text
-    if (part.type === 'text' && part.text.length === 0) {
-      continue;
-    }
-
     switch (part.type) {
       case 'text':
         content.push({
