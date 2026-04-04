@@ -69,6 +69,12 @@ const gatewayProviderOptions = lazySchema(() =>
        */
       disallowPromptTraining: z.boolean().optional(),
       /**
+       * Whether to filter by only providers that are HIPAA compliant with
+       * Vercel AI Gateway. When enabled, only providers that have agreements
+       * with Vercel AI Gateway for HIPAA compliance will be used.
+       */
+      hipaaCompliant: z.boolean().optional(),
+      /**
        * Per-provider timeouts for BYOK credentials in milliseconds.
        * Controls how long to wait for a provider to start responding
        * before falling back to the next available provider.
