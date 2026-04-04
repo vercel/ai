@@ -1,5 +1,5 @@
 import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
-import type { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Timeout configuration for API calls. Can be specified as:
@@ -7,6 +7,8 @@ import type { ToolSet } from '../generate-text/tool-set';
  * - An object with `totalMs` property for the total timeout in milliseconds
  * - An object with `stepMs` property for the timeout of each step in milliseconds
  * - An object with `chunkMs` property for the timeout between stream chunks (streaming only)
+ * - An object with `toolMs` property for the default timeout for all tool executions
+ * - An object with `tools` property for per-tool timeout overrides using `{toolName}Ms` keys
  */
 export type TimeoutConfiguration<TOOLS extends ToolSet> =
   | number

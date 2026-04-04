@@ -20,7 +20,10 @@ async function main() {
     const tool = tools['get-image'];
 
     console.log('Calling get-image tool...\n');
-    const result = await tool.execute!({}, { messages: [], toolCallId: '1' });
+    const result = await tool.execute!(
+      {},
+      { messages: [], toolCallId: '1', experimental_context: {} },
+    );
 
     console.log('Raw execute() result (MCP format):');
     console.log(JSON.stringify(result, null, 2));

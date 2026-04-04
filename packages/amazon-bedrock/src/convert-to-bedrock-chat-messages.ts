@@ -7,6 +7,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
+  isProviderReference,
   parseProviderOptions,
   stripFileExtension,
 } from '@ai-sdk/provider-utils';
@@ -112,6 +113,12 @@ export async function convertToBedrockChatMessages(
                   }
 
                   case 'file': {
+                    if (isProviderReference(part.data)) {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'file parts with provider references',
+                      });
+                    }
+
                     if (part.data instanceof URL) {
                       // The AI SDK automatically downloads files for user file parts with URLs
                       throw new UnsupportedFunctionalityError({
