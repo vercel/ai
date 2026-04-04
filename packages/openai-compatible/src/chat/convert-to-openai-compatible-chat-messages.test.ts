@@ -457,7 +457,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -473,6 +473,73 @@ describe('tool calls', () => {
         role: 'tool',
         content: JSON.stringify({ oof: '321rab' }),
         tool_call_id: 'quux',
+      },
+    ]);
+  });
+
+  it('should send content as null for tool-call-only assistant messages', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: { location: 'Seattle' },
+            toolCallId: 'call_1',
+            toolName: 'get_weather',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call_1',
+            function: {
+              name: 'get_weather',
+              arguments: JSON.stringify({ location: 'Seattle' }),
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should preserve text content alongside tool calls', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Let me check the weather.' },
+          {
+            type: 'tool-call',
+            input: { location: 'Seattle' },
+            toolCallId: 'call_1',
+            toolName: 'get_weather',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: 'Let me check the weather.',
+        tool_calls: [
+          {
+            type: 'function',
+            id: 'call_1',
+            function: {
+              name: 'get_weather',
+              arguments: JSON.stringify({ location: 'Seattle' }),
+            },
+          },
+        ],
       },
     ]);
   });
@@ -506,7 +573,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -632,7 +699,7 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call1',
@@ -999,7 +1066,7 @@ describe('provider-specific metadata merging', () => {
         role: 'assistant',
         cacheControl: { type: 'default' },
         sharedKey: 'assistantLevel',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'collisionToolCall',
@@ -1041,7 +1108,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'function-call-1',
@@ -1134,7 +1201,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     // Verify both signatures are preserved
     expect(result[1]).toEqual({
       role: 'assistant',
-      content: '',
+      content: null,
       tool_calls: [
         {
           id: 'function-call-1',
@@ -1154,7 +1221,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
 
     expect(result[3]).toEqual({
       role: 'assistant',
-      content: '',
+      content: null,
       tool_calls: [
         {
           id: 'function-call-2',
@@ -1203,7 +1270,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'function-call-paris',
@@ -1250,7 +1317,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call-1',
