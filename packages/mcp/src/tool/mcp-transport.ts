@@ -1,3 +1,4 @@
+import { FetchFunction } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../error/mcp-client-error';
 import { JSONRPCMessage } from './json-rpc-message';
 import { SseMCPTransport } from './mcp-sse-transport';
@@ -66,6 +67,15 @@ export type MCPTransportConfig = {
    * @default 'error'
    */
   redirect?: 'follow' | 'error';
+
+  /**
+   * Optional custom fetch implementation to use for HTTP requests.
+   * Useful for runtimes that need a request-local fetch (e.g. Cloudflare Workers,
+   * Nitro) or for same-app MCP calls where the default globalThis.fetch is blocked.
+   * Also applies to OAuth-related requests made by the transport.
+   * @default globalThis.fetch
+   */
+  fetch?: FetchFunction;
 };
 
 export function createMcpTransport(config: MCPTransportConfig): MCPTransport {
