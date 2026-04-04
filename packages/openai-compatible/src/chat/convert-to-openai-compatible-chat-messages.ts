@@ -84,24 +84,53 @@ export function convertToOpenAICompatibleChatMessages(
                 }
 
                 if (part.mediaType.startsWith('audio/')) {
-                  if (part.data instanceof URL) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'audio file parts with URLs',
-                    });
+                  const format = getAudioFormat(part.mediaType);
+
+                  // Standard wav/mp3 with inline data: use input_audio format
+                  if (format !== null && !(part.data instanceof URL)) {
+                    return {
+                      type: 'input_audio',
+                      input_audio: {
+                        data: convertToBase64(part.data),
+                        format,
+                      },
+                      ...partMetadata,
+                    };
                   }
 
-                  const format = getAudioFormat(part.mediaType);
-                  if (format === null) {
-                    throw new UnsupportedFunctionalityError({
-                      functionality: `audio media type ${part.mediaType}`,
-                    });
-                  }
+                  // Any other audio/* type: pass as a file with data URI or URL.
+                  // This matches how video/* is handled and avoids the need to
+                  // maintain a hard-coded allowlist as providers add new formats.
+                  const fileData =
+                    part.data instanceof URL
+                      ? part.data.toString()
+                      : `data:${part.mediaType};base64,${convertToBase64(part.data)}`;
 
                   return {
-                    type: 'input_audio',
-                    input_audio: {
-                      data: convertToBase64(part.data),
-                      format,
+                    type: 'file',
+                    file: {
+                      filename:
+                        part.filename ??
+                        `audio.${part.mediaType.split('/')[1] ?? 'bin'}`,
+                      file_data: fileData,
+                    },
+                    ...partMetadata,
+                  };
+                }
+
+                if (part.mediaType.startsWith('video/')) {
+                  const fileData =
+                    part.data instanceof URL
+                      ? part.data.toString()
+                      : `data:${part.mediaType};base64,${convertToBase64(part.data)}`;
+
+                  return {
+                    type: 'file',
+                    file: {
+                      filename:
+                        part.filename ??
+                        `video.${part.mediaType.split('/')[1] ?? 'bin'}`,
+                      file_data: fileData,
                     },
                     ...partMetadata,
                   };
