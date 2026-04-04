@@ -3335,4 +3335,104 @@ describe('citations', () => {
       `);
     });
   });
+
+  it('should reorder assistant content so server_tool_use+web_search_tool_result come before tool_use', async () => {
+    // Regression test for https://github.com/vercel/ai/issues/13013.
+    //
+    // The Anthropic API can return a response in which a regular tool_use
+    // block appears at an earlier index than server_tool_use /
+    // web_search_tool_result in the same turn.  The raw streaming format that
+    // triggers this is captured in:
+    //   packages/anthropic/src/__fixtures__/anthropic-web-search-with-tool.1.chunks.txt
+    //
+    // When parsed, the AI SDK represents the response as the `role: 'assistant'`
+    // content below (tool-call for save_results at index 1, server tool-call
+    // and tool-result for web_search at indices 2-3).  This prompt is what
+    // `convertToAnthropicMessagesPrompt` receives when building the next turn.
+    //
+    // The Anthropic API then rejects the request with
+    // "tool_use ids were found without tool_result blocks immediately after"
+    // unless tool_use appears LAST in the assistant message content.
+    // This test verifies the reordering fix.
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Search and save news.' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: "I'll search and call the schema tool." },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_01Regular',
+              toolName: 'get_table_schema',
+              input: {},
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'srvtoolu_01Web',
+              toolName: 'web_search',
+              input: { query: 'news' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'srvtoolu_01Web',
+              toolName: 'web_search',
+              output: {
+                type: 'json',
+                value: [
+                  {
+                    type: 'web_search_result',
+                    url: 'https://example.com',
+                    title: 'News',
+                    pageAge: '1h',
+                    encryptedContent: 'enc123',
+                  },
+                ],
+              },
+              providerExecuted: true,
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_01Regular',
+              toolName: 'get_table_schema',
+              output: { type: 'json', value: { columns: [] } },
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    const assistantMsg = result.prompt.messages.find(
+      m => m.role === 'assistant',
+    );
+    expect(assistantMsg).toBeDefined();
+
+    const types = (assistantMsg!.content as Array<{ type: string }>).map(
+      c => c.type,
+    );
+
+    // server_tool_use and web_search_tool_result must come BEFORE tool_use
+    const toolUseIdx = types.indexOf('tool_use');
+    const serverToolUseIdx = types.indexOf('server_tool_use');
+    const webSearchResultIdx = types.indexOf('web_search_tool_result');
+
+    expect(toolUseIdx).toBeGreaterThan(-1);
+    expect(serverToolUseIdx).toBeGreaterThan(-1);
+    expect(webSearchResultIdx).toBeGreaterThan(-1);
+    expect(serverToolUseIdx).toBeLessThan(toolUseIdx);
+    expect(webSearchResultIdx).toBeLessThan(toolUseIdx);
+  });
 });

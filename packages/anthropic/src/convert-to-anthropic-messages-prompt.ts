@@ -1053,7 +1053,37 @@ export async function convertToAnthropicMessagesPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        // Reorder assistant content so server_tool_use + web_search_tool_result
+        // blocks appear before regular tool_use blocks. The Anthropic API
+        // requires that tool_use items (which have their tool_result in the
+        // subsequent user message) come last in the assistant turn content.
+        // When both server-side tools (web_search, code_execution) and regular
+        // tools are called in the same turn, preserving insertion order would
+        // place server_tool_use / web_search_tool_result after tool_use,
+        // causing "tool_use ids were found without tool_result blocks
+        // immediately after" errors from the API.
+        const serverToolTypes = new Set([
+          'server_tool_use',
+          'web_search_tool_result',
+          'mcp_tool_use',
+          'mcp_tool_result',
+          'code_execution_tool_result',
+        ]);
+        const hasRegularToolUse = anthropicContent.some(
+          c => c.type === 'tool_use',
+        );
+        const hasServerTool = anthropicContent.some(c =>
+          serverToolTypes.has(c.type),
+        );
+        const orderedContent =
+          hasRegularToolUse && hasServerTool
+            ? [
+                ...anthropicContent.filter(c => c.type !== 'tool_use'),
+                ...anthropicContent.filter(c => c.type === 'tool_use'),
+              ]
+            : anthropicContent;
+
+        messages.push({ role: 'assistant', content: orderedContent });
 
         break;
       }
