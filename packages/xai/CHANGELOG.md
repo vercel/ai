@@ -1,5 +1,30 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+  - @ai-sdk/openai-compatible@3.0.0-beta.15
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.14
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- f51c95e: feat(provider/xai): add video extension and reference-to-video (R2V) support
+
 ## 4.0.0-beta.21
 
 ### Patch Changes

@@ -9,7 +9,9 @@ import {
 import {
   convertBase64ToUint8Array,
   convertToBase64,
+  isProviderReference,
   parseProviderOptions,
+  resolveProviderReference,
   validateTypes,
   isNonNullable,
   ToolNameMapping,
@@ -183,7 +185,27 @@ export async function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'file': {
-                    if (part.mediaType.startsWith('image/')) {
+                    if (isProviderReference(part.data)) {
+                      const fileId = resolveProviderReference({
+                        reference: part.data,
+                        provider: 'anthropic',
+                      });
+                      betas.add('files-api-2025-04-14');
+
+                      if (part.mediaType.startsWith('image/')) {
+                        anthropicContent.push({
+                          type: 'image',
+                          source: { type: 'file', file_id: fileId },
+                          cache_control: cacheControl,
+                        });
+                      } else {
+                        anthropicContent.push({
+                          type: 'document',
+                          source: { type: 'file', file_id: fileId },
+                          cache_control: cacheControl,
+                        });
+                      }
+                    } else if (part.mediaType.startsWith('image/')) {
                       anthropicContent.push({
                         type: 'image',
                         source: isUrlData(part.data)

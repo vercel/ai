@@ -221,6 +221,7 @@ export async function streamModelCall<
     },
     supportedUrls: await resolvedModel.supportedUrls,
     download,
+    provider: resolvedModel.provider.split('.')[0],
   });
 
   const stepTools = await prepareTools({

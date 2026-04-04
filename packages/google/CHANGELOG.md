@@ -1,5 +1,34 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- a05109d: feat(provider/google): preserve per-modality token details in usage data
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- 55db546: fix(provider/google): fix Gemini service tier enum after upstream update
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
 ## 4.0.0-beta.22
 
 ### Patch Changes

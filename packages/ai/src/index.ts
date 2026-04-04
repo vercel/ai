@@ -40,6 +40,7 @@ export * from './text-stream';
 export * from './transcribe';
 export * from './types';
 export * from './ui';
+export * from './upload-file';
 export * from './ui-message-stream';
 export * from './util';
 export * from './telemetry';

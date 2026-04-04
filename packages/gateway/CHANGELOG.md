@@ -1,5 +1,33 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- 71b0e7d: feat (provider/gateway): add hipaaCompliant gateway provider option
+
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 11746ca: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
 ## 4.0.0-beta.30
 
 ### Patch Changes

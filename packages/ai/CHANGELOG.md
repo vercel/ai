@@ -1,5 +1,39 @@
 # ai
 
+## 7.0.0-beta.64
+
+### Patch Changes
+
+- Updated dependencies [71b0e7d]
+  - @ai-sdk/gateway@4.0.0-beta.34
+
+## 7.0.0-beta.63
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+  - @ai-sdk/gateway@4.0.0-beta.33
+
+## 7.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [11746ca]
+  - @ai-sdk/gateway@4.0.0-beta.32
+
+## 7.0.0-beta.61
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+  - @ai-sdk/gateway@4.0.0-beta.31
+
 ## 7.0.0-beta.60
 
 ### Patch Changes
