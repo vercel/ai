@@ -4,6 +4,7 @@ import {
   SharedV4ProviderOptions,
   SharedV4Warning,
 } from '@ai-sdk/provider';
+import { toCamelCase } from '../to-camel-case';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -200,6 +201,3 @@ async function fileToBlob(file: ImageModelV4File): Promise<Blob> {
   return new Blob([data as BlobPart], { type: file.mediaType });
 }
 
-function toCamelCase(str: string): string {
-  return str.replace(/[_-]([a-z])/g, g => g[1].toUpperCase());
-}

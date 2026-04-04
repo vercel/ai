@@ -26,6 +26,7 @@ import {
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { toCamelCase } from '../to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
@@ -156,6 +157,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         providerOptions,
         schema: openaiCompatibleLanguageModelChatOptions,
       })) ?? {},
+      (await parseProviderOptions({
+        provider: toCamelCase(this.providerOptionsName),
+        providerOptions,
+        schema: openaiCompatibleLanguageModelChatOptions,
+      })) ?? {},
     );
 
     const strictJsonSchema = compatibleOptions?.strictJsonSchema ?? true;
@@ -219,9 +225,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         stop: stopSequences,
         seed,
         ...Object.fromEntries(
-          Object.entries(
-            providerOptions?.[this.providerOptionsName] ?? {},
-          ).filter(
+          Object.entries({
+            ...providerOptions?.[this.providerOptionsName],
+            ...providerOptions?.[toCamelCase(this.providerOptionsName)],
+          }).filter(
             ([key]) =>
               !Object.keys(
                 openaiCompatibleLanguageModelChatOptions.shape,
