@@ -420,7 +420,7 @@ async function downloadAssets(
 
     .filter(
       (part): part is { mediaType: string | undefined; data: URL } =>
-        part.data instanceof URL,
+        part.data instanceof URL && part.data.protocol !== 'data:',
     )
     .map(part => ({
       url: part.data,
