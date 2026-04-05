@@ -25,17 +25,10 @@ Here is the breakdown: st**r**awbe**rr**y.",
       "groundingMetadata": null,
       "promptFeedback": null,
       "safetyRatings": null,
-      "serviceTier": null,
       "urlContextMetadata": null,
       "usageMetadata": {
         "candidatesTokenCount": 29,
         "promptTokenCount": 9,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 9,
-          },
-        ],
         "thoughtsTokenCount": 258,
         "totalTokenCount": 296,
       },
@@ -70,7 +63,6 @@ Here is the breakdown: st**r**awbe**rr**y.",
       },
       "labels": undefined,
       "safetySettings": undefined,
-      "serviceTier": undefined,
       "systemInstruction": undefined,
       "toolConfig": undefined,
       "tools": undefined,
@@ -130,12 +122,6 @@ Here is the breakdown: st**r**awbe**rr**y.",
     "raw": {
       "candidatesTokenCount": 29,
       "promptTokenCount": 9,
-      "promptTokensDetails": [
-        {
-          "modality": "TEXT",
-          "tokenCount": 9,
-        },
-      ],
       "thoughtsTokenCount": 258,
       "totalTokenCount": 296,
     },
@@ -169,17 +155,10 @@ Here is the breakdown: st**r**awbe**rr**y.",
       "groundingMetadata": null,
       "promptFeedback": null,
       "safetyRatings": null,
-      "serviceTier": null,
       "urlContextMetadata": null,
       "usageMetadata": {
         "candidatesTokenCount": 28,
         "promptTokenCount": 9,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 9,
-          },
-        ],
         "thoughtsTokenCount": 244,
         "totalTokenCount": 281,
       },
@@ -214,7 +193,6 @@ Here is the breakdown: st**r**awbe**rr**y.",
       },
       "labels": undefined,
       "safetySettings": undefined,
-      "serviceTier": undefined,
       "systemInstruction": undefined,
       "toolConfig": undefined,
       "tools": undefined,
@@ -274,12 +252,6 @@ Here is the breakdown: st**r**awbe**rr**y.",
     "raw": {
       "candidatesTokenCount": 28,
       "promptTokenCount": 9,
-      "promptTokensDetails": [
-        {
-          "modality": "TEXT",
-          "tokenCount": 9,
-        },
-      ],
       "thoughtsTokenCount": 244,
       "totalTokenCount": 281,
     },
@@ -304,12 +276,6 @@ exports[`doGenerate > text > should extract usage 1`] = `
   "raw": {
     "candidatesTokenCount": 28,
     "promptTokenCount": 9,
-    "promptTokensDetails": [
-      {
-        "modality": "TEXT",
-        "tokenCount": 9,
-      },
-    ],
     "thoughtsTokenCount": 244,
     "totalTokenCount": 281,
   },
@@ -341,17 +307,10 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
       "groundingMetadata": null,
       "promptFeedback": null,
       "safetyRatings": null,
-      "serviceTier": null,
       "urlContextMetadata": null,
       "usageMetadata": {
         "candidatesTokenCount": 15,
         "promptTokenCount": 29,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 29,
-          },
-        ],
         "thoughtsTokenCount": 893,
         "totalTokenCount": 937,
       },
@@ -386,7 +345,6 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
       },
       "labels": undefined,
       "safetySettings": undefined,
-      "serviceTier": undefined,
       "systemInstruction": undefined,
       "toolConfig": undefined,
       "tools": [
@@ -470,12 +428,6 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
     "raw": {
       "candidatesTokenCount": 15,
       "promptTokenCount": 29,
-      "promptTokensDetails": [
-        {
-          "modality": "TEXT",
-          "tokenCount": 29,
-        },
-      ],
       "thoughtsTokenCount": 893,
       "totalTokenCount": 937,
     },
@@ -509,17 +461,10 @@ exports[`doGenerate > tool-call-gemini3 > should extract tool call with thoughtS
       "groundingMetadata": null,
       "promptFeedback": null,
       "safetyRatings": null,
-      "serviceTier": null,
       "urlContextMetadata": null,
       "usageMetadata": {
         "candidatesTokenCount": 15,
         "promptTokenCount": 29,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 29,
-          },
-        ],
         "thoughtsTokenCount": 1801,
         "totalTokenCount": 1845,
       },
@@ -554,7 +499,6 @@ exports[`doGenerate > tool-call-gemini3 > should extract tool call with thoughtS
       },
       "labels": undefined,
       "safetySettings": undefined,
-      "serviceTier": undefined,
       "systemInstruction": undefined,
       "toolConfig": undefined,
       "tools": undefined,
@@ -618,12 +562,6 @@ exports[`doGenerate > tool-call-gemini3 > should extract tool call with thoughtS
     "raw": {
       "candidatesTokenCount": 15,
       "promptTokenCount": 29,
-      "promptTokensDetails": [
-        {
-          "modality": "TEXT",
-          "tokenCount": 29,
-        },
-      ],
       "thoughtsTokenCount": 1801,
       "totalTokenCount": 1845,
     },
@@ -682,17 +620,10 @@ Here is the breakdown: st**r**awbe**rr**y.",
         "groundingMetadata": null,
         "promptFeedback": null,
         "safetyRatings": null,
-        "serviceTier": null,
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 29,
           "promptTokenCount": 9,
-          "promptTokensDetails": [
-            {
-              "modality": "TEXT",
-              "tokenCount": 9,
-            },
-          ],
           "thoughtsTokenCount": 256,
           "totalTokenCount": 294,
         },
@@ -714,12 +645,6 @@ Here is the breakdown: st**r**awbe**rr**y.",
       "raw": {
         "candidatesTokenCount": 29,
         "promptTokenCount": 9,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 9,
-          },
-        ],
         "thoughtsTokenCount": 256,
         "totalTokenCount": 294,
       },
@@ -778,17 +703,10 @@ exports[`doStream > reasoning-gemini3 > should stream reasoning with thoughtSign
         "groundingMetadata": null,
         "promptFeedback": null,
         "safetyRatings": null,
-        "serviceTier": null,
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 23,
           "promptTokenCount": 9,
-          "promptTokensDetails": [
-            {
-              "modality": "TEXT",
-              "tokenCount": 9,
-            },
-          ],
           "thoughtsTokenCount": 302,
           "totalTokenCount": 334,
         },
@@ -810,12 +728,6 @@ exports[`doStream > reasoning-gemini3 > should stream reasoning with thoughtSign
       "raw": {
         "candidatesTokenCount": 23,
         "promptTokenCount": 9,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 9,
-          },
-        ],
         "thoughtsTokenCount": 302,
         "totalTokenCount": 334,
       },
@@ -979,17 +891,10 @@ st**r**awbe**rr**y",
         "groundingMetadata": null,
         "promptFeedback": null,
         "safetyRatings": null,
-        "serviceTier": null,
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 23,
           "promptTokenCount": 9,
-          "promptTokensDetails": [
-            {
-              "modality": "TEXT",
-              "tokenCount": 9,
-            },
-          ],
           "thoughtsTokenCount": 185,
           "totalTokenCount": 217,
         },
@@ -1011,12 +916,6 @@ st**r**awbe**rr**y",
       "raw": {
         "candidatesTokenCount": 23,
         "promptTokenCount": 9,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 9,
-          },
-        ],
         "thoughtsTokenCount": 185,
         "totalTokenCount": 217,
       },
@@ -1082,17 +981,10 @@ exports[`doStream > tool-call > should stream tool call 1`] = `
         "groundingMetadata": null,
         "promptFeedback": null,
         "safetyRatings": null,
-        "serviceTier": null,
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 15,
           "promptTokenCount": 29,
-          "promptTokensDetails": [
-            {
-              "modality": "TEXT",
-              "tokenCount": 29,
-            },
-          ],
           "thoughtsTokenCount": 45,
           "totalTokenCount": 89,
         },
@@ -1114,12 +1006,6 @@ exports[`doStream > tool-call > should stream tool call 1`] = `
       "raw": {
         "candidatesTokenCount": 15,
         "promptTokenCount": 29,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 29,
-          },
-        ],
         "thoughtsTokenCount": 45,
         "totalTokenCount": 89,
       },
@@ -1185,17 +1071,10 @@ exports[`doStream > tool-call-gemini3 > should stream tool call with thoughtSign
         "groundingMetadata": null,
         "promptFeedback": null,
         "safetyRatings": null,
-        "serviceTier": null,
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 15,
           "promptTokenCount": 29,
-          "promptTokensDetails": [
-            {
-              "modality": "TEXT",
-              "tokenCount": 29,
-            },
-          ],
           "thoughtsTokenCount": 804,
           "totalTokenCount": 848,
         },
@@ -1217,12 +1096,6 @@ exports[`doStream > tool-call-gemini3 > should stream tool call with thoughtSign
       "raw": {
         "candidatesTokenCount": 15,
         "promptTokenCount": 29,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 29,
-          },
-        ],
         "thoughtsTokenCount": 804,
         "totalTokenCount": 848,
       },
