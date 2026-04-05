@@ -53,25 +53,29 @@ export async function convertToOpenResponsesInput({
                 });
               }
 
-              if (!part.mediaType.startsWith('image/')) {
-                warnings.push({
-                  type: 'other',
-                  message: `unsupported file content type: ${part.mediaType}`,
+              if (part.mediaType.startsWith('image/')) {
+                const mediaType =
+                  part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
+
+                userContent.push({
+                  type: 'input_image',
+                  ...(part.data instanceof URL
+                    ? { image_url: part.data.toString() }
+                    : {
+                        image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
+                      }),
                 });
-                break;
+              } else {
+                userContent.push({
+                  type: 'input_file',
+                  ...(part.data instanceof URL
+                    ? { file_url: part.data.toString() }
+                    : {
+                        filename: part.filename ?? 'data',
+                        file_data: `data:${part.mediaType};base64,${convertToBase64(part.data)}`,
+                      }),
+                });
               }
-
-              const mediaType =
-                part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
-
-              userContent.push({
-                type: 'input_image',
-                ...(part.data instanceof URL
-                  ? { image_url: part.data.toString() }
-                  : {
-                      image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
-                    }),
-              });
               break;
             }
           }
