@@ -202,6 +202,16 @@ export type StreamTextOnAbortCallback<
    * Details for all previously finished steps.
    */
   readonly steps: StepResult<TOOLS, CONTEXT>[];
+  /**
+   * Token usage for the current (aborted) step.
+   * undefined if the provider had not yet sent usage data before the abort.
+   */
+  readonly usage?: LanguageModelUsage;
+  /**
+   * Aggregated token usage across all completed steps plus the current step.
+   * undefined if no usage data was received before the abort.
+   */
+  readonly totalUsage?: LanguageModelUsage;
 }) => PromiseLike<void> | void;
 
 /**
@@ -878,6 +888,8 @@ class DefaultStreamTextResult<
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedRawFinishReason: string | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
+    let currentStepUsage: LanguageModelUsage | undefined = undefined;
+    let completedStepsUsage: LanguageModelUsage | undefined = undefined;
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS, CONTEXT>[] = [];
@@ -1221,7 +1233,18 @@ class DefaultStreamTextResult<
       async pull(controller) {
         // abort handling:
         function abort() {
-          onAbort?.({ steps: recordedSteps });
+          const totalUsage =
+            currentStepUsage != null || completedStepsUsage != null
+              ? addLanguageModelUsage(
+                  completedStepsUsage ?? createNullLanguageModelUsage(),
+                  currentStepUsage ?? createNullLanguageModelUsage(),
+                )
+              : undefined;
+          onAbort?.({
+            steps: recordedSteps,
+            usage: currentStepUsage,
+            totalUsage,
+          });
           controller.enqueue({
             type: 'abort',
             // The `reason` is usually of type DOMException, but it can also be of any type,
@@ -1828,6 +1851,7 @@ class DefaultStreamTextResult<
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;
+                      currentStepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
@@ -1902,6 +1926,10 @@ class DefaultStreamTextResult<
                   });
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
+
+                  // track cumulative usage of completed steps for the onAbort callback:
+                  completedStepsUsage = combinedUsage;
+                  currentStepUsage = undefined;
 
                   // wait for the step to be fully processed by the event processor
                   // to ensure that the recorded steps are complete:

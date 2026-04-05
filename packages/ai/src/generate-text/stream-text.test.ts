@@ -17009,6 +17009,8 @@ describe('streamText', () => {
           [
             {
               "steps": [],
+              "totalUsage": undefined,
+              "usage": undefined,
             },
           ]
         `);
@@ -17325,6 +17327,23 @@ describe('streamText', () => {
                   "warnings": [],
                 },
               ],
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "usage": undefined,
             },
           ]
         `);
@@ -17558,6 +17577,39 @@ describe('streamText', () => {
           [
             {
               "steps": [],
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "raw": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
             },
           ]
         `);
@@ -17592,6 +17644,302 @@ describe('streamText', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('onAbort usage data', () => {
+      it('should have undefined usage and totalUsage when abort fires before provider sends usage', async () => {
+        const abortController = new AbortController();
+        let pullCalls = 0;
+        const onAbortCalls: Array<any> = [];
+
+        const result = streamText({
+          abortSignal: abortController.signal,
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                pull(controller) {
+                  switch (pullCalls++) {
+                    case 0:
+                      controller.enqueue({
+                        type: 'stream-start',
+                        warnings: [],
+                      });
+                      break;
+                    case 1:
+                      controller.enqueue({ type: 'text-start', id: '1' });
+                      break;
+                    case 2:
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Hello',
+                      });
+                      break;
+                    case 3:
+                      // abort WITHOUT sending a finish/usage chunk
+                      abortController.abort();
+                      controller.error(
+                        new DOMException(
+                          'The user aborted a request.',
+                          'AbortError',
+                        ),
+                      );
+                      break;
+                  }
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls[0].usage).toMatchInlineSnapshot(`undefined`);
+        expect(onAbortCalls[0].totalUsage).toMatchInlineSnapshot(`undefined`);
+      });
+
+      it('should have real usage and totalUsage when provider sent usage before abort', async () => {
+        const abortController = new AbortController();
+        let pullCalls = 0;
+        const onAbortCalls: Array<any> = [];
+
+        const result = streamText({
+          abortSignal: abortController.signal,
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                pull(controller) {
+                  switch (pullCalls++) {
+                    case 0:
+                      controller.enqueue({
+                        type: 'stream-start',
+                        warnings: [],
+                      });
+                      break;
+                    case 1:
+                      controller.enqueue({ type: 'text-start', id: '1' });
+                      break;
+                    case 2:
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Hello',
+                      });
+                      break;
+                    case 3:
+                      // send finish (with real usage) BEFORE abort fires
+                      controller.enqueue({
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      });
+                      break;
+                    case 4:
+                      // now abort — usage was already recorded
+                      abortController.abort();
+                      controller.error(
+                        new DOMException(
+                          'The user aborted a request.',
+                          'AbortError',
+                        ),
+                      );
+                      break;
+                  }
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls[0].usage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
+        expect(onAbortCalls[0].totalUsage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
+      });
+
+      it('should aggregate usage across steps on multi-step abort', async () => {
+        const abortController = new AbortController();
+        let pullCalls = 0;
+        let streamCalls = 0;
+        const onAbortCalls: Array<any> = [];
+
+        const result = streamText({
+          abortSignal: abortController.signal,
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start() {
+                  streamCalls++;
+                  pullCalls = 0;
+                },
+                pull(controller) {
+                  if (streamCalls === 1) {
+                    // step 1: completes naturally with usage
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: 'call-1',
+                          toolName: 'tool1',
+                          input: `{ "value": "value" }`,
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'finish',
+                          finishReason: {
+                            unified: 'tool-calls',
+                            raw: undefined,
+                          },
+                          usage: testUsage,
+                        });
+                        controller.close();
+                        break;
+                    }
+                  } else {
+                    // step 2: sends usage then aborts
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({ type: 'text-start', id: '1' });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: '1',
+                          delta: 'Hello',
+                        });
+                        break;
+                      case 3:
+                        // step 2 sends usage before abort
+                        controller.enqueue({
+                          type: 'finish',
+                          finishReason: { unified: 'stop', raw: 'stop' },
+                          usage: testUsage2,
+                        });
+                        break;
+                      case 4:
+                        abortController.abort();
+                        controller.error(
+                          new DOMException(
+                            'The user aborted a request.',
+                            'AbortError',
+                          ),
+                        );
+                        break;
+                    }
+                  }
+                },
+              }),
+            }),
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            },
+          },
+          stopWhen: isStepCount(3),
+          ...defaultSettings(),
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls[0].usage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": 0,
+            "inputTokenDetails": {
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 0,
+              "noCacheTokens": 3,
+            },
+            "inputTokens": 3,
+            "outputTokenDetails": {
+              "reasoningTokens": 10,
+              "textTokens": 10,
+            },
+            "outputTokens": 10,
+            "raw": undefined,
+            "reasoningTokens": 10,
+            "totalTokens": 13,
+          }
+        `);
+        expect(onAbortCalls[0].totalUsage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": 0,
+            "inputTokenDetails": {
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 0,
+              "noCacheTokens": 6,
+            },
+            "inputTokens": 6,
+            "outputTokenDetails": {
+              "reasoningTokens": 10,
+              "textTokens": 20,
+            },
+            "outputTokens": 20,
+            "reasoningTokens": 10,
+            "totalTokens": 26,
+          }
+        `);
       });
     });
   });

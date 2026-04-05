@@ -1799,6 +1799,18 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'Array<StepResult>',
               description: 'Details for all previously finished steps.',
             },
+            {
+              name: 'usage',
+              type: 'LanguageModelUsage | undefined',
+              description:
+                'Token usage for the current (aborted) step. undefined if the provider had not yet sent usage data before the abort.',
+            },
+            {
+              name: 'totalUsage',
+              type: 'LanguageModelUsage | undefined',
+              description:
+                'Aggregated token usage across all completed steps plus the current step. undefined if no usage data was received before the abort.',
+            },
           ],
         },
       ],
