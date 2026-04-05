@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.71
+
+### Patch Changes
+
+- 6b4ceaa: feat (provider/gateway): add hipaaCompliant gateway provider option
+
 ## 2.0.70
 
 ### Patch Changes
