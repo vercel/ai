@@ -255,10 +255,14 @@ export function createBedrockAnthropic(
       headers: getHeaders,
       fetch: fetchFunction,
 
-      buildRequestUrl: (baseURL, isStreaming) =>
-        `${baseURL}/model/${encodeURIComponent(modelId)}/${
+      buildRequestUrl: (baseURL, isStreaming) => {
+        const encodedModelId = modelId.startsWith('arn:')
+          ? modelId
+          : encodeURIComponent(modelId);
+        return `${baseURL}/model/${encodedModelId}/${
           isStreaming ? 'invoke-with-response-stream' : 'invoke'
-        }`,
+        }`;
+      },
 
       transformRequestBody: (args, betas) => {
         const { model, stream, tool_choice, tools, ...rest } = args;
