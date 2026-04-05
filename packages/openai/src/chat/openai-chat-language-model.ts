@@ -546,6 +546,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
               providerMetadata.openai.logprobs = choice.logprobs.content;
             }
 
+            // Emit finish chunk early when usage data arrives so it is available
+            // if the stream is aborted before it closes naturally.
+            // Must be before the `choice?.delta == null` guard because OpenAI
+            // sends usage in a chunk with empty choices (no delta).
+            if (value.usage != null && !finishSent) {
+              controller.enqueue({
+                type: 'finish',
+                finishReason,
+                usage: convertOpenAIChatUsage(usage!),
+                ...(providerMetadata != null ? { providerMetadata } : {}),
+              });
+              finishSent = true;
+            }
+
             if (choice?.delta == null) {
               return;
             }
@@ -582,18 +596,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
                   title: annotation.url_citation.title,
                 });
               }
-            }
-
-            // Emit finish chunk early when usage data arrives so it is available
-            // if the stream is aborted before it closes naturally.
-            if (value.usage != null && !finishSent) {
-              controller.enqueue({
-                type: 'finish',
-                finishReason,
-                usage: convertOpenAIChatUsage(usage!),
-                ...(providerMetadata != null ? { providerMetadata } : {}),
-              });
-              finishSent = true;
             }
           },
 
