@@ -17008,6 +17008,13 @@ describe('streamText', () => {
         expect(onAbortCalls).toMatchInlineSnapshot(`
           [
             {
+              "inputMessages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "partialText": undefined,
               "steps": [],
               "totalUsage": undefined,
               "usage": undefined,
@@ -17232,6 +17239,42 @@ describe('streamText', () => {
         expect(onAbortCalls).toMatchInlineSnapshot(`
           [
             {
+              "inputMessages": [
+                {
+                  "content": "prompt",
+                  "role": "user",
+                },
+                {
+                  "content": [
+                    {
+                      "input": {
+                        "value": "value",
+                      },
+                      "providerExecuted": undefined,
+                      "providerOptions": undefined,
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-call",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+                {
+                  "content": [
+                    {
+                      "output": {
+                        "type": "text",
+                        "value": "result1",
+                      },
+                      "toolCallId": "call-1",
+                      "toolName": "tool1",
+                      "type": "tool-result",
+                    },
+                  ],
+                  "role": "tool",
+                },
+              ],
+              "partialText": undefined,
               "steps": [
                 DefaultStepResult {
                   "callId": "test-telemetry-call-id",
@@ -17576,6 +17619,13 @@ describe('streamText', () => {
         expect(onAbortCalls).toMatchInlineSnapshot(`
           [
             {
+              "inputMessages": [
+                {
+                  "content": "prompt",
+                  "role": "user",
+                },
+              ],
+              "partialText": undefined,
               "steps": [],
               "totalUsage": {
                 "cachedInputTokens": undefined,
@@ -17940,6 +17990,281 @@ describe('streamText', () => {
             "totalTokens": 26,
           }
         `);
+      });
+    });
+
+    describe('onAbort inputMessages and partialText', () => {
+      it('should have inputMessages and undefined partialText when abort fires before first chunk', async () => {
+        const abortController = new AbortController();
+        const onAbortCalls: Array<any> = [];
+
+        const result = streamText({
+          abortSignal: abortController.signal,
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start(controller) {
+                  abortController.abort();
+                  controller.error(
+                    new DOMException(
+                      'The user aborted a request.',
+                      'AbortError',
+                    ),
+                  );
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls[0].inputMessages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": "test-input",
+              "role": "user",
+            },
+          ]
+        `);
+        expect(onAbortCalls[0].partialText).toMatchInlineSnapshot(`undefined`);
+      });
+
+      it('should have inputMessages and partialText when abort fires mid-text', async () => {
+        const abortController = new AbortController();
+        let pullCalls = 0;
+        const onAbortCalls: Array<any> = [];
+
+        const result = streamText({
+          abortSignal: abortController.signal,
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                pull(controller) {
+                  switch (pullCalls++) {
+                    case 0:
+                      controller.enqueue({
+                        type: 'stream-start',
+                        warnings: [],
+                      });
+                      break;
+                    case 1:
+                      controller.enqueue({ type: 'text-start', id: '0' });
+                      break;
+                    case 2:
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: '0',
+                        delta: 'Hello ',
+                      });
+                      break;
+                    case 3:
+                      controller.enqueue({
+                        type: 'text-delta',
+                        id: '0',
+                        delta: 'world',
+                      });
+                      break;
+                    case 4:
+                      abortController.abort();
+                      controller.error(
+                        new DOMException(
+                          'The user aborted a request.',
+                          'AbortError',
+                        ),
+                      );
+                      break;
+                  }
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls[0].partialText).toMatchInlineSnapshot(
+          `"Hello world"`,
+        );
+        expect(onAbortCalls[0].inputMessages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": "test-input",
+              "role": "user",
+            },
+          ]
+        `);
+      });
+
+      it('should have undefined partialText when abort fires before any text-delta', async () => {
+        const abortController = new AbortController();
+        let pullCalls = 0;
+        const onAbortCalls: Array<any> = [];
+
+        const result = streamText({
+          abortSignal: abortController.signal,
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                pull(controller) {
+                  switch (pullCalls++) {
+                    case 0:
+                      controller.enqueue({
+                        type: 'stream-start',
+                        warnings: [],
+                      });
+                      break;
+                    case 1:
+                      abortController.abort();
+                      controller.error(
+                        new DOMException(
+                          'The user aborted a request.',
+                          'AbortError',
+                        ),
+                      );
+                      break;
+                  }
+                },
+              }),
+            }),
+          }),
+          prompt: 'test-input',
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls[0].partialText).toMatchInlineSnapshot(`undefined`);
+        expect(onAbortCalls[0].inputMessages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": "test-input",
+              "role": "user",
+            },
+          ]
+        `);
+      });
+
+      it('should include prior step response in inputMessages on multi-step abort', async () => {
+        const abortController = new AbortController();
+        let pullCalls = 0;
+        let streamCalls = 0;
+        const onAbortCalls: Array<any> = [];
+
+        const result = streamText({
+          abortSignal: abortController.signal,
+          onAbort: event => {
+            onAbortCalls.push(event);
+          },
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: new ReadableStream({
+                start() {
+                  streamCalls++;
+                  pullCalls = 0;
+                },
+                pull(controller) {
+                  if (streamCalls === 1) {
+                    // step 1: completes with a tool call
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({
+                          type: 'tool-call',
+                          toolCallId: 'call-1',
+                          toolName: 'tool1',
+                          input: `{ "value": "value" }`,
+                        });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'finish',
+                          finishReason: {
+                            unified: 'tool-calls',
+                            raw: undefined,
+                          },
+                          usage: testUsage,
+                        });
+                        controller.close();
+                        break;
+                    }
+                  } else {
+                    // step 2: streams partial text then aborts
+                    switch (pullCalls++) {
+                      case 0:
+                        controller.enqueue({
+                          type: 'stream-start',
+                          warnings: [],
+                        });
+                        break;
+                      case 1:
+                        controller.enqueue({ type: 'text-start', id: '0' });
+                        break;
+                      case 2:
+                        controller.enqueue({
+                          type: 'text-delta',
+                          id: '0',
+                          delta: 'Partial',
+                        });
+                        break;
+                      case 3:
+                        abortController.abort();
+                        controller.error(
+                          new DOMException(
+                            'The user aborted a request.',
+                            'AbortError',
+                          ),
+                        );
+                        break;
+                    }
+                  }
+                },
+              }),
+            }),
+          }),
+          tools: {
+            tool1: {
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            },
+          },
+          stopWhen: isStepCount(3),
+          ...defaultSettings(),
+        });
+
+        await result.consumeStream();
+
+        expect(onAbortCalls[0].partialText).toMatchInlineSnapshot(`undefined`);
+        // inputMessages for step 2 should include the initial user message
+        // AND the step-1 assistant response (tool call + tool result)
+        expect(onAbortCalls[0].inputMessages.length).toMatchInlineSnapshot(`3`);
+        expect(onAbortCalls[0].inputMessages[0]).toMatchInlineSnapshot(`
+          {
+            "content": "prompt",
+            "role": "user",
+          }
+        `);
+        expect(onAbortCalls[0].inputMessages[1].role).toMatchInlineSnapshot(
+          `"assistant"`,
+        );
+        expect(onAbortCalls[0].inputMessages[2].role).toMatchInlineSnapshot(
+          `"tool"`,
+        );
       });
     });
   });

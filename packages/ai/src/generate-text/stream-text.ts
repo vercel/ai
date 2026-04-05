@@ -9,6 +9,7 @@ import {
   DelayedPromise,
   IdGenerator,
   isAbortError,
+  ModelMessage,
   ProviderOptions,
   ToolApprovalResponse,
   ToolContent,
@@ -212,6 +213,19 @@ export type StreamTextOnAbortCallback<
    * undefined if no usage data was received before the abort.
    */
   readonly totalUsage?: LanguageModelUsage;
+  /**
+   * The input messages for the most recently started step: initial messages
+   * plus all prior completed step response messages. Empty array if abort
+   * fires before the first step starts. Use with your own tokenizer to
+   * estimate prompt token cost when provider usage is unavailable.
+   */
+  readonly inputMessages: ModelMessage[];
+  /**
+   * The text that was actively being streamed in the current step at abort
+   * time. undefined if no text was being streamed. Resets at each step
+   * boundary. Use with your own tokenizer to estimate completion token cost.
+   */
+  readonly partialText?: string;
 }) => PromiseLike<void> | void;
 
 /**
@@ -893,6 +907,7 @@ class DefaultStreamTextResult<
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS, CONTEXT>[] = [];
+    let currentStepInputMessages: ModelMessage[] = [];
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -907,6 +922,9 @@ class DefaultStreamTextResult<
         providerMetadata: ProviderMetadata | undefined;
       }
     > = {};
+
+    // Text accumulated before eventProcessor, used by abort() to report partialText.
+    let pullLevelTextContent: Record<string, string> = {};
 
     let activeReasoningContent: Record<
       string,
@@ -1240,10 +1258,14 @@ class DefaultStreamTextResult<
                   currentStepUsage ?? createNullLanguageModelUsage(),
                 )
               : undefined;
+          const partialText =
+            Object.values(pullLevelTextContent).join('') || undefined;
           onAbort?.({
             steps: recordedSteps,
             usage: currentStepUsage,
             totalUsage,
+            inputMessages: currentStepInputMessages,
+            partialText,
           });
           controller.enqueue({
             type: 'abort',
@@ -1588,6 +1610,7 @@ class DefaultStreamTextResult<
           stepFinish = new DelayedPromise<void>();
 
           const stepInputMessages = [...initialMessages, ...responseMessages];
+          currentStepInputMessages = stepInputMessages;
 
           const prepareStepResult = await prepareStep?.({
             model,
@@ -1760,6 +1783,8 @@ class DefaultStreamTextResult<
                     const msToFirstChunk = now() - stepStartTimestampMs;
                     stepFirstChunk = false;
 
+                    pullLevelTextContent = {};
+
                     // Step start:
                     controller.enqueue({
                       type: 'start-step',
@@ -1785,15 +1810,27 @@ class DefaultStreamTextResult<
 
                   const chunkType = chunk.type;
                   switch (chunkType) {
-                    case 'tool-approval-request':
-                    case 'text-start':
+                    case 'tool-approval-request': {
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
+                    case 'text-start': {
+                      pullLevelTextContent[chunk.id] = '';
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
                     case 'text-end': {
+                      delete pullLevelTextContent[chunk.id];
                       controller.enqueue(chunk);
                       break;
                     }
 
                     case 'text-delta': {
                       if (chunk.text.length > 0) {
+                        pullLevelTextContent[chunk.id] =
+                          (pullLevelTextContent[chunk.id] ?? '') + chunk.text;
                         controller.enqueue(chunk);
                       }
                       break;

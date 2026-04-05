@@ -1811,6 +1811,18 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Aggregated token usage across all completed steps plus the current step. undefined if no usage data was received before the abort.',
             },
+            {
+              name: 'inputMessages',
+              type: 'ModelMessage[]',
+              description:
+                'The input messages for the current step, including initial messages and all prior step responses. Empty array if abort fires before the first step starts.',
+            },
+            {
+              name: 'partialText',
+              type: 'string | undefined',
+              description:
+                'The text being streamed in the current step at abort time. undefined if no text had been generated. Resets at each step boundary.',
+            },
           ],
         },
       ],
