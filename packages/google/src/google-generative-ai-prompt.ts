@@ -22,7 +22,11 @@ export type GoogleGenerativeAIContent = {
 
 export type GoogleGenerativeAIContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | { inlineData: { mimeType: string; data: string } }
+  | {
+      inlineData: { mimeType: string; data: string };
+      thought?: boolean;
+      thoughtSignature?: string;
+    }
   | { functionCall: { name: string; args: unknown }; thoughtSignature?: string }
   | {
       functionResponse: {
@@ -31,7 +35,11 @@ export type GoogleGenerativeAIContentPart =
         parts?: Array<GoogleGenerativeAIFunctionResponsePart>;
       };
     }
-  | { fileData: { mimeType: string; fileUri: string } }
+  | {
+      fileData: { mimeType: string; fileUri: string };
+      thought?: boolean;
+      thoughtSignature?: string;
+    }
   | {
       toolCall: {
         toolType: string;
