@@ -459,6 +459,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: OpenAIChatUsage | undefined = undefined;
+    let finishSent = false;
     let metadataExtracted = false;
     let isActiveText = false;
 
@@ -582,6 +583,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
                 });
               }
             }
+
+            // Emit finish chunk early when usage data arrives so it is available
+            // if the stream is aborted before it closes naturally.
+            if (value.usage != null && !finishSent) {
+              controller.enqueue({
+                type: 'finish',
+                finishReason,
+                usage: convertOpenAIChatUsage(usage!),
+                ...(providerMetadata != null ? { providerMetadata } : {}),
+              });
+              finishSent = true;
+            }
           },
 
           flush(controller) {
@@ -591,12 +604,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
             toolCallTracker.flush();
 
-            controller.enqueue({
-              type: 'finish',
-              finishReason,
-              usage: convertOpenAIChatUsage(usage),
-              ...(providerMetadata != null ? { providerMetadata } : {}),
-            });
+            if (!finishSent) {
+              controller.enqueue({
+                type: 'finish',
+                finishReason,
+                usage: convertOpenAIChatUsage(usage),
+                ...(providerMetadata != null ? { providerMetadata } : {}),
+              });
+              finishSent = true;
+            }
           },
         }),
       ),
