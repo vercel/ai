@@ -7,6 +7,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.0-flash'
   | 'gemini-2.0-flash-001'
   | 'gemini-2.0-flash-lite'
+  | 'gemini-2.0-flash-exp-image-generation'
   | 'gemini-2.0-flash-lite-001'
   | 'gemini-2.5-pro'
   | 'gemini-2.5-flash'
@@ -77,6 +78,16 @@ export const googleLanguageModelOptions = lazySchema(() =>
        * structured outputs if you need to.
        */
       structuredOutputs: z.boolean().optional(),
+
+      /**
+       * When using both response schema and tools, how to get structured output.
+       * - `outputFormat`: Use native responseSchema (may fail if model rejects schema+tools).
+       * - `jsonTool`: Use a synthetic 'json' tool as fallback.
+       * - `auto`: Use native when the model supports schema+tools, otherwise jsonTool (default).
+       */
+      structuredOutputMode: z
+        .enum(['outputFormat', 'jsonTool', 'auto'])
+        .optional(),
 
       /**
        * Optional. A list of unique safety settings for blocking unsafe content.
@@ -188,11 +199,6 @@ export const googleLanguageModelOptions = lazySchema(() =>
             .optional(),
         })
         .optional(),
-
-      /**
-       * Optional. The service tier to use for the request.
-       */
-      serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
     }),
   ),
 );

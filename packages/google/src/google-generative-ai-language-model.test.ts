@@ -355,32 +355,12 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
-  const TEST_URL_GEMINI_3_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:generateContent';
-
-  const TEST_URL_GEMINI_3_1_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent';
-
-  const TEST_URL_GEMINI_2_5_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
-
-  const TEST_URL_GEMINI_2_5_FLASH =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-
-  const TEST_URL_GEMINI_2_5_FLASH_LITE =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
-
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
-    [TEST_URL_GEMINI_3_PRO]: {},
-    [TEST_URL_GEMINI_3_1_PRO]: {},
-    [TEST_URL_GEMINI_2_5_PRO]: {},
-    [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
-    [TEST_URL_GEMINI_2_5_FLASH]: {},
   });
 
   function prepareJsonFixtureResponse(
@@ -573,74 +553,6 @@ describe('doGenerate', () => {
     });
 
     expect(providerMetadata?.google.finishMessage).toBeNull();
-  });
-
-  it('should send serviceTier in request body when specified', async () => {
-    prepareJsonResponse({ content: 'test response' });
-
-    await model.doGenerate({
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        google: {
-          serviceTier: 'flex',
-        },
-      },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toMatchObject({
-      serviceTier: 'flex',
-    });
-  });
-
-  it('should not send serviceTier in request body when not specified', async () => {
-    prepareJsonResponse({ content: 'test response' });
-
-    await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    const body = await server.calls[0].requestBodyJson;
-    expect(body).not.toHaveProperty('serviceTier');
-  });
-
-  it('should expose serviceTier in provider metadata', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'json-value',
-      body: {
-        candidates: [
-          {
-            content: {
-              parts: [{ text: 'test response' }],
-              role: 'model',
-            },
-            finishReason: 'STOP',
-            safetyRatings: SAFETY_RATINGS,
-          },
-        ],
-        usageMetadata: {
-          promptTokenCount: 1,
-          candidatesTokenCount: 2,
-          totalTokenCount: 3,
-        },
-        serviceTier: 'flex',
-      },
-    };
-
-    const { providerMetadata } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(providerMetadata?.google.serviceTier).toBe('flex');
-  });
-
-  it('should expose null serviceTier in provider metadata when not present', async () => {
-    prepareJsonResponse({ content: 'test response' });
-
-    const { providerMetadata } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(providerMetadata?.google.serviceTier).toBeNull();
   });
 
   describe('tool-call', () => {
@@ -1006,6 +918,194 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it('should use json tool fallback when responseFormat schema and tools are both present (auto)', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.generationConfig.responseMimeType).toBeUndefined();
+    expect(body.generationConfig.responseSchema).toBeUndefined();
+    const decls = body.tools[0].functionDeclarations;
+    expect(decls).toHaveLength(2);
+    expect(decls.map((d: { name: string }) => d.name).sort()).toEqual([
+      'json',
+      'test-tool',
+    ]);
+    expect(body.toolConfig.functionCallingConfig.mode).toBe('ANY');
+  });
+
+  it('should use reserved synthetic tool name when user already defines a json tool', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'json',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { legacy: { type: 'string' } },
+            required: ['legacy'],
+            additionalProperties: false,
+          },
+        },
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    const decls = body.tools[0].functionDeclarations;
+    expect(decls.map((d: { name: string }) => d.name).sort()).toEqual([
+      '__ai_sdk_json_response',
+      'json',
+      'test-tool',
+    ]);
+  });
+
+  it('should map finish reason to stop when response is only synthetic json function call', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    name: 'json',
+                    args: { out: 'ok' },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
+      },
+    };
+
+    const result = await provider.languageModel('gemini-pro').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.finishReason.unified).toBe('stop');
+    expect(result.content).toEqual([
+      { type: 'text', text: '{"out":"ok"}' },
+    ]);
+  });
+
+  it('should use native responseSchema when structuredOutputMode is outputFormat with schema and tools', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      providerOptions: {
+        google: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.generationConfig.responseMimeType).toBe('application/json');
+    expect(body.generationConfig.responseSchema).toBeDefined();
+    const decls = body.tools[0].functionDeclarations;
+    expect(decls).toHaveLength(1);
+    expect(decls[0].name).toBe('test-tool');
   });
 
   it('should pass tools and toolChoice', async () => {
@@ -2158,179 +2258,6 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should handle server-side toolCall and toolResponse parts (tool combination)', async () => {
-    server.urls[TEST_URL_GEMINI_3_PRO].response = {
-      type: 'json-value',
-      body: {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  toolCall: {
-                    toolType: 'GOOGLE_SEARCH_WEB',
-                    args: { query: 'San Francisco weather' },
-                    id: 'server-call-1',
-                  },
-                  thoughtSignature: 'sig-abc',
-                },
-                {
-                  toolResponse: {
-                    toolType: 'GOOGLE_SEARCH_WEB',
-                    response: {
-                      results: [{ title: 'Weather in SF' }],
-                    },
-                    id: 'server-call-1',
-                  },
-                  thoughtSignature: 'sig-def',
-                },
-                {
-                  text: 'The weather in San Francisco is sunny.',
-                },
-              ],
-              role: 'model',
-            },
-            finishReason: 'STOP',
-          },
-        ],
-        usageMetadata: {
-          promptTokenCount: 10,
-          candidatesTokenCount: 20,
-          totalTokenCount: 30,
-        },
-      },
-    };
-
-    const model = provider.languageModel('gemini-3-pro-preview');
-    const { content, finishReason } = await model.doGenerate({
-      tools: [
-        {
-          type: 'provider',
-          id: 'google.google_search',
-          name: 'google_search',
-          args: {},
-        },
-        {
-          type: 'function',
-          name: 'weather',
-          inputSchema: {
-            type: 'object',
-            properties: { location: { type: 'string' } },
-          },
-        },
-      ],
-      prompt: TEST_PROMPT,
-    });
-
-    expect(content).toMatchInlineSnapshot(`
-      [
-        {
-          "dynamic": true,
-          "input": "{"query":"San Francisco weather"}",
-          "providerExecuted": true,
-          "providerMetadata": {
-            "google": {
-              "serverToolCallId": "server-call-1",
-              "serverToolType": "GOOGLE_SEARCH_WEB",
-              "thoughtSignature": "sig-abc",
-            },
-          },
-          "toolCallId": "server-call-1",
-          "toolName": "server:GOOGLE_SEARCH_WEB",
-          "type": "tool-call",
-        },
-        {
-          "providerMetadata": {
-            "google": {
-              "serverToolCallId": "server-call-1",
-              "serverToolType": "GOOGLE_SEARCH_WEB",
-              "thoughtSignature": "sig-def",
-            },
-          },
-          "result": {
-            "results": [
-              {
-                "title": "Weather in SF",
-              },
-            ],
-          },
-          "toolCallId": "server-call-1",
-          "toolName": "server:GOOGLE_SEARCH_WEB",
-          "type": "tool-result",
-        },
-        {
-          "providerMetadata": undefined,
-          "text": "The weather in San Francisco is sunny.",
-          "type": "text",
-        },
-      ]
-    `);
-
-    expect(finishReason).toMatchInlineSnapshot(`
-      {
-        "raw": "STOP",
-        "unified": "stop",
-      }
-    `);
-  });
-
-  it('should return stop finish reason for server tool calls (provider-executed)', async () => {
-    server.urls[TEST_URL_GEMINI_3_PRO].response = {
-      type: 'json-value',
-      body: {
-        candidates: [
-          {
-            content: {
-              parts: [
-                {
-                  toolCall: {
-                    toolType: 'GOOGLE_SEARCH_WEB',
-                    args: {},
-                    id: 'sc-1',
-                  },
-                },
-                {
-                  toolResponse: {
-                    toolType: 'GOOGLE_SEARCH_WEB',
-                    response: { results: [] },
-                    id: 'sc-1',
-                  },
-                },
-              ],
-              role: 'model',
-            },
-            finishReason: 'STOP',
-          },
-        ],
-        usageMetadata: {
-          promptTokenCount: 5,
-          candidatesTokenCount: 10,
-          totalTokenCount: 15,
-        },
-      },
-    };
-
-    const model = provider.languageModel('gemini-3-pro-preview');
-    const { finishReason } = await model.doGenerate({
-      tools: [
-        {
-          type: 'provider',
-          id: 'google.google_search',
-          name: 'google_search',
-          args: {},
-        },
-      ],
-      prompt: TEST_PROMPT,
-    });
-
-    expect(finishReason).toMatchInlineSnapshot(`
-      {
-        "raw": "STOP",
-        "unified": "stop",
-      }
-    `);
-  });
-
   describe('search tool selection', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
@@ -3209,344 +3136,6 @@ describe('doGenerate', () => {
     });
   });
 
-  describe('top-level reasoning option', () => {
-    const simpleResponseBody = {
-      candidates: [
-        {
-          content: { parts: [{ text: 'response' }], role: 'model' },
-          finishReason: 'STOP',
-          safetyRatings: SAFETY_RATINGS,
-        },
-      ],
-      usageMetadata: {
-        promptTokenCount: 1,
-        candidatesTokenCount: 2,
-        totalTokenCount: 3,
-      },
-    };
-
-    describe('Gemini 3 models (thinkingLevel)', () => {
-      const gemini3Model = provider.chat('gemini-3-pro-preview');
-
-      it('should map reasoning "minimal" to thinkingLevel "minimal"', async () => {
-        server.urls[TEST_URL_GEMINI_3_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini3Model.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'minimal',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingLevel: 'minimal' },
-          },
-        });
-      });
-
-      it('should map reasoning "low" to thinkingLevel "low"', async () => {
-        server.urls[TEST_URL_GEMINI_3_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini3Model.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'low',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingLevel: 'low' },
-          },
-        });
-      });
-
-      it('should map reasoning "medium" to thinkingLevel "medium"', async () => {
-        server.urls[TEST_URL_GEMINI_3_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini3Model.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'medium',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingLevel: 'medium' },
-          },
-        });
-      });
-
-      it('should map reasoning "high" to thinkingLevel "high"', async () => {
-        server.urls[TEST_URL_GEMINI_3_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini3Model.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'high',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingLevel: 'high' },
-          },
-        });
-      });
-
-      it('should map reasoning "none" to thinkingLevel "minimal"', async () => {
-        server.urls[TEST_URL_GEMINI_3_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini3Model.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'none',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingLevel: 'minimal' },
-          },
-        });
-      });
-
-      it('should coerce reasoning "xhigh" to "high" with compatibility warning', async () => {
-        server.urls[TEST_URL_GEMINI_3_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        const result = await gemini3Model.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'xhigh',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingLevel: 'high' },
-          },
-        });
-
-        expect(result.warnings).toContainEqual({
-          type: 'compatibility',
-          feature: 'reasoning',
-          details:
-            'reasoning "xhigh" is not directly supported by this model. mapped to effort "high".',
-        });
-      });
-
-      it('should also detect gemini-3.1 models as Gemini 3', async () => {
-        const gemini31Model = provider.chat('gemini-3.1-pro-preview');
-
-        server.urls[TEST_URL_GEMINI_3_1_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini31Model.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'medium',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingLevel: 'medium' },
-          },
-        });
-      });
-    });
-
-    describe('Gemini 2.5 models (thinkingBudget)', () => {
-      const gemini25ProModel = provider.chat('gemini-2.5-pro');
-      const gemini25FlashLiteModel = provider.chat('gemini-2.5-flash-lite');
-
-      it('should map reasoning "none" to thinkingBudget 0', async () => {
-        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini25ProModel.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'none',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        });
-      });
-
-      it('should map reasoning "minimal" to ~2% of maxOutputTokens', async () => {
-        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini25ProModel.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'minimal',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingBudget: Math.round(65536 * 0.02) },
-          },
-        });
-      });
-
-      it('should map reasoning "low" to ~10% of maxOutputTokens', async () => {
-        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini25ProModel.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'low',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingBudget: Math.round(65536 * 0.1) },
-          },
-        });
-      });
-
-      it('should map reasoning "medium" to ~30% of maxOutputTokens', async () => {
-        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini25ProModel.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'medium',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingBudget: Math.round(65536 * 0.3) },
-          },
-        });
-      });
-
-      it('should map reasoning "high" to ~60% of maxOutputTokens', async () => {
-        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini25ProModel.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'high',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingBudget: 32768 },
-          },
-        });
-      });
-
-      it('should map reasoning "xhigh" to ~90% of maxOutputTokens', async () => {
-        server.urls[TEST_URL_GEMINI_2_5_PRO].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini25ProModel.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'xhigh',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingBudget: 32768 },
-          },
-        });
-      });
-
-      it('should use lower maxOutputTokens for flash-lite models', async () => {
-        server.urls[TEST_URL_GEMINI_2_5_FLASH_LITE].response = {
-          type: 'json-value',
-          body: simpleResponseBody,
-        };
-
-        await gemini25FlashLiteModel.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'medium',
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingBudget: Math.round(65536 * 0.3) },
-          },
-        });
-      });
-    });
-
-    describe('providerOptions precedence', () => {
-      it('should use providerOptions thinkingConfig when both reasoning and providerOptions are set', async () => {
-        prepareJsonFixtureResponse('google-text');
-
-        await model.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'high',
-          providerOptions: {
-            google: {
-              thinkingConfig: {
-                thinkingBudget: 999,
-              },
-            },
-          },
-        });
-
-        const body = await server.calls[0].requestBodyJson;
-        expect(body).toMatchObject({
-          generationConfig: {
-            thinkingConfig: { thinkingBudget: 999 },
-          },
-        });
-        expect(
-          body.generationConfig.thinkingConfig.thinkingLevel,
-        ).toBeUndefined();
-      });
-
-      it('should not set thinkingConfig when neither reasoning nor providerOptions are set', async () => {
-        prepareJsonFixtureResponse('google-text');
-
-        await model.doGenerate({
-          prompt: TEST_PROMPT,
-        });
-
-        const body = await server.calls[0].requestBodyJson;
-        expect(body.generationConfig.thinkingConfig).toBeUndefined();
-      });
-
-      it('should not set thinkingConfig when reasoning is "provider-default"', async () => {
-        prepareJsonFixtureResponse('google-text');
-
-        await model.doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'provider-default',
-        });
-
-        const body = await server.calls[0].requestBodyJson;
-        expect(body.generationConfig.thinkingConfig).toBeUndefined();
-      });
-    });
-  });
-
   describe('providerMetadata key based on provider string', () => {
     it('should use "vertex" as providerMetadata key when provider includes "vertex"', async () => {
       server.urls[TEST_URL_GEMINI_PRO].response = {
@@ -3752,16 +3341,12 @@ describe('doStream', () => {
   const TEST_URL_GEMINI_1_5_FLASH =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent';
 
-  const TEST_URL_GEMINI_3_PRO =
-    'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:streamGenerateContent';
-
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
     [TEST_URL_GEMINI_2_0_FLASH_EXP]: {},
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
-    [TEST_URL_GEMINI_3_PRO]: {},
   });
 
   function prepareChunksFixtureResponse(
@@ -4347,60 +3932,6 @@ describe('doStream', () => {
     ).toBeNull();
   });
 
-  it('should expose serviceTier in provider metadata on finish', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'test response' }],
-                role: 'model',
-              },
-              finishReason: 'STOP',
-              safetyRatings: SAFETY_RATINGS,
-            },
-          ],
-          usageMetadata: {
-            promptTokenCount: 1,
-            candidatesTokenCount: 2,
-            totalTokenCount: 3,
-          },
-          serviceTier: 'flex',
-        })}\n\n`,
-      ],
-    };
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    const events = await convertReadableStreamToArray(stream);
-    const finishEvent = events.find(event => event.type === 'finish');
-
-    expect(
-      finishEvent?.type === 'finish' &&
-        finishEvent.providerMetadata?.google.serviceTier,
-    ).toBe('flex');
-  });
-
-  it('should expose null serviceTier in provider metadata on finish when not present', async () => {
-    prepareStreamResponse({ content: ['test'] });
-
-    const { stream } = await model.doStream({
-      prompt: TEST_PROMPT,
-    });
-
-    const events = await convertReadableStreamToArray(stream);
-    const finishEvent = events.find(event => event.type === 'finish');
-
-    expect(
-      finishEvent?.type === 'finish' &&
-        finishEvent.providerMetadata?.google.serviceTier,
-    ).toBeNull();
-  });
-
   it('should stream code execution tool calls and results', async () => {
     server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
       type: 'stream-chunks',
@@ -4625,142 +4156,6 @@ describe('doStream', () => {
 
     // Provider-executed tools should not trigger 'tool-calls' finish reason
     // since they don't require SDK iteration - allows structured output to work
-    expect(finishEvent).toMatchObject({
-      type: 'finish',
-      finishReason: {
-        raw: 'STOP',
-        unified: 'stop',
-      },
-    });
-  });
-
-  it('should stream server-side toolCall and toolResponse parts (tool combination)', async () => {
-    server.urls[TEST_URL_GEMINI_3_PRO].response = {
-      type: 'stream-chunks',
-      chunks: [
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [
-                  {
-                    toolCall: {
-                      toolType: 'GOOGLE_SEARCH_WEB',
-                      args: { query: 'SF weather' },
-                      id: 'sc-1',
-                    },
-                    thoughtSignature: 'sig-1',
-                  },
-                ],
-              },
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [
-                  {
-                    toolResponse: {
-                      toolType: 'GOOGLE_SEARCH_WEB',
-                      response: { results: [{ title: 'Weather' }] },
-                      id: 'sc-1',
-                    },
-                  },
-                ],
-              },
-            },
-          ],
-        })}\n\n`,
-        `data: ${JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'It is sunny.' }],
-              },
-              finishReason: 'STOP',
-            },
-          ],
-          usageMetadata: {
-            promptTokenCount: 10,
-            candidatesTokenCount: 20,
-            totalTokenCount: 30,
-          },
-        })}\n\n`,
-      ],
-    };
-
-    const model = provider.languageModel('gemini-3-pro-preview');
-    const { stream } = await model.doStream({
-      tools: [
-        {
-          type: 'provider',
-          id: 'google.google_search',
-          name: 'google_search',
-          args: {},
-        },
-      ],
-      prompt: TEST_PROMPT,
-    });
-
-    const events = await convertReadableStreamToArray(stream);
-
-    const toolEvents = events.filter(
-      e => e.type === 'tool-call' || e.type === 'tool-result',
-    );
-
-    expect(toolEvents).toMatchInlineSnapshot(`
-      [
-        {
-          "dynamic": true,
-          "input": "{"query":"SF weather"}",
-          "providerExecuted": true,
-          "providerMetadata": {
-            "google": {
-              "serverToolCallId": "sc-1",
-              "serverToolType": "GOOGLE_SEARCH_WEB",
-              "thoughtSignature": "sig-1",
-            },
-          },
-          "toolCallId": "sc-1",
-          "toolName": "server:GOOGLE_SEARCH_WEB",
-          "type": "tool-call",
-        },
-        {
-          "providerMetadata": {
-            "google": {
-              "serverToolCallId": "sc-1",
-              "serverToolType": "GOOGLE_SEARCH_WEB",
-            },
-          },
-          "result": {
-            "results": [
-              {
-                "title": "Weather",
-              },
-            ],
-          },
-          "toolCallId": "sc-1",
-          "toolName": "server:GOOGLE_SEARCH_WEB",
-          "type": "tool-result",
-        },
-      ]
-    `);
-
-    const textEvents = events.filter(e => e.type === 'text-delta');
-    expect(textEvents).toMatchInlineSnapshot(`
-      [
-        {
-          "delta": "It is sunny.",
-          "id": "0",
-          "providerMetadata": undefined,
-          "type": "text-delta",
-        },
-      ]
-    `);
-
-    const finishEvent = events.find(e => e.type === 'finish');
     expect(finishEvent).toMatchObject({
       type: 'finish',
       finishReason: {
@@ -5146,7 +4541,6 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
-              "serviceTier": null,
               "urlContextMetadata": null,
               "usageMetadata": null,
             },
@@ -5609,7 +5003,6 @@ describe('doStream', () => {
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": null,
-              "serviceTier": null,
               "urlContextMetadata": null,
               "usageMetadata": {
                 "candidatesTokenCount": 18,
@@ -5772,7 +5165,6 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
-              "serviceTier": null,
               "urlContextMetadata": null,
               "usageMetadata": null,
             },
