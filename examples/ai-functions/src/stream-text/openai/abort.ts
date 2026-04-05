@@ -8,6 +8,11 @@ run(async () => {
       model: openai('gpt-3.5-turbo'),
       prompt: 'Write a short story about a robot learning to love:\n\n',
       abortSignal: AbortSignal.timeout(3000),
+      onAbort({ usage, totalUsage }) {
+        console.log('\n\nStream aborted.');
+        console.log('Usage at abort:', usage);
+        console.log('Total usage at abort:', totalUsage);
+      },
     });
 
     for await (const textPart of textStream) {
