@@ -199,6 +199,11 @@ export const googleLanguageModelOptions = lazySchema(() =>
             .optional(),
         })
         .optional(),
+
+      /**
+       * Optional. The service tier to use for the request.
+       */
+      serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
     }),
   ),
 );
