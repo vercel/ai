@@ -267,8 +267,13 @@ export async function convertToBedrockChatMessages(
 
             switch (part.type) {
               case 'text': {
-                // Skip empty text blocks
-                if (!part.text.trim()) {
+                // Skip empty text blocks, but only when no reasoning content
+                // is present. Bedrock requires content block indices to match
+                // the original response when reasoning blocks exist.
+                const hasReasoning = content.some(
+                  (p: any) => p.type === 'reasoning',
+                );
+                if (!part.text.trim() && !hasReasoning) {
                   break;
                 }
 
