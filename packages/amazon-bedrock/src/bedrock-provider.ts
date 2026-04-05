@@ -74,8 +74,12 @@ export interface AmazonBedrockProviderSettings {
   secretAccessKey?: string;
 
   /**
-   * The AWS session token to use for the Bedrock provider. Defaults to the value of the
-   * `AWS_SESSION_TOKEN` environment variable.
+   * The AWS session token to use for the Bedrock provider. When `accessKeyId` and
+   * `secretAccessKey` are both passed explicitly as options, only this field is used
+   * for the session token — **`AWS_SESSION_TOKEN` is not read from the environment**
+   * (so workload tokens from e.g. EKS IRSA are not mixed with static access keys).
+   * If either access key field is omitted and resolved from the environment, the
+   * session token also falls back to `AWS_SESSION_TOKEN` when not set here.
    */
   sessionToken?: string;
 
@@ -221,10 +225,16 @@ export function createAmazonBedrock(
               environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
               description: 'AWS secret access key',
             }),
-            sessionToken: loadOptionalSetting({
-              settingValue: options.sessionToken,
-              environmentVariableName: 'AWS_SESSION_TOKEN',
-            }),
+            sessionToken:
+              typeof options.accessKeyId === 'string' &&
+              typeof options.secretAccessKey === 'string'
+                ? typeof options.sessionToken === 'string'
+                  ? options.sessionToken
+                  : undefined
+                : loadOptionalSetting({
+                    settingValue: options.sessionToken,
+                    environmentVariableName: 'AWS_SESSION_TOKEN',
+                  }),
           };
         } catch (error) {
           // Provide helpful error message for missing AWS credentials
