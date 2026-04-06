@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@7.0.0-beta.65
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - ai@7.0.0-beta.64
 
 ## 0.0.1-beta.0
