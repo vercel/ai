@@ -29,6 +29,7 @@ import {
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { resolveProviderOptionsKey, toCamelCase } from '../utils/to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
@@ -173,6 +174,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         providerOptions,
         schema: openaiCompatibleLanguageModelChatOptions,
       })) ?? {},
+      (await parseProviderOptions({
+        provider: toCamelCase(this.providerOptionsName),
+        providerOptions,
+        schema: openaiCompatibleLanguageModelChatOptions,
+      })) ?? {},
     );
 
     const strictJsonSchema = compatibleOptions?.strictJsonSchema ?? true;
@@ -203,7 +209,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       toolChoice,
     });
 
+    const metadataKey = resolveProviderOptionsKey(
+      this.providerOptionsName,
+      providerOptions,
+    );
+
     return {
+      metadataKey,
       args: {
         // model id:
         model: this.modelId,
@@ -236,9 +248,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         stop: stopSequences,
         seed,
         ...Object.fromEntries(
-          Object.entries(
-            providerOptions?.[this.providerOptionsName] ?? {},
-          ).filter(
+          Object.entries({
+            ...providerOptions?.[this.providerOptionsName],
+            ...providerOptions?.[toCamelCase(this.providerOptionsName)],
+          }).filter(
             ([key]) =>
               !Object.keys(
                 openaiCompatibleLanguageModelChatOptions.shape,
@@ -267,7 +280,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings } = await this.getArgs({ ...options });
+    const { args, warnings, metadataKey } = await this.getArgs({ ...options });
 
     const transformedBody = this.transformRequestBody(args);
     const body = JSON.stringify(transformedBody);
@@ -323,7 +336,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
           ...(thoughtSignature
             ? {
                 providerMetadata: {
-                  [this.providerOptionsName]: { thoughtSignature },
+                  [metadataKey]: { thoughtSignature },
                 },
               }
             : {}),
@@ -333,7 +346,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
 
     // provider metadata:
     const providerMetadata: SharedV4ProviderMetadata = {
-      [this.providerOptionsName]: {},
+      [metadataKey]: {},
       ...(await this.config.metadataExtractor?.extractMetadata?.({
         parsedBody: rawResponse,
       })),
@@ -341,11 +354,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     const completionTokenDetails =
       responseBody.usage?.completion_tokens_details;
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
-      providerMetadata[this.providerOptionsName].acceptedPredictionTokens =
+      providerMetadata[metadataKey].acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
     }
     if (completionTokenDetails?.rejected_prediction_tokens != null) {
-      providerMetadata[this.providerOptionsName].rejectedPredictionTokens =
+      providerMetadata[metadataKey].rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
     }
 
@@ -370,7 +383,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings } = await this.getArgs({ ...options });
+    const { args, warnings, metadataKey } = await this.getArgs({
+      ...options,
+    });
 
     const body = this.transformRequestBody({
       ...args,
@@ -418,7 +433,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
-    const providerOptionsName = this.providerOptionsName;
+    const providerOptionsName = metadataKey;
     let isActiveReasoning = false;
     let isActiveText = false;
 
