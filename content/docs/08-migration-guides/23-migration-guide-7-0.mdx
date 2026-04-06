@@ -159,6 +159,12 @@ function executeWithOptions(options: ToolExecutionOptions) {
 }
 ```
 
+### Tools: Remove Deprecated `media` Content Part Type
+
+The deprecated tool result content part of `{ type: 'media' }` has been removed in AI SDK 7.
+
+Use `{ type: 'image-data' }` for images and `{ type: 'file-data' }` for all other files.
+
 ## MCP Package
 
 ### MCP Transport: `redirect` Default Changed from `'follow'` to `'error'`
