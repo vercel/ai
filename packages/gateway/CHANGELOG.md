@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- fb0c233: chore(provider/gateway): update gateway model settings files
+- d1f0d2b: feat (provider/gateway): add quotaEntityId gateway provider option
+
 ## 4.0.0-beta.35
 
 ### Patch Changes
