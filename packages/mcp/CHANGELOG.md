@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.18
+
+### Patch Changes
+
+- e3ea484: fix(mcp): bypass outputSchema validation when tool returns isError
+
 ## 2.0.0-beta.17
 
 ### Patch Changes
