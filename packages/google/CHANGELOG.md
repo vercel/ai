@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 3.0.59
+
+### Patch Changes
+
+- 6247886: chore(provider-utils,google): fix grammar errors in error and warning messages
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
 ## 3.0.58
 
 ### Patch Changes
