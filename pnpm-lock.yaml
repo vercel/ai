@@ -81,13 +81,13 @@ importers:
         specifier: 2.0.28
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 2.0.44
+        specifier: 2.0.45
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 3.0.59
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 4.0.103
+        specifier: 4.0.104
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 3.0.34
@@ -117,7 +117,7 @@ importers:
         specifier: 2.0.24
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 3.0.78
+        specifier: 3.0.79
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
@@ -815,7 +815,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 4.0.103
+        specifier: 4.0.104
         version: link:../../packages/google-vertex
       ai:
         specifier: 6.0.149
