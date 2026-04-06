@@ -233,7 +233,7 @@ describe('prepareTools', () => {
     `);
   });
 
-  it('emits jsonInput schema for lazy tools', async () => {
+  it('emits minimal schema for lazy tools', async () => {
     const result = await prepareTools({
       tools: {
         lazyTool: tool({
@@ -254,11 +254,7 @@ describe('prepareTools', () => {
     expect(t.type).toBe('function');
     expect(t.name).toBe('lazyTool');
     expect(t.description).toContain('__load_tool_schema__');
-
-    const props = t.inputSchema.properties as Record<string, { type: string }>;
-    expect(props.jsonInput).toBeDefined();
-    expect(props.jsonInput.type).toBe('string');
-    expect(t.inputSchema.required).toEqual(['jsonInput']);
+    expect(t.inputSchema).toEqual({ type: 'object', properties: {} });
   });
 
   it('handles mixed lazy and non-lazy tools', async () => {
@@ -289,17 +285,10 @@ describe('prepareTools', () => {
     expect(eager).toBeDefined();
     expect(lazy).toBeDefined();
 
-    // Eager tool should have full schema with properties
     expect(
       (eager.inputSchema.properties as Record<string, unknown>).name,
     ).toBeDefined();
 
-    // Lazy tool should have jsonInput string property
-    const lazyProps = lazy.inputSchema.properties as Record<
-      string,
-      { type: string }
-    >;
-    expect(lazyProps.jsonInput).toBeDefined();
-    expect(lazyProps.jsonInput.type).toBe('string');
+    expect(lazy.inputSchema).toEqual({ type: 'object', properties: {} });
   });
 });

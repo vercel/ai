@@ -150,70 +150,37 @@ async function doParseToolCall<TOOLS extends ToolSet>({
 
   const schema = asSchema(tool.inputSchema);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let parsedInput: any;
+  // when the tool call has no arguments, we try passing an empty object to the schema
+  // (many LLMs generate empty strings for tool calls with no arguments)
+  let parseResult =
+    toolCall.input.trim() === ''
+      ? await safeValidateTypes({ value: {}, schema })
+      : await safeParseJSON({ text: toolCall.input, schema });
 
-  if (tool.lazy) {
-    // Lazy tools receive { jsonInput: string } from the LLM.
-    // Unwrap the JSON string and validate against the real schema.
-    const wrapperResult =
-      toolCall.input.trim() === ''
-        ? await safeValidateTypes({ value: {}, schema })
-        : await safeParseJSON({ text: toolCall.input });
-
-    if (wrapperResult.success === false) {
-      throw new InvalidToolInputError({
-        toolName,
-        toolInput: toolCall.input,
-        cause: wrapperResult.error,
-      });
+  // For lazy tools, the LLM may send strings for nested objects/arrays
+  // because it only sees a minimal schema. Try to repair by JSON.parsing
+  // string values that should be objects/arrays according to the real schema.
+  if (parseResult.success === false && tool.lazy) {
+    const rawParseResult = await safeParseJSON({ text: toolCall.input });
+    if (rawParseResult.success) {
+      const repaired = repairLazyToolInput(
+        rawParseResult.value as Record<string, unknown>,
+        (await schema.jsonSchema) as Record<string, unknown>,
+      );
+      parseResult = await safeValidateTypes({ value: repaired, schema });
     }
-
-    const wrapper = wrapperResult.value as Record<string, unknown>;
-    const jsonInputStr =
-      typeof wrapper?.jsonInput === 'string' ? wrapper.jsonInput : null;
-
-    if (jsonInputStr == null) {
-      throw new InvalidToolInputError({
-        toolName,
-        toolInput: toolCall.input,
-        cause: new Error(
-          'Lazy tool call missing jsonInput field. Call __load_tool_schema__ first to get the input structure.',
-        ),
-      });
-    }
-
-    const realParseResult = await safeParseJSON({
-      text: jsonInputStr,
-      schema,
-    });
-
-    if (realParseResult.success === false) {
-      throw new InvalidToolInputError({
-        toolName,
-        toolInput: jsonInputStr,
-        cause: realParseResult.error,
-      });
-    }
-
-    parsedInput = realParseResult.value;
-  } else {
-    // Normal (non-lazy) tools: validate directly against schema
-    const parseResult =
-      toolCall.input.trim() === ''
-        ? await safeValidateTypes({ value: {}, schema })
-        : await safeParseJSON({ text: toolCall.input, schema });
-
-    if (parseResult.success === false) {
-      throw new InvalidToolInputError({
-        toolName,
-        toolInput: toolCall.input,
-        cause: parseResult.error,
-      });
-    }
-
-    parsedInput = parseResult.value;
   }
+
+  if (parseResult.success === false) {
+    throw new InvalidToolInputError({
+      toolName,
+      toolInput: toolCall.input,
+      cause: parseResult.error,
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parsedInput: any = parseResult.value;
 
   return tool.type === 'dynamic'
     ? {
@@ -235,4 +202,46 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         providerMetadata: toolCall.providerMetadata,
         title: tool.title,
       };
+}
+
+/**
+ * Repairs lazy tool input by JSON.parsing string values that should be
+ * objects or arrays according to the JSON Schema. LLMs send strings for
+ * nested fields when the tool definition has a minimal schema.
+ */
+function repairLazyToolInput(
+  input: Record<string, unknown>,
+  jsonSchema: Record<string, unknown>,
+): Record<string, unknown> {
+  const properties = jsonSchema.properties as
+    | Record<string, Record<string, unknown>>
+    | undefined;
+
+  if (properties == null) {
+    return input;
+  }
+
+  const repaired = { ...input };
+
+  for (const [key, value] of Object.entries(repaired)) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+
+    const propSchema = properties[key];
+    if (propSchema == null) {
+      continue;
+    }
+
+    const expectedType = propSchema.type as string | undefined;
+    if (expectedType === 'object' || expectedType === 'array') {
+      try {
+        repaired[key] = JSON.parse(value);
+      } catch {
+        // keep original string if not valid JSON
+      }
+    }
+  }
+
+  return repaired;
 }

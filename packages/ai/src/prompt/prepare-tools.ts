@@ -31,24 +31,8 @@ export async function prepareTools<TOOLS extends ToolSet>({
           languageModelTools.push({
             type: 'function' as const,
             name,
-            description: `${tool.description}. IMPORTANT: Call __load_tool_schema__ with this tool's name first to get the required input structure, then pass it as a JSON string in jsonInput.`,
-            inputSchema: {
-              type: 'object' as const,
-              properties: {
-                jsonInput: {
-                  type: 'string' as const,
-                  description:
-                    'A JSON-encoded string containing all arguments for this tool. ' +
-                    'Before calling this tool, you MUST first call __load_tool_schema__ ' +
-                    "with this tool's name to retrieve the full input structure (required fields, " +
-                    'types, nested objects, enums, etc.). Then construct a valid JSON object ' +
-                    'matching that structure and pass it here as a string. ' +
-                    'Example: if the schema has { slug: string, labels: { en: string, ptBR: string } }, ' +
-                    'pass jsonInput: \'{"slug":"my_entity","labels":{"en":"My Entity","ptBR":"Minha Entidade"}}\'',
-                },
-              },
-              required: ['jsonInput'] as const,
-            },
+            description: `${tool.description}. IMPORTANT: Call __load_tool_schema__ with this tool's name first to get the required input format before calling this tool.`,
+            inputSchema: { type: 'object' as const, properties: {} },
             providerOptions: tool.providerOptions,
           });
         } else {
