@@ -1786,7 +1786,7 @@ describe('MCPClient', () => {
       });
 
       await expect(
-        tools['non-error-tool'].execute({}, { messages: [], toolCallId: '1' }),
+        tools['non-error-tool'].execute({}, { messages: [], toolCallId: '1', experimental_context: {} }),
       ).rejects.toThrow(MCPClientError);
     });
   });
