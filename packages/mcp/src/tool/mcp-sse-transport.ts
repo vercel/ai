@@ -1,5 +1,6 @@
 import {
   EventSourceParserStream,
+  FetchFunction,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -27,6 +28,7 @@ export class SseMCPTransport implements MCPTransport {
   private authProvider?: OAuthClientProvider;
   private resourceMetadataUrl?: URL;
   private redirectMode: RequestRedirect;
+  private fetchFn: FetchFunction;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
@@ -37,16 +39,19 @@ export class SseMCPTransport implements MCPTransport {
     headers,
     authProvider,
     redirect = 'follow',
+    fetch: fetchFn,
   }: {
     url: string;
     headers?: Record<string, string>;
     authProvider?: OAuthClientProvider;
     redirect?: 'follow' | 'error';
+    fetch?: FetchFunction;
   }) {
     this.url = new URL(url);
     this.headers = headers;
     this.authProvider = authProvider;
     this.redirectMode = redirect;
+    this.fetchFn = fetchFn ?? globalThis.fetch;
   }
 
   private async commonHeaders(
@@ -85,7 +90,7 @@ export class SseMCPTransport implements MCPTransport {
           const headers = await this.commonHeaders({
             Accept: 'text/event-stream',
           });
-          const response = await fetch(this.url.href, {
+          const response = await this.fetchFn(this.url.href, {
             headers,
             signal: this.abortController?.signal,
             redirect: this.redirectMode,
@@ -97,6 +102,7 @@ export class SseMCPTransport implements MCPTransport {
               const result = await auth(this.authProvider, {
                 serverUrl: this.url,
                 resourceMetadataUrl: this.resourceMetadataUrl,
+                fetchFn: this.fetchFn,
               });
               if (result !== 'AUTHORIZED') {
                 const error = new UnauthorizedError();
@@ -235,7 +241,7 @@ export class SseMCPTransport implements MCPTransport {
           redirect: this.redirectMode,
         };
 
-        const response = await fetch(endpoint, init);
+        const response = await this.fetchFn(endpoint.href, init);
 
         if (response.status === 401 && this.authProvider && !triedAuth) {
           this.resourceMetadataUrl = extractResourceMetadataUrl(response);
@@ -243,6 +249,7 @@ export class SseMCPTransport implements MCPTransport {
             const result = await auth(this.authProvider, {
               serverUrl: this.url,
               resourceMetadataUrl: this.resourceMetadataUrl,
+              fetchFn: this.fetchFn,
             });
             if (result !== 'AUTHORIZED') {
               const error = new UnauthorizedError();
