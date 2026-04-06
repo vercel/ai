@@ -150,19 +150,69 @@ async function doParseToolCall<TOOLS extends ToolSet>({
 
   const schema = asSchema(tool.inputSchema);
 
-  // when the tool call has no arguments, we try passing an empty object to the schema
-  // (many LLMs generate empty strings for tool calls with no arguments)
-  const parseResult =
-    toolCall.input.trim() === ''
-      ? await safeValidateTypes({ value: {}, schema })
-      : await safeParseJSON({ text: toolCall.input, schema });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let parsedInput: any;
 
-  if (parseResult.success === false) {
-    throw new InvalidToolInputError({
-      toolName,
-      toolInput: toolCall.input,
-      cause: parseResult.error,
+  if (tool.lazy) {
+    // Lazy tools receive { jsonInput: string } from the LLM.
+    // Unwrap the JSON string and validate against the real schema.
+    const wrapperResult =
+      toolCall.input.trim() === ''
+        ? await safeValidateTypes({ value: {}, schema })
+        : await safeParseJSON({ text: toolCall.input });
+
+    if (wrapperResult.success === false) {
+      throw new InvalidToolInputError({
+        toolName,
+        toolInput: toolCall.input,
+        cause: wrapperResult.error,
+      });
+    }
+
+    const wrapper = wrapperResult.value as Record<string, unknown>;
+    const jsonInputStr =
+      typeof wrapper?.jsonInput === 'string' ? wrapper.jsonInput : null;
+
+    if (jsonInputStr == null) {
+      throw new InvalidToolInputError({
+        toolName,
+        toolInput: toolCall.input,
+        cause: new Error(
+          'Lazy tool call missing jsonInput field. Call __load_tool_schema__ first to get the input structure.',
+        ),
+      });
+    }
+
+    const realParseResult = await safeParseJSON({
+      text: jsonInputStr,
+      schema,
     });
+
+    if (realParseResult.success === false) {
+      throw new InvalidToolInputError({
+        toolName,
+        toolInput: jsonInputStr,
+        cause: realParseResult.error,
+      });
+    }
+
+    parsedInput = realParseResult.value;
+  } else {
+    // Normal (non-lazy) tools: validate directly against schema
+    const parseResult =
+      toolCall.input.trim() === ''
+        ? await safeValidateTypes({ value: {}, schema })
+        : await safeParseJSON({ text: toolCall.input, schema });
+
+    if (parseResult.success === false) {
+      throw new InvalidToolInputError({
+        toolName,
+        toolInput: toolCall.input,
+        cause: parseResult.error,
+      });
+    }
+
+    parsedInput = parseResult.value;
   }
 
   return tool.type === 'dynamic'
@@ -170,7 +220,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         type: 'tool-call',
         toolCallId: toolCall.toolCallId,
         toolName: toolCall.toolName,
-        input: parseResult.value,
+        input: parsedInput,
         providerExecuted: toolCall.providerExecuted,
         providerMetadata: toolCall.providerMetadata,
         dynamic: true,
@@ -180,7 +230,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         type: 'tool-call',
         toolCallId: toolCall.toolCallId,
         toolName,
-        input: parseResult.value,
+        input: parsedInput,
         providerExecuted: toolCall.providerExecuted,
         providerMetadata: toolCall.providerMetadata,
         title: tool.title,

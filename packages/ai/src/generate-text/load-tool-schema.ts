@@ -4,15 +4,7 @@ import { z } from 'zod/v4';
 
 export const LOAD_TOOL_SCHEMA_NAME = '__load_tool_schema__';
 
-type LoadToolSchemaResult = Record<
-  string,
-  | {
-      inputSchema: unknown;
-      skill?: string;
-      inputExamples?: unknown[];
-    }
-  | { error: string }
->;
+type LoadToolSchemaResult = Record<string, unknown>;
 
 export function createLoadToolSchemaTool(
   lazyTools: ToolSet,
@@ -20,7 +12,7 @@ export function createLoadToolSchemaTool(
   const toolNames = Object.keys(lazyTools);
 
   return tool({
-    description: `Load the full input schema for lazy tools. Available lazy tools: ${toolNames.join(', ')}`,
+    description: `Load the full input schema and usage details for tools before calling them. You MUST call this first for any of these tools: ${toolNames.join(', ')}. After receiving the schema, proceed to call the tool with the correct arguments.`,
     inputSchema: z.object({
       toolNames: z.array(z.string()),
     }),
@@ -41,7 +33,9 @@ export function createLoadToolSchemaTool(
           skill?: string;
           inputExamples?: unknown[];
         } = {
-          inputSchema: await asSchema(t.inputSchema).jsonSchema,
+          inputSchema: JSON.parse(
+            JSON.stringify(await asSchema(t.inputSchema).jsonSchema),
+          ),
         };
 
         if (t.skill != null) {
@@ -55,6 +49,8 @@ export function createLoadToolSchemaTool(
         result[name] = entry;
       }
 
+      result._instruction =
+        'Schema loaded. Now call the tool(s) with the correct arguments based on the inputSchema above.';
       return result;
     },
   });
