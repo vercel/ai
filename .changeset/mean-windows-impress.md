@@ -6,4 +6,4 @@
 'ai': patch
 ---
 
-feat(ai): add support for creating and managing provider skills
+feat(ai): add support for uploading provider skills using the provider references abstraction
