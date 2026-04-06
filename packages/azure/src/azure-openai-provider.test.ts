@@ -89,6 +89,9 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/audio/speech': {},
   'https://test-resource.openai.azure.com/openai/deployments/whisper-1/audio/transcriptions':
     {},
+  'https://test-resource.openai.azure.com/openai/responses': {},
+  'https://test-resource.openai.azure.com/openai/chat/completions': {},
+  'https://test-resource.openai.azure.com/openai/images/generations': {},
 });
 
 describe('responses (default language model)', () => {
@@ -187,8 +190,14 @@ describe('responses (default language model)', () => {
       );
     });
 
-    it('should use the baseURL correctly', async () => {
+    it('should use the baseURL without appending /v1 or api-version', async () => {
       prepareJsonResponse();
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/responses'
+      ].response =
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response;
 
       const provider = createAzure({
         baseURL: 'https://test-resource.openai.azure.com/openai',
@@ -199,8 +208,11 @@ describe('responses (default language model)', () => {
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
-        `"https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1"`,
+        `"https://test-resource.openai.azure.com/openai/responses"`,
       );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toBeNull();
     });
   });
 });
@@ -292,8 +304,14 @@ describe('chat', () => {
       );
     });
 
-    it('should use the baseURL correctly', async () => {
+    it('should use the baseURL without appending /v1 or api-version', async () => {
       prepareJsonResponse();
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/chat/completions'
+      ].response =
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+        ].response;
 
       const provider = createAzure({
         baseURL: 'https://test-resource.openai.azure.com/openai',
@@ -304,8 +322,11 @@ describe('chat', () => {
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
-        `"https://test-resource.openai.azure.com/openai/v1/chat/completions?api-version=v1"`,
+        `"https://test-resource.openai.azure.com/openai/chat/completions"`,
       );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toBeNull();
     });
   });
 });
@@ -650,8 +671,14 @@ describe('image', () => {
       );
     });
 
-    it('should use the baseURL correctly', async () => {
+    it('should use the baseURL without appending /v1 or api-version', async () => {
       prepareJsonResponse();
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/images/generations'
+      ].response =
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/images/generations'
+        ].response;
 
       const provider = createAzure({
         baseURL: 'https://test-resource.openai.azure.com/openai',
@@ -670,8 +697,11 @@ describe('image', () => {
       });
 
       expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
-        `"https://test-resource.openai.azure.com/openai/v1/images/generations?api-version=v1"`,
+        `"https://test-resource.openai.azure.com/openai/images/generations"`,
       );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toBeNull();
     });
 
     it('should extract the generated images', async () => {
@@ -873,8 +903,14 @@ describe('responses', () => {
       );
     });
 
-    it('should use the baseURL correctly', async () => {
+    it('should use the baseURL without appending /v1 or api-version', async () => {
       prepareJsonFixtureResponse('azure-text.1');
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/responses'
+      ].response =
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/responses'
+        ].response;
 
       const provider = createAzure({
         baseURL: 'https://test-resource.openai.azure.com/openai',
@@ -886,8 +922,11 @@ describe('responses', () => {
       });
 
       expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
-        `"https://test-resource.openai.azure.com/openai/v1/responses?api-version=v1"`,
+        `"https://test-resource.openai.azure.com/openai/responses"`,
       );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toBeNull();
     });
 
     it('should handle Azure file IDs with assistant- prefix', async () => {
