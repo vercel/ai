@@ -56,7 +56,8 @@ export function createLoadToolSchemaTool(
       }
 
       result._instruction =
-        'Schema loaded. Now call the tool(s) with the correct arguments based on the inputSchema above.';
+        'Schema loaded. Now call the tool by passing a JSON-encoded string of all arguments in the jsonInput parameter. ' +
+        'Construct a valid JSON object matching the inputSchema above and pass it as a string value to jsonInput.';
       return result;
     },
   });
