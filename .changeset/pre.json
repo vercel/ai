@@ -117,6 +117,7 @@
     "fast-dots-draw",
     "fix-anthropic-temperature-top-p",
     "fix-embedding-jsdoc",
+    "fix-mcp-iserror-output-schema",
     "fix-ssrf-redirect-bypass",
     "fix-streaming-tool-call-early-finalization",
     "fluffy-boats-glow",
