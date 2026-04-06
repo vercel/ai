@@ -1,5 +1,24 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.18
+
+### Patch Changes
+
+- e3ea484: fix(mcp): bypass outputSchema validation when tool returns isError
+
+## 2.0.0-beta.17
+
+### Patch Changes
+
+- a00d1d3: feat(mcp): allow custom fetch for HTTP and SSE transports
+
+## 2.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
 ## 2.0.0-beta.15
 
 ### Patch Changes
