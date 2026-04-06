@@ -1727,7 +1727,7 @@ describe('MCPClient', () => {
 
       const result = await tools['error-structured-tool'].execute(
         {},
-        { messages: [], toolCallId: '1' },
+        { messages: [], toolCallId: '1', experimental_context: {} },
       );
 
       expect(result).toEqual({
