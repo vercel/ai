@@ -3,7 +3,7 @@ import {
   dynamicTool,
   generateText,
   ModelMessage,
-  stepCountIs,
+  isStepCount,
   ToolApprovalResponse,
   ToolSet,
 } from 'ai';
@@ -53,7 +53,7 @@ run(async () => {
         'Just say that the tool execution was not approved.',
       tools,
       messages,
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
     });
 
     process.stdout.write(`\nAssistant:\n`);

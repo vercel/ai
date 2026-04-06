@@ -87,6 +87,10 @@ type AnthropicContentSource =
       type: 'text';
       media_type: 'text/plain';
       data: string;
+    }
+  | {
+      type: 'file';
+      file_id: string;
     };
 
 export interface AnthropicImageContent {
@@ -239,6 +243,13 @@ export interface AnthropicCodeExecutionToolResultContent {
         content: Array<{ type: 'code_execution_output'; file_id: string }>;
       }
     | {
+        type: 'encrypted_code_execution_result';
+        encrypted_stdout: string;
+        stderr: string;
+        return_code: number;
+        content: Array<{ type: 'code_execution_output'; file_id: string }>;
+      }
+    | {
         type: 'code_execution_tool_result_error';
         error_code: string;
       };
@@ -345,6 +356,7 @@ export type AnthropicTool =
       description: string | undefined;
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
+      eager_input_streaming?: boolean;
       strict?: boolean;
       /**
        * When true, this tool is deferred and will only be loaded when
@@ -416,7 +428,7 @@ export type AnthropicTool =
       type: 'memory_20250818';
     }
   | {
-      type: 'web_fetch_20250910';
+      type: 'web_fetch_20250910' | 'web_fetch_20260209';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
@@ -426,7 +438,7 @@ export type AnthropicTool =
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
-      type: 'web_search_20250305';
+      type: 'web_search_20250305' | 'web_search_20260209';
       name: string;
       max_uses?: number;
       allowed_domains?: string[];
@@ -622,6 +634,17 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('mcp_tool_use'),
@@ -700,6 +723,21 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
               z.object({
                 type: z.literal('code_execution_result'),
                 stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
+              }),
+              z.object({
+                type: z.literal('encrypted_code_execution_result'),
+                encrypted_stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
                 content: z
@@ -954,6 +992,17 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.record(z.string(), z.unknown()).nullish(),
+            caller: z
+              .union([
+                z.object({
+                  type: z.literal('code_execution_20260120'),
+                  tool_id: z.string(),
+                }),
+                z.object({
+                  type: z.literal('direct'),
+                }),
+              ])
+              .optional(),
           }),
           z.object({
             type: z.literal('mcp_tool_use'),
@@ -1032,6 +1081,21 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
               z.object({
                 type: z.literal('code_execution_result'),
                 stdout: z.string(),
+                stderr: z.string(),
+                return_code: z.number(),
+                content: z
+                  .array(
+                    z.object({
+                      type: z.literal('code_execution_output'),
+                      file_id: z.string(),
+                    }),
+                  )
+                  .optional()
+                  .default([]),
+              }),
+              z.object({
+                type: z.literal('encrypted_code_execution_result'),
+                encrypted_stdout: z.string(),
                 stderr: z.string(),
                 return_code: z.number(),
                 content: z

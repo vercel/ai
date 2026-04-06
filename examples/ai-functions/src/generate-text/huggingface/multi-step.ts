@@ -1,5 +1,5 @@
 import { huggingface } from '@ai-sdk/huggingface';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod/v4';
 import { run } from '../../lib/run';
 
@@ -53,7 +53,7 @@ run(async () => {
         },
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     prompt:
       'What activities would you recommend for today based on my current location and weather?',
 

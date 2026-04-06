@@ -1,9 +1,10 @@
 import {
-  EmbeddingModelV3,
-  Experimental_VideoModelV3,
-  ImageModelV3,
-  LanguageModelV3,
-  ProviderV3,
+  EmbeddingModelV4,
+  Experimental_VideoModelV4,
+  FilesV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -24,15 +25,16 @@ import {
   GoogleGenerativeAIImageModelId,
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
+import { GoogleGenerativeAIFiles } from './google-generative-ai-files';
 import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
 import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
 
-export interface GoogleGenerativeAIProvider extends ProviderV3 {
-  (modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+export interface GoogleGenerativeAIProvider extends ProviderV4 {
+  (modelId: GoogleGenerativeAIModelId): LanguageModelV4;
 
-  languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+  languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV4;
 
-  chat(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+  chat(modelId: GoogleGenerativeAIModelId): LanguageModelV4;
 
   /**
    * Creates a model for image generation.
@@ -40,46 +42,48 @@ export interface GoogleGenerativeAIProvider extends ProviderV3 {
   image(
     modelId: GoogleGenerativeAIImageModelId,
     settings?: GoogleGenerativeAIImageSettings,
-  ): ImageModelV3;
+  ): ImageModelV4;
 
   /**
    * @deprecated Use `chat()` instead.
    */
-  generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV3;
+  generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
+  embedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
+  embeddingModel(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV3;
+  textEmbedding(modelId: GoogleGenerativeAIEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-  ): EmbeddingModelV3;
+  ): EmbeddingModelV4;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV3;
+  video(modelId: GoogleGenerativeAIVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a model for video generation.
    */
   videoModel(
     modelId: GoogleGenerativeAIVideoModelId,
-  ): Experimental_VideoModelV3;
+  ): Experimental_VideoModelV4;
+
+  files(): FilesV4;
 
   tools: typeof googleTools;
 }
@@ -185,6 +189,14 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+  const createFiles = () =>
+    new GoogleGenerativeAIFiles({
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createVideoModel = (modelId: GoogleGenerativeAIVideoModelId) =>
     new GoogleGenerativeAIVideoModel(modelId, {
       provider: providerName,
@@ -204,7 +216,7 @@ export function createGoogleGenerativeAI(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
@@ -216,6 +228,7 @@ export function createGoogleGenerativeAI(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.files = createFiles;
   provider.tools = googleTools;
 
   return provider as GoogleGenerativeAIProvider;

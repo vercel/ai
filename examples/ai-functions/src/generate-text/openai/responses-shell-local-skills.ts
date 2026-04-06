@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { resolve } from 'path';
 import { executeShellCommand } from '../../lib/shell-executor';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5.2'),
+    model: openai.responses('gpt-5.4'),
     tools: {
       shell: openai.tools.shell({
         execute: async ({ action }) => {
@@ -32,7 +32,7 @@ run(async () => {
     },
     prompt:
       'You are trapped and lost on a lonely island in 1895. Find a way to get rescued!',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('Result:', result.text);

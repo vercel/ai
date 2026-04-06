@@ -7,7 +7,7 @@ import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { InferCompleteOutput } from './output-utils';
-import { ReasoningOutput } from './reasoning-output';
+import { ReasoningOutput, ReasoningFileOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
@@ -16,7 +16,8 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * The result of a `generateText` call.
@@ -24,6 +25,7 @@ import { ToolSet } from './tool-set';
  */
 export interface GenerateTextResult<
   TOOLS extends ToolSet,
+  CONTEXT extends GenerationContext<TOOLS>,
   OUTPUT extends Output,
 > {
   /**
@@ -39,7 +41,7 @@ export interface GenerateTextResult<
   /**
    * The full reasoning that the model has generated in the last step.
    */
-  readonly reasoning: Array<ReasoningOutput>;
+  readonly reasoning: Array<ReasoningOutput | ReasoningFileOutput>;
 
   /**
    * The reasoning text that the model has generated in the last step. Can be undefined if the model
@@ -151,7 +153,7 @@ export interface GenerateTextResult<
    * You can use this to get information about intermediate steps,
    * such as the tool calls or the response headers.
    */
-  readonly steps: Array<StepResult<TOOLS>>;
+  readonly steps: Array<StepResult<TOOLS, CONTEXT>>;
 
   /**
    * The generated structured output. It uses the `output` specification.

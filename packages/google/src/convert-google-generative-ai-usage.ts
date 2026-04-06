@@ -1,4 +1,9 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
+
+export type GoogleGenerativeAITokenDetail = {
+  modality: string;
+  tokenCount: number;
+};
 
 export type GoogleGenerativeAIUsageMetadata = {
   promptTokenCount?: number | null;
@@ -7,11 +12,13 @@ export type GoogleGenerativeAIUsageMetadata = {
   cachedContentTokenCount?: number | null;
   thoughtsTokenCount?: number | null;
   trafficType?: string | null;
+  promptTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
+  candidatesTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
 };
 
 export function convertGoogleGenerativeAIUsage(
   usage: GoogleGenerativeAIUsageMetadata | undefined | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (usage == null) {
     return {
       inputTokens: {

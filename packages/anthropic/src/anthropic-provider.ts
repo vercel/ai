@@ -1,8 +1,9 @@
 import {
+  FilesV4,
   InvalidArgumentError,
-  LanguageModelV3,
+  LanguageModelV4,
   NoSuchModelError,
-  ProviderV3,
+  ProviderV4,
   Experimental_SkillsManagerV1,
 } from '@ai-sdk/provider';
 import {
@@ -13,31 +14,34 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { VERSION } from './version';
+import { AnthropicFiles } from './anthropic-files';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
 import { AnthropicSkillsManager } from './skills/anthropic-skills-manager';
+import { VERSION } from './version';
 
-export interface AnthropicProvider extends ProviderV3 {
+export interface AnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: AnthropicMessagesModelId): LanguageModelV3;
+  (modelId: AnthropicMessagesModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV4;
 
-  chat(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  chat(modelId: AnthropicMessagesModelId): LanguageModelV4;
 
-  messages(modelId: AnthropicMessagesModelId): LanguageModelV3;
+  messages(modelId: AnthropicMessagesModelId): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
+
+  files(): FilesV4;
 
   /**
    * Returns the skills manager for this provider.
@@ -168,7 +172,7 @@ export function createAnthropic(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
@@ -180,6 +184,14 @@ export function createAnthropic(
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+
+  provider.files = () =>
+    new AnthropicFiles({
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
   provider.skillsManager = createSkillsManager;
 

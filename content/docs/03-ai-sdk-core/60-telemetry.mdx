@@ -18,9 +18,28 @@ to see providers that offer monitoring and tracing for AI SDK applications.
 
 ## Enabling telemetry
 
-For Next.js applications, please follow the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) to enable telemetry first.
+### Step 1: Register the OpenTelemetry integration
 
-You can then use the `experimental_telemetry` option to enable telemetry on specific function calls while the feature is experimental:
+OpenTelemetry span collection requires the `@ai-sdk/otel` package. Install it and register the integration once at application startup:
+
+```bash
+pnpm install @ai-sdk/otel
+```
+
+```ts
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+```
+
+For Next.js applications, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup. See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
+
+For Node.js applications (without Next.js), register the integration at the top level of your entry file.
+
+### Step 2: Enable telemetry on individual calls
+
+Use the `experimental_telemetry` option to enable telemetry on specific function calls:
 
 ```ts highlight="4"
 const result = await generateText({
@@ -58,20 +77,150 @@ const result = await generateText({
 
 ## Custom Tracer
 
-You may provide a `tracer` which must return an OpenTelemetry `Tracer`. This is useful in situations where
-you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton.
+If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetryIntegration` constructor:
 
-```ts highlight="7"
+```ts highlight="6-8"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
 const tracerProvider = new NodeTracerProvider();
-const result = await generateText({
-  model: __MODEL__,
-  prompt: 'Write a short story about a cat.',
+registerTelemetryIntegration(
+  new OpenTelemetryIntegration({
+    tracer: tracerProvider.getTracer('ai'),
+  }),
+);
+```
+
+## Telemetry Integrations
+
+Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and register it globally or pass it via `experimental_telemetry.integrations`.
+
+The `OpenTelemetryIntegration` from `@ai-sdk/otel` is the primary integration for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
+
+### Registering integrations globally
+
+Use `registerTelemetryIntegration` to register an integration once for all AI SDK calls:
+
+```ts
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+```
+
+### Per-call integrations
+
+You can also pass one or more integrations to individual `generateText` or `streamText` calls. Per-call integrations run after any globally registered integrations:
+
+```ts highlight="6-8"
+import { streamText } from 'ai';
+import { devToolsIntegration } from '@ai-sdk/devtools';
+
+const result = streamText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
   experimental_telemetry: {
     isEnabled: true,
-    tracer: tracerProvider.getTracer('ai'),
+    integrations: [devToolsIntegration()],
   },
 });
 ```
+
+You can combine multiple integrations — they all receive the same lifecycle events:
+
+```ts
+experimental_telemetry: {
+  isEnabled: true,
+  integrations: [devToolsIntegration(), customLogger()],
+},
+```
+
+Errors inside integrations are caught and do not break the generation flow.
+
+### Building a custom integration
+
+Implement the `TelemetryIntegration` interface from the `ai` package. All methods are optional — implement only the lifecycle events you care about:
+
+```ts
+import type { TelemetryIntegration } from 'ai';
+import { bindTelemetryIntegration } from 'ai';
+
+class MyIntegration implements TelemetryIntegration {
+  async onStart(event) {
+    console.log('Generation started:', event.model.modelId);
+  }
+
+  async onStepFinish(event) {
+    console.log(
+      `Step ${event.stepNumber} done:`,
+      event.usage.totalTokens,
+      'tokens',
+    );
+  }
+
+  async onToolCallFinish(event) {
+    if (event.success) {
+      console.log(
+        `Tool "${event.toolCall.toolName}" took ${event.durationMs}ms`,
+      );
+    } else {
+      console.error(`Tool "${event.toolCall.toolName}" failed:`, event.error);
+    }
+  }
+
+  async onFinish(event) {
+    console.log('Done. Total tokens:', event.totalUsage.totalTokens);
+  }
+}
+
+export function myIntegration(): TelemetryIntegration {
+  return bindTelemetryIntegration(new MyIntegration());
+}
+```
+
+Use `bindTelemetryIntegration` for class-based integrations to ensure `this` is correctly bound when methods are extracted and called as callbacks.
+
+### Available lifecycle methods
+
+<PropertiesTable
+  content={[
+    {
+      name: 'onStart',
+      type: '(event: OnStartEvent) => void | PromiseLike<void>',
+      description:
+        'Called when the generation operation begins, before any LLM calls.',
+    },
+    {
+      name: 'onStepStart',
+      type: '(event: OnStepStartEvent) => void | PromiseLike<void>',
+      description:
+        'Called when a step (LLM call) begins, before the provider is called.',
+    },
+    {
+      name: 'onToolCallStart',
+      type: '(event: OnToolCallStartEvent) => void | PromiseLike<void>',
+      description: "Called when a tool's execute function is about to run.",
+    },
+    {
+      name: 'onToolCallFinish',
+      type: '(event: OnToolCallFinishEvent) => void | PromiseLike<void>',
+      description: "Called when a tool's execute function completes or errors.",
+    },
+    {
+      name: 'onStepFinish',
+      type: '(event: OnStepFinishEvent) => void | PromiseLike<void>',
+      description: 'Called when a step (LLM call) completes.',
+    },
+    {
+      name: 'onFinish',
+      type: '(event: OnFinishEvent) => void | PromiseLike<void>',
+      description:
+        'Called when the entire generation completes (all steps finished).',
+    },
+  ]}
+/>
+
+The event types for each method are the same as the corresponding [event callbacks](/docs/ai-sdk-core/event-listeners). See the event callbacks documentation for the full property reference of each event.
 
 ## Collected Data
 

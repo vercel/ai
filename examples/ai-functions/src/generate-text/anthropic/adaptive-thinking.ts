@@ -1,7 +1,4 @@
-import {
-  anthropic,
-  type AnthropicLanguageModelOptions,
-} from '@ai-sdk/anthropic';
+import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 import { print } from '../../lib/print';
@@ -11,12 +8,7 @@ run(async () => {
     model: anthropic('claude-opus-4-6'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxRetries: 0,
-    providerOptions: {
-      anthropic: {
-        thinking: { type: 'adaptive' },
-        effort: 'max',
-      } satisfies AnthropicLanguageModelOptions,
-    },
+    reasoning: 'xhigh',
   });
 
   print('Content:', result.content);

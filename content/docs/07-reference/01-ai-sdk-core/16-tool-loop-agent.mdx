@@ -74,7 +74,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
       description:
-        'Condition(s) for ending the agent loop. Default: stepCountIs(20).',
+        'Condition(s) for ending the agent loop. Default: isStepCount(20).',
     },
     {
       name: 'activeTools',
@@ -246,7 +246,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object that flows through the entire generation lifecycle.',
             },
@@ -292,7 +292,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'toolChoice',
-              type: 'LanguageModelV3ToolChoice | undefined',
+              type: 'LanguageModelV4ToolChoice | undefined',
               description: 'The tool choice configuration for this step.',
             },
             {
@@ -357,7 +357,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object. May be updated from prepareStep between steps.',
             },
@@ -417,7 +417,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -483,7 +483,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -525,10 +525,10 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_context',
-      type: 'unknown',
+      type: 'CONTEXT',
       isOptional: true,
       description:
-        'Experimental: Custom context object passed to each tool call.',
+        'Experimental: User-defined context object passed to `prepareStep`, tool execution, and lifecycle callbacks.',
     },
     {
       name: 'experimental_telemetry',
@@ -887,7 +887,7 @@ type MetadataAgentUIMessage = InferAgentUIMessage<
 ### Basic Agent with Tools
 
 ```ts
-import { ToolLoopAgent, stepCountIs } from 'ai';
+import { ToolLoopAgent, isStepCount } from 'ai';
 import { weatherTool, calculatorTool } from './tools';
 
 const assistant = new ToolLoopAgent({
@@ -897,7 +897,7 @@ const assistant = new ToolLoopAgent({
     weather: weatherTool,
     calculator: calculatorTool,
   },
-  stopWhen: stepCountIs(3),
+  stopWhen: isStepCount(3),
 });
 
 const result = await assistant.generate({

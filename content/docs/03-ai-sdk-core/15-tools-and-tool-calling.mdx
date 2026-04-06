@@ -22,7 +22,7 @@ The `tools` parameter of `generateText` and `streamText` is an object that has t
 
 ```ts highlight="6-17"
 import { z } from 'zod';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const result = await generateText({
@@ -39,7 +39,7 @@ const result = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -226,6 +226,14 @@ When using `useChat`, the approval flow is handled through UI state. See [Chatbo
 
 With the `stopWhen` setting, you can enable multi-step calls in `generateText` and `streamText`. When `stopWhen` is set and the model generates a tool call, the AI SDK will trigger a new generation passing in the tool result until there are no further tool calls or the stopping condition is met.
 
+The AI SDK provides several built-in stopping conditions:
+
+- `isStepCount(count)` — stops after a specified number of steps (default: `isStepCount(20)`)
+- `hasToolCall(toolName)` — stops when a specific tool is called
+- `isLoopFinished()` — never triggers, letting the loop run until naturally finished
+
+You can also combine multiple conditions in an array or create custom conditions. See [Loop Control](/docs/agents/loop-control) for more details.
+
 <Note>
   The `stopWhen` conditions are only evaluated when the last step contains tool
   results.
@@ -251,7 +259,7 @@ In the following example, there are two steps:
 
 ```ts highlight="18-19"
 import { z } from 'zod';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const { text, steps } = await generateText({
@@ -268,7 +276,7 @@ const { text, steps } = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5), // stop after a maximum of 5 steps if tools were called
+  stopWhen: isStepCount(5), // stop after a maximum of 5 steps if tools were called
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -289,7 +297,7 @@ __PROVIDER_IMPORT__;
 
 const { steps } = await generateText({
   model: __MODEL__,
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   // ...
 });
 
@@ -368,7 +376,7 @@ It is called with the following parameters:
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
 - `messages`: The messages that will be sent to the model for the current step.
-- `experimental_context`: The context passed via the `experimental_context` setting (experimental).
+- `experimental_context`: The runtime context passed via the `experimental_context` setting (experimental).
 
 You can use it to provide different settings for a step, including modifying the input messages.
 
@@ -686,26 +694,84 @@ const result = await generateText({
 });
 ```
 
-### Context (experimental)
+### Runtime Context (experimental)
 
-You can pass in arbitrary context from `generateText` or `streamText` via the `experimental_context` setting.
-This context is available in the `experimental_context` tool execution option.
+You can pass in arbitrary runtime context from `generateText` or `streamText` via the `experimental_context` setting.
+This runtime context is available in `prepareStep` and in the `experimental_context` tool execution option.
+
+To avoid confusion with prompt context or retrieved context, the docs refer to this feature as runtime context.
+
+This is useful for values like API keys, tenant information, feature flags, session data, or other server-side state that should influence tool execution without being embedded into the prompt.
+
+At a high level:
+
+- Pass the full runtime context object through `experimental_context`
+- Read or update it in `prepareStep`
+- Declare each tool's expected runtime context with `contextSchema`
+- Access the tool's typed runtime context in `execute` together with other execution metadata such as `toolCallId`, `messages`, and `abortSignal`
 
 ```ts
-const result = await generateText({
-  // ...
+import { openai } from '@ai-sdk/openai';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: openai('gpt-5-mini'),
   tools: {
-    someTool: tool({
-      // ...
-      execute: async (input, { experimental_context: context }) => {
-        const typedContext = context as { example: string }; // or use type validation library
-        // ...
+    weather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      contextSchema: z.object({
+        weatherApiKey: z.string().describe('The API key for the weather API'),
+      }),
+      execute: async (
+        { location },
+        { toolCallId, messages, abortSignal, experimental_context },
+      ) => {
+        const { weatherApiKey } = experimental_context;
+
+        console.log('tool call:', toolCallId);
+        console.log('messages available to tool:', messages.length);
+        console.log('abortable:', abortSignal != null);
+        console.log('weather tool api key:', weatherApiKey);
+
+        return {
+          location,
+          temperature: 72 + Math.floor(Math.random() * 21) - 10,
+        };
       },
     }),
   },
-  experimental_context: { example: '123' },
+  experimental_context: {
+    weatherApiKey: 'weather-123',
+    somethingElse: 'other-context',
+  },
+  prepareStep: async ({ experimental_context: context }) => {
+    console.log('prepareStep context:', context);
+
+    return {
+      // You can keep the context unchanged or return a new one
+      // to affect the current and subsequent steps.
+      experimental_context: context,
+    };
+  },
+  prompt: 'What is the weather in San Francisco?',
 });
 ```
+
+In this example, `prepareStep` receives the full runtime context object:
+
+```ts
+{
+  weatherApiKey: string;
+  somethingElse: string;
+}
+```
+
+The `weather` tool then receives a typed view of the runtime context based on its `contextSchema`. In this case, `execute` can access `weatherApiKey`, while `prepareStep` still sees the full runtime context object.
+
 
 ## Tool Input Lifecycle Hooks
 
@@ -1027,9 +1093,13 @@ const { text } = await generateText({
 ## Multi-modal Tool Results
 
 <Note type="warning">
-  Multi-modal tool results are experimental and only supported by Anthropic and
-  OpenAI.
+  Multi-modal tool results are experimental and supported by Anthropic, OpenAI,
+  and Google (Gemini 3 models).
 </Note>
+
+For Google, use base64 media parts (`image-data` / `file-data`) or base64
+`data:` URLs in URL-style parts. Remote HTTP(S) URLs in tool-result URL parts
+are not supported.
 
 In order to send multi-modal tool results, e.g. screenshots, back to the model,
 they need to be converted into a specific format.

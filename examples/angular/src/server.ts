@@ -1,5 +1,5 @@
 import { type OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { convertToModelMessages, Output, stepCountIs, streamText } from 'ai';
+import { convertToModelMessages, Output, isStepCount, streamText } from 'ai';
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
@@ -7,7 +7,7 @@ import { z } from 'zod';
 const app = express();
 app.use(express.json({ strict: false })); // Allow primitives (for analyze endpoint)
 
-const defaultModel = 'openai/gpt-5.2';
+const defaultModel = 'openai/gpt-5.4';
 
 app.post('/api/chat', async (req: Request, res: Response) => {
   const { messages, selectedModel } = req.body;
@@ -18,7 +18,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   const result = streamText({
     model: modelId,
     messages: await convertToModelMessages(messages ?? []),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     providerOptions: {
       openai: {
         reasoningEffort: 'low',

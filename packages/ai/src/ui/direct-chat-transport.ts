@@ -1,8 +1,9 @@
+import { Agent } from '../agent/agent';
 import { Output } from '../generate-text/output';
 import { UIMessageStreamOptions } from '../generate-text/stream-text-result';
-import { ToolSet } from '../generate-text/tool-set';
+import type { GenerationContext } from '../generate-text/generation-context';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
-import { Agent } from '../agent/agent';
 import { ChatTransport } from './chat-transport';
 import { convertToModelMessages } from './convert-to-model-messages';
 import { InferUITools, UIMessage } from './ui-messages';
@@ -14,13 +15,14 @@ import { validateUIMessages } from './validate-ui-messages';
 export type DirectChatTransportOptions<
   CALL_OPTIONS,
   TOOLS extends ToolSet,
-  OUTPUT extends Output,
+  CONTEXT extends GenerationContext<TOOLS>,
+  OUTPUT extends Output<TOOLS, CONTEXT>,
   UI_MESSAGE extends UIMessage<unknown, never, InferUITools<TOOLS>>,
 > = {
   /**
    * The agent to use for generating responses.
    */
-  agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
+  agent: Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>;
 
   /**
    * Options to pass to the agent when calling it.
@@ -49,15 +51,15 @@ export type DirectChatTransportOptions<
 export class DirectChatTransport<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  OUTPUT extends Output = never,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  OUTPUT extends Output<TOOLS, CONTEXT> = never,
   UI_MESSAGE extends UIMessage<unknown, never, InferUITools<TOOLS>> = UIMessage<
     unknown,
     never,
     InferUITools<TOOLS>
   >,
-> implements ChatTransport<UI_MESSAGE>
-{
-  private readonly agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
+> implements ChatTransport<UI_MESSAGE> {
+  private readonly agent: Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>;
   private readonly agentOptions: CALL_OPTIONS | undefined;
   private readonly uiMessageStreamOptions: Omit<
     UIMessageStreamOptions<UI_MESSAGE>,
@@ -68,7 +70,13 @@ export class DirectChatTransport<
     agent,
     options,
     ...uiMessageStreamOptions
-  }: DirectChatTransportOptions<CALL_OPTIONS, TOOLS, OUTPUT, UI_MESSAGE>) {
+  }: DirectChatTransportOptions<
+    CALL_OPTIONS,
+    TOOLS,
+    CONTEXT,
+    OUTPUT,
+    UI_MESSAGE
+  >) {
     this.agent = agent;
     this.agentOptions = options;
     this.uiMessageStreamOptions = uiMessageStreamOptions;
@@ -98,7 +106,7 @@ export class DirectChatTransport<
       ...(this.agentOptions !== undefined
         ? { options: this.agentOptions }
         : {}),
-    } as Parameters<Agent<CALL_OPTIONS, TOOLS, OUTPUT>['stream']>[0]);
+    } as Parameters<Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>['stream']>[0]);
 
     // Return the UI message stream
     return result.toUIMessageStream(this.uiMessageStreamOptions);

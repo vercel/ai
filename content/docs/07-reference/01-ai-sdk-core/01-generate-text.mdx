@@ -156,7 +156,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | FilePart | ReasoningPart | ToolCallPart>',
+              type: 'string | Array<TextPart | FilePart | ReasoningPart | ReasoningFilePart | ToolCallPart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -186,6 +186,27 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'text',
                       type: 'string',
                       description: 'The reasoning text.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningFilePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning-file'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file data. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mediaType',
+                      type: 'string',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },
@@ -422,6 +443,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'The seed (integer) to use for random sampling. If set and supported by the model, calls will generate deterministic results.',
     },
     {
+      name: 'reasoning',
+      type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'",
+      isOptional: true,
+      description:
+        "Controls how much reasoning the model performs before generating a response. When omitted, the provider's default behavior is used. `'provider-default'` explicitly requests the provider's default. Providers that do not support reasoning will emit a warning. If reasoning-related `providerOptions` are also set, they take precedence and this parameter is ignored. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for provider-specific mapping details.",
+    },
+    {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
@@ -437,10 +465,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs and/or stepMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -493,6 +521,13 @@ To see `generateText` in action, check out [these examples](#examples).
               description:
                 'Additional information to include in the telemetry data.',
             },
+            {
+              name: 'integrations',
+              isOptional: true,
+              type: 'TelemetryIntegration | TelemetryIntegration[]',
+              description:
+                'Per-call telemetry integrations that receive lifecycle events. These run after any globally registered integrations.',
+            },
           ],
         },
       ],
@@ -516,7 +551,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>>',
       isOptional: true,
       description:
-        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: stepCountIs(1).',
+        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: isStepCount(1).',
     },
     {
       name: 'prepareStep',
@@ -560,7 +595,7 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'experimental_context',
-                      type: 'unknown',
+                      type: 'CONTEXT',
                       isOptional: true,
                       description:
                         'The context passed via the experimental_context setting (experimental).',
@@ -613,7 +648,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               isOptional: true,
               description:
                 'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
@@ -631,10 +666,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_context',
-      type: 'unknown',
+      type: 'CONTEXT',
       isOptional: true,
       description:
-        'Context that is passed into tool execution. Experimental (can break in patch releases).',
+        'User-defined context object passed to `prepareStep`, tool execution, and lifecycle callbacks. Experimental (can break in patch releases).',
     },
     {
       name: 'experimental_download',
@@ -673,7 +708,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_repairToolCall',
-      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV3ToolCall | null>',
+      type: '(options: ToolCallRepairOptions) => Promise<LanguageModelV4ToolCall | null>',
       isOptional: true,
       description:
         'A function that attempts to repair a tool call that failed to parse. Return either a repaired tool call or null if the tool call cannot be repaired.',
@@ -693,7 +728,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolCall',
-              type: 'LanguageModelV3ToolCall',
+              type: 'LanguageModelV4ToolCall',
               description: 'The tool call that failed to parse.',
             },
             {
@@ -1005,7 +1040,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object that flows through the entire generation lifecycle.',
             },
@@ -1051,7 +1086,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'toolChoice',
-              type: 'LanguageModelV3ToolChoice | undefined',
+              type: 'LanguageModelV4ToolChoice | undefined',
               description: 'The tool choice configuration for this step.',
             },
             {
@@ -1118,7 +1153,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object. May be updated from prepareStep between steps.',
             },
@@ -1178,7 +1213,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -1244,7 +1279,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -1304,7 +1339,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -1320,7 +1355,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'reasoning',
-              type: 'Array<ReasoningPart>',
+              type: 'Array<ReasoningPart | ReasoningFilePart>',
               description:
                 'The reasoning that was generated during the generation.',
             },
@@ -1947,7 +1982,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'The final state of the user-defined context object. This reflects any modifications made during the generation lifecycle via prepareStep or tool execution.',
             },
@@ -1974,7 +2009,7 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'reasoning',
-      type: 'Array<ReasoningOutput>',
+      type: 'Array<ReasoningOutput | ReasoningFileOutput>',
       description:
         'The full reasoning that the model has generated in the last step.',
       properties: [
@@ -1995,7 +2030,28 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'providerMetadata',
               type: 'SharedV2ProviderMetadata',
               isOptional: true,
-              description: 'Additional provider metadata for the source.',
+              description: 'Additional provider metadata.',
+            },
+          ],
+        },
+        {
+          type: 'ReasoningFileOutput',
+          parameters: [
+            {
+              name: 'type',
+              type: "'reasoning-file'",
+              description: 'The type of the message part.',
+            },
+            {
+              name: 'file',
+              type: 'GeneratedFile',
+              description: 'The generated file.',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'SharedV2ProviderMetadata',
+              isOptional: true,
+              description: 'Additional provider metadata.',
             },
           ],
         },
@@ -2369,7 +2425,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -2385,7 +2441,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'reasoning',
-              type: 'Array<ReasoningPart>',
+              type: 'Array<ReasoningPart | ReasoningFilePart>',
               description:
                 'The reasoning that was generated during the generation.',
               properties: [
@@ -2401,6 +2457,27 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'text',
                       type: 'string',
                       description: 'The reasoning text.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningFilePart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning-file'",
+                      description: 'The type of the message part.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string | Uint8Array | Buffer | ArrayBuffer | URL',
+                      description:
+                        'The file data. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
+                    },
+                    {
+                      name: 'mediaType',
+                      type: 'string',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },

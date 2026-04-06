@@ -3,7 +3,8 @@ import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
 import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
-import { ToolSet } from '../generate-text/tool-set';
+import type { GenerationContext } from '../generate-text/generation-context';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import type {
   ToolLoopAgentOnFinishCallback,
@@ -17,9 +18,11 @@ import type {
 /**
  * Parameters for calling an agent.
  */
-export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
+export type AgentCallParameters<
   CALL_OPTIONS,
-] extends [never]
+  TOOLS extends ToolSet = {},
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+> = ([CALL_OPTIONS] extends [never]
   ? { options?: never }
   : { options: CALL_OPTIONS }) &
   (
@@ -62,17 +65,17 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
     /**
      * Timeout in milliseconds. Can be specified as a number or as an object with `totalMs`.
      */
-    timeout?: TimeoutConfiguration;
+    timeout?: TimeoutConfiguration<TOOLS>;
 
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
-    experimental_onStart?: ToolLoopAgentOnStartCallback<TOOLS>;
+    experimental_onStart?: ToolLoopAgentOnStartCallback<TOOLS, CONTEXT>;
 
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
      */
-    experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<TOOLS>;
+    experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<TOOLS, CONTEXT>;
 
     /**
      * Callback that is called before each tool execution begins.
@@ -122,6 +125,7 @@ export type AgentStreamParameters<
 export interface Agent<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = never,
 > {
   /**
@@ -145,12 +149,12 @@ export interface Agent<
    */
   generate(
     options: AgentCallParameters<CALL_OPTIONS, TOOLS>,
-  ): PromiseLike<GenerateTextResult<TOOLS, OUTPUT>>;
+  ): PromiseLike<GenerateTextResult<TOOLS, CONTEXT, OUTPUT>>;
 
   /**
    * Streams an output from the agent (streaming).
    */
   stream(
     options: AgentStreamParameters<CALL_OPTIONS, TOOLS>,
-  ): PromiseLike<StreamTextResult<TOOLS, OUTPUT>>;
+  ): PromiseLike<StreamTextResult<TOOLS, CONTEXT, OUTPUT>>;
 }

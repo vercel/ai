@@ -5,6 +5,7 @@ import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
 import { localShell } from './tool/local-shell';
 import { shell } from './tool/shell';
+import { toolSearch } from './tool/tool-search';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
 import { mcp } from './tool/mcp';
@@ -24,7 +25,6 @@ export const openaiTools = {
    * Lark syntax). The model returns a `custom_tool_call` output item whose
    * `input` field is a string matching the specified grammar.
    *
-   * @param name - The name of the custom tool.
    * @param description - An optional description of the tool.
    * @param format - The output format constraint (grammar type, syntax, and definition).
    */
@@ -123,4 +123,15 @@ export const openaiTools = {
    * @param serverUrl - URL for the MCP server.
    */
   mcp,
+
+  /**
+   * Tool search allows the model to dynamically search for and load deferred
+   * tools into the model's context as needed. This helps reduce overall token
+   * usage, cost, and latency by only loading tools when the model needs them.
+   *
+   * To use tool search, mark functions or namespaces with `defer_loading: true`
+   * in the tools array. The model will use tool search to load these tools
+   * when it determines they are needed.
+   */
+  toolSearch,
 };
