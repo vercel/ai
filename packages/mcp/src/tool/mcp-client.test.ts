@@ -1666,7 +1666,7 @@ describe('MCPClient', () => {
 
       const result = await tools['error-tool'].execute(
         { name: 'test' },
-        { messages: [], toolCallId: '1' },
+        { messages: [], toolCallId: '1', experimental_context: {} },
       );
 
       expect(result).toEqual({
