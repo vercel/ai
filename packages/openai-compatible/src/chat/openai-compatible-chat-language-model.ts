@@ -255,15 +255,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-<<<<<<< HEAD
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
-    const { args, warnings } = await this.getArgs({ ...options });
-=======
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings, metadataKey } = await this.getArgs({ ...options });
->>>>>>> 816ff67ba (fix(openai-compatible): honor camelCase providerOptions key in chat and completion models (#14135))
 
     const transformedBody = this.transformRequestBody(args);
     const body = JSON.stringify(transformedBody);
@@ -328,13 +322,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     }
 
     // provider metadata:
-<<<<<<< HEAD
     const providerMetadata: SharedV3ProviderMetadata = {
-      [this.providerOptionsName]: {},
-=======
-    const providerMetadata: SharedV4ProviderMetadata = {
       [metadataKey]: {},
->>>>>>> 816ff67ba (fix(openai-compatible): honor camelCase providerOptions key in chat and completion models (#14135))
       ...(await this.config.metadataExtractor?.extractMetadata?.({
         parsedBody: rawResponse,
       })),
@@ -369,17 +358,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-<<<<<<< HEAD
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings } = await this.getArgs({ ...options });
-=======
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, metadataKey } = await this.getArgs({
-      ...options,
-    });
->>>>>>> 816ff67ba (fix(openai-compatible): honor camelCase providerOptions key in chat and completion models (#14135))
+    const { args, warnings, metadataKey } = await this.getArgs({ ...options });
 
     const body = this.transformRequestBody({
       ...args,
