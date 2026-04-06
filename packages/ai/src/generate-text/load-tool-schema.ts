@@ -12,11 +12,19 @@ export function createLoadToolSchemaTool(
   const toolNames = Object.keys(lazyTools);
 
   return tool({
-    description: `Load the full input schema and usage details for tools before calling them. You MUST call this first for any of these tools: ${toolNames.join(', ')}. After receiving the schema, proceed to call the tool with the correct arguments.`,
+    description: `Load the full input schema and usage details for tools before calling them. You MUST call this first for any of these tools: ${toolNames.join(', ')}. Always pass at least one tool name. After receiving the schema, proceed to call the tool with the correct arguments.`,
     inputSchema: z.object({
-      toolNames: z.array(z.string()),
+      toolNames: z
+        .array(z.string())
+        .min(1, 'At least one tool name is required'),
     }),
     async execute({ toolNames: requestedNames }) {
+      if (requestedNames.length === 0) {
+        return {
+          error: `No tool names provided. Pass at least one name from: ${toolNames.join(', ')}`,
+        } as LoadToolSchemaResult;
+      }
+
       const result: LoadToolSchemaResult = {};
 
       for (const name of requestedNames) {
