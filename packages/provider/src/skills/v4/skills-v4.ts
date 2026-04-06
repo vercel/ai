@@ -1,4 +1,6 @@
 import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
+import { SharedV4ProviderMetadata } from '../../shared/v4/shared-v4-provider-metadata';
+import { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provider-reference';
 import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 
 export interface SkillsV4File {
@@ -13,34 +15,7 @@ export interface SkillsV4File {
   content: string | Uint8Array;
 }
 
-export interface SkillsV4Skill {
-  /**
-   * Unique identifier of the skill.
-   */
-  id: string;
-
-  /**
-   * Optional human-readable title for the skill.
-   */
-  displayTitle?: string;
-
-  /**
-   * Optional name of the skill.
-   */
-  name?: string;
-
-  /**
-   * Optional description of what the skill does.
-   */
-  description?: string;
-
-  /**
-   * The source of the skill, either user-created or provider-created.
-   */
-  source: 'user' | 'provider';
-}
-
-export interface SkillsV4CreateParams {
+export interface SkillsV4UploadParams {
   /**
    * The files that make up the skill.
    */
@@ -57,11 +32,31 @@ export interface SkillsV4CreateParams {
   providerOptions?: SharedV4ProviderOptions;
 }
 
-export interface SkillsV4CreateResult {
+export interface SkillsV4UploadResult {
   /**
-   * The created skill.
+   * A provider reference mapping provider names to provider-specific skill identifiers.
    */
-  skill: SkillsV4Skill;
+  providerReference: SharedV4ProviderReference;
+
+  /**
+   * Optional human-readable title for the uploaded skill.
+   */
+  displayTitle?: string;
+
+  /**
+   * Optional name of the uploaded skill.
+   */
+  name?: string;
+
+  /**
+   * Optional description of what the uploaded skill does.
+   */
+  description?: string;
+
+  /**
+   * Additional provider-specific metadata.
+   */
+  providerMetadata?: SharedV4ProviderMetadata;
 
   /**
    * Warnings for the call, e.g. unsupported settings.
@@ -88,7 +83,7 @@ export interface SkillsV4 {
   readonly provider: string;
 
   /**
-   * Creates a new skill from the given files.
+   * Uploads a new skill from the given files.
    */
-  create(params: SkillsV4CreateParams): Promise<SkillsV4CreateResult>;
+  upload(params: SkillsV4UploadParams): Promise<SkillsV4UploadResult>;
 }

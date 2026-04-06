@@ -1,4 +1,4 @@
-import { SkillsV4, SkillsV4Skill, SharedV4Warning } from '@ai-sdk/provider';
+import { SkillsV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -7,10 +7,7 @@ import {
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
-import {
-  OpenAISkillResponse,
-  openaiSkillResponseSchema,
-} from './openai-skills-api';
+import { openaiSkillResponseSchema } from './openai-skills-api';
 
 interface OpenAISkillsManagerConfig {
   provider: string;
@@ -28,9 +25,9 @@ export class OpenAISkillsManager implements SkillsV4 {
 
   constructor(private readonly config: OpenAISkillsManagerConfig) {}
 
-  async create(
-    params: Parameters<SkillsV4['create']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['create']>>> {
+  async upload(
+    params: Parameters<SkillsV4['upload']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['upload']>>> {
     const warnings: SharedV4Warning[] = [];
 
     if (params.displayTitle != null) {
@@ -63,19 +60,29 @@ export class OpenAISkillsManager implements SkillsV4 {
     });
 
     return {
-      skill: mapOpenAISkill(response),
+      providerReference: { openai: response.id },
+      ...(response.name != null ? { name: response.name } : {}),
+      ...(response.description != null
+        ? { description: response.description }
+        : {}),
+      providerMetadata: {
+        openai: {
+          id: response.id,
+          ...(response.default_version != null
+            ? { defaultVersion: response.default_version }
+            : {}),
+          ...(response.latest_version != null
+            ? { latestVersion: response.latest_version }
+            : {}),
+          ...(response.created_at != null
+            ? { createdAt: response.created_at }
+            : {}),
+          ...(response.updated_at != null
+            ? { updatedAt: response.updated_at }
+            : {}),
+        },
+      },
       warnings,
     };
   }
-}
-
-function mapOpenAISkill(
-  response: Pick<OpenAISkillResponse, 'id' | 'name' | 'description'>,
-): SkillsV4Skill {
-  return {
-    id: response.id,
-    ...(response.name != null && { name: response.name }),
-    ...(response.description != null && { description: response.description }),
-    source: 'user',
-  };
 }

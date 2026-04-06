@@ -2,13 +2,19 @@ import {
   anthropic,
   type AnthropicLanguageModelOptions,
 } from '@ai-sdk/anthropic';
-import { createSkill, generateText } from 'ai';
+import { generateText, uploadSkill } from 'ai';
 import { readFileSync } from 'fs';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { skill } = await createSkill({
-    skillsManager: anthropic.skillsManager(),
+  const {
+    providerReference,
+    displayTitle,
+    name,
+    description,
+    providerMetadata,
+  } = await uploadSkill({
+    api: anthropic.skills(),
     files: [
       {
         path: 'island-rescue/SKILL.md',
@@ -17,7 +23,12 @@ run(async () => {
     ],
     displayTitle: 'Island Rescue',
   });
-  console.log('Created skill:', skill.id);
+
+  console.log('Provider reference:', providerReference);
+  console.log('Display title:', displayTitle);
+  console.log('Name:', name);
+  console.log('Description:', description);
+  console.log('Provider metadata:', providerMetadata);
 
   const result = await generateText({
     model: anthropic('claude-sonnet-4-5'),
@@ -29,7 +40,12 @@ run(async () => {
     providerOptions: {
       anthropic: {
         container: {
-          skills: [{ type: 'custom', skillId: skill.id }],
+          skills: [
+            {
+              type: 'custom',
+              providerReference,
+            },
+          ],
         },
       } satisfies AnthropicLanguageModelOptions,
     },

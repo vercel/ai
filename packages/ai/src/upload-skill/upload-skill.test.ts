@@ -1,65 +1,52 @@
 import { SkillsV4 } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
-import { createSkill } from './create-skill';
-
-const mockSkill = {
-  id: 'skill_123',
-  name: 'test-skill',
-  description: 'A test skill',
-  source: 'upload',
-};
+import { uploadSkill } from './upload-skill';
 
 function createMockSkillsManager(overrides: Partial<SkillsV4> = {}): SkillsV4 {
   return {
     specificationVersion: 'v4',
     provider: 'mock-provider',
-    create: vi.fn().mockResolvedValue({
-      skill: mockSkill,
+    upload: vi.fn().mockResolvedValue({
+      providerReference: { 'mock-provider': 'skill_123' },
       warnings: [],
     }),
     ...overrides,
   };
 }
 
-describe('createSkill', () => {
-  it('should delegate to skillsManager.create', async () => {
+describe('uploadSkill', () => {
+  it('should delegate to api.upload', async () => {
     const skillsManager = createMockSkillsManager();
 
     const files = [{ path: 'test.ts', content: 'hello' }];
-    await createSkill({
-      skillsManager,
+    await uploadSkill({
+      api: skillsManager,
       files,
       displayTitle: 'My Skill',
     });
 
-    expect(skillsManager.create).toHaveBeenCalledWith({
+    expect(skillsManager.upload).toHaveBeenCalledWith({
       files,
       displayTitle: 'My Skill',
       providerOptions: undefined,
     });
   });
 
-  it('should return skill and warnings from the skills manager', async () => {
+  it('should return providerReference and warnings from the skills manager', async () => {
     const skillsManager = createMockSkillsManager({
-      create: vi.fn().mockResolvedValue({
-        skill: mockSkill,
+      upload: vi.fn().mockResolvedValue({
+        providerReference: { 'mock-provider': 'skill_123' },
         warnings: [{ type: 'unsupported', feature: 'displayTitle' }],
+        providerMetadata: { foo: 'bar' },
       }),
     });
 
-    const result = await createSkill({
-      skillsManager,
+    const result = await uploadSkill({
+      api: skillsManager,
       files: [{ path: 'test.ts', content: 'hello' }],
     });
 
-    expect(result.skill).toMatchInlineSnapshot(`
-      {
-        "description": "A test skill",
-        "id": "skill_123",
-        "name": "test-skill",
-        "source": "upload",
-      }
-    `);
+    expect(result.providerReference).toEqual({ 'mock-provider': 'skill_123' });
     expect(result.warnings).toMatchInlineSnapshot(`
       [
         {
@@ -68,18 +55,19 @@ describe('createSkill', () => {
         },
       ]
     `);
+    expect(result.providerMetadata).toEqual({ foo: 'bar' });
   });
 
   it('should pass providerOptions to the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
 
-    await createSkill({
-      skillsManager,
+    await uploadSkill({
+      api: skillsManager,
       files: [{ path: 'test.ts', content: 'hello' }],
       providerOptions: { openai: { custom: 'value' } },
     });
 
-    expect(skillsManager.create).toHaveBeenCalledWith({
+    expect(skillsManager.upload).toHaveBeenCalledWith({
       files: [{ path: 'test.ts', content: 'hello' }],
       displayTitle: undefined,
       providerOptions: { openai: { custom: 'value' } },

@@ -1,11 +1,17 @@
 import { openai } from '@ai-sdk/openai';
-import { createSkill, generateText } from 'ai';
+import { generateText, uploadSkill } from 'ai';
 import { readFileSync } from 'fs';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { skill } = await createSkill({
-    skillsManager: openai.skillsManager(),
+  const {
+    providerReference,
+    displayTitle,
+    name,
+    description,
+    providerMetadata,
+  } = await uploadSkill({
+    api: openai.skills(),
     files: [
       {
         path: 'island-rescue/SKILL.md',
@@ -13,7 +19,12 @@ run(async () => {
       },
     ],
   });
-  console.log('Created skill:', skill.id);
+
+  console.log('Provider reference:', providerReference);
+  console.log('Display title:', displayTitle);
+  console.log('Name:', name);
+  console.log('Description:', description);
+  console.log('Provider metadata:', providerMetadata);
 
   const result = await generateText({
     model: openai.responses('gpt-5.2'),
@@ -21,7 +32,12 @@ run(async () => {
       shell: openai.tools.shell({
         environment: {
           type: 'containerAuto',
-          skills: [{ type: 'skillReference', skillId: skill.id }],
+          skills: [
+            {
+              type: 'skillReference',
+              providerReference,
+            },
+          ],
         },
       }),
     },

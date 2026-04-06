@@ -48,7 +48,7 @@ function prepareVersionMetadataResponse() {
 }
 
 describe('AnthropicSkillsManager', () => {
-  describe('create', () => {
+  describe('upload', () => {
     it('should send files as multipart form data', async () => {
       prepareResponse({
         url: 'https://api.anthropic.com/v1/skills',
@@ -56,8 +56,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skillsManager();
-      await skillsManager.create({
+      const skillsManager = provider.skills();
+      await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -73,8 +73,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skillsManager();
-      await skillsManager.create({
+      const skillsManager = provider.skills();
+      await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -84,27 +84,35 @@ describe('AnthropicSkillsManager', () => {
       });
     });
 
-    it('should include name and description from version metadata', async () => {
+    it('should map response to providerReference', async () => {
       prepareResponse({
         url: 'https://api.anthropic.com/v1/skills',
         filename: 'anthropic-skill-create',
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skillsManager();
-      const result = await skillsManager.create({
+      const skillsManager = provider.skills();
+      const result = await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
-      expect(result.skill).toMatchInlineSnapshot(`
-        {
-          "description": "An updated test skill for fixture capture",
-          "displayTitle": "Test Capture Skill",
-          "id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
-          "name": "test-capture-skill",
-          "source": "user",
-        }
-      `);
+      expect(result.providerReference).toEqual({
+        anthropic: 'skill_01Xud7kLMsjLfc7Aa6RvigZf',
+      });
+      expect(result.displayTitle).toBe('Test Capture Skill');
+      expect(result.name).toBe('test-capture-skill');
+      expect(result.description).toBe(
+        'An updated test skill for fixture capture',
+      );
+      expect(result.providerMetadata).toEqual({
+        anthropic: {
+          id: 'skill_01Xud7kLMsjLfc7Aa6RvigZf',
+          latestVersion: '1772078378207930',
+          source: 'custom',
+          createdAt: '2026-02-26T03:59:39.314772Z',
+          updatedAt: '2026-02-26T03:59:39.314772Z',
+        },
+      });
     });
 
     it('should send display_title in form data when displayTitle is provided', async () => {
@@ -114,8 +122,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skillsManager();
-      await skillsManager.create({
+      const skillsManager = provider.skills();
+      await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
         displayTitle: 'My Custom Title',
       });
@@ -131,8 +139,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skillsManager();
-      await skillsManager.create({
+      const skillsManager = provider.skills();
+      await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -147,8 +155,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skillsManager();
-      const result = await skillsManager.create({
+      const skillsManager = provider.skills();
+      const result = await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 

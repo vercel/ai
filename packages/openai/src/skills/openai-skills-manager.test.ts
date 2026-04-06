@@ -37,15 +37,15 @@ function prepareResponse({
 }
 
 describe('OpenAISkillsManager', () => {
-  describe('create', () => {
+  describe('upload', () => {
     it('should send files as multipart form data', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills',
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skillsManager();
-      await skillsManager.create({
+      const skillsManager = provider.skills();
+      await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -60,8 +60,8 @@ describe('OpenAISkillsManager', () => {
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skillsManager();
-      await skillsManager.create({
+      const skillsManager = provider.skills();
+      await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -70,25 +70,30 @@ describe('OpenAISkillsManager', () => {
       });
     });
 
-    it('should map response to SkillsV4Skill', async () => {
+    it('should map response to providerReference', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills',
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skillsManager();
-      const result = await skillsManager.create({
+      const skillsManager = provider.skills();
+      const result = await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
-      expect(result.skill).toMatchInlineSnapshot(`
-        {
-          "description": "A test skill for fixture capture",
-          "id": "skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5",
-          "name": "test-capture-skill",
-          "source": "user",
-        }
-      `);
+      expect(result.providerReference).toEqual({
+        openai: 'skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5',
+      });
+      expect(result.name).toBe('test-capture-skill');
+      expect(result.description).toBe('A test skill for fixture capture');
+      expect(result.providerMetadata).toEqual({
+        openai: {
+          id: 'skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5',
+          defaultVersion: '1',
+          latestVersion: '1',
+          createdAt: 1772078479,
+        },
+      });
     });
 
     it('should emit unsupported warning for displayTitle', async () => {
@@ -97,8 +102,8 @@ describe('OpenAISkillsManager', () => {
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skillsManager();
-      const result = await skillsManager.create({
+      const skillsManager = provider.skills();
+      const result = await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
         displayTitle: 'My Skill',
       });
@@ -119,8 +124,8 @@ describe('OpenAISkillsManager', () => {
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skillsManager();
-      const result = await skillsManager.create({
+      const skillsManager = provider.skills();
+      const result = await skillsManager.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -133,8 +138,8 @@ describe('OpenAISkillsManager', () => {
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skillsManager();
-      const result = await skillsManager.create({
+      const skillsManager = provider.skills();
+      const result = await skillsManager.upload({
         files: [
           {
             path: 'data.bin',
@@ -143,9 +148,9 @@ describe('OpenAISkillsManager', () => {
         ],
       });
 
-      expect(result.skill.id).toBe(
-        'skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5',
-      );
+      expect(result.providerReference).toEqual({
+        openai: 'skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5',
+      });
     });
   });
 });

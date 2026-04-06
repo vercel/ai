@@ -103,9 +103,9 @@ export interface OpenAIProvider extends ProviderV4 {
   files(): FilesV4;
 
   /**
-   * Returns the skills manager for this provider.
+   * Returns a SkillsV4 interface for uploading skills to OpenAI.
    */
-  skillsManager(): SkillsV4;
+  skills(): SkillsV4;
 
   /**
    * OpenAI-specific tools.
@@ -290,7 +290,7 @@ export function createOpenAI(
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
   provider.files = createFiles;
-  provider.skillsManager = createSkillsManager;
+  provider.skills = createSkillsManager;
 
   provider.tools = openaiTools;
 

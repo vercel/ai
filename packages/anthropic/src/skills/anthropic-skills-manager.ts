@@ -1,4 +1,4 @@
-import { SkillsV4, SkillsV4Skill, SharedV4Warning } from '@ai-sdk/provider';
+import { SkillsV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -11,7 +11,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from '../anthropic-error';
 import {
-  AnthropicSkillResponse,
   anthropicSkillResponseSchema,
   anthropicSkillVersionResponseSchema,
 } from './anthropic-skills-api';
@@ -38,11 +37,6 @@ export class AnthropicSkillsManager implements SkillsV4 {
     });
   }
 
-  /*
-   * Anthropic's skill response does not include `name` or `description`.
-   * These fields are only available on the version object, so we fetch
-   * the latest version to enrich the skill metadata.
-   */
   private async fetchVersionMetadata({
     skillId,
     version,
@@ -63,16 +57,16 @@ export class AnthropicSkillsManager implements SkillsV4 {
     });
 
     return {
-      ...(versionResponse.name != null && { name: versionResponse.name }),
-      ...(versionResponse.description != null && {
-        description: versionResponse.description,
-      }),
+      ...(versionResponse.name != null ? { name: versionResponse.name } : {}),
+      ...(versionResponse.description != null
+        ? { description: versionResponse.description }
+        : {}),
     };
   }
 
-  async create(
-    params: Parameters<SkillsV4['create']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['create']>>> {
+  async upload(
+    params: Parameters<SkillsV4['upload']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['upload']>>> {
     const warnings: SharedV4Warning[] = [];
 
     const formData = new FormData();
@@ -112,38 +106,32 @@ export class AnthropicSkillsManager implements SkillsV4 {
           })
         : {};
 
+    const name = versionMetadata.name ?? response.name;
+    const description = versionMetadata.description ?? response.description;
+
     return {
-      skill: mapAnthropicSkill(response, versionMetadata),
+      providerReference: { anthropic: response.id },
+      ...(response.display_title != null
+        ? { displayTitle: response.display_title }
+        : {}),
+      ...(name != null ? { name } : {}),
+      ...(description != null ? { description } : {}),
+      providerMetadata: {
+        anthropic: {
+          id: response.id,
+          ...(response.latest_version != null
+            ? { latestVersion: response.latest_version }
+            : {}),
+          ...(response.source != null ? { source: response.source } : {}),
+          ...(response.created_at != null
+            ? { createdAt: response.created_at }
+            : {}),
+          ...(response.updated_at != null
+            ? { updatedAt: response.updated_at }
+            : {}),
+        },
+      },
       warnings,
     };
-  }
-}
-
-function mapAnthropicSkill(
-  response: Pick<
-    AnthropicSkillResponse,
-    'id' | 'display_title' | 'name' | 'description' | 'source'
-  >,
-  versionMetadata?: { name?: string; description?: string },
-): SkillsV4Skill {
-  const name = versionMetadata?.name ?? response.name;
-  const description = versionMetadata?.description ?? response.description;
-  return {
-    id: response.id,
-    ...(response.display_title != null && {
-      displayTitle: response.display_title,
-    }),
-    ...(name != null && { name }),
-    ...(description != null && { description }),
-    source: mapAnthropicSource(response.source),
-  };
-}
-
-function mapAnthropicSource(source: string): SkillsV4Skill['source'] {
-  switch (source) {
-    case 'anthropic':
-      return 'provider';
-    default:
-      return 'user';
   }
 }

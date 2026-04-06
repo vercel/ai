@@ -44,9 +44,9 @@ export interface AnthropicProvider extends ProviderV4 {
   files(): FilesV4;
 
   /**
-   * Returns the skills manager for this provider.
+   * Returns a SkillsV4 interface for uploading skills to Anthropic.
    */
-  skillsManager(): SkillsV4;
+  skills(): SkillsV4;
 
   /**
    * Anthropic-specific computer use tool.
@@ -193,7 +193,7 @@ export function createAnthropic(
       fetch: options.fetch,
     });
 
-  provider.skillsManager = createSkillsManager;
+  provider.skills = createSkillsManager;
 
   provider.tools = anthropicTools;
 
