@@ -98,7 +98,10 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
         warnings: [],
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders ?? {}));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
