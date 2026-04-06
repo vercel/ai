@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.17
+
+### Patch Changes
+
+- a00d1d3: feat(mcp): allow custom fetch for HTTP and SSE transports
+
 ## 2.0.0-beta.16
 
 ### Patch Changes
