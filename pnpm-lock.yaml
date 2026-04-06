@@ -99,8 +99,8 @@ importers:
         specifier: 4.0.0-beta.15
         version: link:../../packages/mistral
       '@ai-sdk/open-responses':
-        specifier: 2.0.0-beta.14
-        version: 2.0.0-beta.14(zod@3.25.76)
+        specifier: workspace:*
+        version: link:../../packages/open-responses
       '@ai-sdk/openai':
         specifier: 4.0.0-beta.23
         version: link:../../packages/openai
@@ -3173,22 +3173,6 @@ packages:
 
   '@adobe/css-tools@4.4.0':
     resolution: {integrity: sha512-Ff9+ksdQQB3rMncgqDK78uLznstjyfIf2Arnh22pW8kBpLs6rpKDwgnZT46hin5Hl1WzazzK64DOrhSwYpS7bQ==}
-
-  '@ai-sdk/open-responses@2.0.0-beta.14':
-    resolution: {integrity: sha512-K8jJIZAHGp+0gefaBmT9ap0xsMTpSzoQKv9fORrWltNTvjGq+6CmfS6cwSskM9hf+7IUGKnJi+Ap8Mpn55jmLA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/provider-utils@5.0.0-beta.12':
-    resolution: {integrity: sha512-vAVnJoU6K5EnPAWSj11BGbRa94EokALSpUYdpEx6r+ekVbZZDf3G5QJ0cXDL6DUWxFHljhOMenUks6OZIyUCpA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4.1.8
-
-  '@ai-sdk/provider@4.0.0-beta.7':
-    resolution: {integrity: sha512-q3mORIV5vzhMQ2ge1zw1hpnLm+21CxTimB1YPiPQEuBiKjUZ5Ds1SBaIukeapNT04JH+ddmdxzcj3cyIYxKWDQ==}
-    engines: {node: '>=18'}
 
   '@algolia/abtesting@1.1.0':
     resolution: {integrity: sha512-sEyWjw28a/9iluA37KLGu8vjxEIlb60uxznfTUmXImy7H5NvbpSO6yYgmgH5KiD7j+zTUUihiST0jEP12IoXow==}
@@ -19937,23 +19921,6 @@ packages:
 snapshots:
 
   '@adobe/css-tools@4.4.0': {}
-
-  '@ai-sdk/open-responses@2.0.0-beta.14(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.0-beta.7
-      '@ai-sdk/provider-utils': 5.0.0-beta.12(zod@3.25.76)
-      zod: 3.25.76
-
-  '@ai-sdk/provider-utils@5.0.0-beta.12(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.0-beta.7
-      '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.0.6
-      zod: 3.25.76
-
-  '@ai-sdk/provider@4.0.0-beta.7':
-    dependencies:
-      json-schema: 0.4.0
 
   '@algolia/abtesting@1.1.0':
     dependencies:
