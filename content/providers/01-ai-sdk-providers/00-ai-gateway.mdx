@@ -790,6 +790,10 @@ The following gateway provider options are available:
 
   Restricts routing to models and tools from providers that have signed a BAA with Vercel for the use of AI Gateway (requires Vercel HIPAA BAA add on). BYOK credentials are skipped when `hipaaCompliant` is set to `true` to ensure that requests are only routed to providers that support HIPAA compliance.
 
+- **quotaEntityId** _string_
+
+  The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
+
 - **providerTimeouts** _object_
 
   Per-provider timeouts for BYOK credentials in milliseconds. Controls how long to wait for a provider to start responding before falling back to the next available provider.
@@ -893,6 +897,25 @@ const { text } = await generateText({
   providerOptions: {
     gateway: {
       hipaaCompliant: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### Quota Entity ID Example
+
+Set `quotaEntityId` to track and enforce quota against a specific entity. This is useful for multi-tenant applications where you need to manage quota at the entity level (e.g., per organization or team).
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.6',
+  prompt: 'Summarize this report...',
+  providerOptions: {
+    gateway: {
+      quotaEntityId: 'org-123',
     } satisfies GatewayProviderOptions,
   },
 });
