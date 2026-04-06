@@ -232,4 +232,73 @@ describe('prepareTools', () => {
       ]
     `);
   });
+
+  it('emits minimal schema for lazy tools', async () => {
+    const result = await prepareTools({
+      tools: {
+        lazyTool: tool({
+          description: 'A lazy tool',
+          inputSchema: z.object({ query: z.string(), limit: z.number() }),
+          lazy: true,
+        }),
+      },
+    });
+
+    expect(result).toEqual([
+      {
+        type: 'function',
+        name: 'lazyTool',
+        description: 'A lazy tool',
+        inputSchema: { type: 'object', properties: {} },
+        providerOptions: undefined,
+      },
+    ]);
+  });
+
+  it('handles mixed lazy and non-lazy tools', async () => {
+    const result = await prepareTools({
+      tools: {
+        eagerTool: tool({
+          description: 'Eager tool',
+          inputSchema: z.object({ name: z.string() }),
+        }),
+        lazyTool: tool({
+          description: 'Lazy tool',
+          inputSchema: z.object({ query: z.string() }),
+          lazy: true,
+        }),
+      },
+    });
+
+    expect(result).toBeDefined();
+    expect(result).toHaveLength(2);
+
+    const eager = result!.find(
+      t => t.type === 'function' && t.name === 'eagerTool',
+    );
+    const lazy = result!.find(
+      t => t.type === 'function' && t.name === 'lazyTool',
+    );
+
+    expect(eager).toBeDefined();
+    expect(lazy).toBeDefined();
+
+    // Eager tool should have full schema with properties
+    const eagerFunc = eager as unknown as {
+      inputSchema: Record<string, unknown>;
+    };
+    expect(eagerFunc.inputSchema).toHaveProperty('properties');
+    expect(
+      (eagerFunc.inputSchema.properties as Record<string, unknown>).name,
+    ).toBeDefined();
+
+    // Lazy tool should have minimal schema (no real properties)
+    const lazyFunc = lazy as unknown as {
+      inputSchema: Record<string, unknown>;
+    };
+    expect(lazyFunc.inputSchema).toEqual({
+      type: 'object',
+      properties: {},
+    });
+  });
 });

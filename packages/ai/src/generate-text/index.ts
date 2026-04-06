@@ -19,6 +19,7 @@ export {
   type GenerateTextOnToolCallStartCallback,
 } from './generate-text';
 export type { GenerateTextResult } from './generate-text-result';
+export { LOAD_TOOL_SCHEMA_NAME } from './load-tool-schema';
 export {
   DefaultGeneratedFile,
   type GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v7

@@ -27,17 +27,27 @@ export async function prepareTools<TOOLS extends ToolSet>({
       case undefined:
       case 'dynamic':
       case 'function':
-        languageModelTools.push({
-          type: 'function' as const,
-          name,
-          description: tool.description,
-          inputSchema: await asSchema(tool.inputSchema).jsonSchema,
-          ...(tool.inputExamples != null
-            ? { inputExamples: tool.inputExamples }
-            : {}),
-          providerOptions: tool.providerOptions,
-          ...(tool.strict != null ? { strict: tool.strict } : {}),
-        });
+        if (tool.lazy) {
+          languageModelTools.push({
+            type: 'function' as const,
+            name,
+            description: tool.description,
+            inputSchema: { type: 'object' as const, properties: {} },
+            providerOptions: tool.providerOptions,
+          });
+        } else {
+          languageModelTools.push({
+            type: 'function' as const,
+            name,
+            description: tool.description,
+            inputSchema: await asSchema(tool.inputSchema).jsonSchema,
+            ...(tool.inputExamples != null
+              ? { inputExamples: tool.inputExamples }
+              : {}),
+            providerOptions: tool.providerOptions,
+            ...(tool.strict != null ? { strict: tool.strict } : {}),
+          });
+        }
         break;
       case 'provider':
         languageModelTools.push({
