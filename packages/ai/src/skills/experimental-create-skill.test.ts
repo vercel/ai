@@ -1,6 +1,6 @@
-import { Experimental_SkillsManagerV1 } from '@ai-sdk/provider';
+import { SkillsV4 } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
-import { experimental_createSkill } from './experimental-create-skill';
+import { createSkill } from './create-skill';
 
 const mockSkill = {
   id: 'skill_123',
@@ -9,11 +9,9 @@ const mockSkill = {
   source: 'upload',
 };
 
-function createMockSkillsManager(
-  overrides: Partial<Experimental_SkillsManagerV1> = {},
-): Experimental_SkillsManagerV1 {
+function createMockSkillsManager(overrides: Partial<SkillsV4> = {}): SkillsV4 {
   return {
-    specificationVersion: 'v1',
+    specificationVersion: 'v4',
     provider: 'mock-provider',
     create: vi.fn().mockResolvedValue({
       skill: mockSkill,
@@ -27,12 +25,12 @@ function createMockSkillsManager(
   };
 }
 
-describe('experimental_createSkill', () => {
+describe('createSkill', () => {
   it('should delegate to skillsManager.create', async () => {
     const skillsManager = createMockSkillsManager();
 
     const files = [{ path: 'test.ts', content: 'hello' }];
-    await experimental_createSkill({
+    await createSkill({
       skillsManager,
       files,
       displayTitle: 'My Skill',
@@ -53,7 +51,7 @@ describe('experimental_createSkill', () => {
       }),
     });
 
-    const result = await experimental_createSkill({
+    const result = await createSkill({
       skillsManager,
       files: [{ path: 'test.ts', content: 'hello' }],
     });
@@ -79,7 +77,7 @@ describe('experimental_createSkill', () => {
   it('should pass providerOptions to the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
 
-    await experimental_createSkill({
+    await createSkill({
       skillsManager,
       files: [{ path: 'test.ts', content: 'hello' }],
       providerOptions: { openai: { custom: 'value' } },

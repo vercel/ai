@@ -1,14 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import {
-  experimental_createSkill,
-  experimental_deleteSkill,
-  generateText,
-} from 'ai';
+import { createSkill, deleteSkill, generateText } from 'ai';
 import { readFileSync } from 'fs';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { skill } = await experimental_createSkill({
+  const { skill } = await createSkill({
     skillsManager: openai.skillsManager(),
     files: [
       {
@@ -36,7 +32,7 @@ run(async () => {
 
     console.log('Result:', result.text);
   } finally {
-    await experimental_deleteSkill({
+    await deleteSkill({
       skillsManager: openai.skillsManager(),
       skillId: skill.id,
     });

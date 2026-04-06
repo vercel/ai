@@ -1,7 +1,7 @@
-import { SharedV3ProviderOptions } from '../../shared/v3/shared-v3-provider-options';
-import { SharedV3Warning } from '../../shared/v3/shared-v3-warning';
+import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
+import { SharedV4Warning } from '../../shared/v4/shared-v4-warning';
 
-export interface SkillsManagerV1File {
+export interface SkillsV4File {
   /**
    * The path of the file relative to the skill root.
    */
@@ -13,7 +13,7 @@ export interface SkillsManagerV1File {
   content: string | Uint8Array;
 }
 
-export interface SkillsManagerV1Skill {
+export interface SkillsV4Skill {
   /**
    * Unique identifier of the skill.
    */
@@ -40,11 +40,11 @@ export interface SkillsManagerV1Skill {
   source: 'user' | 'provider';
 }
 
-export interface SkillsManagerV1CreateParams {
+export interface SkillsV4CreateParams {
   /**
    * The files that make up the skill.
    */
-  files: SkillsManagerV1File[];
+  files: SkillsV4File[];
 
   /**
    * Optional human-readable title for the skill.
@@ -54,41 +54,41 @@ export interface SkillsManagerV1CreateParams {
   /**
    * Additional provider-specific options.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
-export interface SkillsManagerV1CreateResult {
+export interface SkillsV4CreateResult {
   /**
    * The created skill.
    */
-  skill: SkillsManagerV1Skill;
+  skill: SkillsV4Skill;
 
   /**
    * Warnings for the call, e.g. unsupported settings.
    */
-  warnings: SharedV3Warning[];
+  warnings: SharedV4Warning[];
 }
 
-export interface SkillsManagerV1ListParams {
+export interface SkillsV4ListParams {
   /**
    * Additional provider-specific options.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
-export interface SkillsManagerV1ListResult {
+export interface SkillsV4ListResult {
   /**
    * The list of skills.
    */
-  skills: SkillsManagerV1Skill[];
+  skills: SkillsV4Skill[];
 
   /**
    * Warnings for the call, e.g. unsupported settings.
    */
-  warnings: SharedV3Warning[];
+  warnings: SharedV4Warning[];
 }
 
-export interface SkillsManagerV1RetrieveParams {
+export interface SkillsV4RetrieveParams {
   /**
    * The ID of the skill to retrieve.
    */
@@ -97,22 +97,22 @@ export interface SkillsManagerV1RetrieveParams {
   /**
    * Additional provider-specific options.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
-export interface SkillsManagerV1RetrieveResult {
+export interface SkillsV4RetrieveResult {
   /**
    * The retrieved skill.
    */
-  skill: SkillsManagerV1Skill;
+  skill: SkillsV4Skill;
 
   /**
    * Warnings for the call, e.g. unsupported settings.
    */
-  warnings: SharedV3Warning[];
+  warnings: SharedV4Warning[];
 }
 
-export interface SkillsManagerV1UpdateParams {
+export interface SkillsV4UpdateParams {
   /**
    * The ID of the skill to update.
    */
@@ -121,27 +121,27 @@ export interface SkillsManagerV1UpdateParams {
   /**
    * The updated files that make up the skill.
    */
-  files: SkillsManagerV1File[];
+  files: SkillsV4File[];
 
   /**
    * Additional provider-specific options.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
-export interface SkillsManagerV1UpdateResult {
+export interface SkillsV4UpdateResult {
   /**
    * The updated skill.
    */
-  skill: SkillsManagerV1Skill;
+  skill: SkillsV4Skill;
 
   /**
    * Warnings for the call, e.g. unsupported settings.
    */
-  warnings: SharedV3Warning[];
+  warnings: SharedV4Warning[];
 }
 
-export interface SkillsManagerV1DeleteParams {
+export interface SkillsV4DeleteParams {
   /**
    * The ID of the skill to delete.
    */
@@ -150,20 +150,20 @@ export interface SkillsManagerV1DeleteParams {
   /**
    * Additional provider-specific options.
    */
-  providerOptions?: SharedV3ProviderOptions;
+  providerOptions?: SharedV4ProviderOptions;
 }
 
-export interface SkillsManagerV1DeleteResult {
+export interface SkillsV4DeleteResult {
   /**
    * Warnings for the call, e.g. unsupported settings.
    */
-  warnings: SharedV3Warning[];
+  warnings: SharedV4Warning[];
 }
 
 /**
- * Skills manager specification version 1.
+ * Skills manager specification version 4.
  */
-export interface SkillsManagerV1 {
+export interface SkillsV4 {
   /**
    * The skills manager must specify which skills manager interface
    * version it implements. This will allow us to evolve the skills
@@ -171,7 +171,7 @@ export interface SkillsManagerV1 {
    * implementation versions can be handled as a discriminated union
    * on our side.
    */
-  readonly specificationVersion: 'v1';
+  readonly specificationVersion: 'v4';
 
   /**
    * Name of the provider for logging purposes.
@@ -181,33 +181,25 @@ export interface SkillsManagerV1 {
   /**
    * Creates a new skill from the given files.
    */
-  create(
-    params: SkillsManagerV1CreateParams,
-  ): Promise<SkillsManagerV1CreateResult>;
+  create(params: SkillsV4CreateParams): Promise<SkillsV4CreateResult>;
 
   /**
    * Lists all available skills.
    */
-  list(params?: SkillsManagerV1ListParams): Promise<SkillsManagerV1ListResult>;
+  list(params?: SkillsV4ListParams): Promise<SkillsV4ListResult>;
 
   /**
    * Retrieves a skill by its ID.
    */
-  retrieve(
-    params: SkillsManagerV1RetrieveParams,
-  ): Promise<SkillsManagerV1RetrieveResult>;
+  retrieve(params: SkillsV4RetrieveParams): Promise<SkillsV4RetrieveResult>;
 
   /**
    * Updates an existing skill with new files.
    */
-  update(
-    params: SkillsManagerV1UpdateParams,
-  ): Promise<SkillsManagerV1UpdateResult>;
+  update(params: SkillsV4UpdateParams): Promise<SkillsV4UpdateResult>;
 
   /**
    * Deletes a skill by its ID.
    */
-  delete(
-    params: SkillsManagerV1DeleteParams,
-  ): Promise<SkillsManagerV1DeleteResult>;
+  delete(params: SkillsV4DeleteParams): Promise<SkillsV4DeleteResult>;
 }

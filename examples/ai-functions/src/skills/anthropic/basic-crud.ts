@@ -1,15 +1,15 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import {
-  experimental_createSkill,
-  experimental_listSkills,
-  experimental_updateSkill,
-  experimental_retrieveSkill,
-  experimental_deleteSkill,
+  createSkill,
+  listSkills,
+  updateSkill,
+  retrieveSkill,
+  deleteSkill,
 } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { skill } = await experimental_createSkill({
+  const { skill } = await createSkill({
     skillsManager: anthropic.skillsManager(),
     files: [
       {
@@ -25,12 +25,12 @@ run(async () => {
   try {
     console.log('Created:', skill);
 
-    const { skills } = await experimental_listSkills({
+    const { skills } = await listSkills({
       skillsManager: anthropic.skillsManager(),
     });
     console.log('List:', skills);
 
-    const { skill: updated } = await experimental_updateSkill({
+    const { skill: updated } = await updateSkill({
       skillsManager: anthropic.skillsManager(),
       skillId: skill.id,
       files: [
@@ -44,13 +44,13 @@ run(async () => {
     });
     console.log('Updated:', updated);
 
-    const { skill: retrieved } = await experimental_retrieveSkill({
+    const { skill: retrieved } = await retrieveSkill({
       skillsManager: anthropic.skillsManager(),
       skillId: skill.id,
     });
     console.log('Retrieved:', retrieved);
   } finally {
-    await experimental_deleteSkill({
+    await deleteSkill({
       skillsManager: anthropic.skillsManager(),
       skillId: skill.id,
     });

@@ -187,7 +187,7 @@ describe('AnthropicSkillsManager', () => {
       });
     });
 
-    it('should map response to Experimental_SkillsManagerV1Skill array', async () => {
+    it('should map response to SkillsV4Skill array', async () => {
       prepareResponse({
         url: 'https://api.anthropic.com/v1/skills',
         filename: 'anthropic-skill-list',
@@ -358,7 +358,7 @@ describe('AnthropicSkillsManager', () => {
       });
     });
 
-    it('should map response to Experimental_SkillsManagerV1Skill', async () => {
+    it('should map response to SkillsV4Skill', async () => {
       prepareUpdateResponses();
 
       const skillsManager = provider.skillsManager();

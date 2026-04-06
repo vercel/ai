@@ -5,7 +5,7 @@ import {
   LanguageModelV4,
   ProviderV4,
   SpeechModelV4,
-  Experimental_SkillsManagerV1,
+  SkillsV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
@@ -105,7 +105,7 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Returns the skills manager for this provider.
    */
-  skillsManager(): Experimental_SkillsManagerV1;
+  skillsManager(): SkillsV4;
 
   /**
    * OpenAI-specific tools.

@@ -1,12 +1,10 @@
-import { Experimental_SkillsManagerV1 } from '@ai-sdk/provider';
+import { SkillsV4 } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
-import { experimental_deleteSkill } from './experimental-delete-skill';
+import { deleteSkill } from './delete-skill';
 
-function createMockSkillsManager(
-  overrides: Partial<Experimental_SkillsManagerV1> = {},
-): Experimental_SkillsManagerV1 {
+function createMockSkillsManager(overrides: Partial<SkillsV4> = {}): SkillsV4 {
   return {
-    specificationVersion: 'v1',
+    specificationVersion: 'v4',
     provider: 'mock-provider',
     create: vi.fn(),
     list: vi.fn(),
@@ -19,11 +17,11 @@ function createMockSkillsManager(
   };
 }
 
-describe('experimental_deleteSkill', () => {
+describe('deleteSkill', () => {
   it('should delegate to skillsManager.delete', async () => {
     const skillsManager = createMockSkillsManager();
 
-    await experimental_deleteSkill({
+    await deleteSkill({
       skillsManager,
       skillId: 'skill_123',
     });
@@ -41,7 +39,7 @@ describe('experimental_deleteSkill', () => {
       }),
     });
 
-    const result = await experimental_deleteSkill({
+    const result = await deleteSkill({
       skillsManager,
       skillId: 'skill_123',
     });
@@ -59,7 +57,7 @@ describe('experimental_deleteSkill', () => {
   it('should return empty warnings on successful delete', async () => {
     const skillsManager = createMockSkillsManager();
 
-    const result = await experimental_deleteSkill({
+    const result = await deleteSkill({
       skillsManager,
       skillId: 'skill_123',
     });
@@ -70,7 +68,7 @@ describe('experimental_deleteSkill', () => {
   it('should pass providerOptions to the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
 
-    await experimental_deleteSkill({
+    await deleteSkill({
       skillsManager,
       skillId: 'skill_123',
       providerOptions: { openai: { custom: 'value' } },

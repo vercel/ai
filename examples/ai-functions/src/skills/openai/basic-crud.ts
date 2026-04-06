@@ -1,15 +1,15 @@
 import { openai } from '@ai-sdk/openai';
 import {
-  experimental_createSkill,
-  experimental_listSkills,
-  experimental_updateSkill,
-  experimental_retrieveSkill,
-  experimental_deleteSkill,
+  createSkill,
+  listSkills,
+  updateSkill,
+  retrieveSkill,
+  deleteSkill,
 } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { skill } = await experimental_createSkill({
+  const { skill } = await createSkill({
     skillsManager: openai.skillsManager(),
     files: [
       {
@@ -27,12 +27,12 @@ run(async () => {
     console.log('Waiting 15 seconds for skill to propagate...');
     await new Promise(resolve => setTimeout(resolve, 15000));
 
-    const { skills } = await experimental_listSkills({
+    const { skills } = await listSkills({
       skillsManager: openai.skillsManager(),
     });
     console.log('List:', skills);
 
-    const { skill: updated } = await experimental_updateSkill({
+    const { skill: updated } = await updateSkill({
       skillsManager: openai.skillsManager(),
       skillId: skill.id,
       files: [
@@ -46,13 +46,13 @@ run(async () => {
     });
     console.log('Updated:', updated);
 
-    const { skill: retrieved } = await experimental_retrieveSkill({
+    const { skill: retrieved } = await retrieveSkill({
       skillsManager: openai.skillsManager(),
       skillId: skill.id,
     });
     console.log('Retrieved:', retrieved);
   } finally {
-    await experimental_deleteSkill({
+    await deleteSkill({
       skillsManager: openai.skillsManager(),
       skillId: skill.id,
     });

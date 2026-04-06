@@ -1,5 +1,5 @@
-export { experimental_createSkill } from './experimental-create-skill';
-export { experimental_listSkills } from './experimental-list-skills';
-export { experimental_retrieveSkill } from './experimental-retrieve-skill';
-export { experimental_updateSkill } from './experimental-update-skill';
-export { experimental_deleteSkill } from './experimental-delete-skill';
+export { createSkill } from './create-skill';
+export { listSkills } from './list-skills';
+export { retrieveSkill } from './retrieve-skill';
+export { updateSkill } from './update-skill';
+export { deleteSkill } from './delete-skill';

@@ -1,25 +1,21 @@
-import {
-  Experimental_SkillsManagerV1,
-  Experimental_SkillsManagerV1File,
-  Experimental_SkillsManagerV1Skill,
-} from '@ai-sdk/provider';
+import { SkillsV4, SkillsV4File, SkillsV4Skill } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { Warning } from '../types/warning';
 
 export interface UpdateSkillResult {
-  readonly skill: Experimental_SkillsManagerV1Skill;
+  readonly skill: SkillsV4Skill;
   readonly warnings: Warning[];
 }
 
-export async function experimental_updateSkill({
+export async function updateSkill({
   skillsManager,
   skillId,
   files,
   providerOptions,
 }: {
-  skillsManager: Experimental_SkillsManagerV1;
+  skillsManager: SkillsV4;
   skillId: string;
-  files: Experimental_SkillsManagerV1File[];
+  files: SkillsV4File[];
   providerOptions?: ProviderOptions;
 }): Promise<UpdateSkillResult> {
   const result = await skillsManager.update({

@@ -1,8 +1,4 @@
-import {
-  Experimental_SkillsManagerV1,
-  Experimental_SkillsManagerV1Skill,
-  SharedV3Warning,
-} from '@ai-sdk/provider';
+import { SkillsV4, SkillsV4Skill, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -32,8 +28,8 @@ interface AnthropicSkillsManagerConfig {
   fetch?: FetchFunction;
 }
 
-export class AnthropicSkillsManager implements Experimental_SkillsManagerV1 {
-  readonly specificationVersion = 'v1';
+export class AnthropicSkillsManager implements SkillsV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -80,9 +76,9 @@ export class AnthropicSkillsManager implements Experimental_SkillsManagerV1 {
   }
 
   async create(
-    params: Parameters<Experimental_SkillsManagerV1['create']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['create']>>> {
-    const warnings: SharedV3Warning[] = [];
+    params: Parameters<SkillsV4['create']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['create']>>> {
+    const warnings: SharedV4Warning[] = [];
 
     const formData = new FormData();
 
@@ -135,8 +131,8 @@ export class AnthropicSkillsManager implements Experimental_SkillsManagerV1 {
    * Investigate whether a batch approach or expanded response is possible.
    */
   async list(
-    _params?: Parameters<Experimental_SkillsManagerV1['list']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['list']>>> {
+    _params?: Parameters<SkillsV4['list']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['list']>>> {
     const { value: response } = await getFromApi({
       url: `${this.config.baseURL}/skills?limit=100`,
       headers: await this.getHeaders(),
@@ -154,8 +150,8 @@ export class AnthropicSkillsManager implements Experimental_SkillsManagerV1 {
   }
 
   async retrieve(
-    params: Parameters<Experimental_SkillsManagerV1['retrieve']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['retrieve']>>> {
+    params: Parameters<SkillsV4['retrieve']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['retrieve']>>> {
     const headers = await this.getHeaders();
 
     const { value: response } = await getFromApi({
@@ -184,8 +180,8 @@ export class AnthropicSkillsManager implements Experimental_SkillsManagerV1 {
   }
 
   async update(
-    params: Parameters<Experimental_SkillsManagerV1['update']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['update']>>> {
+    params: Parameters<SkillsV4['update']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['update']>>> {
     const formData = new FormData();
 
     for (const file of params.files) {
@@ -236,8 +232,8 @@ export class AnthropicSkillsManager implements Experimental_SkillsManagerV1 {
    * itself can be deleted. We list all versions and delete them first.
    */
   async delete(
-    params: Parameters<Experimental_SkillsManagerV1['delete']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['delete']>>> {
+    params: Parameters<SkillsV4['delete']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['delete']>>> {
     const headers = await this.getHeaders();
 
     const { value: versionsResponse } = await getFromApi({
@@ -284,7 +280,7 @@ function mapAnthropicSkill(
     'id' | 'display_title' | 'name' | 'description' | 'source'
   >,
   versionMetadata?: { name?: string; description?: string },
-): Experimental_SkillsManagerV1Skill {
+): SkillsV4Skill {
   const name = versionMetadata?.name ?? response.name;
   const description = versionMetadata?.description ?? response.description;
   return {
@@ -298,9 +294,7 @@ function mapAnthropicSkill(
   };
 }
 
-function mapAnthropicSource(
-  source: string,
-): Experimental_SkillsManagerV1Skill['source'] {
+function mapAnthropicSource(source: string): SkillsV4Skill['source'] {
   switch (source) {
     case 'anthropic':
       return 'provider';

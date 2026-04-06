@@ -1,6 +1,6 @@
-import { Experimental_SkillsManagerV1 } from '@ai-sdk/provider';
+import { SkillsV4 } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
-import { experimental_retrieveSkill } from './experimental-retrieve-skill';
+import { retrieveSkill } from './retrieve-skill';
 
 const mockSkill = {
   id: 'skill_123',
@@ -9,11 +9,9 @@ const mockSkill = {
   source: 'upload',
 };
 
-function createMockSkillsManager(
-  overrides: Partial<Experimental_SkillsManagerV1> = {},
-): Experimental_SkillsManagerV1 {
+function createMockSkillsManager(overrides: Partial<SkillsV4> = {}): SkillsV4 {
   return {
-    specificationVersion: 'v1',
+    specificationVersion: 'v4',
     provider: 'mock-provider',
     create: vi.fn(),
     list: vi.fn(),
@@ -27,11 +25,11 @@ function createMockSkillsManager(
   };
 }
 
-describe('experimental_retrieveSkill', () => {
+describe('retrieveSkill', () => {
   it('should delegate to skillsManager.retrieve', async () => {
     const skillsManager = createMockSkillsManager();
 
-    await experimental_retrieveSkill({
+    await retrieveSkill({
       skillsManager,
       skillId: 'skill_123',
     });
@@ -45,7 +43,7 @@ describe('experimental_retrieveSkill', () => {
   it('should return skill and warnings from the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
 
-    const result = await experimental_retrieveSkill({
+    const result = await retrieveSkill({
       skillsManager,
       skillId: 'skill_123',
     });
@@ -64,7 +62,7 @@ describe('experimental_retrieveSkill', () => {
   it('should pass providerOptions to the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
 
-    await experimental_retrieveSkill({
+    await retrieveSkill({
       skillsManager,
       skillId: 'skill_123',
       providerOptions: { openai: { custom: 'value' } },

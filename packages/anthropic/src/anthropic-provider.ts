@@ -4,7 +4,7 @@ import {
   LanguageModelV4,
   NoSuchModelError,
   ProviderV4,
-  Experimental_SkillsManagerV1,
+  SkillsV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -46,7 +46,7 @@ export interface AnthropicProvider extends ProviderV4 {
   /**
    * Returns the skills manager for this provider.
    */
-  skillsManager(): Experimental_SkillsManagerV1;
+  skillsManager(): SkillsV4;
 
   /**
    * Anthropic-specific computer use tool.

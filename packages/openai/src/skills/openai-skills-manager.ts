@@ -1,8 +1,4 @@
-import {
-  Experimental_SkillsManagerV1,
-  Experimental_SkillsManagerV1Skill,
-  SharedV3Warning,
-} from '@ai-sdk/provider';
+import { SkillsV4, SkillsV4Skill, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -29,8 +25,8 @@ interface OpenAISkillsManagerConfig {
   fetch?: FetchFunction;
 }
 
-export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
-  readonly specificationVersion = 'v1';
+export class OpenAISkillsManager implements SkillsV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -39,9 +35,9 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
   constructor(private readonly config: OpenAISkillsManagerConfig) {}
 
   async create(
-    params: Parameters<Experimental_SkillsManagerV1['create']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['create']>>> {
-    const warnings: SharedV3Warning[] = [];
+    params: Parameters<SkillsV4['create']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['create']>>> {
+    const warnings: SharedV4Warning[] = [];
 
     if (params.displayTitle != null) {
       warnings.push({
@@ -80,8 +76,8 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
 
   // TODO: Add auto-pagination support to fetch beyond the initial 100 skills.
   async list(
-    _params?: Parameters<Experimental_SkillsManagerV1['list']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['list']>>> {
+    _params?: Parameters<SkillsV4['list']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['list']>>> {
     const { value: response } = await getFromApi({
       url: `${this.config.url({ path: '/skills' })}?limit=100`,
       headers: combineHeaders(this.config.headers()),
@@ -99,8 +95,8 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
   }
 
   async retrieve(
-    params: Parameters<Experimental_SkillsManagerV1['retrieve']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['retrieve']>>> {
+    params: Parameters<SkillsV4['retrieve']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['retrieve']>>> {
     const { value: response } = await getFromApi({
       url: this.config.url({ path: `/skills/${params.skillId}` }),
       headers: combineHeaders(this.config.headers()),
@@ -128,8 +124,8 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
    * method retries with exponential backoff.
    */
   async update(
-    params: Parameters<Experimental_SkillsManagerV1['update']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['update']>>> {
+    params: Parameters<SkillsV4['update']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['update']>>> {
     const formData = new FormData();
 
     for (const file of params.files) {
@@ -169,8 +165,8 @@ export class OpenAISkillsManager implements Experimental_SkillsManagerV1 {
   }
 
   async delete(
-    params: Parameters<Experimental_SkillsManagerV1['delete']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_SkillsManagerV1['delete']>>> {
+    params: Parameters<SkillsV4['delete']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['delete']>>> {
     await deleteFromApi({
       url: this.config.url({ path: `/skills/${params.skillId}` }),
       headers: combineHeaders(this.config.headers()),
@@ -236,7 +232,7 @@ async function promoteVersionWithRetry({
 
 function mapOpenAISkill(
   response: Pick<OpenAISkillResponse, 'id' | 'name' | 'description'>,
-): Experimental_SkillsManagerV1Skill {
+): SkillsV4Skill {
   return {
     id: response.id,
     ...(response.name != null && { name: response.name }),

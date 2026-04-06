@@ -1,26 +1,28 @@
-import { Experimental_SkillsManagerV1 } from '@ai-sdk/provider';
+import { SkillsV4, SkillsV4Skill } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { Warning } from '../types/warning';
 
-export interface DeleteSkillResult {
+export interface RetrieveSkillResult {
+  readonly skill: SkillsV4Skill;
   readonly warnings: Warning[];
 }
 
-export async function experimental_deleteSkill({
+export async function retrieveSkill({
   skillsManager,
   skillId,
   providerOptions,
 }: {
-  skillsManager: Experimental_SkillsManagerV1;
+  skillsManager: SkillsV4;
   skillId: string;
   providerOptions?: ProviderOptions;
-}): Promise<DeleteSkillResult> {
-  const result = await skillsManager.delete({
+}): Promise<RetrieveSkillResult> {
+  const result = await skillsManager.retrieve({
     skillId,
     providerOptions,
   });
 
   return {
+    skill: result.skill,
     warnings: result.warnings,
   };
 }

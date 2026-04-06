@@ -1,6 +1,6 @@
-import { Experimental_SkillsManagerV1 } from '@ai-sdk/provider';
+import { SkillsV4 } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
-import { experimental_listSkills } from './experimental-list-skills';
+import { listSkills } from './list-skills';
 
 const mockSkills = [
   {
@@ -17,11 +17,9 @@ const mockSkills = [
   },
 ];
 
-function createMockSkillsManager(
-  overrides: Partial<Experimental_SkillsManagerV1> = {},
-): Experimental_SkillsManagerV1 {
+function createMockSkillsManager(overrides: Partial<SkillsV4> = {}): SkillsV4 {
   return {
-    specificationVersion: 'v1',
+    specificationVersion: 'v4',
     provider: 'mock-provider',
     create: vi.fn(),
     list: vi.fn().mockResolvedValue({
@@ -35,11 +33,11 @@ function createMockSkillsManager(
   };
 }
 
-describe('experimental_listSkills', () => {
+describe('listSkills', () => {
   it('should delegate to skillsManager.list', async () => {
     const skillsManager = createMockSkillsManager();
 
-    await experimental_listSkills({ skillsManager });
+    await listSkills({ skillsManager });
 
     expect(skillsManager.list).toHaveBeenCalledWith({
       providerOptions: undefined,
@@ -49,7 +47,7 @@ describe('experimental_listSkills', () => {
   it('should return skills and warnings from the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
 
-    const result = await experimental_listSkills({ skillsManager });
+    const result = await listSkills({ skillsManager });
 
     expect(result.skills).toMatchInlineSnapshot(`
       [
@@ -73,7 +71,7 @@ describe('experimental_listSkills', () => {
   it('should pass providerOptions to the skills manager', async () => {
     const skillsManager = createMockSkillsManager();
 
-    await experimental_listSkills({
+    await listSkills({
       skillsManager,
       providerOptions: { openai: { custom: 'value' } },
     });

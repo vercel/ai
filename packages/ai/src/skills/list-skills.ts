@@ -1,20 +1,17 @@
-import {
-  Experimental_SkillsManagerV1,
-  Experimental_SkillsManagerV1Skill,
-} from '@ai-sdk/provider';
+import { SkillsV4, SkillsV4Skill } from '@ai-sdk/provider';
 import { ProviderOptions } from '@ai-sdk/provider-utils';
 import { Warning } from '../types/warning';
 
 export interface ListSkillsResult {
-  readonly skills: Experimental_SkillsManagerV1Skill[];
+  readonly skills: SkillsV4Skill[];
   readonly warnings: Warning[];
 }
 
-export async function experimental_listSkills({
+export async function listSkills({
   skillsManager,
   providerOptions,
 }: {
-  skillsManager: Experimental_SkillsManagerV1;
+  skillsManager: SkillsV4;
   providerOptions?: ProviderOptions;
 }): Promise<ListSkillsResult> {
   const result = await skillsManager.list({
