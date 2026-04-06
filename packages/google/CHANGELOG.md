@@ -1,5 +1,48 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- 46d1149: chore(provider-utils,google): fix grammar errors in error and warning messages
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- a05109d: feat(provider/google): preserve per-modality token details in usage data
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- 55db546: fix(provider/google): fix Gemini service tier enum after upstream update
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
 ## 4.0.0-beta.21
 
 ### Patch Changes

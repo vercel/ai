@@ -501,6 +501,98 @@ describe('user messages', () => {
       ],
     });
   });
+
+  it('should convert file parts with provider reference to fileData', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              google:
+                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              openai: 'file-xyz789',
+            },
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/png',
+                fileUri:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should convert image file parts with provider reference to fileData', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              google:
+                'https://generativelanguage.googleapis.com/v1beta/files/img456',
+            },
+            mediaType: 'image/jpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/jpeg',
+                fileUri:
+                  'https://generativelanguage.googleapis.com/v1beta/files/img456',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should throw when provider reference is missing google key in user file part', async () => {
+    expect(() =>
+      convertToGoogleGenerativeAIMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { openai: 'file-xyz789' },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "No provider reference found for provider 'google'. Available providers: openai",
+    );
+  });
 });
 
 describe('tool messages', () => {
@@ -1093,6 +1185,103 @@ describe('assistant messages', () => {
         },
       ]),
     ).toThrow('File data URLs in assistant messages are not supported');
+  });
+
+  it('should convert assistant file parts with provider reference to fileData', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'file',
+            data: {
+              google:
+                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+            },
+            mediaType: 'image/png',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'model',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/png',
+                fileUri:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
+              thoughtSignature: undefined,
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should convert assistant file parts with provider reference and thought flag', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'file',
+            data: {
+              google:
+                'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+            },
+            mediaType: 'image/png',
+            providerOptions: {
+              google: { thought: true, thoughtSignature: 'sig1' },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'model',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'image/png',
+                fileUri:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
+              thought: true,
+              thoughtSignature: 'sig1',
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should throw when provider reference is missing google key in assistant file part', async () => {
+    expect(() =>
+      convertToGoogleGenerativeAIMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              data: { openai: 'file-xyz789' },
+              mediaType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      "No provider reference found for provider 'google'. Available providers: openai",
+    );
   });
 });
 

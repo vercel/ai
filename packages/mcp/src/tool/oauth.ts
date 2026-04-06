@@ -24,6 +24,7 @@ import {
 import {
   resourceUrlFromServerUrl,
   checkResourceAllowed,
+  resourceUrlStripSlash,
 } from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { FetchFunction } from '@ai-sdk/provider-utils';
@@ -451,7 +452,10 @@ export async function startAuthorization(
   }
 
   if (resource) {
-    authorizationUrl.searchParams.set('resource', resource.href);
+    authorizationUrl.searchParams.set(
+      'resource',
+      resourceUrlStripSlash(resource),
+    );
   }
 
   return { authorizationUrl, codeVerifier };
@@ -675,7 +679,7 @@ export async function exchangeAuthorization(
   }
 
   if (resource) {
-    params.set('resource', resource.href);
+    params.set('resource', resourceUrlStripSlash(resource));
   }
 
   const response = await (fetchFn ?? fetch)(tokenUrl, {
@@ -762,7 +766,7 @@ export async function refreshAuthorization(
   }
 
   if (resource) {
-    params.set('resource', resource.href);
+    params.set('resource', resourceUrlStripSlash(resource));
   }
 
   const response = await (fetchFn ?? fetch)(tokenUrl, {
