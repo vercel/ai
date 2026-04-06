@@ -52,12 +52,8 @@ export class HttpMCPTransport implements MCPTransport {
     url,
     headers,
     authProvider,
-<<<<<<< HEAD
     redirect = 'follow',
-=======
-    redirect = 'error',
     fetch: fetchFn,
->>>>>>> a00d1d3f9 (feat(mcp): allow custom fetch for HTTP and SSE transports (#14134))
   }: {
     url: string;
     headers?: Record<string, string>;
