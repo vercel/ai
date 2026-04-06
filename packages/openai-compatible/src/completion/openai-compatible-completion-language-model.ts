@@ -21,7 +21,7 @@ import {
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { toCamelCase } from '../to-camel-case';
+import { toCamelCase } from '../utils/to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,

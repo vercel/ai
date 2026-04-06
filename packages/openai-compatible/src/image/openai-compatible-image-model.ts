@@ -4,7 +4,7 @@ import {
   SharedV4ProviderOptions,
   SharedV4Warning,
 } from '@ai-sdk/provider';
-import { toCamelCase } from '../to-camel-case';
+import { toCamelCase } from '../utils/to-camel-case';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -200,4 +200,3 @@ async function fileToBlob(file: ImageModelV4File): Promise<Blob> {
 
   return new Blob([data as BlobPart], { type: file.mediaType });
 }
-
