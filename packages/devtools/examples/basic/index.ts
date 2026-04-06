@@ -1,4 +1,4 @@
-import { gateway, stepCountIs, streamText, wrapLanguageModel } from 'ai';
+import { gateway, isStepCount, streamText, wrapLanguageModel } from 'ai';
 import { tools } from './tools';
 import { devToolsMiddleware } from '../../src';
 import { print } from './utils';
@@ -12,7 +12,7 @@ const result = streamText({
   system: 'Always call the weather before recommending plans.',
   prompt: 'Whats the weather in SF and London in C?',
   tools,
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   providerOptions: {
     anthropic: {
       thinking: {

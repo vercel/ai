@@ -521,6 +521,13 @@ To see `generateText` in action, check out [these examples](#examples).
               description:
                 'Additional information to include in the telemetry data.',
             },
+            {
+              name: 'integrations',
+              isOptional: true,
+              type: 'TelemetryIntegration | TelemetryIntegration[]',
+              description:
+                'Per-call telemetry integrations that receive lifecycle events. These run after any globally registered integrations.',
+            },
           ],
         },
       ],
@@ -544,7 +551,7 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>>',
       isOptional: true,
       description:
-        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: stepCountIs(1).',
+        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: isStepCount(1).',
     },
     {
       name: 'prepareStep',
@@ -588,7 +595,7 @@ To see `generateText` in action, check out [these examples](#examples).
                     },
                     {
                       name: 'experimental_context',
-                      type: 'unknown',
+                      type: 'CONTEXT',
                       isOptional: true,
                       description:
                         'The context passed via the experimental_context setting (experimental).',
@@ -641,7 +648,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               isOptional: true,
               description:
                 'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
@@ -659,10 +666,10 @@ To see `generateText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_context',
-      type: 'unknown',
+      type: 'CONTEXT',
       isOptional: true,
       description:
-        'Context that is passed into tool execution. Experimental (can break in patch releases).',
+        'User-defined context object passed to `prepareStep`, tool execution, and lifecycle callbacks. Experimental (can break in patch releases).',
     },
     {
       name: 'experimental_download',
@@ -1033,7 +1040,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object that flows through the entire generation lifecycle.',
             },
@@ -1146,7 +1153,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object. May be updated from prepareStep between steps.',
             },
@@ -1206,7 +1213,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -1272,7 +1279,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -1332,7 +1339,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -1975,7 +1982,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'The final state of the user-defined context object. This reflects any modifications made during the generation lifecycle via prepareStep or tool execution.',
             },
@@ -2418,7 +2425,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'experimental_context',
-              type: 'unknown',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },

@@ -17,12 +17,7 @@ import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
-import { getTracer } from '../telemetry/get-tracer';
-import { recordSpan } from '../telemetry/record-span';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { stringifyForTelemetry } from '../telemetry/stringify-for-telemetry';
+import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   CallWarning,
@@ -287,18 +282,14 @@ export async function generateObject<
     `ai/${VERSION}`,
   );
 
-  const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    model,
-    telemetry,
-    headers: headersWithUserAgent,
-    settings: { ...callSettings, maxRetries },
+  const createGlobalTelemetry = getGlobalTelemetryIntegration();
+  const globalTelemetry = createGlobalTelemetry({
+    integrations: telemetry?.integrations,
   });
 
-  const tracer = getTracer(telemetry);
   const jsonSchema = await outputStrategy.jsonSchema();
   const callId = generateId();
 
-  // Fire onStart callback
   await notify({
     event: {
       callId,
@@ -329,285 +320,152 @@ export async function generateObject<
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata,
     },
-    callbacks: [onStart],
+    callbacks: [onStart, globalTelemetry.onStart],
   });
 
   try {
-    return await recordSpan({
-      name: 'ai.generateObject',
-      attributes: selectTelemetryAttributes({
-        telemetry,
-        attributes: {
-          ...assembleOperationName({
-            operationId: 'ai.generateObject',
-            telemetry,
-          }),
-          ...baseTelemetryAttributes,
-          // specific settings that only make sense on the outer level:
-          'ai.prompt': {
-            input: () => JSON.stringify({ system, prompt, messages }),
-          },
-          'ai.schema':
-            jsonSchema != null
-              ? { input: () => JSON.stringify(jsonSchema) }
-              : undefined,
-          'ai.schema.name': schemaName,
-          'ai.schema.description': schemaDescription,
-          'ai.settings.output': outputStrategy.type,
-        },
-      }),
-      tracer,
-      fn: async span => {
-        let result: string;
-        let finishReason: FinishReason;
-        let usage: LanguageModelUsage;
-        let warnings: CallWarning[] | undefined;
-        let response: LanguageModelResponseMetadata;
-        let request: LanguageModelRequestMetadata;
-        let resultProviderMetadata: ProviderMetadata | undefined;
-        let reasoning: string | undefined;
+    const standardizedPrompt = await standardizePrompt({
+      system,
+      prompt,
+      messages,
+    } as Prompt);
 
-        const standardizedPrompt = await standardizePrompt({
-          system,
-          prompt,
-          messages,
-        } as Prompt);
+    const promptMessages = await convertToLanguageModelPrompt({
+      prompt: standardizedPrompt,
+      supportedUrls: await model.supportedUrls,
+      download,
+      provider: model.provider.split('.')[0],
+    });
 
-        const promptMessages = await convertToLanguageModelPrompt({
-          prompt: standardizedPrompt,
-          supportedUrls: await model.supportedUrls,
-          download,
-        });
-
-        // Fire onStepStart callback
-        await notify({
-          event: {
-            callId,
-            stepNumber: 0 as const,
-            provider: model.provider,
-            modelId: model.modelId,
-            providerOptions,
-            headers: headersWithUserAgent,
-            abortSignal,
-            functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata as
-              | Record<string, unknown>
-              | undefined,
-            promptMessages,
-          },
-          callbacks: [onStepStart],
-        });
-
-        const generateResult = await retry(() =>
-          recordSpan({
-            name: 'ai.generateObject.doGenerate',
-            attributes: selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                ...assembleOperationName({
-                  operationId: 'ai.generateObject.doGenerate',
-                  telemetry,
-                }),
-                ...baseTelemetryAttributes,
-                'ai.prompt.messages': {
-                  input: () => stringifyForTelemetry(promptMessages),
-                },
-
-                // standardized gen-ai llm span attributes:
-                'gen_ai.system': model.provider,
-                'gen_ai.request.model': model.modelId,
-                'gen_ai.request.frequency_penalty':
-                  callSettings.frequencyPenalty,
-                'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
-                'gen_ai.request.presence_penalty': callSettings.presencePenalty,
-                'gen_ai.request.temperature': callSettings.temperature,
-                'gen_ai.request.top_k': callSettings.topK,
-                'gen_ai.request.top_p': callSettings.topP,
-              },
-            }),
-            tracer,
-            fn: async span => {
-              const result = await model.doGenerate({
-                responseFormat: {
-                  type: 'json',
-                  schema: jsonSchema,
-                  name: schemaName,
-                  description: schemaDescription,
-                },
-                ...prepareCallSettings(settings),
-                prompt: promptMessages,
-                providerOptions,
-                abortSignal,
-                headers: headersWithUserAgent,
-              });
-
-              const responseData = {
-                id: result.response?.id ?? generateId(),
-                timestamp: result.response?.timestamp ?? currentDate(),
-                modelId: result.response?.modelId ?? model.modelId,
-                headers: result.response?.headers,
-                body: result.response?.body,
-              };
-
-              const text = extractTextContent(result.content);
-              const reasoning = extractReasoningContent(result.content);
-
-              if (text === undefined) {
-                throw new NoObjectGeneratedError({
-                  message:
-                    'No object generated: the model did not return a response.',
-                  response: responseData,
-                  usage: asLanguageModelUsage(result.usage),
-                  finishReason: result.finishReason.unified,
-                });
-              }
-
-              // Add response information to the span:
-              span.setAttributes(
-                await selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    'ai.response.finishReason': result.finishReason.unified,
-                    'ai.response.object': { output: () => text },
-                    'ai.response.id': responseData.id,
-                    'ai.response.model': responseData.modelId,
-                    'ai.response.timestamp':
-                      responseData.timestamp.toISOString(),
-                    'ai.response.providerMetadata': JSON.stringify(
-                      result.providerMetadata,
-                    ),
-
-                    // TODO rename telemetry attributes to inputTokens and outputTokens
-                    'ai.usage.promptTokens': result.usage.inputTokens.total,
-                    'ai.usage.completionTokens':
-                      result.usage.outputTokens.total,
-
-                    // standardized gen-ai llm span attributes:
-                    'gen_ai.response.finish_reasons': [
-                      result.finishReason.unified,
-                    ],
-                    'gen_ai.response.id': responseData.id,
-                    'gen_ai.response.model': responseData.modelId,
-                    'gen_ai.usage.input_tokens': result.usage.inputTokens.total,
-                    'gen_ai.usage.output_tokens':
-                      result.usage.outputTokens.total,
-                  },
-                }),
-              );
-
-              return {
-                ...result,
-                objectText: text,
-                reasoning,
-                responseData,
-              };
-            },
-          }),
-        );
-
-        result = generateResult.objectText;
-        finishReason = generateResult.finishReason.unified;
-        usage = asLanguageModelUsage(generateResult.usage);
-        warnings = generateResult.warnings;
-        resultProviderMetadata = generateResult.providerMetadata;
-        request = generateResult.request ?? {};
-        response = generateResult.responseData;
-        reasoning = generateResult.reasoning;
-
-        logWarnings({
-          warnings,
-          provider: model.provider,
-          model: model.modelId,
-        });
-
-        // Fire onStepFinish callback
-        await notify({
-          event: {
-            callId,
-            stepNumber: 0 as const,
-            provider: model.provider,
-            modelId: model.modelId,
-            finishReason,
-            usage,
-            objectText: result,
-            reasoning,
-            warnings,
-            request,
-            response,
-            providerMetadata: resultProviderMetadata,
-            functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata as
-              | Record<string, unknown>
-              | undefined,
-          },
-          callbacks: [onStepFinish],
-        });
-
-        const object = await parseAndValidateObjectResultWithRepair(
-          result,
-          outputStrategy,
-          repairText,
-          {
-            response,
-            usage,
-            finishReason,
-          },
-        );
-
-        // Add response information to the span:
-        span.setAttributes(
-          await selectTelemetryAttributes({
-            telemetry,
-            attributes: {
-              'ai.response.finishReason': finishReason,
-              'ai.response.object': {
-                output: () => JSON.stringify(object),
-              },
-              'ai.response.providerMetadata': JSON.stringify(
-                resultProviderMetadata,
-              ),
-
-              // TODO rename telemetry attributes to inputTokens and outputTokens
-              'ai.usage.promptTokens': usage.inputTokens,
-              'ai.usage.completionTokens': usage.outputTokens,
-            },
-          }),
-        );
-
-        // Fire onFinish callback
-        await notify({
-          event: {
-            callId,
-            object,
-            error: undefined,
-            reasoning,
-            finishReason,
-            usage,
-            warnings,
-            request,
-            response,
-            providerMetadata: resultProviderMetadata,
-            functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata as
-              | Record<string, unknown>
-              | undefined,
-          },
-          callbacks: [onFinish],
-        });
-
-        return new DefaultGenerateObjectResult({
-          object,
-          reasoning,
-          finishReason,
-          usage,
-          warnings,
-          request,
-          response,
-          providerMetadata: resultProviderMetadata,
-        });
+    await notify({
+      event: {
+        callId,
+        stepNumber: 0 as const,
+        provider: model.provider,
+        modelId: model.modelId,
+        providerOptions,
+        headers: headersWithUserAgent,
+        abortSignal,
+        functionId: telemetry?.functionId,
+        metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+        promptMessages,
       },
+      callbacks: [onStepStart, globalTelemetry.onObjectStepStart],
+    });
+
+    const generateResult = await retry(() =>
+      model.doGenerate({
+        responseFormat: {
+          type: 'json',
+          schema: jsonSchema,
+          name: schemaName,
+          description: schemaDescription,
+        },
+        ...prepareCallSettings(settings),
+        prompt: promptMessages,
+        providerOptions,
+        abortSignal,
+        headers: headersWithUserAgent,
+      }),
+    );
+
+    const responseData = {
+      id: generateResult.response?.id ?? generateId(),
+      timestamp: generateResult.response?.timestamp ?? currentDate(),
+      modelId: generateResult.response?.modelId ?? model.modelId,
+      headers: generateResult.response?.headers,
+      body: generateResult.response?.body,
+    };
+
+    const text = extractTextContent(generateResult.content);
+    const reasoning = extractReasoningContent(generateResult.content);
+
+    if (text === undefined) {
+      throw new NoObjectGeneratedError({
+        message: 'No object generated: the model did not return a response.',
+        response: responseData,
+        usage: asLanguageModelUsage(generateResult.usage),
+        finishReason: generateResult.finishReason.unified,
+      });
+    }
+
+    const finishReason = generateResult.finishReason.unified;
+    const usage = asLanguageModelUsage(generateResult.usage);
+    const warnings = generateResult.warnings;
+    const resultProviderMetadata = generateResult.providerMetadata;
+    const request: LanguageModelRequestMetadata = generateResult.request ?? {};
+    const response: LanguageModelResponseMetadata = responseData;
+
+    logWarnings({
+      warnings,
+      provider: model.provider,
+      model: model.modelId,
+    });
+
+    const stepFinishEvent: ObjectOnStepFinishEvent = {
+      callId,
+      stepNumber: 0 as const,
+      provider: model.provider,
+      modelId: model.modelId,
+      finishReason,
+      usage,
+      objectText: text,
+      msToFirstChunk: undefined,
+      reasoning,
+      warnings,
+      request,
+      response,
+      providerMetadata: resultProviderMetadata,
+      functionId: telemetry?.functionId,
+      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+    };
+
+    await notify({
+      event: stepFinishEvent,
+      callbacks: [onStepFinish, globalTelemetry.onObjectStepFinish],
+    });
+
+    const object = await parseAndValidateObjectResultWithRepair(
+      text,
+      outputStrategy,
+      repairText,
+      {
+        response,
+        usage,
+        finishReason,
+      },
+    );
+
+    await notify({
+      event: {
+        callId,
+        object,
+        error: undefined,
+        reasoning,
+        finishReason,
+        usage,
+        warnings,
+        request,
+        response,
+        providerMetadata: resultProviderMetadata,
+        functionId: telemetry?.functionId,
+        metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+      },
+      callbacks: [onFinish, globalTelemetry.onFinish],
+    });
+
+    return new DefaultGenerateObjectResult({
+      object,
+      reasoning,
+      finishReason,
+      usage,
+      warnings,
+      request,
+      response,
+      providerMetadata: resultProviderMetadata,
     });
   } catch (error) {
+    await globalTelemetry.onError?.({ callId, error });
     throw wrapGatewayError(error);
   }
 }

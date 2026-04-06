@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { stepCountIs, streamText } from 'ai';
+import { isStepCount, streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -12,7 +12,7 @@ run(async () => {
     },
     reasoning: 'low',
     maxRetries: 0,
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   for await (const part of result.fullStream) {
