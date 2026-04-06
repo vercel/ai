@@ -1,5 +1,11 @@
 # @ai-sdk/langchain
 
+## 2.0.154
+
+### Patch Changes
+
+- ai@6.0.148
+
 ## 2.0.153
 
 ### Patch Changes
