@@ -36,7 +36,8 @@ function isSerializable(value: unknown): boolean {
 
   const type = typeof value;
   if (type === 'string' || type === 'number' || type === 'boolean') return true;
-  if (type === 'function' || type === 'symbol' || type === 'bigint') return false;
+  if (type === 'function' || type === 'symbol' || type === 'bigint')
+    return false;
 
   if (Array.isArray(value)) {
     return value.every(isSerializable);
@@ -44,7 +45,9 @@ function isSerializable(value: unknown): boolean {
 
   // Only allow plain objects (not class instances like RegExp, Date, etc.)
   if (Object.getPrototypeOf(value) === Object.prototype) {
-    return Object.values(value as Record<string, unknown>).every(isSerializable);
+    return Object.values(value as Record<string, unknown>).every(
+      isSerializable,
+    );
   }
 
   return false;

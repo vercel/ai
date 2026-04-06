@@ -64,7 +64,9 @@ export class GatewayImageModel implements ImageModelV4 {
   }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
     Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const resolvedHeaders = this.config.headers ? await resolve(this.config.headers()) : undefined;
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers())
+      : undefined;
     try {
       const {
         responseHeaders,
@@ -120,7 +122,7 @@ export class GatewayImageModel implements ImageModelV4 {
         }),
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders ?? {}));
     }
   }
 

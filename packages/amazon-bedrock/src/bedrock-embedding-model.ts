@@ -121,7 +121,10 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
     const { value: response } = await postJsonToApi({
       url,
       headers: await resolve(
-        combineHeaders(this.config.headers ? await resolve(this.config.headers) : undefined, headers),
+        combineHeaders(
+          this.config.headers ? await resolve(this.config.headers) : undefined,
+          headers,
+        ),
       ),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({

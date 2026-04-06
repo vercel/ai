@@ -58,7 +58,9 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
   }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
-    const resolvedHeaders = this.config.headers ? await resolve(this.config.headers()) : undefined;
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers())
+      : undefined;
     try {
       const {
         responseHeaders,
@@ -96,7 +98,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
         warnings: [],
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders ?? {}));
     }
   }
 

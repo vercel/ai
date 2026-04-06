@@ -442,7 +442,10 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
   }: {
     headers: Record<string, string | undefined> | undefined;
   }) {
-    return combineHeaders(this.config.headers ? await resolve(this.config.headers) : undefined, headers);
+    return combineHeaders(
+      this.config.headers ? await resolve(this.config.headers) : undefined,
+      headers,
+    );
   }
 
   async doGenerate(

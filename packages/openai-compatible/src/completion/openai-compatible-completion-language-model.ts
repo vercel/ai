@@ -67,7 +67,10 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
     modelId: string;
     config: OpenAICompatibleCompletionConfig;
   }) {
-    return new OpenAICompatibleCompletionLanguageModel(options.modelId, options.config);
+    return new OpenAICompatibleCompletionLanguageModel(
+      options.modelId,
+      options.config,
+    );
   }
 
   constructor(

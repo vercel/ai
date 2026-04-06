@@ -87,7 +87,10 @@ export interface StreamFinish {
 
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
-  modelInit: string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>),
+  modelInit:
+    | string
+    | CompatibleLanguageModel
+    | (() => Promise<CompatibleLanguageModel>),
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>,
   serializedTools?: Record<string, SerializableToolDef>,
   options?: DoStreamStepOptions,
@@ -100,7 +103,11 @@ export async function doStreamStep(
     model = gateway.languageModel(modelInit) as CompatibleLanguageModel;
   } else if (typeof modelInit === 'function') {
     model = await modelInit();
-  } else if (typeof modelInit === 'object' && modelInit !== null && 'modelId' in modelInit) {
+  } else if (
+    typeof modelInit === 'object' &&
+    modelInit !== null &&
+    'modelId' in modelInit
+  ) {
     model = modelInit;
   } else {
     throw new Error(

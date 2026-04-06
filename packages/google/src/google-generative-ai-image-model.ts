@@ -51,7 +51,11 @@ export class GoogleGenerativeAIImageModel implements ImageModelV4 {
     modelId: string;
     config: GoogleGenerativeAIImageModelConfig;
   }) {
-    return new GoogleGenerativeAIImageModel(options.modelId, {}, options.config);
+    return new GoogleGenerativeAIImageModel(
+      options.modelId,
+      {},
+      options.config,
+    );
   }
 
   get maxImagesPerCall(): number {
@@ -165,7 +169,10 @@ export class GoogleGenerativeAIImageModel implements ImageModelV4 {
       predictions: Array<{ bytesBase64Encoded: string }>;
     }>({
       url: `${this.config.baseURL}/models/${this.modelId}:predict`,
-      headers: combineHeaders(this.config.headers ? await resolve(this.config.headers) : undefined, headers),
+      headers: combineHeaders(
+        this.config.headers ? await resolve(this.config.headers) : undefined,
+        headers,
+      ),
       body,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

@@ -234,7 +234,10 @@ export class BedrockImageModel implements ImageModelV4 {
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.getUrl(this.modelId),
       headers: await resolve(
-        combineHeaders(this.config.headers ? await resolve(this.config.headers) : undefined, headers),
+        combineHeaders(
+          this.config.headers ? await resolve(this.config.headers) : undefined,
+          headers,
+        ),
       ),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({

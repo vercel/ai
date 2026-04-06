@@ -89,7 +89,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     modelId: string;
     config: OpenAICompatibleChatConfig;
   }) {
-    return new OpenAICompatibleChatLanguageModel(options.modelId, options.config);
+    return new OpenAICompatibleChatLanguageModel(
+      options.modelId,
+      options.config,
+    );
   }
 
   constructor(
