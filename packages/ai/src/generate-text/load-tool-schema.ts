@@ -14,9 +14,7 @@ export function createLoadToolSchemaTool(
   return tool({
     description: `Load the full input schema and usage details for tools before calling them. You MUST call this first for any of these tools: ${toolNames.join(', ')}. Always pass at least one tool name. After receiving the schema, proceed to call the tool with the correct arguments.`,
     inputSchema: z.object({
-      toolNames: z
-        .array(z.string())
-        .min(1, 'At least one tool name is required'),
+      toolNames: z.array(z.string()),
     }),
     async execute({ toolNames: requestedNames }) {
       if (requestedNames.length === 0) {
