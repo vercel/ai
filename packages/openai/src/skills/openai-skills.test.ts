@@ -36,7 +36,7 @@ function prepareResponse({
   };
 }
 
-describe('OpenAISkillsManager', () => {
+describe('OpenAISkills', () => {
   describe('upload', () => {
     it('should send files as multipart form data', async () => {
       prepareResponse({
@@ -44,8 +44,8 @@ describe('OpenAISkillsManager', () => {
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skills();
-      await skillsManager.upload({
+      const skills = provider.skills();
+      await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -60,8 +60,8 @@ describe('OpenAISkillsManager', () => {
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skills();
-      await skillsManager.upload({
+      const skills = provider.skills();
+      await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -76,8 +76,8 @@ describe('OpenAISkillsManager', () => {
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skills();
-      const result = await skillsManager.upload({
+      const skills = provider.skills();
+      const result = await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -101,8 +101,8 @@ describe('OpenAISkillsManager', () => {
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skills();
-      const result = await skillsManager.upload({
+      const skills = provider.skills();
+      const result = await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
         displayTitle: 'My Skill',
       });
@@ -123,8 +123,8 @@ describe('OpenAISkillsManager', () => {
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skills();
-      const result = await skillsManager.upload({
+      const skills = provider.skills();
+      const result = await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -137,8 +137,8 @@ describe('OpenAISkillsManager', () => {
         filename: 'openai-skill-create',
       });
 
-      const skillsManager = provider.skills();
-      const result = await skillsManager.upload({
+      const skills = provider.skills();
+      const result = await skills.upload({
         files: [
           {
             path: 'data.bin',

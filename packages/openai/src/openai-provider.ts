@@ -31,7 +31,7 @@ import { OpenAISpeechModel } from './speech/openai-speech-model';
 import { OpenAISpeechModelId } from './speech/openai-speech-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
 import { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
-import { OpenAISkillsManager } from './skills/openai-skills-manager';
+import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV4 {
@@ -238,8 +238,8 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createSkillsManager = () =>
-    new OpenAISkillsManager({
+  const createSkills = () =>
+    new OpenAISkills({
       provider: `${providerName}.skills`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -290,7 +290,7 @@ export function createOpenAI(
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
   provider.files = createFiles;
-  provider.skills = createSkillsManager;
+  provider.skills = createSkills;
 
   provider.tools = openaiTools;
 

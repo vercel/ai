@@ -9,21 +9,21 @@ import {
 import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiSkillResponseSchema } from './openai-skills-api';
 
-interface OpenAISkillsManagerConfig {
+interface OpenAISkillsConfig {
   provider: string;
   url: (options: { path: string }) => string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 }
 
-export class OpenAISkillsManager implements SkillsV4 {
+export class OpenAISkills implements SkillsV4 {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
   }
 
-  constructor(private readonly config: OpenAISkillsManagerConfig) {}
+  constructor(private readonly config: OpenAISkillsConfig) {}
 
   async upload(
     params: Parameters<SkillsV4['upload']>[0],

@@ -18,7 +18,7 @@ import { AnthropicFiles } from './anthropic-files';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
-import { AnthropicSkillsManager } from './skills/anthropic-skills-manager';
+import { AnthropicSkills } from './skills/anthropic-skills';
 import { VERSION } from './version';
 
 export interface AnthropicProvider extends ProviderV4 {
@@ -154,8 +154,8 @@ export function createAnthropic(
       }),
     });
 
-  const createSkillsManager = () =>
-    new AnthropicSkillsManager({
+  const createSkills = () =>
+    new AnthropicSkills({
       provider: `${providerName.replace('.messages', '')}.skills`,
       baseURL,
       headers: getHeaders,
@@ -193,7 +193,7 @@ export function createAnthropic(
       fetch: options.fetch,
     });
 
-  provider.skills = createSkillsManager;
+  provider.skills = createSkills;
 
   provider.tools = anthropicTools;
 

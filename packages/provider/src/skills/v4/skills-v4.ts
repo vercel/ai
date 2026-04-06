@@ -70,13 +70,13 @@ export interface SkillsV4UploadResult {
 }
 
 /**
- * Skills manager specification version 4.
+ * Skills specification version 4.
  */
 export interface SkillsV4 {
   /**
-   * The skills manager must specify which skills manager interface
+   * The skills implementation must specify which skills interface
    * version it implements. This will allow us to evolve the skills
-   * manager interface and retain backwards compatibility. The different
+   * interface and retain backwards compatibility. The different
    * implementation versions can be handled as a discriminated union
    * on our side.
    */

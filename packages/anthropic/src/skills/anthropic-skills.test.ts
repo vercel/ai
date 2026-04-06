@@ -47,7 +47,7 @@ function prepareVersionMetadataResponse() {
   });
 }
 
-describe('AnthropicSkillsManager', () => {
+describe('AnthropicSkills', () => {
   describe('upload', () => {
     it('should send files as multipart form data', async () => {
       prepareResponse({
@@ -56,8 +56,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skills();
-      await skillsManager.upload({
+      const skills = provider.skills();
+      await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -73,8 +73,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skills();
-      await skillsManager.upload({
+      const skills = provider.skills();
+      await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -91,8 +91,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skills();
-      const result = await skillsManager.upload({
+      const skills = provider.skills();
+      const result = await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -121,8 +121,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skills();
-      await skillsManager.upload({
+      const skills = provider.skills();
+      await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
         displayTitle: 'My Custom Title',
       });
@@ -138,8 +138,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skills();
-      await skillsManager.upload({
+      const skills = provider.skills();
+      await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -154,8 +154,8 @@ describe('AnthropicSkillsManager', () => {
       });
       prepareVersionMetadataResponse();
 
-      const skillsManager = provider.skills();
-      const result = await skillsManager.upload({
+      const skills = provider.skills();
+      const result = await skills.upload({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 

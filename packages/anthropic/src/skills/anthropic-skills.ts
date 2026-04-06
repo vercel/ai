@@ -15,21 +15,21 @@ import {
   anthropicSkillVersionResponseSchema,
 } from './anthropic-skills-api';
 
-interface AnthropicSkillsManagerConfig {
+interface AnthropicSkillsConfig {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 }
 
-export class AnthropicSkillsManager implements SkillsV4 {
+export class AnthropicSkills implements SkillsV4 {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
   }
 
-  constructor(private readonly config: AnthropicSkillsManagerConfig) {}
+  constructor(private readonly config: AnthropicSkillsConfig) {}
 
   private async getHeaders(): Promise<Record<string, string | undefined>> {
     return combineHeaders(await resolve(this.config.headers), {
