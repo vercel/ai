@@ -1,5 +1,4 @@
 ---
-'@ai-sdk/provider-utils': patch
 '@ai-sdk/anthropic': patch
 '@ai-sdk/provider': patch
 '@ai-sdk/openai': patch
