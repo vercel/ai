@@ -927,6 +927,55 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
+    it('should default shell skillReference version to latest when omitted', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                skills: [
+                  {
+                    type: 'skillReference',
+                    providerReference: { openai: 'skill_abc' },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": [
+                  {
+                    "skill_id": "skill_abc",
+                    "type": "skill_reference",
+                    "version": "latest",
+                  },
+                ],
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
     it('should throw when a providerReference cannot be resolved for openai', async () => {
       try {
         await prepareResponsesTools({

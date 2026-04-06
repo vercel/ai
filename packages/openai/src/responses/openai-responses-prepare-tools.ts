@@ -425,7 +425,7 @@ function mapShellSkills(
             reference: skill.providerReference ?? {},
             provider: 'openai',
           }),
-          version: skill.version,
+          version: skill.version ?? 'latest',
         }
       : {
           type: 'inline' as const,
