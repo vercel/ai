@@ -1616,5 +1616,46 @@ describe('GatewayLanguageModel', () => {
         gateway: { zeroDataRetention: true, hipaaCompliant: true },
       });
     });
+
+    it('should pass quotaEntityId option', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            quotaEntityId: 'entity-123',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { quotaEntityId: 'entity-123' },
+      });
+    });
+
+    it('should pass quotaEntityId with other options', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            quotaEntityId: 'entity-123',
+            user: 'user-456',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { quotaEntityId: 'entity-123', user: 'user-456' },
+      });
+    });
   });
 });
