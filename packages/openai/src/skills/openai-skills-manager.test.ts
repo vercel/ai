@@ -86,11 +86,10 @@ describe('OpenAISkillsManager', () => {
       });
       expect(result.name).toBe('test-capture-skill');
       expect(result.description).toBe('A test skill for fixture capture');
+      expect(result.latestVersion).toBe('1');
       expect(result.providerMetadata).toEqual({
         openai: {
-          id: 'skill_699fc58f408c8191825d8d06ae75fd5c06de7b381a5db7f5',
           defaultVersion: '1',
-          latestVersion: '1',
           createdAt: 1772078479,
         },
       });

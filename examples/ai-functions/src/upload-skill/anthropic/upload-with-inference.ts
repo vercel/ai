@@ -74,6 +74,7 @@ run(async () => {
     displayTitle,
     name,
     description,
+    latestVersion,
     providerMetadata,
   } = await uploadSkill({
     api: anthropic.skills(),
@@ -90,6 +91,7 @@ run(async () => {
   console.log('Display title:', displayTitle);
   console.log('Name:', name);
   console.log('Description:', description);
+  console.log('Latest version:', latestVersion);
   console.log('Provider metadata:', providerMetadata);
 
   try {

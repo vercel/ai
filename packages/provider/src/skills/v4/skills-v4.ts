@@ -54,6 +54,11 @@ export interface SkillsV4UploadResult {
   description?: string;
 
   /**
+   * Optional latest version identifier of the uploaded skill.
+   */
+  latestVersion?: string;
+
+  /**
    * Additional provider-specific metadata.
    */
   providerMetadata?: SharedV4ProviderMetadata;

@@ -104,10 +104,9 @@ describe('AnthropicSkillsManager', () => {
       expect(result.description).toBe(
         'An updated test skill for fixture capture',
       );
+      expect(result.latestVersion).toBe('1772078378207930');
       expect(result.providerMetadata).toEqual({
         anthropic: {
-          id: 'skill_01Xud7kLMsjLfc7Aa6RvigZf',
-          latestVersion: '1772078378207930',
           source: 'custom',
           createdAt: '2026-02-26T03:59:39.314772Z',
           updatedAt: '2026-02-26T03:59:39.314772Z',

@@ -116,12 +116,11 @@ export class AnthropicSkillsManager implements SkillsV4 {
         : {}),
       ...(name != null ? { name } : {}),
       ...(description != null ? { description } : {}),
+      ...(response.latest_version != null
+        ? { latestVersion: response.latest_version }
+        : {}),
       providerMetadata: {
         anthropic: {
-          id: response.id,
-          ...(response.latest_version != null
-            ? { latestVersion: response.latest_version }
-            : {}),
           ...(response.source != null ? { source: response.source } : {}),
           ...(response.created_at != null
             ? { createdAt: response.created_at }

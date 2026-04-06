@@ -65,14 +65,13 @@ export class OpenAISkillsManager implements SkillsV4 {
       ...(response.description != null
         ? { description: response.description }
         : {}),
+      ...(response.latest_version != null
+        ? { latestVersion: response.latest_version }
+        : {}),
       providerMetadata: {
         openai: {
-          id: response.id,
           ...(response.default_version != null
             ? { defaultVersion: response.default_version }
-            : {}),
-          ...(response.latest_version != null
-            ? { latestVersion: response.latest_version }
             : {}),
           ...(response.created_at != null
             ? { createdAt: response.created_at }
