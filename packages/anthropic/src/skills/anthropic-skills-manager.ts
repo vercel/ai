@@ -3,7 +3,6 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
-  deleteFromApi,
   FetchFunction,
   getFromApi,
   postFormDataToApi,
@@ -13,11 +12,7 @@ import {
 import { anthropicFailedResponseHandler } from '../anthropic-error';
 import {
   AnthropicSkillResponse,
-  anthropicSkillDeleteResponseSchema,
-  anthropicSkillListResponseSchema,
   anthropicSkillResponseSchema,
-  anthropicSkillVersionDeleteResponseSchema,
-  anthropicSkillVersionListResponseSchema,
   anthropicSkillVersionResponseSchema,
 } from './anthropic-skills-api';
 
@@ -120,156 +115,6 @@ export class AnthropicSkillsManager implements SkillsV4 {
     return {
       skill: mapAnthropicSkill(response, versionMetadata),
       warnings,
-    };
-  }
-
-  /*
-   * TODO: Add auto-pagination support to fetch beyond the initial 100 skills.
-   * TODO: The Anthropic skill response does not include `name` or
-   * `description`. These fields are only available via the versions endpoint.
-   * For `list`, fetching the latest version per skill would be expensive.
-   * Investigate whether a batch approach or expanded response is possible.
-   */
-  async list(
-    _params?: Parameters<SkillsV4['list']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['list']>>> {
-    const { value: response } = await getFromApi({
-      url: `${this.config.baseURL}/skills?limit=100`,
-      headers: await this.getHeaders(),
-      failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        anthropicSkillListResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
-
-    return {
-      skills: response.data.map(skill => mapAnthropicSkill(skill)),
-      warnings: [],
-    };
-  }
-
-  async retrieve(
-    params: Parameters<SkillsV4['retrieve']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['retrieve']>>> {
-    const headers = await this.getHeaders();
-
-    const { value: response } = await getFromApi({
-      url: `${this.config.baseURL}/skills/${params.skillId}`,
-      headers,
-      failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        anthropicSkillResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
-
-    const versionMetadata =
-      response.latest_version != null
-        ? await this.fetchVersionMetadata({
-            skillId: params.skillId,
-            version: response.latest_version,
-            headers,
-          })
-        : {};
-
-    return {
-      skill: mapAnthropicSkill(response, versionMetadata),
-      warnings: [],
-    };
-  }
-
-  async update(
-    params: Parameters<SkillsV4['update']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['update']>>> {
-    const formData = new FormData();
-
-    for (const file of params.files) {
-      const content =
-        typeof file.content === 'string'
-          ? convertBase64ToUint8Array(file.content)
-          : file.content;
-
-      formData.append('files[]', new Blob([content]), file.path);
-    }
-
-    const headers = await this.getHeaders();
-
-    const { value: versionResponse } = await postFormDataToApi({
-      url: `${this.config.baseURL}/skills/${params.skillId}/versions`,
-      headers,
-      formData,
-      failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        anthropicSkillVersionResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
-
-    const { value: skillResponse } = await getFromApi({
-      url: `${this.config.baseURL}/skills/${params.skillId}`,
-      headers,
-      failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        anthropicSkillResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
-
-    return {
-      skill: mapAnthropicSkill(skillResponse, {
-        ...(versionResponse.name != null && { name: versionResponse.name }),
-        ...(versionResponse.description != null && {
-          description: versionResponse.description,
-        }),
-      }),
-      warnings: [],
-    };
-  }
-
-  /*
-   * Anthropic's API requires all versions to be deleted before the skill
-   * itself can be deleted. We list all versions and delete them first.
-   */
-  async delete(
-    params: Parameters<SkillsV4['delete']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['delete']>>> {
-    const headers = await this.getHeaders();
-
-    const { value: versionsResponse } = await getFromApi({
-      url: `${this.config.baseURL}/skills/${params.skillId}/versions`,
-      headers,
-      failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        anthropicSkillVersionListResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
-
-    for (const version of versionsResponse.data) {
-      await deleteFromApi({
-        url: `${this.config.baseURL}/skills/${params.skillId}/versions/${version.version}`,
-        headers,
-        failedResponseHandler: anthropicFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(
-          anthropicSkillVersionDeleteResponseSchema,
-        ),
-        fetch: this.config.fetch,
-      });
-    }
-
-    await deleteFromApi({
-      url: `${this.config.baseURL}/skills/${params.skillId}`,
-      headers,
-      failedResponseHandler: anthropicFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        anthropicSkillDeleteResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
-
-    return {
-      warnings: [],
     };
   }
 }

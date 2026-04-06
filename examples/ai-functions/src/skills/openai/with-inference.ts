@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { createSkill, deleteSkill, generateText } from 'ai';
+import { createSkill, generateText } from 'ai';
 import { readFileSync } from 'fs';
 import { run } from '../../lib/run';
 
@@ -15,27 +15,19 @@ run(async () => {
   });
   console.log('Created skill:', skill.id);
 
-  try {
-    const result = await generateText({
-      model: openai.responses('gpt-5.2'),
-      tools: {
-        shell: openai.tools.shell({
-          environment: {
-            type: 'containerAuto',
-            skills: [{ type: 'skillReference', skillId: skill.id }],
-          },
-        }),
-      },
-      prompt:
-        'You are trapped and lost on a lonely island in 1895. Find a way to get rescued!',
-    });
+  const result = await generateText({
+    model: openai.responses('gpt-5.2'),
+    tools: {
+      shell: openai.tools.shell({
+        environment: {
+          type: 'containerAuto',
+          skills: [{ type: 'skillReference', skillId: skill.id }],
+        },
+      }),
+    },
+    prompt:
+      'You are trapped and lost on a lonely island in 1895. Find a way to get rescued!',
+  });
 
-    console.log('Result:', result.text);
-  } finally {
-    await deleteSkill({
-      skillsManager: openai.skillsManager(),
-      skillId: skill.id,
-    });
-    console.log('Deleted skill:', skill.id);
-  }
+  console.log('Result:', result.text);
 });

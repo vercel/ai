@@ -3,19 +3,13 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
-  deleteFromApi,
   FetchFunction,
-  getFromApi,
   postFormDataToApi,
-  postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
   OpenAISkillResponse,
-  openaiSkillDeleteResponseSchema,
-  openaiSkillListResponseSchema,
   openaiSkillResponseSchema,
-  openaiSkillVersionResponseSchema,
 } from './openai-skills-api';
 
 interface OpenAISkillsManagerConfig {
@@ -73,161 +67,6 @@ export class OpenAISkillsManager implements SkillsV4 {
       warnings,
     };
   }
-
-  // TODO: Add auto-pagination support to fetch beyond the initial 100 skills.
-  async list(
-    _params?: Parameters<SkillsV4['list']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['list']>>> {
-    const { value: response } = await getFromApi({
-      url: `${this.config.url({ path: '/skills' })}?limit=100`,
-      headers: combineHeaders(this.config.headers()),
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        openaiSkillListResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
-
-    return {
-      skills: response.data.map(skill => mapOpenAISkill(skill)),
-      warnings: [],
-    };
-  }
-
-  async retrieve(
-    params: Parameters<SkillsV4['retrieve']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['retrieve']>>> {
-    const { value: response } = await getFromApi({
-      url: this.config.url({ path: `/skills/${params.skillId}` }),
-      headers: combineHeaders(this.config.headers()),
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        openaiSkillResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
-
-    return {
-      skill: mapOpenAISkill(response),
-      warnings: [],
-    };
-  }
-
-  /*
-   * Update creates a new version, then promotes it to the default version.
-   * OpenAI does not auto-promote new versions, so without the explicit
-   * promote call the skill-level name/description remain stale and
-   * inference continues using the old version.
-   *
-   * The promote endpoint (POST /skills/{id}) may fail with a 404 if the
-   * newly created version has not yet propagated. When that happens, the
-   * method retries with exponential backoff.
-   */
-  async update(
-    params: Parameters<SkillsV4['update']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['update']>>> {
-    const formData = new FormData();
-
-    for (const file of params.files) {
-      const content =
-        typeof file.content === 'string'
-          ? convertBase64ToUint8Array(file.content)
-          : file.content;
-
-      formData.append('files[]', new Blob([content]), file.path);
-    }
-
-    const headers = combineHeaders(this.config.headers());
-
-    const { value: versionResponse } = await postFormDataToApi({
-      url: this.config.url({ path: `/skills/${params.skillId}/versions` }),
-      headers,
-      formData,
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        openaiSkillVersionResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
-
-    const { value: skillResponse } = await promoteVersionWithRetry({
-      url: this.config.url({ path: `/skills/${params.skillId}` }),
-      headers,
-      version: versionResponse.version ?? '1',
-      failedResponseHandler: openaiFailedResponseHandler,
-      fetch: this.config.fetch,
-    });
-
-    return {
-      skill: mapOpenAISkill(skillResponse),
-      warnings: [],
-    };
-  }
-
-  async delete(
-    params: Parameters<SkillsV4['delete']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['delete']>>> {
-    await deleteFromApi({
-      url: this.config.url({ path: `/skills/${params.skillId}` }),
-      headers: combineHeaders(this.config.headers()),
-      failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        openaiSkillDeleteResponseSchema,
-      ),
-      fetch: this.config.fetch,
-    });
-
-    return {
-      warnings: [],
-    };
-  }
-}
-
-const PROMOTE_MAX_RETRIES = 5;
-const PROMOTE_INITIAL_DELAY_MS = 2000;
-
-async function promoteVersionWithRetry({
-  url,
-  headers,
-  version,
-  failedResponseHandler,
-  fetch,
-}: {
-  url: string;
-  headers: Record<string, string | undefined>;
-  version: string;
-  failedResponseHandler: typeof openaiFailedResponseHandler;
-  fetch?: FetchFunction;
-}) {
-  for (let attempt = 0; attempt <= PROMOTE_MAX_RETRIES; attempt++) {
-    try {
-      return await postJsonToApi({
-        url,
-        headers,
-        body: { default_version: version },
-        failedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(
-          openaiSkillResponseSchema,
-        ),
-        fetch,
-      });
-    } catch (error: unknown) {
-      const isRetryable =
-        error instanceof Error &&
-        'statusCode' in error &&
-        (error as { statusCode: number }).statusCode === 404;
-
-      if (!isRetryable || attempt === PROMOTE_MAX_RETRIES) {
-        throw error;
-      }
-
-      await new Promise(resolve =>
-        setTimeout(resolve, PROMOTE_INITIAL_DELAY_MS * 2 ** attempt),
-      );
-    }
-  }
-
-  throw new Error('Unreachable');
 }
 
 function mapOpenAISkill(

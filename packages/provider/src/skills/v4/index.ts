@@ -4,12 +4,4 @@ export type {
   SkillsV4Skill,
   SkillsV4CreateParams,
   SkillsV4CreateResult,
-  SkillsV4ListParams,
-  SkillsV4ListResult,
-  SkillsV4RetrieveParams,
-  SkillsV4RetrieveResult,
-  SkillsV4UpdateParams,
-  SkillsV4UpdateResult,
-  SkillsV4DeleteParams,
-  SkillsV4DeleteResult,
 } from './skills-v4';

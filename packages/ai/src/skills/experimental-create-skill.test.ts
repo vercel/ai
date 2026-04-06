@@ -17,10 +17,6 @@ function createMockSkillsManager(overrides: Partial<SkillsV4> = {}): SkillsV4 {
       skill: mockSkill,
       warnings: [],
     }),
-    list: vi.fn(),
-    retrieve: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
     ...overrides,
   };
 }
