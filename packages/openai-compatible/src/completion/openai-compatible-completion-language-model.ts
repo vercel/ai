@@ -21,7 +21,10 @@ import {
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { toCamelCase } from '../utils/to-camel-case';
+import {
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
@@ -101,6 +104,13 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
     toolChoice,
   }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
+
+    // Warn when the raw (non-camelCase) provider name is used
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsName,
+      providerOptions,
+      warnings,
+    });
 
     // Parse provider options (support both raw and camelCase keys)
     const completionOptions = Object.assign(
