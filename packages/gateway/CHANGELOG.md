@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.91
+
+### Patch Changes
+
+- 3aca847: feat (provider/gateway): add quotaEntityId gateway provider option
+
 ## 3.0.90
 
 ### Patch Changes
