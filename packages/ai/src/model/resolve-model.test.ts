@@ -4,12 +4,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-<<<<<<< HEAD
-=======
-import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
-import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
->>>>>>> 664a0eb8d (feat(ai/core): support plain string model IDs in rerank() (#14203))
 import { MockVideoModelV3 } from '../test/mock-video-model-v3';
 import { customProvider } from '../registry/custom-provider';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
@@ -365,9 +360,9 @@ describe('resolveVideoModel', () => {
 });
 
 describe('resolveRerankingModel', () => {
-  describe('when a reranking model v4 is provided', () => {
+  describe('when a reranking model v3 is provided', () => {
     it('should return it as-is', () => {
-      const originalModel = new MockRerankingModelV4({
+      const originalModel = new MockRerankingModelV3({
         provider: 'test-provider',
         modelId: 'test-model-id',
       });
@@ -375,12 +370,12 @@ describe('resolveRerankingModel', () => {
       const resolvedModel = resolveRerankingModel(originalModel);
 
       expect(resolvedModel).toBe(originalModel);
-      expect(resolvedModel.specificationVersion).toBe('v4');
+      expect(resolvedModel.specificationVersion).toBe('v3');
     });
   });
 
   describe('when a reranking model v3 is provided', () => {
-    it('should convert v3 to v4', () => {
+    it('should return it as v3', () => {
       const resolvedModel = resolveRerankingModel(
         new MockRerankingModelV3({
           provider: 'test-provider',
@@ -390,13 +385,13 @@ describe('resolveRerankingModel', () => {
 
       expect(resolvedModel.provider).toBe('test-provider');
       expect(resolvedModel.modelId).toBe('test-model-id');
-      expect(resolvedModel.specificationVersion).toBe('v4');
+      expect(resolvedModel.specificationVersion).toBe('v3');
     });
   });
 
   describe('when a string is provided and the global default provider is not set', () => {
-    it('should return a gateway reranking model converted to v4', () => {
-      const mockModel = new MockRerankingModelV4({
+    it('should return a gateway reranking model', () => {
+      const mockModel = new MockRerankingModelV3({
         provider: 'gateway',
         modelId: 'test-model-id',
       });
@@ -420,7 +415,7 @@ describe('resolveRerankingModel', () => {
     beforeEach(() => {
       globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
         rerankingModels: {
-          'test-model-id': new MockRerankingModelV4({
+          'test-model-id': new MockRerankingModelV3({
             provider: 'global-test-provider',
             modelId: 'actual-test-model-id',
           }),
@@ -443,7 +438,7 @@ describe('resolveRerankingModel', () => {
   describe('when a string is provided and the provider does not support reranking models', () => {
     beforeEach(() => {
       globalThis.AI_SDK_DEFAULT_PROVIDER = {
-        specificationVersion: 'v4' as const,
+        specificationVersion: 'v3' as const,
         languageModel: () => {
           throw new Error('not implemented');
         },

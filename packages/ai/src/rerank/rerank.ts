@@ -89,17 +89,8 @@ export async function rerank<VALUE extends JSONObject | string>({
    */
   providerOptions?: ProviderOptions;
 }): Promise<RerankResult<VALUE>> {
-<<<<<<< HEAD
-=======
   const model = resolveRerankingModel(modelArg);
-  const callId = generateCallId();
 
-  const createGlobalTelemetry = getGlobalTelemetryIntegration();
-  const globalTelemetry = createGlobalTelemetry({
-    integrations: telemetry?.integrations,
-  });
-
->>>>>>> 664a0eb8d (feat(ai/core): support plain string model IDs in rerank() (#14203))
   if (documents.length === 0) {
     return new DefaultRerankResult({
       originalDocuments: [],

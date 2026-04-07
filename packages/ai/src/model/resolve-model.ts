@@ -1,45 +1,24 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
-<<<<<<< HEAD
   EmbeddingModelV3,
   Experimental_VideoModelV3,
   ImageModelV3,
   LanguageModelV3,
   ProviderV3,
+  RerankingModelV3,
   SpeechModelV3,
   TranscriptionModelV3,
-=======
-  EmbeddingModelV4,
-  Experimental_VideoModelV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  RerankingModelV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
->>>>>>> 664a0eb8d (feat(ai/core): support plain string model IDs in rerank() (#14203))
 } from '@ai-sdk/provider';
 import { UnsupportedModelVersionError } from '../error';
 import { EmbeddingModel } from '../types/embedding-model';
 import { LanguageModel } from '../types/language-model';
 import { SpeechModel } from '../types/speech-model';
 import { TranscriptionModel } from '../types/transcription-model';
-<<<<<<< HEAD
 import { asEmbeddingModelV3 } from './as-embedding-model-v3';
 import { asImageModelV3 } from './as-image-model-v3';
 import { asLanguageModelV3 } from './as-language-model-v3';
 import { asSpeechModelV3 } from './as-speech-model-v3';
 import { asTranscriptionModelV3 } from './as-transcription-model-v3';
-=======
-import { asEmbeddingModelV4 } from './as-embedding-model-v4';
-import { asImageModelV4 } from './as-image-model-v4';
-import { asLanguageModelV4 } from './as-language-model-v4';
-import { asRerankingModelV4 } from './as-reranking-model-v4';
-import { asSpeechModelV4 } from './as-speech-model-v4';
-import { asTranscriptionModelV4 } from './as-transcription-model-v4';
-import { asVideoModelV4 } from './as-video-model-v4';
-import { asProviderV4 } from './as-provider-v4';
->>>>>>> 664a0eb8d (feat(ai/core): support plain string model IDs in rerank() (#14203))
 import { ImageModel } from '../types/image-model';
 import { RerankingModel } from '../types/reranking-model';
 import { VideoModel } from '../types/video-model';
@@ -177,13 +156,10 @@ export function resolveVideoModel(
   return model;
 }
 
-<<<<<<< HEAD
-function getGlobalProvider(): ProviderV3 {
-  return globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
-=======
-export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
+export function resolveRerankingModel(model: RerankingModel): RerankingModelV3 {
   if (typeof model === 'string') {
     const provider = getGlobalProvider();
+    // @ts-expect-error - rerankingModel is not yet on ProviderV3
     const rerankingModel = provider.rerankingModel;
 
     if (!rerankingModel) {
@@ -196,10 +172,7 @@ export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
     return rerankingModel(model);
   }
 
-  if (
-    model.specificationVersion !== 'v4' &&
-    model.specificationVersion !== 'v3'
-  ) {
+  if (model.specificationVersion !== 'v3') {
     const unsupportedModel: any = model;
     throw new UnsupportedModelVersionError({
       version: unsupportedModel.specificationVersion,
@@ -208,11 +181,9 @@ export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
     });
   }
 
-  return asRerankingModelV4(model);
+  return model;
 }
 
-function getGlobalProvider(): ProviderV4 {
-  const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
-  return asProviderV4(provider);
->>>>>>> 664a0eb8d (feat(ai/core): support plain string model IDs in rerank() (#14203))
+function getGlobalProvider(): ProviderV3 {
+  return globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
 }
