@@ -5,6 +5,7 @@ import {
   LanguageModelV4,
   ProviderV4,
   SpeechModelV4,
+  SkillsV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
@@ -30,6 +31,7 @@ import { OpenAISpeechModel } from './speech/openai-speech-model';
 import { OpenAISpeechModelId } from './speech/openai-speech-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
 import { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
+import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV4 {
@@ -99,6 +101,11 @@ export interface OpenAIProvider extends ProviderV4 {
    * Returns a FilesV4 interface for uploading files to OpenAI.
    */
   files(): FilesV4;
+
+  /**
+   * Returns a SkillsV4 interface for uploading skills to OpenAI.
+   */
+  skills(): SkillsV4;
 
   /**
    * OpenAI-specific tools.
@@ -231,6 +238,14 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
+  const createSkills = () =>
+    new OpenAISkills({
+      provider: `${providerName}.skills`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createLanguageModel = (modelId: OpenAIResponsesModelId) => {
     if (new.target) {
       throw new Error(
@@ -274,8 +289,8 @@ export function createOpenAI(
 
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
-
   provider.files = createFiles;
+  provider.skills = createSkills;
 
   provider.tools = openaiTools;
 
