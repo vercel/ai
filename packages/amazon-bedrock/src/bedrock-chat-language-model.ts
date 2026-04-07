@@ -157,9 +157,12 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
 
+    const { supportsStructuredOutput: modelSupportsStructuredOutput } =
+      getModelCapabilities(this.modelId);
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      isThinkingEnabled &&
+      (modelSupportsStructuredOutput || isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null;
 
