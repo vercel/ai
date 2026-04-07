@@ -159,6 +159,54 @@ function executeWithOptions(options: ToolExecutionOptions) {
 }
 ```
 
+### Tool Result Content: Migrate to `file-reference` / `image-file-reference`
+
+`ProviderReference` is a provider-to-file-ID map (for example `{ openai: 'file_123', anthropic: 'file_abc' }`) that lets the same logical file be reused across providers. New types `file-reference` and `image-file-reference` carry this object in tool outputs, and `file` parts can now also pass a `ProviderReference` as `data` instead of bytes/URL. Where supported, upload files to the provider first and reference them for inference.
+
+Update tool output handling for multipart content to support:
+
+- `file-reference`
+- `image-file-reference`
+
+If you persist tool-result content, migrate stored payloads:
+
+- `file-id` -> `file-reference`
+- `image-file-id` -> `image-file-reference`
+
+Update parsing/validation and discriminated unions accordingly.
+
+### Message Parts: Handle New `reasoning-file` Content Type
+
+Some models can now return files as part of their reasoning trace, separate from regular output files. These files, which would have previously were using the `file` type, are now in a distinct `reasoning-file` type.
+
+Update all exhaustive part handling (TypeScript unions, `switch` statements, runtime validators, renderers, serializers) to support `type: 'reasoning-file'`.
+
+Also audit any code that reads generated files from `result.files` or `step.files`: files referenced in reasoning are now represented as `reasoning-file` parts in `content` / `reasoning`. In practice, this should rarely require an update because models usually reference the same file in their reasoning that they later output as regular content. Prior to supporting `reasoning-file` as a distinct type, this would result in the same files appearing in `result.files` or `step.files` as a duplicate.
+
+### Reasoning Configuration: Remove Overlapping Settings
+
+The new top-level `reasoning` option is the provider-agnostic way to control reasoning effort.
+
+When migrating to the top-level `reasoning` option, remove overlapping reasoning settings from `providerOptions`.
+
+If both are present, provider-specific reasoning settings in `providerOptions` take precedence, which can silently bypass your new top-level `reasoning` configuration.
+
+### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
+
+Rename imports and usage in tool-loop stop conditions:
+
+```tsx filename="Before"
+import { stepCountIs } from 'ai';
+
+stopWhen: stepCountIs(3);
+```
+
+```tsx filename="After"
+import { isStepCount } from 'ai';
+
+stopWhen: isStepCount(3);
+```
+
 ## MCP Package
 
 ### MCP Transport: `redirect` Default Changed from `'follow'` to `'error'`
