@@ -7,11 +7,19 @@ export type PartialArg = {
   willContinue?: boolean | null;
 };
 
-// added to accumulate stream delta parts for arguments of tool calls
+/**
+ * Incrementally builds a JSON object from Google's streaming `partialArgs`
+ * chunks emitted during tool-call function calling. Tracks both the structured
+ * object and a running JSON text representation so callers can emit text deltas.
+ */
 export class GoogleJSONAccumulator {
   private accumulatedArgs: Record<string, unknown> = {};
   private jsonText = '';
 
+  /**
+   * Processes a batch of partial argument chunks, appending values into the
+   * accumulated object and returning the JSON text delta for this batch.
+   */
   processPartialArgs(partialArgs: PartialArg[]): {
     currentJSON: Record<string, unknown>;
     textDelta: string;
@@ -64,6 +72,10 @@ export class GoogleJSONAccumulator {
     };
   }
 
+  /**
+   * Closes the JSON object and returns the complete serialized JSON along with
+   * any remaining closing characters (e.g. trailing `"` and `}`) not yet emitted.
+   */
   finalize(): { finalJSON: string; closingDelta: string } {
     const finalArgs = JSON.stringify(this.accumulatedArgs);
     const closingDelta = finalArgs.slice(this.jsonText.length);
@@ -71,6 +83,7 @@ export class GoogleJSONAccumulator {
   }
 }
 
+/** Splits a dotted/bracketed JSON path like `recipe.ingredients[0].name` into segments. */
 function parsePath(rawPath: string): Array<string | number> {
   const segments: Array<string | number> = [];
   for (const part of rawPath.split('.')) {
@@ -89,6 +102,7 @@ function parsePath(rawPath: string): Array<string | number> {
   return segments;
 }
 
+/** Traverses a nested object along the given path segments and returns the leaf value. */
 function getNestedValue(
   obj: Record<string, unknown>,
   segments: Array<string | number>,
@@ -101,6 +115,7 @@ function getNestedValue(
   return current;
 }
 
+/** Sets a value at a nested path, creating intermediate objects or arrays as needed. */
 function setNestedValue(
   obj: Record<string, unknown>,
   segments: Array<string | number>,
@@ -118,6 +133,7 @@ function setNestedValue(
   current[segments[segments.length - 1]] = value;
 }
 
+/** Extracts the first non-null typed value from a partial arg and returns it with its JSON representation. */
 function resolvePartialArgValue(arg: {
   stringValue?: string | null;
   numberValue?: number | null;
