@@ -1648,7 +1648,7 @@ describe('MCPClient', () => {
 
       const result = await tools['error-tool'].execute(
         { name: 'test' },
-        { messages: [], toolCallId: '1', experimental_context: {} },
+        { messages: [], toolCallId: '1', context: {} },
       );
 
       expect(result).toEqual({
@@ -1709,7 +1709,7 @@ describe('MCPClient', () => {
 
       const result = await tools['error-structured-tool'].execute(
         {},
-        { messages: [], toolCallId: '1', experimental_context: {} },
+        { messages: [], toolCallId: '1', context: {} },
       );
 
       expect(result).toEqual({
@@ -1770,7 +1770,7 @@ describe('MCPClient', () => {
       await expect(
         tools['non-error-tool'].execute(
           {},
-          { messages: [], toolCallId: '1', experimental_context: {} },
+          { messages: [], toolCallId: '1', context: {} },
         ),
       ).rejects.toThrow(MCPClientError);
     });
