@@ -184,6 +184,28 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
         : undefined;
 
+    const streamFunctionCallArguments = isVertexProvider
+      ? (googleOptions?.streamFunctionCallArguments ?? true)
+      : undefined;
+
+    const toolConfig =
+      googleToolConfig ||
+      streamFunctionCallArguments ||
+      googleOptions?.retrievalConfig
+        ? {
+            ...googleToolConfig,
+            ...(streamFunctionCallArguments && {
+              functionCallingConfig: {
+                ...googleToolConfig?.functionCallingConfig,
+                streamFunctionCallArguments: true as const,
+              },
+            }),
+            ...(googleOptions?.retrievalConfig && {
+              retrievalConfig: googleOptions.retrievalConfig,
+            }),
+          }
+        : undefined;
+
     return {
       args: {
         generationConfig: {
@@ -227,13 +249,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
         safetySettings: googleOptions?.safetySettings,
         tools: googleTools,
-        toolConfig: mergeToolConfig({
-          toolConfig: googleToolConfig,
-          retrievalConfig: googleOptions?.retrievalConfig,
-          streamFunctionCallArguments: isVertexProvider
-            ? (googleOptions?.streamFunctionCallArguments ?? true)
-            : undefined,
-        }),
+        toolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
         serviceTier: googleOptions?.serviceTier,
@@ -969,33 +985,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       request: { body: args },
     };
   }
-}
-
-function mergeToolConfig({
-  toolConfig,
-  retrievalConfig,
-  streamFunctionCallArguments,
-}: {
-  toolConfig: ReturnType<typeof prepareTools>['toolConfig'];
-  retrievalConfig?: { latLng?: { latitude: number; longitude: number } };
-  streamFunctionCallArguments?: boolean;
-}) {
-  if (!retrievalConfig && !streamFunctionCallArguments) {
-    return toolConfig;
-  }
-
-  const functionCallingConfig = streamFunctionCallArguments
-    ? {
-        ...toolConfig?.functionCallingConfig,
-        streamFunctionCallArguments: true as const,
-      }
-    : toolConfig?.functionCallingConfig;
-
-  return {
-    ...toolConfig,
-    ...(functionCallingConfig && { functionCallingConfig }),
-    ...(retrievalConfig && { retrievalConfig }),
-  };
 }
 
 function isGemini3Model(modelId: string): boolean {
