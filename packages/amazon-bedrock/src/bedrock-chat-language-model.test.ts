@@ -4580,6 +4580,65 @@ describe('doGenerate', () => {
     expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(true);
   });
 
+  it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"name":"Test"}' }],
+            role: 'assistant',
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Generate a name' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+
+    expect(requestBody.additionalModelRequestFields?.output_config)
+      .toMatchInlineSnapshot(`
+      {
+        "format": {
+          "schema": {
+            "properties": {
+              "name": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "name",
+            ],
+            "type": "object",
+          },
+          "type": "json_schema",
+        },
+      }
+    `);
+  });
+
   it('should extract reasoning text with signature', async () => {
     server.urls[generateUrl].response = {
       type: 'json-value',
