@@ -166,6 +166,27 @@ function executeWithOptions(options: ToolExecutionOptions) {
 }
 ```
 
+### UI Messages: Remove Deprecated `isToolOrDynamicToolUIPart` Function
+
+The deprecated `isToolOrDynamicToolUIPart` function has been removed in AI SDK 7. Replace all remaining usages with `isToolUIPart`.
+
+If you already migrated away from the deprecated name in AI SDK 6, no changes are needed. Otherwise, update imports and calls:
+
+```tsx filename="AI SDK 6"
+import { isToolOrDynamicToolUIPart } from 'ai';
+
+if (isToolOrDynamicToolUIPart(part)) {
+  console.log('Tool part found');
+}
+```
+
+```tsx filename="AI SDK 7"
+import { isToolUIPart } from 'ai';
+
+if (isToolUIPart(part)) {
+  console.log('Tool part found');
+}
+
 ### Tools: Remove Deprecated `media` Content Part Type
 
 The deprecated tool result content part of `{ type: 'media' }` has been removed in AI SDK 7.
