@@ -3969,6 +3969,41 @@ describe('doStream', () => {
     });
   });
 
+  describe('streaming-tool-call-arguments', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse('google-stream-tool-call-arguments');
+    });
+
+    it('should stream partial function call arguments with parallel tool calls', async () => {
+      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
   it('should expose grounding metadata in provider metadata on finish', async () => {
     prepareStreamResponse({
       content: ['test'],

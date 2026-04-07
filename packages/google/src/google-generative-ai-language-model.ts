@@ -47,7 +47,10 @@ import {
   GoogleGenerativeAIProviderMetadata,
 } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
-import { GoogleStreamToolCallArguments } from './google-stream-tool-call-arguments';
+import {
+  GoogleStreamToolCallArguments,
+  PartialArg,
+} from './google-stream-tool-call-arguments';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
 type GoogleGenerativeAIConfig = {
@@ -505,10 +508,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     // Associates a server-side tool response with its preceding call (tool combination).
     let lastServerToolCallId: string | undefined;
 
-    const streamingToolCallHandler = new GoogleStreamToolCallArguments(
-      generateId,
-      providerOptionsName,
-    );
+    const activeStreamingToolCalls: Array<{
+      toolCallId: string;
+      toolName: string;
+      accumulator: GoogleStreamToolCallArguments;
+      providerMetadata?: SharedV4ProviderMetadata;
+    }> = [];
 
     return {
       stream: response.pipeThrough(
@@ -763,53 +768,147 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                 }
               }
 
-              // Handle streaming partial function call args
-              const streamingResult =
-                streamingToolCallHandler.processStreamingFunctionCallParts(
-                  content.parts,
-                );
-              for (const event of streamingResult.events) {
-                controller.enqueue(event);
-              }
-              if (streamingResult.hasToolCalls) {
-                hasToolCalls = true;
-              }
+              // Handle streaming and complete function calls
+              for (const part of parts) {
+                if (!('functionCall' in part)) continue;
 
-              // Handle complete (non-streaming) function calls
-              const completeCalls = getCompleteFunctionCallsFromParts({
-                parts: content.parts,
-                generateId,
-                providerOptionsName,
-              });
+                const fc = part.functionCall;
+                const providerMeta = part.thoughtSignature
+                  ? {
+                      [providerOptionsName]: {
+                        thoughtSignature: part.thoughtSignature,
+                      },
+                    }
+                  : undefined;
 
-              if (completeCalls != null) {
-                for (const toolCall of completeCalls) {
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
+                const isStreamingChunk =
+                  fc.partialArgs != null ||
+                  (fc.name != null && fc.willContinue === true);
+                const isTerminalChunk =
+                  fc.name == null &&
+                  fc.args == null &&
+                  fc.partialArgs == null &&
+                  fc.willContinue == null;
+                const isCompleteCall =
+                  fc.name != null && fc.args != null && fc.partialArgs == null;
 
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCall.toolCallId,
-                    delta: toolCall.args,
-                    providerMetadata: toolCall.providerMetadata,
-                  });
+                if (isStreamingChunk) {
+                  if (fc.name != null && fc.willContinue === true) {
+                    const toolCallId = generateId();
+                    const accumulator = new GoogleStreamToolCallArguments();
+                    activeStreamingToolCalls.push({
+                      toolCallId,
+                      toolName: fc.name,
+                      accumulator,
+                      providerMetadata: providerMeta,
+                    });
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: toolCallId,
+                      toolName: fc.name,
+                      providerMetadata: providerMeta,
+                    });
+
+                    if (fc.partialArgs != null) {
+                      const { textDelta } = accumulator.processPartialArgs(
+                        fc.partialArgs as PartialArg[],
+                      );
+                      if (textDelta.length > 0) {
+                        controller.enqueue({
+                          type: 'tool-input-delta',
+                          id: toolCallId,
+                          delta: textDelta,
+                          providerMetadata: providerMeta,
+                        });
+                      }
+                    }
+                  } else if (
+                    fc.partialArgs != null &&
+                    activeStreamingToolCalls.length > 0
+                  ) {
+                    const active =
+                      activeStreamingToolCalls[
+                        activeStreamingToolCalls.length - 1
+                      ];
+                    const { textDelta } = active.accumulator.processPartialArgs(
+                      fc.partialArgs as PartialArg[],
+                    );
+                    if (textDelta.length > 0) {
+                      controller.enqueue({
+                        type: 'tool-input-delta',
+                        id: active.toolCallId,
+                        delta: textDelta,
+                        providerMetadata: providerMeta,
+                      });
+                    }
+                  }
+                } else if (
+                  isTerminalChunk &&
+                  activeStreamingToolCalls.length > 0
+                ) {
+                  const active = activeStreamingToolCalls.pop()!;
+                  const { finalJSON, closingDelta } =
+                    active.accumulator.finalize();
+
+                  if (closingDelta.length > 0) {
+                    controller.enqueue({
+                      type: 'tool-input-delta',
+                      id: active.toolCallId,
+                      delta: closingDelta,
+                      providerMetadata: active.providerMetadata,
+                    });
+                  }
 
                   controller.enqueue({
                     type: 'tool-input-end',
-                    id: toolCall.toolCallId,
-                    providerMetadata: toolCall.providerMetadata,
+                    id: active.toolCallId,
+                    providerMetadata: active.providerMetadata,
                   });
 
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallId: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    input: toolCall.args,
-                    providerMetadata: toolCall.providerMetadata,
+                    toolCallId: active.toolCallId,
+                    toolName: active.toolName,
+                    input: finalJSON,
+                    providerMetadata: active.providerMetadata,
+                  });
+
+                  hasToolCalls = true;
+                } else if (isCompleteCall) {
+                  const toolCallId = generateId();
+                  const toolName = fc.name!;
+                  const args =
+                    typeof fc.args === 'string'
+                      ? fc.args
+                      : JSON.stringify(fc.args ?? {});
+
+                  controller.enqueue({
+                    type: 'tool-input-start',
+                    id: toolCallId,
+                    toolName,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-delta',
+                    id: toolCallId,
+                    delta: args,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-input-end',
+                    id: toolCallId,
+                    providerMetadata: providerMeta,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallId,
+                    toolName,
+                    input: args,
+                    providerMetadata: providerMeta,
                   });
 
                   hasToolCalls = true;
@@ -997,46 +1096,6 @@ function resolveGemini25ThinkingConfig({
     return undefined;
   }
   return { thinkingBudget };
-}
-
-function getCompleteFunctionCallsFromParts({
-  parts,
-  generateId,
-  providerOptionsName,
-}: {
-  parts: ContentSchema['parts'];
-  generateId: () => string;
-  providerOptionsName: string;
-}) {
-  if (parts == null) return undefined;
-
-  const completeCalls = parts.filter(
-    (
-      part,
-    ): part is typeof part & {
-      functionCall: { name: string; args: unknown };
-    } =>
-      'functionCall' in part &&
-      part.functionCall.name != null &&
-      part.functionCall.args != null &&
-      part.functionCall.partialArgs == null,
-  );
-
-  return completeCalls.length === 0
-    ? undefined
-    : completeCalls.map(part => ({
-        type: 'tool-call' as const,
-        toolCallId: generateId(),
-        toolName: part.functionCall.name,
-        args: JSON.stringify(part.functionCall.args),
-        providerMetadata: part.thoughtSignature
-          ? {
-              [providerOptionsName]: {
-                thoughtSignature: part.thoughtSignature,
-              },
-            }
-          : undefined,
-      }));
 }
 
 function extractSources({
