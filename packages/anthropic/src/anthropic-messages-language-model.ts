@@ -36,6 +36,7 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
+import { createAnthropicHeaders } from './anthropic-auth';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
 import {
@@ -161,7 +162,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
     modelId: AnthropicMessagesModelId;
     config: AnthropicMessagesConfig;
   }) {
-    return new AnthropicMessagesLanguageModel(options.modelId, options.config);
+    return new AnthropicMessagesLanguageModel(options.modelId, {
+      ...options.config,
+      headers: options.config.headers ?? createAnthropicHeaders,
+    });
   }
 
   constructor(

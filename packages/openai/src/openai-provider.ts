@@ -10,11 +10,10 @@ import {
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
-  loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
-  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { createOpenAIHeaders } from './openai-auth';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import { OpenAIChatModelId } from './chat/openai-chat-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
@@ -32,7 +31,6 @@ import { OpenAISpeechModelId } from './speech/openai-speech-options';
 import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
 import { OpenAITranscriptionModelId } from './transcription/openai-transcription-options';
 import { OpenAISkills } from './skills/openai-skills';
-import { VERSION } from './version';
 
 export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
@@ -168,19 +166,12 @@ export function createOpenAI(
   const providerName = options.name ?? 'openai';
 
   const getHeaders = () =>
-    withUserAgentSuffix(
-      {
-        Authorization: `Bearer ${loadApiKey({
-          apiKey: options.apiKey,
-          environmentVariableName: 'OPENAI_API_KEY',
-          description: 'OpenAI',
-        })}`,
-        'OpenAI-Organization': options.organization,
-        'OpenAI-Project': options.project,
-        ...options.headers,
-      },
-      `ai-sdk/openai/${VERSION}`,
-    );
+    createOpenAIHeaders({
+      apiKey: options.apiKey,
+      organization: options.organization,
+      project: options.project,
+      headers: options.headers,
+    });
 
   const createChatModel = (modelId: OpenAIChatModelId) =>
     new OpenAIChatLanguageModel(modelId, {

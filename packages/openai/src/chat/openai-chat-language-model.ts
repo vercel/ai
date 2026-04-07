@@ -25,6 +25,7 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
+import { createOpenAIHeaders, createOpenAIURL } from '../openai-auth';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import {
@@ -71,7 +72,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     modelId: OpenAIChatModelId;
     config: OpenAIChatConfig;
   }) {
-    return new OpenAIChatLanguageModel(options.modelId, options.config);
+    return new OpenAIChatLanguageModel(options.modelId, {
+      ...options.config,
+      headers: options.config.headers ?? createOpenAIHeaders,
+      url: options.config.url ?? createOpenAIURL(),
+    });
   }
 
   constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {

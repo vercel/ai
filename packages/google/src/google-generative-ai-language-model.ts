@@ -33,6 +33,7 @@ import {
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { createGoogleHeaders } from './google-auth';
 import {
   convertGoogleGenerativeAIUsage,
   GoogleGenerativeAIUsageMetadata,
@@ -81,7 +82,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     modelId: string;
     config: GoogleGenerativeAIConfig;
   }) {
-    return new GoogleGenerativeAILanguageModel(options.modelId, options.config);
+    return new GoogleGenerativeAILanguageModel(options.modelId, {
+      ...options.config,
+      headers: options.config.headers ?? createGoogleHeaders,
+    });
   }
 
   constructor(

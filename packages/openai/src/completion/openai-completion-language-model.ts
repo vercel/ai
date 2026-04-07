@@ -20,6 +20,7 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
+import { createOpenAIHeaders, createOpenAIURL } from '../openai-auth';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
   convertOpenAICompletionUsage,
@@ -64,7 +65,11 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
     modelId: OpenAICompletionModelId;
     config: OpenAICompletionConfig;
   }) {
-    return new OpenAICompletionLanguageModel(options.modelId, options.config);
+    return new OpenAICompletionLanguageModel(options.modelId, {
+      ...options.config,
+      headers: options.config.headers ?? createOpenAIHeaders,
+      url: options.config.url ?? createOpenAIURL(),
+    });
   }
 
   constructor(

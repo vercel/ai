@@ -29,6 +29,7 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
+import { createOpenAIHeaders, createOpenAIURL } from '../openai-auth';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
@@ -118,7 +119,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     modelId: OpenAIResponsesModelId;
     config: OpenAIConfig;
   }) {
-    return new OpenAIResponsesLanguageModel(options.modelId, options.config);
+    return new OpenAIResponsesLanguageModel(options.modelId, {
+      ...options.config,
+      headers: options.config.headers ?? createOpenAIHeaders,
+      url: options.config.url ?? createOpenAIURL(),
+    });
   }
 
   constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {

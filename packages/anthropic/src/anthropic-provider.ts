@@ -9,17 +9,15 @@ import {
 import {
   FetchFunction,
   generateId,
-  loadApiKey,
   loadOptionalSetting,
   withoutTrailingSlash,
-  withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { createAnthropicHeaders } from './anthropic-auth';
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
 import { AnthropicSkills } from './skills/anthropic-skills';
-import { VERSION } from './version';
 
 export interface AnthropicProvider extends ProviderV4 {
   /**
@@ -120,26 +118,12 @@ export function createAnthropic(
     });
   }
 
-  const getHeaders = () => {
-    const authHeaders: Record<string, string> = options.authToken
-      ? { Authorization: `Bearer ${options.authToken}` }
-      : {
-          'x-api-key': loadApiKey({
-            apiKey: options.apiKey,
-            environmentVariableName: 'ANTHROPIC_API_KEY',
-            description: 'Anthropic',
-          }),
-        };
-
-    return withUserAgentSuffix(
-      {
-        'anthropic-version': '2023-06-01',
-        ...authHeaders,
-        ...options.headers,
-      },
-      `ai-sdk/anthropic/${VERSION}`,
-    );
-  };
+  const getHeaders = () =>
+    createAnthropicHeaders({
+      apiKey: options.apiKey,
+      authToken: options.authToken,
+      headers: options.headers,
+    });
 
   const createChatModel = (modelId: AnthropicMessagesModelId) =>
     new AnthropicMessagesLanguageModel(modelId, {

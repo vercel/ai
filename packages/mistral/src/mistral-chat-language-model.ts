@@ -26,6 +26,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertMistralUsage, MistralUsage } from './convert-mistral-usage';
+import { createMistralHeaders } from './mistral-auth';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
@@ -60,7 +61,10 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     modelId: MistralChatModelId;
     config: MistralChatConfig;
   }) {
-    return new MistralChatLanguageModel(options.modelId, options.config);
+    return new MistralChatLanguageModel(options.modelId, {
+      ...options.config,
+      headers: options.config.headers ?? createMistralHeaders,
+    });
   }
 
   constructor(modelId: MistralChatModelId, config: MistralChatConfig) {
