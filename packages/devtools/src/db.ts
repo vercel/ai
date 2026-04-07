@@ -26,7 +26,7 @@ export const notifyServerAsync = async (
     await fetch(`http://localhost:${DEVTOOLS_PORT}/api/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event, timestamp: Date.now() }),
+      body: JSON.stringify({ event, timestamp: Date.now(), dbPath: DB_PATH }),
     });
   } catch {
     // Ignore errors - server might not be running
@@ -139,9 +139,23 @@ const saveDb = (db: Database): void => {
 
 /**
  * Reload the database from disk.
- * Used by the viewer server to pick up changes made by the middleware.
+ * Used by the viewer server to pick up changes made by the middleware/integration.
+ * When a remote dbPath is provided (from a notify POST), reads from that path
+ * instead of the local CWD-based path, so the viewer works regardless of where
+ * it was started.
  */
-export const reloadDb = async (): Promise<void> => {
+export const reloadDb = async (remoteDbPath?: string): Promise<void> => {
+  if (remoteDbPath) {
+    try {
+      if (fs.existsSync(remoteDbPath)) {
+        const content = fs.readFileSync(remoteDbPath, 'utf-8');
+        dbCache = JSON.parse(content);
+        return;
+      }
+    } catch {
+      // Fall through to default
+    }
+  }
   dbCache = readDb();
 };
 

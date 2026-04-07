@@ -53,6 +53,10 @@ const projectRoot = path.resolve(__dirname, '../..');
 // Client directory: dist/client in both cases
 const clientDir = path.join(projectRoot, 'dist/client');
 
+// Track the DB path from the most recent notify call so all reads
+// use the correct file, even when the viewer runs in a different CWD.
+let remoteDbPath: string | undefined;
+
 const app = new Hono();
 
 // Enable CORS for development
@@ -60,6 +64,7 @@ app.use('/*', cors());
 
 // API Routes
 app.get('/api/runs', async c => {
+  await reloadDb(remoteDbPath);
   const runs = await getRuns();
   // Include step count, first message, and error status for each run
   const runsWithMeta = await Promise.all(
@@ -109,6 +114,7 @@ app.get('/api/runs', async c => {
 });
 
 app.get('/api/runs/:id', async c => {
+  await reloadDb(remoteDbPath);
   const data = await getRunWithSteps(c.req.param('id'));
   if (!data) {
     return c.json({ error: 'Run not found' }, 404);
@@ -188,11 +194,15 @@ app.get('/api/events', c => {
   });
 });
 
-// Notification endpoint (called by middleware)
+// Notification endpoint (called by middleware/integration)
 app.post('/api/notify', async c => {
   const body = await c.req.json();
-  // Reload database from disk to pick up changes from middleware
-  await reloadDb();
+  if (body.dbPath) {
+    remoteDbPath = body.dbPath;
+  }
+  // Reload database from disk, using the remote dbPath if provided so the
+  // viewer works even when started from a different directory than the app.
+  await reloadDb(remoteDbPath);
   broadcastToClients('update', body);
   return c.json({ success: true });
 });

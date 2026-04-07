@@ -16,6 +16,7 @@
     "@ai-sdk/deepgram": "workspace:*",
     "@ai-sdk/deepinfra": "workspace:*",
     "@ai-sdk/deepseek": "workspace:*",
+    "@ai-sdk/devtools": "workspace:^",
     "@ai-sdk/elevenlabs": "workspace:*",
     "@ai-sdk/fal": "workspace:*",
     "@ai-sdk/fireworks": "workspace:*",
