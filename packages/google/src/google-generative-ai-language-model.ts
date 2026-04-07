@@ -48,7 +48,7 @@ import {
 } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
 import {
-  GoogleStreamToolCallArguments,
+  GoogleJSONAccumulator,
   PartialArg,
 } from './google-stream-tool-call-arguments';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -511,7 +511,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     const activeStreamingToolCalls: Array<{
       toolCallId: string;
       toolName: string;
-      accumulator: GoogleStreamToolCallArguments;
+      accumulator: GoogleJSONAccumulator;
       providerMetadata?: SharedV4ProviderMetadata;
     }> = [];
 
@@ -795,7 +795,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                 if (isStreamingChunk) {
                   if (fc.name != null && fc.willContinue === true) {
                     const toolCallId = generateId();
-                    const accumulator = new GoogleStreamToolCallArguments();
+                    const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
                       toolCallId,
                       toolName: fc.name,

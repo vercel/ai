@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { GoogleStreamToolCallArguments } from './google-stream-tool-call-arguments';
+import { GoogleJSONAccumulator } from './google-stream-tool-call-arguments';
 
-describe('GoogleStreamToolCallArguments', () => {
+describe('GoogleJSONAccumulator', () => {
   it('should accumulate a simple string arg with willContinue', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
     const r = acc.processPartialArgs([
       { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
     ]);
@@ -13,7 +13,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should continue a string arg across multiple chunks', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
 
     acc.processPartialArgs([
       { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
@@ -28,7 +28,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should accumulate a complete string arg (no willContinue)', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
     const r = acc.processPartialArgs([
       { jsonPath: '$.location', stringValue: 'Boston' },
     ]);
@@ -38,7 +38,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should accumulate a number arg', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
     const r = acc.processPartialArgs([
       { jsonPath: '$.brightness', numberValue: 50 },
     ]);
@@ -48,7 +48,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should accumulate a boolean arg', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
     const r = acc.processPartialArgs([
       { jsonPath: '$.enabled', boolValue: true },
     ]);
@@ -58,7 +58,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should accumulate a null arg', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
     const r = acc.processPartialArgs([
       { jsonPath: '$.nickname', nullValue: {} },
     ]);
@@ -68,7 +68,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should accumulate multiple args with commas between them', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
 
     const r1 = acc.processPartialArgs([
       { jsonPath: '$.brightness', numberValue: 50 },
@@ -84,7 +84,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should accumulate multiple args in a single call', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
     const r = acc.processPartialArgs([
       { jsonPath: '$.brightness', numberValue: 50 },
       { jsonPath: '$.enabled', boolValue: false },
@@ -102,7 +102,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should escape special characters in continued strings', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
 
     acc.processPartialArgs([
       { jsonPath: '$.query', stringValue: 'Boston "Lo', willContinue: true },
@@ -117,7 +117,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should skip args with empty jsonPath after stripping $. prefix', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
     const r = acc.processPartialArgs([
       { jsonPath: '$.', stringValue: 'ignored' },
     ]);
@@ -127,7 +127,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should skip args with no resolvable value', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
     const r = acc.processPartialArgs([{ jsonPath: '$.something' }]);
 
     expect(r.textDelta).toBe('');
@@ -135,7 +135,7 @@ describe('GoogleStreamToolCallArguments', () => {
   });
 
   it('should return empty textDelta for empty partialArgs array', () => {
-    const acc = new GoogleStreamToolCallArguments();
+    const acc = new GoogleJSONAccumulator();
     const r = acc.processPartialArgs([]);
 
     expect(r.textDelta).toBe('');
@@ -144,7 +144,7 @@ describe('GoogleStreamToolCallArguments', () => {
 
   describe('finalize', () => {
     it('should produce closing delta for a continued string', () => {
-      const acc = new GoogleStreamToolCallArguments();
+      const acc = new GoogleJSONAccumulator();
       acc.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
       ]);
@@ -155,7 +155,7 @@ describe('GoogleStreamToolCallArguments', () => {
     });
 
     it('should produce closing delta for a complete string', () => {
-      const acc = new GoogleStreamToolCallArguments();
+      const acc = new GoogleJSONAccumulator();
       acc.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston' },
       ]);
@@ -166,7 +166,7 @@ describe('GoogleStreamToolCallArguments', () => {
     });
 
     it('should produce closing delta for multiple args', () => {
-      const acc = new GoogleStreamToolCallArguments();
+      const acc = new GoogleJSONAccumulator();
       acc.processPartialArgs([
         { jsonPath: '$.brightness', numberValue: 50 },
         { jsonPath: '$.enabled', boolValue: true },
@@ -178,7 +178,7 @@ describe('GoogleStreamToolCallArguments', () => {
     });
 
     it('should produce closing delta for continued string with continuation', () => {
-      const acc = new GoogleStreamToolCallArguments();
+      const acc = new GoogleJSONAccumulator();
       acc.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
       ]);
@@ -190,7 +190,7 @@ describe('GoogleStreamToolCallArguments', () => {
     });
 
     it('should handle empty accumulator', () => {
-      const acc = new GoogleStreamToolCallArguments();
+      const acc = new GoogleJSONAccumulator();
       const { finalJSON, closingDelta } = acc.finalize();
       expect(closingDelta).toBe('{}');
       expect(finalJSON).toBe('{}');

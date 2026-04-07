@@ -7,7 +7,8 @@ export type PartialArg = {
   willContinue?: boolean | null;
 };
 
-export class GoogleStreamToolCallArguments {
+// added to accumulate stream delta parts for arguments of tool calls
+export class GoogleJSONAccumulator {
   private accumulatedArgs: Record<string, unknown> = {};
   private jsonText = '';
 
