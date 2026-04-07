@@ -105,6 +105,64 @@ exports[`OpenResponsesLanguageModel > doGenerate > multi-turn tool conversation 
 }
 `;
 
+exports[`OpenResponsesLanguageModel > doGenerate > pdf input file > should extract usage correctly 1`] = `
+{
+  "inputTokens": {
+    "cacheRead": 0,
+    "cacheWrite": undefined,
+    "noCache": 44,
+    "total": 44,
+  },
+  "outputTokens": {
+    "reasoning": 0,
+    "text": 4,
+    "total": 4,
+  },
+  "raw": {
+    "input_tokens": 44,
+    "input_tokens_details": {
+      "cached_tokens": 0,
+    },
+    "output_tokens": 4,
+    "output_tokens_details": {
+      "reasoning_tokens": 0,
+    },
+    "total_tokens": 48,
+  },
+}
+`;
+
+exports[`OpenResponsesLanguageModel > doGenerate > pdf input file > should produce correct content 1`] = `
+[
+  {
+    "text": "Dummy PDF file",
+    "type": "text",
+  },
+]
+`;
+
+exports[`OpenResponsesLanguageModel > doGenerate > pdf input file > should send input_file in request body 1`] = `
+{
+  "input": [
+    {
+      "content": [
+        {
+          "text": "What text does this PDF contain? Reply with just the text content, nothing else.",
+          "type": "input_text",
+        },
+        {
+          "file_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+          "type": "input_file",
+        },
+      ],
+      "role": "user",
+      "type": "message",
+    },
+  ],
+  "model": "gpt-4.1-nano",
+}
+`;
+
 exports[`OpenResponsesLanguageModel > doGenerate > request parameters > should send correct request body 1`] = `
 {
   "frequency_penalty": 0.2,
@@ -1928,6 +1986,70 @@ exports[`OpenResponsesLanguageModel > doStream > basic generation > should strea
           "reasoning_tokens": 0,
         },
         "total_tokens": 313,
+      },
+    },
+  },
+]
+`;
+
+exports[`OpenResponsesLanguageModel > doStream > pdf input file > should stream content from pdf input 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+    "type": "text-start",
+  },
+  {
+    "delta": "Dummy",
+    "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+    "type": "text-delta",
+  },
+  {
+    "delta": " PDF",
+    "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+    "type": "text-delta",
+  },
+  {
+    "delta": " file",
+    "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_051ebd7ab60063870069d4fe8c1b7c8194b701e22f1ef094dd",
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": undefined,
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 44,
+        "total": 44,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 4,
+        "total": 4,
+      },
+      "raw": {
+        "input_tokens": 44,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 4,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+        "total_tokens": 48,
       },
     },
   },
