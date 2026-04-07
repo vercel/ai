@@ -1,0 +1,148 @@
+---
+title: Kelly Intelligence
+description: Use Kelly Intelligence — an OpenAI-compatible Claude API with built-in vocabulary RAG — with the AI SDK.
+---
+
+# Kelly Intelligence Provider
+
+[Kelly Intelligence](https://api.thedailylesson.com) is an OpenAI-compatible API that routes to Anthropic's Claude models with an optional 162,000-word vocabulary RAG layer and an opinionated AI tutor persona ("Kelly"). The free tier includes 500 calls per month with no credit card required.
+
+Built by [Lesson of the Day, PBC](https://lotdpbc.com), a public benefit corporation building learning infrastructure.
+
+## Setup
+
+The Kelly Intelligence provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai-compatible" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai-compatible" dark />
+  </Tab>
+</Tabs>
+
+### API key
+
+Get a free Kelly Intelligence API key at [api.thedailylesson.com](https://api.thedailylesson.com) and export it:
+
+```bash
+export KELLY_API_KEY=your_key_here
+```
+
+## Provider Instance
+
+To use Kelly Intelligence, create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const kelly = createOpenAICompatible({
+  name: 'kelly',
+  baseURL: 'https://api.thedailylesson.com/v1',
+  apiKey: process.env.KELLY_API_KEY,
+});
+```
+
+## Language Models
+
+You can create Kelly Intelligence models using a provider instance.
+The first argument is the model name, e.g. `kelly-sonnet`.
+
+```ts
+const model = kelly('kelly-sonnet');
+```
+
+### Available models
+
+| Model ID         | Engine            | Best For                              | Min Tier  |
+| ---------------- | ----------------- | ------------------------------------- | --------- |
+| `kelly-haiku`    | Claude Haiku 4.5  | Fast tutoring, quizzes                | Free      |
+| `kelly-sonnet`   | Claude Sonnet 4.6 | Balanced tutor responses              | Developer |
+| `kelly-opus`     | Claude Opus 4.6   | Curriculum design, deep explanations  | Pro       |
+| `claude-haiku`   | Claude Haiku 4.5  | Fast Claude + 162K-word vocab RAG     | Free      |
+| `claude-sonnet`  | Claude Sonnet 4.6 | Balanced Claude + vocab RAG           | Developer |
+| `claude-opus`    | Claude Opus 4.6   | Most capable Claude + vocab RAG       | Pro       |
+
+The `kelly-*` models include a Socratic AI tutor persona with 12 archetypes. The `claude-*` models are raw Claude with vocabulary RAG only — no persona.
+
+### Example
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const kelly = createOpenAICompatible({
+  name: 'kelly',
+  baseURL: 'https://api.thedailylesson.com/v1',
+  apiKey: process.env.KELLY_API_KEY,
+});
+
+const { text } = await generateText({
+  model: kelly('kelly-sonnet'),
+  prompt: 'What does the word ephemeral mean? Teach me with an example.',
+});
+
+console.log(text);
+```
+
+### Streaming
+
+Kelly Intelligence supports SSE streaming via `streamText`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { streamText } from 'ai';
+
+const kelly = createOpenAICompatible({
+  name: 'kelly',
+  baseURL: 'https://api.thedailylesson.com/v1',
+  apiKey: process.env.KELLY_API_KEY,
+});
+
+const result = streamText({
+  model: kelly('kelly-sonnet'),
+  prompt: 'Teach me serendipity in three sentences.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Including model ids for auto-completion
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+type KellyChatModelIds =
+  | 'kelly-haiku'
+  | 'kelly-sonnet'
+  | 'kelly-opus'
+  | 'claude-haiku'
+  | 'claude-sonnet'
+  | 'claude-opus'
+  | (string & {});
+
+const kelly = createOpenAICompatible<KellyChatModelIds, never, never>({
+  name: 'kelly',
+  baseURL: 'https://api.thedailylesson.com/v1',
+  apiKey: process.env.KELLY_API_KEY,
+});
+```
+
+## Try it without an API key
+
+Kelly exposes a public, no-auth demo endpoint at `/v1/demo` (rate-limited to 5 requests per IP per hour) so you can verify the integration before signing up:
+
+```bash
+curl -X POST https://api.thedailylesson.com/v1/demo \
+  -H "Content-Type: application/json" \
+  -d '{"messages":[{"role":"user","content":"What does ephemeral mean?"}]}'
+```
+
+The response is streamed in OpenAI `chat.completion.chunk` format.
