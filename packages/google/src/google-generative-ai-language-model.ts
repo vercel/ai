@@ -123,6 +123,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       });
     }
 
+    // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     const isVertexProvider = this.config.provider.startsWith('google.vertex.');
 
     if (
@@ -769,7 +770,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
               for (const part of parts) {
                 if (!('functionCall' in part)) continue;
 
-                const fc = part.functionCall;
                 const providerMeta = part.thoughtSignature
                   ? {
                       [providerOptionsName]: {
@@ -779,23 +779,29 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                   : undefined;
 
                 const isStreamingChunk =
-                  fc.partialArgs != null ||
-                  (fc.name != null && fc.willContinue === true);
+                  part.functionCall.partialArgs != null ||
+                  (part.functionCall.name != null &&
+                    part.functionCall.willContinue === true);
                 const isTerminalChunk =
-                  fc.name == null &&
-                  fc.args == null &&
-                  fc.partialArgs == null &&
-                  fc.willContinue == null;
+                  part.functionCall.name == null &&
+                  part.functionCall.args == null &&
+                  part.functionCall.partialArgs == null &&
+                  part.functionCall.willContinue == null;
                 const isCompleteCall =
-                  fc.name != null && fc.args != null && fc.partialArgs == null;
+                  part.functionCall.name != null &&
+                  part.functionCall.args != null &&
+                  part.functionCall.partialArgs == null;
 
                 if (isStreamingChunk) {
-                  if (fc.name != null && fc.willContinue === true) {
+                  if (
+                    part.functionCall.name != null &&
+                    part.functionCall.willContinue === true
+                  ) {
                     const toolCallId = generateId();
                     const accumulator = new GoogleJSONAccumulator();
                     activeStreamingToolCalls.push({
                       toolCallId,
-                      toolName: fc.name,
+                      toolName: part.functionCall.name,
                       accumulator,
                       providerMetadata: providerMeta,
                     });
@@ -803,13 +809,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                     controller.enqueue({
                       type: 'tool-input-start',
                       id: toolCallId,
-                      toolName: fc.name,
+                      toolName: part.functionCall.name,
                       providerMetadata: providerMeta,
                     });
 
-                    if (fc.partialArgs != null) {
+                    if (part.functionCall.partialArgs != null) {
                       const { textDelta } = accumulator.processPartialArgs(
-                        fc.partialArgs as PartialArg[],
+                        part.functionCall.partialArgs as PartialArg[],
                       );
                       if (textDelta.length > 0) {
                         controller.enqueue({
@@ -821,7 +827,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                       }
                     }
                   } else if (
-                    fc.partialArgs != null &&
+                    part.functionCall.partialArgs != null &&
                     activeStreamingToolCalls.length > 0
                   ) {
                     const active =
@@ -829,7 +835,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                         activeStreamingToolCalls.length - 1
                       ];
                     const { textDelta } = active.accumulator.processPartialArgs(
-                      fc.partialArgs as PartialArg[],
+                      part.functionCall.partialArgs as PartialArg[],
                     );
                     if (textDelta.length > 0) {
                       controller.enqueue({
@@ -874,11 +880,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                   hasToolCalls = true;
                 } else if (isCompleteCall) {
                   const toolCallId = generateId();
-                  const toolName = fc.name!;
+                  const toolName = part.functionCall.name!;
                   const args =
-                    typeof fc.args === 'string'
-                      ? fc.args
-                      : JSON.stringify(fc.args ?? {});
+                    typeof part.functionCall.args === 'string'
+                      ? part.functionCall.args
+                      : JSON.stringify(part.functionCall.args ?? {});
 
                   controller.enqueue({
                     type: 'tool-input-start',
