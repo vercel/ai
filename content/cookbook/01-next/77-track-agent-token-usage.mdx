@@ -183,7 +183,7 @@ You now have usage data displayed in the UI. But what if you want to act on that
 
 To manipulate messages or apply context management strategies, you'd use the `prepareStep` callback. However, `prepareStep` only has access to steps from the current run. On the first step of a new request, `steps` is empty, leaving you with no visibility into how many tokens the conversation has accumulated across previous requests.
 
-To solve this, pass the usage from previous messages back to the agent. Use `callOptionsSchema` to define the data shape and `prepareCall` to make it available on `experimental_context`, where `prepareStep` can access it.
+To solve this, pass the usage from previous messages back to the agent. Use `callOptionsSchema` to define the data shape and `prepareCall` to make it available on `context`, where `prepareStep` can access it.
 
 ```typescript filename='ai/agent.ts' highlight="11-13,21-26"
 import {
@@ -209,7 +209,7 @@ export const agent = new ToolLoopAgent({
   prepareCall: ({ options, ...settings }) => {
     return {
       ...settings,
-      experimental_context: { lastInputTokens: options.lastInputTokens },
+      context: { lastInputTokens: options.lastInputTokens },
     };
   },
 });
@@ -250,7 +250,7 @@ export async function POST(req: Request) {
 
 ## Access Usage in prepareStep and Tools
 
-With the usage on `experimental_context`, you can access it in `prepareStep` to make decisions about context management, or pass it to your tools.
+With the usage on `context`, you can access it in `prepareStep` to make decisions about context management, or pass it to your tools.
 
 ```typescript filename='ai/agent.ts' highlight="9-11,31-40"
 import {
@@ -280,20 +280,20 @@ export const agent = new ToolLoopAgent({
   prepareCall: ({ options, ...settings }) => {
     return {
       ...settings,
-      experimental_context: { lastInputTokens: options.lastInputTokens },
+      context: { lastInputTokens: options.lastInputTokens },
     };
   },
-  prepareStep: ({ steps, experimental_context }) => {
+  prepareStep: ({ steps, context }) => {
     const lastStep = steps.at(-1);
     const lastStepUsage =
       lastStep?.usage?.inputTokens ??
-      (experimental_context as TContext)?.lastInputTokens ??
+      (context as TContext)?.lastInputTokens ??
       0;
     console.log('Last step input tokens:', lastStepUsage);
     // You can use this to implement context compaction strategies
     return {
-      experimental_context: {
-        ...experimental_context,
+      context: {
+        ...context,
         lastStepUsage,
       },
     };
@@ -307,6 +307,6 @@ export type AgentUIMessage = InferAgentUIMessage<typeof agent, AgentMetadata>;
 The `prepareStep` callback runs before each step, giving you access to:
 
 - `steps`: All previous steps with their usage data
-- `experimental_context`: The context set by `prepareCall` (usage from the previous request)
+- `context`: The context set by `prepareCall` (usage from the previous request)
 
 This allows you to track token consumption across the entire conversation lifecycle and implement strategies like context compaction when approaching token limits.
