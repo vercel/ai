@@ -166,6 +166,12 @@ function executeWithOptions(options: ToolExecutionOptions) {
 }
 ```
 
+### Tools: Remove Deprecated `media` Content Part Type
+
+The deprecated tool result content part of `{ type: 'media' }` has been removed in AI SDK 7.
+
+Use `{ type: 'image-data' }` for images and `{ type: 'file-data' }` for all other files.
+
 ### Tool Result Content: Migrate to `file-reference` / `image-file-reference`
 
 `ProviderReference` is a provider-to-file-ID map (for example `{ openai: 'file_123', anthropic: 'file_abc' }`) that lets the same logical file be reused across providers. New types `file-reference` and `image-file-reference` carry this object in tool outputs, and `file` parts can now also pass a `ProviderReference` as `data` instead of bytes/URL. Where supported, upload files to the provider first and reference them for inference.

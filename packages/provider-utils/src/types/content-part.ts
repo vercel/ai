@@ -294,14 +294,6 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
-            /**
-             * @deprecated Use image-data or file-data instead.
-             */
-            type: 'media';
-            data: string;
-            mediaType: string;
-          }
-        | {
             type: 'file-data';
 
             /**
