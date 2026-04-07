@@ -4004,6 +4004,58 @@ describe('doStream', () => {
     });
   });
 
+  describe('streaming-tool-call-arguments-nested', () => {
+    beforeEach(() => {
+      prepareChunksFixtureResponse(
+        'google-vertex-stream-tool-call-arguments-nested.1',
+      );
+    });
+
+    it('should stream nested partial function call arguments into proper nested JSON', async () => {
+      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      });
+
+      const { stream } = await vertexModel.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+        tools: [
+          {
+            type: 'function',
+            name: 'cookRecipe',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                recipe: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string' },
+                    ingredients: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          name: { type: 'string' },
+                          amount: { type: 'string' },
+                        },
+                      },
+                    },
+                    steps: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+    });
+  });
+
   it('should expose grounding metadata in provider metadata on finish', async () => {
     prepareStreamResponse({
       content: ['test'],

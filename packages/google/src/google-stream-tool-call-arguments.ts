@@ -19,16 +19,23 @@ export class GoogleJSONAccumulator {
     let delta = '';
 
     for (const arg of partialArgs) {
-      const key = arg.jsonPath.replace(/^\$\./, '');
-      if (!key) continue;
+      const rawPath = arg.jsonPath.replace(/^\$\./, '');
+      if (!rawPath) continue;
 
+      const segments = parsePath(rawPath);
+      if (segments.length === 0) continue;
+
+      const existingValue = getNestedValue(this.accumulatedArgs, segments);
       const isStringContinuation =
-        arg.stringValue != null && key in this.accumulatedArgs;
+        arg.stringValue != null && existingValue !== undefined;
 
       if (isStringContinuation) {
         const escaped = JSON.stringify(arg.stringValue).slice(1, -1);
-        this.accumulatedArgs[key] =
-          (this.accumulatedArgs[key] as string) + arg.stringValue;
+        setNestedValue(
+          this.accumulatedArgs,
+          segments,
+          (existingValue as string) + arg.stringValue,
+        );
         this.jsonText += escaped;
         delta += escaped;
         continue;
@@ -37,7 +44,7 @@ export class GoogleJSONAccumulator {
       const resolved = resolvePartialArgValue(arg);
       if (resolved == null) continue;
 
-      this.accumulatedArgs[key] = resolved.value;
+      setNestedValue(this.accumulatedArgs, segments, resolved.value);
 
       const valueJson =
         arg.stringValue != null && arg.willContinue
@@ -46,7 +53,7 @@ export class GoogleJSONAccumulator {
 
       const prefix =
         this.jsonText === '' ? '{' : this.jsonText.endsWith('{') ? '' : ',';
-      const fragment = `${prefix}${JSON.stringify(key)}:${valueJson}`;
+      const fragment = `${prefix}${JSON.stringify(rawPath)}:${valueJson}`;
       this.jsonText += fragment;
       delta += fragment;
     }
@@ -62,6 +69,53 @@ export class GoogleJSONAccumulator {
     const closingDelta = finalArgs.slice(this.jsonText.length);
     return { finalJSON: finalArgs, closingDelta };
   }
+}
+
+function parsePath(rawPath: string): Array<string | number> {
+  const segments: Array<string | number> = [];
+  for (const part of rawPath.split('.')) {
+    const bracketRegex = /^([^\[]*?)(\[(\d+)\])+$/;
+    const match = part.match(bracketRegex);
+    if (match) {
+      if (match[1]) segments.push(match[1]);
+      const indices = part.matchAll(/\[(\d+)\]/g);
+      for (const m of indices) {
+        segments.push(parseInt(m[1], 10));
+      }
+    } else {
+      segments.push(part);
+    }
+  }
+  return segments;
+}
+
+function getNestedValue(
+  obj: Record<string, unknown>,
+  segments: Array<string | number>,
+): unknown {
+  let current: unknown = obj;
+  for (const seg of segments) {
+    if (current == null || typeof current !== 'object') return undefined;
+    current = (current as Record<string | number, unknown>)[seg];
+  }
+  return current;
+}
+
+function setNestedValue(
+  obj: Record<string, unknown>,
+  segments: Array<string | number>,
+  value: unknown,
+): void {
+  let current: Record<string | number, unknown> = obj;
+  for (let i = 0; i < segments.length - 1; i++) {
+    const seg = segments[i];
+    const nextSeg = segments[i + 1];
+    if (current[seg] == null) {
+      current[seg] = typeof nextSeg === 'number' ? [] : {};
+    }
+    current = current[seg] as Record<string | number, unknown>;
+  }
+  current[segments[segments.length - 1]] = value;
 }
 
 function resolvePartialArgValue(arg: {
