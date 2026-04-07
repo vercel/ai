@@ -166,11 +166,6 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
-            type: z.literal('media'),
-            data: z.string(),
-            mediaType: z.string(),
-          }),
-          z.object({
             type: z.literal('file-data'),
             data: z.string(),
             mediaType: z.string(),

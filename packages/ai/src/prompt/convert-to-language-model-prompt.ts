@@ -564,23 +564,6 @@ function mapToolResultOutput({
     type: 'content',
     value: output.value.map(item => {
       switch (item.type) {
-        case 'media': {
-          // AI SDK 5 tool backwards compatibility:
-          // map media type to image-data or file-data
-          if (item.mediaType.startsWith('image/')) {
-            return {
-              type: 'image-data' as const,
-              data: item.data,
-              mediaType: item.mediaType,
-            };
-          }
-
-          return {
-            type: 'file-data' as const,
-            data: item.data,
-            mediaType: item.mediaType,
-          };
-        }
         case 'file-id': {
           return {
             type: 'file-reference' as const,
