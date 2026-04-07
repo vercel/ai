@@ -430,6 +430,43 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
     `);
   });
 
+  it('should merge fileData content for single embedding', async () => {
+    prepareSingleJsonResponse();
+
+    await model.doEmbed({
+      values: [testValues[0]],
+      providerOptions: {
+        google: {
+          content: [
+            [
+              {
+                fileData: {
+                  fileUri: 'gs://bucket/video.mp4',
+                  mimeType: 'video/mp4',
+                },
+              },
+            ],
+          ],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      content: {
+        parts: [
+          { text: 'sunny day at the beach' },
+          {
+            fileData: {
+              fileUri: 'gs://bucket/video.mp4',
+              mimeType: 'video/mp4',
+            },
+          },
+        ],
+      },
+      model: 'models/gemini-embedding-001',
+    });
+  });
+
   it('should throw error when content length does not match values length', async () => {
     prepareBatchJsonResponse();
 
