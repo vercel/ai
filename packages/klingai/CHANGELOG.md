@@ -1,5 +1,11 @@
 # @ai-sdk/klingai
 
+## 3.0.13
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
 ## 3.0.12
 
 ### Patch Changes

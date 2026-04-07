@@ -1,5 +1,11 @@
 # @ai-sdk/black-forest-labs
 
+## 1.0.29
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
 ## 1.0.28
 
 ### Patch Changes

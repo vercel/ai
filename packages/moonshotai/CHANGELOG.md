@@ -1,5 +1,13 @@
 # @ai-sdk/moonshotai
 
+## 2.0.16
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+- Updated dependencies [d42076d]
+  - @ai-sdk/openai-compatible@2.0.41
+
 ## 2.0.15
 
 ### Patch Changes
