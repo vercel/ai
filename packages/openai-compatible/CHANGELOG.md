@@ -1,5 +1,18 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.0-beta.17
+
+### Patch Changes
+
+- 816ff67: fix(openai-compatible): honor camelCase providerOptions key in chat and completion models
+
+## 3.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
 ## 3.0.0-beta.15
 
 ### Patch Changes
