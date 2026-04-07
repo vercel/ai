@@ -66,6 +66,10 @@ function formatWarning({
       return message;
     }
 
+    case 'deprecated': {
+      return `${prefix} Deprecated: "${warning.setting}". ${warning.message}`;
+    }
+
     case 'other': {
       return `${prefix} ${warning.message}`;
     }

@@ -429,6 +429,44 @@ describe('doGenerate', () => {
         someCustomOption: 'camel-value',
       });
     });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareJsonResponse({ content: '' });
+
+      const result = await provider
+        .completionModel('gpt-3.5-turbo-instruct')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'test-provider': { someCustomOption: 'test-value' },
+          },
+        });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareJsonResponse({ content: '' });
+
+      const result = await provider
+        .completionModel('gpt-3.5-turbo-instruct')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            testProvider: { someCustomOption: 'test-value' },
+          },
+        });
+
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
+    });
   });
 });
 
