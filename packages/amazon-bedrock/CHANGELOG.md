@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.91
+
+### Patch Changes
+
+- ac80bc7: fix(amazon-bedrock): preserve empty text blocks when reasoning content is present
+
 ## 4.0.90
 
 ### Patch Changes
