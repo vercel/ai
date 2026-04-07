@@ -172,7 +172,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     ...telemetryFields(),
     context: undefined,
     ...overrides,
-  } as unknown as Parameters<NonNullable<TelemetryIntegration['onStart']>>[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onStart']>>[0];
 }
 
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
@@ -201,9 +201,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     stepTools: undefined,
     stepToolChoice: undefined,
     ...overrides,
-  } as unknown as Parameters<
-    NonNullable<TelemetryIntegration['onStepStart']>
-  >[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onStepStart']>>[0];
 }
 
 function makeStepFinishEvent(overrides?: Record<string, unknown>) {
@@ -254,9 +252,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     providerMetadata: undefined,
     context: undefined,
     ...overrides,
-  } as unknown as Parameters<
-    NonNullable<TelemetryIntegration['onStepFinish']>
-  >[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onStepFinish']>>[0];
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
@@ -280,7 +276,7 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     ...overrides,
-  } as unknown as Parameters<NonNullable<TelemetryIntegration['onFinish']>>[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onFinish']>>[0];
 }
 
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
@@ -301,9 +297,7 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     metadata: undefined,
     context: undefined,
     ...overrides,
-  } as unknown as Parameters<
-    NonNullable<TelemetryIntegration['onToolCallStart']>
-  >[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onToolCallStart']>>[0];
 }
 
 function makeToolCallFinishEvent(
@@ -335,17 +329,13 @@ function makeToolCallFinishEvent(
       ...base,
       success: true as const,
       output: { result: 'ok' },
-    } as unknown as Parameters<
-      NonNullable<TelemetryIntegration['onToolCallFinish']>
-    >[0];
+    } as Parameters<NonNullable<TelemetryIntegration['onToolCallFinish']>>[0];
   }
   return {
     ...base,
     success: false as const,
     error: new Error('tool failed'),
-  } as unknown as Parameters<
-    NonNullable<TelemetryIntegration['onToolCallFinish']>
-  >[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onToolCallFinish']>>[0];
 }
 
 describe('GenAIOpenTelemetryIntegration', () => {
