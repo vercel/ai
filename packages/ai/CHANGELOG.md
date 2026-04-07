@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.0-beta.71
+
+### Patch Changes
+
+- e68be55: fix(ai): skip stringifying text when streaming partial text
+- Updated dependencies [939171f]
+  - @ai-sdk/gateway@4.0.0-beta.40
+
 ## 7.0.0-beta.70
 
 ### Patch Changes
