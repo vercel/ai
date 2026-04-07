@@ -723,17 +723,29 @@ function App() {
   );
 }
 
+type SpanKind =
+  | 'step'
+  | 'child-run'
+  | 'thinking'
+  | 'tool-call'
+  | 'text'
+  | 'error';
+
 interface TraceSpan {
   id: string;
+  stepId: string;
   label: string;
   sublabel?: string;
   startMs: number;
   durationMs: number;
   depth: number;
-  kind: 'run' | 'step' | 'child-run';
+  kind: SpanKind;
   tokens?: { input: number; output: number };
   modelId?: string;
   isInProgress?: boolean;
+  toolCallId?: string;
+  thinkingText?: string;
+  textContent?: string;
 }
 
 function buildTraceSpans(
@@ -747,94 +759,232 @@ function buildTraceSpans(
     steps: Step[],
     depth: number,
     childRuns: ChildRun[],
+    minStartMs?: number,
   ) => {
     for (const step of steps) {
-      const stepStart = new Date(step.started_at).getTime();
+      const rawStepStart = new Date(step.started_at).getTime();
+      const stepStart =
+        minStartMs !== undefined
+          ? Math.max(rawStepStart, traceStart + minStartMs)
+          : rawStepStart;
+      const stepDuration = step.duration_ms ?? 0;
       const usage = parseJson(step.usage);
       const output = parseJson(step.output);
 
-      const finishReason =
-        typeof output?.finishReason === 'string'
-          ? output.finishReason
-          : output?.finishReason?.unified;
+      const contentParts: any[] = output?.content ?? [];
+      const hasSubParts = contentParts.length > 0 || step.error;
 
-      let label = step.model_id || 'LLM call';
-      let sublabel = '';
-      if (finishReason === 'tool-calls') {
-        const toolCalls =
-          output?.toolCalls ||
-          output?.content?.filter((p: any) => p.type === 'tool-call') ||
-          [];
-        const names = [
-          ...new Set(toolCalls.map((c: any) => c.toolName).filter(Boolean)),
-        ];
-        sublabel = names.join(', ');
-      } else if (step.error) {
-        sublabel = 'Error';
-      } else {
-        sublabel = 'Response';
-      }
-
-      spans.push({
-        id: step.id,
-        label,
-        sublabel,
-        startMs: stepStart - traceStart,
-        durationMs: step.duration_ms ?? 0,
-        depth,
-        kind: 'step',
-        tokens: usage
-          ? {
-              input:
-                typeof usage.inputTokens === 'number'
-                  ? usage.inputTokens
-                  : (usage.inputTokens?.total ?? 0),
-              output:
-                typeof usage.outputTokens === 'number'
-                  ? usage.outputTokens
-                  : (usage.outputTokens?.total ?? 0),
-            }
-          : undefined,
-        modelId: step.model_id,
-        isInProgress: step.duration_ms === null && !step.error,
-      });
-
-      const stepChildRuns = childRuns.filter(
-        cr => cr.run.parent_step_id === step.id,
-      );
-      for (const cr of stepChildRuns) {
-        const crStart = new Date(cr.run.started_at).getTime();
-        const crDuration = cr.steps.reduce(
-          (acc, s) => acc + (s.duration_ms || 0),
-          0,
-        );
-        const firstStep = cr.steps[0];
-        const firstInput = firstStep ? parseJson(firstStep.input) : null;
-        const userMsg = firstInput?.prompt?.findLast?.(
-          (m: any) => m.role === 'user',
-        );
-        let crLabel = 'Sub-agent';
-        if (userMsg) {
-          const content =
-            typeof userMsg.content === 'string'
-              ? userMsg.content
-              : userMsg.content?.[0]?.text || '';
-          crLabel =
-            content.length > 40 ? content.slice(0, 40) + '...' : content;
-        }
-
+      if (!hasSubParts) {
         spans.push({
-          id: cr.run.id,
-          label: crLabel,
-          sublabel: firstStep?.model_id,
-          startMs: crStart - traceStart,
-          durationMs: crDuration,
-          depth: depth + 1,
-          kind: 'child-run',
-          isInProgress: cr.run.isInProgress,
+          id: step.id,
+          stepId: step.id,
+          label: step.model_id || 'LLM call',
+          sublabel:
+            step.duration_ms === null && !step.error
+              ? 'streaming...'
+              : 'Response',
+          startMs: stepStart - traceStart,
+          durationMs: stepDuration,
+          depth,
+          kind: 'step',
+          tokens: usage
+            ? {
+                input:
+                  typeof usage.inputTokens === 'number'
+                    ? usage.inputTokens
+                    : (usage.inputTokens?.total ?? 0),
+                output:
+                  typeof usage.outputTokens === 'number'
+                    ? usage.outputTokens
+                    : (usage.outputTokens?.total ?? 0),
+              }
+            : undefined,
+          modelId: step.model_id,
+          isInProgress: step.duration_ms === null && !step.error,
         });
 
-        addStepSpans(cr.steps, depth + 2, []);
+        const stepChildRuns = childRuns.filter(
+          cr => cr.run.parent_step_id === step.id,
+        );
+        for (const cr of stepChildRuns) {
+          addStepSpans(cr.steps, depth + 1, []);
+        }
+      } else {
+        spans.push({
+          id: step.id,
+          stepId: step.id,
+          label: step.model_id || 'LLM call',
+          startMs: stepStart - traceStart,
+          durationMs: stepDuration,
+          depth,
+          kind: 'step',
+          tokens: usage
+            ? {
+                input:
+                  typeof usage.inputTokens === 'number'
+                    ? usage.inputTokens
+                    : (usage.inputTokens?.total ?? 0),
+                output:
+                  typeof usage.outputTokens === 'number'
+                    ? usage.outputTokens
+                    : (usage.outputTokens?.total ?? 0),
+              }
+            : undefined,
+          modelId: step.model_id,
+          isInProgress: step.duration_ms === null && !step.error,
+        });
+
+        const stepChildRuns = childRuns.filter(
+          cr => cr.run.parent_step_id === step.id,
+        );
+        const sortedChildRuns = [...stepChildRuns].sort(
+          (a, b) =>
+            new Date(a.run.started_at).getTime() -
+            new Date(b.run.started_at).getTime(),
+        );
+
+        const toolCallParts = contentParts.filter(
+          (p: any) => p.type === 'tool-call',
+        );
+
+        const toolCallToChildRuns = new Map<string, ChildRun[]>();
+        const unmatchedChildRuns: ChildRun[] = [];
+
+        if (toolCallParts.length > 0 && sortedChildRuns.length > 0) {
+          let crIdx = 0;
+          for (const tc of toolCallParts) {
+            const tcId = tc.toolCallId;
+            if (!tcId) continue;
+
+            const tcResult = contentParts.find(
+              (p: any) => p.type === 'tool-result' && p.toolCallId === tcId,
+            );
+
+            if (tcResult && crIdx < sortedChildRuns.length) {
+              const cr = sortedChildRuns[crIdx];
+              if (cr) {
+                const existing = toolCallToChildRuns.get(tcId) ?? [];
+                existing.push(cr);
+                toolCallToChildRuns.set(tcId, existing);
+                crIdx++;
+              }
+            }
+          }
+          for (let i = crIdx; i < sortedChildRuns.length; i++) {
+            const cr = sortedChildRuns[i];
+            if (cr) unmatchedChildRuns.push(cr);
+          }
+        } else {
+          unmatchedChildRuns.push(...sortedChildRuns);
+        }
+
+        const subPartCount =
+          contentParts.filter(
+            (p: any) =>
+              p.type === 'reasoning' ||
+              p.type === 'thinking' ||
+              p.type === 'text' ||
+              p.type === 'tool-call',
+          ).length + (step.error ? 1 : 0);
+
+        let subIdx = 0;
+        for (const part of contentParts) {
+          const fraction =
+            subPartCount > 0 ? stepDuration / subPartCount : stepDuration;
+          const partStartMs = stepStart - traceStart + subIdx * fraction;
+
+          if (part.type === 'reasoning' || part.type === 'thinking') {
+            const thinkingText =
+              part.text || part.thinking || part.reasoning || '';
+            spans.push({
+              id: `${step.id}-thinking-${subIdx}`,
+              stepId: step.id,
+              label: 'Thinking',
+              sublabel:
+                thinkingText.length > 50
+                  ? thinkingText.slice(0, 50) + '...'
+                  : thinkingText,
+              startMs: partStartMs,
+              durationMs: fraction,
+              depth: depth + 1,
+              kind: 'thinking',
+              thinkingText,
+            });
+            subIdx++;
+          } else if (part.type === 'tool-call') {
+            const toolName = part.toolName || 'unknown';
+            const args = part.input ?? part.args;
+            const argPreview =
+              args && typeof args === 'object'
+                ? Object.keys(args).slice(0, 2).join(', ')
+                : '';
+
+            const tcChildRuns = toolCallToChildRuns.get(part.toolCallId) ?? [];
+            let toolDuration = fraction;
+            if (tcChildRuns.length > 0) {
+              const crTotalDuration = tcChildRuns.reduce(
+                (acc, cr) =>
+                  acc + cr.steps.reduce((a, s) => a + (s.duration_ms || 0), 0),
+                0,
+              );
+              toolDuration = Math.max(fraction, crTotalDuration);
+            }
+
+            spans.push({
+              id: `${step.id}-tool-${part.toolCallId || subIdx}`,
+              stepId: step.id,
+              label: toolName,
+              sublabel: argPreview ? `(${argPreview})` : undefined,
+              startMs: partStartMs,
+              durationMs: toolDuration,
+              depth: depth + 1,
+              kind: 'tool-call',
+              toolCallId: part.toolCallId,
+            });
+
+            for (const cr of tcChildRuns) {
+              addStepSpans(cr.steps, depth + 2, [], partStartMs);
+            }
+
+            subIdx++;
+          } else if (part.type === 'text') {
+            const text = part.text || '';
+            spans.push({
+              id: `${step.id}-text-${subIdx}`,
+              stepId: step.id,
+              label: 'Text',
+              sublabel: text.length > 60 ? text.slice(0, 60) + '...' : text,
+              startMs: partStartMs,
+              durationMs: fraction,
+              depth: depth + 1,
+              kind: 'text',
+              textContent: text,
+            });
+            subIdx++;
+          }
+        }
+
+        if (step.error) {
+          const fraction =
+            subPartCount > 0 ? stepDuration / subPartCount : stepDuration;
+          spans.push({
+            id: `${step.id}-error`,
+            stepId: step.id,
+            label: 'Error',
+            sublabel:
+              step.error.length > 60
+                ? step.error.slice(0, 60) + '...'
+                : step.error,
+            startMs: stepStart - traceStart + subIdx * fraction,
+            durationMs: fraction,
+            depth: depth + 1,
+            kind: 'error',
+          });
+        }
+
+        for (const cr of unmatchedChildRuns) {
+          addStepSpans(cr.steps, depth + 1, []);
+        }
       }
     }
   };
@@ -843,16 +993,22 @@ function buildTraceSpans(
   return spans;
 }
 
-const SPAN_COLORS: Record<TraceSpan['kind'], string> = {
-  run: 'bg-blue-500',
+const SPAN_COLORS: Record<SpanKind, string> = {
   step: 'bg-blue-500',
   'child-run': 'bg-cyan-500',
+  thinking: 'bg-amber-500',
+  'tool-call': 'bg-purple-500',
+  text: 'bg-emerald-500',
+  error: 'bg-red-500',
 };
 
-const SPAN_COLORS_MUTED: Record<TraceSpan['kind'], string> = {
-  run: 'bg-blue-500/20',
+const SPAN_COLORS_MUTED: Record<SpanKind, string> = {
   step: 'bg-blue-500/20',
   'child-run': 'bg-cyan-500/20',
+  thinking: 'bg-amber-500/20',
+  'tool-call': 'bg-purple-500/20',
+  text: 'bg-emerald-500/20',
+  error: 'bg-red-500/20',
 };
 
 function TraceTimeline({
@@ -864,10 +1020,20 @@ function TraceTimeline({
   parseJson: (s: string | null) => any;
   formatDuration: (ms: number | null) => string;
 }) {
+  const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
+
   const spans = useMemo(
     () => buildTraceSpans(runDetail, parseJson),
     [runDetail, parseJson],
   );
+
+  const allSteps = useMemo(() => {
+    const steps = [...runDetail.steps];
+    for (const cr of runDetail.childRuns ?? []) {
+      steps.push(...cr.steps);
+    }
+    return steps;
+  }, [runDetail]);
 
   if (spans.length === 0) return null;
 
@@ -888,146 +1054,391 @@ function TraceTimeline({
   const ROW_HEIGHT = 28;
   const LABEL_WIDTH = 280;
 
+  const handleSpanClick = (spanId: string) => {
+    setSelectedSpanId(prev => (prev === spanId ? null : spanId));
+  };
+
+  const selectedSpan = selectedSpanId
+    ? spans.find(s => s.id === selectedSpanId)
+    : null;
+
+  const resolvedStepId = selectedSpan?.stepId ?? selectedSpanId;
+
+  const selectedStep = resolvedStepId
+    ? allSteps.find(s => s.id === resolvedStepId)
+    : null;
+
+  const selectedStepIndex = selectedStep
+    ? (() => {
+        const parentSteps = runDetail.steps.find(s => s.id === selectedStep.id)
+          ? runDetail.steps
+          : (runDetail.childRuns ?? []).find(cr =>
+              cr.steps.some(s => s.id === selectedStep.id),
+            )?.steps;
+        return parentSteps?.findIndex(s => s.id === selectedStep.id) ?? 0;
+      })()
+    : 0;
+
+  const selectedStepSiblings = selectedStep
+    ? (() => {
+        if (runDetail.steps.find(s => s.id === selectedStep.id)) {
+          return runDetail.steps;
+        }
+        const cr = (runDetail.childRuns ?? []).find(cr =>
+          cr.steps.some(s => s.id === selectedStep.id),
+        );
+        return cr?.steps ?? runDetail.steps;
+      })()
+    : runDetail.steps;
+
+  const selectedStepChildRuns = selectedStep
+    ? (runDetail.childRuns ?? []).filter(
+        cr => cr.run.parent_step_id === selectedStep.id,
+      )
+    : [];
+
+  const spanIcon = (kind: SpanKind) => {
+    switch (kind) {
+      case 'child-run':
+        return <Brain className="size-3 text-cyan-400 shrink-0" />;
+      case 'thinking':
+        return <Brain className="size-3 text-amber-500 shrink-0" />;
+      case 'tool-call':
+        return <Wrench className="size-3 text-purple-400 shrink-0" />;
+      case 'text':
+        return <MessageSquare className="size-3 text-emerald-400 shrink-0" />;
+      case 'error':
+        return <AlertCircle className="size-3 text-red-400 shrink-0" />;
+      default:
+        return <Zap className="size-3 text-blue-400 shrink-0" />;
+    }
+  };
+
   return (
-    <div className="mb-5 rounded-lg border border-border bg-card overflow-hidden">
-      <div className="px-4 py-2 border-b border-border bg-muted/20 flex items-center justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          Trace Timeline
-        </span>
-        <span className="text-[11px] font-mono text-muted-foreground">
-          {formatDuration(totalDurationMs)}
-        </span>
-      </div>
+    <div className="space-y-4">
+      <div className="rounded-lg border border-border bg-card overflow-hidden">
+        <div className="px-4 py-2 border-b border-border bg-muted/20 flex items-center justify-between">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Trace Timeline
+          </span>
+          <span className="text-[11px] font-mono text-muted-foreground">
+            {formatDuration(totalDurationMs)}
+          </span>
+        </div>
 
-      <div className="overflow-x-auto">
-        <div style={{ minWidth: LABEL_WIDTH + 400 }}>
-          {/* Time axis */}
-          <div
-            className="flex border-b border-border/50"
-            style={{ height: 22 }}
-          >
+        <div className="overflow-x-auto">
+          <div style={{ minWidth: LABEL_WIDTH + 400 }}>
+            {/* Time axis */}
             <div
-              style={{ width: LABEL_WIDTH, minWidth: LABEL_WIDTH }}
-              className="shrink-0"
-            />
-            <div className="flex-1 relative">
-              {ticks.map((tick, i) => (
-                <span
-                  key={i}
-                  className="absolute text-[9px] font-mono text-muted-foreground/60 -translate-x-1/2"
-                  style={{
-                    left: `${(tick.ms / totalDurationMs) * 100}%`,
-                    top: 5,
-                  }}
-                >
-                  {tick.label}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Span rows */}
-          {spans.map(span => {
-            const leftPct = (span.startMs / totalDurationMs) * 100;
-            const widthPct = Math.max(
-              (span.durationMs / totalDurationMs) * 100,
-              0.3,
-            );
-
-            return (
+              className="flex border-b border-border/50"
+              style={{ height: 22 }}
+            >
               <div
-                key={span.id}
-                className="flex items-center border-b border-border/30 hover:bg-accent/30 transition-colors"
-                style={{ height: ROW_HEIGHT }}
-              >
-                {/* Label column */}
-                <div
-                  className="shrink-0 flex items-center gap-1.5 px-2 overflow-hidden"
-                  style={{
-                    width: LABEL_WIDTH,
-                    minWidth: LABEL_WIDTH,
-                    paddingLeft: 8 + span.depth * 16,
-                  }}
-                >
-                  {span.kind === 'child-run' ? (
-                    <Brain className="size-3 text-cyan-400 shrink-0" />
-                  ) : (
-                    <Zap className="size-3 text-blue-400 shrink-0" />
-                  )}
-                  <span className="text-[11px] font-mono text-foreground truncate">
-                    {span.label}
+                style={{ width: LABEL_WIDTH, minWidth: LABEL_WIDTH }}
+                className="shrink-0"
+              />
+              <div className="flex-1 relative">
+                {ticks.map((tick, i) => (
+                  <span
+                    key={i}
+                    className="absolute text-[9px] font-mono text-muted-foreground/60 -translate-x-1/2"
+                    style={{
+                      left: `${(tick.ms / totalDurationMs) * 100}%`,
+                      top: 5,
+                    }}
+                  >
+                    {tick.label}
                   </span>
-                  {span.sublabel && (
-                    <span className="text-[10px] text-muted-foreground truncate">
-                      {span.sublabel}
-                    </span>
-                  )}
-                  <span className="ml-auto text-[10px] font-mono text-muted-foreground shrink-0 pl-1">
-                    {formatDuration(span.durationMs || null)}
-                  </span>
-                  {span.tokens && (
-                    <span className="text-[9px] font-mono text-muted-foreground/60 shrink-0">
-                      {span.tokens.input}→{span.tokens.output}
-                    </span>
-                  )}
-                </div>
-
-                {/* Bar column */}
-                <div className="flex-1 relative h-full">
-                  {/* Grid lines */}
-                  {ticks.map((tick, i) => (
-                    <div
-                      key={i}
-                      className="absolute top-0 bottom-0 border-l border-border/20"
-                      style={{ left: `${(tick.ms / totalDurationMs) * 100}%` }}
-                    />
-                  ))}
-                  {/* Bar */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div
-                        className="absolute top-1 bottom-1 flex items-center cursor-default"
-                        style={{
-                          left: `${leftPct}%`,
-                          width: `${widthPct}%`,
-                          minWidth: 3,
-                        }}
-                      >
-                        <div
-                          className={`h-full w-full rounded-sm ${
-                            span.isInProgress
-                              ? `${SPAN_COLORS_MUTED[span.kind]} animate-pulse`
-                              : SPAN_COLORS[span.kind]
-                          }`}
-                        />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="max-w-xs">
-                      <div className="text-xs space-y-1">
-                        <div className="font-medium">{span.label}</div>
-                        {span.sublabel && (
-                          <div className="text-muted-foreground">
-                            {span.sublabel}
-                          </div>
-                        )}
-                        <div className="text-muted-foreground font-mono">
-                          {formatDuration(span.durationMs || null)}
-                          {span.tokens && (
-                            <span className="ml-2">
-                              {span.tokens.input} in → {span.tokens.output} out
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
+                ))}
               </div>
-            );
-          })}
+            </div>
+
+            {/* Span rows */}
+            {spans.map(span => {
+              const leftPct = (span.startMs / totalDurationMs) * 100;
+              const widthPct = Math.max(
+                (span.durationMs / totalDurationMs) * 100,
+                0.3,
+              );
+              const isSelected = selectedSpanId === span.id;
+
+              return (
+                <div
+                  key={span.id}
+                  className={`flex items-center border-b border-border/30 transition-colors cursor-pointer ${
+                    isSelected ? 'bg-accent' : 'hover:bg-accent/30'
+                  }`}
+                  style={{ height: ROW_HEIGHT }}
+                  onClick={() => handleSpanClick(span.id)}
+                >
+                  {/* Label column */}
+                  <div
+                    className="shrink-0 flex items-center gap-1.5 px-2 overflow-hidden"
+                    style={{
+                      width: LABEL_WIDTH,
+                      minWidth: LABEL_WIDTH,
+                      paddingLeft: 8 + span.depth * 16,
+                    }}
+                  >
+                    {spanIcon(span.kind)}
+                    <span className="text-[11px] font-mono text-foreground truncate">
+                      {span.label}
+                    </span>
+                    {span.sublabel && (
+                      <span className="text-[10px] text-muted-foreground truncate">
+                        {span.sublabel}
+                      </span>
+                    )}
+                    <span className="ml-auto text-[10px] font-mono text-muted-foreground shrink-0 pl-1">
+                      {formatDuration(span.durationMs || null)}
+                    </span>
+                    {span.tokens && (
+                      <span className="text-[9px] font-mono text-muted-foreground/60 shrink-0">
+                        {span.tokens.input}→{span.tokens.output}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Bar column */}
+                  <div className="flex-1 relative h-full">
+                    {/* Grid lines */}
+                    {ticks.map((tick, i) => (
+                      <div
+                        key={i}
+                        className="absolute top-0 bottom-0 border-l border-border/20"
+                        style={{
+                          left: `${(tick.ms / totalDurationMs) * 100}%`,
+                        }}
+                      />
+                    ))}
+                    {/* Bar */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className="absolute top-1 bottom-1 flex items-center cursor-pointer"
+                          style={{
+                            left: `${leftPct}%`,
+                            width: `${widthPct}%`,
+                            minWidth: 3,
+                          }}
+                        >
+                          <div
+                            className={`h-full w-full rounded-sm ${
+                              isSelected
+                                ? 'ring-2 ring-foreground/50 ring-offset-1 ring-offset-background'
+                                : ''
+                            } ${
+                              span.isInProgress
+                                ? `${SPAN_COLORS_MUTED[span.kind]} animate-pulse`
+                                : SPAN_COLORS[span.kind]
+                            }`}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <div className="text-xs space-y-1">
+                          <div className="font-medium">{span.label}</div>
+                          {span.sublabel && (
+                            <div className="text-muted-foreground">
+                              {span.sublabel}
+                            </div>
+                          )}
+                          <div className="text-muted-foreground font-mono">
+                            {formatDuration(span.durationMs || null)}
+                            {span.tokens && (
+                              <span className="ml-2">
+                                {span.tokens.input} in → {span.tokens.output}{' '}
+                                out
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-muted-foreground/60 pt-0.5">
+                            Click to {isSelected ? 'deselect' : 'view details'}
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
+
+      {/* Selected span detail */}
+      {selectedStep && selectedSpan && (
+        <Card className="overflow-hidden py-0 gap-0">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border">
+            <div className="flex items-center gap-2">
+              {spanIcon(selectedSpan.kind)}
+              <span className="text-xs text-muted-foreground font-mono">
+                Step {selectedStepIndex + 1}
+              </span>
+              {selectedSpan.kind !== 'step' && (
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] h-5 capitalize"
+                >
+                  {selectedSpan.kind}
+                </Badge>
+              )}
+              <span className="text-xs font-medium font-mono">
+                {selectedSpan.label}
+              </span>
+              {selectedStep.provider && (
+                <span className="px-1.5 py-0.5 rounded bg-sidebar-primary/10 text-sidebar-primary text-[10px] font-medium">
+                  {selectedStep.provider}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => setSelectedSpanId(null)}
+              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Deselect
+            </button>
+          </div>
+          <SpanDetailPanel
+            span={selectedSpan}
+            step={selectedStep}
+            stepIndex={selectedStepIndex}
+            steps={selectedStepSiblings}
+            runDetail={runDetail}
+            parseJson={parseJson}
+            formatDuration={formatDuration}
+            childRuns={selectedStepChildRuns}
+          />
+        </Card>
+      )}
     </div>
+  );
+}
+
+function SpanDetailPanel({
+  span,
+  step,
+  stepIndex,
+  steps,
+  runDetail,
+  parseJson,
+  formatDuration,
+  childRuns,
+}: {
+  span: TraceSpan;
+  step: Step;
+  stepIndex: number;
+  steps: Step[];
+  runDetail: RunDetail;
+  parseJson: (str: string | null) => any;
+  formatDuration: (ms: number | null) => string;
+  childRuns: ChildRun[];
+}) {
+  const output = parseJson(step.output);
+  const contentParts: any[] = output?.content ?? [];
+
+  if (span.kind === 'tool-call' && span.toolCallId) {
+    const toolCall = contentParts.find(
+      (p: any) => p.type === 'tool-call' && p.toolCallId === span.toolCallId,
+    );
+    const toolResult = contentParts.find(
+      (p: any) => p.type === 'tool-result' && p.toolCallId === span.toolCallId,
+    );
+
+    const args = toolCall?.input ?? toolCall?.args;
+    const parsedArgs = typeof args === 'string' ? safeParseJson(args) : args;
+    const resultData = toolResult?.output ?? toolResult?.result;
+    const parsedResult =
+      typeof resultData === 'string' ? safeParseJson(resultData) : resultData;
+
+    return (
+      <div className="p-4 space-y-4">
+        <div className="flex items-center gap-2 mb-1">
+          <Wrench className="size-4 text-purple-400" />
+          <span className="text-sm font-mono font-medium text-purple-400">
+            {span.label}
+          </span>
+        </div>
+        {parsedArgs != null && (
+          <div>
+            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Input
+            </h4>
+            <JsonBlock data={parsedArgs} />
+          </div>
+        )}
+        {parsedResult != null && (
+          <div>
+            <h4 className="text-[11px] font-semibold uppercase tracking-wider text-success mb-2">
+              Output
+            </h4>
+            <JsonBlock data={parsedResult} />
+          </div>
+        )}
+        {!parsedArgs && !parsedResult && (
+          <p className="text-sm text-muted-foreground">
+            No data available for this tool call.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (span.kind === 'thinking' && span.thinkingText) {
+    return (
+      <div className="p-4 space-y-2">
+        <div className="flex items-center gap-2 mb-1">
+          <Brain className="size-4 text-amber-500" />
+          <span className="text-sm font-medium text-amber-500">Thinking</span>
+        </div>
+        <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap rounded-md border border-amber-500/20 bg-amber-500/5 p-3">
+          {span.thinkingText}
+        </div>
+      </div>
+    );
+  }
+
+  if (span.kind === 'text' && span.textContent) {
+    return (
+      <div className="p-4 space-y-2">
+        <div className="flex items-center gap-2 mb-1">
+          <MessageSquare className="size-4 text-emerald-400" />
+          <span className="text-sm font-medium text-emerald-400">
+            Text Response
+          </span>
+        </div>
+        <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap rounded-md border border-border bg-background p-3">
+          {span.textContent}
+        </div>
+      </div>
+    );
+  }
+
+  if (span.kind === 'error') {
+    return (
+      <div className="p-4 space-y-2">
+        <div className="flex items-center gap-2 mb-1">
+          <AlertCircle className="size-4 text-red-400" />
+          <span className="text-sm font-medium text-red-400">Error</span>
+        </div>
+        <div className="text-sm text-destructive-foreground font-mono whitespace-pre-wrap rounded-md border border-destructive/30 bg-destructive/10 p-3">
+          {step.error}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <StepDetailContent
+      step={step}
+      index={stepIndex}
+      steps={steps}
+      isRunInProgress={runDetail.run.isInProgress ?? false}
+      parseJson={parseJson}
+      formatDuration={formatDuration}
+      childRuns={childRuns}
+      depth={0}
+    />
   );
 }
 
@@ -1200,69 +1611,116 @@ function StepCard({
           </button>
         </CollapsibleTrigger>
 
-        {/* Step Content */}
         <CollapsibleContent>
-          {/* Config Bar */}
-          <StepConfigBar
-            modelId={step.model_id}
-            provider={step.provider}
-            input={input}
-            providerOptions={parseJson(step.provider_options)}
-            usage={usage}
-          />
-
-          {/* Two Panel Layout */}
-          <div className="grid grid-cols-2 divide-x divide-border">
-            {/* INPUT Panel */}
-            <div className="bg-card/50">
-              <InputPanel input={input} />
-            </div>
-
-            {/* OUTPUT Panel */}
-            <div className="p-4 bg-background min-h-full">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Output
-              </h3>
-
-              {step.error ? (
-                <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm text-destructive-foreground font-mono">
-                  {step.error}
-                </div>
-              ) : output ? (
-                <OutputDisplay output={output} toolResults={toolResults} />
-              ) : isActiveStep ? (
-                <div className="flex items-center gap-2 text-sm text-blue-400">
-                  <Loader2 className="size-4 animate-spin" />
-                  <span>Waiting for response...</span>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No output</p>
-              )}
-            </div>
-          </div>
-
-          {/* Nested Child Runs */}
-          {childRuns.length > 0 && (
-            <NestedChildRuns
-              childRuns={childRuns}
-              expandedSteps={expandedSteps}
-              toggleStep={toggleStep}
-              parseJson={parseJson}
-              formatDuration={formatDuration}
-              depth={depth}
-            />
-          )}
-
-          {/* Raw Data Toggle */}
-          <RawDataSection
-            rawRequest={step.raw_request}
-            rawResponse={step.raw_response}
-            rawChunks={step.raw_chunks}
-            isStream={step.type === 'stream'}
+          <StepDetailContent
+            step={step}
+            index={index}
+            steps={steps}
+            isRunInProgress={isRunInProgress}
+            parseJson={parseJson}
+            formatDuration={formatDuration}
+            childRuns={childRuns}
+            expandedSteps={expandedSteps}
+            toggleStep={toggleStep}
+            depth={depth}
           />
         </CollapsibleContent>
       </Card>
     </Collapsible>
+  );
+}
+
+function StepDetailContent({
+  step,
+  index,
+  steps,
+  isRunInProgress,
+  parseJson,
+  formatDuration,
+  childRuns,
+  expandedSteps,
+  toggleStep,
+  depth,
+}: {
+  step: Step;
+  index: number;
+  steps: Step[];
+  isRunInProgress: boolean;
+  parseJson: (str: string | null) => any;
+  formatDuration: (ms: number | null) => string;
+  childRuns: ChildRun[];
+  expandedSteps?: Set<string>;
+  toggleStep?: (id: string) => void;
+  depth: number;
+}) {
+  const isLastStep = index === steps.length - 1;
+  const isActiveStep = isLastStep && isRunInProgress;
+  const input = parseJson(step.input);
+  const output = parseJson(step.output);
+  const usage = parseJson(step.usage);
+
+  const nextStep = steps[index + 1];
+  const nextInput = nextStep ? parseJson(nextStep.input) : null;
+  const toolResults =
+    nextInput?.prompt
+      ?.filter((msg: any) => msg.role === 'tool')
+      ?.flatMap((msg: any) => msg.content) ?? [];
+
+  return (
+    <>
+      <StepConfigBar
+        modelId={step.model_id}
+        provider={step.provider}
+        input={input}
+        providerOptions={parseJson(step.provider_options)}
+        usage={usage}
+      />
+
+      <div className="grid grid-cols-2 divide-x divide-border">
+        <div className="bg-card/50">
+          <InputPanel input={input} />
+        </div>
+
+        <div className="p-4 bg-background min-h-full">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Output
+          </h3>
+
+          {step.error ? (
+            <div className="p-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm text-destructive-foreground font-mono">
+              {step.error}
+            </div>
+          ) : output ? (
+            <OutputDisplay output={output} toolResults={toolResults} />
+          ) : isActiveStep ? (
+            <div className="flex items-center gap-2 text-sm text-blue-400">
+              <Loader2 className="size-4 animate-spin" />
+              <span>Waiting for response...</span>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No output</p>
+          )}
+        </div>
+      </div>
+
+      {childRuns.length > 0 && expandedSteps && toggleStep && (
+        <NestedChildRuns
+          childRuns={childRuns}
+          expandedSteps={expandedSteps}
+          toggleStep={toggleStep}
+          parseJson={parseJson}
+          formatDuration={formatDuration}
+          depth={depth}
+        />
+      )}
+
+      <RawDataSection
+        rawRequest={step.raw_request}
+        rawResponse={step.raw_response}
+        rawChunks={step.raw_chunks}
+        isStream={step.type === 'stream'}
+      />
+    </>
   );
 }
 
