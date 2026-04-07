@@ -633,7 +633,7 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
-  let lastPublishedJson = '';
+  let lastPublishedValue = '';
 
   function publishTextChunk({
     controller,
@@ -706,11 +706,15 @@ function createOutputTransformStream<
 
       // null should be allowed (valid JSON value) but undefined should not:
       if (result !== undefined) {
-        // only send new json if it has changed:
-        const currentJson = JSON.stringify(result.partial);
-        if (currentJson !== lastPublishedJson) {
+        // only send new value if it has changed:
+        // For string partials (text output), compare directly to avoid unnecessary JSON.stringify overhead
+        const currentValue =
+          typeof result.partial === 'string'
+            ? result.partial
+            : JSON.stringify(result.partial);
+        if (currentValue !== lastPublishedValue) {
           publishTextChunk({ controller, partialOutput: result.partial });
-          lastPublishedJson = currentJson;
+          lastPublishedValue = currentValue;
         }
       }
     },
