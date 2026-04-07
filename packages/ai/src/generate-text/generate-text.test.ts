@@ -29,7 +29,6 @@ import { z } from 'zod/v4';
 import { Output } from '.';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { MockTracer } from '../test/mock-tracer';
 import {
   generateText,
   GenerateTextOnFinishCallback,
@@ -41,9 +40,7 @@ import {
 } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
-import { stepCountIs } from './stop-condition';
-import { OpenTelemetryIntegration } from '../telemetry/open-telemetry-integration';
-
+import { isLoopFinished, isStepCount } from './stop-condition';
 vi.mock('../version', () => {
   return {
     VERSION: '0.0.0-test',
@@ -815,7 +812,9 @@ describe('generateText', () => {
 
   describe('options.experimental_onStart', () => {
     it('should send correct information with text prompt', async () => {
-      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+      let startEvent!: Parameters<
+        GenerateTextOnStartCallback<any, any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -841,8 +840,10 @@ describe('generateText', () => {
       expect(startEvent).toMatchSnapshot();
     });
 
-    it('should pass experimental_context', async () => {
-      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+    it('should pass context', async () => {
+      let startEvent!: Parameters<
+        GenerateTextOnStartCallback<any, any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -852,20 +853,22 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_context: { userId: 'test-user', sessionId: '123' },
+        context: { userId: 'test-user', sessionId: '123' },
         experimental_onStart: async event => {
           startEvent = event;
         },
       });
 
-      expect(startEvent.experimental_context).toEqual({
+      expect(startEvent.context).toEqual({
         userId: 'test-user',
         sessionId: '123',
       });
     });
 
     it('should send correct information with system and messages', async () => {
-      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+      let startEvent!: Parameters<
+        GenerateTextOnStartCallback<any, any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -1006,7 +1009,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         experimental_onStepStart: async event => {
           stepStartEvents.push(event);
         },
@@ -1097,7 +1100,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         prepareStep: async ({ stepNumber }) => {
           if (stepNumber === 1) {
             return { model: alternateModel };
@@ -1191,7 +1194,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(4),
+        stopWhen: isStepCount(4),
         experimental_onStepStart: async event => {
           stepStartEvents.push(event);
         },
@@ -1262,7 +1265,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         experimental_onStepStart: async event => {
           stepStartEvents.push(event);
         },
@@ -1274,7 +1277,7 @@ describe('generateText', () => {
       expect(stepStartEvents[1].steps[0].text).toBe('Thinking...');
     });
 
-    it('should pass experimental_context', async () => {
+    it('should pass context', async () => {
       let stepStartEvent!: Parameters<
         GenerateTextOnStepStartCallback<any, any>
       >[0];
@@ -1287,19 +1290,19 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_context: { userId: 'test-user', requestId: 'req-123' },
+        context: { userId: 'test-user', requestId: 'req-123' },
         experimental_onStepStart: async event => {
           stepStartEvent = event;
         },
       });
 
-      expect(stepStartEvent.experimental_context).toEqual({
+      expect(stepStartEvent.context).toEqual({
         userId: 'test-user',
         requestId: 'req-123',
       });
     });
 
-    it('should pass updated experimental_context from prepareStep', async () => {
+    it('should pass updated context from prepareStep', async () => {
       const stepStartEvents: Parameters<
         GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
@@ -1339,12 +1342,12 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { counter: 0 },
-        stopWhen: stepCountIs(3),
-        prepareStep: async ({ experimental_context, stepNumber }) => {
+        context: { counter: 0 },
+        stopWhen: isStepCount(3),
+        prepareStep: async ({ context, stepNumber }) => {
           return {
-            experimental_context: {
-              counter: (experimental_context as any).counter + 1,
+            context: {
+              counter: (context as any).counter + 1,
               stepNumber,
             },
           };
@@ -1354,11 +1357,11 @@ describe('generateText', () => {
         },
       });
 
-      expect(stepStartEvents[0].experimental_context).toEqual({
+      expect(stepStartEvents[0].context).toEqual({
         counter: 1,
         stepNumber: 0,
       });
-      expect(stepStartEvents[1].experimental_context).toEqual({
+      expect(stepStartEvents[1].context).toEqual({
         counter: 2,
         stepNumber: 1,
       });
@@ -1368,7 +1371,7 @@ describe('generateText', () => {
   describe('options.onStepFinish stepNumber', () => {
     it('should pass stepNumber 0 for a single step', async () => {
       let stepFinishEvent!: Parameters<
-        GenerateTextOnStepFinishCallback<any>
+        GenerateTextOnStepFinishCallback<any, any>
       >[0];
 
       await generateText({
@@ -1439,7 +1442,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(4),
+        stopWhen: isStepCount(4),
         onStepFinish: async event => {
           stepNumbers.push(event.stepNumber);
         },
@@ -1487,7 +1490,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         experimental_onStepStart: async event => {
           startStepNumbers.push(event.stepNumber);
         },
@@ -1694,7 +1697,7 @@ describe('generateText', () => {
       expect(toolCallStartEvents.length).toBe(0);
     });
 
-    it('should pass experimental_context', async () => {
+    it('should pass context', async () => {
       const toolCallStartEvents: Parameters<
         GenerateTextOnToolCallStartCallback<any>
       >[0][] = [];
@@ -1722,14 +1725,14 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { traceId: 'trace-abc', spanId: 'span-123' },
+        context: { traceId: 'trace-abc', spanId: 'span-123' },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
       });
 
       expect(toolCallStartEvents.length).toBe(1);
-      expect(toolCallStartEvents[0].experimental_context).toEqual({
+      expect(toolCallStartEvents[0].context).toEqual({
         traceId: 'trace-abc',
         spanId: 'span-123',
       });
@@ -1930,7 +1933,7 @@ describe('generateText', () => {
       expect(toolCallFinishEvents.length).toBe(0);
     });
 
-    it('should pass experimental_context on success', async () => {
+    it('should pass context on success', async () => {
       const toolCallFinishEvents: Parameters<
         GenerateTextOnToolCallFinishCallback<any>
       >[0][] = [];
@@ -1958,7 +1961,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { traceId: 'trace-xyz', operation: 'test-op' },
+        context: { traceId: 'trace-xyz', operation: 'test-op' },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
@@ -1966,13 +1969,13 @@ describe('generateText', () => {
 
       expect(toolCallFinishEvents.length).toBe(1);
       expect(toolCallFinishEvents[0].success).toBe(true);
-      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+      expect(toolCallFinishEvents[0].context).toEqual({
         traceId: 'trace-xyz',
         operation: 'test-op',
       });
     });
 
-    it('should pass experimental_context on error', async () => {
+    it('should pass context on error', async () => {
       const toolCallFinishEvents: Parameters<
         GenerateTextOnToolCallFinishCallback<any>
       >[0][] = [];
@@ -2003,7 +2006,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { errorTraceId: 'err-trace' },
+        context: { errorTraceId: 'err-trace' },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
@@ -2012,7 +2015,7 @@ describe('generateText', () => {
       expect(toolCallFinishEvents.length).toBe(1);
       expect(toolCallFinishEvents[0].success).toBe(false);
       expect(toolCallFinishEvents[0].error).toBe(toolError);
-      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+      expect(toolCallFinishEvents[0].context).toEqual({
         errorTraceId: 'err-trace',
       });
     });
@@ -2157,7 +2160,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        stopWhen: stepCountIs(4),
+        stopWhen: isStepCount(4),
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
@@ -2181,7 +2184,7 @@ describe('generateText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<GenerateTextOnFinishCallback<any>>[0];
+      let result!: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -2255,9 +2258,9 @@ describe('generateText', () => {
               "type": "tool-result",
             },
           ],
+          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -2373,7 +2376,7 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -2516,9 +2519,9 @@ describe('generateText', () => {
   });
 
   describe('options.stopWhen', () => {
-    let result: GenerateTextResult<any, any>;
-    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
-    let onStepFinishResults: StepResult<any>[];
+    let result: GenerateTextResult<any, any, any>;
+    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+    let onStepFinishResults: StepResult<any, any>[];
 
     beforeEach(() => {
       result = undefined as any;
@@ -2635,7 +2638,7 @@ describe('generateText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
         });
       });
 
@@ -2714,15 +2717,15 @@ describe('generateText', () => {
     });
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
-      let result: GenerateTextResult<any, any>;
-      let onStepFinishResults: StepResult<any>[];
+      let result: GenerateTextResult<any, any, any>;
+      let onStepFinishResults: StepResult<any, any>[];
       let doGenerateCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
-        experimental_context: unknown;
+        context: unknown;
       }>;
 
       beforeEach(async () => {
@@ -2802,13 +2805,13 @@ describe('generateText', () => {
               },
             }),
           },
-          experimental_context: { context: 'state1' },
+          context: { context: 'state1' },
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-call-id',
             generateCallId: () => 'test-telemetry-call-id',
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
@@ -2817,14 +2820,14 @@ describe('generateText', () => {
             stepNumber,
             steps,
             messages,
-            experimental_context,
+            context,
           }) => {
             prepareStepCalls.push({
               modelId: typeof model === 'string' ? model : model.modelId,
               stepNumber,
               steps,
               messages,
-              experimental_context,
+              context,
             });
 
             if (stepNumber === 0) {
@@ -2843,7 +2846,7 @@ describe('generateText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
-                experimental_context: { context: 'state2' },
+                context: { context: 'state2' },
               };
             }
 
@@ -2853,7 +2856,7 @@ describe('generateText', () => {
                 model: trueModel,
                 activeTools: [],
                 system: 'system-message-1',
-                experimental_context: { context: 'state3' },
+                context: { context: 'state3' },
               };
             }
           },
@@ -2864,7 +2867,7 @@ describe('generateText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
-              "experimental_context": {
+              "context": {
                 "context": "state1",
               },
               "messages": [
@@ -2901,7 +2904,7 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state2",
                   },
                   "finishReason": "tool-calls",
@@ -2980,7 +2983,7 @@ describe('generateText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state3",
                   },
                   "finishReason": "stop",
@@ -3066,7 +3069,7 @@ describe('generateText', () => {
               ],
             },
             {
-              "experimental_context": {
+              "context": {
                 "context": "state2",
               },
               "messages": [
@@ -3132,7 +3135,7 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state2",
                   },
                   "finishReason": "tool-calls",
@@ -3211,7 +3214,7 @@ describe('generateText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state3",
                   },
                   "finishReason": "stop",
@@ -3398,7 +3401,7 @@ describe('generateText', () => {
               "toolChoice": {
                 "type": "auto",
               },
-              "tools": [],
+              "tools": undefined,
             },
           ]
         `);
@@ -3484,10 +3487,10 @@ describe('generateText', () => {
     });
 
     describe('2 stop conditions', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let stopConditionCalls: Array<{
         number: number;
-        steps: StepResult<any>[];
+        steps: StepResult<any, any>[];
       }>;
 
       beforeEach(async () => {
@@ -3602,7 +3605,7 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -3701,7 +3704,7 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -3775,6 +3778,50 @@ describe('generateText', () => {
           ]
         `);
       });
+    });
+
+    it('should complete tool loop with isLoopFinished()', async () => {
+      let responseCount = 0;
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done!' }],
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isLoopFinished(),
+      });
+
+      expect(result.text).toBe('Done!');
+      expect(result.steps).toHaveLength(2);
     });
   });
 
@@ -3904,6 +3951,7 @@ describe('generateText', () => {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
           messages: expect.any(Array),
+          context: {},
         },
       );
     });
@@ -4007,6 +4055,7 @@ describe('generateText', () => {
           abortSignal: expect.any(AbortSignal),
           toolCallId: 'call-1',
           messages: expect.any(Array),
+          context: {},
         },
       );
     });
@@ -4133,7 +4182,7 @@ describe('generateText', () => {
         },
         prompt: 'test-input',
         timeout: { stepMs: 5000 },
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
       });
 
       expect(receivedAbortSignals.length).toBe(2);
@@ -4256,487 +4305,6 @@ describe('generateText', () => {
     });
   });
 
-  describe('telemetry', () => {
-    let tracer: MockTracer;
-
-    beforeEach(() => {
-      tracer = new MockTracer();
-    });
-
-    it('should not record any telemetry data when not explicitly enabled', async () => {
-      await generateText({
-        model: new MockLanguageModelV4({
-          doGenerate: async ({}) => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello, world!' }],
-          }),
-        }),
-        prompt: 'prompt',
-        experimental_telemetry: {
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-      });
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should record telemetry data when enabled', async () => {
-      await generateText({
-        model: new MockLanguageModelV4({
-          doGenerate: async ({}) => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello, world!' }],
-            response: {
-              id: 'test-id-from-model',
-              timestamp: new Date(10000),
-              modelId: 'test-response-model-id',
-            },
-            providerMetadata: {
-              testProvider: {
-                testKey: 'testValue',
-              },
-            },
-          }),
-        }),
-        prompt: 'prompt',
-        topK: 0.1,
-        topP: 0.2,
-        frequencyPenalty: 0.3,
-        presencePenalty: 0.4,
-        temperature: 0.5,
-        stopSequences: ['stop'],
-        headers: {
-          header1: 'value1',
-          header2: 'value2',
-        },
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'test-function-id',
-          metadata: {
-            test1: 'value1',
-            test2: false,
-          },
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-      });
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should record successful tool call', async () => {
-      await generateText({
-        model: new MockLanguageModelV4({
-          doGenerate: async ({}) => ({
-            ...dummyResponseValues,
-            content: [
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                input: `{ "value": "value" }`,
-              },
-            ],
-          }),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => 'result1',
-          },
-        },
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-        _internal: {
-          generateId: () => 'test-id',
-          generateCallId: () => 'test-telemetry-call-id',
-        },
-      });
-
-      expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-        [
-          {
-            "attributes": {
-              "ai.model.id": "mock-model-id",
-              "ai.model.provider": "mock-provider",
-              "ai.operationId": "ai.generateText",
-              "ai.prompt": "{"prompt":"test-input"}",
-              "ai.request.headers.user-agent": "ai/0.0.0-test",
-              "ai.response.finishReason": "stop",
-              "ai.response.text": "",
-              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
-              "ai.settings.maxRetries": 2,
-              "ai.usage.inputTokenDetails.noCacheTokens": 3,
-              "ai.usage.inputTokens": 3,
-              "ai.usage.outputTokenDetails.textTokens": 10,
-              "ai.usage.outputTokens": 10,
-              "ai.usage.totalTokens": 13,
-              "operation.name": "ai.generateText",
-            },
-            "events": [],
-            "name": "ai.generateText",
-          },
-          {
-            "attributes": {
-              "ai.model.id": "mock-model-id",
-              "ai.model.provider": "mock-provider",
-              "ai.operationId": "ai.generateText.doGenerate",
-              "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-              "ai.prompt.toolChoice": "{"type":"auto"}",
-              "ai.prompt.tools": [
-                "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
-              ],
-              "ai.request.headers.user-agent": "ai/0.0.0-test",
-              "ai.response.finishReason": "stop",
-              "ai.response.id": "test-id",
-              "ai.response.model": "mock-model-id",
-              "ai.response.text": "",
-              "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-              "ai.response.toolCalls": "[{"toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
-              "ai.settings.maxRetries": 2,
-              "ai.usage.inputTokenDetails.noCacheTokens": 3,
-              "ai.usage.inputTokens": 3,
-              "ai.usage.outputTokenDetails.textTokens": 10,
-              "ai.usage.outputTokens": 10,
-              "ai.usage.totalTokens": 13,
-              "gen_ai.request.model": "mock-model-id",
-              "gen_ai.response.finish_reasons": [
-                "stop",
-              ],
-              "gen_ai.response.id": "test-id",
-              "gen_ai.response.model": "mock-model-id",
-              "gen_ai.system": "mock-provider",
-              "gen_ai.usage.input_tokens": 3,
-              "gen_ai.usage.output_tokens": 10,
-              "operation.name": "ai.generateText.doGenerate",
-            },
-            "events": [],
-            "name": "ai.generateText.doGenerate",
-          },
-          {
-            "attributes": {
-              "ai.operationId": "ai.toolCall",
-              "ai.toolCall.args": "{"value":"value"}",
-              "ai.toolCall.id": "call-1",
-              "ai.toolCall.name": "tool1",
-              "ai.toolCall.result": ""result1"",
-              "operation.name": "ai.toolCall",
-            },
-            "events": [],
-            "name": "ai.toolCall",
-          },
-        ]
-      `);
-    });
-
-    it('should record error on tool call', async () => {
-      await generateText({
-        model: new MockLanguageModelV4({
-          doGenerate: async ({}) => ({
-            ...dummyResponseValues,
-            content: [
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                input: `{ "value": "value" }`,
-              },
-            ],
-          }),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => {
-              throw new Error('Tool execution failed');
-            },
-          },
-        },
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-        _internal: {
-          generateId: () => 'test-id',
-          generateCallId: () => 'test-telemetry-call-id',
-        },
-      });
-
-      expect(tracer.jsonSpans).toHaveLength(3);
-
-      // Check that we have the expected spans
-      expect(tracer.jsonSpans[0].name).toBe('ai.generateText');
-      expect(tracer.jsonSpans[1].name).toBe('ai.generateText.doGenerate');
-      expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
-
-      // Check that the tool call span has error status
-      const toolCallSpan = tracer.jsonSpans[2];
-      expect(toolCallSpan.status).toEqual({
-        code: 2,
-        message: 'Tool execution failed',
-      });
-
-      expect(toolCallSpan.events).toHaveLength(1);
-      const exceptionEvent = toolCallSpan.events[0];
-      expect(exceptionEvent.name).toBe('exception');
-      expect(exceptionEvent.attributes).toMatchObject({
-        'exception.message': 'Tool execution failed',
-        'exception.name': 'Error',
-      });
-      expect(exceptionEvent.attributes?.['exception.stack']).toContain(
-        'Tool execution failed',
-      );
-      expect(exceptionEvent.time).toEqual([0, 0]);
-    });
-
-    it('should not record telemetry inputs / outputs when disabled', async () => {
-      await generateText({
-        model: new MockLanguageModelV4({
-          doGenerate: async ({}) => ({
-            ...dummyResponseValues,
-            content: [
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                input: `{ "value": "value" }`,
-              },
-            ],
-          }),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => 'result1',
-          },
-        },
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          recordInputs: false,
-          recordOutputs: false,
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-        _internal: {
-          generateId: () => 'test-id',
-          generateCallId: () => 'test-telemetry-call-id',
-        },
-      });
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should record reasoning in telemetry when present', async () => {
-      await generateText({
-        model: modelWithReasoning,
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-      });
-
-      // Check that reasoning is recorded in both spans
-      const rootSpan = tracer.jsonSpans.find(
-        span => span.name === 'ai.generateText',
-      );
-      const doGenerateSpan = tracer.jsonSpans.find(
-        span => span.name === 'ai.generateText.doGenerate',
-      );
-
-      expect(rootSpan?.attributes['ai.response.reasoning']).toBe(
-        'I will open the conversation with witty banter.\n',
-      );
-      expect(doGenerateSpan?.attributes['ai.response.reasoning']).toBe(
-        'I will open the conversation with witty banter.\n',
-      );
-    });
-
-    it('should record total usage across steps in root span', async () => {
-      let responseCount = 0;
-      await generateText({
-        model: new MockLanguageModelV4({
-          doGenerate: async () => {
-            switch (responseCount++) {
-              case 0:
-                return {
-                  finishReason: {
-                    unified: 'tool-calls' as const,
-                    raw: undefined,
-                  },
-                  usage: {
-                    inputTokens: {
-                      total: 5,
-                      noCache: 5,
-                      cacheRead: undefined,
-                      cacheWrite: undefined,
-                    },
-                    outputTokens: {
-                      total: 20,
-                      text: 20,
-                      reasoning: undefined,
-                    },
-                  },
-                  warnings: [],
-                  content: [
-                    {
-                      type: 'tool-call' as const,
-                      toolCallType: 'function' as const,
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      input: '{ "value": "value" }',
-                    },
-                  ],
-                };
-              case 1:
-              default:
-                return {
-                  finishReason: {
-                    unified: 'stop' as const,
-                    raw: 'stop',
-                  },
-                  usage: {
-                    inputTokens: {
-                      total: 10,
-                      noCache: 10,
-                      cacheRead: undefined,
-                      cacheWrite: undefined,
-                    },
-                    outputTokens: {
-                      total: 15,
-                      text: 15,
-                      reasoning: undefined,
-                    },
-                  },
-                  warnings: [],
-                  content: [{ type: 'text' as const, text: 'Final answer.' }],
-                };
-            }
-          },
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => 'result1',
-          },
-        },
-        stopWhen: stepCountIs(2),
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          integrations: new OpenTelemetryIntegration({ tracer }),
-        },
-      });
-
-      const rootSpan = tracer.jsonSpans.find(
-        span => span.name === 'ai.generateText',
-      );
-
-      expect(rootSpan?.attributes['ai.usage.inputTokens']).toBe(15);
-      expect(rootSpan?.attributes['ai.usage.outputTokens']).toBe(35);
-      expect(rootSpan?.attributes['ai.usage.totalTokens']).toBe(50);
-    });
-
-    it('should execute subagent generateText inside executeToolCall context', async () => {
-      let activeContext: string | undefined;
-      let capturedContext: string | undefined;
-      const otelIntegration = new OpenTelemetryIntegration({ tracer });
-
-      await generateText({
-        model: new MockLanguageModelV4({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [
-              {
-                type: 'tool-call',
-                toolCallId: 'call-1',
-                toolName: 'researchTool',
-                input: '{ "city": "Tokyo" }',
-              },
-            ],
-          }),
-        }),
-        tools: {
-          researchTool: tool({
-            inputSchema: z.object({ city: z.string() }),
-            execute: async ({ city }) => {
-              capturedContext = activeContext;
-
-              const subResult = await generateText({
-                model: new MockLanguageModelV4({
-                  doGenerate: async () => ({
-                    ...dummyResponseValues,
-                    content: [
-                      { type: 'text', text: `Weather in ${city}: sunny` },
-                    ],
-                  }),
-                }),
-                prompt: `Weather for ${city}`,
-                experimental_telemetry: {
-                  isEnabled: true,
-                  functionId: `sub-agent-${city.toLowerCase()}`,
-                  integrations: otelIntegration,
-                },
-              });
-              return subResult.text;
-            },
-          }),
-        },
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'weather-agent',
-          integrations: [
-            otelIntegration,
-            {
-              executeTool: async ({ callId, toolCallId, execute }) => {
-                activeContext = `${callId}:${toolCallId}`;
-                try {
-                  return await execute();
-                } finally {
-                  activeContext = undefined;
-                }
-              },
-            },
-          ],
-        },
-        _internal: {
-          generateId: () => 'outer-test-id',
-          generateCallId: () => 'outer-test-call-id',
-        },
-      });
-
-      expect(capturedContext).toBe('outer-test-call-id:call-1');
-
-      expect(tracer.spans.map(s => s.name)).toEqual([
-        'ai.generateText',
-        'ai.generateText.doGenerate',
-        'ai.toolCall',
-        'ai.generateText',
-        'ai.generateText.doGenerate',
-      ]);
-
-      const toolCallSpan = tracer.spans[2];
-      expect(toolCallSpan.attributes['ai.toolCall.name']).toBe('researchTool');
-
-      const innerRootSpan = tracer.spans[3];
-      expect(innerRootSpan.attributes['ai.telemetry.functionId']).toBe(
-        'sub-agent-tokyo',
-      );
-
-      const innerStepSpan = tracer.spans[4];
-      expect(innerStepSpan.attributes['ai.response.text']).toBe(
-        'Weather in Tokyo: sunny',
-      );
-    });
-  });
-
   describe('tool callbacks', () => {
     it('should invoke callbacks in the correct order', async () => {
       const recordedCalls: unknown[] = [];
@@ -4786,7 +4354,7 @@ describe('generateText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "input": {
                 "value": "value",
               },
@@ -4916,7 +4484,7 @@ describe('generateText', () => {
 
   describe('provider-executed tools', () => {
     describe('two provider-executed tool calls and results', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -4971,7 +4539,7 @@ describe('generateText', () => {
             },
           },
           prompt: 'test-input',
-          stopWhen: stepCountIs(4),
+          stopWhen: isStepCount(4),
         });
       });
 
@@ -5214,7 +4782,9 @@ describe('generateText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,
@@ -5302,7 +4872,9 @@ describe('generateText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,
@@ -5505,7 +5077,7 @@ describe('generateText', () => {
   });
 
   describe('tool execution errors', () => {
-    let result: GenerateTextResult<any, any>;
+    let result: GenerateTextResult<any, any, any>;
 
     beforeEach(async () => {
       result = await generateText({
@@ -5586,7 +5158,7 @@ describe('generateText', () => {
               {
                 "output": {
                   "type": "error-text",
-                  "value": "test error",
+                  "value": "Error: test error",
                 },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
@@ -5696,14 +5268,14 @@ describe('generateText', () => {
 
   describe('programmatic tool calling', () => {
     describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
-      let result: GenerateTextResult<any, any>;
-      let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
-      let onStepFinishResults: StepResult<any>[];
+      let result: GenerateTextResult<any, any, any>;
+      let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+      let onStepFinishResults: StepResult<any, any>[];
       let doGenerateCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
       }>;
       let rollDieExecutions: Array<{ player: string }>;
@@ -5995,7 +5567,7 @@ describe('generateText', () => {
             }),
           },
           prompt: 'Play a dice game between two players.',
-          stopWhen: stepCountIs(10),
+          stopWhen: isStepCount(10),
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
           },
@@ -6967,13 +6539,13 @@ describe('generateText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { experimental_context }) => {
-              recordedContext = experimental_context;
+            execute: async ({ value }, { context }) => {
+              recordedContext = context;
               return { value: 'test-result' };
             },
           }),
         },
-        experimental_context: {
+        context: {
           context: 'test',
         },
         prompt: 'test-input',
@@ -6985,7 +6557,7 @@ describe('generateText', () => {
       });
     });
 
-    it('should pass experimental_context to prepareStep', async () => {
+    it('should pass context to prepareStep', async () => {
       let capturedContext: unknown;
 
       await generateText({
@@ -6995,9 +6567,9 @@ describe('generateText', () => {
             content: [{ type: 'text', text: 'Hello, world!' }],
           }),
         }),
-        experimental_context: { myData: 'test-value' },
-        prepareStep: async ({ experimental_context }) => {
-          capturedContext = experimental_context;
+        context: { myData: 'test-value' },
+        prepareStep: async ({ context }) => {
+          capturedContext = context;
           return undefined;
         },
         prompt: 'test',
@@ -7017,12 +6589,12 @@ describe('generateText', () => {
             finishReason: { unified: 'stop', raw: 'stop' },
           }),
         }),
-        experimental_context: {
+        context: {
           context: 'test',
         },
         prompt: 'test-input',
-        onFinish: ({ experimental_context }) => {
-          recordedContext = experimental_context;
+        onFinish: ({ context }) => {
+          recordedContext = context;
         },
       });
 
@@ -7034,7 +6606,7 @@ describe('generateText', () => {
 
   describe('invalid tool calls', () => {
     describe('single invalid tool call', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -7081,7 +6653,7 @@ describe('generateText', () => {
           [
             {
               "dynamic": true,
-              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -7105,7 +6677,7 @@ describe('generateText', () => {
             },
             {
               "dynamic": true,
-              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -7150,7 +6722,7 @@ describe('generateText', () => {
                 {
                   "output": {
                     "type": "error-text",
-                    "value": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                    "value": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -7177,7 +6749,7 @@ describe('generateText', () => {
 
   describe('tools with preliminary results', () => {
     describe('single tool with preliminary results', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -7298,7 +6870,7 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "context": {},
               "finishReason": "tool-calls",
               "functionId": undefined,
               "metadata": undefined,
@@ -7459,7 +7031,7 @@ describe('generateText', () => {
             execute: async () => 'result',
           },
         },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
       });
 
       expect(logWarningsSpy).toHaveBeenCalledTimes(2);
@@ -7498,7 +7070,7 @@ describe('generateText', () => {
 
   describe('tool execution approval', () => {
     describe('when a single tool needs approval', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -7524,7 +7096,7 @@ describe('generateText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
@@ -7603,7 +7175,7 @@ describe('generateText', () => {
     });
 
     describe('when a single tool has a needsApproval function', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let needsApprovalCalls: Array<{ input: any; options: any }> = [];
 
       beforeEach(async () => {
@@ -7641,7 +7213,7 @@ describe('generateText', () => {
               },
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
@@ -7771,7 +7343,7 @@ describe('generateText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "experimental_context": undefined,
+                "context": {},
                 "messages": [
                   {
                     "content": "test-input",
@@ -7786,7 +7358,7 @@ describe('generateText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "experimental_context": undefined,
+                "context": {},
                 "messages": [
                   {
                     "content": "test-input",
@@ -7802,9 +7374,9 @@ describe('generateText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -7832,7 +7404,7 @@ describe('generateText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -7968,7 +7540,7 @@ describe('generateText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
@@ -7998,7 +7570,7 @@ describe('generateText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
           },
@@ -8069,7 +7641,7 @@ describe('generateText', () => {
                   toolName: 'tool1',
                   output: {
                     type: 'error-text',
-                    value: 'No valid token for plugin',
+                    value: 'Error: No valid token for plugin',
                   },
                   providerOptions: undefined,
                 },
@@ -8082,9 +7654,9 @@ describe('generateText', () => {
     });
 
     describe('when a call from a single tool that needs approval is denied', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -8112,7 +7684,7 @@ describe('generateText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -8241,9 +7813,9 @@ describe('generateText', () => {
     });
 
     describe('when two calls from a single tool that needs approval are approved', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -8271,7 +7843,7 @@ describe('generateText', () => {
               needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
@@ -8446,7 +8018,7 @@ describe('generateText', () => {
 
     describe('provider-executed tool (MCP) approval', () => {
       describe('when a provider-executed tool emits tool-approval-request', () => {
-        let result: GenerateTextResult<any, any>;
+        let result: GenerateTextResult<any, any, any>;
 
         beforeEach(async () => {
           result = await generateText({
@@ -8478,7 +8050,7 @@ describe('generateText', () => {
                 args: {},
               },
             },
-            stopWhen: stepCountIs(3),
+            stopWhen: isStepCount(3),
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
@@ -8557,7 +8129,7 @@ describe('generateText', () => {
       });
 
       describe('when a provider-executed tool approval is approved', () => {
-        let result: GenerateTextResult<any, any>;
+        let result: GenerateTextResult<any, any, any>;
         let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
@@ -8612,7 +8184,7 @@ describe('generateText', () => {
                 args: {},
               },
             },
-            stopWhen: stepCountIs(3),
+            stopWhen: isStepCount(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
               generateCallId: () => 'test-telemetry-call-id',
@@ -8743,7 +8315,7 @@ describe('generateText', () => {
       });
 
       describe('when a provider-executed tool approval is denied', () => {
-        let result: GenerateTextResult<any, any>;
+        let result: GenerateTextResult<any, any, any>;
         let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
@@ -8772,7 +8344,7 @@ describe('generateText', () => {
                 args: {},
               },
             },
-            stopWhen: stepCountIs(3),
+            stopWhen: isStepCount(3),
             _internal: {
               generateId: mockId({ prefix: 'id' }),
               generateCallId: () => 'test-telemetry-call-id',
@@ -9019,7 +8591,9 @@ describe('generateText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,

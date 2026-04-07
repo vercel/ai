@@ -340,7 +340,7 @@ To solve this, you can enable multi-step tool calls using `stopWhen`. This featu
 Modify your `index.ts` file to configure stopping conditions with `stopWhen`:
 
 ```ts filename="index.ts" highlight="38-41"
-import { ModelMessage, streamText, tool, stepCountIs } from 'ai';
+import { ModelMessage, streamText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import 'dotenv/config';
 import { z } from 'zod';
@@ -379,7 +379,7 @@ async function main() {
           },
         }),
       },
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       onStepFinish: async ({ toolResults }) => {
         if (toolResults.length) {
           console.log(JSON.stringify(toolResults, null, 2));
@@ -404,19 +404,19 @@ main().catch(console.error);
 
 In this updated code:
 
-1. You set `stopWhen` to be when `stepCountIs` 5, allowing the agent to use up to 5 "steps" for any given generation.
+1. You set `stopWhen` to be when `isStepCount` 5, allowing the agent to use up to 5 "steps" for any given generation.
 2. You add an `onStepFinish` callback to log any `toolResults` from each step of the interaction, helping you understand the agent's tool usage. This means we can also delete the `toolCall` and `toolResult` `console.log` statements from the previous example.
 
 Now, when you ask about the weather in a location, you should see the agent using the weather tool results to answer your question.
 
-By setting `stopWhen: stepCountIs(5)`, you're allowing the agent to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the agent to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
+By setting `stopWhen: isStepCount(5)`, you're allowing the agent to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the agent to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
 
 ### Adding a second tool
 
 Update your `index.ts` file to add a new tool to convert the temperature from Celsius to Fahrenheit:
 
 ```ts filename="index.ts" highlight="37-48"
-import { ModelMessage, streamText, tool, stepCountIs } from 'ai';
+import { ModelMessage, streamText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import 'dotenv/config';
 import { z } from 'zod';
@@ -469,7 +469,7 @@ async function main() {
           },
         }),
       },
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       onStepFinish: async ({ toolResults }) => {
         if (toolResults.length) {
           console.log(JSON.stringify(toolResults, null, 2));
