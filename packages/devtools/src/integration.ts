@@ -126,6 +126,28 @@ export function devToolsIntegration(): TelemetryIntegration {
     parentToolCallId: string;
   } | null = null;
 
+  function resolveParentInfo(): { runId: string; stepId: string } | undefined {
+    if (!activeToolContext) return undefined;
+
+    const parentState = callStates.get(activeToolContext.parentCallId);
+    if (!parentState) return undefined;
+
+    // Find the step that is currently executing the tool call.
+    // This is the most recent (highest step number) step in the parent call.
+    let latestStepId: string | undefined;
+    let latestStepNumber = -1;
+    for (const [stepNumber, stepState] of parentState.stepStates) {
+      if (stepNumber > latestStepNumber) {
+        latestStepNumber = stepNumber;
+        latestStepId = stepState.stepId;
+      }
+    }
+
+    if (!latestStepId) return undefined;
+
+    return { runId: parentState.runId, stepId: latestStepId };
+  }
+
   function getOrCreateCallState(
     callId: string,
     operationId: string,
@@ -174,13 +196,15 @@ export function devToolsIntegration(): TelemetryIntegration {
 
       const startEvent = event as OnStartEvent<ToolSet> | ObjectOnStartEvent;
 
+      const parentInfo = resolveParentInfo();
+
       const state = getOrCreateCallState(
         startEvent.callId,
         operationId,
         startEvent,
       );
 
-      await createRun(state.runId);
+      await createRun(state.runId, parentInfo);
     },
 
     onStepStart: async event => {

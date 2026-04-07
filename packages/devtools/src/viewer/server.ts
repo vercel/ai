@@ -66,9 +66,10 @@ app.use('/*', cors());
 app.get('/api/runs', async c => {
   await reloadDb(remoteDbPath);
   const runs = await getRuns();
-  // Include step count, first message, and error status for each run
+  // Only return root-level runs (no parent) in the sidebar list
+  const rootRuns = runs.filter(r => !r.parent_run_id);
   const runsWithMeta = await Promise.all(
-    runs.map(async run => {
+    rootRuns.map(async run => {
       const steps = await getStepsForRun(run.id);
       let firstMessage = 'No user message';
       let hasError = false;
@@ -121,9 +122,28 @@ app.get('/api/runs/:id', async c => {
   }
   // Compute isInProgress from steps (any step without duration_ms or error)
   const isInProgress = data.steps.some(s => s.duration_ms === null && !s.error);
+
+  // Find child runs spawned from steps in this run, and include their steps
+  const allRuns = await getRuns();
+  const childRuns = await Promise.all(
+    allRuns
+      .filter(r => r.parent_run_id === data.run.id)
+      .map(async childRun => {
+        const childSteps = await getStepsForRun(childRun.id);
+        const childIsInProgress = childSteps.some(
+          s => s.duration_ms === null && !s.error,
+        );
+        return {
+          run: { ...childRun, isInProgress: childIsInProgress },
+          steps: childSteps,
+        };
+      }),
+  );
+
   return c.json({
     run: { ...data.run, isInProgress },
     steps: data.steps,
+    childRuns,
   });
 });
 
