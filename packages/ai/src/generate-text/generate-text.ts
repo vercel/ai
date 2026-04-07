@@ -289,7 +289,35 @@ export async function generateText<
   onFinish,
   ...settings
 }: CallSettings &
-  Prompt & {
+  Prompt &
+  // require context when needed, otherwise optional:
+  ({} extends CONTEXT
+    ? {
+        /**
+         * User-defined runtime context.
+         *
+         * Treat the context object as immutable inside tools.
+         * Mutating the context object can lead to race conditions and unexpected results
+         * when tools are called in parallel.
+         *
+         * If you need to mutate the context, analyze the tool calls and results
+         * in `prepareStep` and update it there.
+         */
+        context?: CONTEXT;
+      }
+    : {
+        /**
+         * User-defined runtime context.
+         *
+         * Treat the context object as immutable inside tools.
+         * Mutating the context object can lead to race conditions and unexpected results
+         * when tools are called in parallel.
+         *
+         * If you need to mutate the context, analyze the tool calls and results
+         * in `prepareStep` and update it there.
+         */
+        context: CONTEXT;
+      }) & {
     /**
      * The language model to use.
      */
@@ -426,18 +454,6 @@ export async function generateText<
      * Callback that is called when all steps are finished and the response is complete.
      */
     onFinish?: GenerateTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<CONTEXT>>;
-
-    /**
-     * User-defined runtime context.
-     *
-     * Treat the context object as immutable inside tools.
-     * Mutating the context object can lead to race conditions and unexpected results
-     * when tools are called in parallel.
-     *
-     * If you need to mutate the context, analyze the tool calls and results
-     * in `prepareStep` and update it there.
-     */
-    context?: CONTEXT;
 
     /**
      * Settings for controlling what data is included in step results.
