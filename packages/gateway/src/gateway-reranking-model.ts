@@ -1,0 +1,114 @@
+import type {
+  RerankingModelV3,
+  SharedV3ProviderMetadata,
+} from '@ai-sdk/provider';
+import {
+  combineHeaders,
+  createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  lazySchema,
+  postJsonToApi,
+  resolve,
+  zodSchema,
+  type Resolvable,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod/v4';
+import { asGatewayError } from './errors';
+import { parseAuthMethod } from './errors/parse-auth-method';
+import type { GatewayConfig } from './gateway-config';
+
+export class GatewayRerankingModel implements RerankingModelV3 {
+  readonly specificationVersion = 'v3';
+
+  constructor(
+    readonly modelId: string,
+    private readonly config: GatewayConfig & {
+      provider: string;
+      o11yHeaders: Resolvable<Record<string, string>>;
+    },
+  ) {}
+
+  get provider(): string {
+    return this.config.provider;
+  }
+
+  async doRerank({
+    documents,
+    query,
+    topN,
+    headers,
+    abortSignal,
+    providerOptions,
+  }: Parameters<RerankingModelV3['doRerank']>[0]): Promise<
+    Awaited<ReturnType<RerankingModelV3['doRerank']>>
+  > {
+    const resolvedHeaders = await resolve(this.config.headers());
+    try {
+      const {
+        responseHeaders,
+        value: responseBody,
+        rawValue,
+      } = await postJsonToApi({
+        url: this.getUrl(),
+        headers: combineHeaders(
+          resolvedHeaders,
+          headers ?? {},
+          this.getModelConfigHeaders(),
+          await resolve(this.config.o11yHeaders),
+        ),
+        body: {
+          documents,
+          query,
+          ...(topN != null ? { topN } : {}),
+          ...(providerOptions ? { providerOptions } : {}),
+        },
+        successfulResponseHandler: createJsonResponseHandler(
+          gatewayRerankingResponseSchema,
+        ),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => data,
+        }),
+        ...(abortSignal && { abortSignal }),
+        fetch: this.config.fetch,
+      });
+
+      return {
+        ranking: responseBody.ranking,
+        providerMetadata:
+          responseBody.providerMetadata as unknown as SharedV3ProviderMetadata,
+        response: { headers: responseHeaders, body: rawValue },
+        warnings: [],
+      };
+    } catch (error) {
+      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+    }
+  }
+
+  private getUrl() {
+    return `${this.config.baseURL}/reranking-model`;
+  }
+
+  private getModelConfigHeaders() {
+    return {
+      'ai-reranking-model-specification-version': '3',
+      'ai-model-id': this.modelId,
+    };
+  }
+}
+
+const gatewayRerankingResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      ranking: z.array(
+        z.object({
+          index: z.number(),
+          relevanceScore: z.number(),
+        }),
+      ),
+      providerMetadata: z
+        .record(z.string(), z.record(z.string(), z.unknown()))
+        .optional(),
+    }),
+  ),
+);
