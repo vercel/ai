@@ -4,12 +4,13 @@ import { run } from '../../lib/run';
 
 const lmstudio = createOpenResponses({
   name: 'lmstudio',
-  url: 'http://localhost:1234/v1/responses',
+  url: 'https://api.openai.com/v1/responses',
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 run(async () => {
   const result = await generateText({
-    model: lmstudio('mistralai/ministral-3-14b-reasoning'),
+    model: lmstudio('gpt-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
     reasoning: 'high',
     maxOutputTokens: 100,
@@ -27,4 +28,5 @@ run(async () => {
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
+  console.log('Request:', JSON.stringify(result.request, null, 2));
 });
