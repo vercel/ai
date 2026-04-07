@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
@@ -41,7 +41,7 @@ run(async () => {
     tools: {
       readPDFDocument,
     },
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
   });
 
   for await (const part of result.fullStream) {

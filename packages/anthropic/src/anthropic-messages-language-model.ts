@@ -31,6 +31,7 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
@@ -278,6 +279,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
+    const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
+
     const supportsStructuredOutput =
       (this.config.supportsNativeStructuredOutput ?? true) &&
       modelSupportsStructuredOutput;
@@ -448,7 +451,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
                 id: anthropicOptions.container.id,
                 skills: anthropicOptions.container.skills.map(skill => ({
                   type: skill.type,
-                  skill_id: skill.skillId,
+                  skill_id:
+                    skill.type === 'custom'
+                      ? resolveProviderReference({
+                          reference: skill.providerReference,
+                          provider: 'anthropic',
+                        })
+                      : skill.skillId,
                   version: skill.version,
                 })),
               } satisfies AnthropicContainer)
@@ -564,8 +573,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       // adjust max tokens to account for thinking:
       baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
     } else {
-      // Only check temperature/topP mutual exclusivity when thinking is not enabled
-      if (topP != null && temperature != null) {
+      // Only check temperature/topP mutual exclusivity for known Anthropic models
+      // when thinking is not enabled. Non-Anthropic models using the Anthropic-compatible
+      // API (e.g. Minimax) may require both parameters to be set.
+      if (isAnthropicModel && topP != null && temperature != null) {
         warnings.push({
           type: 'unsupported',
           feature: 'topP',

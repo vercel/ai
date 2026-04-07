@@ -2,10 +2,11 @@ import {
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
-  Tool,
 } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
+import type { GenerationContext } from './generation-context';
 import { StepResult } from './step-result';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -15,18 +16,19 @@ import { StepResult } from './step-result';
  * @param options.stepNumber - The number of the step that is being executed.
  * @param options.model - The model that is being used.
  * @param options.messages - The messages that will be sent to the model for the current step.
- * @param options.experimental_context - The context passed via the experimental_context setting (experimental).
+ * @param options.context - The user-defined runtime context.
  *
  * @returns An object that contains the settings for the step.
  * If you return undefined (or for undefined settings), the settings from the outer level will be used.
  */
 export type PrepareStepFunction<
-  TOOLS extends Record<string, Tool> = Record<string, Tool>,
+  TOOLS extends ToolSet,
+  CONTEXT extends GenerationContext<TOOLS>,
 > = (options: {
   /**
    * The steps that have been executed so far.
    */
-  steps: Array<StepResult<NoInfer<TOOLS>>>;
+  steps: Array<StepResult<NoInfer<TOOLS>, NoInfer<CONTEXT>>>;
 
   /**
    * The number of the step that is being executed.
@@ -44,17 +46,22 @@ export type PrepareStepFunction<
   messages: Array<ModelMessage>;
 
   /**
-   * The context passed via the experimental_context setting (experimental).
+   * User-defined runtime context.
+   *
+   * To modify the context, return a new context in the result.
    */
-  experimental_context: unknown;
-}) => PromiseLike<PrepareStepResult<TOOLS>> | PrepareStepResult<TOOLS>;
+  context: CONTEXT;
+}) =>
+  | PromiseLike<PrepareStepResult<TOOLS, CONTEXT>>
+  | PrepareStepResult<TOOLS, CONTEXT>;
 
 /**
  * The result type returned by a {@link PrepareStepFunction},
  * allowing per-step overrides of model, tools, or messages.
  */
 export type PrepareStepResult<
-  TOOLS extends Record<string, Tool> = Record<string, Tool>,
+  TOOLS extends ToolSet,
+  CONTEXT extends GenerationContext<TOOLS>,
 > =
   | {
       /**
@@ -85,12 +92,12 @@ export type PrepareStepResult<
       messages?: Array<ModelMessage>;
 
       /**
-       * Context that is passed into tool execution. Experimental.
+       * User-defined runtime context that is passed into tool execution.
        *
        * Changing the context will affect the context in this step
        * and all subsequent steps.
        */
-      experimental_context?: unknown;
+      context?: CONTEXT;
 
       /**
        * Additional provider-specific options for this step.

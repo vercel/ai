@@ -1,4 +1,4 @@
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 type ActiveTools<
   TOOLS extends ToolSet,

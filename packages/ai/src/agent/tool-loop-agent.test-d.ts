@@ -1,3 +1,4 @@
+import { tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output, StreamTextOnFinishCallback } from '../generate-text';
@@ -11,11 +12,13 @@ import type { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-settings';
 describe('ToolLoopAgent', () => {
   describe('onFinish callback type compatibility', () => {
     it('should allow StreamTextOnFinishCallback where ToolLoopAgentOnFinishCallback is expected', () => {
-      const streamTextCallback: StreamTextOnFinishCallback<{}> =
-        async event => {
-          const context: unknown = event.experimental_context;
-          context;
-        };
+      const streamTextCallback: StreamTextOnFinishCallback<
+        {},
+        {}
+      > = async event => {
+        const context: unknown = event.context;
+        context;
+      };
 
       expectTypeOf(streamTextCallback).toMatchTypeOf<
         ToolLoopAgentOnFinishCallback<{}>
@@ -24,12 +27,12 @@ describe('ToolLoopAgent', () => {
 
     it('should allow ToolLoopAgentOnFinishCallback where StreamTextOnFinishCallback is expected', () => {
       const agentCallback: ToolLoopAgentOnFinishCallback<{}> = async event => {
-        const context: unknown = event.experimental_context;
+        const context: unknown = event.context;
         context;
       };
 
       expectTypeOf(agentCallback).toMatchTypeOf<
-        StreamTextOnFinishCallback<{}>
+        StreamTextOnFinishCallback<{}, {}>
       >();
     });
   });
@@ -135,6 +138,48 @@ describe('ToolLoopAgent', () => {
       expectTypeOf<typeof partialOutputStream>().toEqualTypeOf<
         AsyncIterableStream<DeepPartial<{ value: string }>>
       >();
+    });
+  });
+
+  describe('context', () => {
+    it('should infer typed context with one tool context and prepareStep', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools: {
+          weather: tool({
+            inputSchema: z.object({
+              city: z.string(),
+            }),
+            contextSchema: z.object({
+              userId: z.string(),
+            }),
+            execute: async (_input, { context }) => {
+              expectTypeOf(context).toMatchObjectType<{
+                userId: string;
+              }>();
+
+              return 'sunny';
+            },
+          }),
+        },
+        context: {
+          userId: 'test-user',
+          role: 'admin',
+        },
+        prepareStep: ({ context }) => {
+          expectTypeOf(context).toMatchObjectType<{
+            userId: string;
+            role: string;
+          }>();
+
+          return {
+            context: {
+              userId: context.userId,
+              role: context.role,
+            },
+          };
+        },
+      });
     });
   });
 });

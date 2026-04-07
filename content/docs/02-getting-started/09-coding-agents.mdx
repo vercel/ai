@@ -136,7 +136,7 @@ For multi-step agent interactions, DevTools groups everything into **runs** (a c
 You can also log tool results directly in code during development:
 
 ```ts
-import { streamText, tool, stepCountIs } from 'ai';
+import { streamText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 
 const result = streamText({
@@ -154,7 +154,7 @@ const result = streamText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   onStepFinish: async ({ toolResults }) => {
     if (toolResults.length) {
       console.log(JSON.stringify(toolResults, null, 2));
