@@ -5,6 +5,7 @@ import { LanguageModelV4 } from '../../language-model/v4/language-model-v4';
 import { RerankingModelV4 } from '../../reranking-model/v4/reranking-model-v4';
 import { SpeechModelV4 } from '../../speech-model/v4/speech-model-v4';
 import { TranscriptionModelV4 } from '../../transcription-model/v4/transcription-model-v4';
+import { SkillsV4 } from '../../skills/v4/skills-v4';
 
 /**
  * Provider for language, text embedding, and image generation models.
@@ -85,4 +86,10 @@ export interface ProviderV4 {
    * @returns {FilesV4} The files interface for this provider.
    */
   files?(): FilesV4;
+
+  /**
+   * Returns the skills interface for uploading skills to the provider.
+   * The returned interface can be passed to the `uploadSkill` function.
+   */
+  skills?(): SkillsV4;
 }

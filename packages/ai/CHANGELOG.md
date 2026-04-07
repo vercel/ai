@@ -1,5 +1,19 @@
 # ai
 
+## 7.0.0-beta.68
+
+### Major Changes
+
+- 7e26e81: chore: rename experimental_context to context
+
+### Patch Changes
+
+- b0c2869: chore(ai): remove deprecated `media` type part from `ToolResultOutput`
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+  - @ai-sdk/gateway@4.0.0-beta.37
+
 ## 7.0.0-beta.67
 
 ### Patch Changes
