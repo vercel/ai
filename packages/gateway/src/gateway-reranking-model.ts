@@ -1,6 +1,6 @@
 import type {
-  RerankingModelV4,
-  SharedV4ProviderMetadata,
+  RerankingModelV3,
+  SharedV3ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,8 +17,8 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 
-export class GatewayRerankingModel implements RerankingModelV4 {
-  readonly specificationVersion = 'v4';
+export class GatewayRerankingModel implements RerankingModelV3 {
+  readonly specificationVersion = 'v3';
 
   constructor(
     readonly modelId: string,
@@ -39,8 +39,8 @@ export class GatewayRerankingModel implements RerankingModelV4 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV4['doRerank']>[0]): Promise<
-    Awaited<ReturnType<RerankingModelV4['doRerank']>>
+  }: Parameters<RerankingModelV3['doRerank']>[0]): Promise<
+    Awaited<ReturnType<RerankingModelV3['doRerank']>>
   > {
     const resolvedHeaders = await resolve(this.config.headers());
     try {
@@ -76,7 +76,7 @@ export class GatewayRerankingModel implements RerankingModelV4 {
       return {
         ranking: responseBody.ranking,
         providerMetadata:
-          responseBody.providerMetadata as unknown as SharedV4ProviderMetadata,
+          responseBody.providerMetadata as unknown as SharedV3ProviderMetadata,
         response: { headers: responseHeaders, body: rawValue },
         warnings: [],
       };
@@ -91,7 +91,7 @@ export class GatewayRerankingModel implements RerankingModelV4 {
 
   private getModelConfigHeaders() {
     return {
-      'ai-reranking-model-specification-version': '4',
+      'ai-reranking-model-specification-version': '3',
       'ai-model-id': this.modelId,
     };
   }

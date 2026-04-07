@@ -36,20 +36,12 @@ import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
-<<<<<<< HEAD
   LanguageModelV3,
   EmbeddingModelV3,
   ImageModelV3,
+  RerankingModelV3,
   Experimental_VideoModelV3,
   ProviderV3,
-=======
-  LanguageModelV4,
-  EmbeddingModelV4,
-  ImageModelV4,
-  RerankingModelV4,
-  Experimental_VideoModelV4,
-  ProviderV4,
->>>>>>> 939171ff1 (feat(gateway): add reranking model support (#13890))
 } from '@ai-sdk/provider';
 import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
@@ -131,12 +123,12 @@ export interface GatewayProvider extends ProviderV3 {
   /**
    * Creates a model for reranking documents.
    */
-  reranking(modelId: GatewayRerankingModelId): RerankingModelV4;
+  reranking(modelId: GatewayRerankingModelId): RerankingModelV3;
 
   /**
    * Creates a model for reranking documents.
    */
-  rerankingModel(modelId: GatewayRerankingModelId): RerankingModelV4;
+  rerankingModel(modelId: GatewayRerankingModelId): RerankingModelV3;
 
   /**
    * Gateway-specific tools executed server-side.

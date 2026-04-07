@@ -74,7 +74,7 @@ describe('GatewayRerankingModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'custom-header': 'test-value',
-        'ai-reranking-model-specification-version': '4',
+        'ai-reranking-model-specification-version': '3',
         'ai-model-id': 'cohere/rerank-v3.5',
       });
     });
