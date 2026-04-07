@@ -16,7 +16,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  * @param options.stepNumber - The number of the step that is being executed.
  * @param options.model - The model that is being used.
  * @param options.messages - The messages that will be sent to the model for the current step.
- * @param options.experimental_context - The context passed via the experimental_context setting (experimental).
+ * @param options.context - The user-defined runtime context.
  *
  * @returns An object that contains the settings for the step.
  * If you return undefined (or for undefined settings), the settings from the outer level will be used.
@@ -46,9 +46,11 @@ export type PrepareStepFunction<
   messages: Array<ModelMessage>;
 
   /**
-   * The context passed via the experimental_context setting (experimental).
+   * User-defined runtime context.
+   *
+   * To modify the context, return a new context in the result.
    */
-  experimental_context: CONTEXT;
+  context: CONTEXT;
 }) =>
   | PromiseLike<PrepareStepResult<TOOLS, CONTEXT>>
   | PrepareStepResult<TOOLS, CONTEXT>;
@@ -90,12 +92,12 @@ export type PrepareStepResult<
       messages?: Array<ModelMessage>;
 
       /**
-       * Context that is passed into tool execution. Experimental.
+       * User-defined runtime context that is passed into tool execution.
        *
        * Changing the context will affect the context in this step
        * and all subsequent steps.
        */
-      experimental_context?: CONTEXT;
+      context?: CONTEXT;
 
       /**
        * Additional provider-specific options for this step.
