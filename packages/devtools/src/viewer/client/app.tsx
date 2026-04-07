@@ -673,45 +673,47 @@ function App() {
                         </button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {showTimeline ? 'Hide' : 'Show'} trace timeline
+                        {showTimeline
+                          ? 'Switch to steps view'
+                          : 'Switch to timeline view'}
                       </TooltipContent>
                     </Tooltip>
                   </div>
                 </div>
 
-                {/* Trace Timeline */}
-                {showTimeline && (
+                {showTimeline ? (
                   <TraceTimeline
                     runDetail={selectedRun}
                     parseJson={parseJson}
                     formatDuration={formatDuration}
                   />
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {selectedRun.steps.map((step, index) => {
+                      const childRunsForStep = (
+                        selectedRun.childRuns ?? []
+                      ).filter(cr => cr.run.parent_step_id === step.id);
+
+                      return (
+                        <StepCard
+                          key={step.id}
+                          step={step}
+                          index={index}
+                          steps={selectedRun.steps}
+                          isRunInProgress={
+                            selectedRun.run.isInProgress ?? false
+                          }
+                          expandedSteps={expandedSteps}
+                          toggleStep={toggleStep}
+                          parseJson={parseJson}
+                          formatDuration={formatDuration}
+                          childRuns={childRunsForStep}
+                          depth={0}
+                        />
+                      );
+                    })}
+                  </div>
                 )}
-
-                {/* Steps */}
-                <div className="flex flex-col gap-3">
-                  {selectedRun.steps.map((step, index) => {
-                    const childRunsForStep = (
-                      selectedRun.childRuns ?? []
-                    ).filter(cr => cr.run.parent_step_id === step.id);
-
-                    return (
-                      <StepCard
-                        key={step.id}
-                        step={step}
-                        index={index}
-                        steps={selectedRun.steps}
-                        isRunInProgress={selectedRun.run.isInProgress ?? false}
-                        expandedSteps={expandedSteps}
-                        toggleStep={toggleStep}
-                        parseJson={parseJson}
-                        formatDuration={formatDuration}
-                        childRuns={childRunsForStep}
-                        depth={0}
-                      />
-                    );
-                  })}
-                </div>
               </div>
             )}
           </ScrollArea>
