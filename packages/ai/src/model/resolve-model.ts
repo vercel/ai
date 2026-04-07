@@ -159,7 +159,6 @@ export function resolveVideoModel(
 export function resolveRerankingModel(model: RerankingModel): RerankingModelV3 {
   if (typeof model === 'string') {
     const provider = getGlobalProvider();
-    // @ts-expect-error - rerankingModel is not yet on ProviderV3
     const rerankingModel = provider.rerankingModel;
 
     if (!rerankingModel) {
