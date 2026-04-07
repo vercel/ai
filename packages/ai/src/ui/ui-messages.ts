@@ -549,11 +549,6 @@ export function isToolUIPart<TOOLS extends UITools>(
 }
 
 /**
- * @deprecated Use isToolUIPart instead.
- */
-export const isToolOrDynamicToolUIPart = isToolUIPart;
-
-/**
  * Returns the name of the static tool.
  *
  * The possible values are the keys of the tool set.

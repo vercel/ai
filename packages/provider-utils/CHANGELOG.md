@@ -1,5 +1,37 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+
+## 5.0.0-beta.13
+
+### Major Changes
+
+- 7e26e81: chore: rename experimental_context to context
+
+### Patch Changes
+
+- b0c2869: chore(ai): remove deprecated `media` type part from `ToolResultOutput`
+
+## 5.0.0-beta.12
+
+### Patch Changes
+
+- 46d1149: chore(provider-utils,google): fix grammar errors in error and warning messages
+
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider@4.0.0-beta.7
+
 ## 5.0.0-beta.10
 
 ### Patch Changes

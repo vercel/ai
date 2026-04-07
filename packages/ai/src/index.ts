@@ -36,6 +36,7 @@ export * from './middleware';
 export * from './prompt';
 export * from './registry';
 export * from './rerank';
+export * from './upload-skill';
 export * from './text-stream';
 export * from './transcribe';
 export * from './types';
