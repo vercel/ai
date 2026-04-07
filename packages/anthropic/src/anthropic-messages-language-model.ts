@@ -31,6 +31,7 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  resolveProviderReference,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -464,7 +465,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
                 id: anthropicOptions.container.id,
                 skills: anthropicOptions.container.skills.map(skill => ({
                   type: skill.type,
-                  skill_id: skill.skillId,
+                  skill_id:
+                    skill.type === 'custom'
+                      ? resolveProviderReference({
+                          reference: skill.providerReference,
+                          provider: 'anthropic',
+                        })
+                      : skill.skillId,
                   version: skill.version,
                 })),
               } satisfies AnthropicContainer)
