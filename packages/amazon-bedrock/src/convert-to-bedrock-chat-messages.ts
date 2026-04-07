@@ -253,6 +253,9 @@ export async function convertToBedrockChatMessages(
           const message = block.messages[j];
           const isLastMessage = j === block.messages.length - 1;
           const { content } = message;
+          const hasReasoningBlocks = content.some(
+            part => part.type === 'reasoning',
+          );
 
           for (let k = 0; k < content.length; k++) {
             const part = content[k];
@@ -260,8 +263,8 @@ export async function convertToBedrockChatMessages(
 
             switch (part.type) {
               case 'text': {
-                // Skip empty text blocks
-                if (!part.text.trim()) {
+                // Skip empty text blocks unless reasoning blocks are present
+                if (!part.text.trim() && !hasReasoningBlocks) {
                   break;
                 }
 
