@@ -4,98 +4,103 @@ import { GoogleJSONAccumulator } from './google-json-accumulator';
 describe('GoogleJSONAccumulator', () => {
   describe('flat paths', () => {
     it('should accumulate a simple string arg with willContinue', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
       ]);
 
-      expect(r.textDelta).toBe('{"location":"Boston');
-      expect(r.currentJSON).toEqual({ location: 'Boston' });
+      expect(result.textDelta).toBe('{"location":"Boston');
+      expect(result.currentJSON).toEqual({ location: 'Boston' });
     });
 
     it('should continue a string arg across multiple chunks', () => {
-      const acc = new GoogleJSONAccumulator();
+      const accumulator = new GoogleJSONAccumulator();
 
-      acc.processPartialArgs([
+      accumulator.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
       ]);
 
-      const r = acc.processPartialArgs([
+      const continuationResult = accumulator.processPartialArgs([
         { jsonPath: '$.location', stringValue: ', MA' },
       ]);
 
-      expect(r.textDelta).toBe(', MA');
-      expect(r.currentJSON).toEqual({ location: 'Boston, MA' });
+      expect(continuationResult.textDelta).toBe(', MA');
+      expect(continuationResult.currentJSON).toEqual({
+        location: 'Boston, MA',
+      });
     });
 
     it('should accumulate a complete string arg (no willContinue)', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston' },
       ]);
 
-      expect(r.textDelta).toBe('{"location":"Boston"');
-      expect(r.currentJSON).toEqual({ location: 'Boston' });
+      expect(result.textDelta).toBe('{"location":"Boston"');
+      expect(result.currentJSON).toEqual({ location: 'Boston' });
     });
 
     it('should accumulate a number arg', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.brightness', numberValue: 50 },
       ]);
 
-      expect(r.textDelta).toBe('{"brightness":50');
-      expect(r.currentJSON).toEqual({ brightness: 50 });
+      expect(result.textDelta).toBe('{"brightness":50');
+      expect(result.currentJSON).toEqual({ brightness: 50 });
     });
 
     it('should accumulate a boolean arg', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.enabled', boolValue: true },
       ]);
 
-      expect(r.textDelta).toBe('{"enabled":true');
-      expect(r.currentJSON).toEqual({ enabled: true });
+      expect(result.textDelta).toBe('{"enabled":true');
+      expect(result.currentJSON).toEqual({ enabled: true });
     });
 
     it('should accumulate a null arg', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.nickname', nullValue: {} },
       ]);
 
-      expect(r.textDelta).toBe('{"nickname":null');
-      expect(r.currentJSON).toEqual({ nickname: null });
+      expect(result.textDelta).toBe('{"nickname":null');
+      expect(result.currentJSON).toEqual({ nickname: null });
     });
 
     it('should accumulate multiple args with commas between them', () => {
-      const acc = new GoogleJSONAccumulator();
+      const accumulator = new GoogleJSONAccumulator();
 
-      const r1 = acc.processPartialArgs([
+      const firstResult = accumulator.processPartialArgs([
         { jsonPath: '$.brightness', numberValue: 50 },
       ]);
-      expect(r1.textDelta).toBe('{"brightness":50');
+      expect(firstResult.textDelta).toBe('{"brightness":50');
 
-      const r2 = acc.processPartialArgs([
+      const secondResult = accumulator.processPartialArgs([
         { jsonPath: '$.enabled', boolValue: true },
       ]);
-      expect(r2.textDelta).toBe(',"enabled":true');
+      expect(secondResult.textDelta).toBe(',"enabled":true');
 
-      expect(r2.currentJSON).toEqual({ brightness: 50, enabled: true });
+      expect(secondResult.currentJSON).toEqual({
+        brightness: 50,
+        enabled: true,
+      });
     });
 
     it('should accumulate multiple args in a single call', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.brightness', numberValue: 50 },
         { jsonPath: '$.enabled', boolValue: false },
         { jsonPath: '$.nickname', nullValue: {} },
       ]);
 
-      expect(r.textDelta).toBe(
+      expect(result.textDelta).toBe(
         '{"brightness":50,"enabled":false,"nickname":null',
       );
-      expect(r.currentJSON).toEqual({
+      expect(result.currentJSON).toEqual({
         brightness: 50,
         enabled: false,
         nickname: null,
@@ -103,9 +108,9 @@ describe('GoogleJSONAccumulator', () => {
     });
 
     it('should escape special characters in continued strings', () => {
-      const acc = new GoogleJSONAccumulator();
+      const accumulator = new GoogleJSONAccumulator();
 
-      acc.processPartialArgs([
+      accumulator.processPartialArgs([
         {
           jsonPath: '$.query',
           stringValue: 'Boston "Lo',
@@ -113,67 +118,71 @@ describe('GoogleJSONAccumulator', () => {
         },
       ]);
 
-      const r = acc.processPartialArgs([
+      const continuationResult = accumulator.processPartialArgs([
         { jsonPath: '$.query', stringValue: 'gan"' },
       ]);
 
-      expect(r.textDelta).toBe('gan\\"');
-      expect(r.currentJSON).toEqual({ query: 'Boston "Logan"' });
+      expect(continuationResult.textDelta).toBe('gan\\"');
+      expect(continuationResult.currentJSON).toEqual({
+        query: 'Boston "Logan"',
+      });
     });
 
     it('should skip args with empty jsonPath after stripping $. prefix', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.', stringValue: 'ignored' },
       ]);
 
-      expect(r.textDelta).toBe('');
-      expect(r.currentJSON).toEqual({});
+      expect(result.textDelta).toBe('');
+      expect(result.currentJSON).toEqual({});
     });
 
     it('should skip args with no resolvable value', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([{ jsonPath: '$.something' }]);
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
+        { jsonPath: '$.something' },
+      ]);
 
-      expect(r.textDelta).toBe('');
-      expect(r.currentJSON).toEqual({});
+      expect(result.textDelta).toBe('');
+      expect(result.currentJSON).toEqual({});
     });
 
     it('should return empty textDelta for empty partialArgs array', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([]);
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([]);
 
-      expect(r.textDelta).toBe('');
-      expect(r.currentJSON).toEqual({});
+      expect(result.textDelta).toBe('');
+      expect(result.currentJSON).toEqual({});
     });
   });
 
   describe('nested paths', () => {
     it('should build nested object from dotted jsonPath', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.recipe.name', stringValue: 'Lasagna' },
       ]);
 
-      expect(r.currentJSON).toEqual({ recipe: { name: 'Lasagna' } });
+      expect(result.currentJSON).toEqual({ recipe: { name: 'Lasagna' } });
     });
 
     it('should build nested object with array from indexed jsonPath', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[0].amount',
           stringValue: '16 oz',
         },
       ]);
-      const r = acc.processPartialArgs([
+      const result = accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[0].name',
           stringValue: 'Lasagna noodles',
         },
       ]);
 
-      expect(r.currentJSON).toEqual({
+      expect(result.currentJSON).toEqual({
         recipe: {
           ingredients: [{ amount: '16 oz', name: 'Lasagna noodles' }],
         },
@@ -181,33 +190,33 @@ describe('GoogleJSONAccumulator', () => {
     });
 
     it('should accumulate multiple array elements across chunks', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[0].amount',
           stringValue: '16 oz',
         },
       ]);
-      acc.processPartialArgs([
+      accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[0].name',
           stringValue: 'Noodles',
         },
       ]);
-      acc.processPartialArgs([
+      accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[1].amount',
           stringValue: '1 lb',
         },
       ]);
-      const r = acc.processPartialArgs([
+      const result = accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[1].name',
           stringValue: 'Beef',
         },
       ]);
 
-      expect(r.currentJSON).toEqual({
+      expect(result.currentJSON).toEqual({
         recipe: {
           ingredients: [
             { amount: '16 oz', name: 'Noodles' },
@@ -218,59 +227,59 @@ describe('GoogleJSONAccumulator', () => {
     });
 
     it('should handle string continuation on nested paths', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.steps[0]',
           stringValue: 'Preheat oven',
           willContinue: true,
         },
       ]);
-      const r = acc.processPartialArgs([
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.recipe.steps[0]', stringValue: ' to 375°F.' },
       ]);
 
-      expect(r.currentJSON).toEqual({
+      expect(result.currentJSON).toEqual({
         recipe: { steps: ['Preheat oven to 375°F.'] },
       });
     });
 
     it('should handle mixed nested and flat paths', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston' },
       ]);
-      const r = acc.processPartialArgs([
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.details.zip', stringValue: '02101' },
       ]);
 
-      expect(r.currentJSON).toEqual({
+      expect(result.currentJSON).toEqual({
         location: 'Boston',
         details: { zip: '02101' },
       });
     });
 
     it('should handle array elements that are direct string values', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         { jsonPath: '$.steps[0]', stringValue: 'Step one' },
       ]);
-      const r = acc.processPartialArgs([
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.steps[1]', stringValue: 'Step two' },
       ]);
 
-      expect(r.currentJSON).toEqual({
+      expect(result.currentJSON).toEqual({
         steps: ['Step one', 'Step two'],
       });
     });
 
     it('should handle deeply nested paths', () => {
-      const acc = new GoogleJSONAccumulator();
-      const r = acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      const result = accumulator.processPartialArgs([
         { jsonPath: '$.a.b.c.d', stringValue: 'deep' },
       ]);
 
-      expect(r.currentJSON).toEqual({
+      expect(result.currentJSON).toEqual({
         a: { b: { c: { d: 'deep' } } },
       });
     });
@@ -278,71 +287,73 @@ describe('GoogleJSONAccumulator', () => {
 
   describe('finalize', () => {
     it('should produce closing delta for a continued string', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
       ]);
 
-      const { finalJSON, closingDelta } = acc.finalize();
+      const { finalJSON, closingDelta } = accumulator.finalize();
       expect(closingDelta).toBe('"}');
       expect(finalJSON).toBe('{"location":"Boston"}');
     });
 
     it('should produce closing delta for a complete string', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston' },
       ]);
 
-      const { finalJSON, closingDelta } = acc.finalize();
+      const { finalJSON, closingDelta } = accumulator.finalize();
       expect(closingDelta).toBe('}');
       expect(finalJSON).toBe('{"location":"Boston"}');
     });
 
     it('should produce closing delta for multiple args', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         { jsonPath: '$.brightness', numberValue: 50 },
         { jsonPath: '$.enabled', boolValue: true },
       ]);
 
-      const { finalJSON, closingDelta } = acc.finalize();
+      const { finalJSON, closingDelta } = accumulator.finalize();
       expect(closingDelta).toBe('}');
       expect(finalJSON).toBe('{"brightness":50,"enabled":true}');
     });
 
     it('should produce closing delta for continued string with continuation', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
       ]);
-      acc.processPartialArgs([{ jsonPath: '$.location', stringValue: ', MA' }]);
+      accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: ', MA' },
+      ]);
 
-      const { finalJSON, closingDelta } = acc.finalize();
+      const { finalJSON, closingDelta } = accumulator.finalize();
       expect(closingDelta).toBe('"}');
       expect(finalJSON).toBe('{"location":"Boston, MA"}');
     });
 
     it('should handle empty accumulator', () => {
-      const acc = new GoogleJSONAccumulator();
-      const { finalJSON, closingDelta } = acc.finalize();
+      const accumulator = new GoogleJSONAccumulator();
+      const { finalJSON, closingDelta } = accumulator.finalize();
       expect(closingDelta).toBe('{}');
       expect(finalJSON).toBe('{}');
     });
 
     it('should finalize nested structure to proper JSON', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[0].name',
           stringValue: 'Noodles',
         },
       ]);
-      acc.processPartialArgs([
+      accumulator.processPartialArgs([
         { jsonPath: '$.recipe.name', stringValue: 'Lasagna' },
       ]);
 
-      const { finalJSON } = acc.finalize();
+      const { finalJSON } = accumulator.finalize();
       expect(JSON.parse(finalJSON)).toEqual({
         recipe: {
           ingredients: [{ name: 'Noodles' }],
@@ -352,22 +363,22 @@ describe('GoogleJSONAccumulator', () => {
     });
 
     it('should finalize nested arrays with string continuation', () => {
-      const acc = new GoogleJSONAccumulator();
-      acc.processPartialArgs([
+      const accumulator = new GoogleJSONAccumulator();
+      accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.steps[0]',
           stringValue: 'Preheat',
           willContinue: true,
         },
       ]);
-      acc.processPartialArgs([
+      accumulator.processPartialArgs([
         { jsonPath: '$.recipe.steps[0]', stringValue: ' oven.' },
       ]);
-      acc.processPartialArgs([
+      accumulator.processPartialArgs([
         { jsonPath: '$.recipe.steps[1]', stringValue: 'Cook.' },
       ]);
 
-      const { finalJSON } = acc.finalize();
+      const { finalJSON } = accumulator.finalize();
       expect(JSON.parse(finalJSON)).toEqual({
         recipe: { steps: ['Preheat oven.', 'Cook.'] },
       });
