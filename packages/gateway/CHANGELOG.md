@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.93
+
+### Patch Changes
+
+- ec18852: feat (provider/gateway): add reranking model support with `rerankingModel()` and `reranking()` methods
+
 ## 3.0.92
 
 ### Patch Changes
