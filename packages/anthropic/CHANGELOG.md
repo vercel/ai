@@ -1,5 +1,15 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 34bd95d: feat(ai): add support for uploading provider skills using the provider references abstraction
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
 ## 4.0.0-beta.20
 
 ### Patch Changes
