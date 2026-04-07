@@ -76,7 +76,7 @@ describe('MCPClient', () => {
         {
           messages: [],
           toolCallId: '1',
-          experimental_context: {},
+          context: {},
         },
       ),
     ).toMatchInlineSnapshot(`
@@ -136,7 +136,7 @@ describe('MCPClient', () => {
     // Verify the execute function works
     const result = await tool.execute(
       { foo: 'bar' },
-      { messages: [], toolCallId: '1', experimental_context: {} },
+      { messages: [], toolCallId: '1', context: {} },
     );
     expect(result).toMatchObject({
       content: [{ type: 'text', text: 'Mock tool call result' }],
@@ -194,10 +194,7 @@ describe('MCPClient', () => {
     const tool = tools['get-image'];
 
     expect(
-      await tool.execute!(
-        {},
-        { messages: [], toolCallId: '1', experimental_context: {} },
-      ),
+      await tool.execute!({}, { messages: [], toolCallId: '1', context: {} }),
     ).toMatchInlineSnapshot(`
       {
         "content": [
@@ -274,10 +271,7 @@ describe('MCPClient', () => {
     const tool = tools['get-text'];
 
     expect(
-      await tool.execute!(
-        {},
-        { messages: [], toolCallId: '1', experimental_context: {} },
-      ),
+      await tool.execute!({}, { messages: [], toolCallId: '1', context: {} }),
     ).toMatchInlineSnapshot(`
       {
         "content": [
@@ -344,10 +338,7 @@ describe('MCPClient', () => {
     const tool = tools['get-mixed'];
 
     expect(
-      await tool.execute!(
-        {},
-        { messages: [], toolCallId: '1', experimental_context: {} },
-      ),
+      await tool.execute!({}, { messages: [], toolCallId: '1', context: {} }),
     ).toMatchInlineSnapshot(`
         {
           "content": [
@@ -425,10 +416,7 @@ describe('MCPClient', () => {
     const tool = tools['get-unknown'];
 
     expect(
-      await tool.execute!(
-        {},
-        { messages: [], toolCallId: '1', experimental_context: {} },
-      ),
+      await tool.execute!({}, { messages: [], toolCallId: '1', context: {} }),
     ).toMatchInlineSnapshot(`
         {
           "content": [
@@ -495,10 +483,7 @@ describe('MCPClient', () => {
     const tool = tools['get-raw'];
 
     expect(
-      await tool.execute!(
-        {},
-        { messages: [], toolCallId: '1', experimental_context: {} },
-      ),
+      await tool.execute!({}, { messages: [], toolCallId: '1', context: {} }),
     ).toMatchInlineSnapshot(`
         {
           "isError": false,
@@ -737,7 +722,7 @@ describe('MCPClient', () => {
       {
         messages: [],
         toolCallId: '1',
-        experimental_context: {},
+        context: {},
       },
     );
 
@@ -780,10 +765,7 @@ describe('MCPClient', () => {
     });
     const toolCall = tools['mock-tool'].execute;
     await expect(
-      toolCall(
-        { bar: 'bar' },
-        { messages: [], toolCallId: '1', experimental_context: {} },
-      ),
+      toolCall({ bar: 'bar' }, { messages: [], toolCallId: '1', context: {} }),
     ).rejects.toThrow(MCPClientError);
   });
 
@@ -809,7 +791,7 @@ describe('MCPClient', () => {
     try {
       await toolCall(
         { bar: 'bar' },
-        { messages: [], toolCallId: '1', experimental_context: {} },
+        { messages: [], toolCallId: '1', context: {} },
       );
       throw new Error('Expected error to be thrown');
     } catch (error) {
@@ -968,7 +950,7 @@ describe('MCPClient', () => {
           messages: [],
           toolCallId: '1',
           abortSignal: abortController.signal,
-          experimental_context: {},
+          context: {},
         },
       ),
     ).rejects.toSatisfy(
@@ -1083,7 +1065,7 @@ describe('MCPClient', () => {
       {
         messages: [],
         toolCallId: '1',
-        experimental_context: {},
+        context: {},
       },
     );
 
@@ -1123,7 +1105,7 @@ describe('MCPClient', () => {
 
     const result = await tool.execute(
       {},
-      { messages: [], toolCallId: '1', experimental_context: {} },
+      { messages: [], toolCallId: '1', context: {} },
     );
     expect(result).toMatchInlineSnapshot(`
       {
@@ -1242,7 +1224,7 @@ describe('MCPClient', () => {
 
       const result = await tool.execute(
         { location: 'New York' },
-        { messages: [], toolCallId: '1', experimental_context: {} },
+        { messages: [], toolCallId: '1', context: {} },
       );
 
       expectTypeOf<Exclude<typeof result, AsyncIterable<any>>>().toEqualTypeOf<{
@@ -1298,7 +1280,7 @@ describe('MCPClient', () => {
 
       const result = await tools['json-tool'].execute(
         {},
-        { messages: [], toolCallId: '1', experimental_context: {} },
+        { messages: [], toolCallId: '1', context: {} },
       );
 
       expect(result).toEqual({
@@ -1352,7 +1334,7 @@ describe('MCPClient', () => {
 
       const result = await tool.execute(
         { input: 'test' },
-        { messages: [], toolCallId: '1', experimental_context: {} },
+        { messages: [], toolCallId: '1', context: {} },
       );
 
       expectTypeOf<
@@ -1415,7 +1397,7 @@ describe('MCPClient', () => {
       await expect(
         tools['bad-output-tool'].execute(
           {},
-          { messages: [], toolCallId: '1', experimental_context: {} },
+          { messages: [], toolCallId: '1', context: {} },
         ),
       ).rejects.toThrow(MCPClientError);
     });
@@ -1462,7 +1444,7 @@ describe('MCPClient', () => {
       await expect(
         tools['invalid-json-tool'].execute(
           {},
-          { messages: [], toolCallId: '1', experimental_context: {} },
+          { messages: [], toolCallId: '1', context: {} },
         ),
       ).rejects.toThrow(MCPClientError);
     });
@@ -1509,7 +1491,7 @@ describe('MCPClient', () => {
       await expect(
         tools['mismatched-json-tool'].execute(
           {},
-          { messages: [], toolCallId: '1', experimental_context: {} },
+          { messages: [], toolCallId: '1', context: {} },
         ),
       ).rejects.toThrow(MCPClientError);
     });
@@ -1523,7 +1505,7 @@ describe('MCPClient', () => {
 
       const result = await tools['mock-tool'].execute(
         { foo: 'bar' },
-        { messages: [], toolCallId: '1', experimental_context: {} },
+        { messages: [], toolCallId: '1', context: {} },
       );
 
       // With automatic discovery, result is CallToolResult
@@ -1604,7 +1586,7 @@ describe('MCPClient', () => {
 
       const result = await tools['complex-tool'].execute(
         {},
-        { messages: [], toolCallId: '1', experimental_context: {} },
+        { messages: [], toolCallId: '1', context: {} },
       );
 
       expect(result).toEqual({
@@ -1666,7 +1648,7 @@ describe('MCPClient', () => {
 
       const result = await tools['error-tool'].execute(
         { name: 'test' },
-        { messages: [], toolCallId: '1', experimental_context: {} },
+        { messages: [], toolCallId: '1', context: {} },
       );
 
       expect(result).toEqual({
@@ -1727,7 +1709,7 @@ describe('MCPClient', () => {
 
       const result = await tools['error-structured-tool'].execute(
         {},
-        { messages: [], toolCallId: '1', experimental_context: {} },
+        { messages: [], toolCallId: '1', context: {} },
       );
 
       expect(result).toEqual({
@@ -1788,7 +1770,7 @@ describe('MCPClient', () => {
       await expect(
         tools['non-error-tool'].execute(
           {},
-          { messages: [], toolCallId: '1', experimental_context: {} },
+          { messages: [], toolCallId: '1', context: {} },
         ),
       ).rejects.toThrow(MCPClientError);
     });

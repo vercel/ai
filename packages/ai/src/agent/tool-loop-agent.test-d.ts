@@ -16,7 +16,7 @@ describe('ToolLoopAgent', () => {
         {},
         {}
       > = async event => {
-        const context: unknown = event.experimental_context;
+        const context: unknown = event.context;
         context;
       };
 
@@ -27,7 +27,7 @@ describe('ToolLoopAgent', () => {
 
     it('should allow ToolLoopAgentOnFinishCallback where StreamTextOnFinishCallback is expected', () => {
       const agentCallback: ToolLoopAgentOnFinishCallback<{}> = async event => {
-        const context: unknown = event.experimental_context;
+        const context: unknown = event.context;
         context;
       };
 
@@ -141,8 +141,8 @@ describe('ToolLoopAgent', () => {
     });
   });
 
-  describe('experimental_context', () => {
-    it('should infer typed experimental_context with one tool context and prepareStep', async () => {
+  describe('context', () => {
+    it('should infer typed context with one tool context and prepareStep', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV4(),
         tools: {
@@ -153,8 +153,8 @@ describe('ToolLoopAgent', () => {
             contextSchema: z.object({
               userId: z.string(),
             }),
-            execute: async (_input, { experimental_context }) => {
-              expectTypeOf(experimental_context).toMatchObjectType<{
+            execute: async (_input, { context }) => {
+              expectTypeOf(context).toMatchObjectType<{
                 userId: string;
               }>();
 
@@ -162,20 +162,20 @@ describe('ToolLoopAgent', () => {
             },
           }),
         },
-        experimental_context: {
+        context: {
           userId: 'test-user',
           role: 'admin',
         },
-        prepareStep: ({ experimental_context }) => {
-          expectTypeOf(experimental_context).toMatchObjectType<{
+        prepareStep: ({ context }) => {
+          expectTypeOf(context).toMatchObjectType<{
             userId: string;
             role: string;
           }>();
 
           return {
-            experimental_context: {
-              userId: experimental_context.userId,
-              role: experimental_context.role,
+            context: {
+              userId: context.userId,
+              role: context.role,
             },
           };
         },
