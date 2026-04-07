@@ -32,7 +32,7 @@ For the Provider v3 interface, we require fully specified names with a "Model" s
 
 All provider model classes must support workflow serialization so they can cross workflow step boundaries. This requires:
 
-1. **`headers` must be optional** in the model's config type. Use `headers?:` instead of `headers:`. Guard access with optional chaining (`this.config.headers?.()`) or a conditional check for `Resolvable` types.
+1. **`headers` must be optional** in the model's config type due to serialization. Use `headers?:` instead of `headers:`. Guard access with optional chaining (`this.config.headers?.()`) or a conditional check for `Resolvable` types.
 
 2. **Add static serde methods** using the helpers from `@ai-sdk/provider-utils`:
 
