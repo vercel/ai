@@ -604,7 +604,7 @@ You can also use multi-step calls on the server-side with `streamText`.
 This works when all invoked tools have an `execute` function on the server side.
 
 ```tsx filename='app/api/chat/route.ts' highlight="15-21,24"
-import { convertToModelMessages, streamText, UIMessage, stepCountIs } from 'ai';
+import { convertToModelMessages, streamText, UIMessage, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import { z } from 'zod';
 
@@ -627,7 +627,7 @@ export async function POST(req: Request) {
         },
       },
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   return result.toUIMessageStreamResponse();

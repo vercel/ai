@@ -14,7 +14,7 @@ import {
   generateImage,
   generateText,
   Output,
-  stepCountIs,
+  isStepCount,
   streamText,
 } from 'ai';
 import fs from 'fs';
@@ -749,7 +749,7 @@ export function createFeatureTestSuite({
                       },
                     },
                   },
-                  stopWhen: stepCountIs(10),
+                  stopWhen: isStepCount(10),
                 });
 
                 expect(weatherCalls).toBe(1);
