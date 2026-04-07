@@ -983,22 +983,44 @@ function TraceTimeline({
                     />
                   ))}
                   {/* Bar */}
-                  <div
-                    className="absolute top-1 bottom-1 flex items-center"
-                    style={{
-                      left: `${leftPct}%`,
-                      width: `${widthPct}%`,
-                      minWidth: 3,
-                    }}
-                  >
-                    <div
-                      className={`h-full w-full rounded-sm ${
-                        span.isInProgress
-                          ? `${SPAN_COLORS_MUTED[span.kind]} animate-pulse`
-                          : SPAN_COLORS[span.kind]
-                      }`}
-                    />
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="absolute top-1 bottom-1 flex items-center cursor-default"
+                        style={{
+                          left: `${leftPct}%`,
+                          width: `${widthPct}%`,
+                          minWidth: 3,
+                        }}
+                      >
+                        <div
+                          className={`h-full w-full rounded-sm ${
+                            span.isInProgress
+                              ? `${SPAN_COLORS_MUTED[span.kind]} animate-pulse`
+                              : SPAN_COLORS[span.kind]
+                          }`}
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <div className="text-xs space-y-1">
+                        <div className="font-medium">{span.label}</div>
+                        {span.sublabel && (
+                          <div className="text-muted-foreground">
+                            {span.sublabel}
+                          </div>
+                        )}
+                        <div className="text-muted-foreground font-mono">
+                          {formatDuration(span.durationMs || null)}
+                          {span.tokens && (
+                            <span className="ml-2">
+                              {span.tokens.input} in → {span.tokens.output} out
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             );
