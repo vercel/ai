@@ -15409,6 +15409,50 @@ describe('streamText', () => {
         `);
       });
 
+      it('should not call JSON.stringify for string partial outputs', async () => {
+        const originalStringify = JSON.stringify;
+        const stringifySpy = vi.spyOn(JSON, 'stringify').mockImplementation(((
+          ...args: Parameters<typeof JSON.stringify>
+        ) => {
+          if (typeof args[0] === 'string') {
+            throw new Error(
+              'JSON.stringify should not be called for string partial outputs',
+            );
+          }
+          return originalStringify.call(JSON, ...args);
+        }) as typeof JSON.stringify);
+
+        try {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                { type: 'text-delta', id: '1', delta: 'world!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            prompt: 'prompt',
+            output: Output.text(),
+          });
+
+          expect(await convertAsyncIterableToArray(result.partialOutputStream))
+            .toMatchInlineSnapshot(`
+            [
+              "Hello, ",
+              "Hello, world!",
+            ]
+          `);
+        } finally {
+          stringifySpy.mockRestore();
+        }
+      });
+
       it('should resolve output promise with the correct content', async () => {
         const result = streamText({
           model: createTestModel({
