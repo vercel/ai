@@ -7,7 +7,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "abortSignal": undefined,
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",
-  "experimental_context": {},
+  "context": {},
   "frequencyPenalty": undefined,
   "functionId": "test-function",
   "headers": undefined,
@@ -46,7 +46,7 @@ exports[`streamText > options.experimental_onToolCallStart > should be called wi
 {
   "abortSignal": undefined,
   "callId": "test-telemetry-call-id",
-  "experimental_context": {},
+  "context": {},
   "functionId": undefined,
   "messages": [
     {
