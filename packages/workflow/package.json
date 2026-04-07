@@ -46,10 +46,10 @@
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@workflow/vitest": "4.0.1-beta.12",
+    "@workflow/vitest": "4.0.1-beta.8",
     "tsup": "^8",
     "typescript": "5.8.3",
-    "workflow": "https://workflow-docs-git-fix-class-expr-binding-name-method-reg-28f36b.vercel.sh/workflow.tgz",
+    "workflow": "4.2.0-beta.71",
     "zod": "3.25.76"
   },
   "peerDependencies": {
