@@ -26,7 +26,7 @@ export interface ToolExecutionOptions<CONTEXT extends Context> {
   abortSignal?: AbortSignal;
 
   /**
-   * User-defined context.
+   * User-defined runtime context.
    *
    * Treat the context object as immutable inside tools.
    * Mutating the context object can lead to race conditions and unexpected results
@@ -34,10 +34,8 @@ export interface ToolExecutionOptions<CONTEXT extends Context> {
    *
    * If you need to mutate the context, analyze the tool calls and results
    * in `prepareStep` and update it there.
-   *
-   * Experimental (can break in patch releases).
    */
-  experimental_context: CONTEXT;
+  context: CONTEXT;
 }
 
 /**
@@ -58,11 +56,16 @@ export type ToolNeedsApprovalFunction<INPUT, CONTEXT extends Context> = (
     messages: ModelMessage[];
 
     /**
-     * Additional context.
+     * User-defined runtime context.
      *
-     * Experimental (can break in patch releases).
+     * Treat the context object as immutable inside tools.
+     * Mutating the context object can lead to race conditions and unexpected results
+     * when tools are called in parallel.
+     *
+     * If you need to mutate the context, analyze the tool calls and results
+     * in `prepareStep` and update it there.
      */
-    experimental_context: CONTEXT;
+    context: CONTEXT;
   },
 ) => boolean | PromiseLike<boolean>;
 

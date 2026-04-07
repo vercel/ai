@@ -5011,7 +5011,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": {},
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5154,7 +5154,7 @@ describe('streamText', () => {
                 "url": "https://example.com/2",
               },
             ],
-            "experimental_context": {},
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5242,7 +5242,7 @@ describe('streamText', () => {
                 "type": "file",
               },
             ],
-            "experimental_context": {},
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5352,7 +5352,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": {},
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5541,13 +5541,13 @@ describe('streamText', () => {
       expect(startEvent).toMatchSnapshot();
     });
 
-    it('should pass experimental_context', async () => {
+    it('should pass context', async () => {
       let startEvent!: Parameters<StreamTextOnStartCallback>[0];
 
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_context: { userId: 'test-user', sessionId: '123' },
+        context: { userId: 'test-user', sessionId: '123' },
         experimental_onStart: async event => {
           startEvent = event;
         },
@@ -5556,7 +5556,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(startEvent.experimental_context).toEqual({
+      expect(startEvent.context).toEqual({
         userId: 'test-user',
         sessionId: '123',
       });
@@ -5990,7 +5990,7 @@ describe('streamText', () => {
       expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
     });
 
-    it('should expose providerOptions and experimental_context', async () => {
+    it('should expose providerOptions and context', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];
@@ -5999,7 +5999,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         providerOptions: { openai: { logprobs: true } },
-        experimental_context: { userId: 'test-user' },
+        context: { userId: 'test-user' },
         experimental_onStepStart: async event => {
           stepStartEvent = event;
         },
@@ -6011,7 +6011,7 @@ describe('streamText', () => {
       expect(stepStartEvent.providerOptions).toEqual({
         openai: { logprobs: true },
       });
-      expect(stepStartEvent.experimental_context).toEqual({
+      expect(stepStartEvent.context).toEqual({
         userId: 'test-user',
       });
     });
@@ -6290,7 +6290,7 @@ describe('streamText', () => {
       expect(toolCallStartEvents.length).toBe(0);
     });
 
-    it('should pass experimental_context', async () => {
+    it('should pass context', async () => {
       const toolCallStartEvents: Parameters<
         StreamTextOnToolCallStartCallback<any>
       >[0][] = [];
@@ -6326,7 +6326,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { traceId: 'trace-abc', spanId: 'span-123' },
+        context: { traceId: 'trace-abc', spanId: 'span-123' },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
@@ -6336,7 +6336,7 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(toolCallStartEvents.length).toBe(1);
-      expect(toolCallStartEvents[0].experimental_context).toEqual({
+      expect(toolCallStartEvents[0].context).toEqual({
         traceId: 'trace-abc',
         spanId: 'span-123',
       });
@@ -6593,7 +6593,7 @@ describe('streamText', () => {
       expect(toolCallFinishEvents.length).toBe(0);
     });
 
-    it('should pass experimental_context on success', async () => {
+    it('should pass context on success', async () => {
       const toolCallFinishEvents: Parameters<
         StreamTextOnToolCallFinishCallback<any>
       >[0][] = [];
@@ -6629,7 +6629,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { traceId: 'trace-xyz', operation: 'test-op' },
+        context: { traceId: 'trace-xyz', operation: 'test-op' },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
@@ -6640,13 +6640,13 @@ describe('streamText', () => {
 
       expect(toolCallFinishEvents.length).toBe(1);
       expect(toolCallFinishEvents[0].success).toBe(true);
-      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+      expect(toolCallFinishEvents[0].context).toEqual({
         traceId: 'trace-xyz',
         operation: 'test-op',
       });
     });
 
-    it('should pass experimental_context on error', async () => {
+    it('should pass context on error', async () => {
       const toolCallFinishEvents: Parameters<
         StreamTextOnToolCallFinishCallback<any>
       >[0][] = [];
@@ -6685,7 +6685,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { errorTraceId: 'err-trace' },
+        context: { errorTraceId: 'err-trace' },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
@@ -6697,7 +6697,7 @@ describe('streamText', () => {
       expect(toolCallFinishEvents.length).toBe(1);
       expect(toolCallFinishEvents[0].success).toBe(false);
       expect(toolCallFinishEvents[0].error).toBe(toolError);
-      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+      expect(toolCallFinishEvents[0].context).toEqual({
         errorTraceId: 'err-trace',
       });
     });
@@ -7162,9 +7162,9 @@ describe('streamText', () => {
               "type": "tool-result",
             },
           ],
+          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": {},
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -7284,7 +7284,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": {},
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -7477,9 +7477,9 @@ describe('streamText', () => {
               "url": "https://example.com/2",
             },
           ],
+          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": {},
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -7574,7 +7574,7 @@ describe('streamText', () => {
                   "url": "https://example.com/2",
                 },
               ],
-              "experimental_context": {},
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -7739,9 +7739,9 @@ describe('streamText', () => {
               "type": "file",
             },
           ],
+          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": {},
           "files": [
             DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
@@ -7830,7 +7830,7 @@ describe('streamText', () => {
                   "type": "file",
                 },
               ],
-              "experimental_context": {},
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -8463,9 +8463,9 @@ describe('streamText', () => {
                   "type": "text",
                 },
               ],
+              "context": {},
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
-              "experimental_context": {},
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
@@ -8568,7 +8568,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {},
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -8652,7 +8652,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": {},
+                  "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -8812,7 +8812,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": {},
+                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -8896,7 +8896,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": {},
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9074,7 +9074,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": {},
+                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9158,7 +9158,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": {},
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9378,7 +9378,7 @@ describe('streamText', () => {
         stepNumber: number;
         steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
-        experimental_context: unknown;
+        context: unknown;
       }>;
 
       beforeEach(async () => {
@@ -9447,7 +9447,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             }),
           },
-          experimental_context: { context: 'state1' },
+          context: { context: 'state1' },
           prompt: 'test-input',
           stopWhen: isStepCount(3),
           _internal: {
@@ -9459,14 +9459,14 @@ describe('streamText', () => {
             stepNumber,
             steps,
             messages,
-            experimental_context,
+            context,
           }) => {
             prepareStepCalls.push({
               modelId: typeof model === 'string' ? model : model.modelId,
               stepNumber,
               steps,
               messages,
-              experimental_context,
+              context,
             });
 
             if (stepNumber === 0) {
@@ -9482,7 +9482,7 @@ describe('streamText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
-                experimental_context: { context: 'state2' },
+                context: { context: 'state2' },
               };
             }
 
@@ -9490,7 +9490,7 @@ describe('streamText', () => {
               return {
                 activeTools: [],
                 system: 'system-message-1',
-                experimental_context: { context: 'state3' },
+                context: { context: 'state3' },
               };
             }
           },
@@ -9635,7 +9635,7 @@ describe('streamText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
-              "experimental_context": {
+              "context": {
                 "context": "state1",
               },
               "messages": [
@@ -9672,7 +9672,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state2",
                   },
                   "finishReason": "tool-calls",
@@ -9753,7 +9753,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state3",
                   },
                   "finishReason": "stop",
@@ -9838,7 +9838,7 @@ describe('streamText', () => {
               ],
             },
             {
-              "experimental_context": {
+              "context": {
                 "context": "state2",
               },
               "messages": [
@@ -9904,7 +9904,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state2",
                   },
                   "finishReason": "tool-calls",
@@ -9985,7 +9985,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state3",
                   },
                   "finishReason": "stop",
@@ -10358,9 +10358,9 @@ describe('streamText', () => {
                   "type": "text",
                 },
               ],
+              "context": {},
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
-              "experimental_context": {},
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
@@ -10463,7 +10463,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {},
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -10547,7 +10547,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": {},
+                  "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -10707,7 +10707,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": {},
+                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -10791,7 +10791,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": {},
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -10965,7 +10965,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": {},
+                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -11049,7 +11049,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": {},
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -11387,7 +11387,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {},
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -11497,7 +11497,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {},
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -12693,7 +12693,7 @@ describe('streamText', () => {
         {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
-          experimental_context: {},
+          context: {},
           messages: expect.any(Array),
         },
       );
@@ -13321,7 +13321,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": {},
+              "context": {},
               "messages": [
                 {
                   "content": "test-input",
@@ -13335,7 +13335,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": {},
+              "context": {},
               "inputTextDelta": "{"",
               "messages": [
                 {
@@ -13350,7 +13350,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": {},
+              "context": {},
               "inputTextDelta": "value",
               "messages": [
                 {
@@ -13365,7 +13365,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": {},
+              "context": {},
               "inputTextDelta": "":"",
               "messages": [
                 {
@@ -13380,7 +13380,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": {},
+              "context": {},
               "inputTextDelta": "Spark",
               "messages": [
                 {
@@ -13395,7 +13395,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": {},
+              "context": {},
               "inputTextDelta": "le",
               "messages": [
                 {
@@ -13410,7 +13410,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": {},
+              "context": {},
               "inputTextDelta": " Day",
               "messages": [
                 {
@@ -13425,7 +13425,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": {},
+              "context": {},
               "inputTextDelta": ""}",
               "messages": [
                 {
@@ -13440,7 +13440,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": {},
+              "context": {},
               "input": {
                 "value": "Sparkle Day",
               },
@@ -13735,7 +13735,7 @@ describe('streamText', () => {
                 "type": "tool-error",
               },
             ],
-            "experimental_context": {},
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -14240,7 +14240,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": {},
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -14472,9 +14472,9 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
+            "context": {},
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
-            "experimental_context": {},
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
@@ -14594,7 +14594,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": {},
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -14824,7 +14824,7 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
-            "experimental_context": {},
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -15278,7 +15278,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": {},
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -15407,6 +15407,50 @@ describe('streamText', () => {
             "Hello, world!",
           ]
         `);
+      });
+
+      it('should not call JSON.stringify for string partial outputs', async () => {
+        const originalStringify = JSON.stringify;
+        const stringifySpy = vi.spyOn(JSON, 'stringify').mockImplementation(((
+          ...args: Parameters<typeof JSON.stringify>
+        ) => {
+          if (typeof args[0] === 'string') {
+            throw new Error(
+              'JSON.stringify should not be called for string partial outputs',
+            );
+          }
+          return originalStringify.call(JSON, ...args);
+        }) as typeof JSON.stringify);
+
+        try {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                { type: 'text-delta', id: '1', delta: 'world!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            prompt: 'prompt',
+            output: Output.text(),
+          });
+
+          expect(await convertAsyncIterableToArray(result.partialOutputStream))
+            .toMatchInlineSnapshot(`
+            [
+              "Hello, ",
+              "Hello, world!",
+            ]
+          `);
+        } finally {
+          stringifySpy.mockRestore();
+        }
       });
 
       it('should resolve output promise with the correct content', async () => {
@@ -15721,9 +15765,9 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
+            "context": {},
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
-            "experimental_context": {},
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
@@ -15769,7 +15813,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": {},
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -16865,7 +16909,7 @@ describe('streamText', () => {
                   "type": "reasoning",
                 },
               ],
-              "experimental_context": {},
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -17256,7 +17300,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {},
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -17634,13 +17678,13 @@ describe('streamText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { experimental_context }) => {
-              recordedContext = experimental_context;
+            execute: async ({ value }, { context }) => {
+              recordedContext = context;
               return { value: 'test-result' };
             },
           }),
         },
-        experimental_context: {
+        context: {
           context: 'test',
         },
         prompt: 'test-input',
@@ -17654,7 +17698,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should pass experimental_context to prepareStep', async () => {
+    it('should pass context to prepareStep', async () => {
       let capturedContext: unknown;
 
       const result = streamText({
@@ -17673,9 +17717,9 @@ describe('streamText', () => {
             response: {},
           }),
         }),
-        experimental_context: { myData: 'test-value' },
-        prepareStep: async ({ experimental_context }) => {
-          capturedContext = experimental_context;
+        context: { myData: 'test-value' },
+        prepareStep: async ({ context }) => {
+          capturedContext = context;
           return undefined;
         },
         prompt: 'test',
@@ -17704,12 +17748,12 @@ describe('streamText', () => {
             ]),
           }),
         }),
-        experimental_context: {
+        context: {
           context: 'test',
         },
         prompt: 'test-input',
-        onFinish: ({ experimental_context }) => {
-          recordedContext = experimental_context;
+        onFinish: ({ context }) => {
+          recordedContext = context;
         },
       });
 
@@ -18311,7 +18355,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": {},
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
