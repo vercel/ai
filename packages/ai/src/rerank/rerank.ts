@@ -7,6 +7,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { resolveRerankingModel } from '../model/resolve-model';
 import { RerankingModel } from '../types';
 import { RerankResult } from './rerank-result';
 import { logWarnings } from '../logger/log-warnings';
@@ -28,7 +29,7 @@ import { logWarnings } from '../logger/log-warnings';
  * @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
 export async function rerank<VALUE extends JSONObject | string>({
-  model,
+  model: modelArg,
   documents,
   query,
   topN,
@@ -88,6 +89,17 @@ export async function rerank<VALUE extends JSONObject | string>({
    */
   providerOptions?: ProviderOptions;
 }): Promise<RerankResult<VALUE>> {
+<<<<<<< HEAD
+=======
+  const model = resolveRerankingModel(modelArg);
+  const callId = generateCallId();
+
+  const createGlobalTelemetry = getGlobalTelemetryIntegration();
+  const globalTelemetry = createGlobalTelemetry({
+    integrations: telemetry?.integrations,
+  });
+
+>>>>>>> 664a0eb8d (feat(ai/core): support plain string model IDs in rerank() (#14203))
   if (documents.length === 0) {
     return new DefaultRerankResult({
       originalDocuments: [],
