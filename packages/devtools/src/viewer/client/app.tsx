@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ChevronRight,
   RefreshCw,
@@ -14,6 +14,7 @@ import {
   Brain,
   Loader2,
   BarChart3,
+  GanttChart,
 } from 'lucide-react';
 import { AISDKLogo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
@@ -294,6 +295,7 @@ function App() {
   const [selectedRun, setSelectedRun] = useState<RunDetail | null>(null);
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [showTimeline, setShowTimeline] = useState(false);
 
   const fetchRuns = async () => {
     try {
@@ -655,8 +657,36 @@ function App() {
                     <span>
                       {new Date(selectedRun.run.started_at).toLocaleString()}
                     </span>
+                    <span className="px-3 text-muted-foreground/30">·</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setShowTimeline(prev => !prev)}
+                          className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                            showTimeline
+                              ? 'bg-accent text-foreground'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+                          }`}
+                        >
+                          <GanttChart className="size-3.5" />
+                          Timeline
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {showTimeline ? 'Hide' : 'Show'} trace timeline
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
+
+                {/* Trace Timeline */}
+                {showTimeline && (
+                  <TraceTimeline
+                    runDetail={selectedRun}
+                    parseJson={parseJson}
+                    formatDuration={formatDuration}
+                  />
+                )}
 
                 {/* Steps */}
                 <div className="flex flex-col gap-3">
@@ -686,6 +716,292 @@ function App() {
             )}
           </ScrollArea>
         </main>
+      </div>
+    </div>
+  );
+}
+
+interface TraceSpan {
+  id: string;
+  label: string;
+  sublabel?: string;
+  startMs: number;
+  durationMs: number;
+  depth: number;
+  kind: 'run' | 'step' | 'child-run';
+  tokens?: { input: number; output: number };
+  modelId?: string;
+  isInProgress?: boolean;
+}
+
+function buildTraceSpans(
+  runDetail: RunDetail,
+  parseJson: (s: string | null) => any,
+): TraceSpan[] {
+  const spans: TraceSpan[] = [];
+  const traceStart = new Date(runDetail.run.started_at).getTime();
+
+  const addStepSpans = (
+    steps: Step[],
+    depth: number,
+    childRuns: ChildRun[],
+  ) => {
+    for (const step of steps) {
+      const stepStart = new Date(step.started_at).getTime();
+      const usage = parseJson(step.usage);
+      const output = parseJson(step.output);
+
+      const finishReason =
+        typeof output?.finishReason === 'string'
+          ? output.finishReason
+          : output?.finishReason?.unified;
+
+      let label = step.model_id || 'LLM call';
+      let sublabel = '';
+      if (finishReason === 'tool-calls') {
+        const toolCalls =
+          output?.toolCalls ||
+          output?.content?.filter((p: any) => p.type === 'tool-call') ||
+          [];
+        const names = [
+          ...new Set(toolCalls.map((c: any) => c.toolName).filter(Boolean)),
+        ];
+        sublabel = names.join(', ');
+      } else if (step.error) {
+        sublabel = 'Error';
+      } else {
+        sublabel = 'Response';
+      }
+
+      spans.push({
+        id: step.id,
+        label,
+        sublabel,
+        startMs: stepStart - traceStart,
+        durationMs: step.duration_ms ?? 0,
+        depth,
+        kind: 'step',
+        tokens: usage
+          ? {
+              input:
+                typeof usage.inputTokens === 'number'
+                  ? usage.inputTokens
+                  : (usage.inputTokens?.total ?? 0),
+              output:
+                typeof usage.outputTokens === 'number'
+                  ? usage.outputTokens
+                  : (usage.outputTokens?.total ?? 0),
+            }
+          : undefined,
+        modelId: step.model_id,
+        isInProgress: step.duration_ms === null && !step.error,
+      });
+
+      const stepChildRuns = childRuns.filter(
+        cr => cr.run.parent_step_id === step.id,
+      );
+      for (const cr of stepChildRuns) {
+        const crStart = new Date(cr.run.started_at).getTime();
+        const crDuration = cr.steps.reduce(
+          (acc, s) => acc + (s.duration_ms || 0),
+          0,
+        );
+        const firstStep = cr.steps[0];
+        const firstInput = firstStep ? parseJson(firstStep.input) : null;
+        const userMsg = firstInput?.prompt?.findLast?.(
+          (m: any) => m.role === 'user',
+        );
+        let crLabel = 'Sub-agent';
+        if (userMsg) {
+          const content =
+            typeof userMsg.content === 'string'
+              ? userMsg.content
+              : userMsg.content?.[0]?.text || '';
+          crLabel =
+            content.length > 40 ? content.slice(0, 40) + '...' : content;
+        }
+
+        spans.push({
+          id: cr.run.id,
+          label: crLabel,
+          sublabel: firstStep?.model_id,
+          startMs: crStart - traceStart,
+          durationMs: crDuration,
+          depth: depth + 1,
+          kind: 'child-run',
+          isInProgress: cr.run.isInProgress,
+        });
+
+        addStepSpans(cr.steps, depth + 2, []);
+      }
+    }
+  };
+
+  addStepSpans(runDetail.steps, 0, runDetail.childRuns ?? []);
+  return spans;
+}
+
+const SPAN_COLORS: Record<TraceSpan['kind'], string> = {
+  run: 'bg-blue-500',
+  step: 'bg-blue-500',
+  'child-run': 'bg-cyan-500',
+};
+
+const SPAN_COLORS_MUTED: Record<TraceSpan['kind'], string> = {
+  run: 'bg-blue-500/20',
+  step: 'bg-blue-500/20',
+  'child-run': 'bg-cyan-500/20',
+};
+
+function TraceTimeline({
+  runDetail,
+  parseJson,
+  formatDuration,
+}: {
+  runDetail: RunDetail;
+  parseJson: (s: string | null) => any;
+  formatDuration: (ms: number | null) => string;
+}) {
+  const spans = useMemo(
+    () => buildTraceSpans(runDetail, parseJson),
+    [runDetail, parseJson],
+  );
+
+  if (spans.length === 0) return null;
+
+  const totalDurationMs = Math.max(
+    ...spans.map(s => s.startMs + s.durationMs),
+    1,
+  );
+
+  const tickCount = 5;
+  const ticks = Array.from({ length: tickCount + 1 }, (_, i) => {
+    const ms = (totalDurationMs / tickCount) * i;
+    return {
+      ms,
+      label: ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`,
+    };
+  });
+
+  const ROW_HEIGHT = 28;
+  const LABEL_WIDTH = 280;
+
+  return (
+    <div className="mb-5 rounded-lg border border-border bg-card overflow-hidden">
+      <div className="px-4 py-2 border-b border-border bg-muted/20 flex items-center justify-between">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Trace Timeline
+        </span>
+        <span className="text-[11px] font-mono text-muted-foreground">
+          {formatDuration(totalDurationMs)}
+        </span>
+      </div>
+
+      <div className="overflow-x-auto">
+        <div style={{ minWidth: LABEL_WIDTH + 400 }}>
+          {/* Time axis */}
+          <div
+            className="flex border-b border-border/50"
+            style={{ height: 22 }}
+          >
+            <div
+              style={{ width: LABEL_WIDTH, minWidth: LABEL_WIDTH }}
+              className="shrink-0"
+            />
+            <div className="flex-1 relative">
+              {ticks.map((tick, i) => (
+                <span
+                  key={i}
+                  className="absolute text-[9px] font-mono text-muted-foreground/60 -translate-x-1/2"
+                  style={{
+                    left: `${(tick.ms / totalDurationMs) * 100}%`,
+                    top: 5,
+                  }}
+                >
+                  {tick.label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Span rows */}
+          {spans.map(span => {
+            const leftPct = (span.startMs / totalDurationMs) * 100;
+            const widthPct = Math.max(
+              (span.durationMs / totalDurationMs) * 100,
+              0.3,
+            );
+
+            return (
+              <div
+                key={span.id}
+                className="flex items-center border-b border-border/30 hover:bg-accent/30 transition-colors"
+                style={{ height: ROW_HEIGHT }}
+              >
+                {/* Label column */}
+                <div
+                  className="shrink-0 flex items-center gap-1.5 px-2 overflow-hidden"
+                  style={{
+                    width: LABEL_WIDTH,
+                    minWidth: LABEL_WIDTH,
+                    paddingLeft: 8 + span.depth * 16,
+                  }}
+                >
+                  {span.kind === 'child-run' ? (
+                    <Brain className="size-3 text-cyan-400 shrink-0" />
+                  ) : (
+                    <Zap className="size-3 text-blue-400 shrink-0" />
+                  )}
+                  <span className="text-[11px] font-mono text-foreground truncate">
+                    {span.label}
+                  </span>
+                  {span.sublabel && (
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      {span.sublabel}
+                    </span>
+                  )}
+                  <span className="ml-auto text-[10px] font-mono text-muted-foreground shrink-0 pl-1">
+                    {formatDuration(span.durationMs || null)}
+                  </span>
+                  {span.tokens && (
+                    <span className="text-[9px] font-mono text-muted-foreground/60 shrink-0">
+                      {span.tokens.input}→{span.tokens.output}
+                    </span>
+                  )}
+                </div>
+
+                {/* Bar column */}
+                <div className="flex-1 relative h-full">
+                  {/* Grid lines */}
+                  {ticks.map((tick, i) => (
+                    <div
+                      key={i}
+                      className="absolute top-0 bottom-0 border-l border-border/20"
+                      style={{ left: `${(tick.ms / totalDurationMs) * 100}%` }}
+                    />
+                  ))}
+                  {/* Bar */}
+                  <div
+                    className="absolute top-1 bottom-1 flex items-center"
+                    style={{
+                      left: `${leftPct}%`,
+                      width: `${widthPct}%`,
+                      minWidth: 3,
+                    }}
+                  >
+                    <div
+                      className={`h-full w-full rounded-sm ${
+                        span.isInProgress
+                          ? `${SPAN_COLORS_MUTED[span.kind]} animate-pulse`
+                          : SPAN_COLORS[span.kind]
+                      }`}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
