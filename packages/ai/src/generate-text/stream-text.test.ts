@@ -1,4 +1,5 @@
 import {
+  APICallError,
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4FunctionTool,
@@ -2203,6 +2204,50 @@ describe('streamText', () => {
       await expect(result.text).rejects.toThrow(
         'No output generated. Check the stream for errors.',
       );
+    });
+  });
+
+  describe('retries', () => {
+    it('should retry after a 500 error and stream the successful response', async () => {
+      const doStream = vi
+        .fn<LanguageModelV4['doStream']>()
+        .mockImplementationOnce(async () => {
+          throw new APICallError({
+            message: 'Internal Server Error',
+            url: 'https://api.example.com/v1/chat',
+            requestBodyValues: { prompt: 'test-input' },
+            statusCode: 500,
+            responseHeaders: {
+              'retry-after-ms': '1',
+            },
+          });
+        })
+        .mockImplementationOnce(async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'hello' },
+            { type: 'text-delta', id: '1', delta: ' ' },
+            { type: 'text-delta', id: '1', delta: 'world' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }));
+
+      const result = streamText({
+        model: new MockLanguageModelV4({ doStream }),
+        prompt: 'test-input',
+      });
+
+      const textStreamPromise = convertAsyncIterableToArray(result.textStream);
+
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(await textStreamPromise).toStrictEqual(['hello', ' ', 'world']);
+      expect(doStream).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -13725,7 +13770,7 @@ describe('streamText', () => {
                     {
                       "output": {
                         "type": "error-text",
-                        "value": "test error",
+                        "value": "Error: test error",
                       },
                       "toolCallId": "call-1",
                       "toolName": "tool1",
@@ -13785,7 +13830,7 @@ describe('streamText', () => {
               {
                 "output": {
                   "type": "error-text",
-                  "value": "test error",
+                  "value": "Error: test error",
                 },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
@@ -13817,7 +13862,7 @@ describe('streamText', () => {
               "type": "tool-input-available",
             },
             {
-              "errorText": "test error",
+              "errorText": "Error: test error",
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
@@ -16982,7 +17027,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -17000,7 +17045,7 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -17348,7 +17393,7 @@ describe('streamText', () => {
                 },
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -17382,7 +17427,7 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -17542,7 +17587,7 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -17732,7 +17777,7 @@ describe('streamText', () => {
           [
             {
               "dynamic": true,
-              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -17756,7 +17801,7 @@ describe('streamText', () => {
             },
             {
               "dynamic": true,
-              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -17809,7 +17854,7 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
-                "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -17833,7 +17878,7 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
-                "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -17927,7 +17972,7 @@ describe('streamText', () => {
                 "type": "tool-input-delta",
               },
               {
-                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -17946,7 +17991,7 @@ describe('streamText', () => {
                 "type": "tool-input-error",
               },
               {
-                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -21526,7 +21571,7 @@ describe('streamText', () => {
                   toolName: 'tool1',
                   output: {
                     type: 'error-text',
-                    value: 'No valid token for plugin',
+                    value: 'Error: No valid token for plugin',
                   },
                   providerOptions: undefined,
                 },

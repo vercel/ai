@@ -7,6 +7,7 @@ import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 import {
   convertBase64ToUint8Array,
   convertToBase64,
+  isProviderReference,
 } from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
@@ -58,6 +59,12 @@ export function convertToOpenAICompatibleChatMessages(
                 return { type: 'text', text: part.text, ...partMetadata };
               }
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'

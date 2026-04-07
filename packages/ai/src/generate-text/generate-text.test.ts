@@ -5158,7 +5158,7 @@ describe('generateText', () => {
               {
                 "output": {
                   "type": "error-text",
-                  "value": "test error",
+                  "value": "Error: test error",
                 },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
@@ -6653,7 +6653,7 @@ describe('generateText', () => {
           [
             {
               "dynamic": true,
-              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -6677,7 +6677,7 @@ describe('generateText', () => {
             },
             {
               "dynamic": true,
-              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -6722,7 +6722,7 @@ describe('generateText', () => {
                 {
                   "output": {
                     "type": "error-text",
-                    "value": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                    "value": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -7641,7 +7641,7 @@ describe('generateText', () => {
                   toolName: 'tool1',
                   output: {
                     type: 'error-text',
-                    value: 'No valid token for plugin',
+                    value: 'Error: No valid token for plugin',
                   },
                   providerOptions: undefined,
                 },

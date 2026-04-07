@@ -103,8 +103,9 @@ export interface ImagePart {
    * Image data. Can either be:
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the image
+   * - ProviderReference: a provider reference from `uploadFile`
    */
-  image: DataContent | URL;
+  image: DataContent | URL | ProviderReference;
 
   /**
    * Optional IANA media type of the image.
@@ -126,8 +127,9 @@ export interface FilePart {
    * File data. Can either be:
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the file
+   * - ProviderReference: a provider reference from `uploadFile`
    */
-  data: DataContent | URL;
+  data: DataContent | URL | ProviderReference;
 
   /**
    * Optional filename of the file.
@@ -342,6 +344,9 @@ IANA media type.
             providerOptions?: ProviderOptions;
           }
         | {
+            /**
+             * @deprecated Use file-reference instead.
+             */
             type: 'file-id';
 
             /**
@@ -353,6 +358,20 @@ IANA media type.
              * name, e.g. 'openai' or 'anthropic'.
              */
             fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            type: 'file-reference';
+
+            /**
+             * Provider-specific references for the file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
+             */
+            providerReference: ProviderReference;
 
             /**
              * Provider-specific options.
@@ -400,6 +419,7 @@ IANA media type.
         | {
             /**
              * Images that are referenced using a provider file id.
+             * @deprecated Use image-file-reference instead.
              */
             type: 'image-file-id';
 
@@ -412,6 +432,23 @@ IANA media type.
              * name, e.g. 'openai' or 'anthropic'.
              */
             fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using a provider reference.
+             */
+            type: 'image-file-reference';
+
+            /**
+             * Provider-specific references for the image file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
+             */
+            providerReference: ProviderReference;
 
             /**
              * Provider-specific options.

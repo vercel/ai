@@ -7,8 +7,10 @@ import {
 import {
   convertToBase64,
   isNonNullable,
+  isProviderReference,
   parseJSON,
   parseProviderOptions,
+  resolveProviderReference,
   ToolNameMapping,
   validateTypes,
 } from '@ai-sdk/provider-utils';
@@ -35,8 +37,10 @@ import {
 } from '../tool/tool-search';
 
 /**
- * Check if a string is a file ID based on the given prefixes
- * Returns false if prefixes is undefined (disables file ID detection)
+ * This is soft-deprecated. Use provider references instead. Kept for backward compatibility
+ * with the `fileIdPrefixes` option.
+ *
+ * TODO: remove in v8
  */
 function isFileId(data: string, prefixes?: readonly string[]): boolean {
   if (!prefixes) return false;
@@ -60,6 +64,7 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
+  /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
@@ -113,6 +118,28 @@ export async function convertToOpenAIResponsesInput({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  const fileId = resolveProviderReference({
+                    reference: part.data,
+                    provider: providerOptionsName,
+                  });
+
+                  if (part.mediaType.startsWith('image/')) {
+                    return {
+                      type: 'input_image',
+                      file_id: fileId,
+                      detail:
+                        part.providerOptions?.[providerOptionsName]
+                          ?.imageDetail,
+                    };
+                  }
+
+                  return {
+                    type: 'input_file',
+                    file_id: fileId,
+                  };
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'

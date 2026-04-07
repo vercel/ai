@@ -1608,61 +1608,63 @@ class DefaultStreamTextResult<
 
           const stepStartTimestampMs = now();
 
+          const { retry } = prepareRetries({ maxRetries, abortSignal });
+
           const {
             stream: languageModelStream,
             request,
             response,
-          } = await streamModelCall({
-            model: prepareStepResult?.model ?? model,
-            tools: stepActiveTools,
-            activeTools: prepareStepResult?.activeTools ?? activeTools,
-            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-            system: stepSystem,
-            messages: stepMessages,
-            repairToolCall,
-            abortSignal,
-            headers,
-            includeRawChunks,
-            providerOptions: stepProviderOptions,
-            download,
-            maxRetries,
-            output,
-            onStart: async ({ promptMessages }) => {
-              await notify({
-                event: {
-                  callId,
-                  stepNumber: recordedSteps.length,
-                  provider: stepModel.provider,
-                  modelId: stepModel.modelId,
-                  system: stepSystem,
-                  messages: stepMessages,
-                  tools,
-                  toolChoice: stepToolChoice,
-                  activeTools: prepareStepResult?.activeTools ?? activeTools,
-                  steps: [...recordedSteps],
-                  providerOptions: stepProviderOptions,
-                  timeout,
-                  headers,
-                  stopWhen,
-                  output,
-                  abortSignal: originalAbortSignal,
-                  include,
-                  ...callbackTelemetryProps,
-                  context,
-                  promptMessages,
-                  stepTools,
-                  stepToolChoice,
-                },
-                callbacks: [
-                  onStepStart,
-                  globalTelemetry.onStepStart as
-                    | undefined
-                    | StreamTextOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>,
-                ],
-              });
-            },
-            ...callSettings,
-          });
+          } = await retry(async () =>
+            streamModelCall({
+              model: prepareStepResult?.model ?? model,
+              tools: stepActiveTools,
+              toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+              system: stepSystem,
+              messages: stepMessages,
+              repairToolCall,
+              abortSignal,
+              headers,
+              includeRawChunks,
+              providerOptions: stepProviderOptions,
+              download,
+              output,
+              onStart: async ({ promptMessages }) => {
+                await notify({
+                  event: {
+                    callId,
+                    stepNumber: recordedSteps.length,
+                    provider: stepModel.provider,
+                    modelId: stepModel.modelId,
+                    system: stepSystem,
+                    messages: stepMessages,
+                    tools,
+                    toolChoice: stepToolChoice,
+                    activeTools: prepareStepResult?.activeTools ?? activeTools,
+                    steps: [...recordedSteps],
+                    providerOptions: stepProviderOptions,
+                    timeout,
+                    headers,
+                    stopWhen,
+                    output,
+                    abortSignal: originalAbortSignal,
+                    include,
+                    ...callbackTelemetryProps,
+                    context,
+                    promptMessages,
+                    stepTools,
+                    stepToolChoice,
+                  },
+                  callbacks: [
+                    onStepStart,
+                    globalTelemetry.onStepStart as
+                      | undefined
+                      | StreamTextOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>,
+                  ],
+                });
+              },
+              ...callSettings,
+            }),
+          );
 
           const stream2 = invokeToolCallbacksFromStream({
             stream: languageModelStream,

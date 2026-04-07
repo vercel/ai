@@ -1,5 +1,46 @@
 # @ai-sdk/cerebras
 
+## 3.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [816ff67]
+  - @ai-sdk/openai-compatible@3.0.0-beta.17
+
+## 3.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+  - @ai-sdk/openai-compatible@3.0.0-beta.16
+
+## 3.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+  - @ai-sdk/openai-compatible@3.0.0-beta.15
+
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.14
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/openai-compatible@3.0.0-beta.13
+
 ## 3.0.0-beta.12
 
 ### Patch Changes

@@ -1,5 +1,44 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- f57c702: fix(anthropic): allow both temperature and topP for non-Anthropic models using the Anthropic-compatible API
+
+  The temperature/topP mutual exclusivity check now only applies to known Anthropic models (model IDs starting with `claude-`). Non-Anthropic models using the Anthropic-compatible API (e.g. Minimax) can now send both parameters as required by their APIs.
+
 ## 4.0.0-beta.14
 
 ### Patch Changes

@@ -1,5 +1,42 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.0-beta.17
+
+### Patch Changes
+
+- 816ff67: fix(openai-compatible): honor camelCase providerOptions key in chat and completion models
+
+## 3.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 3.0.0-beta.15
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 3.0.0-beta.14
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 3.0.0-beta.13
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
 ## 3.0.0-beta.12
 
 ### Patch Changes
