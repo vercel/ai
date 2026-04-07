@@ -72,7 +72,10 @@ export async function* streamTextIterator({
   prompt: LanguageModelV4Prompt;
   tools: ToolSet;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
-  model: string | (() => Promise<CompatibleLanguageModel>);
+  model:
+    | string
+    | CompatibleLanguageModel
+    | (() => Promise<CompatibleLanguageModel>);
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
   onStepFinish?: StreamTextOnStepFinishCallback<any, any>;
@@ -92,7 +95,10 @@ export async function* streamTextIterator({
   LanguageModelV4ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
-  let currentModel: string | (() => Promise<CompatibleLanguageModel>) = model;
+  let currentModel:
+    | string
+    | CompatibleLanguageModel
+    | (() => Promise<CompatibleLanguageModel>) = model;
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
   let currentContext = experimental_context;

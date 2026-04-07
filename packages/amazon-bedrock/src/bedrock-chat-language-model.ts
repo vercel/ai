@@ -25,6 +25,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { getModelCapabilities } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
@@ -48,7 +51,7 @@ import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
 };
@@ -56,6 +59,17 @@ type BedrockChatConfig = {
 export class BedrockChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
+
+  static [WORKFLOW_SERIALIZE](inst: BedrockChatLanguageModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: BedrockChatConfig;
+  }) {
+    return new BedrockChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(
     readonly modelId: BedrockChatModelId,
@@ -428,7 +442,10 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
   }: {
     headers: Record<string, string | undefined> | undefined;
   }) {
-    return combineHeaders(await resolve(this.config.headers), headers);
+    return combineHeaders(
+      this.config.headers ? await resolve(this.config.headers) : undefined,
+      headers,
+    );
   }
 
   async doGenerate(

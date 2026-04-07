@@ -16,6 +16,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
@@ -35,6 +38,17 @@ interface GoogleVertexImageModelConfig {
 // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
 export class GoogleVertexImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](inst: GoogleVertexImageModel) {
+    return serializeModel(inst);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleVertexImageModelConfig;
+  }) {
+    return new GoogleVertexImageModel(options.modelId, options.config);
+  }
 
   get maxImagesPerCall(): number {
     if (isGeminiModel(this.modelId)) {
@@ -164,7 +178,10 @@ export class GoogleVertexImageModel implements ImageModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:predict`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
+      headers: combineHeaders(
+        this.config.headers ? await resolve(this.config.headers) : undefined,
+        headers,
+      ),
       body,
       failedResponseHandler: googleVertexFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

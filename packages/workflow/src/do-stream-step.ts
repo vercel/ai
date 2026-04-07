@@ -87,7 +87,10 @@ export interface StreamFinish {
 
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
-  modelInit: string | (() => Promise<CompatibleLanguageModel>),
+  modelInit:
+    | string
+    | CompatibleLanguageModel
+    | (() => Promise<CompatibleLanguageModel>),
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>,
   serializedTools?: Record<string, SerializableToolDef>,
   options?: DoStreamStepOptions,
@@ -100,9 +103,15 @@ export async function doStreamStep(
     model = gateway.languageModel(modelInit) as CompatibleLanguageModel;
   } else if (typeof modelInit === 'function') {
     model = await modelInit();
+  } else if (
+    typeof modelInit === 'object' &&
+    modelInit !== null &&
+    'modelId' in modelInit
+  ) {
+    model = modelInit;
   } else {
     throw new Error(
-      'Invalid "model initialization" argument. Must be a string or a function that returns a LanguageModel instance.',
+      'Invalid "model initialization" argument. Must be a string, a LanguageModel instance, or a function that returns a LanguageModel instance.',
     );
   }
 

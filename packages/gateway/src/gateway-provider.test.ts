@@ -171,7 +171,7 @@ describe('GatewayProvider', () => {
       // Verify headers function
       const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
-      const headers = await config.headers();
+      const headers = await config.headers!();
 
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',
@@ -193,7 +193,7 @@ describe('GatewayProvider', () => {
 
       const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
-      const headers = await config.headers();
+      const headers = await config.headers!();
 
       expect(headers).toEqual({
         authorization: 'Bearer mock-oidc-token',
@@ -595,7 +595,7 @@ describe('GatewayProvider', () => {
 
       // Get the headers function that was passed to GatewayFetchMetadata
       const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
-      const headers = await resolve(config.headers());
+      const headers = await resolve(config.headers!());
 
       // Verify that the API key was used in the Authorization header
       expect(headers['authorization']).toBe(`Bearer ${testApiKey}`);
@@ -1149,7 +1149,7 @@ describe('GatewayProvider', () => {
       await provider.getCredits();
 
       const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
-      const headers = await config.headers();
+      const headers = await config.headers!();
 
       expect(headers).toEqual({
         authorization: 'Bearer test-key',

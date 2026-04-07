@@ -9,23 +9,23 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "4.0.0-beta.10",
-    "@ai-sdk/workflow": "0.0.1",
-    "@ai-sdk/react": "4.0.0-beta.47",
-    "ai": "7.0.0-beta.47",
-    "next": "^15.5.9",
-    "react": "^18",
-    "react-dom": "^18",
-    "workflow": "4.2.0-beta.71",
+    "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
+    "@ai-sdk/workflow": "workspace:*",
+    "ai": "workspace:*",
+    "next": "^15.5.14",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "workflow": "https://workflow-docs-git-fix-class-expr-binding-name-method-reg-28f36b.vercel.sh/workflow.tgz",
     "zod": "3.25.76"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.15",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.19",
     "typescript": "5.8.3"
   }
 }
