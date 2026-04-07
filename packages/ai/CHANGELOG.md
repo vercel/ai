@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.67
+
+### Patch Changes
+
+- d1a8bed: fix(ui): export `isDynamicToolUIPart` from `ai` package
+
 ## 7.0.0-beta.66
 
 ### Patch Changes
