@@ -31,6 +31,7 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
@@ -450,7 +451,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
                 id: anthropicOptions.container.id,
                 skills: anthropicOptions.container.skills.map(skill => ({
                   type: skill.type,
-                  skill_id: skill.skillId,
+                  skill_id:
+                    skill.type === 'custom'
+                      ? resolveProviderReference({
+                          reference: skill.providerReference,
+                          provider: 'anthropic',
+                        })
+                      : skill.skillId,
                   version: skill.version,
                 })),
               } satisfies AnthropicContainer)

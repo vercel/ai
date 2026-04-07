@@ -1,5 +1,57 @@
 # ai
 
+## 7.0.0-beta.69
+
+### Major Changes
+
+- 72223e7: chore(ai): remove deprecated isToolOrDynamicToolUIPart function
+
+### Patch Changes
+
+- 34bd95d: feat(ai): add support for uploading provider skills using the provider references abstraction
+- 008271d: feat(openai-compatible): emit warning when using kebab-case instead of camelCase
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/gateway@4.0.0-beta.38
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 7.0.0-beta.68
+
+### Major Changes
+
+- 7e26e81: chore: rename experimental_context to context
+
+### Patch Changes
+
+- b0c2869: chore(ai): remove deprecated `media` type part from `ToolResultOutput`
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+  - @ai-sdk/gateway@4.0.0-beta.37
+
+## 7.0.0-beta.67
+
+### Patch Changes
+
+- d1a8bed: fix(ui): export `isDynamicToolUIPart` from `ai` package
+
+## 7.0.0-beta.66
+
+### Patch Changes
+
+- Updated dependencies [fb0c233]
+- Updated dependencies [d1f0d2b]
+  - @ai-sdk/gateway@4.0.0-beta.36
+
+## 7.0.0-beta.65
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+  - @ai-sdk/gateway@4.0.0-beta.35
+
 ## 7.0.0-beta.64
 
 ### Patch Changes

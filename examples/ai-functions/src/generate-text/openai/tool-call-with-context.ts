@@ -15,10 +15,7 @@ run(async () => {
         contextSchema: z.object({
           weatherApiKey: z.string().describe('The API key for the weather API'),
         }),
-        execute: async (
-          { location },
-          { experimental_context: { weatherApiKey } },
-        ) => {
+        execute: async ({ location }, { context: { weatherApiKey } }) => {
           console.log('weather tool api key:', weatherApiKey);
 
           return {
@@ -39,10 +36,7 @@ run(async () => {
             .string()
             .describe('The API key for the calculator API'),
         }),
-        execute: async (
-          { expression },
-          { experimental_context: { calculatorApiKey } },
-        ) => {
+        execute: async ({ expression }, { context: { calculatorApiKey } }) => {
           console.log('calculator tool api key:', calculatorApiKey);
           return {
             expression,
@@ -51,12 +45,12 @@ run(async () => {
         },
       }),
     },
-    experimental_context: {
+    context: {
       weatherApiKey: 'weather-123',
       calculatorApiKey: 'calculator-456',
       somethingElse: 'other-context',
     },
-    prepareStep: async ({ experimental_context: context }) => {
+    prepareStep: async ({ context }) => {
       console.log('prepareStep context:', context);
       return {};
     },
