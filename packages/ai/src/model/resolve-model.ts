@@ -171,10 +171,11 @@ export function resolveVideoModel(
 
 export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
   if (typeof model === 'string') {
-    // Use raw global provider because rerankingModel is not yet
-    // part of the ProviderV4 interface
+    // Use raw global provider because rerankingModel is experimental
+    // and not part of the ProviderV4 interface
     const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
-    // @ts-expect-error - rerankingModel is not yet on ProviderV4
+    // TODO AI SDK v7
+    // @ts-expect-error - rerankingModel support is experimental
     const rerankingModel = provider.rerankingModel;
 
     if (!rerankingModel) {
