@@ -82,7 +82,7 @@ describe('tool type', () => {
         contextSchema,
         execute: async (input, options) => {
           expectTypeOf(input).toEqualTypeOf<{ number: number }>();
-          expectTypeOf(options.experimental_context).toEqualTypeOf<
+          expectTypeOf(options.context).toEqualTypeOf<
             z.infer<typeof contextSchema>
           >();
           return 'test' as const;
@@ -103,19 +103,19 @@ describe('tool type', () => {
         inputSchema: z.object({ number: z.number() }),
         contextSchema,
         onInputStart: options => {
-          expectTypeOf(options.experimental_context).toEqualTypeOf<
+          expectTypeOf(options.context).toEqualTypeOf<
             z.infer<typeof contextSchema>
           >();
         },
         onInputDelta: options => {
           expectTypeOf(options.inputTextDelta).toEqualTypeOf<string>();
-          expectTypeOf(options.experimental_context).toEqualTypeOf<
+          expectTypeOf(options.context).toEqualTypeOf<
             z.infer<typeof contextSchema>
           >();
         },
         onInputAvailable: options => {
           expectTypeOf(options.input).toEqualTypeOf<{ number: number }>();
-          expectTypeOf(options.experimental_context).toEqualTypeOf<
+          expectTypeOf(options.context).toEqualTypeOf<
             z.infer<typeof contextSchema>
           >();
         },
@@ -235,7 +235,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context: Context;
+            context: Context;
           }>();
           return true;
         },
@@ -248,7 +248,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context: Context;
+              context: Context;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined
@@ -264,7 +264,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context: Context;
+            context: Context;
           }>();
           return true;
         },
@@ -277,7 +277,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context: Context;
+              context: Context;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined
@@ -298,7 +298,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context: z.infer<typeof contextSchema>;
+            context: z.infer<typeof contextSchema>;
           }>();
           return true;
         },
@@ -311,7 +311,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context: z.infer<typeof contextSchema>;
+              context: z.infer<typeof contextSchema>;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined

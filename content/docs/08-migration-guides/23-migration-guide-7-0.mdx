@@ -86,11 +86,17 @@ registerTelemetryIntegration(
 );
 ```
 
-### Tools: `experimental_context` is Typed via Generic `CONTEXT` and `contextSchema`
+This applies to all AI SDK functions that accept `experimental_telemetry`, including `streamText`, `generateObject`, `streamObject`, `embed`, and `embedMany`.
 
-Tool callbacks are now generic over a `CONTEXT` type instead of treating `experimental_context` as an untyped value. In practice, this means `tool()` can infer the type of `experimental_context` from a tool's `contextSchema`.
+If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetryIntegration` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
 
-In AI SDK 6, tool code often had to cast `experimental_context` manually:
+### Tools: `experimental_context` Was Renamed to Stable `context`, and `context` Is Now Typed
+
+In AI SDK 7, the tool callback option previously exposed as `experimental_context` has been renamed to `context` and is now stable.
+
+At the same time, tool callbacks are now generic over a `CONTEXT` type instead of treating `context` as an untyped value. In practice, this means `tool()` can infer the type of `context` from a tool's `contextSchema`.
+
+In AI SDK 6, tool code often accessed `experimental_context` and had to cast it manually:
 
 ```tsx filename="AI SDK 6"
 const weather = tool({
@@ -110,7 +116,7 @@ const weather = tool({
 });
 ```
 
-In AI SDK 7, declare the runtime context the tool expects with `contextSchema`. The `execute` callback, approval callback, and tool input lifecycle hooks then receive a typed `experimental_context` automatically:
+In AI SDK 7, rename `experimental_context` to `context` and declare the runtime context the tool expects with `contextSchema`. The `execute` callback, approval callback, and tool input lifecycle hooks then receive a typed `context` automatically:
 
 ```tsx filename="AI SDK 7"
 const weather = tool({
@@ -122,19 +128,20 @@ const weather = tool({
   }),
   execute: async (
     { location },
-    { experimental_context: { weatherApiKey } },
+    { context: { weatherApiKey } },
   ) => {
     return getWeather(location, weatherApiKey);
   },
 });
 ```
 
-`prepareStep` still receives the full runtime context object that you pass via `experimental_context`. `contextSchema` only narrows the view that an individual tool receives.
+`prepareStep` still receives the full runtime context object that you pass via `context`. `contextSchema` only narrows the view that an individual tool receives.
 
 Potential breaking issues:
 
+- If you still destructure `experimental_context` in tool callbacks, rename it to `context`.
 - If a tool callback accesses fields that are not declared in its `contextSchema`, TypeScript will now report errors. Add those fields to the schema, or read the broader context in `prepareStep` instead.
-- If you have helper types or wrappers that assumed `experimental_context` was `unknown`, update them to accept a generic `CONTEXT` type.
+- If you have helper types or wrappers that assumed `experimental_context` or `context` was `unknown`, update them to accept a generic `CONTEXT` type.
 - If you were relying on a tool callback seeing the entire runtime context object, that code may need to move to `prepareStep` or the tool's `contextSchema` may need to be expanded to include the required fields.
 
 ### Tools: Remove Deprecated `ToolCallOptions` Type
@@ -179,6 +186,12 @@ import { isToolUIPart } from 'ai';
 if (isToolUIPart(part)) {
   console.log('Tool part found');
 }
+
+### Tools: Remove Deprecated `media` Content Part Type
+
+The deprecated tool result content part of `{ type: 'media' }` has been removed in AI SDK 7.
+
+Use `{ type: 'image-data' }` for images and `{ type: 'file-data' }` for all other files.
 
 ### Tool Result Content: Migrate to `file-reference` / `image-file-reference`
 

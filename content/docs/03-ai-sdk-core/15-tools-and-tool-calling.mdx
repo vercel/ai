@@ -376,7 +376,7 @@ It is called with the following parameters:
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
 - `messages`: The messages that will be sent to the model for the current step.
-- `experimental_context`: The runtime context passed via the `experimental_context` setting (experimental).
+- `context`: The runtime context passed via the `context` setting.
 
 You can use it to provide different settings for a step, including modifying the input messages.
 
@@ -694,10 +694,10 @@ const result = await generateText({
 });
 ```
 
-### Runtime Context (experimental)
+### Runtime Context
 
-You can pass in arbitrary runtime context from `generateText` or `streamText` via the `experimental_context` setting.
-This runtime context is available in `prepareStep` and in the `experimental_context` tool execution option.
+You can pass in arbitrary runtime context from `generateText` or `streamText` via the `context` setting.
+This runtime context is available in `prepareStep` and in the `context` tool execution option.
 
 To avoid confusion with prompt context or retrieved context, the docs refer to this feature as runtime context.
 
@@ -705,7 +705,7 @@ This is useful for values like API keys, tenant information, feature flags, sess
 
 At a high level:
 
-- Pass the full runtime context object through `experimental_context`
+- Pass the full runtime context object through `context`
 - Read or update it in `prepareStep`
 - Declare each tool's expected runtime context with `contextSchema`
 - Access the tool's typed runtime context in `execute` together with other execution metadata such as `toolCallId`, `messages`, and `abortSignal`
@@ -728,9 +728,9 @@ const result = streamText({
       }),
       execute: async (
         { location },
-        { toolCallId, messages, abortSignal, experimental_context },
+        { toolCallId, messages, abortSignal, context },
       ) => {
-        const { weatherApiKey } = experimental_context;
+        const { weatherApiKey } = context;
 
         console.log('tool call:', toolCallId);
         console.log('messages available to tool:', messages.length);
@@ -744,17 +744,17 @@ const result = streamText({
       },
     }),
   },
-  experimental_context: {
+  context: {
     weatherApiKey: 'weather-123',
     somethingElse: 'other-context',
   },
-  prepareStep: async ({ experimental_context: context }) => {
+  prepareStep: async ({ context }) => {
     console.log('prepareStep context:', context);
 
     return {
       // You can keep the context unchanged or return a new one
       // to affect the current and subsequent steps.
-      experimental_context: context,
+      context,
     };
   },
   prompt: 'What is the weather in San Francisco?',

@@ -199,8 +199,8 @@ describe('streamText types', () => {
     });
   });
 
-  describe('experimental_context', () => {
-    it('should infer typed experimental_context with one tool context and prepareStep', async () => {
+  describe('context', () => {
+    it('should infer typed context with one tool context and prepareStep', async () => {
       streamText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
@@ -212,8 +212,8 @@ describe('streamText types', () => {
             contextSchema: z.object({
               userId: z.string(),
             }),
-            execute: async (_input, { experimental_context }) => {
-              expectTypeOf(experimental_context).toMatchObjectType<{
+            execute: async (_input, { context }) => {
+              expectTypeOf(context).toMatchObjectType<{
                 userId: string;
               }>();
 
@@ -221,20 +221,20 @@ describe('streamText types', () => {
             },
           }),
         },
-        experimental_context: {
+        context: {
           userId: 'test-user',
           role: 'admin',
         },
-        prepareStep: ({ experimental_context }) => {
-          expectTypeOf(experimental_context).toMatchObjectType<{
+        prepareStep: ({ context }) => {
+          expectTypeOf(context).toMatchObjectType<{
             userId: string;
             role: string;
           }>();
 
           return {
-            experimental_context: {
-              userId: experimental_context.userId,
-              role: experimental_context.role,
+            context: {
+              userId: context.userId,
+              role: context.role,
             },
           };
         },

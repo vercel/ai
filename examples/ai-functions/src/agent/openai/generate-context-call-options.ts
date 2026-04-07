@@ -14,10 +14,7 @@ const agent = new ToolLoopAgent({
       contextSchema: z.object({
         weatherApiKey: z.string().describe('The API key for the weather API'),
       }),
-      execute: async (
-        { location },
-        { experimental_context: { weatherApiKey } },
-      ) => {
+      execute: async ({ location }, { context: { weatherApiKey } }) => {
         console.log('weather tool api key:', weatherApiKey);
 
         return {
@@ -27,21 +24,21 @@ const agent = new ToolLoopAgent({
       },
     }),
   },
-  experimental_context: {
+  context: {
     weatherApiKey: 'not-set',
     somethingElse: 'other-context',
   },
   callOptionsSchema: z.object({
     weatherApiKey: z.string(),
   }),
-  prepareCall: ({ options, experimental_context, ...rest }) => ({
+  prepareCall: ({ options, context, ...rest }) => ({
     ...rest,
-    experimental_context: {
-      ...experimental_context,
+    context: {
+      ...context,
       weatherApiKey: options.weatherApiKey,
     },
   }),
-  prepareStep: async ({ experimental_context: context }) => {
+  prepareStep: async ({ context }) => {
     console.log('prepareStep context:', context);
     return {};
   },
