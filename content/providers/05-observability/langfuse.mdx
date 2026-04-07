@@ -16,7 +16,8 @@ description: Monitor, evaluate and debug your AI SDK application with Langfuse
 ## Setup
 
 The AI SDK supports tracing via OpenTelemetry. With the `LangfuseSpanProcessor` you can collect these traces in Langfuse.
-While telemetry is experimental ([docs](/docs/ai-sdk-core/telemetry#enabling-telemetry)), you can enable it by setting `experimental_telemetry` on each request that you want to trace.
+
+Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` in your `instrumentation.ts` file to enable OpenTelemetry span collection, then enable telemetry on each request that you want to trace:
 
 ```ts highlight="4"
 const result = await generateText({
@@ -70,14 +71,18 @@ Next.js has support for OpenTelemetry instrumentation on the framework level. Le
 Install dependencies:
 
 ```bash
-npm install @langfuse/otel @langfuse/tracing @opentelemetry/sdk-trace-node
+npm install @langfuse/otel @langfuse/tracing @opentelemetry/sdk-trace-node @ai-sdk/otel
 ```
 
 Add `LangfuseSpanProcessor` to your instrumentation using a manual OpenTelemetry setup via `NodeTracerProvider`:
 
 ```ts filename="instrumentation.ts"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor, ShouldExportSpan } from '@langfuse/otel';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 // Optional: filter out Next.js infra spans
 const shouldExportSpan: ShouldExportSpan = span => {
@@ -101,14 +106,15 @@ tracerProvider.register();
 Install dependencies:
 
 ```bash
-npm install ai @ai-sdk/openai @langfuse/otel @opentelemetry/sdk-node
+npm install ai @ai-sdk/openai @langfuse/otel @opentelemetry/sdk-node @ai-sdk/otel
 ```
 
 Add `LangfuseSpanProcessor` to your OpenTelemetry setup:
 
-```ts highlight="3-4, 6-8"
+```ts highlight="3-6, 8-10, 13"
 import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { registerTelemetryIntegration, generateText } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 
@@ -117,6 +123,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 async function main() {
   const result = await generateText({
@@ -250,7 +257,7 @@ const result = await generateText({
 ## Troubleshooting
 
 - If you deploy on Vercel, Vercel's OpenTelemetry Collector is only available on Pro and Enterprise Plans ([docs](https://vercel.com/docs/observability/otel-overview)).
-- You need to be on `"ai": "^3.3.0"` to use the telemetry feature. In case of any issues, please update to the latest version.
+- You need to be on `"ai": "^7.0.0"` and install `@ai-sdk/otel` to use the telemetry feature. In case of any issues, please update to the latest version.
 - On Next.js, make sure that you only have a single instrumentation file.
 - If you use Sentry, make sure to either:
   - set `skipOpenTelemetrySetup: true` in Sentry.init

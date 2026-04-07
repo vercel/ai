@@ -1,5 +1,5 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -8,7 +8,7 @@ run(async () => {
   const result = await generateText({
     model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
     prompt: 'Find out weather data in SF',
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     onStepFinish: step => {
       console.log(`\n=== Step Response ===`);
       console.dir(step.response.body, { depth: Infinity });
