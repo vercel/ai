@@ -1037,6 +1037,70 @@ describe('assistant messages', () => {
       system: [],
     });
   });
+
+  it('should preserve empty text blocks when reasoning blocks are present', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'thinking...',
+            providerOptions: {
+              bedrock: { signature: 'sig-1' },
+            },
+          },
+          { type: 'text', text: '' },
+          {
+            type: 'reasoning',
+            text: 'more thinking...',
+            providerOptions: {
+              bedrock: { signature: 'sig-2' },
+            },
+          },
+          { type: 'text', text: 'response text' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-123',
+            toolName: 'test',
+            input: {},
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                reasoningText: { text: 'thinking...', signature: 'sig-1' },
+              },
+            },
+            { text: '' },
+            {
+              reasoningContent: {
+                reasoningText: { text: 'more thinking...', signature: 'sig-2' },
+              },
+            },
+            { text: 'response text' },
+            { toolUse: { toolUseId: 'call-123', name: 'test', input: {} } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
 });
 
 describe('tool messages', () => {
