@@ -1,5 +1,11 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- ai@7.0.0-beta.70
+
 ## 3.0.0-beta.70
 
 ### Patch Changes
