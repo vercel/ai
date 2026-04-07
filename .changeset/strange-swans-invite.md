@@ -2,4 +2,4 @@
 "ai": major
 ---
 
-chore(ai): remove deprecated isTextUIPart function
+chore(ai): remove deprecated isToolOrDynamicToolUIPart function
