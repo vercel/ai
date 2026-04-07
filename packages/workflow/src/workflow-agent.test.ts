@@ -1898,7 +1898,7 @@ describe('WorkflowAgent', () => {
           description: 'A test tool',
           inputSchema: z.object({}),
           execute: async (_input, options) => {
-            receivedContext = options.experimental_context;
+            receivedContext = options.context;
             return { result: 'success' };
           },
         },

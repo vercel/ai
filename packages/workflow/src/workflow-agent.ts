@@ -1698,8 +1698,8 @@ async function executeTool(
       toolCallId: toolCall.toolCallId,
       // Pass the conversation messages to the tool so it has context about the conversation
       messages,
-      // Pass experimental context to the tool
-      experimental_context: experimentalContext,
+      // Pass context to the tool
+      context: experimentalContext,
     });
 
     // Use the appropriate output type based on the result

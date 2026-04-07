@@ -42,7 +42,9 @@ export class GatewayRerankingModel implements RerankingModelV4 {
   }: Parameters<RerankingModelV4['doRerank']>[0]): Promise<
     Awaited<ReturnType<RerankingModelV4['doRerank']>>
   > {
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers())
+      : undefined;
     try {
       const {
         responseHeaders,
@@ -81,7 +83,10 @@ export class GatewayRerankingModel implements RerankingModelV4 {
         warnings: [],
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
