@@ -32,7 +32,7 @@
     "start": "node dist/viewer/server.js",
     "build": "pnpm build:client && pnpm build:server",
     "build:client": "vite build",
-    "build:server": "tsup",
+    "build:server": "tsup --tsconfig tsconfig.build.json",
     "prepublishOnly": "pnpm build"
   },
   "dependencies": {
