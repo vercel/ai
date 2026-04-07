@@ -1,19 +1,23 @@
+import { GenerationContext } from './generation-context';
 import { ModelCallStreamPart } from './stream-model-call';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { ModelMessage } from '@ai-sdk/provider-utils';
 
-export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
+export function invokeToolCallbacksFromStream<
+  TOOLS extends ToolSet,
+  CONTEXT extends GenerationContext<TOOLS>,
+>({
   stream,
   tools,
   stepInputMessages,
   abortSignal,
-  experimental_context,
+  context,
 }: {
   stream: ReadableStream<ModelCallStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
-  experimental_context: unknown;
+  context: CONTEXT;
 }): ReadableStream<ModelCallStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
@@ -34,7 +38,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                experimental_context,
+                context,
               });
             }
 
@@ -51,7 +55,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                experimental_context,
+                context,
               });
             }
 
@@ -70,7 +74,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
                 toolCallId: chunk.toolCallId,
                 messages: stepInputMessages,
                 abortSignal,
-                experimental_context,
+                context,
               });
             }
           }

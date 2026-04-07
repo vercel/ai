@@ -3,6 +3,7 @@ import {
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
+import type { SharedV4ProviderReference } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 export const shellInputSchema = lazySchema(() =>
@@ -39,7 +40,7 @@ const shellSkillsSchema = z
     z.discriminatedUnion('type', [
       z.object({
         type: z.literal('skillReference'),
-        skillId: z.string(),
+        providerReference: z.record(z.string(), z.string()),
         version: z.string().optional(),
       }),
       z.object({
@@ -125,7 +126,11 @@ type ShellArgs = {
               }>;
             };
         skills?: Array<
-          | { type: 'skillReference'; skillId: string; version?: string }
+          | {
+              type: 'skillReference';
+              providerReference: SharedV4ProviderReference;
+              version?: string;
+            }
           | {
               type: 'inline';
               name: string;

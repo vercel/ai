@@ -395,6 +395,79 @@ describe('doGenerate', () => {
       }
     `);
   });
+
+  describe('camelCase provider options', () => {
+    it('should accept camelCase provider options key for hyphenated provider name', async () => {
+      prepareJsonResponse({ content: '' });
+
+      await provider.completionModel('gpt-3.5-turbo-instruct').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          testProvider: {
+            someCustomOption: 'test-value',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'test-value',
+      });
+    });
+
+    it('should prefer camelCase options over raw-name options', async () => {
+      prepareJsonResponse({ content: '' });
+
+      await provider.completionModel('gpt-3.5-turbo-instruct').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'test-provider': { someCustomOption: 'raw-value' },
+          testProvider: { someCustomOption: 'camel-value' },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'camel-value',
+      });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareJsonResponse({ content: '' });
+
+      const result = await provider
+        .completionModel('gpt-3.5-turbo-instruct')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            'test-provider': { someCustomOption: 'test-value' },
+          },
+        });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareJsonResponse({ content: '' });
+
+      const result = await provider
+        .completionModel('gpt-3.5-turbo-instruct')
+        .doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            testProvider: { someCustomOption: 'test-value' },
+          },
+        });
+
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -769,5 +842,42 @@ describe('doStream', () => {
         "stream": true,
       }
     `);
+  });
+
+  describe('camelCase provider options', () => {
+    it('should accept camelCase provider options key for hyphenated provider name', async () => {
+      prepareEmptyStreamResponse();
+
+      await model.doStream({
+        providerOptions: {
+          testProvider: {
+            someCustomOption: 'test-value',
+          },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'test-value',
+      });
+    });
+
+    it('should prefer camelCase options over raw-name options', async () => {
+      prepareEmptyStreamResponse();
+
+      await model.doStream({
+        providerOptions: {
+          'test-provider': { someCustomOption: 'raw-value' },
+          testProvider: { someCustomOption: 'camel-value' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'camel-value',
+      });
+    });
   });
 });
