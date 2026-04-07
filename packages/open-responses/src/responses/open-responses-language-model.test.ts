@@ -413,6 +413,51 @@ describe('OpenResponsesLanguageModel', () => {
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
       });
     });
+
+    describe('pdf input file', () => {
+      function getPdfPrompt(): LanguageModelV4Prompt {
+        return [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'What text does this PDF contain? Reply with just the text content, nothing else.',
+              },
+              {
+                type: 'file',
+                data: new globalThis.URL(
+                  'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                ),
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ];
+      }
+
+      let result: LanguageModelV4GenerateResult;
+
+      beforeEach(async () => {
+        prepareJsonFixtureResponse('openai-pdf-input-file.1');
+
+        result = await createModel('gpt-4.1-nano').doGenerate({
+          prompt: getPdfPrompt(),
+        });
+      });
+
+      it('should send input_file in request body', async () => {
+        expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+
+      it('should produce correct content', async () => {
+        expect(result.content).toMatchSnapshot();
+      });
+
+      it('should extract usage correctly', async () => {
+        expect(result.usage).toMatchSnapshot();
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -453,6 +498,37 @@ describe('OpenResponsesLanguageModel', () => {
 
         const result = await createModel().doStream({
           prompt: TEST_PROMPT,
+        });
+
+        expect(
+          await convertReadableStreamToArray(result.stream),
+        ).toMatchSnapshot();
+      });
+    });
+
+    describe('pdf input file', () => {
+      it('should stream content from pdf input', async () => {
+        prepareChunksFixtureResponse('openai-pdf-input-file.1');
+
+        const result = await createModel('gpt-4.1-nano').doStream({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'What text does this PDF contain?',
+                },
+                {
+                  type: 'file',
+                  data: new globalThis.URL(
+                    'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+                  ),
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
         });
 
         expect(

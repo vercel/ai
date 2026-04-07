@@ -51,6 +51,9 @@
       "path": "../../packages/google-vertex"
     },
     {
+      "path": "../../packages/open-responses"
+    },
+    {
       "path": "../../packages/openai"
     },
     {
