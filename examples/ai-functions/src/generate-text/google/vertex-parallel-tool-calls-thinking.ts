@@ -1,13 +1,14 @@
-import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { generateText, stepCountIs, tool } from 'ai';
+import { GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const { text, steps } = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: vertex('gemini-2.5-flash'),
     providerOptions: {
-      google: {
+      vertex: {
         thinkingConfig: { thinkingBudget: 1024 },
       } satisfies GoogleLanguageModelOptions,
     },
@@ -67,7 +68,7 @@ run(async () => {
         },
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     prompt:
       'Compare the population density of New York and Tokyo. ' +
       'To do this, get the population and area for each city, then calculate the density.',
