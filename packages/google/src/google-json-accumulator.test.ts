@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GoogleJSONAccumulator } from './google-stream-tool-call-arguments';
+import { GoogleJSONAccumulator } from './google-json-accumulator';
 
 describe('GoogleJSONAccumulator', () => {
   describe('flat paths', () => {

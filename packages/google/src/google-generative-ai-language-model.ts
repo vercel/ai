@@ -47,10 +47,7 @@ import {
   GoogleGenerativeAIProviderMetadata,
 } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
-import {
-  GoogleJSONAccumulator,
-  PartialArg,
-} from './google-stream-tool-call-arguments';
+import { GoogleJSONAccumulator, PartialArg } from './google-json-accumulator';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
 type GoogleGenerativeAIConfig = {
