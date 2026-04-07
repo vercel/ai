@@ -187,6 +187,7 @@
     "reasoning-summary",
     "remove-tool-call-options-v7",
     "remove-useragent-usechat",
+    "rerank-string-model-resolution",
     "reranking-gateway-support",
     "rhipg-aypwr-etsuy",
     "rotten-toys-collect",
