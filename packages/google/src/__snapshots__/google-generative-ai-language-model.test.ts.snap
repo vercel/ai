@@ -921,7 +921,19 @@ exports[`doStream > streaming-tool-call-arguments > should stream partial functi
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 23,
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 23,
+            },
+          ],
           "promptTokenCount": 26,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 26,
+            },
+          ],
           "thoughtsTokenCount": 132,
           "totalTokenCount": 181,
           "trafficType": "ON_DEMAND",
@@ -943,7 +955,19 @@ exports[`doStream > streaming-tool-call-arguments > should stream partial functi
       },
       "raw": {
         "candidatesTokenCount": 23,
+        "candidatesTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 23,
+          },
+        ],
         "promptTokenCount": 26,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 26,
+          },
+        ],
         "thoughtsTokenCount": 132,
         "totalTokenCount": 181,
         "trafficType": "ON_DEMAND",
@@ -1202,7 +1226,19 @@ exports[`doStream > streaming-tool-call-arguments-nested > should stream nested 
         "urlContextMetadata": null,
         "usageMetadata": {
           "candidatesTokenCount": 684,
+          "candidatesTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 684,
+            },
+          ],
           "promptTokenCount": 31,
+          "promptTokensDetails": [
+            {
+              "modality": "TEXT",
+              "tokenCount": 31,
+            },
+          ],
           "thoughtsTokenCount": 1026,
           "totalTokenCount": 1741,
           "trafficType": "ON_DEMAND",
@@ -1224,7 +1260,19 @@ exports[`doStream > streaming-tool-call-arguments-nested > should stream nested 
       },
       "raw": {
         "candidatesTokenCount": 684,
+        "candidatesTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 684,
+          },
+        ],
         "promptTokenCount": 31,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 31,
+          },
+        ],
         "thoughtsTokenCount": 1026,
         "totalTokenCount": 1741,
         "trafficType": "ON_DEMAND",
