@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 3.0.29
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
 ## 3.0.28
 
 ### Patch Changes

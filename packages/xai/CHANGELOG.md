@@ -1,5 +1,13 @@
 # @ai-sdk/xai
 
+## 3.0.80
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+- Updated dependencies [d42076d]
+  - @ai-sdk/openai-compatible@2.0.41
+
 ## 3.0.79
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/bytedance
 
+## 1.0.9
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
 ## 1.0.8
 
 ### Patch Changes

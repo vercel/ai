@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.152
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
 ## 6.0.151
 
 ### Patch Changes
