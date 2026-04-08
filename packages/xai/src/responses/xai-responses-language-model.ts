@@ -638,7 +638,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
             if (
               event.type === 'response.done' ||
-              event.type === 'response.completed'
+              event.type === 'response.completed' ||
+              event.type === 'response.incomplete'
             ) {
               const response = event.response;
 
@@ -646,13 +647,38 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 usage = convertXaiResponsesUsage(response.usage);
               }
 
-              if (response.status) {
+              if (event.type === 'response.incomplete') {
+                const reason =
+                  'incomplete_details' in response
+                    ? response.incomplete_details?.reason
+                    : undefined;
+                finishReason = {
+                  unified: reason
+                    ? mapXaiResponsesFinishReason(reason)
+                    : 'other',
+                  raw: reason ?? 'incomplete',
+                };
+              } else if ('status' in response && response.status) {
                 finishReason = {
                   unified: hasFunctionCall
                     ? 'tool-calls'
                     : mapXaiResponsesFinishReason(response.status),
                   raw: response.status,
                 };
+              }
+
+              return;
+            }
+
+            if (event.type === 'response.failed') {
+              const reason = event.response.incomplete_details?.reason;
+              finishReason = {
+                unified: reason ? mapXaiResponsesFinishReason(reason) : 'error',
+                raw: reason ?? 'error',
+              };
+
+              if (event.response.usage) {
+                usage = convertXaiResponsesUsage(event.response.usage);
               }
 
               return;
