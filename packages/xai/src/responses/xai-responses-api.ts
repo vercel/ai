@@ -539,6 +539,12 @@ export const xaiResponsesChunkSchema = z.union([
     }),
   }),
   z.object({
+    type: z.literal('error'),
+    code: z.string().nullish(),
+    message: z.string(),
+    param: z.string().nullish(),
+  }),
+  z.object({
     type: z.literal('response.done'),
     response: xaiResponsesResponseSchema,
   }),
