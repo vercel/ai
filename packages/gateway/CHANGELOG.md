@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 939171f: feat (provider/gateway): add reranking model support with `rerankingModel()` and `reranking()` methods
+
 ## 4.0.0-beta.39
 
 ### Patch Changes

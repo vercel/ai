@@ -211,7 +211,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     model,
     functionId: undefined,
     metadata: undefined,
-    context: undefined,
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
     reasoning: [],
@@ -251,6 +250,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       messages: [],
     },
     providerMetadata: undefined,
+    context: undefined,
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onStepFinish']>>[0];
 }

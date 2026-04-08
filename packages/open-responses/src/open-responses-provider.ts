@@ -65,6 +65,7 @@ export function createOpenResponses(
   const createResponsesModel = (modelId: string) => {
     return new OpenResponsesLanguageModel(modelId, {
       provider: `${providerName}.responses`,
+      providerOptionsName: providerName,
       headers: getHeaders,
       url: options.url,
       fetch: options.fetch,

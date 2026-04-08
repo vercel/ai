@@ -17,6 +17,7 @@ import {
   isCustomReasoning,
   jsonSchema,
   mapReasoningToProviderEffort,
+  parseProviderOptions,
   ParseResult,
   postJsonToApi,
   deserializeModelConfig,
@@ -36,6 +37,7 @@ import {
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
 import { OpenResponsesConfig } from './open-responses-config';
+import { openResponsesOptionsSchema } from './open-responses-options';
 
 export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -148,6 +150,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           }
         : undefined;
 
+    const openResponsesOptions = await parseProviderOptions({
+      provider: this.config.providerOptionsName,
+      providerOptions,
+      schema: openResponsesOptionsSchema,
+    });
+
     const resolvedReasoningEffort = isCustomReasoning(reasoning)
       ? reasoning === 'none'
         ? 'none'
@@ -175,8 +183,16 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         presence_penalty: presencePenalty,
         frequency_penalty: frequencyPenalty,
         reasoning:
-          resolvedReasoningEffort != null
-            ? { effort: resolvedReasoningEffort }
+          resolvedReasoningEffort != null ||
+          openResponsesOptions?.reasoningSummary != null
+            ? {
+                ...(resolvedReasoningEffort != null && {
+                  effort: resolvedReasoningEffort,
+                }),
+                ...(openResponsesOptions?.reasoningSummary != null && {
+                  summary: openResponsesOptions.reasoningSummary,
+                }),
+              }
             : undefined,
         tools: functionTools?.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
