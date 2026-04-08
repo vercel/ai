@@ -33,7 +33,7 @@ describe('serializeToolSet', () => {
     });
   });
 
-  it.fails('preserves provider tool type, id, and args', () => {
+  it('preserves provider tool type, id, and args', () => {
     // Provider tools (like anthropic.tools.webSearch) have type: 'provider',
     // an id, and args. These must survive serialization so the Gateway can
     // recognize them as provider-executed tools, not plain function tools.
@@ -86,7 +86,7 @@ describe('resolveSerializableTools', () => {
     expect(tools.getWeather.description).toBe('Get weather for a city');
   });
 
-  it.fails('reconstructs provider tools preserving type, id, and args', () => {
+  it('reconstructs provider tools preserving type, id, and args', () => {
     const serialized = {
       webSearch: {
         type: 'provider' as const,
