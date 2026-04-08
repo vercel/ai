@@ -1,5 +1,11 @@
 # @ai-sdk/open-responses
 
+## 1.0.11
+
+### Patch Changes
+
+- 3d3eeab: feat(open-responses): add option to pass reasoning summary for OpenResponses
+
 ## 1.0.10
 
 ### Patch Changes
