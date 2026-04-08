@@ -101,10 +101,13 @@ describe('serializeModel', () => {
 
 describe('deserializeModelConfig', () => {
   it('wraps plain-object headers back into a function', () => {
-    const config = deserializeModelConfig({
+    // Simulate what happens after workflow deserialization: headers is a
+    // plain object (was resolved at serialization time), not a function.
+    const serialized: Record<string, unknown> = {
       provider: 'anthropic.messages',
       headers: { 'x-api-key': 'sk-test' },
-    });
+    };
+    const config = deserializeModelConfig(serialized);
     expect(typeof config.headers).toBe('function');
     expect((config.headers as () => Record<string, string>)()).toEqual({
       'x-api-key': 'sk-test',
