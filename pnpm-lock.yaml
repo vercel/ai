@@ -1422,6 +1422,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: workspace:*
         version: link:../anthropic
+      '@ai-sdk/openai':
+        specifier: workspace:*
+        version: link:../openai
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider
