@@ -185,7 +185,7 @@ export function createAzure(
       fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
     }
 
-    if (!options.baseURL) {
+    if (!options.baseURL || options.useDeploymentBasedUrls) {
       fullUrl.searchParams.set('api-version', apiVersion);
     }
     return fullUrl.toString();
