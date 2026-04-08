@@ -86,6 +86,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import { ContextParameter } from './context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -290,34 +291,7 @@ export async function generateText<
   ...settings
 }: CallSettings &
   Prompt &
-  // require context when needed, otherwise optional:
-  ({} extends CONTEXT
-    ? {
-        /**
-         * User-defined runtime context.
-         *
-         * Treat the context object as immutable inside tools.
-         * Mutating the context object can lead to race conditions and unexpected results
-         * when tools are called in parallel.
-         *
-         * If you need to mutate the context, analyze the tool calls and results
-         * in `prepareStep` and update it there.
-         */
-        context?: CONTEXT;
-      }
-    : {
-        /**
-         * User-defined runtime context.
-         *
-         * Treat the context object as immutable inside tools.
-         * Mutating the context object can lead to race conditions and unexpected results
-         * when tools are called in parallel.
-         *
-         * If you need to mutate the context, analyze the tool calls and results
-         * in `prepareStep` and update it there.
-         */
-        context: CONTEXT;
-      }) & {
+  ContextParameter<TOOLS, CONTEXT> & {
     /**
      * The language model to use.
      */
