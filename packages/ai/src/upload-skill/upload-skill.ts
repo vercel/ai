@@ -14,7 +14,7 @@ export async function uploadSkill({
   providerOptions?: ProviderOptions;
 }): Promise<UploadSkillResult> {
   const skillsApi: SkillsV4 =
-    'upload' in api
+    'uploadSkill' in api
       ? api
       : typeof api.skills === 'function'
         ? api.skills()
@@ -24,7 +24,7 @@ export async function uploadSkill({
             );
           })();
 
-  const result = await skillsApi.upload({
+  const result = await skillsApi.uploadSkill({
     files,
     displayTitle,
     providerOptions,

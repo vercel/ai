@@ -6,7 +6,7 @@ function createMockSkills(overrides: Partial<SkillsV4> = {}): SkillsV4 {
   return {
     specificationVersion: 'v4',
     provider: 'mock-provider',
-    upload: vi.fn().mockResolvedValue({
+    uploadSkill: vi.fn().mockResolvedValue({
       providerReference: { 'mock-provider': 'skill_123' },
       warnings: [],
     }),
@@ -15,7 +15,7 @@ function createMockSkills(overrides: Partial<SkillsV4> = {}): SkillsV4 {
 }
 
 describe('uploadSkill', () => {
-  it('should delegate to api.upload', async () => {
+  it('should delegate to api.uploadSkill', async () => {
     const skills = createMockSkills();
 
     const files = [{ path: 'test.ts', content: 'hello' }];
@@ -25,7 +25,7 @@ describe('uploadSkill', () => {
       displayTitle: 'My Skill',
     });
 
-    expect(skills.upload).toHaveBeenCalledWith({
+    expect(skills.uploadSkill).toHaveBeenCalledWith({
       files,
       displayTitle: 'My Skill',
       providerOptions: undefined,
@@ -34,7 +34,7 @@ describe('uploadSkill', () => {
 
   it('should return providerReference and warnings from the skills', async () => {
     const skills = createMockSkills({
-      upload: vi.fn().mockResolvedValue({
+      uploadSkill: vi.fn().mockResolvedValue({
         providerReference: { 'mock-provider': 'skill_123' },
         warnings: [{ type: 'unsupported', feature: 'displayTitle' }],
         providerMetadata: { foo: 'bar' },
@@ -74,7 +74,7 @@ describe('uploadSkill', () => {
     });
 
     expect(mockProvider.skills).toHaveBeenCalled();
-    expect(skills.upload).toHaveBeenCalled();
+    expect(skills.uploadSkill).toHaveBeenCalled();
   });
 
   it('should throw when ProviderV4 has no skills() method', async () => {
@@ -104,7 +104,7 @@ describe('uploadSkill', () => {
       providerOptions: { openai: { custom: 'value' } },
     });
 
-    expect(skills.upload).toHaveBeenCalledWith({
+    expect(skills.uploadSkill).toHaveBeenCalledWith({
       files: [{ path: 'test.ts', content: 'hello' }],
       displayTitle: undefined,
       providerOptions: { openai: { custom: 'value' } },
