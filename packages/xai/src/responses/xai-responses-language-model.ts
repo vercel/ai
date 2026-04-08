@@ -611,14 +611,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
               return;
             }
 
-            // Custom tool call input streaming - already handled by output_item events
-            if (
-              event.type === 'response.custom_tool_call_input.delta' ||
-              event.type === 'response.custom_tool_call_input.done'
-            ) {
-              return;
-            }
-
             // Function call arguments streaming (standard function tools)
             if (event.type === 'response.function_call_arguments.delta') {
               const toolCall = ongoingToolCalls[event.output_index];
