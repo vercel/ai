@@ -774,16 +774,13 @@ function buildTraceSpans(
     steps: Step[],
     depth: number,
     childRuns: ChildRun[],
-    minStartMs?: number,
     functionId?: string | null,
   ) => {
     for (const step of steps) {
-      const rawStepStart = new Date(step.started_at).getTime();
-      const stepStart =
-        minStartMs !== undefined
-          ? Math.max(rawStepStart, traceStart + minStartMs)
-          : rawStepStart;
+      const stepStartAbs = new Date(step.started_at).getTime();
+      const stepStartMs = stepStartAbs - traceStart;
       const stepDuration = step.duration_ms ?? 0;
+      const stepEndMs = stepStartMs + stepDuration;
       const usage = parseJson(step.usage);
       const output = parseJson(step.output);
 
@@ -793,35 +790,38 @@ function buildTraceSpans(
       const contentParts: any[] = output?.content ?? [];
       const hasSubParts = contentParts.length > 0 || step.error;
 
-      if (!hasSubParts) {
-        spans.push({
-          id: step.id,
-          stepId: step.id,
-          label: stepLabel,
-          sublabel:
-            step.duration_ms === null && !step.error
-              ? 'streaming...'
-              : stepSublabel || 'Response',
-          startMs: stepStart - traceStart,
-          durationMs: stepDuration,
-          depth,
-          kind: 'step',
-          tokens: usage
-            ? {
-                input:
-                  typeof usage.inputTokens === 'number'
-                    ? usage.inputTokens
-                    : (usage.inputTokens?.total ?? 0),
-                output:
-                  typeof usage.outputTokens === 'number'
-                    ? usage.outputTokens
-                    : (usage.outputTokens?.total ?? 0),
-              }
-            : undefined,
-          modelId: step.model_id,
-          isInProgress: step.duration_ms === null && !step.error,
-        });
+      const tokenInfo = usage
+        ? {
+            input:
+              typeof usage.inputTokens === 'number'
+                ? usage.inputTokens
+                : (usage.inputTokens?.total ?? 0),
+            output:
+              typeof usage.outputTokens === 'number'
+                ? usage.outputTokens
+                : (usage.outputTokens?.total ?? 0),
+          }
+        : undefined;
 
+      spans.push({
+        id: step.id,
+        stepId: step.id,
+        label: stepLabel,
+        sublabel: !hasSubParts
+          ? step.duration_ms === null && !step.error
+            ? 'streaming...'
+            : stepSublabel || 'Response'
+          : stepSublabel,
+        startMs: stepStartMs,
+        durationMs: stepDuration,
+        depth,
+        kind: 'step',
+        tokens: tokenInfo,
+        modelId: step.model_id,
+        isInProgress: step.duration_ms === null && !step.error,
+      });
+
+      if (!hasSubParts) {
         const stepChildRuns = childRuns.filter(
           cr => cr.run.parent_step_id === step.id,
         );
@@ -830,210 +830,230 @@ function buildTraceSpans(
             cr.steps,
             depth + 1,
             cr.childRuns ?? [],
-            undefined,
             cr.run.function_id,
           );
+        }
+        continue;
+      }
+
+      // --- Sub-parts with real timestamps ---
+
+      const stepChildRuns = childRuns.filter(
+        cr => cr.run.parent_step_id === step.id,
+      );
+      const sortedChildRuns = [...stepChildRuns].sort(
+        (a, b) =>
+          new Date(a.run.started_at).getTime() -
+          new Date(b.run.started_at).getTime(),
+      );
+
+      const toolCallParts = contentParts.filter(
+        (p: any) => p.type === 'tool-call',
+      );
+
+      // Match tool-call parts to child runs
+      const toolCallToChildRuns = new Map<string, ChildRun[]>();
+      const unmatchedChildRuns: ChildRun[] = [];
+
+      if (toolCallParts.length > 0 && sortedChildRuns.length > 0) {
+        let crIdx = 0;
+        for (const tc of toolCallParts) {
+          const tcId = tc.toolCallId;
+          if (!tcId) continue;
+
+          const tcResult = contentParts.find(
+            (p: any) => p.type === 'tool-result' && p.toolCallId === tcId,
+          );
+
+          if (tcResult && crIdx < sortedChildRuns.length) {
+            const cr = sortedChildRuns[crIdx];
+            if (cr) {
+              const existing = toolCallToChildRuns.get(tcId) ?? [];
+              existing.push(cr);
+              toolCallToChildRuns.set(tcId, existing);
+              crIdx++;
+            }
+          }
+        }
+        for (let i = crIdx; i < sortedChildRuns.length; i++) {
+          const cr = sortedChildRuns[i];
+          if (cr) unmatchedChildRuns.push(cr);
         }
       } else {
-        spans.push({
-          id: step.id,
-          stepId: step.id,
-          label: stepLabel,
-          sublabel: stepSublabel,
-          startMs: stepStart - traceStart,
-          durationMs: stepDuration,
-          depth,
-          kind: 'step',
-          tokens: usage
-            ? {
-                input:
-                  typeof usage.inputTokens === 'number'
-                    ? usage.inputTokens
-                    : (usage.inputTokens?.total ?? 0),
-                output:
-                  typeof usage.outputTokens === 'number'
-                    ? usage.outputTokens
-                    : (usage.outputTokens?.total ?? 0),
-              }
-            : undefined,
-          modelId: step.model_id,
-          isInProgress: step.duration_ms === null && !step.error,
-        });
+        unmatchedChildRuns.push(...sortedChildRuns);
+      }
 
-        const stepChildRuns = childRuns.filter(
-          cr => cr.run.parent_step_id === step.id,
-        );
-        const sortedChildRuns = [...stepChildRuns].sort(
-          (a, b) =>
-            new Date(a.run.started_at).getTime() -
-            new Date(b.run.started_at).getTime(),
-        );
-
-        const toolCallParts = contentParts.filter(
-          (p: any) => p.type === 'tool-call',
-        );
-
-        const toolCallToChildRuns = new Map<string, ChildRun[]>();
-        const unmatchedChildRuns: ChildRun[] = [];
-
-        if (toolCallParts.length > 0 && sortedChildRuns.length > 0) {
-          let crIdx = 0;
-          for (const tc of toolCallParts) {
-            const tcId = tc.toolCallId;
-            if (!tcId) continue;
-
-            const tcResult = contentParts.find(
-              (p: any) => p.type === 'tool-result' && p.toolCallId === tcId,
-            );
-
-            if (tcResult && crIdx < sortedChildRuns.length) {
-              const cr = sortedChildRuns[crIdx];
-              if (cr) {
-                const existing = toolCallToChildRuns.get(tcId) ?? [];
-                existing.push(cr);
-                toolCallToChildRuns.set(tcId, existing);
-                crIdx++;
-              }
-            }
-          }
-          for (let i = crIdx; i < sortedChildRuns.length; i++) {
-            const cr = sortedChildRuns[i];
-            if (cr) unmatchedChildRuns.push(cr);
-          }
-        } else {
-          unmatchedChildRuns.push(...sortedChildRuns);
-        }
-
-        const subPartCount =
-          contentParts.filter(
-            (p: any) =>
-              p.type === 'reasoning' ||
-              p.type === 'thinking' ||
-              p.type === 'text' ||
-              p.type === 'tool-call',
-          ).length + (step.error ? 1 : 0);
-
-        let subIdx = 0;
-        for (const part of contentParts) {
-          const fraction =
-            subPartCount > 0 ? stepDuration / subPartCount : stepDuration;
-          const partStartMs = stepStart - traceStart + subIdx * fraction;
-
-          if (part.type === 'reasoning' || part.type === 'thinking') {
-            const thinkingText =
-              part.text || part.thinking || part.reasoning || '';
-            spans.push({
-              id: `${step.id}-thinking-${subIdx}`,
-              stepId: step.id,
-              label: 'Thinking',
-              sublabel:
-                thinkingText.length > 50
-                  ? thinkingText.slice(0, 50) + '...'
-                  : thinkingText,
-              startMs: partStartMs,
-              durationMs: fraction,
-              depth: depth + 1,
-              kind: 'thinking',
-              thinkingText,
-            });
-            subIdx++;
-          } else if (part.type === 'tool-call') {
-            const toolName = part.toolName || 'unknown';
-            const args = part.input ?? part.args;
-            const argPreview =
-              args && typeof args === 'object'
-                ? Object.entries(args)
-                    .slice(0, 3)
-                    .map(([, v]) => {
-                      const s =
-                        typeof v === 'string'
-                          ? v
-                          : (JSON.stringify(v) ?? String(v));
-                      return s.length > 30 ? s.slice(0, 30) + '…' : s;
-                    })
-                    .join(', ')
-                : typeof args === 'string'
-                  ? args.slice(0, 60)
-                  : '';
-
-            const tcChildRuns = toolCallToChildRuns.get(part.toolCallId) ?? [];
-            let toolDuration = fraction;
-            if (tcChildRuns.length > 0) {
-              const crTotalDuration = tcChildRuns.reduce(
-                (acc, cr) =>
-                  acc + cr.steps.reduce((a, s) => a + (s.duration_ms || 0), 0),
+      // Compute real time ranges for tool calls using child run timestamps.
+      // This gives us anchors to place non-tool parts (thinking, text) in the gaps.
+      const toolTimeRanges: Array<{
+        toolCallId: string;
+        startMs: number;
+        endMs: number;
+      }> = [];
+      for (const tc of toolCallParts) {
+        const tcId = tc.toolCallId;
+        if (!tcId) continue;
+        const tcChildRuns = toolCallToChildRuns.get(tcId) ?? [];
+        if (tcChildRuns.length > 0) {
+          const earliest = Math.min(
+            ...tcChildRuns.map(
+              cr => new Date(cr.run.started_at).getTime() - traceStart,
+            ),
+          );
+          const latest = Math.max(
+            ...tcChildRuns.map(cr => {
+              const crStart =
+                new Date(cr.run.started_at).getTime() - traceStart;
+              const crDuration = cr.steps.reduce(
+                (a, s) => a + (s.duration_ms || 0),
                 0,
               );
-              toolDuration = Math.max(fraction, crTotalDuration);
-            }
-
-            spans.push({
-              id: `${step.id}-tool-${part.toolCallId || subIdx}`,
-              stepId: step.id,
-              label: toolName,
-              sublabel: argPreview ? `(${argPreview})` : undefined,
-              startMs: partStartMs,
-              durationMs: toolDuration,
-              depth: depth + 1,
-              kind: 'tool-call',
-              toolCallId: part.toolCallId,
-            });
-
-            for (const cr of tcChildRuns) {
-              addStepSpans(
-                cr.steps,
-                depth + 2,
-                cr.childRuns ?? [],
-                partStartMs,
-                cr.run.function_id,
-              );
-            }
-
-            subIdx++;
-          } else if (part.type === 'text') {
-            const text = part.text || '';
-            spans.push({
-              id: `${step.id}-text-${subIdx}`,
-              stepId: step.id,
-              label: 'Text',
-              sublabel: text.length > 60 ? text.slice(0, 60) + '...' : text,
-              startMs: partStartMs,
-              durationMs: fraction,
-              depth: depth + 1,
-              kind: 'text',
-              textContent: text,
-            });
-            subIdx++;
-          }
-        }
-
-        if (step.error) {
-          const fraction =
-            subPartCount > 0 ? stepDuration / subPartCount : stepDuration;
-          spans.push({
-            id: `${step.id}-error`,
-            stepId: step.id,
-            label: 'Error',
-            sublabel:
-              step.error.length > 60
-                ? step.error.slice(0, 60) + '...'
-                : step.error,
-            startMs: stepStart - traceStart + subIdx * fraction,
-            durationMs: fraction,
-            depth: depth + 1,
-            kind: 'error',
+              return crStart + crDuration;
+            }),
+          );
+          toolTimeRanges.push({
+            toolCallId: tcId,
+            startMs: earliest,
+            endMs: latest,
           });
         }
+      }
 
-        for (const cr of unmatchedChildRuns) {
-          addStepSpans(
-            cr.steps,
-            depth + 1,
-            cr.childRuns ?? [],
-            undefined,
-            cr.run.function_id,
+      // Track a cursor for placing parts that don't have real timestamps
+      let cursor = stepStartMs;
+
+      for (const part of contentParts) {
+        if (part.type === 'reasoning' || part.type === 'thinking') {
+          const thinkingText =
+            part.text || part.thinking || part.reasoning || '';
+
+          // Thinking happens before tool calls; fill from cursor to the
+          // earliest tool start (or step end if no tools).
+          const nextToolStart =
+            toolTimeRanges.length > 0
+              ? Math.min(...toolTimeRanges.map(t => t.startMs))
+              : stepEndMs;
+          const thinkingEnd = Math.max(cursor, nextToolStart);
+          const thinkingDuration = Math.max(0, thinkingEnd - cursor);
+
+          spans.push({
+            id: `${step.id}-thinking-${part.toolCallId || cursor}`,
+            stepId: step.id,
+            label: 'Thinking',
+            sublabel:
+              thinkingText.length > 50
+                ? thinkingText.slice(0, 50) + '...'
+                : thinkingText,
+            startMs: cursor,
+            durationMs: thinkingDuration,
+            depth: depth + 1,
+            kind: 'thinking',
+            thinkingText,
+          });
+          cursor = cursor + thinkingDuration;
+        } else if (part.type === 'tool-call') {
+          const toolName = part.toolName || 'unknown';
+          const args = part.input ?? part.args;
+          const argPreview =
+            args && typeof args === 'object'
+              ? Object.entries(args)
+                  .slice(0, 3)
+                  .map(([, v]) => {
+                    const s =
+                      typeof v === 'string'
+                        ? v
+                        : (JSON.stringify(v) ?? String(v));
+                    return s.length > 30 ? s.slice(0, 30) + '…' : s;
+                  })
+                  .join(', ')
+              : typeof args === 'string'
+                ? args.slice(0, 60)
+                : '';
+
+          const tcChildRuns = toolCallToChildRuns.get(part.toolCallId) ?? [];
+          const timeRange = toolTimeRanges.find(
+            t => t.toolCallId === part.toolCallId,
           );
+
+          let toolStartMs: number;
+          let toolDuration: number;
+
+          if (timeRange) {
+            toolStartMs = timeRange.startMs;
+            toolDuration = timeRange.endMs - timeRange.startMs;
+          } else {
+            // No child run — tool executed inline; place at cursor
+            toolStartMs = cursor;
+            toolDuration = 0;
+          }
+
+          spans.push({
+            id: `${step.id}-tool-${part.toolCallId || cursor}`,
+            stepId: step.id,
+            label: toolName,
+            sublabel: argPreview ? `(${argPreview})` : undefined,
+            startMs: toolStartMs,
+            durationMs: toolDuration,
+            depth: depth + 1,
+            kind: 'tool-call',
+            toolCallId: part.toolCallId,
+          });
+
+          for (const cr of tcChildRuns) {
+            addStepSpans(
+              cr.steps,
+              depth + 2,
+              cr.childRuns ?? [],
+              cr.run.function_id,
+            );
+          }
+
+          cursor = Math.max(cursor, toolStartMs + toolDuration);
+        } else if (part.type === 'text') {
+          const text = part.text || '';
+
+          // Text response comes after all tool results; place from cursor to step end.
+          const textDuration = Math.max(0, stepEndMs - cursor);
+
+          spans.push({
+            id: `${step.id}-text-${cursor}`,
+            stepId: step.id,
+            label: 'Text',
+            sublabel: text.length > 60 ? text.slice(0, 60) + '...' : text,
+            startMs: cursor,
+            durationMs: textDuration,
+            depth: depth + 1,
+            kind: 'text',
+            textContent: text,
+          });
+          cursor = cursor + textDuration;
         }
+      }
+
+      if (step.error) {
+        const errorDuration = Math.max(0, stepEndMs - cursor);
+        spans.push({
+          id: `${step.id}-error`,
+          stepId: step.id,
+          label: 'Error',
+          sublabel:
+            step.error.length > 60
+              ? step.error.slice(0, 60) + '...'
+              : step.error,
+          startMs: cursor,
+          durationMs: errorDuration,
+          depth: depth + 1,
+          kind: 'error',
+        });
+      }
+
+      for (const cr of unmatchedChildRuns) {
+        addStepSpans(
+          cr.steps,
+          depth + 1,
+          cr.childRuns ?? [],
+          cr.run.function_id,
+        );
       }
     }
   };
@@ -1042,7 +1062,6 @@ function buildTraceSpans(
     runDetail.steps,
     0,
     runDetail.childRuns ?? [],
-    undefined,
     runDetail.run.function_id,
   );
   return spans;
