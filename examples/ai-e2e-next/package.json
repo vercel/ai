@@ -27,7 +27,7 @@
     "@ai-sdk/react": "4.0.0-beta.72",
     "@ai-sdk/rsc": "3.0.0-beta.73",
     "@ai-sdk/valibot": "3.0.0-beta.14",
-    "@ai-sdk/xai": "4.0.0-beta.28",
+    "@ai-sdk/xai": "4.0.0-beta.29",
     "@langfuse/otel": "^4.6.1",
     "@langfuse/tracing": "^5.0.2",
     "@modelcontextprotocol/sdk": "^1.26.0",
