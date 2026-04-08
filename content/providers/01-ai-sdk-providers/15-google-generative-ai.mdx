@@ -173,7 +173,7 @@ The following optional provider options are available for Google Generative AI m
     - `OFF`
 
 - **responseModalities** _string[]_
-  The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
+  The modalities to use for the response. Valid values are `TEXT`, `IMAGE`, and `AUDIO`, but support is model-dependent. When not defined or empty, the model defaults to returning only text.
 
 - **thinkingConfig** _\{ thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'; thinkingBudget?: number; includeThoughts?: boolean \}_
 
