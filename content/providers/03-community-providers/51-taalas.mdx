@@ -1,0 +1,137 @@
+---
+title: Taalas
+description: Learn how to use the Taalas provider with the AI SDK.
+---
+
+# Taalas Provider
+
+[taalas-ai-provider](https://github.com/welidev/taalas-ai-provider) is a community provider that uses the [Taalas](https://taalas.com) API to provide access to the Llama 3.1 8B model. It supports chat and completion endpoints with streaming.
+
+## Setup
+
+The Taalas provider is available via the `taalas-ai-provider` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add taalas-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install taalas-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add taalas-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add taalas-ai-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `taalas` from `taalas-ai-provider`:
+
+```ts
+import { taalas } from 'taalas-ai-provider';
+```
+
+If you need to customize the configuration, use the `createTaalas` function:
+
+```ts
+import { createTaalas } from 'taalas-ai-provider';
+
+const taalas = createTaalas({
+  apiKey: process.env.TAALAS_API_KEY,
+});
+```
+
+### Configuration Options
+
+- **apiKey** _string_
+
+  API key for the Taalas API. Defaults to the `TAALAS_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Custom base URL for API calls. Defaults to `https://api.taalas.com`.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Extra headers to include in every request.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+The Taalas provider offers chat and completion models:
+
+```ts
+// Chat model (default)
+const chatModel = taalas('llama3.1-8B');
+
+// Completion model
+const completionModel = taalas.completion('llama3.1-8B');
+```
+
+### Model Capabilities
+
+| Model         | Text Generation     | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| ------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `llama3.1-8B` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+## Examples
+
+### generateText
+
+```ts
+import { generateText } from 'ai';
+import { taalas } from 'taalas-ai-provider';
+
+const { text } = await generateText({
+  model: taalas('llama3.1-8B'),
+  prompt: 'What is the meaning of life?',
+});
+
+console.log(text);
+```
+
+### streamText
+
+```ts
+import { streamText } from 'ai';
+import { taalas } from 'taalas-ai-provider';
+
+const result = streamText({
+  model: taalas('llama3.1-8B'),
+  prompt: 'Write a short poem.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Completion Model
+
+```ts
+import { generateText } from 'ai';
+import { createTaalas } from 'taalas-ai-provider';
+
+const taalas = createTaalas();
+
+const { text } = await generateText({
+  model: taalas.completion('llama3.1-8B'),
+  prompt: 'The capital of France is',
+});
+
+console.log(text);
+```
+
+## Compatibility
+
+| taalas-ai-provider | ai (peer dep) | Specification   |
+| ------------------ | ------------- | --------------- |
+| `0.3.x`            | `^6.0.0`      | LanguageModelV3 |
+| `0.2.x`            | `^5.0.0`      | LanguageModelV2 |
+| `0.1.x`            | `^4.0.0`      | LanguageModelV1 |
