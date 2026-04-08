@@ -611,6 +611,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
               return;
             }
 
+            if (event.type === 'error') {
+              controller.enqueue({ type: 'error', error: event });
+              return;
+            }
+
             // Function call arguments streaming (standard function tools)
             if (event.type === 'response.function_call_arguments.delta') {
               const toolCall = ongoingToolCalls[event.output_index];
