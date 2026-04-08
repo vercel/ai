@@ -123,22 +123,36 @@ app.get('/api/runs/:id', async c => {
   // Compute isInProgress from steps (any step without duration_ms or error)
   const isInProgress = data.steps.some(s => s.duration_ms === null && !s.error);
 
-  // Find child runs spawned from steps in this run, and include their steps
+  // Recursively collect all descendant runs so the viewer can render
   const allRuns = await getRuns();
-  const childRuns = await Promise.all(
-    allRuns
-      .filter(r => r.parent_run_id === data.run.id)
-      .map(async childRun => {
+
+  interface DescendantRun {
+    run: (typeof allRuns)[number] & { isInProgress: boolean };
+    steps: Awaited<ReturnType<typeof getStepsForRun>>;
+    childRuns: DescendantRun[];
+  }
+
+  async function getDescendantRuns(
+    parentRunId: string,
+  ): Promise<DescendantRun[]> {
+    const children = allRuns.filter(r => r.parent_run_id === parentRunId);
+    return Promise.all(
+      children.map(async childRun => {
         const childSteps = await getStepsForRun(childRun.id);
         const childIsInProgress = childSteps.some(
           s => s.duration_ms === null && !s.error,
         );
+        const grandchildren = await getDescendantRuns(childRun.id);
         return {
           run: { ...childRun, isInProgress: childIsInProgress },
           steps: childSteps,
+          childRuns: grandchildren,
         };
       }),
-  );
+    );
+  }
+
+  const childRuns = await getDescendantRuns(data.run.id);
 
   return c.json({
     run: { ...data.run, isInProgress },

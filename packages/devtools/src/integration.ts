@@ -121,15 +121,22 @@ export function devToolsIntegration(): TelemetryIntegration {
   // When executeTool runs a tool's execute function, any nested generateText/
   // streamText call inside that tool gets its own callId. We track the nesting
   // so that the inner call's run can be linked to the parent.
-  let activeToolContext: {
-    parentCallId: string;
-    parentToolCallId: string;
-  } | null = null;
+  //
+  // We use a per-toolCallId Map instead of a single variable so that parallel
+  // tool calls
+  const toolContextMap = new Map<
+    string,
+    { parentCallId: string; parentToolCallId: string }
+  >();
+  let currentToolCallId: string | null = null;
 
   function resolveParentInfo(): { runId: string; stepId: string } | undefined {
-    if (!activeToolContext) return undefined;
+    if (!currentToolCallId) return undefined;
 
-    const parentState = callStates.get(activeToolContext.parentCallId);
+    const ctx = toolContextMap.get(currentToolCallId);
+    if (!ctx) return undefined;
+
+    const parentState = callStates.get(ctx.parentCallId);
     if (!parentState) return undefined;
 
     // Find the step that is currently executing the tool call.
@@ -408,16 +415,19 @@ export function devToolsIntegration(): TelemetryIntegration {
     },
 
     executeTool: async ({ callId, toolCallId, execute }) => {
-      const previousContext = activeToolContext;
-      activeToolContext = {
+      toolContextMap.set(toolCallId, {
         parentCallId: callId,
         parentToolCallId: toolCallId,
-      };
+      });
+
+      const previousToolCallId = currentToolCallId;
+      currentToolCallId = toolCallId;
 
       try {
         return await execute();
       } finally {
-        activeToolContext = previousContext;
+        currentToolCallId = previousToolCallId;
+        toolContextMap.delete(toolCallId);
       }
     },
   };

@@ -77,6 +77,7 @@ interface ChildRun {
     isInProgress?: boolean;
   };
   steps: Step[];
+  childRuns?: ChildRun[];
 }
 
 interface RunDetail {
@@ -807,7 +808,7 @@ function buildTraceSpans(
           cr => cr.run.parent_step_id === step.id,
         );
         for (const cr of stepChildRuns) {
-          addStepSpans(cr.steps, depth + 1, []);
+          addStepSpans(cr.steps, depth + 1, cr.childRuns ?? []);
         }
       } else {
         spans.push({
@@ -943,7 +944,12 @@ function buildTraceSpans(
             });
 
             for (const cr of tcChildRuns) {
-              addStepSpans(cr.steps, depth + 2, [], partStartMs);
+              addStepSpans(
+                cr.steps,
+                depth + 2,
+                cr.childRuns ?? [],
+                partStartMs,
+              );
             }
 
             subIdx++;
@@ -983,7 +989,7 @@ function buildTraceSpans(
         }
 
         for (const cr of unmatchedChildRuns) {
-          addStepSpans(cr.steps, depth + 1, []);
+          addStepSpans(cr.steps, depth + 1, cr.childRuns ?? []);
         }
       }
     }
@@ -1837,21 +1843,26 @@ function NestedRunCard({
 
       {expanded && (
         <div className="border-t border-cyan-500/20 bg-background/50 p-3 flex flex-col gap-2">
-          {childRun.steps.map((step, index) => (
-            <StepCard
-              key={step.id}
-              step={step}
-              index={index}
-              steps={childRun.steps}
-              isRunInProgress={childRun.run.isInProgress ?? false}
-              expandedSteps={expandedSteps}
-              toggleStep={toggleStep}
-              parseJson={parseJson}
-              formatDuration={formatDuration}
-              childRuns={[]}
-              depth={depth}
-            />
-          ))}
+          {childRun.steps.map((step, index) => {
+            const nestedChildRuns = (childRun.childRuns ?? []).filter(
+              cr => cr.run.parent_step_id === step.id,
+            );
+            return (
+              <StepCard
+                key={step.id}
+                step={step}
+                index={index}
+                steps={childRun.steps}
+                isRunInProgress={childRun.run.isInProgress ?? false}
+                expandedSteps={expandedSteps}
+                toggleStep={toggleStep}
+                parseJson={parseJson}
+                formatDuration={formatDuration}
+                childRuns={nestedChildRuns}
+                depth={depth}
+              />
+            );
+          })}
         </div>
       )}
     </div>
