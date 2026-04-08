@@ -90,5 +90,5 @@ export interface SkillsV4 {
   /**
    * Uploads a new skill from the given files.
    */
-  upload(params: SkillsV4UploadParams): Promise<SkillsV4UploadResult>;
+  uploadSkill(params: SkillsV4UploadParams): PromiseLike<SkillsV4UploadResult>;
 }
