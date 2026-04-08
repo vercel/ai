@@ -21,6 +21,12 @@ import Ajv from 'ajv';
 export type SerializableToolDef = {
   description?: string;
   inputSchema: JSONSchema7;
+  /** Present on provider tools (e.g. anthropic.tools.webSearch). */
+  type?: 'provider';
+  /** Provider tool ID, e.g. 'anthropic.web_search_20250305'. */
+  id?: `${string}.${string}`;
+  /** Provider tool configuration args (maxUses, allowedDomains, etc.). */
+  args?: Record<string, unknown>;
 };
 
 /**
@@ -33,13 +39,22 @@ export function serializeToolSet(
   tools: ToolSet,
 ): Record<string, SerializableToolDef> {
   return Object.fromEntries(
-    Object.entries(tools).map(([name, t]) => [
-      name,
-      {
+    Object.entries(tools).map(([name, t]) => {
+      const def: SerializableToolDef = {
         description: t.description,
         inputSchema: asSchema(t.inputSchema).jsonSchema as JSONSchema7,
-      },
-    ]),
+      };
+
+      // Preserve provider tool identity so the Gateway can recognize
+      // them as provider-executed tools (e.g. anthropic webSearch).
+      if ((t as any).type === 'provider') {
+        def.type = 'provider';
+        def.id = (t as any).id;
+        def.args = (t as any).args;
+      }
+
+      return [name, def];
+    }),
   );
 }
 
@@ -57,6 +72,20 @@ export function resolveSerializableTools(
 
   return Object.fromEntries(
     Object.entries(tools).map(([name, t]) => {
+      // Provider tools are executed server-side — pass them through
+      // with their identity intact, no client-side validation needed.
+      if (t.type === 'provider') {
+        return [
+          name,
+          tool({
+            type: 'provider' as const,
+            id: t.id!,
+            args: t.args ?? {},
+            inputSchema: jsonSchema(t.inputSchema),
+          }),
+        ];
+      }
+
       const validateFn = ajv.compile(t.inputSchema);
 
       return [
