@@ -151,17 +151,17 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
-<<<<<<< HEAD
-=======
-    describe('top-level reasoning', () => {
+    describe('providerOptions reasoning', () => {
       beforeEach(() => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
       });
 
-      it('should map top-level reasoning to reasoning effort', async () => {
+      it('should send reasoning.effort via providerOptions', async () => {
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
-          reasoning: 'high',
+          providerOptions: {
+            lmstudio: { reasoningEffort: 'high' },
+          },
         });
 
         expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
@@ -169,53 +169,17 @@ describe('OpenResponsesLanguageModel', () => {
         );
       });
 
-      it('should coerce top-level reasoning minimal to low', async () => {
+      it('should send reasoning.effort none via providerOptions', async () => {
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
-          reasoning: 'minimal',
-        });
-
-        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
-          { effort: 'low' },
-        );
-      });
-
-      it('should map top-level reasoning none to none', async () => {
-        await createModel().doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'none',
+          providerOptions: {
+            lmstudio: { reasoningEffort: 'none' },
+          },
         });
 
         expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
           { effort: 'none' },
         );
-      });
-
-      it('should pass xhigh directly', async () => {
-        await createModel().doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'xhigh',
-        });
-
-        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
-          { effort: 'xhigh' },
-        );
-      });
-
-      it('should not set reasoning when not specified', async () => {
-        await createModel().doGenerate({
-          prompt: TEST_PROMPT,
-        });
-
-        expect(
-          (await server.calls[0].requestBodyJson).reasoning,
-        ).toBeUndefined();
-      });
-    });
-
-    describe('providerOptions reasoning', () => {
-      beforeEach(() => {
-        prepareJsonFixtureResponse('lmstudio-basic.1');
       });
 
       it('should send reasoning.summary via providerOptions', async () => {
@@ -243,38 +207,6 @@ describe('OpenResponsesLanguageModel', () => {
             "model": "gemma-7b-it",
             "reasoning": {
               "summary": "detailed",
-            },
-          }
-        `);
-      });
-
-      it('should combine top-level reasoning effort with providerOptions summary', async () => {
-        await createModel().doGenerate({
-          prompt: TEST_PROMPT,
-          reasoning: 'high',
-          providerOptions: {
-            lmstudio: { reasoningSummary: 'auto' },
-          },
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "Hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-                "type": "message",
-              },
-            ],
-            "model": "gemma-7b-it",
-            "reasoning": {
-              "effort": "high",
-              "summary": "auto",
             },
           }
         `);
@@ -310,6 +242,37 @@ describe('OpenResponsesLanguageModel', () => {
         `);
       });
 
+      it('should combine reasoning effort and summary from providerOptions', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: { reasoningEffort: 'high', reasoningSummary: 'auto' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+            "reasoning": {
+              "effort": "high",
+              "summary": "auto",
+            },
+          }
+        `);
+      });
+
       it('should not set reasoning when providerOptions has no reasoning fields', async () => {
         await createModel().doGenerate({
           prompt: TEST_PROMPT,
@@ -336,9 +299,18 @@ describe('OpenResponsesLanguageModel', () => {
           }
         `);
       });
+
+      it('should not set reasoning when not specified', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).reasoning,
+        ).toBeUndefined();
+      });
     });
 
->>>>>>> e69a836e5 (feat(open-responses): add option to pass reasoning summary for OpenResponses (#14115))
     describe('tool call parsing', () => {
       let result: LanguageModelV3GenerateResult;
 

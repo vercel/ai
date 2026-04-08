@@ -15,11 +15,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   jsonSchema,
-<<<<<<< HEAD
-=======
-  mapReasoningToProviderEffort,
   parseProviderOptions,
->>>>>>> e69a836e5 (feat(open-responses): add option to pass reasoning summary for OpenResponses (#14115))
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -133,31 +129,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
-<<<<<<< HEAD
-=======
     const openResponsesOptions = await parseProviderOptions({
       provider: this.config.providerOptionsName,
       providerOptions,
       schema: openResponsesOptionsSchema,
     });
 
-    const resolvedReasoningEffort = isCustomReasoning(reasoning)
-      ? reasoning === 'none'
-        ? 'none'
-        : mapReasoningToProviderEffort({
-            reasoning,
-            effortMap: {
-              minimal: 'low',
-              low: 'low',
-              medium: 'medium',
-              high: 'high',
-              xhigh: 'xhigh',
-            },
-            warnings,
-          })
-      : undefined;
-
->>>>>>> e69a836e5 (feat(open-responses): add option to pass reasoning summary for OpenResponses (#14115))
     return {
       body: {
         model: this.modelId,
@@ -168,21 +145,18 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         top_p: topP,
         presence_penalty: presencePenalty,
         frequency_penalty: frequencyPenalty,
-<<<<<<< HEAD
-=======
         reasoning:
-          resolvedReasoningEffort != null ||
+          openResponsesOptions?.reasoningEffort != null ||
           openResponsesOptions?.reasoningSummary != null
             ? {
-                ...(resolvedReasoningEffort != null && {
-                  effort: resolvedReasoningEffort,
+                ...(openResponsesOptions?.reasoningEffort != null && {
+                  effort: openResponsesOptions.reasoningEffort,
                 }),
                 ...(openResponsesOptions?.reasoningSummary != null && {
                   summary: openResponsesOptions.reasoningSummary,
                 }),
               }
             : undefined,
->>>>>>> e69a836e5 (feat(open-responses): add option to pass reasoning summary for OpenResponses (#14115))
         tools: functionTools?.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
         ...(textFormat != null && { text: { format: textFormat } }),
