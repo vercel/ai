@@ -85,6 +85,7 @@ export class DirectChatTransport<
   async sendMessages({
     messages,
     abortSignal,
+    ignoreIncompleteToolCalls,
   }: Parameters<ChatTransport<UI_MESSAGE>['sendMessages']>[0]): Promise<
     ReadableStream<UIMessageChunk>
   > {
@@ -97,6 +98,7 @@ export class DirectChatTransport<
     // Convert UI messages to model messages
     const modelMessages = await convertToModelMessages(validatedMessages, {
       tools: this.agent.tools,
+      ignoreIncompleteToolCalls,
     });
 
     // Stream from the agent

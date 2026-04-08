@@ -233,6 +233,11 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   sendAutomaticallyWhen?: (options: {
     messages: UI_MESSAGE[];
   }) => boolean | PromiseLike<boolean>;
+
+  /**
+   * Whether to filter out incomplete tool calls before sending messages.
+   */
+  ignoreIncompleteToolCalls?: boolean;
 }
 
 export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
@@ -253,6 +258,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onFinish?: ChatInit<UI_MESSAGE>['onFinish'];
   private onData?: ChatInit<UI_MESSAGE>['onData'];
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
+  private ignoreIncompleteToolCalls?: boolean;
 
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
@@ -269,6 +275,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     onFinish,
     onData,
     sendAutomaticallyWhen,
+    ignoreIncompleteToolCalls,
   }: Omit<ChatInit<UI_MESSAGE>, 'messages'> & {
     state: ChatState<UI_MESSAGE>;
   }) {
@@ -283,6 +290,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.onFinish = onFinish;
     this.onData = onData;
     this.sendAutomaticallyWhen = sendAutomaticallyWhen;
+    this.ignoreIncompleteToolCalls = ignoreIncompleteToolCalls;
   }
 
   /**
@@ -681,6 +689,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           body,
           trigger,
           messageId,
+          ignoreIncompleteToolCalls: this.ignoreIncompleteToolCalls,
         });
       }
 
