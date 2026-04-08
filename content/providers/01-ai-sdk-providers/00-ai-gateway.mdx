@@ -176,6 +176,34 @@ const { text } = await generateText({
 
 AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
 
+## Reranking Models
+
+You can create reranking models using the `rerankingModel` method on the provider instance:
+
+```ts
+import { rerank } from 'ai';
+import { gateway } from '@ai-sdk/gateway';
+
+const { ranking } = await rerank({
+  model: gateway.rerankingModel('cohere/rerank-v3.5'),
+  query: 'What is the capital of France?',
+  documents: [
+    'Paris is the capital of France.',
+    'Berlin is the capital of Germany.',
+    'Madrid is the capital of Spain.',
+  ],
+  topN: 2,
+});
+
+console.log(ranking);
+// [
+//   { originalIndex: 0, score: 0.89, document: 'Paris is the capital of France.' },
+//   { originalIndex: 2, score: 0.15, document: 'Madrid is the capital of Spain.' },
+// ]
+```
+
+Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
+
 ## Available Models
 
 The AI Gateway supports models from OpenAI, Anthropic, Google, Meta, xAI, Mistral, DeepSeek, Amazon Bedrock, Cohere, Perplexity, Alibaba, and other providers.

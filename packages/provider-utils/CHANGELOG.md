@@ -1,5 +1,23 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+
+## 5.0.0-beta.13
+
+### Major Changes
+
+- 7e26e81: chore: rename experimental_context to context
+
+### Patch Changes
+
+- b0c2869: chore(ai): remove deprecated `media` type part from `ToolResultOutput`
+
 ## 5.0.0-beta.12
 
 ### Patch Changes

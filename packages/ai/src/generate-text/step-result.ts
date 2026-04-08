@@ -68,7 +68,7 @@ export type StepResult<
    *
    * Experimental (can break in patch releases).
    */
-  readonly experimental_context: CONTEXT;
+  readonly context: CONTEXT;
 
   /**
    * The content that was generated in the last step.
@@ -189,10 +189,7 @@ export class DefaultStepResult<
   readonly model: StepResult<TOOLS, CONTEXT>['model'];
   readonly functionId: StepResult<TOOLS, CONTEXT>['functionId'];
   readonly metadata: StepResult<TOOLS, CONTEXT>['metadata'];
-  readonly experimental_context: StepResult<
-    TOOLS,
-    CONTEXT
-  >['experimental_context'];
+  readonly context: StepResult<TOOLS, CONTEXT>['context'];
   readonly content: StepResult<TOOLS, CONTEXT>['content'];
   readonly finishReason: StepResult<TOOLS, CONTEXT>['finishReason'];
   readonly rawFinishReason: StepResult<TOOLS, CONTEXT>['rawFinishReason'];
@@ -209,7 +206,7 @@ export class DefaultStepResult<
     modelId,
     functionId,
     metadata,
-    experimental_context,
+    context,
     content,
     finishReason,
     rawFinishReason,
@@ -225,7 +222,7 @@ export class DefaultStepResult<
     modelId: StepResult<TOOLS, CONTEXT>['model']['modelId'];
     functionId: StepResult<TOOLS, CONTEXT>['functionId'];
     metadata: StepResult<TOOLS, CONTEXT>['metadata'];
-    experimental_context: StepResult<TOOLS, CONTEXT>['experimental_context'];
+    context: StepResult<TOOLS, CONTEXT>['context'];
     content: StepResult<TOOLS, CONTEXT>['content'];
     finishReason: StepResult<TOOLS, CONTEXT>['finishReason'];
     rawFinishReason: StepResult<TOOLS, CONTEXT>['rawFinishReason'];
@@ -240,7 +237,7 @@ export class DefaultStepResult<
     this.model = { provider, modelId };
     this.functionId = functionId;
     this.metadata = metadata;
-    this.experimental_context = experimental_context;
+    this.context = context;
     this.content = content;
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;

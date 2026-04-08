@@ -1,5 +1,30 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- 813851f: fix (provider/xai): add response.incomplete and response.failed streaming event handling
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/openai-compatible@3.0.0-beta.19
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+  - @ai-sdk/openai-compatible@3.0.0-beta.18
+
 ## 4.0.0-beta.26
 
 ### Patch Changes

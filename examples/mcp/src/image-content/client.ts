@@ -22,7 +22,7 @@ async function main() {
     console.log('Calling get-image tool...\n');
     const result = await tool.execute!(
       {},
-      { messages: [], toolCallId: '1', experimental_context: {} },
+      { messages: [], toolCallId: '1', context: {} },
     );
 
     console.log('Raw execute() result (MCP format):');
