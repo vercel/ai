@@ -1,5 +1,15 @@
 # ai
 
+## 7.0.0-beta.74
+
+### Patch Changes
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/gateway@4.0.0-beta.42
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
 ## 7.0.0-beta.73
 
 ### Patch Changes
