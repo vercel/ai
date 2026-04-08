@@ -2,14 +2,13 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { registerTelemetryIntegration, streamText } from 'ai';
 import { z } from 'zod';
 import {
-  GenAIOpenTelemetryIntegration,
   OpenTelemetryIntegration,
+  GenAIOpenTelemetryIntegration,
 } from '@ai-sdk/otel';
 import { devToolsIntegration } from '@ai-sdk/devtools';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
-import { saveRawChunks } from '../../lib/save-raw-chunks';
 
 registerTelemetryIntegration(devToolsIntegration());
 registerTelemetryIntegration(new OpenTelemetryIntegration());
@@ -45,7 +44,6 @@ run(async () => {
       isEnabled: true,
       functionId: `cook-recipe`,
     },
-    includeRawChunks: true,
   });
 
   for await (const part of result.fullStream) {
@@ -74,11 +72,5 @@ run(async () => {
         break;
     }
   }
-
-  await saveRawChunks({
-    result,
-    filename: 'google-vertex-stream-function-call-args-default.1',
-  });
-
   await sdk.shutdown();
 });
