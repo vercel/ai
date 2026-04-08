@@ -153,7 +153,6 @@ export type GatewayModelId =
   | 'perplexity/sonar-pro'
   | 'perplexity/sonar-reasoning-pro'
   | 'prime-intellect/intellect-3'
-  | 'xai/grok-2-vision'
   | 'xai/grok-3'
   | 'xai/grok-3-fast'
   | 'xai/grok-3-mini'
