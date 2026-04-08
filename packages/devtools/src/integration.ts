@@ -93,9 +93,9 @@ function getOperationType(operationId: string): OperationType {
  * Usage:
  * ```ts
  * import { registerTelemetryIntegration } from 'ai';
- * import { devToolsIntegration } from '@ai-sdk/devtools';
+ * import { DevToolsTelemetry } from '@ai-sdk/devtools';
  *
- * registerTelemetryIntegration(devToolsIntegration());
+ * registerTelemetryIntegration(DevToolsTelemetry());
  * ```
  *
  * Then enable telemetry on your AI SDK calls:
@@ -107,11 +107,11 @@ function getOperationType(operationId: string): OperationType {
  * });
  * ```
  */
-export function devToolsIntegration(): TelemetryIntegration {
+export function DevToolsTelemetry(): TelemetryIntegration {
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       '@ai-sdk/devtools should not be used in production. ' +
-        'Remove devToolsIntegration from your telemetry configuration for production builds.',
+        'Remove DevToolsTelemetry from your telemetry configuration for production builds.',
     );
   }
 

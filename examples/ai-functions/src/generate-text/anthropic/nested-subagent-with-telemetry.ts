@@ -4,13 +4,13 @@ import {
   GenAIOpenTelemetryIntegration,
   OpenTelemetryIntegration,
 } from '@ai-sdk/otel';
-import { devToolsIntegration } from '@ai-sdk/devtools';
+import { DevToolsTelemetry } from '@ai-sdk/devtools';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
-registerTelemetryIntegration(devToolsIntegration());
+registerTelemetryIntegration(DevToolsTelemetry());
 registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 const sdk = new NodeSDK({
