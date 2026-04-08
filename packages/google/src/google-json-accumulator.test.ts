@@ -164,25 +164,31 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.recipe.name', stringValue: 'Lasagna' },
       ]);
 
+      expect(result.textDelta).toBe('{"recipe":{"name":"Lasagna"');
       expect(result.currentJSON).toEqual({ recipe: { name: 'Lasagna' } });
     });
 
     it('should build nested object with array from indexed jsonPath', () => {
       const accumulator = new GoogleJSONAccumulator();
-      accumulator.processPartialArgs([
+      const amountResult = accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[0].amount',
           stringValue: '16 oz',
         },
       ]);
-      const result = accumulator.processPartialArgs([
+      expect(amountResult.textDelta).toBe(
+        '{"recipe":{"ingredients":[{"amount":"16 oz"',
+      );
+
+      const nameResult = accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[0].name',
           stringValue: 'Lasagna noodles',
         },
       ]);
+      expect(nameResult.textDelta).toBe(',"name":"Lasagna noodles"');
 
-      expect(result.currentJSON).toEqual({
+      expect(nameResult.currentJSON).toEqual({
         recipe: {
           ingredients: [{ amount: '16 oz', name: 'Lasagna noodles' }],
         },
@@ -191,30 +197,41 @@ describe('GoogleJSONAccumulator', () => {
 
     it('should accumulate multiple array elements across chunks', () => {
       const accumulator = new GoogleJSONAccumulator();
-      accumulator.processPartialArgs([
+      const deltas: string[] = [];
+
+      let result = accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[0].amount',
           stringValue: '16 oz',
         },
       ]);
-      accumulator.processPartialArgs([
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[0].name',
           stringValue: 'Noodles',
         },
       ]);
-      accumulator.processPartialArgs([
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[1].amount',
           stringValue: '1 lb',
         },
       ]);
-      const result = accumulator.processPartialArgs([
+      deltas.push(result.textDelta);
+      expect(result.textDelta).toBe('},{"amount":"1 lb"');
+
+      result = accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.ingredients[1].name',
           stringValue: 'Beef',
         },
       ]);
+      deltas.push(result.textDelta);
+      expect(result.textDelta).toBe(',"name":"Beef"');
 
       expect(result.currentJSON).toEqual({
         recipe: {
@@ -224,51 +241,68 @@ describe('GoogleJSONAccumulator', () => {
           ],
         },
       });
+
+      const { finalJSON, closingDelta } = accumulator.finalize();
+      deltas.push(closingDelta);
+      expect(deltas.join('')).toBe(finalJSON);
     });
 
     it('should handle string continuation on nested paths', () => {
       const accumulator = new GoogleJSONAccumulator();
-      accumulator.processPartialArgs([
+      const startResult = accumulator.processPartialArgs([
         {
           jsonPath: '$.recipe.steps[0]',
           stringValue: 'Preheat oven',
           willContinue: true,
         },
       ]);
-      const result = accumulator.processPartialArgs([
+      expect(startResult.textDelta).toBe('{"recipe":{"steps":["Preheat oven');
+
+      const continuationResult = accumulator.processPartialArgs([
         { jsonPath: '$.recipe.steps[0]', stringValue: ' to 375°F.' },
       ]);
+      expect(continuationResult.textDelta).toBe(' to 375°F.');
 
-      expect(result.currentJSON).toEqual({
+      expect(continuationResult.currentJSON).toEqual({
         recipe: { steps: ['Preheat oven to 375°F.'] },
       });
     });
 
     it('should handle mixed nested and flat paths', () => {
       const accumulator = new GoogleJSONAccumulator();
-      accumulator.processPartialArgs([
+      const locationResult = accumulator.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston' },
       ]);
-      const result = accumulator.processPartialArgs([
+      expect(locationResult.textDelta).toBe('{"location":"Boston"');
+
+      const detailsResult = accumulator.processPartialArgs([
         { jsonPath: '$.details.zip', stringValue: '02101' },
       ]);
+      expect(detailsResult.textDelta).toBe(',"details":{"zip":"02101"');
 
-      expect(result.currentJSON).toEqual({
+      expect(detailsResult.currentJSON).toEqual({
         location: 'Boston',
         details: { zip: '02101' },
       });
+
+      const { finalJSON, closingDelta } = accumulator.finalize();
+      expect(closingDelta).toBe('}}');
+      expect(finalJSON).toBe('{"location":"Boston","details":{"zip":"02101"}}');
     });
 
     it('should handle array elements that are direct string values', () => {
       const accumulator = new GoogleJSONAccumulator();
-      accumulator.processPartialArgs([
+      const firstStep = accumulator.processPartialArgs([
         { jsonPath: '$.steps[0]', stringValue: 'Step one' },
       ]);
-      const result = accumulator.processPartialArgs([
+      expect(firstStep.textDelta).toBe('{"steps":["Step one"');
+
+      const secondStep = accumulator.processPartialArgs([
         { jsonPath: '$.steps[1]', stringValue: 'Step two' },
       ]);
+      expect(secondStep.textDelta).toBe(',"Step two"');
 
-      expect(result.currentJSON).toEqual({
+      expect(secondStep.currentJSON).toEqual({
         steps: ['Step one', 'Step two'],
       });
     });
@@ -279,9 +313,14 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.a.b.c.d', stringValue: 'deep' },
       ]);
 
+      expect(result.textDelta).toBe('{"a":{"b":{"c":{"d":"deep"');
       expect(result.currentJSON).toEqual({
         a: { b: { c: { d: 'deep' } } },
       });
+
+      const { finalJSON, closingDelta } = accumulator.finalize();
+      expect(closingDelta).toBe('}}}}');
+      expect(finalJSON).toBe('{"a":{"b":{"c":{"d":"deep"}}}}');
     });
   });
 
@@ -382,6 +421,136 @@ describe('GoogleJSONAccumulator', () => {
       expect(JSON.parse(finalJSON)).toEqual({
         recipe: { steps: ['Preheat oven.', 'Cook.'] },
       });
+    });
+  });
+
+  describe('concatenation invariant', () => {
+    it('flat args: concatenated deltas + closingDelta === JSON.stringify', () => {
+      const accumulator = new GoogleJSONAccumulator();
+      const deltas: string[] = [];
+
+      let result = accumulator.processPartialArgs([
+        { jsonPath: '$.brightness', numberValue: 50 },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        { jsonPath: '$.enabled', boolValue: true },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        { jsonPath: '$.name', stringValue: 'test' },
+      ]);
+      deltas.push(result.textDelta);
+
+      const { finalJSON, closingDelta } = accumulator.finalize();
+      deltas.push(closingDelta);
+      expect(deltas.join('')).toBe(finalJSON);
+      expect(JSON.parse(finalJSON)).toEqual({
+        brightness: 50,
+        enabled: true,
+        name: 'test',
+      });
+    });
+
+    it('nested args: concatenated deltas + closingDelta === JSON.stringify', () => {
+      const accumulator = new GoogleJSONAccumulator();
+      const deltas: string[] = [];
+
+      let result = accumulator.processPartialArgs([
+        {
+          jsonPath: '$.recipe.ingredients[0].amount',
+          stringValue: '16 oz',
+        },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        {
+          jsonPath: '$.recipe.ingredients[0].name',
+          stringValue: 'Noodles',
+        },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        {
+          jsonPath: '$.recipe.ingredients[1].amount',
+          stringValue: '1 lb',
+        },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        {
+          jsonPath: '$.recipe.ingredients[1].name',
+          stringValue: 'Beef',
+        },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        { jsonPath: '$.recipe.name', stringValue: 'Lasagna' },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        {
+          jsonPath: '$.recipe.steps[0]',
+          stringValue: 'Preheat',
+          willContinue: true,
+        },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        { jsonPath: '$.recipe.steps[0]', stringValue: ' oven.' },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        { jsonPath: '$.recipe.steps[1]', stringValue: 'Cook.' },
+      ]);
+      deltas.push(result.textDelta);
+
+      const { finalJSON, closingDelta } = accumulator.finalize();
+      deltas.push(closingDelta);
+      expect(deltas.join('')).toBe(finalJSON);
+      expect(JSON.parse(finalJSON)).toEqual({
+        recipe: {
+          ingredients: [
+            { amount: '16 oz', name: 'Noodles' },
+            { amount: '1 lb', name: 'Beef' },
+          ],
+          name: 'Lasagna',
+          steps: ['Preheat oven.', 'Cook.'],
+        },
+      });
+    });
+
+    it('willContinue strings: concatenated deltas + closingDelta === JSON.stringify', () => {
+      const accumulator = new GoogleJSONAccumulator();
+      const deltas: string[] = [];
+
+      let result = accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: 'Bos', willContinue: true },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        { jsonPath: '$.location', stringValue: 'ton' },
+      ]);
+      deltas.push(result.textDelta);
+
+      result = accumulator.processPartialArgs([
+        { jsonPath: '$.count', numberValue: 42 },
+      ]);
+      deltas.push(result.textDelta);
+
+      const { finalJSON, closingDelta } = accumulator.finalize();
+      deltas.push(closingDelta);
+      expect(deltas.join('')).toBe(finalJSON);
     });
   });
 });
