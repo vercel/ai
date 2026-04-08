@@ -39,6 +39,44 @@ npx @ai-sdk/devtools
 
 Open http://localhost:4983 to view your AI SDK interactions.
 
+## Monorepo Usage
+
+When using devtools in a monorepo, the viewer and your app may run from different directories. Use the `--data-dir` flag or environment variable to ensure they read/write to the same location:
+
+### Option 1: Use the `--data-dir` flag
+
+```bash
+# Run from monorepo root, pointing to your app's data directory
+npx @ai-sdk/devtools --data-dir ./apps/my-app/.devtools
+```
+
+### Option 2: Use the environment variable
+
+Set `AI_SDK_DEVTOOLS_DATA_DIR` to an absolute path that both the middleware and viewer will use:
+
+```bash
+# In your app
+AI_SDK_DEVTOOLS_DATA_DIR=/path/to/monorepo/apps/my-app/.devtools npm run dev
+
+# When running the viewer
+AI_SDK_DEVTOOLS_DATA_DIR=/path/to/monorepo/apps/my-app/.devtools npx @ai-sdk/devtools
+```
+
+### Option 3: Run the CLI from your app directory
+
+```bash
+cd apps/my-app
+npx @ai-sdk/devtools
+```
+
+### Alternative command
+
+You can also use `ai-sdk-devtools` as an alias:
+
+```bash
+npx ai-sdk-devtools --data-dir ./apps/my-app/.devtools
+```
+
 ## How it works
 
 The middleware intercepts all `generateText` and `streamText` calls, capturing:
