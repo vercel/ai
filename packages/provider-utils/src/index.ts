@@ -78,3 +78,4 @@ export {
   EventSourceParserStream,
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
+export { serializeModel, deserializeModelConfig } from './serialize-model';
