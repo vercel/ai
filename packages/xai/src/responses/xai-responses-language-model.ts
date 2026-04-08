@@ -560,7 +560,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
 
             if (
               event.type === 'response.done' ||
-              event.type === 'response.completed'
+              event.type === 'response.completed' ||
+              event.type === 'response.incomplete'
             ) {
               const response = event.response;
 
@@ -573,14 +574,61 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                 usage.cachedInputTokens = converted.cachedInputTokens;
               }
 
+<<<<<<< HEAD
               if (response.status) {
                 finishReason = hasFunctionCall
                   ? 'tool-calls'
                   : mapXaiResponsesFinishReason(response.status);
+=======
+              if (event.type === 'response.incomplete') {
+                const reason =
+                  'incomplete_details' in response
+                    ? response.incomplete_details?.reason
+                    : undefined;
+                finishReason = {
+                  unified: reason
+                    ? mapXaiResponsesFinishReason(reason)
+                    : 'other',
+                  raw: reason ?? 'incomplete',
+                };
+              } else if ('status' in response && response.status) {
+                finishReason = {
+                  unified: hasFunctionCall
+                    ? 'tool-calls'
+                    : mapXaiResponsesFinishReason(response.status),
+                  raw: response.status,
+                };
+>>>>>>> c1cc97f15 (Backport: fix (provider/xai): add response.incomplete and response.failed streaming event handling (#14221))
               }
 
               return;
             }
+<<<<<<< HEAD
+=======
+
+            if (event.type === 'response.failed') {
+              const reason = event.response.incomplete_details?.reason;
+              finishReason = {
+                unified: reason ? mapXaiResponsesFinishReason(reason) : 'error',
+                raw: reason ?? 'error',
+              };
+
+              if (event.response.usage) {
+                usage = convertXaiResponsesUsage(event.response.usage);
+              }
+
+              return;
+            }
+
+            // Custom tool call input streaming - already handled by output_item events
+            if (
+              event.type === 'response.custom_tool_call_input.delta' ||
+              event.type === 'response.custom_tool_call_input.done'
+            ) {
+              return;
+            }
+
+>>>>>>> c1cc97f15 (Backport: fix (provider/xai): add response.incomplete and response.failed streaming event handling (#14221))
             // Function call arguments streaming (standard function tools)
             if (event.type === 'response.function_call_arguments.delta') {
               const toolCall = ongoingToolCalls[event.output_index];

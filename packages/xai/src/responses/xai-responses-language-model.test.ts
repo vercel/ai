@@ -2500,4 +2500,173 @@ describe('XaiResponsesLanguageModel', () => {
       );
     });
   });
+
+  describe('response.incomplete handling', () => {
+    it('should set finish reason to length for max_output_tokens', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.output_text.delta',
+          item_id: 'msg_456',
+          output_index: 0,
+          content_index: 0,
+          delta: 'partial output',
+        }),
+        JSON.stringify({
+          type: 'response.incomplete',
+          response: {
+            incomplete_details: { reason: 'max_output_tokens' },
+            usage: { input_tokens: 100, output_tokens: 4096 },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'length',
+          raw: 'max_output_tokens',
+        },
+        usage: expect.objectContaining({
+          inputTokens: expect.objectContaining({ total: 100 }),
+          outputTokens: expect.objectContaining({ total: 4096 }),
+        }),
+      });
+    });
+
+    it('should default to length when incomplete_details is missing', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.incomplete',
+          response: {
+            usage: { input_tokens: 50, output_tokens: 200 },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'other',
+          raw: 'incomplete',
+        },
+      });
+    });
+  });
+
+  describe('response.failed handling', () => {
+    it('should set finish reason to error', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.failed',
+          response: {
+            error: {
+              code: 'server_error',
+              message: 'Internal server error',
+            },
+            usage: { input_tokens: 50, output_tokens: 0 },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'error',
+          raw: 'error',
+        },
+        usage: expect.objectContaining({
+          inputTokens: expect.objectContaining({ total: 50 }),
+          outputTokens: expect.objectContaining({ total: 0 }),
+        }),
+      });
+    });
+
+    it('should map incomplete_details reason on failed response', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.failed',
+          response: {
+            error: {
+              code: 'server_error',
+              message: 'response failed',
+            },
+            incomplete_details: { reason: 'max_output_tokens' },
+            usage: null,
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: {
+          unified: 'length',
+          raw: 'max_output_tokens',
+        },
+      });
+    });
+  });
 });

@@ -406,6 +406,73 @@ export const xaiResponsesChunkSchema = z.union([
     arguments: z.string(),
   }),
   z.object({
+<<<<<<< HEAD
+=======
+    type: z.literal('response.mcp_call.in_progress'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.executing'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.completed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call.failed'),
+    item_id: z.string(),
+    output_index: z.number(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_arguments.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_arguments.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    arguments: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_output.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.mcp_call_output.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    output: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('response.incomplete'),
+    response: z.object({
+      incomplete_details: z.object({ reason: z.string() }).nullish(),
+      usage: xaiResponsesUsageSchema.nullish(),
+    }),
+  }),
+  z.object({
+    type: z.literal('response.failed'),
+    response: z.object({
+      error: z
+        .object({
+          code: z.string().nullish(),
+          message: z.string(),
+        })
+        .nullish(),
+      incomplete_details: z.object({ reason: z.string() }).nullish(),
+      usage: xaiResponsesUsageSchema.nullish(),
+    }),
+  }),
+  z.object({
+>>>>>>> c1cc97f15 (Backport: fix (provider/xai): add response.incomplete and response.failed streaming event handling (#14221))
     type: z.literal('response.done'),
     response: xaiResponsesResponseSchema,
   }),
