@@ -1295,7 +1295,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
               return tool.needsApproval(tc.input, {
                 toolCallId: tc.toolCallId,
                 messages: iterMessages as unknown as ModelMessage[],
-                experimental_context: experimentalContext,
+                context: experimentalContext,
               });
             }),
           );
