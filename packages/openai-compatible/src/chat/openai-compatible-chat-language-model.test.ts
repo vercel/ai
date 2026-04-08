@@ -345,6 +345,105 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract text and reasoning from content arrays with thinking parts', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-thinking-array',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-3',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'thinking',
+                  thinking: [
+                    { type: 'text', text: 'Step 1. ' },
+                    { type: 'text', text: 'Step 2.' },
+                  ],
+                },
+                { type: 'text', text: 'Final answer.' },
+              ],
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 1,
+          completion_tokens: 1,
+          total_tokens: 2,
+        },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Final answer.",
+          "type": "text",
+        },
+        {
+          "text": "Step 1. Step 2.",
+          "type": "reasoning",
+        },
+      ]
+    `);
+  });
+
+  it('should ignore unknown content array parts in non-stream responses', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-thinking-array-unknown-part',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-3',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: [
+                { type: 'metadata', foo: 'bar' },
+                {
+                  type: 'thinking',
+                  thinking: [{ type: 'text', text: 'Reasoning.' }],
+                },
+                { type: 'text', text: 'Answer.' },
+              ],
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Answer.",
+          "type": "text",
+        },
+        {
+          "text": "Reasoning.",
+          "type": "reasoning",
+        },
+      ]
+    `);
+  });
+
   it('should support partial usage', async () => {
     prepareJsonResponse({
       usage: { prompt_tokens: 20, total_tokens: 20 },
@@ -1924,6 +2023,194 @@ describe('doStream', () => {
             "raw": {
               "completion_tokens": 439,
               "prompt_tokens": 18,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should stream content arrays with thinking parts', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-thinking-array","object":"chat.completion.chunk","created":1711357598,"model":"grok-3","choices":[{"index":0,"delta":{"content":[{"type":"thinking","thinking":[{"type":"text","text":"Considering "},{"type":"text","text":"options"}]},{"type":"text","text":"Answer"}]},"finish_reason":null}]}` +
+          `\n\n`,
+        `data: {"id":"chatcmpl-thinking-array","object":"chat.completion.chunk","created":1711357598,"model":"grok-3","choices":[{"index":0,"delta":{"content":" ready"},"finish_reason":null}]}` +
+          `\n\n`,
+        `data: {"id":"chatcmpl-thinking-array","object":"chat.completion.chunk","created":1711357598,"model":"grok-3","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}` +
+          `\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-thinking-array",
+          "modelId": "grok-3",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Considering options",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Answer",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " ready",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 1,
+              "total": 1,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 2,
+              "total": 2,
+            },
+            "raw": {
+              "completion_tokens": 2,
+              "prompt_tokens": 1,
+              "total_tokens": 3,
+            },
+          },
+        },
+      ]
+    `);
+  });
+
+  it('should ignore unknown content array parts in stream responses', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-thinking-array-unknown-part","object":"chat.completion.chunk","created":1711357598,"model":"grok-3","choices":[{"index":0,"delta":{"content":[{"type":"metadata","foo":"bar"},{"type":"thinking","thinking":[{"type":"text","text":"Reasoning."}]},{"type":"text","text":"Answer"}]},"finish_reason":null}]}` +
+          `\n\n`,
+        `data: {"id":"chatcmpl-thinking-array-unknown-part","object":"chat.completion.chunk","created":1711357598,"model":"grok-3","choices":[{"index":0,"delta":{"content":" done"},"finish_reason":null}]}` +
+          `\n\n`,
+        `data: {"id":"chatcmpl-thinking-array-unknown-part","object":"chat.completion.chunk","created":1711357598,"model":"grok-3","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}` +
+          `\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-thinking-array-unknown-part",
+          "modelId": "grok-3",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-start",
+        },
+        {
+          "delta": "Reasoning.",
+          "id": "reasoning-0",
+          "type": "reasoning-delta",
+        },
+        {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-start",
+        },
+        {
+          "delta": "Answer",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "delta": " done",
+          "id": "txt-0",
+          "type": "text-delta",
+        },
+        {
+          "id": "txt-0",
+          "type": "text-end",
+        },
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 1,
+              "total": 1,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 2,
+              "total": 2,
+            },
+            "raw": {
+              "completion_tokens": 2,
+              "prompt_tokens": 1,
+              "total_tokens": 3,
             },
           },
         },
