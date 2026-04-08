@@ -1,5 +1,26 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- ai@7.0.0-beta.73
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [664a0eb]
+  - ai@7.0.0-beta.72
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- fc15550: feat(otel): add the genAI semantic otel integration
+- Updated dependencies [e68be55]
+  - ai@7.0.0-beta.71
+
 ## 1.0.0-beta.16
 
 ### Patch Changes
