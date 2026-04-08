@@ -717,6 +717,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               return;
             }
 
+            if (event.type === 'error') {
+              controller.enqueue({ type: 'error', error: event });
+              return;
+            }
+
             // Custom tool call input streaming - already handled by output_item events
             if (
               event.type === 'response.custom_tool_call_input.delta' ||
