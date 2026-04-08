@@ -1,4 +1,4 @@
-import { FilesV4 } from '@ai-sdk/provider';
+import { FilesV4, ProviderV4 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
   DataContent,
@@ -37,8 +37,9 @@ export async function uploadFile({
 }: {
   /**
    * The files API interface to use for uploading.
+   * Can be a `FilesV4` instance or a `ProviderV4` instance with a `files()` method.
    */
-  api: FilesV4;
+  api: FilesV4 | ProviderV4;
 
   /**
    * The file data to upload.
@@ -82,7 +83,18 @@ export async function uploadFile({
     }) ??
     (isLikelyText(data) ? 'text/plain' : 'application/octet-stream');
 
-  const result = await api.uploadFile({
+  const filesApi: FilesV4 =
+    'uploadFile' in api
+      ? api
+      : typeof api.files === 'function'
+        ? api.files()
+        : (() => {
+            throw new Error(
+              'The provider does not support file uploads. Make sure it exposes a files() method.',
+            );
+          })();
+
+  const result = await filesApi.uploadFile({
     data,
     mediaType,
     filename,
