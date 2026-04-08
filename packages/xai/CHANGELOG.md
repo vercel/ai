@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.66
+
+### Patch Changes
+
+- 92e25ae: fix (provider/xai): add response.incomplete and response.failed streaming event handling
+
 ## 2.0.65
 
 ### Patch Changes
