@@ -2,9 +2,7 @@ import * as diagnostics_channel from 'node:diagnostics_channel';
 import type { TelemetryIntegration } from 'ai';
 
 /**
- * Well-known diagnostics channel names published by this integration.
- *
- * APM vendors (Datadog, New Relic, etc.) subscribe to these channels
+ * Subscribe to these channels
  * to instrument AI SDK operations without requiring users to register
  * additional callbacks.
  */
@@ -60,22 +58,6 @@ const channels = {
 /**
  * Creates a `TelemetryIntegration` that publishes AI SDK lifecycle events
  * to Node.js diagnostics channels.
- *
- * Instrumentation tools (Datadog, New Relic, OpenTelemetry collectors, etc.)
- * can subscribe to the well-known channel names exported as
- * `AI_SDK_CHANNEL_NAMES` to observe operations without any coupling to the
- * AI SDK's callback system.
- *
- * When no subscribers are present on a channel, publishing is a no-op
- * (the `hasSubscribers` guard makes this zero-cost).
- *
- * @example
- * ```ts
- * import { registerTelemetryIntegration } from 'ai';
- * import { createDiagnosticsChannelIntegration } from '@ai-sdk/diagnostics-channel';
- *
- * registerTelemetryIntegration(createDiagnosticsChannelIntegration());
- * ```
  */
 export function createDiagnosticsChannelIntegration(): TelemetryIntegration {
   return {

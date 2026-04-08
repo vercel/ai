@@ -56,7 +56,7 @@ All channel names are exported as `AI_SDK_CHANNEL_NAMES` for programmatic access
 
 ## Runtime Compatibility
 
-This integration requires Node.js >= 15.1.0 (diagnostics channels are stable since Node.js 19.2.0). In non-Node.js runtimes (edge, browser) the integration silently does nothing.
+This integration requires Node.js >= 15.1.0 (diagnostics channels are stable since Node.js 19.2.0). It is **not compatible** with non-Node.js runtimes (edge, browser) as it depends on the `node:diagnostics_channel` built-in module.
 
 ## Documentation
 
