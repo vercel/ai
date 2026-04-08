@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.52
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
 ## 3.0.51
 
 ### Patch Changes

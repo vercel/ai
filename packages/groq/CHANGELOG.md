@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 3.0.35
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
 ## 3.0.34
 
 ### Patch Changes

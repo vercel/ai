@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.68
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
 ## 3.0.67
 
 ### Patch Changes

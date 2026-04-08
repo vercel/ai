@@ -1,5 +1,15 @@
 # @ai-sdk/google-vertex
 
+## 4.0.105
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+- Updated dependencies [d42076d]
+  - @ai-sdk/anthropic@3.0.68
+  - @ai-sdk/google@3.0.60
+  - @ai-sdk/openai-compatible@2.0.41
+
 ## 4.0.104
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # ai
 
+## 6.0.153
+
+### Patch Changes
+
+- f152133: feat (ai/core): support plain string model IDs in `rerank()` function
+
+  The `rerank()` function now accepts plain model strings (e.g., `'cohere/rerank-v3.5'`) in addition to `RerankingModel` objects, matching the behavior of `generateText`, `embed`, and other core functions.
+
+## 6.0.152
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
 ## 6.0.151
 
 ### Patch Changes

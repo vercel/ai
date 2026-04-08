@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.60
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
 ## 3.0.59
 
 ### Patch Changes
