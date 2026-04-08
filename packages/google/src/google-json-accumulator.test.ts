@@ -9,8 +9,14 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
       ]);
 
-      expect(result.textDelta).toBe('{"location":"Boston');
-      expect(result.currentJSON).toEqual({ location: 'Boston' });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "location": "Boston",
+          },
+          "textDelta": "{"location":"Boston",
+        }
+      `);
     });
 
     it('should continue a string arg across multiple chunks', () => {
@@ -24,10 +30,14 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.location', stringValue: ', MA' },
       ]);
 
-      expect(continuationResult.textDelta).toBe(', MA');
-      expect(continuationResult.currentJSON).toEqual({
-        location: 'Boston, MA',
-      });
+      expect(continuationResult).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "location": "Boston, MA",
+          },
+          "textDelta": ", MA",
+        }
+      `);
     });
 
     it('should accumulate a complete string arg (no willContinue)', () => {
@@ -36,8 +46,14 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.location', stringValue: 'Boston' },
       ]);
 
-      expect(result.textDelta).toBe('{"location":"Boston"');
-      expect(result.currentJSON).toEqual({ location: 'Boston' });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "location": "Boston",
+          },
+          "textDelta": "{"location":"Boston"",
+        }
+      `);
     });
 
     it('should accumulate a number arg', () => {
@@ -46,8 +62,14 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.brightness', numberValue: 50 },
       ]);
 
-      expect(result.textDelta).toBe('{"brightness":50');
-      expect(result.currentJSON).toEqual({ brightness: 50 });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "brightness": 50,
+          },
+          "textDelta": "{"brightness":50",
+        }
+      `);
     });
 
     it('should accumulate a boolean arg', () => {
@@ -56,8 +78,14 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.enabled', boolValue: true },
       ]);
 
-      expect(result.textDelta).toBe('{"enabled":true');
-      expect(result.currentJSON).toEqual({ enabled: true });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "enabled": true,
+          },
+          "textDelta": "{"enabled":true",
+        }
+      `);
     });
 
     it('should accumulate a null arg', () => {
@@ -66,8 +94,14 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.nickname', nullValue: {} },
       ]);
 
-      expect(result.textDelta).toBe('{"nickname":null');
-      expect(result.currentJSON).toEqual({ nickname: null });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "nickname": null,
+          },
+          "textDelta": "{"nickname":null",
+        }
+      `);
     });
 
     it('should accumulate multiple args with commas between them', () => {
@@ -76,17 +110,27 @@ describe('GoogleJSONAccumulator', () => {
       const firstResult = accumulator.processPartialArgs([
         { jsonPath: '$.brightness', numberValue: 50 },
       ]);
-      expect(firstResult.textDelta).toBe('{"brightness":50');
+      expect(firstResult).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "brightness": 50,
+          },
+          "textDelta": "{"brightness":50",
+        }
+      `);
 
       const secondResult = accumulator.processPartialArgs([
         { jsonPath: '$.enabled', boolValue: true },
       ]);
-      expect(secondResult.textDelta).toBe(',"enabled":true');
-
-      expect(secondResult.currentJSON).toEqual({
-        brightness: 50,
-        enabled: true,
-      });
+      expect(secondResult).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "brightness": 50,
+            "enabled": true,
+          },
+          "textDelta": ","enabled":true",
+        }
+      `);
     });
 
     it('should accumulate multiple args in a single call', () => {
@@ -97,14 +141,16 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.nickname', nullValue: {} },
       ]);
 
-      expect(result.textDelta).toBe(
-        '{"brightness":50,"enabled":false,"nickname":null',
-      );
-      expect(result.currentJSON).toEqual({
-        brightness: 50,
-        enabled: false,
-        nickname: null,
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "brightness": 50,
+            "enabled": false,
+            "nickname": null,
+          },
+          "textDelta": "{"brightness":50,"enabled":false,"nickname":null",
+        }
+      `);
     });
 
     it('should escape special characters in continued strings', () => {
@@ -122,10 +168,14 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.query', stringValue: 'gan"' },
       ]);
 
-      expect(continuationResult.textDelta).toBe('gan\\"');
-      expect(continuationResult.currentJSON).toEqual({
-        query: 'Boston "Logan"',
-      });
+      expect(continuationResult).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "query": "Boston "Logan"",
+          },
+          "textDelta": "gan\\"",
+        }
+      `);
     });
 
     it('should skip args with empty jsonPath after stripping $. prefix', () => {
@@ -134,8 +184,12 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.', stringValue: 'ignored' },
       ]);
 
-      expect(result.textDelta).toBe('');
-      expect(result.currentJSON).toEqual({});
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {},
+          "textDelta": "",
+        }
+      `);
     });
 
     it('should skip args with no resolvable value', () => {
@@ -144,16 +198,24 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.something' },
       ]);
 
-      expect(result.textDelta).toBe('');
-      expect(result.currentJSON).toEqual({});
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {},
+          "textDelta": "",
+        }
+      `);
     });
 
     it('should return empty textDelta for empty partialArgs array', () => {
       const accumulator = new GoogleJSONAccumulator();
       const result = accumulator.processPartialArgs([]);
 
-      expect(result.textDelta).toBe('');
-      expect(result.currentJSON).toEqual({});
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {},
+          "textDelta": "",
+        }
+      `);
     });
   });
 
@@ -164,8 +226,16 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.recipe.name', stringValue: 'Lasagna' },
       ]);
 
-      expect(result.textDelta).toBe('{"recipe":{"name":"Lasagna"');
-      expect(result.currentJSON).toEqual({ recipe: { name: 'Lasagna' } });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "recipe": {
+              "name": "Lasagna",
+            },
+          },
+          "textDelta": "{"recipe":{"name":"Lasagna"",
+        }
+      `);
     });
 
     it('should build nested object with array from indexed jsonPath', () => {
@@ -176,9 +246,20 @@ describe('GoogleJSONAccumulator', () => {
           stringValue: '16 oz',
         },
       ]);
-      expect(amountResult.textDelta).toBe(
-        '{"recipe":{"ingredients":[{"amount":"16 oz"',
-      );
+      expect(amountResult).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "recipe": {
+              "ingredients": [
+                {
+                  "amount": "16 oz",
+                },
+              ],
+            },
+          },
+          "textDelta": "{"recipe":{"ingredients":[{"amount":"16 oz"",
+        }
+      `);
 
       const nameResult = accumulator.processPartialArgs([
         {
@@ -186,13 +267,21 @@ describe('GoogleJSONAccumulator', () => {
           stringValue: 'Lasagna noodles',
         },
       ]);
-      expect(nameResult.textDelta).toBe(',"name":"Lasagna noodles"');
-
-      expect(nameResult.currentJSON).toEqual({
-        recipe: {
-          ingredients: [{ amount: '16 oz', name: 'Lasagna noodles' }],
-        },
-      });
+      expect(nameResult).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "recipe": {
+              "ingredients": [
+                {
+                  "amount": "16 oz",
+                  "name": "Lasagna noodles",
+                },
+              ],
+            },
+          },
+          "textDelta": ","name":"Lasagna noodles"",
+        }
+      `);
     });
 
     it('should accumulate multiple array elements across chunks', () => {
@@ -222,7 +311,7 @@ describe('GoogleJSONAccumulator', () => {
         },
       ]);
       deltas.push(result.textDelta);
-      expect(result.textDelta).toBe('},{"amount":"1 lb"');
+      expect(result.textDelta).toMatchInlineSnapshot(`"},{"amount":"1 lb""`);
 
       result = accumulator.processPartialArgs([
         {
@@ -231,16 +320,24 @@ describe('GoogleJSONAccumulator', () => {
         },
       ]);
       deltas.push(result.textDelta);
-      expect(result.textDelta).toBe(',"name":"Beef"');
+      expect(result.textDelta).toMatchInlineSnapshot(`","name":"Beef""`);
 
-      expect(result.currentJSON).toEqual({
-        recipe: {
-          ingredients: [
-            { amount: '16 oz', name: 'Noodles' },
-            { amount: '1 lb', name: 'Beef' },
-          ],
-        },
-      });
+      expect(result.currentJSON).toMatchInlineSnapshot(`
+        {
+          "recipe": {
+            "ingredients": [
+              {
+                "amount": "16 oz",
+                "name": "Noodles",
+              },
+              {
+                "amount": "1 lb",
+                "name": "Beef",
+              },
+            ],
+          },
+        }
+      `);
 
       const { finalJSON, closingDelta } = accumulator.finalize();
       deltas.push(closingDelta);
@@ -256,16 +353,25 @@ describe('GoogleJSONAccumulator', () => {
           willContinue: true,
         },
       ]);
-      expect(startResult.textDelta).toBe('{"recipe":{"steps":["Preheat oven');
+      expect(startResult.textDelta).toMatchInlineSnapshot(
+        `"{"recipe":{"steps":["Preheat oven"`,
+      );
 
       const continuationResult = accumulator.processPartialArgs([
         { jsonPath: '$.recipe.steps[0]', stringValue: ' to 375°F.' },
       ]);
-      expect(continuationResult.textDelta).toBe(' to 375°F.');
-
-      expect(continuationResult.currentJSON).toEqual({
-        recipe: { steps: ['Preheat oven to 375°F.'] },
-      });
+      expect(continuationResult).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "recipe": {
+              "steps": [
+                "Preheat oven to 375°F.",
+              ],
+            },
+          },
+          "textDelta": " to 375°F.",
+        }
+      `);
     });
 
     it('should handle mixed nested and flat paths', () => {
@@ -273,21 +379,32 @@ describe('GoogleJSONAccumulator', () => {
       const locationResult = accumulator.processPartialArgs([
         { jsonPath: '$.location', stringValue: 'Boston' },
       ]);
-      expect(locationResult.textDelta).toBe('{"location":"Boston"');
+      expect(locationResult.textDelta).toMatchInlineSnapshot(
+        `"{"location":"Boston""`,
+      );
 
       const detailsResult = accumulator.processPartialArgs([
         { jsonPath: '$.details.zip', stringValue: '02101' },
       ]);
-      expect(detailsResult.textDelta).toBe(',"details":{"zip":"02101"');
-
-      expect(detailsResult.currentJSON).toEqual({
-        location: 'Boston',
-        details: { zip: '02101' },
-      });
+      expect(detailsResult).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "details": {
+              "zip": "02101",
+            },
+            "location": "Boston",
+          },
+          "textDelta": ","details":{"zip":"02101"",
+        }
+      `);
 
       const { finalJSON, closingDelta } = accumulator.finalize();
-      expect(closingDelta).toBe('}}');
-      expect(finalJSON).toBe('{"location":"Boston","details":{"zip":"02101"}}');
+      expect({ finalJSON, closingDelta }).toMatchInlineSnapshot(`
+        {
+          "closingDelta": "}}",
+          "finalJSON": "{"location":"Boston","details":{"zip":"02101"}}",
+        }
+      `);
     });
 
     it('should handle array elements that are direct string values', () => {
@@ -295,16 +412,24 @@ describe('GoogleJSONAccumulator', () => {
       const firstStep = accumulator.processPartialArgs([
         { jsonPath: '$.steps[0]', stringValue: 'Step one' },
       ]);
-      expect(firstStep.textDelta).toBe('{"steps":["Step one"');
+      expect(firstStep.textDelta).toMatchInlineSnapshot(
+        `"{"steps":["Step one""`,
+      );
 
       const secondStep = accumulator.processPartialArgs([
         { jsonPath: '$.steps[1]', stringValue: 'Step two' },
       ]);
-      expect(secondStep.textDelta).toBe(',"Step two"');
-
-      expect(secondStep.currentJSON).toEqual({
-        steps: ['Step one', 'Step two'],
-      });
+      expect(secondStep).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "steps": [
+              "Step one",
+              "Step two",
+            ],
+          },
+          "textDelta": ","Step two"",
+        }
+      `);
     });
 
     it('should handle deeply nested paths', () => {
@@ -313,14 +438,28 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.a.b.c.d', stringValue: 'deep' },
       ]);
 
-      expect(result.textDelta).toBe('{"a":{"b":{"c":{"d":"deep"');
-      expect(result.currentJSON).toEqual({
-        a: { b: { c: { d: 'deep' } } },
-      });
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "currentJSON": {
+            "a": {
+              "b": {
+                "c": {
+                  "d": "deep",
+                },
+              },
+            },
+          },
+          "textDelta": "{"a":{"b":{"c":{"d":"deep"",
+        }
+      `);
 
       const { finalJSON, closingDelta } = accumulator.finalize();
-      expect(closingDelta).toBe('}}}}');
-      expect(finalJSON).toBe('{"a":{"b":{"c":{"d":"deep"}}}}');
+      expect({ finalJSON, closingDelta }).toMatchInlineSnapshot(`
+        {
+          "closingDelta": "}}}}",
+          "finalJSON": "{"a":{"b":{"c":{"d":"deep"}}}}",
+        }
+      `);
     });
   });
 
@@ -331,9 +470,12 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.location', stringValue: 'Boston', willContinue: true },
       ]);
 
-      const { finalJSON, closingDelta } = accumulator.finalize();
-      expect(closingDelta).toBe('"}');
-      expect(finalJSON).toBe('{"location":"Boston"}');
+      expect(accumulator.finalize()).toMatchInlineSnapshot(`
+        {
+          "closingDelta": ""}",
+          "finalJSON": "{"location":"Boston"}",
+        }
+      `);
     });
 
     it('should produce closing delta for a complete string', () => {
@@ -342,9 +484,12 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.location', stringValue: 'Boston' },
       ]);
 
-      const { finalJSON, closingDelta } = accumulator.finalize();
-      expect(closingDelta).toBe('}');
-      expect(finalJSON).toBe('{"location":"Boston"}');
+      expect(accumulator.finalize()).toMatchInlineSnapshot(`
+        {
+          "closingDelta": "}",
+          "finalJSON": "{"location":"Boston"}",
+        }
+      `);
     });
 
     it('should produce closing delta for multiple args', () => {
@@ -354,9 +499,12 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.enabled', boolValue: true },
       ]);
 
-      const { finalJSON, closingDelta } = accumulator.finalize();
-      expect(closingDelta).toBe('}');
-      expect(finalJSON).toBe('{"brightness":50,"enabled":true}');
+      expect(accumulator.finalize()).toMatchInlineSnapshot(`
+        {
+          "closingDelta": "}",
+          "finalJSON": "{"brightness":50,"enabled":true}",
+        }
+      `);
     });
 
     it('should produce closing delta for continued string with continuation', () => {
@@ -368,16 +516,22 @@ describe('GoogleJSONAccumulator', () => {
         { jsonPath: '$.location', stringValue: ', MA' },
       ]);
 
-      const { finalJSON, closingDelta } = accumulator.finalize();
-      expect(closingDelta).toBe('"}');
-      expect(finalJSON).toBe('{"location":"Boston, MA"}');
+      expect(accumulator.finalize()).toMatchInlineSnapshot(`
+        {
+          "closingDelta": ""}",
+          "finalJSON": "{"location":"Boston, MA"}",
+        }
+      `);
     });
 
     it('should handle empty accumulator', () => {
       const accumulator = new GoogleJSONAccumulator();
-      const { finalJSON, closingDelta } = accumulator.finalize();
-      expect(closingDelta).toBe('{}');
-      expect(finalJSON).toBe('{}');
+      expect(accumulator.finalize()).toMatchInlineSnapshot(`
+        {
+          "closingDelta": "{}",
+          "finalJSON": "{}",
+        }
+      `);
     });
 
     it('should finalize nested structure to proper JSON', () => {
@@ -393,12 +547,18 @@ describe('GoogleJSONAccumulator', () => {
       ]);
 
       const { finalJSON } = accumulator.finalize();
-      expect(JSON.parse(finalJSON)).toEqual({
-        recipe: {
-          ingredients: [{ name: 'Noodles' }],
-          name: 'Lasagna',
-        },
-      });
+      expect(JSON.parse(finalJSON)).toMatchInlineSnapshot(`
+        {
+          "recipe": {
+            "ingredients": [
+              {
+                "name": "Noodles",
+              },
+            ],
+            "name": "Lasagna",
+          },
+        }
+      `);
     });
 
     it('should finalize nested arrays with string continuation', () => {
@@ -418,9 +578,16 @@ describe('GoogleJSONAccumulator', () => {
       ]);
 
       const { finalJSON } = accumulator.finalize();
-      expect(JSON.parse(finalJSON)).toEqual({
-        recipe: { steps: ['Preheat oven.', 'Cook.'] },
-      });
+      expect(JSON.parse(finalJSON)).toMatchInlineSnapshot(`
+        {
+          "recipe": {
+            "steps": [
+              "Preheat oven.",
+              "Cook.",
+            ],
+          },
+        }
+      `);
     });
   });
 
@@ -447,11 +614,13 @@ describe('GoogleJSONAccumulator', () => {
       const { finalJSON, closingDelta } = accumulator.finalize();
       deltas.push(closingDelta);
       expect(deltas.join('')).toBe(finalJSON);
-      expect(JSON.parse(finalJSON)).toEqual({
-        brightness: 50,
-        enabled: true,
-        name: 'test',
-      });
+      expect(JSON.parse(finalJSON)).toMatchInlineSnapshot(`
+        {
+          "brightness": 50,
+          "enabled": true,
+          "name": "test",
+        }
+      `);
     });
 
     it('nested args: concatenated deltas + closingDelta === JSON.stringify', () => {
@@ -517,16 +686,27 @@ describe('GoogleJSONAccumulator', () => {
       const { finalJSON, closingDelta } = accumulator.finalize();
       deltas.push(closingDelta);
       expect(deltas.join('')).toBe(finalJSON);
-      expect(JSON.parse(finalJSON)).toEqual({
-        recipe: {
-          ingredients: [
-            { amount: '16 oz', name: 'Noodles' },
-            { amount: '1 lb', name: 'Beef' },
-          ],
-          name: 'Lasagna',
-          steps: ['Preheat oven.', 'Cook.'],
-        },
-      });
+      expect(JSON.parse(finalJSON)).toMatchInlineSnapshot(`
+        {
+          "recipe": {
+            "ingredients": [
+              {
+                "amount": "16 oz",
+                "name": "Noodles",
+              },
+              {
+                "amount": "1 lb",
+                "name": "Beef",
+              },
+            ],
+            "name": "Lasagna",
+            "steps": [
+              "Preheat oven.",
+              "Cook.",
+            ],
+          },
+        }
+      `);
     });
 
     it('willContinue strings: concatenated deltas + closingDelta === JSON.stringify', () => {
