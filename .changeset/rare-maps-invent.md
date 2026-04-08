@@ -1,5 +1,5 @@
 ---
-"ai": patch
+"ai": major
 ---
 
 refactor(ai/core): rename `ModelCallStreamPart` to `LanguageModelStreamPart` and align stream model call naming (`streamLanguageModelCall`, `experimental_streamLanguageModelCall`).
