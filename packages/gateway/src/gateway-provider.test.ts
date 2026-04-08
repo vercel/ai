@@ -177,6 +177,9 @@ describe('GatewayProvider', () => {
     if ('AI_GATEWAY_API_KEY' in process.env) {
       Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
     }
+    if ('AI_GATEWAY_BASE_URL' in process.env) {
+      Reflect.deleteProperty(process.env, 'AI_GATEWAY_BASE_URL');
+    }
   });
 
   describe('createGatewayProvider', () => {
@@ -572,6 +575,44 @@ describe('GatewayProvider', () => {
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
           baseURL: 'https://ai-gateway.vercel.sh/v3/ai',
+        }),
+      );
+    });
+
+    it('should use AI_GATEWAY_BASE_URL when set', async () => {
+      process.env.AI_GATEWAY_BASE_URL =
+        'https://env-gateway.example.com/v3/ai/';
+
+      mockGetAvailableModels.mockReturnValue({ models: [] });
+
+      const testProvider = createGatewayProvider({
+        apiKey: 'test-key',
+      });
+
+      await testProvider.getAvailableModels();
+
+      expect(GatewayFetchMetadata).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://env-gateway.example.com/v3/ai',
+        }),
+      );
+    });
+
+    it('should prefer options.baseURL over AI_GATEWAY_BASE_URL', async () => {
+      process.env.AI_GATEWAY_BASE_URL = 'https://env-gateway.example.com/v3/ai';
+
+      mockGetAvailableModels.mockReturnValue({ models: [] });
+
+      const testProvider = createGatewayProvider({
+        baseURL: 'https://option-gateway.example.com/v3/ai/',
+        apiKey: 'test-key',
+      });
+
+      await testProvider.getAvailableModels();
+
+      expect(GatewayFetchMetadata).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://option-gateway.example.com/v3/ai',
         }),
       );
     });
