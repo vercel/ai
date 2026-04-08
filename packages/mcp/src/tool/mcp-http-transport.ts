@@ -236,7 +236,7 @@ export class HttpMCPTransport implements MCPTransport {
                 const { done, value } = await reader.read();
                 if (done) return;
                 const { event, data } = value;
-                if (event === 'message') {
+                if (!event || event === 'message') {
                   try {
                     const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
                     this.onmessage?.(msg);
@@ -384,7 +384,7 @@ export class HttpMCPTransport implements MCPTransport {
               this.lastInboundEventId = id;
             }
 
-            if (event === 'message') {
+            if (!event || event === 'message') {
               try {
                 const msg = JSONRPCMessageSchema.parse(JSON.parse(data));
                 this.onmessage?.(msg);
