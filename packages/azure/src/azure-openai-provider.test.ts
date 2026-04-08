@@ -92,6 +92,7 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/responses': {},
   'https://test-resource.openai.azure.com/openai/chat/completions': {},
   'https://test-resource.openai.azure.com/openai/images/generations': {},
+  'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions': {},
 });
 
 describe('responses (default language model)', () => {
@@ -327,6 +328,32 @@ describe('chat', () => {
       expect(
         server.calls[0].requestUrlSearchParams.get('api-version'),
       ).toBeNull();
+    });
+
+    it('should preserve api-version when both baseURL and useDeploymentBasedUrls are set', async () => {
+      prepareJsonResponse();
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions'
+      ].response =
+        server.urls[
+          'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+        ].response;
+
+      const provider = createAzure({
+        baseURL: 'https://test-resource.openai.azure.com/openai',
+        apiKey: 'test-api-key',
+        useDeploymentBasedUrls: true,
+      });
+
+      await provider.chat('test-deployment').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+      expect(server.calls[0].requestUrl).toMatchInlineSnapshot(
+        `"https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=v1"`,
+      );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toBe('v1');
     });
   });
 });
