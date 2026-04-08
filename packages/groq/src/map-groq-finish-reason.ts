@@ -2,6 +2,7 @@ import { LanguageModelV4FinishReason } from '@ai-sdk/provider';
 
 export function mapGroqFinishReason(
   finishReason: string | null | undefined,
+  options?: { isJsonResponseFromTool?: boolean },
 ): LanguageModelV4FinishReason['unified'] {
   switch (finishReason) {
     case 'stop':
@@ -12,7 +13,7 @@ export function mapGroqFinishReason(
       return 'content-filter';
     case 'function_call':
     case 'tool_calls':
-      return 'tool-calls';
+      return options?.isJsonResponseFromTool ? 'stop' : 'tool-calls';
     default:
       return 'other';
   }

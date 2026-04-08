@@ -56,6 +56,14 @@ export const groqLanguageModelOptions = z.object({
   structuredOutputs: z.boolean().optional(),
 
   /**
+   * When using both response schema and tools, how to get structured output.
+   * - `outputFormat`: Use native response_format (may fail if model rejects schema+tools).
+   * - `jsonTool`: Use a synthetic 'json' tool as fallback.
+   * - `auto`: Use native when the model supports schema+tools, otherwise jsonTool (default).
+   */
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
+
+  /**
    * Whether to use strict JSON schema validation.
    * When true, the model uses constrained decoding to guarantee schema compliance.
    * Only used when structured outputs are enabled and a schema is provided.
@@ -67,13 +75,12 @@ export const groqLanguageModelOptions = z.object({
   /**
    * Service tier for the request.
    * - 'on_demand': Default tier with consistent performance and fairness
-   * - 'performance': Prioritized tier for latency-sensitive workloads
    * - 'flex': Higher throughput tier optimized for workloads that can handle occasional request failures
    * - 'auto': Uses on_demand rate limits, then falls back to flex tier if exceeded
    *
    * @default 'on_demand'
    */
-  serviceTier: z.enum(['on_demand', 'performance', 'flex', 'auto']).optional(),
+  serviceTier: z.enum(['on_demand', 'flex', 'auto']).optional(),
 });
 
 export type GroqLanguageModelOptions = z.infer<typeof groqLanguageModelOptions>;

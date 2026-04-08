@@ -1008,6 +1008,194 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should use json tool fallback when responseFormat schema and tools are both present (auto)', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.generationConfig.responseMimeType).toBeUndefined();
+    expect(body.generationConfig.responseSchema).toBeUndefined();
+    const decls = body.tools[0].functionDeclarations;
+    expect(decls).toHaveLength(2);
+    expect(decls.map((d: { name: string }) => d.name).sort()).toEqual([
+      'json',
+      'test-tool',
+    ]);
+    expect(body.toolConfig.functionCallingConfig.mode).toBe('ANY');
+  });
+
+  it('should use reserved synthetic tool name when user already defines a json tool', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'json',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { legacy: { type: 'string' } },
+            required: ['legacy'],
+            additionalProperties: false,
+          },
+        },
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    const decls = body.tools[0].functionDeclarations;
+    expect(decls.map((d: { name: string }) => d.name).sort()).toEqual([
+      '__ai_sdk_json_response',
+      'json',
+      'test-tool',
+    ]);
+  });
+
+  it('should map finish reason to stop when response is only synthetic json function call', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    name: 'json',
+                    args: { out: 'ok' },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
+      },
+    };
+
+    const result = await provider.languageModel('gemini-pro').doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.finishReason.unified).toBe('stop');
+    expect(result.content).toEqual([
+      { type: 'text', text: '{"out":"ok"}' },
+    ]);
+  });
+
+  it('should use native responseSchema when structuredOutputMode is outputFormat with schema and tools', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await provider.languageModel('gemini-pro').doGenerate({
+      providerOptions: {
+        google: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.generationConfig.responseMimeType).toBe('application/json');
+    expect(body.generationConfig.responseSchema).toBeDefined();
+    const decls = body.tools[0].functionDeclarations;
+    expect(decls).toHaveLength(1);
+    expect(decls[0].name).toBe('test-tool');
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('google-text');
 

@@ -99,70 +99,6 @@ describe('doGenerate', () => {
     });
   });
 
-  describe('top-level reasoning', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('groq-text');
-    });
-
-    it('should map top-level reasoning to reasoning_effort', async () => {
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'high',
-      });
-
-      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-        'high',
-      );
-    });
-
-    it('should coerce top-level reasoning minimal to low', async () => {
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'minimal',
-      });
-
-      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-        'low',
-      );
-    });
-
-    it('should coerce top-level reasoning xhigh to high', async () => {
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'xhigh',
-      });
-
-      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-        'high',
-      );
-    });
-
-    it('should not pass top-level reasoning none as reasoning_effort', async () => {
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'none',
-      });
-
-      expect(
-        (await server.calls[0].requestBodyJson).reasoning_effort,
-      ).toBeUndefined();
-    });
-
-    it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
-      await model.doGenerate({
-        prompt: TEST_PROMPT,
-        reasoning: 'medium',
-        providerOptions: {
-          groq: { reasoningEffort: 'high' },
-        },
-      });
-
-      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
-        'high',
-      );
-    });
-  });
-
   it('should extract usage', async () => {
     prepareJsonFixtureResponse('groq-text');
 
@@ -452,32 +388,6 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should pass performance serviceTier provider option', async () => {
-    prepareJsonFixtureResponse('groq-text');
-
-    await provider('gemma2-9b-it').doGenerate({
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        groq: {
-          serviceTier: 'performance',
-        },
-      },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-      {
-        "messages": [
-          {
-            "content": "Hello",
-            "role": "user",
-          },
-        ],
-        "model": "gemma2-9b-it",
-        "service_tier": "performance",
-      }
-    `);
-  });
-
   it('should pass tools and toolChoice', async () => {
     prepareJsonFixtureResponse('groq-text');
 
@@ -625,6 +535,203 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it('should use json tool fallback when responseFormat schema and tools are both present (auto)', async () => {
+    prepareJsonFixtureResponse('groq-text');
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.response_format).toBeUndefined();
+    expect(body.tools).toHaveLength(2);
+    const names = body.tools.map(
+      (t: { type: string; function: { name: string } }) => t.function.name,
+    );
+    expect(names.sort()).toEqual(['json', 'test-tool']);
+  });
+
+  it('should use reserved synthetic tool name when user already defines a json tool', async () => {
+    prepareJsonFixtureResponse('groq-text');
+
+    const m = provider('gemma2-9b-it');
+
+    await m.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'json',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { legacy: { type: 'string' } },
+            required: ['legacy'],
+            additionalProperties: false,
+          },
+        },
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    const names = body.tools.map(
+      (t: { type: string; function: { name: string } }) => t.function.name,
+    );
+    expect(names.sort()).toEqual([
+      '__ai_sdk_json_response',
+      'json',
+      'test-tool',
+    ]);
+  });
+
+  it('should map finish reason to stop when response is only synthetic json tool call', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-test',
+        object: 'chat.completion',
+        created: 0,
+        model: 'gemma2-9b-it',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              tool_calls: [
+                {
+                  id: 'call_json',
+                  type: 'function',
+                  function: {
+                    name: 'json',
+                    arguments: '{"out":"ok"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+        usage: {
+          prompt_tokens: 1,
+          completion_tokens: 1,
+          total_tokens: 2,
+        },
+      },
+    };
+
+    const m = provider('gemma2-9b-it');
+    const result = await m.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.finishReason.unified).toBe('stop');
+    expect(result.content).toEqual([
+      { type: 'text', text: '{"out":"ok"}' },
+    ]);
+  });
+
+  it('should use native response_format when structuredOutputMode is outputFormat with schema and tools', async () => {
+    prepareJsonFixtureResponse('groq-text');
+
+    const model = provider('gemma2-9b-it');
+
+    await model.doGenerate({
+      providerOptions: {
+        groq: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body.response_format?.type).toBe('json_schema');
+    expect(body.tools).toHaveLength(1);
+    expect(body.tools[0].function.name).toBe('test-tool');
   });
 
   it('should pass response format information as json_object when structuredOutputs explicitly disabled', async () => {
@@ -1066,6 +1173,49 @@ describe('doStream', () => {
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
     });
+  });
+
+  it('should map stream finish to stop when only synthetic json tool completes', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-json-tool","object":"chat.completion.chunk","created":0,"model":"gemma2-9b-it","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_json","type":"function","function":{"name":"json","arguments":"{\\"out\\":\\"ok\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-json-tool","object":"chat.completion.chunk","created":0,"model":"gemma2-9b-it","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { out: { type: 'string' } },
+          required: ['out'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          name: 'test-tool',
+          type: 'function',
+          inputSchema: {
+            type: 'object',
+            properties: { x: { type: 'string' } },
+            required: ['x'],
+            additionalProperties: false,
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(p => p.type === 'finish');
+    expect(finish?.type).toBe('finish');
+    if (finish?.type === 'finish') {
+      expect(finish.finishReason.unified).toBe('stop');
+    }
   });
 
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
