@@ -47,6 +47,7 @@ interface Run {
   hasError?: boolean;
   isInProgress?: boolean;
   type?: 'generate' | 'stream';
+  function_id?: string | null;
 }
 
 interface Step {
@@ -75,13 +76,19 @@ interface ChildRun {
     parent_run_id: string | null;
     parent_step_id: string | null;
     isInProgress?: boolean;
+    function_id?: string | null;
   };
   steps: Step[];
   childRuns?: ChildRun[];
 }
 
 interface RunDetail {
-  run: { id: string; started_at: string; isInProgress?: boolean };
+  run: {
+    id: string;
+    started_at: string;
+    isInProgress?: boolean;
+    function_id?: string | null;
+  };
   steps: Step[];
   childRuns?: ChildRun[];
 }
@@ -557,9 +564,16 @@ function App() {
                         ) : (
                           <MessageSquare className="size-3.5 text-muted-foreground mt-0.5 shrink-0" />
                         )}
-                        <span className="text-[13px] text-foreground leading-tight line-clamp-1 break-all">
-                          {run.firstMessage || 'Loading...'}
-                        </span>
+                        <div className="min-w-0">
+                          {run.function_id && (
+                            <span className="text-[11px] font-mono text-sidebar-primary block truncate">
+                              {run.function_id}
+                            </span>
+                          )}
+                          <span className="text-[13px] text-foreground leading-tight line-clamp-1 break-all">
+                            {run.firstMessage || 'Loading...'}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 ml-5.5 text-[11px] text-muted-foreground">
                         {run.type && (
@@ -761,6 +775,7 @@ function buildTraceSpans(
     depth: number,
     childRuns: ChildRun[],
     minStartMs?: number,
+    functionId?: string | null,
   ) => {
     for (const step of steps) {
       const rawStepStart = new Date(step.started_at).getTime();
@@ -772,6 +787,9 @@ function buildTraceSpans(
       const usage = parseJson(step.usage);
       const output = parseJson(step.output);
 
+      const stepLabel = functionId || step.model_id || 'LLM call';
+      const stepSublabel = functionId ? step.model_id : undefined;
+
       const contentParts: any[] = output?.content ?? [];
       const hasSubParts = contentParts.length > 0 || step.error;
 
@@ -779,11 +797,11 @@ function buildTraceSpans(
         spans.push({
           id: step.id,
           stepId: step.id,
-          label: step.model_id || 'LLM call',
+          label: stepLabel,
           sublabel:
             step.duration_ms === null && !step.error
               ? 'streaming...'
-              : 'Response',
+              : stepSublabel || 'Response',
           startMs: stepStart - traceStart,
           durationMs: stepDuration,
           depth,
@@ -808,13 +826,20 @@ function buildTraceSpans(
           cr => cr.run.parent_step_id === step.id,
         );
         for (const cr of stepChildRuns) {
-          addStepSpans(cr.steps, depth + 1, cr.childRuns ?? []);
+          addStepSpans(
+            cr.steps,
+            depth + 1,
+            cr.childRuns ?? [],
+            undefined,
+            cr.run.function_id,
+          );
         }
       } else {
         spans.push({
           id: step.id,
           stepId: step.id,
-          label: step.model_id || 'LLM call',
+          label: stepLabel,
+          sublabel: stepSublabel,
           startMs: stepStart - traceStart,
           durationMs: stepDuration,
           depth,
@@ -917,8 +942,19 @@ function buildTraceSpans(
             const args = part.input ?? part.args;
             const argPreview =
               args && typeof args === 'object'
-                ? Object.keys(args).slice(0, 2).join(', ')
-                : '';
+                ? Object.entries(args)
+                    .slice(0, 3)
+                    .map(([, v]) => {
+                      const s =
+                        typeof v === 'string'
+                          ? v
+                          : (JSON.stringify(v) ?? String(v));
+                      return s.length > 30 ? s.slice(0, 30) + '…' : s;
+                    })
+                    .join(', ')
+                : typeof args === 'string'
+                  ? args.slice(0, 60)
+                  : '';
 
             const tcChildRuns = toolCallToChildRuns.get(part.toolCallId) ?? [];
             let toolDuration = fraction;
@@ -949,6 +985,7 @@ function buildTraceSpans(
                 depth + 2,
                 cr.childRuns ?? [],
                 partStartMs,
+                cr.run.function_id,
               );
             }
 
@@ -989,13 +1026,25 @@ function buildTraceSpans(
         }
 
         for (const cr of unmatchedChildRuns) {
-          addStepSpans(cr.steps, depth + 1, cr.childRuns ?? []);
+          addStepSpans(
+            cr.steps,
+            depth + 1,
+            cr.childRuns ?? [],
+            undefined,
+            cr.run.function_id,
+          );
         }
       }
     }
   };
 
-  addStepSpans(runDetail.steps, 0, runDetail.childRuns ?? []);
+  addStepSpans(
+    runDetail.steps,
+    0,
+    runDetail.childRuns ?? [],
+    undefined,
+    runDetail.run.function_id,
+  );
   return spans;
 }
 
@@ -1262,6 +1311,11 @@ function TraceTimeline({
                           {span.sublabel && (
                             <div className="text-muted-foreground">
                               {span.sublabel}
+                            </div>
+                          )}
+                          {span.modelId && span.modelId !== span.label && (
+                            <div className="text-muted-foreground font-mono">
+                              {span.modelId}
                             </div>
                           )}
                           <div className="text-muted-foreground font-mono">

@@ -38,6 +38,7 @@ export interface Run {
   started_at: string;
   parent_run_id: string | null;
   parent_step_id: string | null;
+  function_id: string | null;
 }
 
 export interface Step {
@@ -164,6 +165,7 @@ export const reloadDb = async (remoteDbPath?: string): Promise<void> => {
 export const createRun = async (
   id: string,
   parent?: { runId: string; stepId: string },
+  functionId?: string,
 ): Promise<Run> => {
   const db = getDb();
   const started_at = new Date().toISOString();
@@ -179,6 +181,7 @@ export const createRun = async (
     started_at,
     parent_run_id: parent?.runId ?? null,
     parent_step_id: parent?.stepId ?? null,
+    function_id: functionId ?? null,
   };
   db.runs.push(run);
   saveDb(db);

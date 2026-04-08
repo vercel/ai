@@ -27,6 +27,7 @@ interface StepState {
 interface CallState {
   runId: string;
   operationType: OperationType;
+  functionId: string | undefined;
   settings: Record<string, unknown>;
   stepStates: Map<number, StepState>;
 }
@@ -159,6 +160,7 @@ export function devToolsIntegration(): TelemetryIntegration {
     callId: string,
     operationId: string,
     event: {
+      functionId?: string | undefined;
       maxOutputTokens?: number | undefined;
       temperature?: number | undefined;
       topP?: number | undefined;
@@ -174,6 +176,7 @@ export function devToolsIntegration(): TelemetryIntegration {
     state = {
       runId: generateRunId(),
       operationType: getOperationType(operationId),
+      functionId: event.functionId,
       settings: {
         maxOutputTokens: event.maxOutputTokens,
         temperature: event.temperature,
@@ -211,7 +214,7 @@ export function devToolsIntegration(): TelemetryIntegration {
         startEvent,
       );
 
-      await createRun(state.runId, parentInfo);
+      await createRun(state.runId, parentInfo, state.functionId);
     },
 
     onStepStart: async event => {
