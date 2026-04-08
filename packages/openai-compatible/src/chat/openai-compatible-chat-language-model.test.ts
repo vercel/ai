@@ -2936,7 +2936,10 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "error": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.",
+          "error": {
+            "code": "Client specified an invalid argument",
+            "message": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.",
+          },
           "type": "error",
         },
         {
