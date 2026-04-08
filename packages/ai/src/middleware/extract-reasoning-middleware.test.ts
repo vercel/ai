@@ -1077,8 +1077,7 @@ describe('extractReasoningMiddleware', () => {
 
   describe('custom openingTag / closingTag (e.g. Gemma 4)', () => {
     const gemmaMiddleware = extractReasoningMiddleware({
-      openingTag: '<|channel>thought\n',
-      closingTag: '<channel|>',
+      tagName: { opening: '<|channel>thought\n', closing: '<channel|>' },
     });
 
     describe('wrapGenerate', () => {

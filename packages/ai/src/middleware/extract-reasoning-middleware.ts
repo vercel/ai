@@ -9,40 +9,26 @@ import { getPotentialStartIndex } from '../util/get-potential-start-index';
  * Extracts a reasoning section from the generated text and exposes it
  * as a `reasoning` property on the result.
  *
- * You can specify the delimiters either by providing a `tagName` (which
- * constructs symmetric XML-style tags `<tagName>` / `</tagName>`) or by
- * providing explicit `openingTag` and `closingTag` strings for models that
- * use non-XML delimiters (e.g. Gemma 4's `<|channel>thought\n` / `<channel|>`).
- *
- * @param tagName - The name of the XML tag to extract reasoning from.
- * @param openingTag - Custom opening delimiter (alternative to tagName).
- * @param closingTag - Custom closing delimiter (alternative to tagName).
+ * @param tagName - Either a plain string (constructs symmetric XML-style tags
+ *   `<tagName>` / `</tagName>`), or an object with `opening` and `closing`
+ *   strings for models that use non-XML delimiters
+ *   (e.g. Gemma 4: `{ opening: '<|channel>thought\n', closing: '<channel|>' }`).
  * @param separator - The separator to use between reasoning and text sections.
  * @param startWithReasoning - Whether to start with reasoning tokens.
  */
 export function extractReasoningMiddleware({
   tagName,
-  openingTag: openingTagOption,
-  closingTag: closingTagOption,
   separator = '\n',
   startWithReasoning = false,
-}:
-  | {
-      tagName: string;
-      openingTag?: never;
-      closingTag?: never;
-      separator?: string;
-      startWithReasoning?: boolean;
-    }
-  | {
-      tagName?: never;
-      openingTag: string;
-      closingTag: string;
-      separator?: string;
-      startWithReasoning?: boolean;
-    }): LanguageModelMiddleware {
-  const openingTag = openingTagOption ?? `<${tagName}>`;
-  const closingTag = closingTagOption ?? `<\/${tagName}>`;
+}: {
+  tagName: string | { opening: string; closing: string };
+  separator?: string;
+  startWithReasoning?: boolean;
+}): LanguageModelMiddleware {
+  const openingTag =
+    typeof tagName === 'string' ? `<${tagName}>` : tagName.opening;
+  const closingTag =
+    typeof tagName === 'string' ? `<\/${tagName}>` : tagName.closing;
 
   // Escape special regex characters so literal strings like `<|channel>thought\n`
   // are matched verbatim rather than interpreted as regex operators.
