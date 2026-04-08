@@ -12,10 +12,10 @@ run(async () => {
   const result = await generateText({
     model: lmstudio('gpt-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    reasoning: 'high',
     maxOutputTokens: 100,
     providerOptions: {
       lmstudio: {
+        reasoningEffort: 'high',
         reasoningSummary: 'detailed',
       },
     },
