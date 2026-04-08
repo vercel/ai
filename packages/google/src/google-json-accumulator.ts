@@ -20,6 +20,8 @@ type StackEntry = {
  * chunks emitted during tool-call function calling. Tracks both the structured
  * object and a running JSON text representation so callers can emit text deltas
  * that, when concatenated, form valid nested JSON matching JSON.stringify output.
+ *
+ * Example: processPartialArgs([{jsonPath:"$.location",stringValue:"Boston"}]) → textDelta='{"location":"Boston"', then finalize() → '}'
  */
 export class GoogleJSONAccumulator {
   private accumulatedArgs: Record<string, unknown> = {};
@@ -37,6 +39,9 @@ export class GoogleJSONAccumulator {
    */
   private stringOpen = false;
 
+  /**
+   * Example: ([{jsonPath:"$.brightness",numberValue:50}]) → { currentJSON:{brightness:50}, textDelta:'{"brightness":50' }
+   */
   processPartialArgs(partialArgs: PartialArg[]): {
     currentJSON: Record<string, unknown>;
     textDelta: string;
@@ -79,12 +84,16 @@ export class GoogleJSONAccumulator {
     };
   }
 
+  /**
+   * Example: after jsonText='{"brightness":50' → { finalJSON:'{"brightness":50}', closingDelta:'}' }
+   */
   finalize(): { finalJSON: string; closingDelta: string } {
     const finalArgs = JSON.stringify(this.accumulatedArgs);
     const closingDelta = finalArgs.slice(this.jsonText.length);
     return { finalJSON: finalArgs, closingDelta };
   }
 
+  /** Example: first call → '{', subsequent calls → '' */
   private ensureRoot(): string {
     if (this.pathStack.length === 0) {
       this.pathStack.push({ segment: '', isArray: false, childCount: 0 });
@@ -96,6 +105,8 @@ export class GoogleJSONAccumulator {
   /**
    * Emits the JSON text fragment needed to navigate from the current open
    * path to the new leaf at `targetSegments`, then writes the value.
+   *
+   * Example: (["recipe","name"], arg, '"Lasagna"') → '{"recipe":{"name":"Lasagna"'
    */
   private emitNavigationTo(
     targetSegments: PathSegment[],
@@ -126,6 +137,8 @@ export class GoogleJSONAccumulator {
   /**
    * Returns the stack depth to preserve when navigating to a new target
    * container path. Always >= 1 (the root is never popped).
+   *
+   * Example: stack=[root,"recipe","ingredients",0], target=["recipe","ingredients",1] → 3 (keep root+"recipe"+"ingredients")
    */
   private findCommonStackDepth(targetContainer: PathSegment[]): number {
     const maxDepth = Math.min(
@@ -143,7 +156,11 @@ export class GoogleJSONAccumulator {
     return common + 1;
   }
 
-  /** Closes containers from the current stack depth back down to `targetDepth`. */
+  /**
+   * Closes containers from the current stack depth back down to `targetDepth`.
+   *
+   * Example: stack=[root,"recipe","ingredients",0], targetDepth=3 → '}' (pops the 0-entry object)
+   */
   private closeDownTo(targetDepth: number): string {
     let fragment = '';
     while (this.pathStack.length > targetDepth) {
@@ -157,6 +174,8 @@ export class GoogleJSONAccumulator {
    * Opens containers from the current stack depth down to the full target
    * container path, emitting opening `{`, `[`, keys, and commas as needed.
    * `leafSegment` is used to determine if the innermost container is an array.
+   *
+   * Example: stack=[root], target=["recipe","ingredients"], leaf=0 → '"recipe":{"ingredients":['
    */
   private openDownTo(
     targetContainer: PathSegment[],
@@ -191,7 +210,11 @@ export class GoogleJSONAccumulator {
     return fragment;
   }
 
-  /** Emits the comma, key, and value for a leaf entry in the current container. */
+  /**
+   * Emits the comma, key, and value for a leaf entry in the current container.
+   *
+   * Example: leaf="name", valueJson='"Lasagna"' → '"name":"Lasagna"' (or ',"name":"Lasagna"' if not first child)
+   */
   private emitLeaf(
     leafSegment: PathSegment,
     arg: PartialArg,
@@ -220,7 +243,11 @@ export class GoogleJSONAccumulator {
   }
 }
 
-/** Splits a dotted/bracketed JSON path like `recipe.ingredients[0].name` into segments. */
+/**
+ * Splits a dotted/bracketed JSON path like `recipe.ingredients[0].name` into segments.
+ *
+ * Example: "recipe.ingredients[0].name" → ["recipe", "ingredients", 0, "name"]
+ */
 function parsePath(rawPath: string): Array<string | number> {
   const segments: Array<string | number> = [];
   for (const part of rawPath.split('.')) {
@@ -237,7 +264,11 @@ function parsePath(rawPath: string): Array<string | number> {
   return segments;
 }
 
-/** Traverses a nested object along the given path segments and returns the leaf value. */
+/**
+ * Traverses a nested object along the given path segments and returns the leaf value.
+ *
+ * Example: ({recipe:{name:"Lasagna"}}, ["recipe","name"]) → "Lasagna"
+ */
 function getNestedValue(
   obj: Record<string, unknown>,
   segments: Array<string | number>,
@@ -250,7 +281,11 @@ function getNestedValue(
   return current;
 }
 
-/** Sets a value at a nested path, creating intermediate objects or arrays as needed. */
+/**
+ * Sets a value at a nested path, creating intermediate objects or arrays as needed.
+ *
+ * Example: ({}, ["recipe","ingredients",0,"name"], "Noodles") → {recipe:{ingredients:[{name:"Noodles"}]}}
+ */
 function setNestedValue(
   obj: Record<string, unknown>,
   segments: Array<string | number>,
@@ -268,7 +303,11 @@ function setNestedValue(
   current[segments[segments.length - 1]] = value;
 }
 
-/** Extracts the first non-null typed value from a partial arg and returns it with its JSON representation. */
+/**
+ * Extracts the first non-null typed value from a partial arg and returns it with its JSON representation.
+ *
+ * Example: {stringValue:"Boston"} → {value:"Boston", json:'"Boston"'}, {numberValue:50} → {value:50, json:'50'}
+ */
 function resolvePartialArgValue(arg: {
   stringValue?: string | null;
   numberValue?: number | null;
