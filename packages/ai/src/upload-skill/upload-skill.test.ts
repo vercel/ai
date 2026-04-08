@@ -1,4 +1,4 @@
-import { SkillsV4 } from '@ai-sdk/provider';
+import { ProviderV4, SkillsV4 } from '@ai-sdk/provider';
 import { describe, it, expect, vi } from 'vitest';
 import { uploadSkill } from './upload-skill';
 
@@ -56,6 +56,43 @@ describe('uploadSkill', () => {
       ]
     `);
     expect(result.providerMetadata).toEqual({ foo: 'bar' });
+  });
+
+  it('should resolve SkillsV4 from ProviderV4 with skills() method', async () => {
+    const skills = createMockSkills();
+    const mockProvider = {
+      specificationVersion: 'v4' as const,
+      languageModel: vi.fn(),
+      embeddingModel: vi.fn(),
+      imageModel: vi.fn(),
+      skills: vi.fn().mockReturnValue(skills),
+    } satisfies ProviderV4;
+
+    await uploadSkill({
+      api: mockProvider,
+      files: [{ path: 'test.ts', content: 'hello' }],
+    });
+
+    expect(mockProvider.skills).toHaveBeenCalled();
+    expect(skills.upload).toHaveBeenCalled();
+  });
+
+  it('should throw when ProviderV4 has no skills() method', async () => {
+    const mockProvider = {
+      specificationVersion: 'v4' as const,
+      languageModel: vi.fn(),
+      embeddingModel: vi.fn(),
+      imageModel: vi.fn(),
+    } satisfies ProviderV4;
+
+    await expect(
+      uploadSkill({
+        api: mockProvider,
+        files: [{ path: 'test.ts', content: 'hello' }],
+      }),
+    ).rejects.toThrow(
+      'The provider does not support skills. Make sure it exposes a skills() method.',
+    );
   });
 
   it('should pass providerOptions to the skills', async () => {
