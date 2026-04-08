@@ -148,6 +148,13 @@ You can use the following optional settings to customize the Amazon Bedrock prov
   The AWS region that you want to use for the API calls.
   It uses the `AWS_REGION` environment variable by default.
 
+  <Note>
+    The provider automatically resolves the correct endpoint domain for all AWS
+    partitions based on the region, including AWS China (`cn-`), AWS GovCloud
+    (`us-gov-`), and ISO partitions (`us-iso-`, `us-isob-`, `eu-isoe-`,
+    `us-isof-`). No manual `baseURL` override is needed for these partitions.
+  </Note>
+
 - **accessKeyId** _string_
 
   The AWS access key ID that you want to use for the API calls.
@@ -1346,6 +1353,13 @@ You can use the following optional settings to customize the Bedrock Anthropic p
 
   The AWS region that you want to use for the API calls.
   It uses the `AWS_REGION` environment variable by default.
+
+  <Note>
+    The provider automatically resolves the correct endpoint domain for all AWS
+    partitions based on the region, including AWS China (`cn-`), AWS GovCloud
+    (`us-gov-`), and ISO partitions (`us-iso-`, `us-isob-`, `eu-isoe-`,
+    `us-isof-`). No manual `baseURL` override is needed for these partitions.
+  </Note>
 
 - **accessKeyId** _string_
 
