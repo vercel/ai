@@ -7,6 +7,7 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -57,7 +58,10 @@ export class FalSpeechModel implements SpeechModelV4 {
     modelId: FalSpeechModelId;
     config: FalSpeechModelConfig;
   }) {
-    return new FalSpeechModel(options.modelId, options.config);
+    return new FalSpeechModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(

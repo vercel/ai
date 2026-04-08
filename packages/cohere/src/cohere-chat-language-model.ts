@@ -19,6 +19,7 @@ import {
   mapReasoningToProviderBudget,
   parseProviderOptions,
   postJsonToApi,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -61,7 +62,10 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
     modelId: CohereChatModelId;
     config: CohereChatConfig;
   }) {
-    return new CohereChatLanguageModel(options.modelId, options.config);
+    return new CohereChatLanguageModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(modelId: CohereChatModelId, config: CohereChatConfig) {

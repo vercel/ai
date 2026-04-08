@@ -4,6 +4,7 @@ import {
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -58,7 +59,10 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
     modelId: DeepgramSpeechModelId;
     config: DeepgramSpeechModelConfig;
   }) {
-    return new DeepgramSpeechModel(options.modelId, options.config);
+    return new DeepgramSpeechModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(

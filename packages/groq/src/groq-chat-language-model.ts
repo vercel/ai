@@ -22,6 +22,7 @@ import {
   mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -61,7 +62,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     modelId: GroqChatModelId;
     config: GroqChatConfig;
   }) {
-    return new GroqChatLanguageModel(options.modelId, options.config);
+    return new GroqChatLanguageModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(modelId: GroqChatModelId, config: GroqChatConfig) {

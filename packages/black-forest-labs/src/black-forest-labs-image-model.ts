@@ -13,6 +13,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -59,7 +60,10 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     modelId: BlackForestLabsImageModelId;
     config: BlackForestLabsImageModelConfig;
   }) {
-    return new BlackForestLabsImageModel(options.modelId, options.config);
+    return new BlackForestLabsImageModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(

@@ -15,6 +15,7 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,

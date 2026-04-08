@@ -4,6 +4,7 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postToApi,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -79,7 +80,10 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
     modelId: DeepgramTranscriptionModelId;
     config: DeepgramTranscriptionModelConfig;
   }) {
-    return new DeepgramTranscriptionModel(options.modelId, options.config);
+    return new DeepgramTranscriptionModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(

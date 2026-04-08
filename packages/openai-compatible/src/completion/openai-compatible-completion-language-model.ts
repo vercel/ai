@@ -19,6 +19,7 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,

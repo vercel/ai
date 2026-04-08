@@ -25,6 +25,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -68,7 +69,10 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
     modelId: string;
     config: BedrockChatConfig;
   }) {
-    return new BedrockChatLanguageModel(options.modelId, options.config);
+    return new BedrockChatLanguageModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(

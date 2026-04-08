@@ -27,6 +27,7 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -81,7 +82,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     modelId: string;
     config: GoogleGenerativeAIConfig;
   }) {
-    return new GoogleGenerativeAILanguageModel(options.modelId, options.config);
+    return new GoogleGenerativeAILanguageModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(

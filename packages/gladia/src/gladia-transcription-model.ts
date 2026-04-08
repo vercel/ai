@@ -13,6 +13,7 @@ import {
   parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -351,7 +352,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     modelId: 'default';
     config: GladiaTranscriptionModelConfig;
   }) {
-    return new GladiaTranscriptionModel(options.modelId, options.config);
+    return new GladiaTranscriptionModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(

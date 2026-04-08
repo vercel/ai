@@ -18,6 +18,7 @@ import {
   lazySchema,
   parseProviderOptions,
   zodSchema,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -56,7 +57,10 @@ export class LumaImageModel implements ImageModelV4 {
     modelId: string;
     config: LumaImageModelConfig;
   }) {
-    return new LumaImageModel(options.modelId, options.config);
+    return new LumaImageModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(

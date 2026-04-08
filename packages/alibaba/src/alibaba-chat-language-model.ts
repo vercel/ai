@@ -26,6 +26,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   type ParseResult,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -64,7 +65,10 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     modelId: AlibabaChatModelId;
     config: AlibabaConfig;
   }) {
-    return new AlibabaLanguageModel(options.modelId, options.config);
+    return new AlibabaLanguageModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(modelId: AlibabaChatModelId, config: AlibabaConfig) {

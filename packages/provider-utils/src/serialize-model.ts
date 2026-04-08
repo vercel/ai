@@ -26,9 +26,41 @@ export function serializeModel(inst: any): {
     const value = inst.config[key];
     if (isSerializable(value)) {
       config[key] = value;
+    } else if (key === 'headers' && typeof value === 'function') {
+      // Resolve headers at serialization time so auth credentials
+      // survive the workflow step boundary. On deserialization the
+      // resolved object is wrapped back into a function.
+      const resolved = value();
+      if (isSerializable(resolved)) {
+        config[key] = resolved;
+      }
     }
   }
   return { modelId: inst.modelId, config };
+}
+
+/**
+ * Prepares a deserialized model config for use with a model constructor.
+ * Wraps plain-object `headers` back into a function, since model code
+ * expects `config.headers()` to be callable.
+ *
+ * Used inside `static [WORKFLOW_DESERIALIZE]` in provider models.
+ *
+ * @example
+ * ```ts
+ * static [WORKFLOW_DESERIALIZE](options: { modelId: string; config: MyConfig }) {
+ *   return new MyLanguageModel(options.modelId, deserializeModelConfig(options.config));
+ * }
+ * ```
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function deserializeModelConfig<T>(config: T): T {
+  const result = { ...config } as any;
+  if (result.headers != null && typeof result.headers !== 'function') {
+    const resolvedHeaders = result.headers;
+    result.headers = () => resolvedHeaders;
+  }
+  return result;
 }
 
 function isSerializable(value: unknown): boolean {

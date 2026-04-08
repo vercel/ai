@@ -19,6 +19,7 @@ import {
   mapReasoningToProviderEffort,
   ParseResult,
   postJsonToApi,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -51,7 +52,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     modelId: string;
     config: OpenResponsesConfig;
   }) {
-    return new OpenResponsesLanguageModel(options.modelId, options.config);
+    return new OpenResponsesLanguageModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(modelId: string, config: OpenResponsesConfig) {

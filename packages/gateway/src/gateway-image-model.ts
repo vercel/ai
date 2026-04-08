@@ -10,6 +10,7 @@ import {
   createJsonErrorResponseHandler,
   postJsonToApi,
   resolve,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -38,7 +39,10 @@ export class GatewayImageModel implements ImageModelV4 {
     modelId: string;
     config: GatewayImageConfig;
   }) {
-    return new GatewayImageModel(options.modelId, options.config);
+    return new GatewayImageModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(

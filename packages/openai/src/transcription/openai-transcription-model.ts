@@ -10,6 +10,7 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -110,7 +111,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
     modelId: OpenAITranscriptionModelId;
     config: OpenAITranscriptionModelConfig;
   }) {
-    return new OpenAITranscriptionModel(options.modelId, options.config);
+    return new OpenAITranscriptionModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   get provider(): string {

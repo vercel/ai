@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { serializeModel } from './serialize-model';
+import { serializeModel, deserializeModelConfig } from './serialize-model';
 
 describe('serializeModel', () => {
   it('returns modelId and serializable config', () => {
@@ -21,6 +21,7 @@ describe('serializeModel', () => {
       config: {
         provider: 'anthropic.messages',
         baseURL: 'https://api.anthropic.com/v1',
+        headers: { 'x-api-key': 'sk-test' },
         fetch: undefined,
         supportsNativeStructuredOutput: true,
         supportsStrictTools: false,
@@ -28,7 +29,7 @@ describe('serializeModel', () => {
     });
   });
 
-  it('filters out functions', () => {
+  it('resolves headers functions but filters out other functions', () => {
     const result = serializeModel({
       modelId: 'gpt-4',
       config: {
@@ -39,7 +40,10 @@ describe('serializeModel', () => {
     });
     expect(result).toEqual({
       modelId: 'gpt-4',
-      config: { provider: 'openai' },
+      config: {
+        provider: 'openai',
+        headers: { authorization: 'Bearer sk-test' },
+      },
     });
   });
 
@@ -91,6 +95,39 @@ describe('serializeModel', () => {
     expect(result).toEqual({
       modelId: 'model',
       config: { provider: 'test' },
+    });
+  });
+});
+
+describe('deserializeModelConfig', () => {
+  it('wraps plain-object headers back into a function', () => {
+    const config = deserializeModelConfig({
+      provider: 'anthropic.messages',
+      headers: { 'x-api-key': 'sk-test' },
+    });
+    expect(typeof config.headers).toBe('function');
+    expect((config.headers as () => Record<string, string>)()).toEqual({
+      'x-api-key': 'sk-test',
+    });
+  });
+
+  it('preserves headers that are already functions', () => {
+    const headersFn = () => ({ 'x-api-key': 'sk-test' });
+    const config = deserializeModelConfig({
+      provider: 'test',
+      headers: headersFn,
+    });
+    expect(config.headers).toBe(headersFn);
+  });
+
+  it('passes through config without headers unchanged', () => {
+    const config = deserializeModelConfig({
+      provider: 'test',
+      baseURL: 'https://example.com',
+    });
+    expect(config).toEqual({
+      provider: 'test',
+      baseURL: 'https://example.com',
     });
   });
 });

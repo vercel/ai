@@ -12,6 +12,7 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -85,7 +86,10 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
     modelId: FalTranscriptionModelId;
     config: FalTranscriptionModelConfig;
   }) {
-    return new FalTranscriptionModel(options.modelId, options.config);
+    return new FalTranscriptionModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(

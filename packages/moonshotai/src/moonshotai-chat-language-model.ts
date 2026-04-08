@@ -1,6 +1,7 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import { OpenAICompatibleChatConfig } from '@ai-sdk/openai-compatible/internal';
 import {
+  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -23,7 +24,10 @@ export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageMod
     modelId: MoonshotAIChatModelId;
     config: OpenAICompatibleChatConfig;
   }) {
-    return new MoonshotAIChatLanguageModel(options.modelId, options.config);
+    return new MoonshotAIChatLanguageModel(
+      options.modelId,
+      deserializeModelConfig(options.config),
+    );
   }
 
   constructor(
