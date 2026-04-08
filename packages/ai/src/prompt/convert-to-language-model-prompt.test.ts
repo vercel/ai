@@ -1090,6 +1090,45 @@ describe('convertToLanguageModelPrompt', () => {
         },
       ]);
     });
+
+    it('should not download URLs that are supported by the model', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: 'https://example.com/test-file.txt',
+                  mediaType: 'text/plain',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {
+          '*': [/^https:\/\/.+/],
+        },
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: new URL('https://example.com/test-file.txt'),
+            },
+          ],
+        },
+      ]);
+    });
   });
 });
 
