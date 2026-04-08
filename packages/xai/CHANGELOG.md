@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 2.0.67
+
+### Patch Changes
+
+- 21ff967: fix (provider/xai): handle mid-stream error chunks
+
 ## 2.0.66
 
 ### Patch Changes
