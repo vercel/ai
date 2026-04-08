@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 176466a: chore(provider): align V4 model return types to have their own definitions across all model interfaces
+
 ## 4.0.0-beta.9
 
 ### Patch Changes
