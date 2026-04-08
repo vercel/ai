@@ -1,5 +1,17 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- e5bdc8d: fix (provider/xai): handle mid-stream error chunks
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- 813851f: fix (provider/xai): add response.incomplete and response.failed streaming event handling
+
 ## 4.0.0-beta.28
 
 ### Patch Changes
