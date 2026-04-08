@@ -1034,11 +1034,27 @@ function TraceTimeline({
   );
 
   const allSteps = useMemo(() => {
-    const steps = [...runDetail.steps];
-    for (const cr of runDetail.childRuns ?? []) {
-      steps.push(...cr.steps);
+    const steps: Step[] = [];
+    function collectSteps(runSteps: Step[], children: ChildRun[]) {
+      steps.push(...runSteps);
+      for (const cr of children) {
+        collectSteps(cr.steps, cr.childRuns ?? []);
+      }
     }
+    collectSteps(runDetail.steps, runDetail.childRuns ?? []);
     return steps;
+  }, [runDetail]);
+
+  const allChildRuns = useMemo(() => {
+    const runs: ChildRun[] = [];
+    function collectRuns(children: ChildRun[]) {
+      for (const cr of children) {
+        runs.push(cr);
+        collectRuns(cr.childRuns ?? []);
+      }
+    }
+    collectRuns(runDetail.childRuns ?? []);
+    return runs;
   }, [runDetail]);
 
   if (spans.length === 0) return null;
@@ -1076,12 +1092,13 @@ function TraceTimeline({
 
   const selectedStepIndex = selectedStep
     ? (() => {
-        const parentSteps = runDetail.steps.find(s => s.id === selectedStep.id)
-          ? runDetail.steps
-          : (runDetail.childRuns ?? []).find(cr =>
-              cr.steps.some(s => s.id === selectedStep.id),
-            )?.steps;
-        return parentSteps?.findIndex(s => s.id === selectedStep.id) ?? 0;
+        if (runDetail.steps.find(s => s.id === selectedStep.id)) {
+          return runDetail.steps.findIndex(s => s.id === selectedStep.id);
+        }
+        const cr = allChildRuns.find(cr =>
+          cr.steps.some(s => s.id === selectedStep.id),
+        );
+        return cr?.steps.findIndex(s => s.id === selectedStep.id) ?? 0;
       })()
     : 0;
 
@@ -1090,7 +1107,7 @@ function TraceTimeline({
         if (runDetail.steps.find(s => s.id === selectedStep.id)) {
           return runDetail.steps;
         }
-        const cr = (runDetail.childRuns ?? []).find(cr =>
+        const cr = allChildRuns.find(cr =>
           cr.steps.some(s => s.id === selectedStep.id),
         );
         return cr?.steps ?? runDetail.steps;
@@ -1098,9 +1115,7 @@ function TraceTimeline({
     : runDetail.steps;
 
   const selectedStepChildRuns = selectedStep
-    ? (runDetail.childRuns ?? []).filter(
-        cr => cr.run.parent_step_id === selectedStep.id,
-      )
+    ? allChildRuns.filter(cr => cr.run.parent_step_id === selectedStep.id)
     : [];
 
   const spanIcon = (kind: SpanKind) => {
