@@ -1,13 +1,12 @@
 import * as diagnostics_channel from 'node:diagnostics_channel';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { TelemetryIntegration } from 'ai';
 import {
   createDiagnosticsChannelIntegration,
   AI_SDK_CHANNEL_NAMES,
 } from './diagnostics-channel-integration';
 
-let callId: string;
-
+const callId = 'call-1';
 const model = { provider: 'test-provider', modelId: 'test-model' };
 
 function telemetryFields() {
@@ -320,12 +319,10 @@ describe('createDiagnosticsChannelIntegration', () => {
     handler: (message: unknown, name: string | symbol) => void;
   }> = [];
 
-  function subscribe(
-    channelName: string,
-  ): Array<{ message: unknown; name: string | symbol }> {
-    const received: Array<{ message: unknown; name: string | symbol }> = [];
-    const handler = (message: unknown, name: string | symbol) => {
-      received.push({ message, name });
+  function subscribe(channelName: string): Array<unknown> {
+    const received: Array<unknown> = [];
+    const handler = (message: unknown) => {
+      received.push(message);
     };
     diagnostics_channel.subscribe(channelName, handler);
     subscribers.push({ name: channelName, handler });
@@ -333,7 +330,6 @@ describe('createDiagnosticsChannelIntegration', () => {
   }
 
   beforeEach(() => {
-    callId = `call-${Date.now()}`;
     integration = createDiagnosticsChannelIntegration();
   });
 
@@ -346,179 +342,580 @@ describe('createDiagnosticsChannelIntegration', () => {
 
   it('publishes onStart events to the operation:start channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.operationStart);
-    const event = makeOnStartEvent();
-
-    integration.onStart!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
-    expect(received[0].name).toBe(AI_SDK_CHANNEL_NAMES.operationStart);
+    integration.onStart!(makeOnStartEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "abortSignal": undefined,
+          "activeTools": undefined,
+          "callId": "call-1",
+          "context": undefined,
+          "frequencyPenalty": undefined,
+          "functionId": undefined,
+          "headers": undefined,
+          "include": undefined,
+          "isEnabled": true,
+          "maxOutputTokens": 100,
+          "maxRetries": 2,
+          "messages": undefined,
+          "metadata": undefined,
+          "modelId": "test-model",
+          "operationId": "ai.generateText",
+          "output": undefined,
+          "presencePenalty": undefined,
+          "prompt": "Hello",
+          "provider": "test-provider",
+          "providerOptions": undefined,
+          "recordInputs": undefined,
+          "recordOutputs": undefined,
+          "seed": undefined,
+          "stopSequences": undefined,
+          "stopWhen": undefined,
+          "system": undefined,
+          "temperature": 0.7,
+          "timeout": undefined,
+          "toolChoice": undefined,
+          "tools": undefined,
+          "topK": undefined,
+          "topP": undefined,
+        },
+      ]
+    `);
   });
 
   it('publishes onStepStart events to the step:start channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.stepStart);
-    const event = makeStepStartEvent();
-
-    integration.onStepStart!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onStepStart!(makeStepStartEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "abortSignal": undefined,
+          "activeTools": undefined,
+          "callId": "call-1",
+          "context": undefined,
+          "functionId": undefined,
+          "headers": undefined,
+          "include": undefined,
+          "messages": [],
+          "metadata": undefined,
+          "modelId": "test-model",
+          "output": undefined,
+          "provider": "test-provider",
+          "providerOptions": undefined,
+          "stepNumber": 0,
+          "steps": [],
+          "stopWhen": undefined,
+          "system": undefined,
+          "timeout": undefined,
+          "toolChoice": undefined,
+          "tools": undefined,
+        },
+      ]
+    `);
   });
 
   it('publishes onToolCallStart events to the tool-call:start channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.toolCallStart);
-    const event = makeToolCallStartEvent();
-
-    integration.onToolCallStart!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onToolCallStart!(makeToolCallStartEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "abortSignal": undefined,
+          "callId": "call-1",
+          "context": undefined,
+          "functionId": undefined,
+          "messages": [],
+          "metadata": undefined,
+          "modelId": "test-model",
+          "provider": "test-provider",
+          "stepNumber": 0,
+          "toolCall": {
+            "input": {
+              "query": "test",
+            },
+            "toolCallId": "tool-call-1",
+            "toolName": "myTool",
+            "type": "tool-call",
+          },
+        },
+      ]
+    `);
   });
 
   it('publishes onToolCallFinish events to the tool-call:finish channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.toolCallFinish);
-    const event = makeToolCallFinishEvent();
-
-    integration.onToolCallFinish!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onToolCallFinish!(makeToolCallFinishEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "abortSignal": undefined,
+          "callId": "call-1",
+          "context": undefined,
+          "durationMs": 42,
+          "functionId": undefined,
+          "messages": [],
+          "metadata": undefined,
+          "modelId": "test-model",
+          "output": {
+            "result": "ok",
+          },
+          "provider": "test-provider",
+          "stepNumber": 0,
+          "success": true,
+          "toolCall": {
+            "input": {
+              "query": "test",
+            },
+            "toolCallId": "tool-call-1",
+            "toolName": "myTool",
+            "type": "tool-call",
+          },
+        },
+      ]
+    `);
   });
 
   it('publishes onChunk events to the chunk channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.chunk);
-    const event = makeChunkEvent();
-
-    integration.onChunk!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onChunk!(makeChunkEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "chunk": {
+            "id": "text-1",
+            "text": "Hello",
+            "type": "text-delta",
+          },
+        },
+      ]
+    `);
   });
 
   it('publishes onStepFinish events to the step:finish channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.stepFinish);
-    const event = makeStepFinishEvent();
-
-    integration.onStepFinish!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onStepFinish!(makeStepFinishEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "callId": "call-1",
+          "content": [
+            {
+              "text": "Hello world",
+              "type": "text",
+            },
+          ],
+          "context": undefined,
+          "dynamicToolCalls": [],
+          "dynamicToolResults": [],
+          "files": [],
+          "finishReason": "stop",
+          "functionId": undefined,
+          "metadata": undefined,
+          "model": {
+            "modelId": "test-model",
+            "provider": "test-provider",
+          },
+          "providerMetadata": undefined,
+          "rawFinishReason": "stop",
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {
+            "body": undefined,
+          },
+          "response": {
+            "id": "resp-1",
+            "messages": [],
+            "modelId": "test-model",
+            "timestamp": 2025-01-01T00:00:00.000Z,
+          },
+          "sources": [],
+          "staticToolCalls": [],
+          "staticToolResults": [],
+          "stepNumber": 0,
+          "text": "Hello world",
+          "toolCalls": [],
+          "toolResults": [],
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": undefined,
+            },
+            "inputTokens": 10,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": undefined,
+            },
+            "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 30,
+          },
+          "warnings": undefined,
+        },
+      ]
+    `);
   });
 
   it('publishes onEmbedStart events to the embed:start channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.embedStart);
-    const event = makeEmbedStartEvent();
-
-    integration.onEmbedStart!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onEmbedStart!(makeEmbedStartEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "callId": "call-1",
+          "embedCallId": "embed-call-1",
+          "functionId": undefined,
+          "isEnabled": true,
+          "metadata": undefined,
+          "modelId": "test-model",
+          "operationId": "ai.embed.doEmbed",
+          "provider": "test-provider",
+          "recordInputs": undefined,
+          "recordOutputs": undefined,
+          "values": [
+            "test input",
+          ],
+        },
+      ]
+    `);
   });
 
   it('publishes onEmbedFinish events to the embed:finish channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.embedFinish);
-    const event = makeEmbedFinishEvent();
-
-    integration.onEmbedFinish!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onEmbedFinish!(makeEmbedFinishEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "callId": "call-1",
+          "embedCallId": "embed-call-1",
+          "embeddings": [
+            [
+              0.1,
+              0.2,
+              0.3,
+            ],
+          ],
+          "modelId": "test-model",
+          "operationId": "ai.embed.doEmbed",
+          "provider": "test-provider",
+          "usage": {
+            "tokens": 5,
+          },
+          "values": [
+            "test input",
+          ],
+        },
+      ]
+    `);
   });
 
   it('publishes onRerankStart events to the rerank:start channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.rerankStart);
-    const event = makeRerankStartEvent();
-
-    integration.onRerankStart!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onRerankStart!(makeRerankStartEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "callId": "call-1",
+          "documents": [
+            "doc1",
+            "doc2",
+          ],
+          "documentsType": "text",
+          "functionId": undefined,
+          "isEnabled": true,
+          "metadata": undefined,
+          "modelId": "test-model",
+          "operationId": "ai.rerank.doRerank",
+          "provider": "test-provider",
+          "query": "test query",
+          "recordInputs": undefined,
+          "recordOutputs": undefined,
+          "topN": undefined,
+        },
+      ]
+    `);
   });
 
   it('publishes onRerankFinish events to the rerank:finish channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.rerankFinish);
-    const event = makeRerankFinishEvent();
-
-    integration.onRerankFinish!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onRerankFinish!(makeRerankFinishEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "callId": "call-1",
+          "documentsType": "text",
+          "modelId": "test-model",
+          "operationId": "ai.rerank.doRerank",
+          "provider": "test-provider",
+          "ranking": [
+            {
+              "index": 0,
+              "relevanceScore": 0.9,
+            },
+          ],
+        },
+      ]
+    `);
   });
 
   it('publishes onObjectStepStart events to the object-step:start channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.objectStepStart);
-    const event = makeObjectStepStartEvent();
-
-    integration.onObjectStepStart!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onObjectStepStart!(makeObjectStepStartEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "abortSignal": undefined,
+          "callId": "call-1",
+          "functionId": undefined,
+          "headers": undefined,
+          "metadata": undefined,
+          "modelId": "test-model",
+          "provider": "test-provider",
+          "providerOptions": undefined,
+          "stepNumber": 0,
+        },
+      ]
+    `);
   });
 
   it('publishes onObjectStepFinish events to the object-step:finish channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.objectStepFinish);
-    const event = makeObjectStepFinishEvent();
-
-    integration.onObjectStepFinish!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onObjectStepFinish!(makeObjectStepFinishEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "callId": "call-1",
+          "finishReason": "stop",
+          "functionId": undefined,
+          "metadata": undefined,
+          "modelId": "test-model",
+          "msToFirstChunk": undefined,
+          "objectText": "{"key":"value"}",
+          "provider": "test-provider",
+          "providerMetadata": undefined,
+          "reasoning": undefined,
+          "request": {
+            "body": undefined,
+          },
+          "response": {
+            "id": "resp-1",
+            "modelId": "test-model",
+            "timestamp": 2025-01-01T00:00:00.000Z,
+          },
+          "stepNumber": 0,
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": undefined,
+            },
+            "inputTokens": 10,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": undefined,
+            },
+            "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 30,
+          },
+          "warnings": undefined,
+        },
+      ]
+    `);
   });
 
   it('publishes onFinish events to the operation:finish channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.operationFinish);
-    const event = makeFinishEvent();
-
-    integration.onFinish!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onFinish!(makeFinishEvent());
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "callId": "call-1",
+          "content": [
+            {
+              "text": "Hello world",
+              "type": "text",
+            },
+          ],
+          "context": undefined,
+          "dynamicToolCalls": [],
+          "dynamicToolResults": [],
+          "files": [],
+          "finishReason": "stop",
+          "functionId": undefined,
+          "metadata": undefined,
+          "model": {
+            "modelId": "test-model",
+            "provider": "test-provider",
+          },
+          "providerMetadata": undefined,
+          "rawFinishReason": "stop",
+          "reasoning": [],
+          "reasoningText": undefined,
+          "request": {
+            "body": undefined,
+          },
+          "response": {
+            "id": "resp-1",
+            "messages": [],
+            "modelId": "test-model",
+            "timestamp": 2025-01-01T00:00:00.000Z,
+          },
+          "sources": [],
+          "staticToolCalls": [],
+          "staticToolResults": [],
+          "stepNumber": 0,
+          "steps": [],
+          "text": "Hello world",
+          "toolCalls": [],
+          "toolResults": [],
+          "totalUsage": {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": undefined,
+            },
+            "inputTokens": 10,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": undefined,
+            },
+            "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 30,
+          },
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokenDetails": {
+              "cacheReadTokens": undefined,
+              "cacheWriteTokens": undefined,
+              "noCacheTokens": undefined,
+            },
+            "inputTokens": 10,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": undefined,
+            },
+            "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 30,
+          },
+          "warnings": undefined,
+        },
+      ]
+    `);
   });
 
   it('publishes onError events to the error channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.error);
-    const event = { callId, error: new Error('test error') };
-
-    integration.onError!(event);
-
-    expect(received).toHaveLength(1);
-    expect(received[0].message).toBe(event);
+    integration.onError!({ callId, error: new Error('test error') });
+    expect(received).toMatchInlineSnapshot(`
+      [
+        {
+          "callId": "call-1",
+          "error": [Error: test error],
+        },
+      ]
+    `);
   });
 
   it('does not publish when there are no subscribers', () => {
     const channel = diagnostics_channel.channel(
       AI_SDK_CHANNEL_NAMES.operationStart,
     );
-    expect(channel.hasSubscribers).toBe(false);
-
-    const event = makeOnStartEvent();
-    integration.onStart!(event);
+    expect(channel.hasSubscribers).toMatchInlineSnapshot(`false`);
+    integration.onStart!(makeOnStartEvent());
   });
 
   it('publishes multiple events to the same channel', () => {
     const received = subscribe(AI_SDK_CHANNEL_NAMES.operationStart);
-
-    const event1 = makeOnStartEvent({ callId: 'call-1' });
-    const event2 = makeOnStartEvent({ callId: 'call-2' });
-
-    integration.onStart!(event1);
-    integration.onStart!(event2);
-
-    expect(received).toHaveLength(2);
-    expect(received[0].message).toBe(event1);
-    expect(received[1].message).toBe(event2);
+    integration.onStart!(makeOnStartEvent({ callId: 'call-1' }));
+    integration.onStart!(makeOnStartEvent({ callId: 'call-2' }));
+    expect(received.length).toMatchInlineSnapshot(`2`);
   });
 
   it('delivers events to multiple subscribers on the same channel', () => {
     const received1 = subscribe(AI_SDK_CHANNEL_NAMES.operationStart);
     const received2 = subscribe(AI_SDK_CHANNEL_NAMES.operationStart);
-
-    const event = makeOnStartEvent();
-    integration.onStart!(event);
-
-    expect(received1).toHaveLength(1);
-    expect(received2).toHaveLength(1);
-    expect(received1[0].message).toBe(event);
-    expect(received2[0].message).toBe(event);
+    integration.onStart!(makeOnStartEvent());
+    expect(received1).toMatchInlineSnapshot(`
+      [
+        {
+          "abortSignal": undefined,
+          "activeTools": undefined,
+          "callId": "call-1",
+          "context": undefined,
+          "frequencyPenalty": undefined,
+          "functionId": undefined,
+          "headers": undefined,
+          "include": undefined,
+          "isEnabled": true,
+          "maxOutputTokens": 100,
+          "maxRetries": 2,
+          "messages": undefined,
+          "metadata": undefined,
+          "modelId": "test-model",
+          "operationId": "ai.generateText",
+          "output": undefined,
+          "presencePenalty": undefined,
+          "prompt": "Hello",
+          "provider": "test-provider",
+          "providerOptions": undefined,
+          "recordInputs": undefined,
+          "recordOutputs": undefined,
+          "seed": undefined,
+          "stopSequences": undefined,
+          "stopWhen": undefined,
+          "system": undefined,
+          "temperature": 0.7,
+          "timeout": undefined,
+          "toolChoice": undefined,
+          "tools": undefined,
+          "topK": undefined,
+          "topP": undefined,
+        },
+      ]
+    `);
+    expect(received2).toMatchInlineSnapshot(`
+      [
+        {
+          "abortSignal": undefined,
+          "activeTools": undefined,
+          "callId": "call-1",
+          "context": undefined,
+          "frequencyPenalty": undefined,
+          "functionId": undefined,
+          "headers": undefined,
+          "include": undefined,
+          "isEnabled": true,
+          "maxOutputTokens": 100,
+          "maxRetries": 2,
+          "messages": undefined,
+          "metadata": undefined,
+          "modelId": "test-model",
+          "operationId": "ai.generateText",
+          "output": undefined,
+          "presencePenalty": undefined,
+          "prompt": "Hello",
+          "provider": "test-provider",
+          "providerOptions": undefined,
+          "recordInputs": undefined,
+          "recordOutputs": undefined,
+          "seed": undefined,
+          "stopSequences": undefined,
+          "stopWhen": undefined,
+          "system": undefined,
+          "temperature": 0.7,
+          "timeout": undefined,
+          "toolChoice": undefined,
+          "tools": undefined,
+          "topK": undefined,
+          "topP": undefined,
+        },
+      ]
+    `);
   });
 });
