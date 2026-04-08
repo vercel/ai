@@ -574,47 +574,38 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                 usage.cachedInputTokens = converted.cachedInputTokens;
               }
 
-<<<<<<< HEAD
-              if (response.status) {
-                finishReason = hasFunctionCall
-                  ? 'tool-calls'
-                  : mapXaiResponsesFinishReason(response.status);
-=======
               if (event.type === 'response.incomplete') {
                 const reason =
                   'incomplete_details' in response
                     ? response.incomplete_details?.reason
                     : undefined;
-                finishReason = {
-                  unified: reason
-                    ? mapXaiResponsesFinishReason(reason)
-                    : 'other',
-                  raw: reason ?? 'incomplete',
-                };
+                finishReason = reason
+                  ? mapXaiResponsesFinishReason(reason)
+                  : 'other';
               } else if ('status' in response && response.status) {
-                finishReason = {
-                  unified: hasFunctionCall
-                    ? 'tool-calls'
-                    : mapXaiResponsesFinishReason(response.status),
-                  raw: response.status,
-                };
->>>>>>> c1cc97f15 (Backport: fix (provider/xai): add response.incomplete and response.failed streaming event handling (#14221))
+                finishReason = hasFunctionCall
+                  ? 'tool-calls'
+                  : mapXaiResponsesFinishReason(response.status);
               }
 
               return;
             }
-<<<<<<< HEAD
-=======
 
             if (event.type === 'response.failed') {
               const reason = event.response.incomplete_details?.reason;
-              finishReason = {
-                unified: reason ? mapXaiResponsesFinishReason(reason) : 'error',
-                raw: reason ?? 'error',
-              };
+              finishReason = reason
+                ? mapXaiResponsesFinishReason(reason)
+                : 'error';
 
               if (event.response.usage) {
-                usage = convertXaiResponsesUsage(event.response.usage);
+                const converted = convertXaiResponsesUsage(
+                  event.response.usage,
+                );
+                usage.inputTokens = converted.inputTokens;
+                usage.outputTokens = converted.outputTokens;
+                usage.totalTokens = converted.totalTokens;
+                usage.reasoningTokens = converted.reasoningTokens;
+                usage.cachedInputTokens = converted.cachedInputTokens;
               }
 
               return;
@@ -628,7 +619,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
               return;
             }
 
->>>>>>> c1cc97f15 (Backport: fix (provider/xai): add response.incomplete and response.failed streaming event handling (#14221))
             // Function call arguments streaming (standard function tools)
             if (event.type === 'response.function_call_arguments.delta') {
               const toolCall = ongoingToolCalls[event.output_index];

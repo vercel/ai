@@ -2538,18 +2538,15 @@ describe('XaiResponsesLanguageModel', () => {
 
       expect(finish).toMatchObject({
         type: 'finish',
-        finishReason: {
-          unified: 'length',
-          raw: 'max_output_tokens',
-        },
+        finishReason: 'length',
         usage: expect.objectContaining({
-          inputTokens: expect.objectContaining({ total: 100 }),
-          outputTokens: expect.objectContaining({ total: 4096 }),
+          inputTokens: 100,
+          outputTokens: 4096,
         }),
       });
     });
 
-    it('should default to length when incomplete_details is missing', async () => {
+    it('should default to other when incomplete_details is missing', async () => {
       prepareStreamChunks([
         JSON.stringify({
           type: 'response.created',
@@ -2577,10 +2574,7 @@ describe('XaiResponsesLanguageModel', () => {
 
       expect(finish).toMatchObject({
         type: 'finish',
-        finishReason: {
-          unified: 'other',
-          raw: 'incomplete',
-        },
+        finishReason: 'other',
       });
     });
   });
@@ -2618,13 +2612,10 @@ describe('XaiResponsesLanguageModel', () => {
 
       expect(finish).toMatchObject({
         type: 'finish',
-        finishReason: {
-          unified: 'error',
-          raw: 'error',
-        },
+        finishReason: 'error',
         usage: expect.objectContaining({
-          inputTokens: expect.objectContaining({ total: 50 }),
-          outputTokens: expect.objectContaining({ total: 0 }),
+          inputTokens: 50,
+          outputTokens: 0,
         }),
       });
     });
@@ -2662,10 +2653,7 @@ describe('XaiResponsesLanguageModel', () => {
 
       expect(finish).toMatchObject({
         type: 'finish',
-        finishReason: {
-          unified: 'length',
-          raw: 'max_output_tokens',
-        },
+        finishReason: 'length',
       });
     });
   });
