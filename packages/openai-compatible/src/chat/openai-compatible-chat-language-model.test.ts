@@ -2414,6 +2414,74 @@ describe('doStream', () => {
     ).toBeUndefined();
   });
 
+  it('should handle parallel tool calls with reused index (Ollama bug)', async () => {
+    // Ollama sends all tool calls with index: 0 instead of incrementing.
+    // The parser should detect different IDs and treat them as separate calls.
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        // First tool call: index 0, full arguments in one chunk
+        `data: {"id":"chatcmpl-ollama","object":"chat.completion.chunk","created":1711357598,"model":"qwen3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":"",` +
+          `"tool_calls":[{"id":"call-hello","type":"function","function":{"name":"file_write","arguments":"{\\"filePath\\":\\"hello.py\\",\\"content\\":\\"print(\\\\\\"hello\\\\\\")\\"}"},"index":0}]},` +
+          `"finish_reason":null}]}\n\n`,
+        // Second tool call: ALSO index 0 (Ollama bug), different id
+        `data: {"id":"chatcmpl-ollama","object":"chat.completion.chunk","created":1711357598,"model":"qwen3",` +
+          `"choices":[{"index":0,"delta":{"content":"",` +
+          `"tool_calls":[{"id":"call-world","type":"function","function":{"name":"file_write","arguments":"{\\"filePath\\":\\"world.py\\",\\"content\\":\\"print(\\\\\\"world\\\\\\")\\"}"},"index":0}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-ollama","object":"chat.completion.chunk","created":1711357598,"model":"qwen3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+          `"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'function',
+          name: 'file_write',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              filePath: { type: 'string' },
+              content: { type: 'string' },
+            },
+            required: ['filePath', 'content'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      ],
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const result = await convertReadableStreamToArray(stream);
+
+    const toolCallEvents = result.filter(
+      (event: { type: string }) => event.type === 'tool-call',
+    );
+
+    // Both tool calls should be emitted despite having the same index
+    expect(toolCallEvents).toHaveLength(2);
+
+    expect(toolCallEvents[0]).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call-hello',
+      toolName: 'file_write',
+      input: '{"filePath":"hello.py","content":"print(\\"hello\\")"}',
+    });
+
+    expect(toolCallEvents[1]).toMatchObject({
+      type: 'tool-call',
+      toolCallId: 'call-world',
+      toolName: 'file_write',
+      input: '{"filePath":"world.py","content":"print(\\"world\\")"}',
+    });
+  });
+
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
