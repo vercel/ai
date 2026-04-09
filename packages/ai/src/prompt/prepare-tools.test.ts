@@ -232,4 +232,74 @@ describe('prepareTools', () => {
       ]
     `);
   });
+
+  it('supports deprecated parameters property via tool() normalization', async () => {
+    const result = await prepareTools({
+      tools: {
+        myTool: tool({
+          description: 'A tool using deprecated parameters',
+          parameters: z.object({ query: z.string() }),
+        } as any),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "description": "A tool using deprecated parameters",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "query": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "query",
+            ],
+            "type": "object",
+          },
+          "name": "myTool",
+          "providerOptions": undefined,
+          "type": "function",
+        },
+      ]
+    `);
+  });
+
+  it('handles tool with parameters but no inputSchema (not wrapped in tool())', async () => {
+    const result = await prepareTools({
+      tools: {
+        myTool: {
+          description: 'A raw tool using parameters',
+          parameters: z.object({ city: z.string() }),
+        } as any,
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "description": "A raw tool using parameters",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "city": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "city",
+            ],
+            "type": "object",
+          },
+          "name": "myTool",
+          "providerOptions": undefined,
+          "type": "function",
+        },
+      ]
+    `);
+  });
 });

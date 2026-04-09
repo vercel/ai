@@ -303,6 +303,11 @@ export function tool<CONTEXT extends Context>(
   tool: Tool<never, never, CONTEXT>,
 ): Tool<never, never, CONTEXT>;
 export function tool(tool: any): any {
+  // Normalize deprecated 'parameters' to 'inputSchema' for backward compat
+  if (tool.inputSchema === undefined && tool.parameters !== undefined) {
+    const { parameters, ...rest } = tool;
+    return { ...rest, inputSchema: parameters };
+  }
   return tool;
 }
 

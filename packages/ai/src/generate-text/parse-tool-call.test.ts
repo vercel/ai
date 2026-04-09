@@ -567,4 +567,62 @@ describe('parseToolCall', () => {
       expect(result.title).toBe('Invalid Tool');
     });
   });
+
+  describe('deprecated parameters fallback', () => {
+    it('should parse tool call using deprecated parameters property', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: '{"query": "hello"}',
+        },
+        tools: {
+          testTool: {
+            description: 'test tool',
+            parameters: z.object({ query: z.string() }),
+          } as any,
+        },
+        repairToolCall: undefined,
+        messages: [],
+        system: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "input": {
+            "query": "hello",
+          },
+          "providerExecuted": undefined,
+          "providerMetadata": undefined,
+          "title": undefined,
+          "toolCallId": "123",
+          "toolName": "testTool",
+          "type": "tool-call",
+        }
+      `);
+    });
+
+    it('should reject invalid input against deprecated parameters schema', async () => {
+      const result = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolName: 'testTool',
+          toolCallId: '123',
+          input: '{"query": 42}',
+        },
+        tools: {
+          testTool: {
+            description: 'test tool',
+            parameters: z.object({ query: z.string() }),
+          } as any,
+        },
+        repairToolCall: undefined,
+        messages: [],
+        system: undefined,
+      });
+
+      expect(result.invalid).toBe(true);
+    });
+  });
 });

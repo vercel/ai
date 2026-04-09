@@ -56,8 +56,9 @@ export async function parseToolCall<TOOLS extends ToolSet>({
           toolCall,
           tools,
           inputSchema: async ({ toolName }) => {
-            const { inputSchema } = tools[toolName];
-            return await asSchema(inputSchema).jsonSchema;
+            const tool = tools[toolName];
+            return await asSchema(tool.inputSchema ?? (tool as any).parameters)
+              .jsonSchema;
           },
           system,
           messages,
@@ -148,7 +149,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  const schema = asSchema(tool.inputSchema);
+  const schema = asSchema(tool.inputSchema ?? (tool as any).parameters);
 
   // when the tool call has no arguments, we try passing an empty object to the schema
   // (many LLMs generate empty strings for tool calls with no arguments)
