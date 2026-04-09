@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { APICallError } from '@ai-sdk/provider';
+import {
+  GatewayInternalServerError,
+  GatewayRateLimitError,
+  GatewayAuthenticationError,
+  GatewayInvalidRequestError,
+} from '@ai-sdk/gateway';
 import { retryWithExponentialBackoffRespectingRetryHeaders } from './retry-with-exponential-backoff';
 
 describe('retryWithExponentialBackoffRespectingRetryHeaders', () => {
@@ -441,6 +447,241 @@ describe('retryWithExponentialBackoffRespectingRetryHeaders', () => {
 
       const result = await promise;
       expect(result).toBe('success');
+    });
+  });
+
+  describe('GatewayError retry support (issue #14216)', () => {
+    it('should retry retryable GatewayInternalServerError (503)', async () => {
+      let attempt = 0;
+      const initialDelay = 2000;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new GatewayInternalServerError({
+            message: 'Service temporarily unavailable',
+            statusCode: 503,
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+        initialDelayInMs: initialDelay,
+      })(fn);
+
+      await vi.advanceTimersByTimeAsync(initialDelay);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+
+    it('should retry retryable GatewayRateLimitError (429)', async () => {
+      let attempt = 0;
+      const initialDelay = 2000;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new GatewayRateLimitError({
+            message: 'Rate limit exceeded',
+            statusCode: 429,
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+        initialDelayInMs: initialDelay,
+      })(fn);
+
+      await vi.advanceTimersByTimeAsync(initialDelay);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+
+    it('should retry retryable GatewayInternalServerError with timeout status (408)', async () => {
+      let attempt = 0;
+      const initialDelay = 2000;
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new GatewayInternalServerError({
+            message: 'Request timed out',
+            statusCode: 408,
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+        initialDelayInMs: initialDelay,
+      })(fn);
+
+      await vi.advanceTimersByTimeAsync(initialDelay);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+
+    it('should NOT retry non-retryable GatewayAuthenticationError (401)', async () => {
+      const fn = vi.fn().mockImplementation(async () => {
+        throw new GatewayAuthenticationError({
+          message: 'Invalid API key',
+          statusCode: 401,
+        });
+      });
+
+      await expect(
+        retryWithExponentialBackoffRespectingRetryHeaders({ maxRetries: 2 })(
+          fn,
+        ),
+      ).rejects.toThrow('Invalid API key');
+
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should NOT retry non-retryable GatewayInvalidRequestError (400)', async () => {
+      const fn = vi.fn().mockImplementation(async () => {
+        throw new GatewayInvalidRequestError({
+          message: 'Bad request',
+          statusCode: 400,
+        });
+      });
+
+      await expect(
+        retryWithExponentialBackoffRespectingRetryHeaders({ maxRetries: 2 })(
+          fn,
+        ),
+      ).rejects.toThrow('Bad request');
+
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should preserve isRetryable from original APICallError through gateway conversion', async () => {
+      let attempt = 0;
+      const initialDelay = 2000;
+
+      // Simulate what asGatewayError does: wraps APICallError into GatewayInternalServerError
+      const originalApiError = new APICallError({
+        message: 'Server error',
+        url: 'https://api.gateway.example.com',
+        requestBodyValues: {},
+        statusCode: 503,
+        isRetryable: true,
+      });
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new GatewayInternalServerError({
+            message: 'Gateway request failed',
+            statusCode: 503,
+            cause: originalApiError,
+            isRetryable: originalApiError.isRetryable,
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+        initialDelayInMs: initialDelay,
+      })(fn);
+
+      await vi.advanceTimersByTimeAsync(initialDelay);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+
+    it('should extract retry-after headers from cause APICallError in GatewayError', async () => {
+      let attempt = 0;
+      const retryAfterMs = 5000;
+
+      const originalApiError = new APICallError({
+        message: 'Rate limited',
+        url: 'https://api.gateway.example.com',
+        requestBodyValues: {},
+        statusCode: 429,
+        isRetryable: true,
+        responseHeaders: {
+          'retry-after-ms': retryAfterMs.toString(),
+        },
+      });
+
+      const fn = vi.fn().mockImplementation(async () => {
+        attempt++;
+        if (attempt === 1) {
+          throw new GatewayRateLimitError({
+            message: 'Rate limit exceeded',
+            statusCode: 429,
+            cause: originalApiError,
+            isRetryable: true,
+          });
+        }
+        return 'success';
+      });
+
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders()(fn);
+
+      // Should use retry-after-ms from the cause APICallError
+      await vi.advanceTimersByTimeAsync(retryAfterMs - 100);
+      expect(fn).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(200);
+      expect(fn).toHaveBeenCalledTimes(2);
+
+      const result = await promise;
+      expect(result).toBe('success');
+    });
+
+    it('should respect maxRetries limit for GatewayError', async () => {
+      const fn = vi.fn().mockImplementation(async () => {
+        throw new GatewayInternalServerError({
+          message: 'Persistent server error',
+          statusCode: 500,
+        });
+      });
+
+      const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+        maxRetries: 2,
+        initialDelayInMs: 100,
+      })(fn);
+
+      // Catch the rejection to prevent unhandled rejection warnings
+      const resultPromise = promise.catch(e => e);
+
+      // Advance through all retries
+      await vi.advanceTimersByTimeAsync(100); // first retry delay
+      await vi.advanceTimersByTimeAsync(200); // second retry delay (backoff)
+
+      const error = await resultPromise;
+      expect(error.message).toContain('Failed after 3 attempts');
+      expect(fn).toHaveBeenCalledTimes(3);
+    });
+
+    it('should not retry GatewayError with isRetryable explicitly set to false', async () => {
+      const fn = vi.fn().mockImplementation(async () => {
+        throw new GatewayInternalServerError({
+          message: 'Non-retryable server error',
+          statusCode: 500,
+          isRetryable: false,
+        });
+      });
+
+      await expect(
+        retryWithExponentialBackoffRespectingRetryHeaders({ maxRetries: 2 })(
+          fn,
+        ),
+      ).rejects.toThrow('Non-retryable server error');
+
+      expect(fn).toHaveBeenCalledTimes(1);
     });
   });
 });

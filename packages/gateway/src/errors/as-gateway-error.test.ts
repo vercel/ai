@@ -168,4 +168,69 @@ describe('asGatewayError', () => {
       expect(GatewayTimeoutError.isInstance(result)).toBe(false);
     });
   });
+
+  describe('isRetryable propagation from APICallError', () => {
+    it('should preserve isRetryable=true from a retryable APICallError (503)', async () => {
+      const apiCallError = new APICallError({
+        message: 'Service Unavailable',
+        url: 'https://api.gateway.example.com',
+        requestBodyValues: {},
+        statusCode: 503,
+        isRetryable: true,
+        responseBody: JSON.stringify({
+          error: {
+            message: 'Service temporarily unavailable',
+            type: 'internal_server_error',
+          },
+        }),
+      });
+
+      const result = await asGatewayError(apiCallError);
+
+      expect(GatewayError.isInstance(result)).toBe(true);
+      expect(result.isRetryable).toBe(true);
+    });
+
+    it('should preserve isRetryable=true from a retryable APICallError (429)', async () => {
+      const apiCallError = new APICallError({
+        message: 'Rate limited',
+        url: 'https://api.gateway.example.com',
+        requestBodyValues: {},
+        statusCode: 429,
+        isRetryable: true,
+        responseBody: JSON.stringify({
+          error: {
+            message: 'Too many requests',
+            type: 'rate_limit_exceeded',
+          },
+        }),
+      });
+
+      const result = await asGatewayError(apiCallError);
+
+      expect(GatewayError.isInstance(result)).toBe(true);
+      expect(result.isRetryable).toBe(true);
+    });
+
+    it('should preserve isRetryable=false from a non-retryable APICallError (401)', async () => {
+      const apiCallError = new APICallError({
+        message: 'Unauthorized',
+        url: 'https://api.gateway.example.com',
+        requestBodyValues: {},
+        statusCode: 401,
+        isRetryable: false,
+        responseBody: JSON.stringify({
+          error: {
+            message: 'Invalid credentials',
+            type: 'authentication_error',
+          },
+        }),
+      });
+
+      const result = await asGatewayError(apiCallError);
+
+      expect(GatewayError.isInstance(result)).toBe(true);
+      expect(result.isRetryable).toBe(false);
+    });
+  });
 });

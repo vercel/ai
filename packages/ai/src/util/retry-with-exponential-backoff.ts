@@ -1,4 +1,5 @@
 import { APICallError } from '@ai-sdk/provider';
+import { GatewayError } from '@ai-sdk/gateway';
 import { delay, getErrorMessage, isAbortError } from '@ai-sdk/provider-utils';
 import { RetryError } from './retry-error';
 
@@ -6,14 +7,17 @@ export type RetryFunction = <OUTPUT>(
   fn: () => PromiseLike<OUTPUT>,
 ) => PromiseLike<OUTPUT>;
 
+type RetryableError = APICallError | GatewayError;
+
 function getRetryDelayInMs({
   error,
   exponentialBackoffDelay,
 }: {
-  error: APICallError;
+  error: RetryableError;
   exponentialBackoffDelay: number;
 }): number {
-  const headers = error.responseHeaders;
+  // Extract response headers from the error or its cause chain
+  const headers = getResponseHeaders(error);
 
   if (!headers) return exponentialBackoffDelay;
 
@@ -50,6 +54,31 @@ function getRetryDelayInMs({
   }
 
   return exponentialBackoffDelay;
+}
+
+function getResponseHeaders(
+  error: RetryableError,
+): Record<string, string> | undefined {
+  if (APICallError.isInstance(error)) {
+    return error.responseHeaders;
+  }
+  // For GatewayError, try to extract headers from the cause APICallError
+  if (
+    GatewayError.isInstance(error) &&
+    error.cause != null &&
+    APICallError.isInstance(error.cause)
+  ) {
+    return error.cause.responseHeaders;
+  }
+  return undefined;
+}
+
+function isRetryableError(error: unknown): error is RetryableError {
+  if (!(error instanceof Error)) return false;
+  return (
+    (APICallError.isInstance(error) && error.isRetryable === true) ||
+    (GatewayError.isInstance(error) && error.isRetryable === true)
+  );
 }
 
 /**
@@ -115,12 +144,7 @@ async function _retryWithExponentialBackoff<OUTPUT>(
       });
     }
 
-    if (
-      error instanceof Error &&
-      APICallError.isInstance(error) &&
-      error.isRetryable === true &&
-      tryNumber <= maxRetries
-    ) {
+    if (isRetryableError(error) && tryNumber <= maxRetries) {
       await delay(
         getRetryDelayInMs({
           error,
