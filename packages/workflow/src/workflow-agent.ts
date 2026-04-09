@@ -18,6 +18,8 @@ import {
   type StopCondition,
   type StreamTextOnStepFinishCallback,
   type SystemModelMessage,
+  type ToolApprovalRequest,
+  type ToolApprovalResponse,
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
@@ -1040,6 +1042,105 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       messages: effectiveMessages,
     });
 
+    // Process tool approval responses before starting the agent loop.
+    // This mirrors how stream-text.ts handles tool-approval-response parts:
+    // approved tools are executed, denied tools get denial results, and
+    // approval parts are stripped from the messages.
+    const { approvedToolApprovals, deniedToolApprovals } =
+      collectToolApprovalsFromMessages(prompt.messages);
+
+    if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
+      const toolResultMessages: ModelMessage[] = [];
+      const toolResultContent: Array<{
+        type: 'tool-result';
+        toolCallId: string;
+        toolName: string;
+        output:
+          | { type: 'text'; value: string }
+          | { type: 'json'; value: JSONValue }
+          | { type: 'execution-denied'; reason: string | undefined };
+      }> = [];
+
+      // Execute approved tools
+      for (const approval of approvedToolApprovals) {
+        const tool = (this.tools as ToolSet)[approval.toolName];
+        if (tool && typeof tool.execute === 'function') {
+          try {
+            const { execute } = tool;
+            const toolResult = await execute(approval.input, {
+              toolCallId: approval.toolCallId,
+              messages: [],
+              context: effectiveExperimentalContext,
+            });
+            toolResultContent.push({
+              type: 'tool-result' as const,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              output:
+                typeof toolResult === 'string'
+                  ? { type: 'text' as const, value: toolResult }
+                  : { type: 'json' as const, value: toolResult },
+            });
+          } catch (error) {
+            toolResultContent.push({
+              type: 'tool-result' as const,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              output: {
+                type: 'text' as const,
+                value: getErrorMessage(error),
+              },
+            });
+          }
+        }
+      }
+
+      // Create denial results for denied tools
+      for (const denial of deniedToolApprovals) {
+        toolResultContent.push({
+          type: 'tool-result' as const,
+          toolCallId: denial.toolCallId,
+          toolName: denial.toolName,
+          output: {
+            type: 'execution-denied' as const,
+            reason: denial.reason,
+          },
+        });
+      }
+
+      // Strip approval parts from messages and inject tool results
+      const cleanedMessages: ModelMessage[] = [];
+      for (const msg of prompt.messages) {
+        if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+          const filtered = (msg.content as any[]).filter(
+            (p: any) => p.type !== 'tool-approval-request',
+          );
+          if (filtered.length > 0) {
+            cleanedMessages.push({ ...msg, content: filtered });
+          }
+        } else if (msg.role === 'tool') {
+          const filtered = (msg.content as any[]).filter(
+            (p: any) => p.type !== 'tool-approval-response',
+          );
+          if (filtered.length > 0) {
+            cleanedMessages.push({ ...msg, content: filtered });
+          }
+        } else {
+          cleanedMessages.push(msg);
+        }
+      }
+
+      // Add tool results as a new tool message
+      if (toolResultContent.length > 0) {
+        cleanedMessages.push({
+          role: 'tool',
+          content: toolResultContent,
+        } as ModelMessage);
+      }
+
+      prompt.messages = cleanedMessages;
+    }
+
     const modelPrompt = await convertToLanguageModelPrompt({
       prompt,
       supportedUrls: {},
@@ -1795,4 +1896,114 @@ async function executeTool(
       },
     };
   }
+}
+
+/**
+ * Collected tool approval information for a single tool call.
+ */
+interface CollectedApproval {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  approvalId: string;
+  reason?: string;
+}
+
+/**
+ * Collect tool approval responses from model messages.
+ * Mirrors the logic from `collectToolApprovals` in the AI SDK core
+ * (`packages/ai/src/generate-text/collect-tool-approvals.ts`).
+ *
+ * Scans the last tool message for `tool-approval-response` parts,
+ * matches them with `tool-approval-request` parts in assistant messages
+ * and the corresponding `tool-call` parts.
+ */
+function collectToolApprovalsFromMessages(messages: ModelMessage[]): {
+  approvedToolApprovals: CollectedApproval[];
+  deniedToolApprovals: CollectedApproval[];
+} {
+  const lastMessage = messages.at(-1);
+
+  if (lastMessage?.role !== 'tool') {
+    return { approvedToolApprovals: [], deniedToolApprovals: [] };
+  }
+
+  // Gather tool calls from assistant messages
+  const toolCallsByToolCallId: Record<
+    string,
+    { toolName: string; input: unknown }
+  > = {};
+  for (const message of messages) {
+    if (message.role === 'assistant' && Array.isArray(message.content)) {
+      for (const part of message.content as any[]) {
+        if (part.type === 'tool-call') {
+          toolCallsByToolCallId[part.toolCallId] = {
+            toolName: part.toolName,
+            input: part.input ?? part.args,
+          };
+        }
+      }
+    }
+  }
+
+  // Gather approval requests from assistant messages
+  const approvalRequestsByApprovalId: Record<
+    string,
+    { approvalId: string; toolCallId: string }
+  > = {};
+  for (const message of messages) {
+    if (message.role === 'assistant' && Array.isArray(message.content)) {
+      for (const part of message.content as any[]) {
+        if (part.type === 'tool-approval-request') {
+          approvalRequestsByApprovalId[part.approvalId] = {
+            approvalId: part.approvalId,
+            toolCallId: part.toolCallId,
+          };
+        }
+      }
+    }
+  }
+
+  // Gather existing tool results to avoid re-executing
+  const existingToolResults = new Set<string>();
+  for (const part of lastMessage.content as any[]) {
+    if (part.type === 'tool-result') {
+      existingToolResults.add(part.toolCallId);
+    }
+  }
+
+  const approvedToolApprovals: CollectedApproval[] = [];
+  const deniedToolApprovals: CollectedApproval[] = [];
+
+  // Collect approval responses from the last tool message
+  const approvalResponses = (lastMessage.content as any[]).filter(
+    (part: any) => part.type === 'tool-approval-response',
+  );
+
+  for (const response of approvalResponses) {
+    const approvalRequest = approvalRequestsByApprovalId[response.approvalId];
+    if (approvalRequest == null) continue;
+
+    // Skip if there's already a tool result for this tool call
+    if (existingToolResults.has(approvalRequest.toolCallId)) continue;
+
+    const toolCall = toolCallsByToolCallId[approvalRequest.toolCallId];
+    if (toolCall == null) continue;
+
+    const approval: CollectedApproval = {
+      toolCallId: approvalRequest.toolCallId,
+      toolName: toolCall.toolName,
+      input: toolCall.input,
+      approvalId: response.approvalId,
+      reason: response.reason,
+    };
+
+    if (response.approved) {
+      approvedToolApprovals.push(approval);
+    } else {
+      deniedToolApprovals.push(approval);
+    }
+  }
+
+  return { approvedToolApprovals, deniedToolApprovals };
 }
