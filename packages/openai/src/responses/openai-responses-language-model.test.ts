@@ -845,6 +845,37 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send contextManagement provider option', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              contextManagement: [
+                {
+                  type: 'compaction',
+                  compactThreshold: 2000,
+                },
+              ],
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          context_management: [
+            {
+              type: 'compaction',
+              compact_threshold: 2000,
+            },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send metadata provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -896,6 +927,36 @@ describe('OpenAIResponsesLanguageModel', () => {
           expect(warnings).toStrictEqual([]);
         },
       );
+
+      it('should send contextManagement alongside reasoning provider options', async () => {
+        const { warnings } = await createModel('gpt-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: {
+              contextManagement: [{ type: 'compaction' }],
+              reasoningEffort: 'low',
+              reasoningSummary: 'auto',
+            } satisfies OpenAILanguageModelResponsesOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-5',
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+          context_management: [{ type: 'compaction' }],
+          reasoning: {
+            effort: 'low',
+            summary: 'auto',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
 
       it('should allow forcing reasoning mode for unrecognized model IDs via providerOptions', async () => {
         const { warnings } = await createModel(
