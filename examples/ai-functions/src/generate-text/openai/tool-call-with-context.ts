@@ -31,11 +31,11 @@ run(async () => {
             .string()
             .describe('The mathematical expression to calculate'),
         }),
-        contextSchema: z.object({
-          calculatorApiKey: z
-            .string()
-            .describe('The API key for the calculator API'),
-        }),
+        // contextSchema: z.object({
+        //   calculatorApiKey: z
+        //     .string()
+        //     .describe('The API key for the calculator API'),
+        // }),
         execute: async ({ expression }, { context: { calculatorApiKey } }) => {
           console.log('calculator tool api key:', calculatorApiKey);
           return {
@@ -46,9 +46,9 @@ run(async () => {
       }),
     },
     context: {
-      weatherApiKey: 'weather-123',
-      calculatorApiKey: 'calculator-456',
-      somethingElse: 'other-context',
+      // weatherApiKey: 'weather-123',
+      // calculatorApiKey: 'calculator-456',
+      // somethingElse: 'other-context',
     },
     prepareStep: async ({ context }) => {
       console.log('prepareStep context:', context);

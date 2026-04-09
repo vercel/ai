@@ -306,11 +306,6 @@ export async function generateText<
     timeout?: TimeoutConfiguration<TOOLS>;
 
     /**
-     * The tools that the model can call. The model needs to support calling tools.
-     */
-    tools?: TOOLS;
-
-    /**
      * The tool choice strategy. Default: 'auto'.
      */
     toolChoice?: ToolChoice<NoInfer<TOOLS>>;

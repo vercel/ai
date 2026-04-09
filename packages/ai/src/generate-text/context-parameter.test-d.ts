@@ -1,36 +1,51 @@
-import type { Context, Tool } from '@ai-sdk/provider-utils';
+import {
+  tool,
+  type Context,
+  type InferToolContext,
+  type Tool,
+} from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
+import { z } from 'zod';
 import type { ContextParameter } from './context-parameter';
 
 describe('ContextParameter', () => {
   it('makes context optional for an empty toolset', () => {
     type Tools = {};
-
-    expectTypeOf<ContextParameter<Tools>>().toEqualTypeOf<{
+    type Expected = {
+      tools?: Tools;
       context?: Context;
-    }>();
+    };
+
+    expectTypeOf<ContextParameter<Tools>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools>>();
   });
 
   it('makes context optional when the inferred context type has no required keys', () => {
     type Tools = {
       weather: Tool<{ city: string }>;
     };
-
-    expectTypeOf<ContextParameter<Tools>>().toEqualTypeOf<{
+    type Expected = {
+      tools?: Tools;
       context?: Context;
-    }>();
+    };
+
+    expectTypeOf<ContextParameter<Tools>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools>>();
   });
 
   it('makes context required when tool contextSchema adds required keys', () => {
     type Tools = {
       weather: Tool<{ city: string }, any, { userId: string }>;
     };
-
-    expectTypeOf<ContextParameter<Tools>>().toEqualTypeOf<{
+    type Expected = {
+      tools?: Tools;
       context: {
         userId: string;
       } & Context;
-    }>();
+    };
+
+    expectTypeOf<ContextParameter<Tools>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools>>();
   });
 
   it('requires context for the mixed toolset from tool-call-with-context example', () => {
@@ -42,10 +57,80 @@ describe('ContextParameter', () => {
         { calculatorApiKey: string }
       >;
     };
-
-    expectTypeOf<ContextParameter<Tools>>().toEqualTypeOf<{
+    type Expected = {
+      tools?: Tools;
       context: {
         calculatorApiKey: string;
+      } & Context;
+    };
+
+    expectTypeOf<ContextParameter<Tools>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools>>();
+  });
+
+  it('includes required keys from tool-call-with-context example contextSchema inference', () => {
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({
+          location: z.string(),
+        }),
+        contextSchema: z.object({
+          weatherApiKey: z.string(),
+        }),
+        execute: async ({ location }, { context: { weatherApiKey } }) => {
+          return { location, weatherApiKey };
+        },
+      }),
+      calculator: tool({
+        inputSchema: z.object({
+          expression: z.string(),
+        }),
+        execute: async ({ expression }, { context: { calculatorApiKey } }) => {
+          return { expression, calculatorApiKey };
+        },
+      }),
+    };
+
+    type Expected = {
+      tools?: typeof tools;
+      context: {
+        weatherApiKey: string;
+      } & Context;
+    };
+
+    expectTypeOf<ContextParameter<typeof tools>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<typeof tools>>();
+  });
+
+  it('keeps the weather tool context specific for the generateText regression toolset', () => {
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({
+          location: z.string(),
+        }),
+        contextSchema: z.object({
+          weatherApiKey: z.string(),
+        }),
+        execute: async ({ location }, { context: { weatherApiKey } }) => {
+          return { location, weatherApiKey };
+        },
+      }),
+      calculator: tool({
+        inputSchema: z.object({
+          expression: z.string(),
+        }),
+      }),
+    };
+
+    type WeatherContext = InferToolContext<(typeof tools)['weather']>;
+
+    expectTypeOf<WeatherContext>().toMatchObjectType<{
+      weatherApiKey: string;
+    }>();
+    expectTypeOf<ContextParameter<typeof tools>>().toMatchTypeOf<{
+      tools?: typeof tools;
+      context: {
+        weatherApiKey: string;
       } & Context;
     }>();
   });
@@ -55,26 +140,34 @@ describe('ContextParameter', () => {
       weather: Tool<{ city: string }, any, { userId: string }>;
       forecast: Tool<{ days: number }>;
     };
-
-    expectTypeOf<ContextParameter<Tools>>().toEqualTypeOf<{
+    type Expected = {
+      tools?: Tools;
       context: {
         userId: string;
       } & Context;
-    }>();
+    };
+
+    expectTypeOf<ContextParameter<Tools>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools>>();
   });
 
   it('makes context required for an explicit context type with required keys', () => {
     type Tools = {
       weather: Tool<{ city: string }>;
     };
-
-    expectTypeOf<
-      ContextParameter<Tools, Context & { requestId: string }>
-    >().toEqualTypeOf<{
+    type Expected = {
+      tools?: Tools;
       context: Context & {
         requestId: string;
       };
-    }>();
+    };
+
+    expectTypeOf<
+      ContextParameter<Tools, Context & { requestId: string }>
+    >().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<
+      ContextParameter<Tools, Context & { requestId: string }>
+    >();
   });
 
   describe('negative cases', () => {
@@ -106,6 +199,43 @@ describe('ContextParameter', () => {
 
       expectTypeOf(missingRequiredField).toEqualTypeOf<
         ContextParameter<Tools>
+      >();
+    });
+
+    it('errors when tool-call-with-context example contextSchema keys are missing', () => {
+      const tools = {
+        weather: tool({
+          inputSchema: z.object({
+            location: z.string(),
+          }),
+          contextSchema: z.object({
+            weatherApiKey: z.string(),
+          }),
+          execute: async ({ location }, { context: { weatherApiKey } }) => {
+            return { location, weatherApiKey };
+          },
+        }),
+        calculator: tool({
+          inputSchema: z.object({
+            expression: z.string(),
+          }),
+          execute: async (
+            { expression },
+            { context: { calculatorApiKey } },
+          ) => {
+            return { expression, calculatorApiKey };
+          },
+        }),
+      };
+
+      const missingExampleFields: ContextParameter<typeof tools> = {
+        tools,
+        // @ts-expect-error - required contextSchema fields must be provided
+        context: {},
+      };
+
+      expectTypeOf(missingExampleFields).toEqualTypeOf<
+        ContextParameter<typeof tools>
       >();
     });
 

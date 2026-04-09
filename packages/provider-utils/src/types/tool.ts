@@ -41,7 +41,10 @@ export interface ToolExecutionOptions<CONTEXT extends Context> {
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
  */
-export type ToolNeedsApprovalFunction<INPUT, CONTEXT extends Context> = (
+export type ToolNeedsApprovalFunction<
+  INPUT,
+  CONTEXT extends Record<never, never>,
+> = (
   input: INPUT,
   options: {
     /**
