@@ -1,4 +1,4 @@
-import { generateId, type ToolSet, type UIMessageChunk } from 'ai';
+import { type ToolSet, type UIMessageChunk } from 'ai';
 import type { Experimental_ModelCallStreamPart as ModelCallStreamPart } from 'ai';
 
 /**
@@ -207,7 +207,7 @@ export function createModelCallToUIChunkTransform(): TransformStream<
 > {
   return new TransformStream<ModelCallStreamPart<ToolSet>, UIMessageChunk>({
     start: controller => {
-      controller.enqueue({ type: 'start', messageId: generateId() });
+      controller.enqueue({ type: 'start' });
       controller.enqueue({ type: 'start-step' });
     },
     flush: controller => {

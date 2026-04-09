@@ -183,25 +183,12 @@ async function processApprovals(
     }
   }
 
-  // Rebuild messages: strip approval parts, add tool results
-  const cleanMessages: ModelMessage[] = [];
-  for (const msg of messages) {
-    if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-      const content = (msg.content as any[]).filter(
-        (p: any) => p.type !== 'tool-approval-request',
-      );
-      if (content.length > 0) cleanMessages.push({ ...msg, content });
-    } else if (msg.role === 'tool') {
-      const content = (msg.content as any[]).filter(
-        (p: any) => p.type !== 'tool-approval-response',
-      );
-      if (content.length > 0) cleanMessages.push({ ...msg, content });
-    } else {
-      cleanMessages.push(msg);
-    }
-  }
+  // Build a set of tool call IDs that have been resolved (approved or denied)
+  const resolvedToolCallIds = new Set<string>();
+  for (const tr of toolResults) resolvedToolCallIds.add(tr.toolCallId);
+  for (const dr of denialResults) resolvedToolCallIds.add(dr.toolCallId);
 
-  // Add tool results
+  // Build tool result content parts
   const toolContent: any[] = [];
   for (const tr of toolResults) {
     const output =
@@ -221,13 +208,42 @@ async function processApprovals(
       toolCallId: dr.toolCallId,
       toolName: dr.toolName,
       output: {
-        type: 'error-text',
-        value: dr.reason ?? 'Tool execution denied.',
+        type: 'execution-denied',
+        reason: dr.reason ?? 'Tool execution denied.',
       },
     });
   }
-  if (toolContent.length > 0) {
-    cleanMessages.push({ role: 'tool', content: toolContent });
+
+  // Rebuild messages:
+  // - Strip approval-request / approval-response parts
+  // - Insert tool results immediately after the assistant message containing the tool calls
+  // - Remove trailing empty user messages (from sendMessage({ text: '' }))
+  const cleanMessages: ModelMessage[] = [];
+  for (const msg of messages) {
+    if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+      const content = (msg.content as any[]).filter(
+        (p: any) => p.type !== 'tool-approval-request',
+      );
+      if (content.length > 0) {
+        cleanMessages.push({ ...msg, content });
+
+        // Check if this assistant message has any resolved tool calls
+        const hasResolvedToolCalls = (msg.content as any[]).some(
+          (p: any) =>
+            p.type === 'tool-call' && resolvedToolCallIds.has(p.toolCallId),
+        );
+        if (hasResolvedToolCalls && toolContent.length > 0) {
+          cleanMessages.push({ role: 'tool', content: toolContent });
+        }
+      }
+    } else if (msg.role === 'tool') {
+      const content = (msg.content as any[]).filter(
+        (p: any) => p.type !== 'tool-approval-response',
+      );
+      if (content.length > 0) cleanMessages.push({ ...msg, content });
+    } else {
+      cleanMessages.push(msg);
+    }
   }
 
   return cleanMessages;
