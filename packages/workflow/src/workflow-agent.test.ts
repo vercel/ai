@@ -2356,4 +2356,197 @@ describe('WorkflowAgent', () => {
       expect(Array.isArray(result.uiMessages)).toBe(true);
     });
   */
+
+  describe('tool approval resumption', () => {
+    it('should execute approved tools and continue with results', async () => {
+      const toolResult = { city: 'London', temperature: 72 };
+      const executeFn = vi.fn().mockResolvedValue(toolResult);
+      const tools: ToolSet = {
+        getWeather: {
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+          execute: executeFn,
+          needsApproval: true as const,
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: async () => mockModel,
+        tools,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      // Messages containing a tool call, approval request, and an approved response
+      await agent.stream({
+        messages: [
+          { role: 'user', content: "What's the weather in London?" },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'getWeather',
+                input: { city: 'London' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-call-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: true,
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      // The tool should have been executed
+      expect(executeFn).toHaveBeenCalledTimes(1);
+      expect(executeFn).toHaveBeenCalledWith(
+        { city: 'London' },
+        expect.objectContaining({
+          toolCallId: 'call-1',
+        }),
+      );
+
+      // The streamTextIterator should have been called (the agent continues after approval)
+      expect(mockIterator.next).toHaveBeenCalled();
+    });
+
+    it('should create denial results for denied tools and continue', async () => {
+      const executeFn = vi.fn();
+      const tools: ToolSet = {
+        deleteFile: {
+          description: 'Delete a file',
+          inputSchema: z.object({ path: z.string() }),
+          execute: executeFn,
+          needsApproval: true as const,
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: async () => mockModel,
+        tools,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      // Messages containing a tool call, approval request, and a denied response
+      await agent.stream({
+        messages: [
+          { role: 'user', content: 'Delete /etc/passwd' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'deleteFile',
+                input: { path: '/etc/passwd' },
+              },
+              {
+                type: 'tool-approval-request',
+                approvalId: 'approval-call-1',
+                toolCallId: 'call-1',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-call-1',
+                approved: false,
+                reason: 'Too dangerous',
+              },
+            ],
+          },
+        ] as any,
+        writable: mockWritable,
+      });
+
+      // The tool should NOT have been executed
+      expect(executeFn).not.toHaveBeenCalled();
+
+      // The streamTextIterator should have been called (the agent continues with denial result)
+      expect(mockIterator.next).toHaveBeenCalled();
+    });
+
+    it('should pass through messages without approval responses unchanged', async () => {
+      const tools: ToolSet = {
+        getWeather: {
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+          execute: async () => ({ temperature: 72 }),
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: async () => mockModel,
+        tools,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      // Normal messages without any approval parts
+      await agent.stream({
+        messages: [{ role: 'user', content: 'Hello' }],
+        writable: mockWritable,
+      });
+
+      // Should proceed normally without any approval processing
+      expect(mockIterator.next).toHaveBeenCalled();
+    });
+  });
 });

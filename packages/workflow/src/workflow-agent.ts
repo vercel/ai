@@ -18,6 +18,8 @@ import {
   type StopCondition,
   type StreamTextOnStepFinishCallback,
   type SystemModelMessage,
+  type ToolApprovalRequest,
+  type ToolApprovalResponse,
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
@@ -26,9 +28,9 @@ import {
 import {
   convertToLanguageModelPrompt,
   mergeAbortSignals,
+  mergeCallbacks,
   standardizePrompt,
 } from 'ai/internal';
-import { mergeCallbacks } from 'ai/internal';
 import { recordSpan } from './telemetry.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 import type { CompatibleLanguageModel } from './types.js';
@@ -1040,6 +1042,129 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       messages: effectiveMessages,
     });
 
+    // Process tool approval responses before starting the agent loop.
+    // This mirrors how stream-text.ts handles tool-approval-response parts:
+    // approved tools are executed, denied tools get denial results, and
+    // approval parts are stripped from the messages.
+    const { approvedToolApprovals, deniedToolApprovals } =
+      collectToolApprovalsFromMessages(prompt.messages);
+
+    if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
+      const toolResultMessages: ModelMessage[] = [];
+      const toolResultContent: Array<{
+        type: 'tool-result';
+        toolCallId: string;
+        toolName: string;
+        output:
+          | { type: 'text'; value: string }
+          | { type: 'json'; value: JSONValue }
+          | { type: 'execution-denied'; reason: string | undefined };
+      }> = [];
+
+      // Execute approved tools
+      for (const approval of approvedToolApprovals) {
+        const tool = (this.tools as ToolSet)[approval.toolName];
+        if (tool && typeof tool.execute === 'function') {
+          try {
+            const { execute } = tool;
+            const toolResult = await execute(approval.input, {
+              toolCallId: approval.toolCallId,
+              messages: [],
+              context: effectiveExperimentalContext,
+            });
+            toolResultContent.push({
+              type: 'tool-result' as const,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              output:
+                typeof toolResult === 'string'
+                  ? { type: 'text' as const, value: toolResult }
+                  : { type: 'json' as const, value: toolResult },
+            });
+          } catch (error) {
+            toolResultContent.push({
+              type: 'tool-result' as const,
+              toolCallId: approval.toolCallId,
+              toolName: approval.toolName,
+              output: {
+                type: 'text' as const,
+                value: getErrorMessage(error),
+              },
+            });
+          }
+        }
+      }
+
+      // Create denial results for denied tools
+      for (const denial of deniedToolApprovals) {
+        toolResultContent.push({
+          type: 'tool-result' as const,
+          toolCallId: denial.toolCallId,
+          toolName: denial.toolName,
+          output: {
+            type: 'execution-denied' as const,
+            reason: denial.reason,
+          },
+        });
+      }
+
+      // Strip approval parts from messages and inject tool results
+      const cleanedMessages: ModelMessage[] = [];
+      for (const msg of prompt.messages) {
+        if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+          const filtered = (msg.content as any[]).filter(
+            (p: any) => p.type !== 'tool-approval-request',
+          );
+          if (filtered.length > 0) {
+            cleanedMessages.push({ ...msg, content: filtered });
+          }
+        } else if (msg.role === 'tool') {
+          const filtered = (msg.content as any[]).filter(
+            (p: any) => p.type !== 'tool-approval-response',
+          );
+          if (filtered.length > 0) {
+            cleanedMessages.push({ ...msg, content: filtered });
+          }
+        } else {
+          cleanedMessages.push(msg);
+        }
+      }
+
+      // Add tool results as a new tool message
+      if (toolResultContent.length > 0) {
+        cleanedMessages.push({
+          role: 'tool',
+          content: toolResultContent,
+        } as ModelMessage);
+      }
+
+      prompt.messages = cleanedMessages;
+
+      // Write tool results and step boundaries to the stream so the UI
+      // can transition approved/denied tool parts to the correct state
+      // and properly separate them from the subsequent model step.
+      if (options.writable && toolResultContent.length > 0) {
+        const approvedResults = toolResultContent
+          .filter(r => r.output.type !== 'execution-denied')
+          .map(r => ({
+            toolCallId: r.toolCallId,
+            toolName: r.toolName,
+            input: approvedToolApprovals.find(
+              a => a.toolCallId === r.toolCallId,
+            )?.input,
+            output: 'value' in r.output ? r.output.value : undefined,
+          }));
+        const deniedResults = toolResultContent
+          .filter(r => r.output.type === 'execution-denied')
+          .map(r => ({ toolCallId: r.toolCallId }));
+        await writeApprovalToolResults(
+          options.writable,
+          approvedResults,
+          deniedResults,
+        );
+      }
+    }
+
     const modelPrompt = await convertToLanguageModelPrompt({
       prompt,
       supportedUrls: {},
@@ -1284,22 +1409,45 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           );
           const providerToolCalls = toolCalls.filter(tc => tc.providerExecuted);
 
-          // Further split non-provider tool calls into executable (has execute function)
-          // and client-side (no execute function, needs external resolution)
-          // Note: missing tools (!tool) are left to executeTool which will throw —
-          // only tools that exist but lack execute are treated as client-side.
-          const executableToolCalls = nonProviderToolCalls.filter(tc => {
+          // Check which tools need approval (can be async)
+          const approvalNeeded = await Promise.all(
+            nonProviderToolCalls.map(async tc => {
+              const tool = (effectiveTools as ToolSet)[tc.toolName];
+              if (!tool) return false;
+              if (tool.needsApproval == null) return false;
+              if (typeof tool.needsApproval === 'boolean')
+                return tool.needsApproval;
+              return tool.needsApproval(tc.input, {
+                toolCallId: tc.toolCallId,
+                messages: iterMessages as unknown as ModelMessage[],
+                context: experimentalContext,
+              });
+            }),
+          );
+
+          // Further split non-provider tool calls into:
+          // - executable: has execute function and doesn't need approval
+          // - paused: no execute function (client-side) OR needs approval
+          // Note: missing tools (!tool) are left to executeTool which will throw.
+          const executableToolCalls = nonProviderToolCalls.filter((tc, i) => {
             const tool = (effectiveTools as ToolSet)[tc.toolName];
-            return !tool || typeof tool.execute === 'function';
+            return (
+              (!tool || typeof tool.execute === 'function') &&
+              !approvalNeeded[i]
+            );
           });
-          const clientSideToolCalls = nonProviderToolCalls.filter(tc => {
+          const pausedToolCalls = nonProviderToolCalls.filter((tc, i) => {
             const tool = (effectiveTools as ToolSet)[tc.toolName];
-            return tool && typeof tool.execute !== 'function';
+            return (
+              (tool && typeof tool.execute !== 'function') || approvalNeeded[i]
+            );
           });
 
-          // If there are client-side tool calls, stop the loop and return them
-          // This matches AI SDK behavior: tools without execute pause the agent loop
-          if (clientSideToolCalls.length > 0) {
+          // If there are paused tool calls (client-side or needing approval),
+          // stop the loop and return them.
+          // This matches AI SDK behavior: tools without execute or needing
+          // approval pause the agent loop.
+          if (pausedToolCalls.length > 0) {
             // Execute any executable tools that were also called in this step
             const executableResults = await Promise.all(
               executableToolCalls.map(
@@ -1362,6 +1510,26 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
               });
             }
 
+            // Emit tool-approval-request chunks for tools that need approval
+            // so useChat can show the approval UI
+            if (options.writable) {
+              const approvalToolCalls = pausedToolCalls.filter((_, i) => {
+                const tcIndex = nonProviderToolCalls.indexOf(
+                  pausedToolCalls[i],
+                );
+                return approvalNeeded[tcIndex];
+              });
+              if (approvalToolCalls.length > 0) {
+                await writeApprovalRequests(
+                  options.writable,
+                  approvalToolCalls.map(tc => ({
+                    toolCallId: tc.toolCallId,
+                    toolName: tc.toolName,
+                  })),
+                );
+              }
+            }
+
             // Close the stream before returning for paused tools
             if (options.writable) {
               const sendFinish = options.sendFinish ?? true;
@@ -1417,6 +1585,22 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
               output: { type: 'text' as const, value: '' },
             };
           });
+
+          // Write tool results and step boundaries to the stream so the
+          // UI can transition tool parts to output-available state and
+          // properly separate multi-step model calls in the message history.
+          if (options.writable) {
+            await writeToolResultsWithStepBoundary(
+              options.writable,
+              toolResults.map(r => ({
+                toolCallId: r.toolCallId,
+                toolName: r.toolName,
+                input: toolCalls.find(tc => tc.toolCallId === r.toolCallId)
+                  ?.input,
+                output: 'value' in r.output ? r.output.value : undefined,
+              })),
+            );
+          }
 
           // Track the tool calls and results for this step
           lastStepToolCalls = toolCalls.map(tc => ({
@@ -1564,6 +1748,96 @@ async function closeStream(
   }
   if (!preventClose) {
     await writable.close();
+  }
+}
+
+/**
+ * Write tool-approval-request chunks to the writable stream.
+ * These are consumed by useChat to show the approval UI.
+ */
+async function writeApprovalRequests(
+  writable: WritableStream<any>,
+  toolCalls: Array<{ toolCallId: string; toolName: string }>,
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const tc of toolCalls) {
+      await writer.write({
+        type: 'tool-approval-request',
+        approvalId: `approval-${tc.toolCallId}`,
+        toolCallId: tc.toolCallId,
+      });
+    }
+  } finally {
+    writer.releaseLock();
+  }
+}
+
+async function writeToolResultsWithStepBoundary(
+  writable: WritableStream<any>,
+  results: Array<{
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    output: unknown;
+  }>,
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const r of results) {
+      await writer.write({
+        type: 'tool-result',
+        toolCallId: r.toolCallId,
+        toolName: r.toolName,
+        input: r.input,
+        output: r.output,
+      });
+    }
+    // Emit step boundaries so the UI message history properly separates
+    // the tool call step from the subsequent text step. This ensures
+    // convertToModelMessages creates separate assistant messages for
+    // tool calls and text responses.
+    await writer.write({ type: 'finish-step' });
+    await writer.write({ type: 'start-step' });
+  } finally {
+    writer.releaseLock();
+  }
+}
+
+async function writeApprovalToolResults(
+  writable: WritableStream<any>,
+  approvedResults: Array<{
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    output: unknown;
+  }>,
+  deniedResults: Array<{ toolCallId: string }>,
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const r of approvedResults) {
+      await writer.write({
+        type: 'tool-result',
+        toolCallId: r.toolCallId,
+        toolName: r.toolName,
+        input: r.input,
+        output: r.output,
+      });
+    }
+    for (const r of deniedResults) {
+      await writer.write({
+        type: 'tool-output-denied',
+        toolCallId: r.toolCallId,
+      });
+    }
+    await writer.write({ type: 'finish-step' });
+    await writer.write({ type: 'start-step' });
+  } finally {
+    writer.releaseLock();
   }
 }
 
@@ -1729,4 +2003,114 @@ async function executeTool(
       },
     };
   }
+}
+
+/**
+ * Collected tool approval information for a single tool call.
+ */
+interface CollectedApproval {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  approvalId: string;
+  reason?: string;
+}
+
+/**
+ * Collect tool approval responses from model messages.
+ * Mirrors the logic from `collectToolApprovals` in the AI SDK core
+ * (`packages/ai/src/generate-text/collect-tool-approvals.ts`).
+ *
+ * Scans the last tool message for `tool-approval-response` parts,
+ * matches them with `tool-approval-request` parts in assistant messages
+ * and the corresponding `tool-call` parts.
+ */
+function collectToolApprovalsFromMessages(messages: ModelMessage[]): {
+  approvedToolApprovals: CollectedApproval[];
+  deniedToolApprovals: CollectedApproval[];
+} {
+  const lastMessage = messages.at(-1);
+
+  if (lastMessage?.role !== 'tool') {
+    return { approvedToolApprovals: [], deniedToolApprovals: [] };
+  }
+
+  // Gather tool calls from assistant messages
+  const toolCallsByToolCallId: Record<
+    string,
+    { toolName: string; input: unknown }
+  > = {};
+  for (const message of messages) {
+    if (message.role === 'assistant' && Array.isArray(message.content)) {
+      for (const part of message.content as any[]) {
+        if (part.type === 'tool-call') {
+          toolCallsByToolCallId[part.toolCallId] = {
+            toolName: part.toolName,
+            input: part.input ?? part.args,
+          };
+        }
+      }
+    }
+  }
+
+  // Gather approval requests from assistant messages
+  const approvalRequestsByApprovalId: Record<
+    string,
+    { approvalId: string; toolCallId: string }
+  > = {};
+  for (const message of messages) {
+    if (message.role === 'assistant' && Array.isArray(message.content)) {
+      for (const part of message.content as any[]) {
+        if (part.type === 'tool-approval-request') {
+          approvalRequestsByApprovalId[part.approvalId] = {
+            approvalId: part.approvalId,
+            toolCallId: part.toolCallId,
+          };
+        }
+      }
+    }
+  }
+
+  // Gather existing tool results to avoid re-executing
+  const existingToolResults = new Set<string>();
+  for (const part of lastMessage.content as any[]) {
+    if (part.type === 'tool-result') {
+      existingToolResults.add(part.toolCallId);
+    }
+  }
+
+  const approvedToolApprovals: CollectedApproval[] = [];
+  const deniedToolApprovals: CollectedApproval[] = [];
+
+  // Collect approval responses from the last tool message
+  const approvalResponses = (lastMessage.content as any[]).filter(
+    (part: any) => part.type === 'tool-approval-response',
+  );
+
+  for (const response of approvalResponses) {
+    const approvalRequest = approvalRequestsByApprovalId[response.approvalId];
+    if (approvalRequest == null) continue;
+
+    // Skip if there's already a tool result for this tool call
+    if (existingToolResults.has(approvalRequest.toolCallId)) continue;
+
+    const toolCall = toolCallsByToolCallId[approvalRequest.toolCallId];
+    if (toolCall == null) continue;
+
+    const approval: CollectedApproval = {
+      toolCallId: approvalRequest.toolCallId,
+      toolName: toolCall.toolName,
+      input: toolCall.input,
+      approvalId: response.approvalId,
+      reason: response.reason,
+    };
+
+    if (response.approved) {
+      approvedToolApprovals.push(approval);
+    } else {
+      deniedToolApprovals.push(approval);
+    }
+  }
+
+  return { approvedToolApprovals, deniedToolApprovals };
 }
