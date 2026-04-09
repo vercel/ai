@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/workflow': patch
+'@ai-sdk/workflow': major
 ---
 
 initial version
