@@ -59,7 +59,7 @@ async function main() {
   const weatherTool = tools['get-weather'];
   const weatherResult = await weatherTool.execute(
     { location: 'New York' },
-    { messages: [], toolCallId: 'weather-1' },
+    { messages: [], toolCallId: 'weather-1', context: {} },
   );
 
   const weather = weatherResult as {
@@ -78,7 +78,7 @@ async function main() {
   const usersTool = tools['list-users'];
   const usersResult = await usersTool.execute(
     {},
-    { messages: [], toolCallId: 'users-1' },
+    { messages: [], toolCallId: 'users-1', context: {} },
   );
 
   const users = usersResult as {
@@ -96,7 +96,7 @@ async function main() {
   const echoTool = tools['echo'];
   const echoResult = await echoTool.execute(
     { message: 'Hello, MCP!' },
-    { messages: [], toolCallId: 'echo-1' },
+    { messages: [], toolCallId: 'echo-1', context: {} },
   );
 
   console.log('Raw result:', JSON.stringify(echoResult, null, 2));

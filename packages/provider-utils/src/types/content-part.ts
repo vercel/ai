@@ -1,6 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { DataContent } from './data-content';
 import { ProviderOptions } from './provider-options';
+import { ProviderReference } from './provider-reference';
 
 /**
  * Text content part of a prompt. It contains a string of text.
@@ -32,8 +33,9 @@ export interface ImagePart {
    *
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
    * - URL: a URL that points to the image
+   * - ProviderReference: a provider reference from `uploadFile`
    */
-  image: DataContent | URL;
+  image: DataContent | URL | ProviderReference;
 
   /**
    * Optional IANA media type of the image.
@@ -60,9 +62,10 @@ export interface FilePart {
    * File data. Can either be:
    *
    * - data: a base64-encoded string, a Uint8Array, an ArrayBuffer, or a Buffer
-   * - URL: a URL that points to the image
+   * - URL: a URL that points to the file
+   * - ProviderReference: a provider reference from `uploadFile`
    */
-  data: DataContent | URL;
+  data: DataContent | URL | ProviderReference;
 
   /**
    * Optional filename of the file.
@@ -291,14 +294,6 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
-            /**
-             * @deprecated Use image-data or file-data instead.
-             */
-            type: 'media';
-            data: string;
-            mediaType: string;
-          }
-        | {
             type: 'file-data';
 
             /**
@@ -336,6 +331,9 @@ export type ToolResultOutput =
             providerOptions?: ProviderOptions;
           }
         | {
+            /**
+             * @deprecated Use file-reference instead.
+             */
             type: 'file-id';
 
             /**
@@ -347,6 +345,20 @@ export type ToolResultOutput =
              * name, e.g. 'openai' or 'anthropic'.
              */
             fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            type: 'file-reference';
+
+            /**
+             * Provider-specific references for the file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
+             */
+            providerReference: ProviderReference;
 
             /**
              * Provider-specific options.
@@ -393,7 +405,7 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * Images that are referenced using a provider file id.
+             * @deprecated Use image-file-reference instead.
              */
             type: 'image-file-id';
 
@@ -406,6 +418,23 @@ export type ToolResultOutput =
              * name, e.g. 'openai' or 'anthropic'.
              */
             fileId: string | Record<string, string>;
+
+            /**
+             * Provider-specific options.
+             */
+            providerOptions?: ProviderOptions;
+          }
+        | {
+            /**
+             * Images that are referenced using a provider reference.
+             */
+            type: 'image-file-reference';
+
+            /**
+             * Provider-specific references for the image file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
+             */
+            providerReference: ProviderReference;
 
             /**
              * Provider-specific options.

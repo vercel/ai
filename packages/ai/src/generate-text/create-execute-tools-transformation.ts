@@ -9,17 +9,21 @@ import {
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
 import { TypedToolCall } from './tool-call';
-import { ToolSet } from './tool-set';
-import { ModelCallStreamPart } from './stream-model-call';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from '@ai-sdk/provider-utils';
+import { LanguageModelStreamPart } from './stream-language-model-call';
 
-export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
+export function createExecuteToolsTransformation<
+  TOOLS extends ToolSet,
+  CONTEXT extends GenerationContext<TOOLS>,
+>({
   tools,
   telemetry,
   callId,
   messages,
   abortSignal,
   timeout,
-  experimental_context,
+  context,
   generateId,
   stepNumber,
   provider,
@@ -34,7 +38,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_context: unknown;
+  context: CONTEXT;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
@@ -46,17 +50,22 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
-}): TransformStream<ModelCallStreamPart<TOOLS>, ModelCallStreamPart<TOOLS>> {
+}): TransformStream<
+  LanguageModelStreamPart<TOOLS>,
+  LanguageModelStreamPart<TOOLS>
+> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // forward stream
   return new TransformStream<
-    ModelCallStreamPart<TOOLS>,
-    ModelCallStreamPart<TOOLS>
+    LanguageModelStreamPart<TOOLS>,
+    LanguageModelStreamPart<TOOLS>
   >({
     async transform(
-      chunk: ModelCallStreamPart<TOOLS>,
-      controller: TransformStreamDefaultController<ModelCallStreamPart<TOOLS>>,
+      chunk: LanguageModelStreamPart<TOOLS>,
+      controller: TransformStreamDefaultController<
+        LanguageModelStreamPart<TOOLS>
+      >,
     ) {
       // immediately forward all chunks
       controller.enqueue(chunk);
@@ -81,7 +90,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
               tool,
               toolCall: chunk,
               messages,
-              experimental_context,
+              context,
             })
           ) {
             controller.enqueue({
@@ -115,7 +124,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
                   messages,
                   abortSignal,
                   timeout,
-                  experimental_context,
+                  context,
                   stepNumber,
                   provider,
                   modelId,

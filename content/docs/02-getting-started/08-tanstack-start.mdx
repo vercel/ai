@@ -379,7 +379,7 @@ Now, when you ask about the weather, you'll see the tool call and its result dis
 
 You may have noticed that while the tool is now visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-To solve this, you can enable multi-step tool calls using `stopWhen`. By default, `stopWhen` is set to `stepCountIs(1)`, which means generation stops after the first step when there are tool results. By changing this condition, you can allow the model to automatically send tool results back to itself to trigger additional generations until your specified stopping condition is met. In this case, you want the model to continue generating so it can use the weather tool results to answer your original question.
+To solve this, you can enable multi-step tool calls using `stopWhen`. By default, `stopWhen` is set to `isStepCount(1)`, which means generation stops after the first step when there are tool results. By changing this condition, you can allow the model to automatically send tool results back to itself to trigger additional generations until your specified stopping condition is met. In this case, you want the model to continue generating so it can use the weather tool results to answer your original question.
 
 ### Update Your Route Handler
 
@@ -391,7 +391,7 @@ import {
   UIMessage,
   convertToModelMessages,
   tool,
-  stepCountIs,
+  isStepCount,
 } from 'ai';
 __PROVIDER_IMPORT__;
 import { createFileRoute } from '@tanstack/react-router';
@@ -406,7 +406,7 @@ export const Route = createFileRoute('/api/chat')({
         const result = streamText({
           model: __MODEL__,
           messages: await convertToModelMessages(messages),
-          stopWhen: stepCountIs(5),
+          stopWhen: isStepCount(5),
           tools: {
             weather: tool({
               description: 'Get the weather in a location (fahrenheit)',
@@ -433,11 +433,11 @@ export const Route = createFileRoute('/api/chat')({
 });
 ```
 
-In this updated code, you set `stopWhen` to be when `stepCountIs(5)`, allowing the model to use up to 5 "steps" for any given generation.
+In this updated code, you set `stopWhen` to be when `isStepCount(5)`, allowing the model to use up to 5 "steps" for any given generation.
 
 Head back to the browser and ask about the weather in a location. You should now see the model using the weather tool results to answer your question.
 
-By setting `stopWhen: stepCountIs(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
+By setting `stopWhen: isStepCount(5)`, you're allowing the model to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the model to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
 
 ### Add another tool
 
@@ -449,7 +449,7 @@ import {
   UIMessage,
   convertToModelMessages,
   tool,
-  stepCountIs,
+  isStepCount,
 } from 'ai';
 __PROVIDER_IMPORT__;
 import { createFileRoute } from '@tanstack/react-router';
@@ -464,7 +464,7 @@ export const Route = createFileRoute('/api/chat')({
         const result = streamText({
           model: __MODEL__,
           messages: await convertToModelMessages(messages),
-          stopWhen: stepCountIs(5),
+          stopWhen: isStepCount(5),
           tools: {
             weather: tool({
               description: 'Get the weather in a location (fahrenheit)',

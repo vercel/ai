@@ -14,6 +14,7 @@ export type { OpenAILanguageModelCompletionOptions } from './completion/openai-c
 export type { OpenAIEmbeddingModelOptions } from './embedding/openai-embedding-options';
 export type { OpenAISpeechModelOptions } from './speech/openai-speech-options';
 export type { OpenAITranscriptionModelOptions } from './transcription/openai-transcription-options';
+export type { OpenAIFilesOptions } from './files/openai-files-options';
 export type {
   OpenaiResponsesCompactionProviderMetadata,
   OpenaiResponsesProviderMetadata,

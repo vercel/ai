@@ -1,5 +1,76 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+
+## 5.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+
+## 5.0.0-beta.13
+
+### Major Changes
+
+- 7e26e81: chore: rename experimental_context to context
+
+### Patch Changes
+
+- b0c2869: chore(ai): remove deprecated `media` type part from `ToolResultOutput`
+
+## 5.0.0-beta.12
+
+### Patch Changes
+
+- 46d1149: chore(provider-utils,google): fix grammar errors in error and warning messages
+
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 5.0.0-beta.10
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- 2e17091: fix(types): move shared tool set utility types into provider-utils
+
+  Moved `ToolSet`, `InferToolSetContext`, and `UnionToIntersection` into `@ai-sdk/provider-utils` and updated `ai` internals to import them directly from there. This keeps the shared tool typing utilities colocated with the core tool type definitions.
+
+## 5.0.0-beta.8
+
+### Major Changes
+
+- 986c6fd: feat(ai): change type of experimental_context from unknown to generic
+- 493295c: Remove the deprecated `ToolCallOptions` export.
+
+  Use `ToolExecutionOptions` instead.
+
 ## 5.0.0-beta.7
 
 ### Patch Changes

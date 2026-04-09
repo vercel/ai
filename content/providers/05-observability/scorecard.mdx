@@ -22,10 +22,14 @@ OTEL_EXPORTER_OTLP_ENDPOINT=https://tracing.scorecard.io/otel/v1/traces
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your Scorecard API Key>"
 ```
 
-Next, create an `instrumentation.ts` file in your project root to initialize OpenTelemetry (You can configure it as needed):
+Next, install `@ai-sdk/otel` and create an `instrumentation.ts` file in your project root to initialize OpenTelemetry and register the AI SDK telemetry integration:
 
-```typescript
+```typescript filename="instrumentation.ts"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 export function register() {
   registerOTel({
@@ -36,9 +40,9 @@ export function register() {
 
 You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
 
-```typescript"
-import { openai } from '@ai-sdk/openai';
+```typescript
 import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
   model: openai('gpt-4o-mini'),

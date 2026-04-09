@@ -159,11 +159,18 @@ export const anthropicLanguageModelOptions = z.object({
       id: z.string().optional(),
       skills: z
         .array(
-          z.object({
-            type: z.union([z.literal('anthropic'), z.literal('custom')]),
-            skillId: z.string(),
-            version: z.string().optional(),
-          }),
+          z.discriminatedUnion('type', [
+            z.object({
+              type: z.literal('anthropic'),
+              skillId: z.string(),
+              version: z.string().optional(),
+            }),
+            z.object({
+              type: z.literal('custom'),
+              providerReference: z.record(z.string(), z.string()),
+              version: z.string().optional(),
+            }),
+          ]),
         )
         .optional(),
     })

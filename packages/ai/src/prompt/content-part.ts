@@ -16,6 +16,8 @@ import { jsonValueSchema } from '../types/json-value';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import { dataContentSchema } from './data-content';
 
+const providerReferenceSchema = z.record(z.string(), z.string());
+
 /**
  * @internal
  */
@@ -30,7 +32,11 @@ export const textPartSchema: z.ZodType<TextPart> = z.object({
  */
 export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   type: z.literal('image'),
-  image: z.union([dataContentSchema, z.instanceof(URL)]),
+  image: z.union([
+    dataContentSchema,
+    z.instanceof(URL),
+    providerReferenceSchema,
+  ]),
   mediaType: z.string().optional(),
   providerOptions: providerMetadataSchema.optional(),
 });
@@ -40,7 +46,11 @@ export const imagePartSchema: z.ZodType<ImagePart> = z.object({
  */
 export const filePartSchema: z.ZodType<FilePart> = z.object({
   type: z.literal('file'),
-  data: z.union([dataContentSchema, z.instanceof(URL)]),
+  data: z.union([
+    dataContentSchema,
+    z.instanceof(URL),
+    providerReferenceSchema,
+  ]),
   filename: z.string().optional(),
   mediaType: z.string(),
   providerOptions: providerMetadataSchema.optional(),
@@ -156,11 +166,6 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
-            type: z.literal('media'),
-            data: z.string(),
-            mediaType: z.string(),
-          }),
-          z.object({
             type: z.literal('file-data'),
             data: z.string(),
             mediaType: z.string(),
@@ -178,6 +183,11 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
+            type: z.literal('file-reference'),
+            providerReference: z.record(z.string(), z.string()),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
             type: z.literal('image-data'),
             data: z.string(),
             mediaType: z.string(),
@@ -191,6 +201,11 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
           z.object({
             type: z.literal('image-file-id'),
             fileId: z.union([z.string(), z.record(z.string(), z.string())]),
+            providerOptions: providerMetadataSchema.optional(),
+          }),
+          z.object({
+            type: z.literal('image-file-reference'),
+            providerReference: z.record(z.string(), z.string()),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({
