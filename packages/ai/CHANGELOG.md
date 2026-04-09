@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.155
+
+### Patch Changes
+
+- 06764c5: fix(ai): skip passing invalid JSON inputs to response messages
+
 ## 6.0.154
 
 ### Patch Changes
