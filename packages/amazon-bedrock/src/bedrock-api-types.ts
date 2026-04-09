@@ -158,8 +158,16 @@ export interface BedrockDocumentBlock {
   };
 }
 
+export interface BedrockGuardrailTextBlock extends BedrockTextBlock {
+  qualifiers?: Array<'grounding_source' | 'query' | 'guard_content'>;
+}
+
 export interface BedrockGuardrailConverseContentBlock {
-  guardContent: unknown;
+  guardContent:
+    | {
+        text: BedrockGuardrailTextBlock;
+      }
+    | BedrockImageBlock;
 }
 
 export interface BedrockImageBlock {

@@ -25,7 +25,11 @@ import {
   BedrockUserMessage,
 } from './bedrock-api-types';
 import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
-import { bedrockFilePartProviderOptions } from './bedrock-chat-options';
+import {
+  bedrockFilePartProviderOptions,
+  bedrockTextPartProviderOptions,
+  bedrockImagePartProviderOptions,
+} from './bedrock-chat-options';
 import { normalizeToolCallId } from './normalize-tool-call-id';
 
 function getCachePoint(
@@ -106,9 +110,26 @@ export async function convertToBedrockChatMessages(
 
                 switch (part.type) {
                   case 'text': {
-                    bedrockContent.push({
-                      text: part.text,
+                    const textOptions = await parseProviderOptions({
+                      provider: 'bedrock',
+                      providerOptions: part.providerOptions,
+                      schema: bedrockTextPartProviderOptions,
                     });
+
+                    if (textOptions?.guardContent) {
+                      bedrockContent.push({
+                        guardContent: {
+                          text: {
+                            text: part.text,
+                            qualifiers: textOptions.guardContentQualifiers,
+                          },
+                        },
+                      });
+                    } else {
+                      bedrockContent.push({
+                        text: part.text,
+                      });
+                    }
                     break;
                   }
 
@@ -127,12 +148,28 @@ export async function convertToBedrockChatMessages(
                     }
 
                     if (part.mediaType.startsWith('image/')) {
-                      bedrockContent.push({
-                        image: {
-                          format: getBedrockImageFormat(part.mediaType),
-                          source: { bytes: convertToBase64(part.data) },
-                        },
+                      const imageOptions = await parseProviderOptions({
+                        provider: 'bedrock',
+                        providerOptions: part.providerOptions,
+                        schema: bedrockImagePartProviderOptions,
                       });
+                      if (imageOptions?.guardContent) {
+                        bedrockContent.push({
+                          guardContent: {
+                            image: {
+                              format: getBedrockImageFormat(part.mediaType),
+                              source: { bytes: convertToBase64(part.data) },
+                            },
+                          },
+                        });
+                      } else {
+                        bedrockContent.push({
+                          image: {
+                            format: getBedrockImageFormat(part.mediaType),
+                            source: { bytes: convertToBase64(part.data) },
+                          },
+                        });
+                      }
                     } else {
                       if (!part.mediaType) {
                         throw new UnsupportedFunctionalityError({
