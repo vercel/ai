@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.77
+
+### Patch Changes
+
+- 2add429: fix(ai): skip passing invalid JSON inputs to response messages
+
 ## 7.0.0-beta.76
 
 ### Major Changes
