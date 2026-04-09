@@ -1,5 +1,6 @@
 import {
   APICallError,
+  NoSuchProviderReferenceError,
   LanguageModelV4,
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
@@ -1526,6 +1527,26 @@ describe('AnthropicMessagesLanguageModel', () => {
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody.temperature).toBeUndefined();
         expect(requestBody.top_p).toBeUndefined();
+      });
+
+      it('should send both temperature and topP for non-Anthropic models', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const nonAnthropicModel = provider('MiniMax-M2.7');
+        const { warnings } = await nonAnthropicModel.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.7,
+          topP: 0.9,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBe(0.7);
+        expect(requestBody.top_p).toBe(0.9);
+        expect(warnings).not.toContainEqual(
+          expect.objectContaining({
+            feature: 'topP',
+          }),
+        );
       });
     });
 
@@ -3793,7 +3814,9 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   {
                     type: 'custom',
-                    skillId: 'my-custom-skill',
+                    providerReference: {
+                      anthropic: 'skill_01Xud7kLMsjLfc7Aa6RvigZf',
+                    },
                     version: '1.0',
                   },
                 ],
@@ -3813,7 +3836,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "version": "latest",
                 },
                 {
-                  "skill_id": "my-custom-skill",
+                  "skill_id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
                   "type": "custom",
                   "version": "1.0",
                 },
@@ -3863,7 +3886,9 @@ describe('AnthropicMessagesLanguageModel', () => {
                   },
                   {
                     type: 'custom',
-                    skillId: 'my-custom-skill',
+                    providerReference: {
+                      anthropic: 'skill_01Xud7kLMsjLfc7Aa6RvigZf',
+                    },
                     version: '1.0',
                   },
                 ],
@@ -3883,7 +3908,7 @@ describe('AnthropicMessagesLanguageModel', () => {
                   "version": "latest",
                 },
                 {
-                  "skill_id": "my-custom-skill",
+                  "skill_id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
                   "type": "custom",
                   "version": "1.0",
                 },
@@ -3986,6 +4011,94 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
 
         expect(result.providerMetadata).toMatchSnapshot();
+      });
+
+      it('should resolve custom skill provider references at the Anthropic boundary', async () => {
+        prepareJsonFixtureResponse(
+          'anthropic-code-execution-20250825.pptx-skill',
+        );
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          providerOptions: {
+            anthropic: {
+              container: {
+                skills: [
+                  {
+                    type: 'custom',
+                    providerReference: {
+                      anthropic: 'skill_01Xud7kLMsjLfc7Aa6RvigZf',
+                    },
+                  },
+                ],
+              },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "container": {
+              "skills": [
+                {
+                  "skill_id": "skill_01Xud7kLMsjLfc7Aa6RvigZf",
+                  "type": "custom",
+                },
+              ],
+            },
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "tools": [
+              {
+                "name": "code_execution",
+                "type": "code_execution_20250825",
+              },
+            ],
+          }
+        `);
+      });
+
+      it('should throw when a custom skill provider reference does not include anthropic', async () => {
+        const anthropicOptions = {
+          container: {
+            skills: [
+              {
+                type: 'custom',
+                providerReference: {
+                  openai: 'skill_abc',
+                },
+              },
+            ],
+          },
+        } satisfies AnthropicLanguageModelOptions;
+
+        await expect(
+          model.doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              anthropic: anthropicOptions,
+            },
+          }),
+        ).rejects.toThrow(NoSuchProviderReferenceError);
       });
     });
 

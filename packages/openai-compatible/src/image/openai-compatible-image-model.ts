@@ -5,6 +5,10 @@ import {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
+import {
   combineHeaders,
   convertBase64ToUint8Array,
   convertToFormData,
@@ -53,10 +57,15 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
     private readonly config: OpenAICompatibleImageModelConfig,
   ) {}
 
-  // TODO: deprecate non-camelCase keys and remove in future major version
   private getArgs(
     providerOptions: SharedV4ProviderOptions,
+    warnings: SharedV4Warning[],
   ): Record<string, unknown> {
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsKey,
+      providerOptions,
+      warnings,
+    });
     return {
       ...providerOptions[this.providerOptionsKey],
       ...providerOptions[toCamelCase(this.providerOptionsKey)],
@@ -94,7 +103,7 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
-    const args = this.getArgs(providerOptions);
+    const args = this.getArgs(providerOptions, warnings);
 
     // Image editing mode - use form data and /images/edits endpoint
     if (files != null && files.length > 0) {
@@ -198,8 +207,4 @@ async function fileToBlob(file: ImageModelV4File): Promise<Blob> {
       : convertBase64ToUint8Array(file.data);
 
   return new Blob([data as BlobPart], { type: file.mediaType });
-}
-
-function toCamelCase(str: string): string {
-  return str.replace(/[_-]([a-z])/g, g => g[1].toUpperCase());
 }

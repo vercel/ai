@@ -1,5 +1,89 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 2.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 2.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 2.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+
+## 2.0.0-beta.18
+
+### Patch Changes
+
+- e3ea484: fix(mcp): bypass outputSchema validation when tool returns isError
+
+## 2.0.0-beta.17
+
+### Patch Changes
+
+- a00d1d3: feat(mcp): allow custom fetch for HTTP and SSE transports
+
+## 2.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 2.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 2.0.0-beta.14
+
+### Patch Changes
+
+- 1e89d62: fix(mcp): strip trailing slash from OAuth resource parameter
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 2.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 2.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+
 ## 2.0.0-beta.11
 
 ### Patch Changes

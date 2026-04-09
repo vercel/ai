@@ -35,7 +35,8 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
+import type { GenerationContext } from './generation-context';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -108,6 +109,7 @@ export type ConsumeStreamOptions = {
  */
 export interface StreamTextResult<
   TOOLS extends ToolSet,
+  CONTEXT extends GenerationContext<TOOLS>,
   OUTPUT extends Output,
 > {
   /**
@@ -237,7 +239,7 @@ export interface StreamTextResult<
    *
    * Automatically consumes the stream.
    */
-  readonly steps: PromiseLike<Array<StepResult<TOOLS>>>;
+  readonly steps: PromiseLike<Array<StepResult<TOOLS, CONTEXT>>>;
 
   /**
    * Additional request information from the last step.

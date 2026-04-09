@@ -21,6 +21,7 @@ export type {
   GoogleVideoModelOptions as GoogleGenerativeAIVideoProviderOptions,
 } from './google-generative-ai-video-model';
 export type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+export type { GoogleFilesUploadOptions } from './google-generative-ai-files';
 export { createGoogleGenerativeAI, google } from './google-provider';
 export type {
   GoogleGenerativeAIProvider,

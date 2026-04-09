@@ -343,6 +343,86 @@ describe('createBedrockAnthropicFetch', () => {
     expect(text).toBe(`data: ${chunkPayload}\n\n`);
   });
 
+  it('should transform Bedrock error with message into Anthropic error format', async () => {
+    const errorBody = JSON.stringify({
+      message: 'cache_control: Extra inputs are not permitted',
+    });
+    const mockResponse = new Response(errorBody, {
+      status: 400,
+      statusText: 'Bad Request',
+      headers: { 'content-type': 'application/json' },
+    });
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+
+    expect(response.status).toBe(400);
+    expect(response.statusText).toBe('Bad Request');
+    const body = JSON.parse(await response.text());
+    expect(body).toEqual({
+      type: 'error',
+      error: {
+        type: 'error',
+        message: 'cache_control: Extra inputs are not permitted',
+      },
+    });
+  });
+
+  it('should transform Bedrock error with extra fields into Anthropic error format', async () => {
+    const errorBody = JSON.stringify({
+      message: 'tools.0.custom.input_schema.type: Field required',
+      someOtherField: 'value',
+    });
+    const mockResponse = new Response(errorBody, {
+      status: 400,
+      statusText: 'Bad Request',
+      headers: { 'content-type': 'application/json' },
+    });
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+
+    const body = JSON.parse(await response.text());
+    expect(body.error.message).toBe(
+      'tools.0.custom.input_schema.type: Field required',
+    );
+  });
+
+  it('should use raw text as message when Bedrock error has no message field', async () => {
+    const errorBody = JSON.stringify({ code: 'ValidationException' });
+    const mockResponse = new Response(errorBody, {
+      status: 400,
+      statusText: 'Bad Request',
+      headers: { 'content-type': 'application/json' },
+    });
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+
+    const body = JSON.parse(await response.text());
+    expect(body.error.message).toBe(errorBody);
+  });
+
+  it('should use raw text as message when Bedrock error is not valid JSON', async () => {
+    const errorBody = 'Internal Server Error';
+    const mockResponse = new Response(errorBody, {
+      status: 500,
+      statusText: 'Internal Server Error',
+      headers: { 'content-type': 'text/plain' },
+    });
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+
+    expect(response.status).toBe(500);
+    const body = JSON.parse(await response.text());
+    expect(body.error.message).toBe('Internal Server Error');
+  });
+
   it('should correctly decode multi-byte UTF-8 characters (emoji and non-Latin scripts)', async () => {
     const codec = new EventStreamCodec(toUtf8, fromUtf8);
 

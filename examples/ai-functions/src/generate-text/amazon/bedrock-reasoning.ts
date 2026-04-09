@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -9,7 +9,7 @@ run(async () => {
     temperature: 0.5, // should get ignored (warning)
     reasoning: 'medium',
     maxRetries: 0,
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('Reasoning:');

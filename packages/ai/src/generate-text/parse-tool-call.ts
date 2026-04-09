@@ -11,7 +11,7 @@ import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import { DynamicToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export async function parseToolCall<TOOLS extends ToolSet>({
   toolCall,
