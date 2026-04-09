@@ -1018,6 +1018,138 @@ describe('convertToLanguageModelPrompt', () => {
       ]);
     });
   });
+
+  describe('data URL handling (regression #13103)', () => {
+    it('should not pass data: URL image parts to the download function', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: 'data:image/jpg;base64,/9j/3Q==',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledWith([]);
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: '/9j/3Q==',
+              mediaType: 'image/jpeg',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should not pass data: URL file parts to the download function', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  data: 'data:application/pdf;base64,JVBERi0=',
+                  mediaType: 'application/pdf',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledWith([]);
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'JVBERi0=',
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should still download http(s) URLs while skipping data: URLs', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([
+        {
+          data: new Uint8Array([0xff, 0xd8, 0xff]),
+          mediaType: 'image/jpeg',
+        },
+      ]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  image: 'data:image/jpg;base64,/9j/3Q==',
+                },
+                {
+                  type: 'image',
+                  image: 'https://example.com/photo.jpg',
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: mockDownload,
+      });
+
+      // Only the https URL should be passed to download
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('https://example.com/photo.jpg'),
+          isUrlSupportedByModel: false,
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: '/9j/3Q==',
+              mediaType: 'image/jpeg',
+            },
+            {
+              type: 'file',
+              data: new Uint8Array([0xff, 0xd8, 0xff]),
+              mediaType: 'image/jpeg',
+            },
+          ],
+        },
+      ]);
+    });
+  });
 });
 
 describe('convertToLanguageModelMessage', () => {
