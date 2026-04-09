@@ -348,6 +348,29 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           providerExecuted: true,
         });
 
+        if (part.type === 'mcp_call') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: {
+              output: part.output ?? null,
+              error: part.error ?? null,
+              server_label: part.server_label ?? null,
+            },
+          });
+        } else {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: {
+              status: part.status,
+              action: part.action ?? null,
+            },
+          });
+        }
+
         continue;
       }
 
@@ -924,6 +947,31 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     input: toolInput,
                     providerExecuted: true,
                   });
+                }
+
+                if (event.type === 'response.output_item.done') {
+                  if (part.type === 'mcp_call') {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.id,
+                      toolName,
+                      result: {
+                        output: part.output ?? null,
+                        error: part.error ?? null,
+                        server_label: part.server_label ?? null,
+                      },
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-result',
+                      toolCallId: part.id,
+                      toolName,
+                      result: {
+                        status: part.status,
+                        action: part.action ?? null,
+                      },
+                    });
+                  }
                 }
 
                 return;
