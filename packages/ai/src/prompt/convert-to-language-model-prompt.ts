@@ -10,6 +10,7 @@ import {
   DataContent,
   FilePart,
   ImagePart,
+  isProviderReference,
   isUrlSupported,
   ModelMessage,
   ReasoningFilePart,
@@ -37,10 +38,14 @@ export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
   download = createDefaultDownloadFunction(),
+  // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
+  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
+  provider,
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
+  provider?: string;
 }): Promise<LanguageModelV4Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
@@ -91,7 +96,7 @@ export async function convertToLanguageModelPrompt({
           }))
       : []),
     ...prompt.messages.map(message =>
-      convertToLanguageModelMessage({ message, downloadedAssets }),
+      convertToLanguageModelMessage({ message, downloadedAssets, provider }),
     ),
   ];
 
@@ -175,12 +180,16 @@ export async function convertToLanguageModelPrompt({
 export function convertToLanguageModelMessage({
   message,
   downloadedAssets,
+  // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
+  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
+  provider,
 }: {
   message: ModelMessage;
   downloadedAssets: Record<
     string,
     { mediaType: string | undefined; data: Uint8Array }
   >;
+  provider?: string;
 }): LanguageModelV4Message {
   const role = message.role;
   switch (role) {
@@ -254,11 +263,23 @@ export function convertToLanguageModelMessage({
                 };
               }
               case 'file': {
+                if (
+                  !(part.data instanceof ArrayBuffer) &&
+                  isProviderReference(part.data)
+                ) {
+                  return {
+                    type: 'file' as const,
+                    data: part.data,
+                    filename: part.filename,
+                    mediaType: part.mediaType,
+                    providerOptions,
+                  };
+                }
                 const { data, mediaType } = convertToLanguageModelV4DataContent(
                   part.data,
                 );
                 return {
-                  type: 'file',
+                  type: 'file' as const,
                   data,
                   filename: part.filename,
                   mediaType: mediaType ?? part.mediaType,
@@ -267,7 +288,7 @@ export function convertToLanguageModelMessage({
               }
               case 'reasoning': {
                 return {
-                  type: 'reasoning',
+                  type: 'reasoning' as const,
                   text: part.text,
                   providerOptions,
                 };
@@ -305,7 +326,10 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: mapToolResultOutput(part.output),
+                  output: mapToolResultOutput({
+                    output: part.output,
+                    provider,
+                  }),
                   providerOptions,
                 };
               }
@@ -331,7 +355,10 @@ export function convertToLanguageModelMessage({
                   type: 'tool-result' as const,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
-                  output: mapToolResultOutput(part.output),
+                  output: mapToolResultOutput({
+                    output: part.output,
+                    provider,
+                  }),
                   providerOptions: part.providerOptions,
                 };
               }
@@ -446,19 +473,25 @@ function convertPartToLanguageModelPart(
     };
   }
 
-  let originalData: DataContent | URL;
   const type = part.type;
-  switch (type) {
-    case 'image':
-      originalData = part.image;
-      break;
-    case 'file':
-      originalData = part.data;
+  const rawData = type === 'image' ? part.image : part.data;
 
-      break;
-    default:
-      throw new Error(`Unsupported part type: ${type}`);
+  if (
+    typeof rawData === 'object' &&
+    !(rawData instanceof Uint8Array) &&
+    !(rawData instanceof ArrayBuffer) &&
+    !(rawData instanceof URL)
+  ) {
+    return {
+      type: 'file',
+      mediaType: part.mediaType ?? (type === 'image' ? 'image/*' : ''),
+      filename: type === 'file' ? part.filename : undefined,
+      data: rawData,
+      providerOptions: part.providerOptions,
+    };
   }
+
+  const originalData: DataContent | URL = rawData;
 
   const { data: convertedData, mediaType: convertedMediaType } =
     convertToLanguageModelV4DataContent(originalData);
@@ -514,9 +547,15 @@ function convertPartToLanguageModelPart(
   }
 }
 
-function mapToolResultOutput(
-  output: ToolResultOutput,
-): LanguageModelV4ToolResultOutput {
+function mapToolResultOutput({
+  output,
+  // `provider` is only needed here to convert legacy "file-id" and "image-file-id" types to provider references, in case they are using string ID values.
+  // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
+  provider,
+}: {
+  output: ToolResultOutput;
+  provider?: string;
+}): LanguageModelV4ToolResultOutput {
   if (output.type !== 'content') {
     return output;
   }
@@ -524,25 +563,51 @@ function mapToolResultOutput(
   return {
     type: 'content',
     value: output.value.map(item => {
-      if (item.type !== 'media') {
-        return item;
+      switch (item.type) {
+        case 'file-id': {
+          return {
+            type: 'file-reference' as const,
+            providerReference: convertFileIdToProviderReference({
+              fileId: item.fileId,
+              provider,
+            }),
+            providerOptions: item.providerOptions,
+          };
+        }
+        case 'image-file-id': {
+          return {
+            type: 'image-file-reference' as const,
+            providerReference: convertFileIdToProviderReference({
+              fileId: item.fileId,
+              provider,
+            }),
+            providerOptions: item.providerOptions,
+          };
+        }
+        default:
+          return item;
       }
-
-      // AI SDK 5 tool backwards compatibility:
-      // map media type to image-data or file-data
-      if (item.mediaType.startsWith('image/')) {
-        return {
-          type: 'image-data' as const,
-          data: item.data,
-          mediaType: item.mediaType,
-        };
-      }
-
-      return {
-        type: 'file-data' as const,
-        data: item.data,
-        mediaType: item.mediaType,
-      };
     }),
   };
+}
+
+function convertFileIdToProviderReference({
+  fileId,
+  provider,
+}: {
+  fileId: string | Record<string, string>;
+  provider?: string;
+}): Record<string, string> {
+  if (typeof fileId === 'object') {
+    return fileId;
+  }
+
+  if (provider == null) {
+    throw new Error(
+      'Cannot convert string fileId to provider reference without a provider ID. ' +
+        'Use a Record<string, string> fileId or switch to the file-reference type.',
+    );
+  }
+
+  return { [provider]: fileId };
 }

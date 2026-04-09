@@ -27,8 +27,10 @@ import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
+import { GatewayRerankingModel } from './gateway-reranking-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
+import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
@@ -37,6 +39,7 @@ import type {
   LanguageModelV4,
   EmbeddingModelV4,
   ImageModelV4,
+  RerankingModelV4,
   Experimental_VideoModelV4,
   ProviderV4,
 } from '@ai-sdk/provider';
@@ -116,6 +119,16 @@ export interface GatewayProvider extends ProviderV4 {
    * Creates a model for generating videos.
    */
   videoModel(modelId: GatewayVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for reranking documents.
+   */
+  reranking(modelId: GatewayRerankingModelId): RerankingModelV4;
+
+  /**
+   * Creates a model for reranking documents.
+   */
+  rerankingModel(modelId: GatewayRerankingModelId): RerankingModelV4;
 
   /**
    * Gateway-specific tools executed server-side.
@@ -354,6 +367,17 @@ export function createGatewayProvider(
       o11yHeaders: createO11yHeaders(),
     });
   };
+  const createRerankingModel = (modelId: GatewayRerankingModelId) => {
+    return new GatewayRerankingModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.rerankingModel = createRerankingModel;
+  provider.reranking = createRerankingModel;
   provider.chat = provider.languageModel;
   provider.embedding = provider.embeddingModel;
   provider.image = provider.imageModel;

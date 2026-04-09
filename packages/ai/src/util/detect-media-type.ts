@@ -56,6 +56,13 @@ export const imageMediaTypeSignatures = [
   },
 ] as const;
 
+export const documentMediaTypeSignatures = [
+  {
+    mediaType: 'application/pdf' as const,
+    bytesPrefix: [0x25, 0x50, 0x44, 0x46], // %PDF
+  },
+] as const;
+
 export const audioMediaTypeSignatures = [
   {
     mediaType: 'audio/mpeg' as const,
@@ -191,16 +198,18 @@ function stripID3TagsIfPresent(data: Uint8Array | string): Uint8Array | string {
  * @param signatures - The signatures to use for detection.
  * @returns The media type of the file.
  */
-export function detectMediaType({
+type MediaTypeSignatures = ReadonlyArray<{
+  readonly mediaType: string;
+  readonly bytesPrefix: ReadonlyArray<number | null>;
+}>;
+
+export function detectMediaType<T extends MediaTypeSignatures>({
   data,
   signatures,
 }: {
   data: Uint8Array | string;
-  signatures:
-    | typeof audioMediaTypeSignatures
-    | typeof imageMediaTypeSignatures
-    | typeof videoMediaTypeSignatures;
-}): (typeof signatures)[number]['mediaType'] | undefined {
+  signatures: T;
+}): T[number]['mediaType'] | undefined {
   const processedData = stripID3TagsIfPresent(data);
 
   // Convert the first ~18 bytes (24 base64 chars) for consistent detection logic:

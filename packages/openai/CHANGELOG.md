@@ -1,5 +1,86 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- 34bd95d: feat(ai): add support for uploading provider skills using the provider references abstraction
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+
 ## 4.0.0-beta.17
 
 ### Patch Changes

@@ -1,4 +1,5 @@
 import { JSONValue } from '@ai-sdk/provider';
+import { tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output, streamText } from '../generate-text';
@@ -195,6 +196,49 @@ describe('streamText types', () => {
       expectTypeOf<typeof result.elementStream>().toEqualTypeOf<
         AsyncIterableStream<never>
       >();
+    });
+  });
+
+  describe('context', () => {
+    it('should infer typed context with one tool context and prepareStep', async () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello, world!',
+        tools: {
+          weather: tool({
+            inputSchema: z.object({
+              city: z.string(),
+            }),
+            contextSchema: z.object({
+              userId: z.string(),
+            }),
+            execute: async (_input, { context }) => {
+              expectTypeOf(context).toMatchObjectType<{
+                userId: string;
+              }>();
+
+              return 'sunny';
+            },
+          }),
+        },
+        context: {
+          userId: 'test-user',
+          role: 'admin',
+        },
+        prepareStep: ({ context }) => {
+          expectTypeOf(context).toMatchObjectType<{
+            userId: string;
+            role: string;
+          }>();
+
+          return {
+            context: {
+              userId: context.userId,
+              role: context.role,
+            },
+          };
+        },
+      });
     });
   });
 });

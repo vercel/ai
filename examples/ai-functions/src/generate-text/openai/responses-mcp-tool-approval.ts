@@ -2,7 +2,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import {
   generateText,
   ModelMessage,
-  stepCountIs,
+  isStepCount,
   ToolApprovalResponse,
 } from 'ai';
 import * as readline from 'node:readline/promises';
@@ -56,7 +56,7 @@ run(async () => {
         }),
       },
       messages,
-      stopWhen: stepCountIs(10),
+      stopWhen: isStepCount(10),
     });
 
     // Log raw response for debugging

@@ -617,7 +617,7 @@ describe('ToolLoopAgent', () => {
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
           maxOutputTokens: 500,
-          experimental_context: { userId: 'test-user' },
+          context: { userId: 'test-user' },
         });
 
         await agent.generate({
@@ -635,10 +635,10 @@ describe('ToolLoopAgent', () => {
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
-          experimental_context: startEvent.experimental_context,
+          context: startEvent.context,
         }).toMatchInlineSnapshot(`
           {
-            "experimental_context": {
+            "context": {
               "userId": "test-user",
             },
             "maxOutputTokens": 500,
@@ -798,7 +798,7 @@ describe('ToolLoopAgent', () => {
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
           maxOutputTokens: 500,
-          experimental_context: { userId: 'test-user' },
+          context: { userId: 'test-user' },
         });
 
         const result = await agent.stream({
@@ -818,10 +818,10 @@ describe('ToolLoopAgent', () => {
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
-          experimental_context: startEvent.experimental_context,
+          context: startEvent.context,
         }).toMatchInlineSnapshot(`
           {
-            "experimental_context": {
+            "context": {
               "userId": "test-user",
             },
             "maxOutputTokens": 500,
@@ -1000,7 +1000,7 @@ describe('ToolLoopAgent', () => {
         const agent = new ToolLoopAgent({
           model: mockModel,
           instructions: 'You are a helpful assistant',
-          experimental_context: { userId: 'test-user' },
+          context: { userId: 'test-user' },
         });
 
         await agent.generate({
@@ -1017,10 +1017,10 @@ describe('ToolLoopAgent', () => {
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
-          experimental_context: stepStartEvent.experimental_context,
+          context: stepStartEvent.context,
         }).toMatchInlineSnapshot(`
           {
-            "experimental_context": {
+            "context": {
               "userId": "test-user",
             },
             "messagesLength": 1,
@@ -1152,7 +1152,7 @@ describe('ToolLoopAgent', () => {
         const agent = new ToolLoopAgent({
           model: mockModel,
           instructions: 'You are a helpful assistant',
-          experimental_context: { userId: 'test-user' },
+          context: { userId: 'test-user' },
         });
 
         const result = await agent.stream({
@@ -1171,10 +1171,10 @@ describe('ToolLoopAgent', () => {
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
-          experimental_context: stepStartEvent.experimental_context,
+          context: stepStartEvent.context,
         }).toMatchInlineSnapshot(`
           {
-            "experimental_context": {
+            "context": {
               "userId": "test-user",
             },
             "messagesLength": 1,
