@@ -29,6 +29,7 @@ import {
   CallToolResult,
   CallToolResultSchema,
   ClientCapabilities,
+  Configuration,
   Configuration as ClientConfiguration,
   ElicitationRequest,
   ElicitationRequestSchema,
@@ -119,6 +120,12 @@ export async function createMCPClient(
 }
 
 export interface MCPClient {
+  /**
+   * Information about the connected MCP server, as reported during initialization.
+   * @see https://modelcontextprotocol.io/specification/2025-11-25/schema#implementation
+   */
+  readonly serverInfo: Configuration;
+
   tools<TOOL_SCHEMAS extends ToolSchemas = 'automatic'>(options?: {
     schemas?: TOOL_SCHEMAS;
   }): Promise<McpToolSet<TOOL_SCHEMAS>>;
@@ -201,6 +208,7 @@ class DefaultMCPClient implements MCPClient {
     (response: JSONRPCResponse | Error) => void
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
+  private _serverInfo: Configuration = { name: '', version: '' };
   private isClosed = true;
   private elicitationRequestHandler?: (
     request: ElicitationRequest,
@@ -247,6 +255,10 @@ class DefaultMCPClient implements MCPClient {
     };
   }
 
+  get serverInfo(): Configuration {
+    return this._serverInfo;
+  }
+
   async init(): Promise<this> {
     try {
       await this.transport.start();
@@ -277,6 +289,7 @@ class DefaultMCPClient implements MCPClient {
       }
 
       this.serverCapabilities = result.capabilities;
+      this._serverInfo = result.serverInfo;
 
       // Complete initialization handshake:
       await this.notification({

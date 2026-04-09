@@ -14,6 +14,7 @@ export {
 } from './tool/mcp-client';
 export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
+  Configuration,
   ElicitationRequest,
   ElicitResult,
   ListToolsResult,
