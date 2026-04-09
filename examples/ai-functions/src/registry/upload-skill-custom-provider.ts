@@ -14,7 +14,7 @@ const myProvider = customProvider({
 run(async () => {
   const { providerReference, displayTitle, name, description, latestVersion } =
     await uploadSkill({
-      api: myProvider.skills!(),
+      api: myProvider.skills(),
       files: [
         {
           path: 'island-rescue/SKILL.md',

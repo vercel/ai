@@ -12,7 +12,7 @@ const myProvider = customProvider({
 
 run(async () => {
   const { providerReference, mediaType, filename } = await uploadFile({
-    api: myProvider.files!(),
+    api: myProvider.files(),
     data: fs.readFileSync('./data/comic-cat.png'),
     filename: 'comic-cat.png',
   });
