@@ -1,5 +1,22 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
 ## 4.0.0-beta.21
 
 ### Patch Changes

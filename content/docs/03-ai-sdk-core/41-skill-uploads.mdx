@@ -49,6 +49,16 @@ const { text } = await generateText({
 });
 ```
 
+As a shorthand, you can pass a provider instance directly to `api` instead of calling `.skills()` explicitly — the SDK will call `.skills()` for you:
+
+```ts highlight="2"
+const { providerReference } = await uploadSkill({
+  api: anthropic, // shorthand for anthropic.skills()
+  files: [{ path: 'my-skill/SKILL.md', content: readFileSync('./SKILL.md') }],
+  displayTitle: 'My Skill',
+});
+```
+
 ## Skill Files
 
 A skill is composed of one or more files, each with a relative `path` and `content`.
