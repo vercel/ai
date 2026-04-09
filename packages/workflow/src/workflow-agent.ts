@@ -8,7 +8,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   asSchema,
-  type Experimental_ModelCallStreamPart as ModelCallStreamPart,
+  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModelResponseMetadata,
   type LanguageModelUsage,

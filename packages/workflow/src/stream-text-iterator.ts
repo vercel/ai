@@ -5,7 +5,7 @@ import type {
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type {
-  Experimental_ModelCallStreamPart as ModelCallStreamPart,
+  Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   ModelMessage,
   StepResult,
   StreamTextOnStepFinishCallback,

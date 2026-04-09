@@ -13,7 +13,7 @@
  */
 import { tool } from 'ai';
 import type {
-  Experimental_ModelCallStreamPart,
+  Experimental_LanguageModelStreamPart,
   ToolSet,
   UIMessageChunk,
 } from 'ai';
@@ -31,9 +31,9 @@ import { WorkflowAgent } from './workflow-agent.js';
  * DIVERGENCE: WorkflowAgent requires a writable stream; ToolLoopAgent does not.
  */
 function createMockWritable() {
-  const chunks: Experimental_ModelCallStreamPart<ToolSet>[] = [];
+  const chunks: Experimental_LanguageModelStreamPart<ToolSet>[] = [];
   const writable = new WritableStream<
-    Experimental_ModelCallStreamPart<ToolSet>
+    Experimental_LanguageModelStreamPart<ToolSet>
   >({
     write(chunk) {
       chunks.push(chunk);

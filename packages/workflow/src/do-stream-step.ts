@@ -3,8 +3,8 @@ import type {
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import {
-  type Experimental_ModelCallStreamPart as ModelCallStreamPart,
-  experimental_streamModelCall as streamModelCall,
+  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
+  experimental_streamLanguageModelCall as streamModelCall,
   type FinishReason,
   type LanguageModel,
   type LanguageModelUsage,
@@ -23,7 +23,7 @@ import {
 } from './serializable-schema.js';
 import type { CompatibleLanguageModel } from './types.js';
 
-export type { Experimental_ModelCallStreamPart as ModelCallStreamPart } from 'ai';
+export type { Experimental_LanguageModelStreamPart as ModelCallStreamPart } from 'ai';
 
 export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
 

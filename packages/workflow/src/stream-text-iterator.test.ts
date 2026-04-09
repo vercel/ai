@@ -12,7 +12,11 @@ import type {
   LanguageModelV4ToolCall,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type { Experimental_ModelCallStreamPart, StepResult, ToolSet } from 'ai';
+import type {
+  Experimental_LanguageModelStreamPart,
+  StepResult,
+  ToolSet,
+} from 'ai';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // Mock doStreamStep
@@ -30,7 +34,7 @@ import type { StreamTextIteratorYieldValue } from './stream-text-iterator.js';
  * Helper to create a mock writable stream
  */
 function createMockWritable(): WritableStream<
-  Experimental_ModelCallStreamPart<ToolSet>
+  Experimental_LanguageModelStreamPart<ToolSet>
 > {
   return new WritableStream({
     write: vi.fn(),

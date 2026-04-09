@@ -1,5 +1,5 @@
 import { type ToolSet, type UIMessageChunk } from 'ai';
-import type { Experimental_ModelCallStreamPart as ModelCallStreamPart } from 'ai';
+import type { Experimental_LanguageModelStreamPart as ModelCallStreamPart } from 'ai';
 
 /**
  * Convert a single ModelCallStreamPart to a UIMessageChunk.
