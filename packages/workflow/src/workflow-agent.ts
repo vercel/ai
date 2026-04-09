@@ -505,10 +505,10 @@ export type StreamTextOnFinishCallback<
   readonly experimental_context: unknown;
 
   /**
-   * The generated structured output. It uses the `experimental_output` specification.
-   * Only available when `experimental_output` is specified.
+   * The generated structured output. It uses the `output` specification.
+   * Only available when `output` is specified.
    */
-  readonly experimental_output: OUTPUT;
+  readonly output: OUTPUT;
 }) => PromiseLike<void> | void;
 
 /**
@@ -670,7 +670,7 @@ export interface WorkflowAgentStreamOptions<
    * const result = await agent.stream({
    *   messages: [...],
    *   writable: getWritable(),
-   *   experimental_output: Output.object({
+   *   output: Output.object({
    *     schema: z.object({
    *       sentiment: z.enum(['positive', 'negative', 'neutral']),
    *       confidence: z.number(),
@@ -678,10 +678,10 @@ export interface WorkflowAgentStreamOptions<
    *   }),
    * });
    *
-   * console.log(result.experimental_output); // { sentiment: 'positive', confidence: 0.95 }
+   * console.log(result.output); // { sentiment: 'positive', confidence: 0.95 }
    * ```
    */
-  experimental_output?: OutputSpecification<OUTPUT, PARTIAL_OUTPUT>;
+  output?: OutputSpecification<OUTPUT, PARTIAL_OUTPUT>;
 
   /**
    * Whether to include raw chunks from the provider in the stream.
@@ -868,10 +868,10 @@ export interface WorkflowAgentStreamResult<
   toolResults: ToolResult[];
 
   /**
-   * The generated structured output. It uses the `experimental_output` specification.
-   * Only available when `experimental_output` is specified.
+   * The generated structured output. It uses the `output` specification.
+   * Only available when `output` is specified.
    */
-  experimental_output: OUTPUT;
+  output: OUTPUT;
 }
 
 /**
@@ -1343,7 +1343,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         steps,
         toolCalls: [],
         toolResults: [],
-        experimental_output: undefined as OUTPUT,
+        output: undefined as OUTPUT,
       };
     }
 
@@ -1367,7 +1367,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       includeRawChunks: options.includeRawChunks ?? false,
       repairToolCall:
         options.experimental_repairToolCall as ToolCallRepairFunction<ToolSet>,
-      responseFormat: await options.experimental_output?.responseFormat,
+      responseFormat: await options.output?.responseFormat,
     });
 
     // Track the final conversation messages from the iterator
@@ -1506,7 +1506,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                 finishReason: lastStep?.finishReason ?? 'other',
                 totalUsage: aggregateUsage(steps),
                 experimental_context: experimentalContext,
-                experimental_output: undefined as OUTPUT,
+                output: undefined as OUTPUT,
               });
             }
 
@@ -1544,7 +1544,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
               steps,
               toolCalls: allToolCalls,
               toolResults: allToolResults,
-              experimental_output: undefined as OUTPUT,
+              output: undefined as OUTPUT,
             };
           }
 
@@ -1649,22 +1649,21 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     const messages = (finalMessages ??
       options.messages) as unknown as ModelMessage[];
 
-    // Parse structured output if experimental_output is specified
+    // Parse structured output if output is specified
     let experimentalOutput: OUTPUT = undefined as OUTPUT;
-    if (options.experimental_output && steps.length > 0) {
+    if (options.output && steps.length > 0) {
       const lastStep = steps[steps.length - 1];
       const text = lastStep.text;
       if (text) {
         try {
-          experimentalOutput =
-            await options.experimental_output.parseCompleteOutput(
-              { text },
-              {
-                response: lastStep.response,
-                usage: lastStep.usage,
-                finishReason: lastStep.finishReason,
-              },
-            );
+          experimentalOutput = await options.output.parseCompleteOutput(
+            { text },
+            {
+              response: lastStep.response,
+              usage: lastStep.usage,
+              finishReason: lastStep.finishReason,
+            },
+          );
         } catch (parseError) {
           // If there's already an error, don't override it
           // If not, set this as the error
@@ -1685,7 +1684,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         finishReason: lastStep?.finishReason ?? 'other',
         totalUsage: aggregateUsage(steps),
         experimental_context: experimentalContext,
-        experimental_output: experimentalOutput,
+        output: experimentalOutput,
       });
     }
 
@@ -1716,7 +1715,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       steps,
       toolCalls: lastStepToolCalls,
       toolResults: lastStepToolResults,
-      experimental_output: experimentalOutput,
+      output: experimentalOutput,
     };
   }
 }
