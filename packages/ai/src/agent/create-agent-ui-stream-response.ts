@@ -1,6 +1,7 @@
 import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
-import { ToolSet } from '../generate-text/tool-set';
+import type { GenerationContext } from '../generate-text/generation-context';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import { createUIMessageStreamResponse } from '../ui-message-stream';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
@@ -29,7 +30,8 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
 export async function createAgentUIStreamResponse<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  OUTPUT extends Output = never,
+  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  OUTPUT extends Output<TOOLS, CONTEXT> = never,
   MESSAGE_METADATA = unknown,
 >({
   headers,
@@ -38,10 +40,10 @@ export async function createAgentUIStreamResponse<
   consumeSseStream,
   ...options
 }: {
-  agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
+  agent: Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
-  timeout?: TimeoutConfiguration;
+  timeout?: TimeoutConfiguration<TOOLS>;
   options?: CALL_OPTIONS;
   experimental_transform?:
     | StreamTextTransform<TOOLS>

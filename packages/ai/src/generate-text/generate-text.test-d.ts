@@ -1,14 +1,15 @@
 import { JSONValue } from '@ai-sdk/provider';
+import { tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { generateText, Output } from '../generate-text';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 
 describe('generateText types', () => {
   describe('output', () => {
     it('should infer text output type (default)', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
       });
 
@@ -17,7 +18,7 @@ describe('generateText types', () => {
 
     it('should infer text output type', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.text(),
       });
@@ -27,7 +28,7 @@ describe('generateText types', () => {
 
     it('should infer object output type', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.object({ schema: z.object({ value: z.string() }) }),
       });
@@ -37,7 +38,7 @@ describe('generateText types', () => {
 
     it('should infer array output type', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.array({ element: z.string() }),
       });
@@ -47,7 +48,7 @@ describe('generateText types', () => {
 
     it('should infer choice output type', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.choice({ options: ['a', 'b', 'c'] as const }),
       });
@@ -57,12 +58,55 @@ describe('generateText types', () => {
 
     it('should infer json output type', async () => {
       const result = await generateText({
-        model: new MockLanguageModelV3(),
+        model: new MockLanguageModelV4(),
         prompt: 'Hello, world!',
         output: Output.json(),
       });
 
       expectTypeOf<typeof result.output>().toEqualTypeOf<JSONValue>();
+    });
+  });
+
+  describe('context', () => {
+    it('should infer typed context with one tool context and prepareStep', async () => {
+      generateText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello, world!',
+        tools: {
+          weather: tool({
+            inputSchema: z.object({
+              city: z.string(),
+            }),
+            contextSchema: z.object({
+              userId: z.string(),
+            }),
+            execute: async (_input, { context }) => {
+              expectTypeOf(context).toMatchObjectType<{
+                userId: string;
+              }>();
+
+              return 'sunny';
+            },
+          }),
+        },
+        context: {
+          userId: 'test-user',
+          role: 'admin',
+        },
+        prepareStep: ({ context }) => {
+          expectTypeOf(context).toMatchObjectType<{
+            userId: string;
+            role: string;
+          }>();
+
+          return {
+            context: {
+              userId: context.userId,
+              role: context.role,
+            },
+          };
+        },
+      });
     });
   });
 });

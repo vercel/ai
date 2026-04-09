@@ -1,6 +1,7 @@
 import {
   EmbeddingModelV4,
   Experimental_VideoModelV4,
+  FilesV4,
   ImageModelV4,
   LanguageModelV4,
   ProviderV4,
@@ -24,6 +25,7 @@ import {
   GoogleGenerativeAIImageModelId,
 } from './google-generative-ai-image-settings';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
+import { GoogleGenerativeAIFiles } from './google-generative-ai-files';
 import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
 import { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
 
@@ -80,6 +82,8 @@ export interface GoogleGenerativeAIProvider extends ProviderV4 {
   videoModel(
     modelId: GoogleGenerativeAIVideoModelId,
   ): Experimental_VideoModelV4;
+
+  files(): FilesV4;
 
   tools: typeof googleTools;
 }
@@ -185,6 +189,14 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
+  const createFiles = () =>
+    new GoogleGenerativeAIFiles({
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createVideoModel = (modelId: GoogleGenerativeAIVideoModelId) =>
     new GoogleGenerativeAIVideoModel(modelId, {
       provider: providerName,
@@ -216,6 +228,7 @@ export function createGoogleGenerativeAI(
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.files = createFiles;
   provider.tools = googleTools;
 
   return provider as GoogleGenerativeAIProvider;

@@ -25,6 +25,7 @@ describe('OpenResponsesLanguageModel', () => {
   function createModel(modelId: string = 'gemma-7b-it') {
     return new OpenResponsesLanguageModel(modelId, {
       provider: 'lmstudio',
+      providerOptionsName: 'lmstudio',
       url: URL,
       headers: () => ({}),
       generateId: mockId(),
@@ -147,6 +148,191 @@ describe('OpenResponsesLanguageModel', () => {
 
       it('should send correct request body with tools', async () => {
         expect(await server.calls[0].requestBodyJson).toMatchSnapshot();
+      });
+    });
+
+    describe('top-level reasoning', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+      });
+
+      it('should map top-level reasoning to reasoning effort', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'high' },
+        );
+      });
+
+      it('should coerce top-level reasoning minimal to low', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'minimal',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'low' },
+        );
+      });
+
+      it('should map top-level reasoning none to none', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'none',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'none' },
+        );
+      });
+
+      it('should pass xhigh directly', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'xhigh',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning).toStrictEqual(
+          { effort: 'xhigh' },
+        );
+      });
+
+      it('should not set reasoning when not specified', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(
+          (await server.calls[0].requestBodyJson).reasoning,
+        ).toBeUndefined();
+      });
+    });
+
+    describe('providerOptions reasoning', () => {
+      beforeEach(() => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+      });
+
+      it('should send reasoning.summary via providerOptions', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: { reasoningSummary: 'detailed' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+            "reasoning": {
+              "summary": "detailed",
+            },
+          }
+        `);
+      });
+
+      it('should combine top-level reasoning effort with providerOptions summary', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            lmstudio: { reasoningSummary: 'auto' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+            "reasoning": {
+              "effort": "high",
+              "summary": "auto",
+            },
+          }
+        `);
+      });
+
+      it('should send reasoning.summary concise via providerOptions', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: { reasoningSummary: 'concise' },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+            "reasoning": {
+              "summary": "concise",
+            },
+          }
+        `);
+      });
+
+      it('should not set reasoning when providerOptions has no reasoning fields', async () => {
+        await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            lmstudio: {},
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+          {
+            "input": [
+              {
+                "content": [
+                  {
+                    "text": "Hello",
+                    "type": "input_text",
+                  },
+                ],
+                "role": "user",
+                "type": "message",
+              },
+            ],
+            "model": "gemma-7b-it",
+          }
+        `);
       });
     });
 

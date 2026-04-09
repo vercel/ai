@@ -14,7 +14,10 @@ import {
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  isCustomReasoning,
   jsonSchema,
+  mapReasoningToProviderEffort,
+  parseProviderOptions,
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -30,6 +33,7 @@ import {
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
 import { OpenResponsesConfig } from './open-responses-config';
+import { openResponsesOptionsSchema } from './open-responses-options';
 
 export class OpenResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -60,6 +64,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     presencePenalty,
     frequencyPenalty,
     seed,
+    reasoning,
     prompt,
     providerOptions,
     tools,
@@ -127,6 +132,28 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
           }
         : undefined;
 
+    const openResponsesOptions = await parseProviderOptions({
+      provider: this.config.providerOptionsName,
+      providerOptions,
+      schema: openResponsesOptionsSchema,
+    });
+
+    const resolvedReasoningEffort = isCustomReasoning(reasoning)
+      ? reasoning === 'none'
+        ? 'none'
+        : mapReasoningToProviderEffort({
+            reasoning,
+            effortMap: {
+              minimal: 'low',
+              low: 'low',
+              medium: 'medium',
+              high: 'high',
+              xhigh: 'xhigh',
+            },
+            warnings,
+          })
+      : undefined;
+
     return {
       body: {
         model: this.modelId,
@@ -137,6 +164,18 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
         top_p: topP,
         presence_penalty: presencePenalty,
         frequency_penalty: frequencyPenalty,
+        reasoning:
+          resolvedReasoningEffort != null ||
+          openResponsesOptions?.reasoningSummary != null
+            ? {
+                ...(resolvedReasoningEffort != null && {
+                  effort: resolvedReasoningEffort,
+                }),
+                ...(openResponsesOptions?.reasoningSummary != null && {
+                  summary: openResponsesOptions.reasoningSummary,
+                }),
+              }
+            : undefined,
         tools: functionTools?.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
         ...(textFormat != null && { text: { format: textFormat } }),

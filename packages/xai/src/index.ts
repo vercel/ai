@@ -20,6 +20,7 @@ export type {
   /** @deprecated Use `XaiVideoModelOptions` instead. */
   XaiVideoModelOptions as XaiVideoProviderOptions,
 } from './xai-video-options';
+export type { XaiFilesOptions } from './files/xai-files-options';
 export { createXai, xai } from './xai-provider';
 export type { XaiProvider, XaiProviderSettings } from './xai-provider';
 export {

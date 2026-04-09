@@ -7,8 +7,10 @@ import {
 import {
   convertToBase64,
   isNonNullable,
+  isProviderReference,
   parseJSON,
   parseProviderOptions,
+  resolveProviderReference,
   ToolNameMapping,
   validateTypes,
 } from '@ai-sdk/provider-utils';
@@ -23,19 +25,22 @@ import {
 } from '../tool/local-shell';
 import { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import {
-  toolSearchInputSchema,
-  toolSearchOutputSchema,
-} from '../tool/tool-search';
-import {
+  OpenAIResponsesCompactionItem,
   OpenAIResponsesCustomToolCallOutput,
   OpenAIResponsesFunctionCallOutput,
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
+import {
+  toolSearchInputSchema,
+  toolSearchOutputSchema,
+} from '../tool/tool-search';
 
 /**
- * Check if a string is a file ID based on the given prefixes
- * Returns false if prefixes is undefined (disables file ID detection)
+ * This is soft-deprecated. Use provider references instead. Kept for backward compatibility
+ * with the `fileIdPrefixes` option.
+ *
+ * TODO: remove in v8
  */
 function isFileId(data: string, prefixes?: readonly string[]): boolean {
   if (!prefixes) return false;
@@ -59,6 +64,7 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
+  /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
@@ -112,6 +118,28 @@ export async function convertToOpenAIResponsesInput({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  const fileId = resolveProviderReference({
+                    reference: part.data,
+                    provider: providerOptionsName,
+                  });
+
+                  if (part.mediaType.startsWith('image/')) {
+                    return {
+                      type: 'input_image',
+                      file_id: fileId,
+                      detail:
+                        part.providerOptions?.[providerOptionsName]
+                          ?.imageDetail,
+                    };
+                  }
+
+                  return {
+                    type: 'input_file',
+                    file_id: fileId,
+                  };
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -543,6 +571,36 @@ export async function convertToOpenAIResponsesInput({
               }
               break;
             }
+
+            case 'custom': {
+              if (part.kind === 'openai.compaction') {
+                const providerOpts =
+                  part.providerOptions?.[providerOptionsName];
+                const id = providerOpts?.itemId as string | undefined;
+
+                if (hasConversation && id != null) {
+                  break;
+                }
+
+                if (store && id != null) {
+                  input.push({ type: 'item_reference', id });
+                  break;
+                }
+
+                const encryptedContent = providerOpts?.encryptedContent as
+                  | string
+                  | undefined;
+
+                if (id != null) {
+                  input.push({
+                    type: 'compaction',
+                    id,
+                    encrypted_content: encryptedContent!,
+                  } satisfies OpenAIResponsesCompactionItem);
+                }
+              }
+              break;
+            }
           }
         }
 
@@ -709,6 +767,11 @@ export async function convertToOpenAIResponsesInput({
                           filename: item.filename ?? 'data',
                           file_data: `data:${item.mediaType};base64,${item.data}`,
                         };
+                      case 'file-url':
+                        return {
+                          type: 'input_file' as const,
+                          file_url: item.url,
+                        };
                       default:
                         warnings.push({
                           type: 'other',
@@ -770,6 +833,13 @@ export async function convertToOpenAIResponsesInput({
                         type: 'input_file' as const,
                         filename: item.filename ?? 'data',
                         file_data: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    case 'file-url': {
+                      return {
+                        type: 'input_file' as const,
+                        file_url: item.url,
                       };
                     }
 

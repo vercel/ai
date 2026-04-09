@@ -34,7 +34,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesToolSearchCall
   | OpenAIResponsesToolSearchOutput
   | OpenAIResponsesReasoning
-  | OpenAIResponsesItemReference;
+  | OpenAIResponsesItemReference
+  | OpenAIResponsesCompactionItem;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -106,6 +107,7 @@ export type OpenAIResponsesFunctionCallOutput = {
         | { type: 'input_text'; text: string }
         | { type: 'input_image'; image_url: string }
         | { type: 'input_file'; filename: string; file_data: string }
+        | { type: 'input_file'; file_url: string }
       >;
 };
 
@@ -233,6 +235,12 @@ export type OpenAIResponsesToolSearchOutput = {
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
+};
+
+export type OpenAIResponsesCompactionItem = {
+  type: 'compaction';
+  id: string;
+  encrypted_content: string;
 };
 
 /**
@@ -497,6 +505,31 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         }),
       }),
       z.object({
+        type: z.literal('response.failed'),
+        response: z.object({
+          error: z
+            .object({
+              code: z.string().nullish(),
+              message: z.string(),
+            })
+            .nullish(),
+          incomplete_details: z.object({ reason: z.string() }).nullish(),
+          usage: z
+            .object({
+              input_tokens: z.number(),
+              input_tokens_details: z
+                .object({ cached_tokens: z.number().nullish() })
+                .nullish(),
+              output_tokens: z.number(),
+              output_tokens_details: z
+                .object({ reasoning_tokens: z.number().nullish() })
+                .nullish(),
+            })
+            .nullish(),
+          service_tier: z.string().nullish(),
+        }),
+      }),
+      z.object({
         type: z.literal('response.created'),
         response: z.object({
           id: z.string(),
@@ -610,6 +643,11 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             action: z.object({
               commands: z.array(z.string()),
             }),
+          }),
+          z.object({
+            type: z.literal('compaction'),
+            id: z.string(),
+            encrypted_content: z.string().nullish(),
           }),
           z.object({
             type: z.literal('shell_call_output'),
@@ -849,6 +887,11 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             action: z.object({
               commands: z.array(z.string()),
             }),
+          }),
+          z.object({
+            type: z.literal('compaction'),
+            id: z.string(),
+            encrypted_content: z.string(),
           }),
           z.object({
             type: z.literal('shell_call_output'),
@@ -1288,6 +1331,11 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               action: z.object({
                 commands: z.array(z.string()),
               }),
+            }),
+            z.object({
+              type: z.literal('compaction'),
+              id: z.string(),
+              encrypted_content: z.string(),
             }),
             z.object({
               type: z.literal('shell_call_output'),

@@ -463,10 +463,15 @@ describe('doGenerate', () => {
       }
     `);
 
-    expect(result.warnings).toContainEqual({
-      type: 'other',
-      message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "Use 'openaiCompatible' instead.",
+          "setting": "providerOptions key 'openai-compatible'",
+          "type": "deprecated",
+        },
+      ]
+    `);
   });
 
   it('should include provider-specific options', async () => {
@@ -518,6 +523,206 @@ describe('doGenerate', () => {
         "model": "grok-3",
       }
     `);
+  });
+
+  describe('camelCase provider options', () => {
+    it('should accept camelCase provider options key for hyphenated provider name', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      await provider('grok-3').doGenerate({
+        providerOptions: {
+          testProvider: {
+            someCustomOption: 'test-value',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'test-value',
+      });
+    });
+
+    it('should prefer camelCase options over raw-name options', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      await provider('grok-3').doGenerate({
+        providerOptions: {
+          'test-provider': {
+            someCustomOption: 'raw-value',
+          },
+          testProvider: {
+            someCustomOption: 'camel-value',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'camel-value',
+      });
+    });
+
+    it('should use camelCase metadata key when camelCase provider options are used', async () => {
+      prepareJsonResponse({
+        content: 'Hello!',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          total_tokens: 50,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 15,
+          },
+        },
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toHaveProperty('testProvider');
+      expect(result.providerMetadata).not.toHaveProperty('test-provider');
+      expect(result.providerMetadata!['testProvider']).toMatchObject({
+        acceptedPredictionTokens: 15,
+      });
+    });
+
+    it('should use raw metadata key when raw provider options are used', async () => {
+      prepareJsonResponse({
+        content: 'Hello!',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          total_tokens: 50,
+          completion_tokens_details: {
+            accepted_prediction_tokens: 15,
+          },
+        },
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toHaveProperty('test-provider');
+      expect(result.providerMetadata!['test-provider']).toMatchObject({
+        acceptedPredictionTokens: 15,
+      });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should use raw metadata key when no provider options are passed', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toHaveProperty('test-provider');
+    });
+
+    it('should include thought signature in providerMetadata with camelCase key', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function' as const,
+            function: {
+              name: 'test_tool',
+              arguments: '{"arg":"value"}',
+            },
+            extra_content: {
+              google: { thought_signature: '<Sig>' },
+            },
+          },
+        ],
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: { testProvider: {} },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchObject([
+        {
+          type: 'tool-call',
+          providerMetadata: {
+            testProvider: { thoughtSignature: '<Sig>' },
+          },
+        },
+      ]);
+    });
+
+    it('should include thought signature in providerMetadata with raw key', async () => {
+      prepareJsonResponse({
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function' as const,
+            function: {
+              name: 'test_tool',
+              arguments: '{"arg":"value"}',
+            },
+            extra_content: {
+              google: { thought_signature: '<Sig>' },
+            },
+          },
+        ],
+      });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: { 'test-provider': {} },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toMatchObject([
+        {
+          type: 'tool-call',
+          providerMetadata: {
+            'test-provider': { thoughtSignature: '<Sig>' },
+          },
+        },
+      ]);
+    });
   });
 
   it('should pass tools and toolChoice', async () => {
@@ -998,6 +1203,54 @@ describe('doGenerate', () => {
       expect(body.reasoning_effort).toBe('high');
       expect(body.reasoningEffort).toBeUndefined();
       expect(body.customOption).toBe('should-be-included');
+    });
+
+    it('should pass top-level reasoning as reasoning_effort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'medium',
+      );
+    });
+
+    it('should not pass top-level reasoning none as reasoning_effort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      expect(
+        (await server.calls[0].requestBodyJson).reasoning_effort,
+      ).toBeUndefined();
+    });
+
+    it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-5', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'high',
+      );
     });
 
     it('should pass textVerbosity setting from providerOptions', async () => {
@@ -2735,7 +2988,7 @@ describe('doStream', () => {
           },
           {
             "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+        Error message: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
             "type": "error",
           },
           {
@@ -2872,6 +3125,157 @@ describe('doStream', () => {
         "stream": true,
       }
     `);
+  });
+
+  describe('camelCase provider options', () => {
+    it('should accept camelCase provider options key for hyphenated provider name', async () => {
+      prepareStreamResponse({ content: [] });
+
+      await provider('grok-3').doStream({
+        providerOptions: {
+          testProvider: {
+            someCustomOption: 'test-value',
+          },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'test-value',
+      });
+    });
+
+    it('should prefer camelCase options over raw-name options', async () => {
+      prepareStreamResponse({ content: [] });
+
+      await provider('grok-3').doStream({
+        providerOptions: {
+          'test-provider': { someCustomOption: 'raw-value' },
+          testProvider: { someCustomOption: 'camel-value' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        someCustomOption: 'camel-value',
+      });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const streamStart = parts.find(part => part.type === 'stream-start');
+
+      expect(streamStart?.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const streamStart = parts.find(part => part.type === 'stream-start');
+
+      expect(streamStart?.warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should use camelCase metadata key in finish event when camelCase options are used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: { testProvider: {} },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata).toHaveProperty('testProvider');
+      expect(finishPart?.providerMetadata).not.toHaveProperty('test-provider');
+    });
+
+    it('should use raw metadata key in finish event when raw options are used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: { 'test-provider': {} },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata).toHaveProperty('test-provider');
+    });
+
+    it('should use raw metadata key in finish event when no provider options are passed', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata).toHaveProperty('test-provider');
+    });
+
+    it('should use camelCase metadata key for thought signatures in streamed tool calls', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"call-1","type":"function","function":{"name":"test_tool","arguments":"{\\"a\\":1}"},"extra_content":{"google":{"thought_signature":"<Sig>"}}}]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chat-id","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: { testProvider: {} },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const toolCallEvent = parts.find(part => part.type === 'tool-call');
+
+      expect(toolCallEvent).toMatchObject({
+        type: 'tool-call',
+        providerMetadata: {
+          testProvider: { thoughtSignature: '<Sig>' },
+        },
+      });
+    });
   });
 
   it('should send request body', async () => {

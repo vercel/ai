@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import {
   ModelMessage,
-  stepCountIs,
+  isStepCount,
   streamText,
   tool,
   ToolApprovalResponse,
@@ -49,7 +49,7 @@ run(async () => {
         'Just say that the tool execution was not approved.',
       tools: { weather: weatherTool },
       messages,
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
     });
 
     process.stdout.write('\nAssistant: ');

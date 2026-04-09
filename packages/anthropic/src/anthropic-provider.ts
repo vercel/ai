@@ -1,8 +1,10 @@
 import {
+  FilesV4,
   InvalidArgumentError,
   LanguageModelV4,
   NoSuchModelError,
   ProviderV4,
+  SkillsV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -12,10 +14,12 @@ import {
   withoutTrailingSlash,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
-import { VERSION } from './version';
+import { AnthropicFiles } from './anthropic-files';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
 import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
+import { AnthropicSkills } from './skills/anthropic-skills';
+import { VERSION } from './version';
 
 export interface AnthropicProvider extends ProviderV4 {
   /**
@@ -36,6 +40,13 @@ export interface AnthropicProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
+
+  files(): FilesV4;
+
+  /**
+   * Returns a SkillsV4 interface for uploading skills to Anthropic.
+   */
+  skills(): SkillsV4;
 
   /**
    * Anthropic-specific computer use tool.
@@ -143,6 +154,14 @@ export function createAnthropic(
       }),
     });
 
+  const createSkills = () =>
+    new AnthropicSkills({
+      provider: `${providerName.replace('.messages', '')}.skills`,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: AnthropicMessagesModelId) {
     if (new.target) {
       throw new Error(
@@ -165,6 +184,16 @@ export function createAnthropic(
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+
+  provider.files = () =>
+    new AnthropicFiles({
+      provider: providerName,
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
+  provider.skills = createSkills;
 
   provider.tools = anthropicTools;
 

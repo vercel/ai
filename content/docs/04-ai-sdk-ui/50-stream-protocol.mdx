@@ -270,6 +270,19 @@ data: {"type":"file","url":"https://example.com/file.png","mediaType":"image/png
 
 ```
 
+### Custom Part
+
+Custom parts represent provider-specific content that doesn't fit into the standard part types. The `kind` field identifies the specific custom content type in the format `{provider}.{provider-type}`.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"custom","kind":"openai.compaction","providerMetadata":{"openai":{"itemId":"cmp_123"}}}
+
+```
+
 ### Data Parts
 
 Custom data parts allow streaming of arbitrary structured data with type-specific handling.

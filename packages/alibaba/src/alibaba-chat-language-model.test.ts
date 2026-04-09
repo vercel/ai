@@ -133,6 +133,60 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('top-level reasoning', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('alibaba-text');
+    });
+
+    it('should map top-level reasoning to enable_thinking true with budget', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.enable_thinking).toBe(true);
+      expect(body.thinking_budget).toBeTypeOf('number');
+      expect(body.thinking_budget).toBeGreaterThan(0);
+    });
+
+    it('should map top-level reasoning none to enable_thinking false', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.enable_thinking).toBe(false);
+      expect(body.thinking_budget).toBeUndefined();
+    });
+
+    it('should prefer providerOptions over top-level reasoning', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+        providerOptions: {
+          alibaba: {
+            enableThinking: true,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.enable_thinking).toBe(true);
+    });
+
+    it('should not set thinking when reasoning is not specified', async () => {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.enable_thinking).toBeUndefined();
+      expect(body.thinking_budget).toBeUndefined();
+    });
+  });
+
   it('should extract usage with cache tokens', async () => {
     server.urls[CHAT_COMPLETIONS_URL].response = {
       type: 'json-value',

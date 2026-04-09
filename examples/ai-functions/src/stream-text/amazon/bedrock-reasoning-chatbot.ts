@@ -1,5 +1,5 @@
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
-import { stepCountIs, ModelMessage, streamText, tool } from 'ai';
+import { isStepCount, ModelMessage, streamText, tool } from 'ai';
 import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -46,13 +46,9 @@ run(async () => {
           }),
         }),
       },
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       maxRetries: 0,
-      providerOptions: {
-        bedrock: {
-          reasoningConfig: { type: 'enabled', budgetTokens: 2048 },
-        },
-      },
+      reasoning: 'low',
       onError: error => {
         console.error(error);
       },

@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.0-flash-thinking-exp'),
+    model: google('gemini-2.5-flash'),
     prompt: 'Calculate the sum of 2+2 using the calculate function.',
     tools: {
       calculate: {
@@ -20,10 +20,10 @@ run(async () => {
       },
     },
     toolChoice: 'required',
+    reasoning: 'xhigh',
     providerOptions: {
       google: {
         thinkingConfig: {
-          thinkingBudget: -1,
           includeThoughts: true,
         },
       } satisfies GoogleLanguageModelOptions,

@@ -1,10 +1,10 @@
-import { LanguageModelV4ToolResultPart } from '@ai-sdk/provider';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
 import { FlexibleSchema } from '../schema';
+import { ToolResultOutput } from './content-part';
+import { Context } from './context';
 import { ModelMessage } from './model-message';
 import { Tool, tool, ToolExecuteFunction } from './tool';
-import { ToolResultOutput } from './content-part';
 
 describe('tool type', () => {
   describe('input type', () => {
@@ -13,7 +13,9 @@ describe('tool type', () => {
         inputSchema: z.object({ number: z.number() }),
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<{ number: number }, never>>();
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<{ number: number }, never, Context>
+      >();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -26,7 +28,7 @@ describe('tool type', () => {
         inputSchema: null as unknown as FlexibleSchema<T>,
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<T, never>>();
+      expectTypeOf(aTool).toEqualTypeOf<Tool<T, never, Context>>();
       expectTypeOf(aTool.execute).toEqualTypeOf<undefined>();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<Function>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<FlexibleSchema<T>>();
@@ -68,6 +70,59 @@ describe('tool type', () => {
     });
   });
 
+  describe('context type', () => {
+    it('should infer context type from contextSchema in execute', () => {
+      const contextSchema = z.object({
+        userId: z.string(),
+        isAdmin: z.boolean(),
+      });
+
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        contextSchema,
+        execute: async (input, options) => {
+          expectTypeOf(input).toEqualTypeOf<{ number: number }>();
+          expectTypeOf(options.context).toEqualTypeOf<
+            z.infer<typeof contextSchema>
+          >();
+          return 'test' as const;
+        },
+      });
+
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<{ number: number }, 'test', z.infer<typeof contextSchema>>
+      >();
+    });
+
+    it('should infer context type from contextSchema in input lifecycle callbacks', () => {
+      const contextSchema = z.object({
+        requestId: z.string(),
+      });
+
+      tool({
+        inputSchema: z.object({ number: z.number() }),
+        contextSchema,
+        onInputStart: options => {
+          expectTypeOf(options.context).toEqualTypeOf<
+            z.infer<typeof contextSchema>
+          >();
+        },
+        onInputDelta: options => {
+          expectTypeOf(options.inputTextDelta).toEqualTypeOf<string>();
+          expectTypeOf(options.context).toEqualTypeOf<
+            z.infer<typeof contextSchema>
+          >();
+        },
+        onInputAvailable: options => {
+          expectTypeOf(options.input).toEqualTypeOf<{ number: number }>();
+          expectTypeOf(options.context).toEqualTypeOf<
+            z.infer<typeof contextSchema>
+          >();
+        },
+      });
+    });
+  });
+
   describe('output type', () => {
     it('should derive output type from execute function', () => {
       const aTool = tool({
@@ -78,9 +133,11 @@ describe('tool type', () => {
         },
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<{ number: number }, 'test'>>();
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<{ number: number }, 'test', Context>
+      >();
       expectTypeOf(aTool.execute).toMatchTypeOf<
-        ToolExecuteFunction<{ number: number }, 'test'> | undefined
+        ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
       >();
       expectTypeOf(aTool.execute).not.toEqualTypeOf<undefined>();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
@@ -96,9 +153,11 @@ describe('tool type', () => {
         },
       });
 
-      expectTypeOf(aTool).toEqualTypeOf<Tool<{ number: number }, 'test'>>();
+      expectTypeOf(aTool).toEqualTypeOf<
+        Tool<{ number: number }, 'test', Context>
+      >();
       expectTypeOf(aTool.execute).toEqualTypeOf<
-        ToolExecuteFunction<{ number: number }, 'test'> | undefined
+        ToolExecuteFunction<{ number: number }, 'test', Context> | undefined
       >();
       expectTypeOf(aTool.inputSchema).toEqualTypeOf<
         FlexibleSchema<{ number: number }>
@@ -176,7 +235,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context?: unknown;
+            context: Context;
           }>();
           return true;
         },
@@ -189,7 +248,7 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context: unknown;
+              context: Context;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined
@@ -205,7 +264,7 @@ describe('tool type', () => {
           expectTypeOf(options).toEqualTypeOf<{
             toolCallId: string;
             messages: ModelMessage[];
-            experimental_context?: unknown;
+            context: Context;
           }>();
           return true;
         },
@@ -218,7 +277,41 @@ describe('tool type', () => {
             options: {
               toolCallId: string;
               messages: ModelMessage[];
-              experimental_context: unknown;
+              context: Context;
+            },
+          ) => boolean | PromiseLike<boolean>)
+        | undefined
+      >();
+    });
+
+    it('should infer needsApproval context from contextSchema', () => {
+      const contextSchema = z.object({
+        sessionId: z.string(),
+        userRole: z.enum(['user', 'admin']),
+      });
+
+      const aTool = tool({
+        inputSchema: z.object({ number: z.number() }),
+        contextSchema,
+        needsApproval: (input, options) => {
+          expectTypeOf(input).toEqualTypeOf<{ number: number }>();
+          expectTypeOf(options).toEqualTypeOf<{
+            toolCallId: string;
+            messages: ModelMessage[];
+            context: z.infer<typeof contextSchema>;
+          }>();
+          return true;
+        },
+      });
+
+      expectTypeOf(aTool.needsApproval).toMatchTypeOf<
+        | boolean
+        | ((
+            input: { number: number },
+            options: {
+              toolCallId: string;
+              messages: ModelMessage[];
+              context: z.infer<typeof contextSchema>;
             },
           ) => boolean | PromiseLike<boolean>)
         | undefined

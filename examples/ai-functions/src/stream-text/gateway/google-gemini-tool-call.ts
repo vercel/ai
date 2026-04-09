@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { google } from '@ai-sdk/google';
 import { createVertex } from '@ai-sdk/google-vertex';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 
 /**
@@ -45,7 +45,7 @@ async function main() {
     model: google('gemini-3.1-pro-preview'),
     tools: { weather: weatherTool },
     prompt: 'What is the weather in San Francisco?',
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
   });
 
   for await (const chunk of turn1.fullStream) {
@@ -94,7 +94,7 @@ async function main() {
         ...response1.messages,
         { role: 'user', content: 'What about New York?' },
       ],
-      stopWhen: stepCountIs(2),
+      stopWhen: isStepCount(2),
     });
 
     for await (const chunk of scenarioA.fullStream) {
@@ -151,7 +151,7 @@ async function main() {
         ...(vertexKeyMessages as any),
         { role: 'user', content: 'What about New York?' },
       ],
-      stopWhen: stepCountIs(2),
+      stopWhen: isStepCount(2),
     });
 
     for await (const chunk of scenarioB.fullStream) {
@@ -193,7 +193,7 @@ async function main() {
           ...response1.messages,
           { role: 'user', content: 'What about New York?' },
         ],
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
       });
 
       for await (const chunk of scenarioC.fullStream) {

@@ -1,5 +1,5 @@
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { streamText, tool, stepCountIs } from 'ai';
+import { streamText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -7,7 +7,7 @@ run(async () => {
   const result = streamText({
     model: vertexAnthropic('claude-sonnet-4-5'),
     prompt: 'Find out weather data in SF',
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     tools: {
       toolSearch: vertexAnthropic.tools.toolSearchRegex_20251119(),
 

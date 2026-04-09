@@ -146,6 +146,12 @@ The following optional provider options are available for Anthropic models:
   - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
   - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
 
+- `metadata` _object_
+
+  Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
+
+  - `userId` _string_ - An external identifier for the end-user. Should be a UUID, hash, or other opaque identifier. Must not contain PII.
+
 ### Structured Outputs and Tool Input Streaming
 
 Tool call streaming is enabled by default. You can opt out by setting the
@@ -1155,12 +1161,12 @@ import {
   anthropic,
   forwardAnthropicContainerIdFromLastStep,
 } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   prompt:
     'Get the weather for Tokyo, Sydney, and London, then calculate the average temperature.',
   tools: {

@@ -122,6 +122,40 @@ describe('toResponseMessages', () => {
     `);
   });
 
+  it('should include custom parts in the assistant message', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'custom',
+          kind: 'mock-provider.compaction',
+          providerMetadata: {
+            openai: {
+              itemId: 'cmp_123',
+            },
+          },
+        },
+      ],
+      tools: undefined,
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'custom',
+            kind: 'mock-provider.compaction',
+            providerOptions: {
+              openai: {
+                itemId: 'cmp_123',
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should include tool results as a separate message', async () => {
     const result = await toResponseMessages({
       content: [

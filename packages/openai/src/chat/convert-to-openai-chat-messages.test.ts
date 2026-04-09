@@ -313,7 +313,7 @@ describe('user messages', () => {
       ]);
     });
 
-    it('should convert messages with PDF file parts using file_id', async () => {
+    it('should convert messages with PDF file parts using provider reference', async () => {
       const result = convertToOpenAIChatMessages({
         prompt: [
           {
@@ -322,7 +322,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: 'file-pdf-12345',
+                data: { openai: 'file-pdf-12345' },
               },
             ],
           },
@@ -342,6 +342,58 @@ describe('user messages', () => {
           ],
         },
       ]);
+    });
+
+    it('should convert messages with image parts using provider reference', async () => {
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { openai: 'file-img-12345' },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                file_id: 'file-img-12345',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should throw when provider reference does not contain openai', async () => {
+      expect(() =>
+        convertToOpenAIChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: { anthropic: 'file-xyz' },
+                },
+              ],
+            },
+          ],
+        }),
+      ).toThrow(
+        "No provider reference found for provider 'openai'. Available providers: anthropic",
+      );
     });
 
     it('should use default filename for PDF file parts when not provided', async () => {

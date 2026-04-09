@@ -1,6 +1,6 @@
 import { run } from '../../lib/run';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 
 run(async () => {
   const result = await generateText({
@@ -22,7 +22,7 @@ run(async () => {
       }),
     },
     prompt: 'List the files in my home directory.',
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
   });
 
   console.log(result.text);
