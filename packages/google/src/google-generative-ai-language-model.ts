@@ -170,18 +170,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       modelId: this.modelId,
     });
 
-<<<<<<< HEAD
-=======
-    const resolvedThinking = resolveThinkingConfig({
-      reasoning,
-      modelId: this.modelId,
-      warnings,
-    });
-    const thinkingConfig =
-      googleOptions?.thinkingConfig || resolvedThinking
-        ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
-        : undefined;
-
     const streamFunctionCallArguments = isVertexProvider
       ? (googleOptions?.streamFunctionCallArguments ?? true)
       : undefined;
@@ -204,7 +192,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
->>>>>>> 5036db89f (feat(google-vertex): add support for streaming tool arguments input (#13929))
     return {
       args: {
         generationConfig: {
@@ -529,7 +516,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       toolCallId: string;
       toolName: string;
       accumulator: GoogleJSONAccumulator;
-      providerMetadata?: SharedV4ProviderMetadata;
+      providerMetadata?: SharedV3ProviderMetadata;
     }> = [];
 
     return {
@@ -994,7 +981,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 }
 
-<<<<<<< HEAD
 function getToolCallsFromParts({
   parts,
   generateId,
@@ -1028,109 +1014,6 @@ function getToolCallsFromParts({
             }
           : undefined,
       }));
-=======
-function isGemini3Model(modelId: string): boolean {
-  return /gemini-3[\.\-]/i.test(modelId) || /gemini-3$/i.test(modelId);
-}
-
-function getMaxOutputTokensForGemini25Model(): number {
-  return 65536;
-}
-
-function getMaxThinkingTokensForGemini25Model(modelId: string): number {
-  const id = modelId.toLowerCase();
-  if (id.includes('2.5-pro') || id.includes('gemini-3-pro-image')) {
-    return 32768;
-  }
-  return 24576;
-}
-
-type GoogleThinkingConfig = NonNullable<
-  InferSchema<typeof googleLanguageModelOptions>['thinkingConfig']
->;
-
-function resolveThinkingConfig({
-  reasoning,
-  modelId,
-  warnings,
-}: {
-  reasoning: LanguageModelV4CallOptions['reasoning'];
-  modelId: string;
-  warnings: SharedV4Warning[];
-}): Omit<GoogleThinkingConfig, 'includeThoughts'> | undefined {
-  if (!isCustomReasoning(reasoning)) {
-    return undefined;
-  }
-
-  if (isGemini3Model(modelId) && !modelId.includes('gemini-3-pro-image')) {
-    return resolveGemini3ThinkingConfig({ reasoning, warnings });
-  }
-
-  return resolveGemini25ThinkingConfig({ reasoning, modelId, warnings });
-}
-
-function resolveGemini3ThinkingConfig({
-  reasoning,
-  warnings,
-}: {
-  reasoning: Exclude<
-    LanguageModelV4CallOptions['reasoning'],
-    'provider-default' | undefined
-  >;
-  warnings: SharedV4Warning[];
-}): Pick<GoogleThinkingConfig, 'thinkingLevel'> | undefined {
-  if (reasoning === 'none') {
-    // It's not possible to fully disable thinking with Gemini 3.
-    return { thinkingLevel: 'minimal' };
-  }
-
-  const thinkingLevel = mapReasoningToProviderEffort({
-    reasoning,
-    effortMap: {
-      minimal: 'minimal',
-      low: 'low',
-      medium: 'medium',
-      high: 'high',
-      xhigh: 'high',
-    },
-    warnings,
-  });
-
-  if (thinkingLevel == null) {
-    return undefined;
-  }
-
-  return { thinkingLevel };
-}
-
-function resolveGemini25ThinkingConfig({
-  reasoning,
-  modelId,
-  warnings,
-}: {
-  reasoning: Exclude<
-    LanguageModelV4CallOptions['reasoning'],
-    'provider-default' | undefined
-  >;
-  modelId: string;
-  warnings: SharedV4Warning[];
-}): Pick<GoogleThinkingConfig, 'thinkingBudget'> | undefined {
-  if (reasoning === 'none') {
-    return { thinkingBudget: 0 };
-  }
-
-  const thinkingBudget = mapReasoningToProviderBudget({
-    reasoning,
-    maxOutputTokens: getMaxOutputTokensForGemini25Model(),
-    maxReasoningBudget: getMaxThinkingTokensForGemini25Model(modelId),
-    minReasoningBudget: 0,
-    warnings,
-  });
-  if (thinkingBudget == null) {
-    return undefined;
-  }
-  return { thinkingBudget };
->>>>>>> 5036db89f (feat(google-vertex): add support for streaming tool arguments input (#13929))
 }
 
 function extractSources({
