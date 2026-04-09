@@ -1139,6 +1139,30 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       }
 
       prompt.messages = cleanedMessages;
+
+      // Write tool results and step boundaries to the stream so the UI
+      // can transition approved/denied tool parts to the correct state
+      // and properly separate them from the subsequent model step.
+      if (options.writable && toolResultContent.length > 0) {
+        const approvedResults = toolResultContent
+          .filter(r => r.output.type !== 'execution-denied')
+          .map(r => ({
+            toolCallId: r.toolCallId,
+            toolName: r.toolName,
+            input: approvedToolApprovals.find(
+              a => a.toolCallId === r.toolCallId,
+            )?.input,
+            output: 'value' in r.output ? r.output.value : undefined,
+          }));
+        const deniedResults = toolResultContent
+          .filter(r => r.output.type === 'execution-denied')
+          .map(r => ({ toolCallId: r.toolCallId }));
+        await writeApprovalToolResults(
+          options.writable,
+          approvedResults,
+          deniedResults,
+        );
+      }
     }
 
     const modelPrompt = await convertToLanguageModelPrompt({
@@ -1562,6 +1586,22 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
             };
           });
 
+          // Write tool results and step boundaries to the stream so the
+          // UI can transition tool parts to output-available state and
+          // properly separate multi-step model calls in the message history.
+          if (options.writable) {
+            await writeToolResultsWithStepBoundary(
+              options.writable,
+              toolResults.map(r => ({
+                toolCallId: r.toolCallId,
+                toolName: r.toolName,
+                input: toolCalls.find(tc => tc.toolCallId === r.toolCallId)
+                  ?.input,
+                output: 'value' in r.output ? r.output.value : undefined,
+              })),
+            );
+          }
+
           // Track the tool calls and results for this step
           lastStepToolCalls = toolCalls.map(tc => ({
             type: 'tool-call' as const,
@@ -1729,6 +1769,73 @@ async function writeApprovalRequests(
         toolCallId: tc.toolCallId,
       });
     }
+  } finally {
+    writer.releaseLock();
+  }
+}
+
+async function writeToolResultsWithStepBoundary(
+  writable: WritableStream<any>,
+  results: Array<{
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    output: unknown;
+  }>,
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const r of results) {
+      await writer.write({
+        type: 'tool-result',
+        toolCallId: r.toolCallId,
+        toolName: r.toolName,
+        input: r.input,
+        output: r.output,
+      });
+    }
+    // Emit step boundaries so the UI message history properly separates
+    // the tool call step from the subsequent text step. This ensures
+    // convertToModelMessages creates separate assistant messages for
+    // tool calls and text responses.
+    await writer.write({ type: 'finish-step' });
+    await writer.write({ type: 'start-step' });
+  } finally {
+    writer.releaseLock();
+  }
+}
+
+async function writeApprovalToolResults(
+  writable: WritableStream<any>,
+  approvedResults: Array<{
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    output: unknown;
+  }>,
+  deniedResults: Array<{ toolCallId: string }>,
+) {
+  'use step';
+  const writer = writable.getWriter();
+  try {
+    for (const r of approvedResults) {
+      await writer.write({
+        type: 'tool-result',
+        toolCallId: r.toolCallId,
+        toolName: r.toolName,
+        input: r.input,
+        output: r.output,
+      });
+    }
+    for (const r of deniedResults) {
+      await writer.write({
+        type: 'tool-output-denied',
+        toolCallId: r.toolCallId,
+      });
+    }
+    await writer.write({ type: 'finish-step' });
+    await writer.write({ type: 'start-step' });
   } finally {
     writer.releaseLock();
   }

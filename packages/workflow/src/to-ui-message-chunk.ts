@@ -183,7 +183,11 @@ export function toUIMessageChunk(
       return undefined;
 
     default: {
-      // Pass through tool-approval-request and other chunks as-is
+      // Pass through tool-approval-request, step boundaries, and other
+      // chunks as-is. Step boundaries (finish-step/start-step) are not
+      // standard ModelCallStreamPart types but are written by the
+      // WorkflowAgent between tool execution and the next model step
+      // to ensure proper message splitting in convertToModelMessages.
       const p = part as any;
       if (p.type === 'tool-approval-request') {
         return {
@@ -191,6 +195,13 @@ export function toUIMessageChunk(
           approvalId: p.approvalId,
           toolCallId: p.toolCallId,
         } as UIMessageChunk;
+      }
+      if (
+        p.type === 'finish-step' ||
+        p.type === 'start-step' ||
+        p.type === 'tool-output-denied'
+      ) {
+        return p as UIMessageChunk;
       }
       return undefined;
     }
