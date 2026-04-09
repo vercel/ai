@@ -322,8 +322,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
             output: part.codeExecutionResult.output ?? '',
           },
         });
-        // Clear the ID after use to avoid accidental reuse.
-        lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null) {
         const thoughtSignatureMetadata = part.thoughtSignature
           ? {
@@ -626,8 +624,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                         output: part.codeExecutionResult.output ?? '',
                       },
                     });
-                    // Clear the ID after use.
-                    lastCodeExecutionToolCallId = undefined;
                   }
                 } else if ('text' in part && part.text != null) {
                   const thoughtSignatureMetadata = part.thoughtSignature
