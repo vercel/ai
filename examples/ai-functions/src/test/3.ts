@@ -22,7 +22,7 @@ type Tool<
   execute?: (input: INPUT, options: { context: CONTEXT }) => unknown;
 };
 
-type InferToolContext<TOOL> =
+type InferToolContext<TOOL extends Tool<any, any>> =
   TOOL extends Tool<any, infer CONTEXT> ? CONTEXT : never;
 
 export function tool<INPUT, CONTEXT extends Context>(
@@ -44,16 +44,19 @@ type UnionToIntersection<U> = (
   ? I
   : never;
 
-type InferToolSetContext<TOOLS> = UnionToIntersection<
+type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
   {
     [K in keyof TOOLS]: InferToolContext<NoInfer<TOOLS[K]>>;
   }[keyof TOOLS]
 >;
 
-declare function inferA<const TOOLS extends Record<string, unknown>>(options: {
+declare function inferA<TOOLS extends ToolSet = ToolSet>(options: {
   tools: TOOLS;
   context: InferToolSetContext<NoInfer<TOOLS>>;
-}): void;
+}): {
+  tools: NoInfer<TOOLS>;
+  context: InferToolSetContext<NoInfer<TOOLS>>;
+};
 
 const mixedTools = {
   weather: tool({
