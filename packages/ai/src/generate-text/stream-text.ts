@@ -101,7 +101,10 @@ import {
   isStopConditionMet,
   StopCondition,
 } from './stop-condition';
-import { ModelCallStreamPart, streamModelCall } from './stream-model-call';
+import {
+  LanguageModelStreamPart,
+  streamLanguageModelCall,
+} from './stream-language-model-call';
 import {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -1619,7 +1622,7 @@ class DefaultStreamTextResult<
             request,
             response,
           } = await retry(async () =>
-            streamModelCall({
+            streamLanguageModelCall({
               model: prepareStepResult?.model ?? model,
               tools: stepActiveTools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
@@ -1730,7 +1733,7 @@ class DefaultStreamTextResult<
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
-                ModelCallStreamPart<TOOLS>,
+                LanguageModelStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {

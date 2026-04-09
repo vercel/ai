@@ -1,5 +1,5 @@
 import { GenerationContext } from './generation-context';
-import { ModelCallStreamPart } from './stream-model-call';
+import { LanguageModelStreamPart } from './stream-language-model-call';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { ModelMessage } from '@ai-sdk/provider-utils';
 
@@ -13,12 +13,12 @@ export function invokeToolCallbacksFromStream<
   abortSignal,
   context,
 }: {
-  stream: ReadableStream<ModelCallStreamPart<TOOLS>>;
+  stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
   context: CONTEXT;
-}): ReadableStream<ModelCallStreamPart<TOOLS>> {
+}): ReadableStream<LanguageModelStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
   const ongoingToolCallToolNames: Record<string, string> = {};
