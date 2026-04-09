@@ -1,4 +1,5 @@
 import {
+  APICallError,
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4FunctionTool,
@@ -57,7 +58,7 @@ import {
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 const defaultSettings = () =>
   ({
@@ -2203,6 +2204,50 @@ describe('streamText', () => {
       await expect(result.text).rejects.toThrow(
         'No output generated. Check the stream for errors.',
       );
+    });
+  });
+
+  describe('retries', () => {
+    it('should retry after a 500 error and stream the successful response', async () => {
+      const doStream = vi
+        .fn<LanguageModelV4['doStream']>()
+        .mockImplementationOnce(async () => {
+          throw new APICallError({
+            message: 'Internal Server Error',
+            url: 'https://api.example.com/v1/chat',
+            requestBodyValues: { prompt: 'test-input' },
+            statusCode: 500,
+            responseHeaders: {
+              'retry-after-ms': '1',
+            },
+          });
+        })
+        .mockImplementationOnce(async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'hello' },
+            { type: 'text-delta', id: '1', delta: ' ' },
+            { type: 'text-delta', id: '1', delta: 'world' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }));
+
+      const result = streamText({
+        model: new MockLanguageModelV4({ doStream }),
+        prompt: 'test-input',
+      });
+
+      const textStreamPromise = convertAsyncIterableToArray(result.textStream);
+
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(await textStreamPromise).toStrictEqual(['hello', ' ', 'world']);
+      expect(doStream).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -4966,7 +5011,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": undefined,
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5109,7 +5154,7 @@ describe('streamText', () => {
                 "url": "https://example.com/2",
               },
             ],
-            "experimental_context": undefined,
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5197,7 +5242,7 @@ describe('streamText', () => {
                 "type": "file",
               },
             ],
-            "experimental_context": undefined,
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5307,7 +5352,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": undefined,
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -5496,13 +5541,13 @@ describe('streamText', () => {
       expect(startEvent).toMatchSnapshot();
     });
 
-    it('should pass experimental_context', async () => {
+    it('should pass context', async () => {
       let startEvent!: Parameters<StreamTextOnStartCallback>[0];
 
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_context: { userId: 'test-user', sessionId: '123' },
+        context: { userId: 'test-user', sessionId: '123' },
         experimental_onStart: async event => {
           startEvent = event;
         },
@@ -5511,7 +5556,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(startEvent.experimental_context).toEqual({
+      expect(startEvent.context).toEqual({
         userId: 'test-user',
         sessionId: '123',
       });
@@ -5945,7 +5990,7 @@ describe('streamText', () => {
       expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
     });
 
-    it('should expose providerOptions and experimental_context', async () => {
+    it('should expose providerOptions and context', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];
@@ -5954,7 +5999,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         providerOptions: { openai: { logprobs: true } },
-        experimental_context: { userId: 'test-user' },
+        context: { userId: 'test-user' },
         experimental_onStepStart: async event => {
           stepStartEvent = event;
         },
@@ -5966,7 +6011,7 @@ describe('streamText', () => {
       expect(stepStartEvent.providerOptions).toEqual({
         openai: { logprobs: true },
       });
-      expect(stepStartEvent.experimental_context).toEqual({
+      expect(stepStartEvent.context).toEqual({
         userId: 'test-user',
       });
     });
@@ -6245,7 +6290,7 @@ describe('streamText', () => {
       expect(toolCallStartEvents.length).toBe(0);
     });
 
-    it('should pass experimental_context', async () => {
+    it('should pass context', async () => {
       const toolCallStartEvents: Parameters<
         StreamTextOnToolCallStartCallback<any>
       >[0][] = [];
@@ -6281,7 +6326,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { traceId: 'trace-abc', spanId: 'span-123' },
+        context: { traceId: 'trace-abc', spanId: 'span-123' },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
@@ -6291,7 +6336,7 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(toolCallStartEvents.length).toBe(1);
-      expect(toolCallStartEvents[0].experimental_context).toEqual({
+      expect(toolCallStartEvents[0].context).toEqual({
         traceId: 'trace-abc',
         spanId: 'span-123',
       });
@@ -6548,7 +6593,7 @@ describe('streamText', () => {
       expect(toolCallFinishEvents.length).toBe(0);
     });
 
-    it('should pass experimental_context on success', async () => {
+    it('should pass context on success', async () => {
       const toolCallFinishEvents: Parameters<
         StreamTextOnToolCallFinishCallback<any>
       >[0][] = [];
@@ -6584,7 +6629,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { traceId: 'trace-xyz', operation: 'test-op' },
+        context: { traceId: 'trace-xyz', operation: 'test-op' },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
@@ -6595,13 +6640,13 @@ describe('streamText', () => {
 
       expect(toolCallFinishEvents.length).toBe(1);
       expect(toolCallFinishEvents[0].success).toBe(true);
-      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+      expect(toolCallFinishEvents[0].context).toEqual({
         traceId: 'trace-xyz',
         operation: 'test-op',
       });
     });
 
-    it('should pass experimental_context on error', async () => {
+    it('should pass context on error', async () => {
       const toolCallFinishEvents: Parameters<
         StreamTextOnToolCallFinishCallback<any>
       >[0][] = [];
@@ -6640,7 +6685,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { errorTraceId: 'err-trace' },
+        context: { errorTraceId: 'err-trace' },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
@@ -6652,7 +6697,7 @@ describe('streamText', () => {
       expect(toolCallFinishEvents.length).toBe(1);
       expect(toolCallFinishEvents[0].success).toBe(false);
       expect(toolCallFinishEvents[0].error).toBe(toolError);
-      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+      expect(toolCallFinishEvents[0].context).toEqual({
         errorTraceId: 'err-trace',
       });
     });
@@ -7039,7 +7084,7 @@ describe('streamText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<StreamTextOnFinishCallback<any>>[0];
+      let result!: Parameters<StreamTextOnFinishCallback<any, any>>[0];
 
       const resultObject = streamText({
         model: createTestModel({
@@ -7117,9 +7162,9 @@ describe('streamText', () => {
               "type": "tool-result",
             },
           ],
+          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -7239,7 +7284,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -7432,9 +7477,9 @@ describe('streamText', () => {
               "url": "https://example.com/2",
             },
           ],
+          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -7529,7 +7574,7 @@ describe('streamText', () => {
                   "url": "https://example.com/2",
                 },
               ],
-              "experimental_context": undefined,
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -7694,9 +7739,9 @@ describe('streamText', () => {
               "type": "file",
             },
           ],
+          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
           "files": [
             DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
@@ -7785,7 +7830,7 @@ describe('streamText', () => {
                   "type": "file",
                 },
               ],
-              "experimental_context": undefined,
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -8021,9 +8066,9 @@ describe('streamText', () => {
   });
 
   describe('options.stopWhen', () => {
-    let result: StreamTextResult<any, any>;
-    let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
-    let onStepFinishResults: StepResult<any>[];
+    let result: StreamTextResult<any, any, any>;
+    let onFinishResult: Parameters<StreamTextOnFinishCallback<any, any>>[0];
+    let onStepFinishResults: StepResult<any, any>[];
     let stepInputs: Array<any>;
 
     beforeEach(() => {
@@ -8418,9 +8463,9 @@ describe('streamText', () => {
                   "type": "text",
                 },
               ],
+              "context": {},
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
-              "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
@@ -8523,7 +8568,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -8607,7 +8652,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -8767,7 +8812,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -8851,7 +8896,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9029,7 +9074,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9113,7 +9158,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -9331,9 +9376,9 @@ describe('streamText', () => {
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
-        experimental_context: unknown;
+        context: unknown;
       }>;
 
       beforeEach(async () => {
@@ -9402,7 +9447,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             }),
           },
-          experimental_context: { context: 'state1' },
+          context: { context: 'state1' },
           prompt: 'test-input',
           stopWhen: isStepCount(3),
           _internal: {
@@ -9414,14 +9459,14 @@ describe('streamText', () => {
             stepNumber,
             steps,
             messages,
-            experimental_context,
+            context,
           }) => {
             prepareStepCalls.push({
               modelId: typeof model === 'string' ? model : model.modelId,
               stepNumber,
               steps,
               messages,
-              experimental_context,
+              context,
             });
 
             if (stepNumber === 0) {
@@ -9437,7 +9482,7 @@ describe('streamText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
-                experimental_context: { context: 'state2' },
+                context: { context: 'state2' },
               };
             }
 
@@ -9445,7 +9490,7 @@ describe('streamText', () => {
               return {
                 activeTools: [],
                 system: 'system-message-1',
-                experimental_context: { context: 'state3' },
+                context: { context: 'state3' },
               };
             }
           },
@@ -9590,7 +9635,7 @@ describe('streamText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
-              "experimental_context": {
+              "context": {
                 "context": "state1",
               },
               "messages": [
@@ -9627,7 +9672,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state2",
                   },
                   "finishReason": "tool-calls",
@@ -9708,7 +9753,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state3",
                   },
                   "finishReason": "stop",
@@ -9793,7 +9838,7 @@ describe('streamText', () => {
               ],
             },
             {
-              "experimental_context": {
+              "context": {
                 "context": "state2",
               },
               "messages": [
@@ -9859,7 +9904,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state2",
                   },
                   "finishReason": "tool-calls",
@@ -9940,7 +9985,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state3",
                   },
                   "finishReason": "stop",
@@ -10313,9 +10358,9 @@ describe('streamText', () => {
                   "type": "text",
                 },
               ],
+              "context": {},
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
-              "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
@@ -10418,7 +10463,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -10502,7 +10547,7 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -10662,7 +10707,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -10746,7 +10791,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -10920,7 +10965,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -11004,7 +11049,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -11220,7 +11265,7 @@ describe('streamText', () => {
     describe('2 stop conditions', () => {
       let stopConditionCalls: Array<{
         number: number;
-        steps: StepResult<any>[];
+        steps: StepResult<any, any>[];
       }>;
 
       beforeEach(async () => {
@@ -11342,7 +11387,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -11452,7 +11497,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -11644,7 +11689,7 @@ describe('streamText', () => {
 
   describe('provider-executed tools', () => {
     describe('single provider-executed tool call and result', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -12279,7 +12324,7 @@ describe('streamText', () => {
 
   describe('dynamic tools', () => {
     describe('single dynamic tool call and result', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -12648,6 +12693,7 @@ describe('streamText', () => {
         {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
+          context: {},
           messages: expect.any(Array),
         },
       );
@@ -13275,7 +13321,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "messages": [
                 {
                   "content": "test-input",
@@ -13289,7 +13335,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": "{"",
               "messages": [
                 {
@@ -13304,7 +13350,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": "value",
               "messages": [
                 {
@@ -13319,7 +13365,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": "":"",
               "messages": [
                 {
@@ -13334,7 +13380,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": "Spark",
               "messages": [
                 {
@@ -13349,7 +13395,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": "le",
               "messages": [
                 {
@@ -13364,7 +13410,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": " Day",
               "messages": [
                 {
@@ -13379,7 +13425,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": ""}",
               "messages": [
                 {
@@ -13394,7 +13440,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "input": {
                 "value": "Sparkle Day",
               },
@@ -13537,7 +13583,7 @@ describe('streamText', () => {
   });
 
   describe('tool execution errors', () => {
-    let result: StreamTextResult<any, any>;
+    let result: StreamTextResult<any, any, any>;
 
     beforeEach(async () => {
       result = streamText({
@@ -13689,7 +13735,7 @@ describe('streamText', () => {
                 "type": "tool-error",
               },
             ],
-            "experimental_context": undefined,
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -13724,7 +13770,7 @@ describe('streamText', () => {
                     {
                       "output": {
                         "type": "error-text",
-                        "value": "test error",
+                        "value": "Error: test error",
                       },
                       "toolCallId": "call-1",
                       "toolName": "tool1",
@@ -13784,7 +13830,7 @@ describe('streamText', () => {
               {
                 "output": {
                   "type": "error-text",
-                  "value": "test error",
+                  "value": "Error: test error",
                 },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
@@ -13816,7 +13862,7 @@ describe('streamText', () => {
               "type": "tool-input-available",
             },
             {
-              "errorText": "test error",
+              "errorText": "Error: test error",
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
@@ -14194,7 +14240,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -14426,9 +14472,9 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
+            "context": {},
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
-            "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
@@ -14548,7 +14594,7 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "experimental_context": undefined,
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -14778,7 +14824,7 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
-            "experimental_context": undefined,
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -15232,7 +15278,7 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "experimental_context": undefined,
+            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "metadata": undefined,
@@ -15361,6 +15407,50 @@ describe('streamText', () => {
             "Hello, world!",
           ]
         `);
+      });
+
+      it('should not call JSON.stringify for string partial outputs', async () => {
+        const originalStringify = JSON.stringify;
+        const stringifySpy = vi.spyOn(JSON, 'stringify').mockImplementation(((
+          ...args: Parameters<typeof JSON.stringify>
+        ) => {
+          if (typeof args[0] === 'string') {
+            throw new Error(
+              'JSON.stringify should not be called for string partial outputs',
+            );
+          }
+          return originalStringify.call(JSON, ...args);
+        }) as typeof JSON.stringify);
+
+        try {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                { type: 'text-delta', id: '1', delta: 'world!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            prompt: 'prompt',
+            output: Output.text(),
+          });
+
+          expect(await convertAsyncIterableToArray(result.partialOutputStream))
+            .toMatchInlineSnapshot(`
+            [
+              "Hello, ",
+              "Hello, world!",
+            ]
+          `);
+        } finally {
+          stringifySpy.mockRestore();
+        }
       });
 
       it('should resolve output promise with the correct content', async () => {
@@ -15675,9 +15765,9 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
+            "context": {},
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
-            "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
@@ -15723,7 +15813,7 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "experimental_context": undefined,
+                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "metadata": undefined,
@@ -15816,7 +15906,7 @@ describe('streamText', () => {
     });
 
     describe('array output', () => {
-      let result: StreamTextResult<any, any> | undefined;
+      let result: StreamTextResult<any, any, any> | undefined;
 
       let onFinishResult:
         | Parameters<Required<Parameters<typeof streamText>[0]>['onFinish']>[0]
@@ -16567,7 +16657,7 @@ describe('streamText', () => {
 
   describe('mixed multi content streaming with interleaving parts', () => {
     describe('mixed text and reasoning blocks', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -16819,7 +16909,7 @@ describe('streamText', () => {
                   "type": "reasoning",
                 },
               ],
-              "experimental_context": undefined,
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -16891,9 +16981,9 @@ describe('streamText', () => {
 
   describe('abort signal', () => {
     describe('basic abort', () => {
-      let result: StreamTextResult<ToolSet, never>;
+      let result: StreamTextResult<ToolSet, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<ToolSet>[] }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<ToolSet, any>[] }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -16981,7 +17071,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -16999,7 +17089,7 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -17072,9 +17162,9 @@ describe('streamText', () => {
     });
 
     describe('abort in 2nd step', () => {
-      let result: StreamTextResult<any, never>;
+      let result: StreamTextResult<any, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<any, any>[] }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -17210,7 +17300,7 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -17347,7 +17437,7 @@ describe('streamText', () => {
                 },
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -17381,7 +17471,7 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -17390,9 +17480,9 @@ describe('streamText', () => {
     });
 
     describe('abort during tool execution', () => {
-      let result: StreamTextResult<any, never>;
+      let result: StreamTextResult<any, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<any, any>[] }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -17541,7 +17631,7 @@ describe('streamText', () => {
                 "type": "tool-call",
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -17588,13 +17678,13 @@ describe('streamText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { experimental_context }) => {
-              recordedContext = experimental_context;
+            execute: async ({ value }, { context }) => {
+              recordedContext = context;
               return { value: 'test-result' };
             },
           }),
         },
-        experimental_context: {
+        context: {
           context: 'test',
         },
         prompt: 'test-input',
@@ -17608,7 +17698,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should pass experimental_context to prepareStep', async () => {
+    it('should pass context to prepareStep', async () => {
       let capturedContext: unknown;
 
       const result = streamText({
@@ -17627,9 +17717,9 @@ describe('streamText', () => {
             response: {},
           }),
         }),
-        experimental_context: { myData: 'test-value' },
-        prepareStep: async ({ experimental_context }) => {
-          capturedContext = experimental_context;
+        context: { myData: 'test-value' },
+        prepareStep: async ({ context }) => {
+          capturedContext = context;
           return undefined;
         },
         prompt: 'test',
@@ -17658,12 +17748,12 @@ describe('streamText', () => {
             ]),
           }),
         }),
-        experimental_context: {
+        context: {
           context: 'test',
         },
         prompt: 'test-input',
-        onFinish: ({ experimental_context }) => {
-          recordedContext = experimental_context;
+        onFinish: ({ context }) => {
+          recordedContext = context;
         },
       });
 
@@ -17677,7 +17767,7 @@ describe('streamText', () => {
 
   describe('invalid tool calls', () => {
     describe('single invalid tool call', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -17731,7 +17821,7 @@ describe('streamText', () => {
           [
             {
               "dynamic": true,
-              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -17755,7 +17845,7 @@ describe('streamText', () => {
             },
             {
               "dynamic": true,
-              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -17808,7 +17898,7 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
-                "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -17832,7 +17922,7 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
-                "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -17926,7 +18016,7 @@ describe('streamText', () => {
                 "type": "tool-input-delta",
               },
               {
-                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -17945,7 +18035,7 @@ describe('streamText', () => {
                 "type": "tool-input-error",
               },
               {
-                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -17974,7 +18064,7 @@ describe('streamText', () => {
 
   describe('tools with preliminary results', () => {
     describe('single tool with preliminary results', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -18265,7 +18355,7 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -18345,7 +18435,7 @@ describe('streamText', () => {
 
   describe('provider-executed dynamic tools', () => {
     describe('single provider-executed dynamic tool with input streaming', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -18653,14 +18743,14 @@ describe('streamText', () => {
 
   describe('programmatic tool calling', () => {
     describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
-      let result: StreamTextResult<any, any>;
-      let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
-      let onStepFinishResults: StepResult<any>[];
+      let result: StreamTextResult<any, any, any>;
+      let onFinishResult: Parameters<StreamTextOnFinishCallback<any, any>>[0];
+      let onStepFinishResults: StepResult<any, any>[];
       let doStreamCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
       }>;
       let rollDieExecutions: Array<{ player: string }>;
@@ -20559,7 +20649,7 @@ describe('streamText', () => {
 
   describe('tool execution approval', () => {
     describe('when a single tool needs approval', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -20783,7 +20873,7 @@ describe('streamText', () => {
     });
 
     describe('when a single tool has a needsApproval function', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
       let needsApprovalCalls: Array<{ input: any; options: any }> = [];
 
       beforeEach(async () => {
@@ -21111,9 +21201,9 @@ describe('streamText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -21415,7 +21505,7 @@ describe('streamText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
@@ -21525,7 +21615,7 @@ describe('streamText', () => {
                   toolName: 'tool1',
                   output: {
                     type: 'error-text',
-                    value: 'No valid token for plugin',
+                    value: 'Error: No valid token for plugin',
                   },
                   providerOptions: undefined,
                 },
@@ -21538,7 +21628,7 @@ describe('streamText', () => {
     });
 
     describe('when a call from a single tool with preliminary results that needs approval is approved', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
@@ -21868,9 +21958,9 @@ describe('streamText', () => {
     });
 
     describe('when a call from a single tool that needs approval is denied', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -22160,7 +22250,7 @@ describe('streamText', () => {
 
     describe('provider-executed tool (MCP) approval', () => {
       describe('when a provider-executed tool emits tool-approval-request', () => {
-        let result: StreamTextResult<any, any>;
+        let result: StreamTextResult<any, any, any>;
 
         beforeEach(async () => {
           result = streamText({
@@ -22395,7 +22485,7 @@ describe('streamText', () => {
       });
 
       describe('when a provider-executed tool approval is approved', () => {
-        let result: StreamTextResult<any, any>;
+        let result: StreamTextResult<any, any, any>;
         let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
@@ -22584,7 +22674,7 @@ describe('streamText', () => {
       });
 
       describe('when a provider-executed tool approval is denied', () => {
-        let result: StreamTextResult<any, any>;
+        let result: StreamTextResult<any, any, any>;
         let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {

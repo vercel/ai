@@ -3,6 +3,8 @@
 The **[AssemblyAI provider](https://ai-sdk.dev/providers/ai-sdk-providers/assemblyai)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains transcription model support for the AssemblyAI transcription API.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access AssemblyAI (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The AssemblyAI provider is available in the `@ai-sdk/assemblyai` module. You can install it with

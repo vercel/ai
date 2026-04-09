@@ -1,5 +1,151 @@
 # @ai-sdk/vue
 
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - ai@7.0.0-beta.75
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - ai@7.0.0-beta.74
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 4.0.0-beta.73
+
+### Patch Changes
+
+- ai@7.0.0-beta.73
+
+## 4.0.0-beta.72
+
+### Patch Changes
+
+- Updated dependencies [664a0eb]
+  - ai@7.0.0-beta.72
+
+## 4.0.0-beta.71
+
+### Patch Changes
+
+- Updated dependencies [e68be55]
+  - ai@7.0.0-beta.71
+
+## 4.0.0-beta.70
+
+### Patch Changes
+
+- ai@7.0.0-beta.70
+
+## 4.0.0-beta.69
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+- Updated dependencies [72223e7]
+  - ai@7.0.0-beta.69
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 4.0.0-beta.68
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+  - ai@7.0.0-beta.68
+
+## 4.0.0-beta.67
+
+### Patch Changes
+
+- Updated dependencies [d1a8bed]
+  - ai@7.0.0-beta.67
+
+## 4.0.0-beta.66
+
+### Patch Changes
+
+- ai@7.0.0-beta.66
+
+## 4.0.0-beta.65
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+  - ai@7.0.0-beta.65
+
+## 4.0.0-beta.64
+
+### Patch Changes
+
+- ai@7.0.0-beta.64
+
+## 4.0.0-beta.63
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - ai@7.0.0-beta.63
+
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- ai@7.0.0-beta.62
+
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - ai@7.0.0-beta.61
+
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [38fc777]
+  - ai@7.0.0-beta.60
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- ai@7.0.0-beta.59
+
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - ai@7.0.0-beta.58
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - ai@7.0.0-beta.57
+
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- ai@7.0.0-beta.56
+
 ## 4.0.0-beta.55
 
 ### Patch Changes

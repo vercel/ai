@@ -13,7 +13,7 @@ import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { streamModelCall } from './stream-model-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 const testUsage: LanguageModelV4Usage = {
   inputTokens: {

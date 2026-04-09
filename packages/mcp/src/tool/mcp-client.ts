@@ -420,7 +420,7 @@ class DefaultMCPClient implements MCPClient {
   }: {
     name: string;
     args: Record<string, unknown>;
-    options?: ToolExecutionOptions;
+    options?: ToolExecutionOptions<{}>;
   }): Promise<CallToolResult> {
     try {
       return this.request({
@@ -579,10 +579,14 @@ class DefaultMCPClient implements MCPClient {
 
       const execute = async (
         args: any,
-        options: ToolExecutionOptions,
+        options: ToolExecutionOptions<{}>,
       ): Promise<unknown> => {
         options?.abortSignal?.throwIfAborted();
         const result = await self.callTool({ name, args, options });
+
+        if (result.isError) {
+          return result;
+        }
 
         if (outputSchema != null) {
           return self.extractStructuredContent(result, outputSchema, name);

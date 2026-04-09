@@ -195,6 +195,42 @@ describe('convertToLanguageModelPrompt', () => {
           },
         ]);
       });
+
+      it('should pass through provider reference for image parts without conversion', async () => {
+        const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'image',
+                    image: providerRef,
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: undefined,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                filename: undefined,
+                data: providerRef,
+              },
+            ],
+          },
+        ]);
+      });
     });
 
     describe('file parts', () => {
@@ -734,6 +770,43 @@ describe('convertToLanguageModelPrompt', () => {
             },
           ]
         `);
+      });
+
+      it('should pass through provider reference for file parts without conversion', async () => {
+        const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: providerRef,
+                    mediaType: 'application/pdf',
+                    filename: 'doc.pdf',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: {},
+          download: undefined,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                filename: 'doc.pdf',
+                data: providerRef,
+              },
+            ],
+          },
+        ]);
       });
     });
 
@@ -1407,6 +1480,38 @@ describe('convertToLanguageModelMessage', () => {
       });
     });
 
+    describe('file parts with provider reference', () => {
+      it('should pass through provider reference for assistant file parts without conversion', () => {
+        const providerRef = { openai: 'file-abc123', anthropic: 'file-xyz789' };
+        const result = convertToLanguageModelMessage({
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                type: 'file',
+                data: providerRef,
+                mediaType: 'application/pdf',
+                filename: 'doc.pdf',
+              },
+            ],
+          },
+          downloadedAssets: {},
+        });
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              data: providerRef,
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+            },
+          ],
+        });
+      });
+    });
+
     describe('reasoning-file parts', () => {
       it('should convert reasoning-file part with base64 data', () => {
         const result = convertToLanguageModelMessage({
@@ -1938,18 +2043,19 @@ describe('convertToLanguageModelMessage', () => {
                     data: 'dGVzdA==',
                     mediaType: 'image/png',
                   },
-                  { type: 'file-id', fileId: 'fileId' },
-                  { type: 'file-id', fileId: { 'test-provider': 'fileId' } },
+                  {
+                    type: 'file-reference',
+                    providerReference: { 'test-provider': 'fileId' },
+                  },
                   {
                     type: 'image-data',
                     data: 'dGVzdA==',
                     mediaType: 'image/png',
                   },
                   { type: 'image-url', url: 'https://example.com/image.png' },
-                  { type: 'image-file-id', fileId: 'fileId' },
                   {
-                    type: 'image-file-id',
-                    fileId: { 'test-provider': 'fileId' },
+                    type: 'image-file-reference',
+                    providerReference: { 'test-provider': 'fileId' },
                   },
                   {
                     type: 'custom',
@@ -1985,14 +2091,10 @@ describe('convertToLanguageModelMessage', () => {
                     "type": "file-data",
                   },
                   {
-                    "fileId": "fileId",
-                    "type": "file-id",
-                  },
-                  {
-                    "fileId": {
+                    "providerReference": {
                       "test-provider": "fileId",
                     },
-                    "type": "file-id",
+                    "type": "file-reference",
                   },
                   {
                     "data": "dGVzdA==",
@@ -2004,14 +2106,10 @@ describe('convertToLanguageModelMessage', () => {
                     "url": "https://example.com/image.png",
                   },
                   {
-                    "fileId": "fileId",
-                    "type": "image-file-id",
-                  },
-                  {
-                    "fileId": {
+                    "providerReference": {
                       "test-provider": "fileId",
                     },
-                    "type": "image-file-id",
+                    "type": "image-file-reference",
                   },
                   {
                     "providerOptions": {
@@ -2021,104 +2119,6 @@ describe('convertToLanguageModelMessage', () => {
                       },
                     },
                     "type": "custom",
-                  },
-                ],
-              },
-              "providerOptions": undefined,
-              "toolCallId": "toolCallId",
-              "toolName": "toolName",
-              "type": "tool-result",
-            },
-          ],
-          "providerOptions": undefined,
-          "role": "tool",
-        }
-      `);
-    });
-
-    it('should map deprecated media type to image-data', () => {
-      const result = convertToLanguageModelMessage({
-        message: {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolName: 'toolName',
-              toolCallId: 'toolCallId',
-              output: {
-                type: 'content',
-                value: [
-                  { type: 'media', data: 'dGVzdA==', mediaType: 'image/png' },
-                ],
-              },
-            },
-          ],
-        },
-        downloadedAssets: {},
-      });
-
-      expect(result).toMatchInlineSnapshot(`
-        {
-          "content": [
-            {
-              "output": {
-                "type": "content",
-                "value": [
-                  {
-                    "data": "dGVzdA==",
-                    "mediaType": "image/png",
-                    "type": "image-data",
-                  },
-                ],
-              },
-              "providerOptions": undefined,
-              "toolCallId": "toolCallId",
-              "toolName": "toolName",
-              "type": "tool-result",
-            },
-          ],
-          "providerOptions": undefined,
-          "role": "tool",
-        }
-      `);
-    });
-
-    it('should map deprecated media type to file-data', () => {
-      const result = convertToLanguageModelMessage({
-        message: {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolName: 'toolName',
-              toolCallId: 'toolCallId',
-              output: {
-                type: 'content',
-                value: [
-                  {
-                    type: 'media',
-                    data: 'dGVzdA==',
-                    mediaType: 'application/pdf',
-                  },
-                ],
-              },
-            },
-          ],
-        },
-        downloadedAssets: {},
-      });
-
-      expect(result).toMatchInlineSnapshot(`
-        {
-          "content": [
-            {
-              "output": {
-                "type": "content",
-                "value": [
-                  {
-                    "data": "dGVzdA==",
-                    "mediaType": "application/pdf",
-                    "type": "file-data",
                   },
                 ],
               },

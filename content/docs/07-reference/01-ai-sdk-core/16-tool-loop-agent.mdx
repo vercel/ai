@@ -245,8 +245,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'Additional metadata passed to the generation.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'context',
+              type: 'CONTEXT',
               description:
                 'User-defined context object that flows through the entire generation lifecycle.',
             },
@@ -356,8 +356,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'Additional metadata from telemetry settings.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'context',
+              type: 'CONTEXT',
               description:
                 'User-defined context object. May be updated from prepareStep between steps.',
             },
@@ -416,8 +416,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'Additional metadata from telemetry settings.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'context',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -482,8 +482,8 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               description: 'Additional metadata from telemetry settings.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'context',
+              type: 'CONTEXT',
               description:
                 'User-defined context object flowing through the generation.',
             },
@@ -521,14 +521,14 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'ToolLoopAgentOnFinishCallback',
       isOptional: true,
       description:
-        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, experimental_context, functionId, and metadata. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, context, functionId, and metadata. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'context',
+      type: 'CONTEXT',
       isOptional: true,
       description:
-        'Experimental: Custom context object passed to each tool call.',
+        'User-defined context object passed to `prepareStep`, tool execution, and lifecycle callbacks.',
     },
     {
       name: 'experimental_telemetry',

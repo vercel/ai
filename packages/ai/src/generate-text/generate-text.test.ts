@@ -812,7 +812,9 @@ describe('generateText', () => {
 
   describe('options.experimental_onStart', () => {
     it('should send correct information with text prompt', async () => {
-      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+      let startEvent!: Parameters<
+        GenerateTextOnStartCallback<any, any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -838,8 +840,10 @@ describe('generateText', () => {
       expect(startEvent).toMatchSnapshot();
     });
 
-    it('should pass experimental_context', async () => {
-      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+    it('should pass context', async () => {
+      let startEvent!: Parameters<
+        GenerateTextOnStartCallback<any, any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -849,20 +853,22 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_context: { userId: 'test-user', sessionId: '123' },
+        context: { userId: 'test-user', sessionId: '123' },
         experimental_onStart: async event => {
           startEvent = event;
         },
       });
 
-      expect(startEvent.experimental_context).toEqual({
+      expect(startEvent.context).toEqual({
         userId: 'test-user',
         sessionId: '123',
       });
     });
 
     it('should send correct information with system and messages', async () => {
-      let startEvent!: Parameters<GenerateTextOnStartCallback>[0];
+      let startEvent!: Parameters<
+        GenerateTextOnStartCallback<any, any, any>
+      >[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -1271,7 +1277,7 @@ describe('generateText', () => {
       expect(stepStartEvents[1].steps[0].text).toBe('Thinking...');
     });
 
-    it('should pass experimental_context', async () => {
+    it('should pass context', async () => {
       let stepStartEvent!: Parameters<
         GenerateTextOnStepStartCallback<any, any>
       >[0];
@@ -1284,19 +1290,19 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_context: { userId: 'test-user', requestId: 'req-123' },
+        context: { userId: 'test-user', requestId: 'req-123' },
         experimental_onStepStart: async event => {
           stepStartEvent = event;
         },
       });
 
-      expect(stepStartEvent.experimental_context).toEqual({
+      expect(stepStartEvent.context).toEqual({
         userId: 'test-user',
         requestId: 'req-123',
       });
     });
 
-    it('should pass updated experimental_context from prepareStep', async () => {
+    it('should pass updated context from prepareStep', async () => {
       const stepStartEvents: Parameters<
         GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
@@ -1336,12 +1342,12 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { counter: 0 },
+        context: { counter: 0 },
         stopWhen: isStepCount(3),
-        prepareStep: async ({ experimental_context, stepNumber }) => {
+        prepareStep: async ({ context, stepNumber }) => {
           return {
-            experimental_context: {
-              counter: (experimental_context as any).counter + 1,
+            context: {
+              counter: (context as any).counter + 1,
               stepNumber,
             },
           };
@@ -1351,11 +1357,11 @@ describe('generateText', () => {
         },
       });
 
-      expect(stepStartEvents[0].experimental_context).toEqual({
+      expect(stepStartEvents[0].context).toEqual({
         counter: 1,
         stepNumber: 0,
       });
-      expect(stepStartEvents[1].experimental_context).toEqual({
+      expect(stepStartEvents[1].context).toEqual({
         counter: 2,
         stepNumber: 1,
       });
@@ -1365,7 +1371,7 @@ describe('generateText', () => {
   describe('options.onStepFinish stepNumber', () => {
     it('should pass stepNumber 0 for a single step', async () => {
       let stepFinishEvent!: Parameters<
-        GenerateTextOnStepFinishCallback<any>
+        GenerateTextOnStepFinishCallback<any, any>
       >[0];
 
       await generateText({
@@ -1691,7 +1697,7 @@ describe('generateText', () => {
       expect(toolCallStartEvents.length).toBe(0);
     });
 
-    it('should pass experimental_context', async () => {
+    it('should pass context', async () => {
       const toolCallStartEvents: Parameters<
         GenerateTextOnToolCallStartCallback<any>
       >[0][] = [];
@@ -1719,14 +1725,14 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { traceId: 'trace-abc', spanId: 'span-123' },
+        context: { traceId: 'trace-abc', spanId: 'span-123' },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
       });
 
       expect(toolCallStartEvents.length).toBe(1);
-      expect(toolCallStartEvents[0].experimental_context).toEqual({
+      expect(toolCallStartEvents[0].context).toEqual({
         traceId: 'trace-abc',
         spanId: 'span-123',
       });
@@ -1927,7 +1933,7 @@ describe('generateText', () => {
       expect(toolCallFinishEvents.length).toBe(0);
     });
 
-    it('should pass experimental_context on success', async () => {
+    it('should pass context on success', async () => {
       const toolCallFinishEvents: Parameters<
         GenerateTextOnToolCallFinishCallback<any>
       >[0][] = [];
@@ -1955,7 +1961,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { traceId: 'trace-xyz', operation: 'test-op' },
+        context: { traceId: 'trace-xyz', operation: 'test-op' },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
@@ -1963,13 +1969,13 @@ describe('generateText', () => {
 
       expect(toolCallFinishEvents.length).toBe(1);
       expect(toolCallFinishEvents[0].success).toBe(true);
-      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+      expect(toolCallFinishEvents[0].context).toEqual({
         traceId: 'trace-xyz',
         operation: 'test-op',
       });
     });
 
-    it('should pass experimental_context on error', async () => {
+    it('should pass context on error', async () => {
       const toolCallFinishEvents: Parameters<
         GenerateTextOnToolCallFinishCallback<any>
       >[0][] = [];
@@ -2000,7 +2006,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_context: { errorTraceId: 'err-trace' },
+        context: { errorTraceId: 'err-trace' },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
@@ -2009,7 +2015,7 @@ describe('generateText', () => {
       expect(toolCallFinishEvents.length).toBe(1);
       expect(toolCallFinishEvents[0].success).toBe(false);
       expect(toolCallFinishEvents[0].error).toBe(toolError);
-      expect(toolCallFinishEvents[0].experimental_context).toEqual({
+      expect(toolCallFinishEvents[0].context).toEqual({
         errorTraceId: 'err-trace',
       });
     });
@@ -2178,7 +2184,7 @@ describe('generateText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<GenerateTextOnFinishCallback<any>>[0];
+      let result!: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -2252,9 +2258,9 @@ describe('generateText', () => {
               "type": "tool-result",
             },
           ],
+          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
@@ -2370,7 +2376,7 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "metadata": undefined,
@@ -2513,9 +2519,9 @@ describe('generateText', () => {
   });
 
   describe('options.stopWhen', () => {
-    let result: GenerateTextResult<any, any>;
-    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
-    let onStepFinishResults: StepResult<any>[];
+    let result: GenerateTextResult<any, any, any>;
+    let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+    let onStepFinishResults: StepResult<any, any>[];
 
     beforeEach(() => {
       result = undefined as any;
@@ -2711,15 +2717,15 @@ describe('generateText', () => {
     });
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
-      let result: GenerateTextResult<any, any>;
-      let onStepFinishResults: StepResult<any>[];
+      let result: GenerateTextResult<any, any, any>;
+      let onStepFinishResults: StepResult<any, any>[];
       let doGenerateCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
-        experimental_context: unknown;
+        context: unknown;
       }>;
 
       beforeEach(async () => {
@@ -2799,7 +2805,7 @@ describe('generateText', () => {
               },
             }),
           },
-          experimental_context: { context: 'state1' },
+          context: { context: 'state1' },
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-call-id',
@@ -2814,14 +2820,14 @@ describe('generateText', () => {
             stepNumber,
             steps,
             messages,
-            experimental_context,
+            context,
           }) => {
             prepareStepCalls.push({
               modelId: typeof model === 'string' ? model : model.modelId,
               stepNumber,
               steps,
               messages,
-              experimental_context,
+              context,
             });
 
             if (stepNumber === 0) {
@@ -2840,7 +2846,7 @@ describe('generateText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
-                experimental_context: { context: 'state2' },
+                context: { context: 'state2' },
               };
             }
 
@@ -2850,7 +2856,7 @@ describe('generateText', () => {
                 model: trueModel,
                 activeTools: [],
                 system: 'system-message-1',
-                experimental_context: { context: 'state3' },
+                context: { context: 'state3' },
               };
             }
           },
@@ -2861,7 +2867,7 @@ describe('generateText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
-              "experimental_context": {
+              "context": {
                 "context": "state1",
               },
               "messages": [
@@ -2898,7 +2904,7 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state2",
                   },
                   "finishReason": "tool-calls",
@@ -2977,7 +2983,7 @@ describe('generateText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state3",
                   },
                   "finishReason": "stop",
@@ -3063,7 +3069,7 @@ describe('generateText', () => {
               ],
             },
             {
-              "experimental_context": {
+              "context": {
                 "context": "state2",
               },
               "messages": [
@@ -3129,7 +3135,7 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state2",
                   },
                   "finishReason": "tool-calls",
@@ -3208,7 +3214,7 @@ describe('generateText', () => {
                       "type": "text",
                     },
                   ],
-                  "experimental_context": {
+                  "context": {
                     "context": "state3",
                   },
                   "finishReason": "stop",
@@ -3481,10 +3487,10 @@ describe('generateText', () => {
     });
 
     describe('2 stop conditions', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let stopConditionCalls: Array<{
         number: number;
-        steps: StepResult<any>[];
+        steps: StepResult<any, any>[];
       }>;
 
       beforeEach(async () => {
@@ -3599,7 +3605,7 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -3698,7 +3704,7 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "experimental_context": undefined,
+                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "metadata": undefined,
@@ -3945,6 +3951,7 @@ describe('generateText', () => {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
           messages: expect.any(Array),
+          context: {},
         },
       );
     });
@@ -4048,6 +4055,7 @@ describe('generateText', () => {
           abortSignal: expect.any(AbortSignal),
           toolCallId: 'call-1',
           messages: expect.any(Array),
+          context: {},
         },
       );
     });
@@ -4346,7 +4354,7 @@ describe('generateText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "input": {
                 "value": "value",
               },
@@ -4476,7 +4484,7 @@ describe('generateText', () => {
 
   describe('provider-executed tools', () => {
     describe('two provider-executed tool calls and results', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -5069,7 +5077,7 @@ describe('generateText', () => {
   });
 
   describe('tool execution errors', () => {
-    let result: GenerateTextResult<any, any>;
+    let result: GenerateTextResult<any, any, any>;
 
     beforeEach(async () => {
       result = await generateText({
@@ -5150,7 +5158,7 @@ describe('generateText', () => {
               {
                 "output": {
                   "type": "error-text",
-                  "value": "test error",
+                  "value": "Error: test error",
                 },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
@@ -5260,14 +5268,14 @@ describe('generateText', () => {
 
   describe('programmatic tool calling', () => {
     describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
-      let result: GenerateTextResult<any, any>;
-      let onFinishResult: Parameters<GenerateTextOnFinishCallback<any>>[0];
-      let onStepFinishResults: StepResult<any>[];
+      let result: GenerateTextResult<any, any, any>;
+      let onFinishResult: Parameters<GenerateTextOnFinishCallback<any, any>>[0];
+      let onStepFinishResults: StepResult<any, any>[];
       let doGenerateCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
       }>;
       let rollDieExecutions: Array<{ player: string }>;
@@ -6531,13 +6539,13 @@ describe('generateText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { experimental_context }) => {
-              recordedContext = experimental_context;
+            execute: async ({ value }, { context }) => {
+              recordedContext = context;
               return { value: 'test-result' };
             },
           }),
         },
-        experimental_context: {
+        context: {
           context: 'test',
         },
         prompt: 'test-input',
@@ -6549,7 +6557,7 @@ describe('generateText', () => {
       });
     });
 
-    it('should pass experimental_context to prepareStep', async () => {
+    it('should pass context to prepareStep', async () => {
       let capturedContext: unknown;
 
       await generateText({
@@ -6559,9 +6567,9 @@ describe('generateText', () => {
             content: [{ type: 'text', text: 'Hello, world!' }],
           }),
         }),
-        experimental_context: { myData: 'test-value' },
-        prepareStep: async ({ experimental_context }) => {
-          capturedContext = experimental_context;
+        context: { myData: 'test-value' },
+        prepareStep: async ({ context }) => {
+          capturedContext = context;
           return undefined;
         },
         prompt: 'test',
@@ -6581,12 +6589,12 @@ describe('generateText', () => {
             finishReason: { unified: 'stop', raw: 'stop' },
           }),
         }),
-        experimental_context: {
+        context: {
           context: 'test',
         },
         prompt: 'test-input',
-        onFinish: ({ experimental_context }) => {
-          recordedContext = experimental_context;
+        onFinish: ({ context }) => {
+          recordedContext = context;
         },
       });
 
@@ -6598,7 +6606,7 @@ describe('generateText', () => {
 
   describe('invalid tool calls', () => {
     describe('single invalid tool call', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -6645,7 +6653,7 @@ describe('generateText', () => {
           [
             {
               "dynamic": true,
-              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -6669,7 +6677,7 @@ describe('generateText', () => {
             },
             {
               "dynamic": true,
-              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -6714,7 +6722,7 @@ describe('generateText', () => {
                 {
                   "output": {
                     "type": "error-text",
-                    "value": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                    "value": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -6741,7 +6749,7 @@ describe('generateText', () => {
 
   describe('tools with preliminary results', () => {
     describe('single tool with preliminary results', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -6862,7 +6870,7 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
               ],
-              "experimental_context": undefined,
+              "context": {},
               "finishReason": "tool-calls",
               "functionId": undefined,
               "metadata": undefined,
@@ -7062,7 +7070,7 @@ describe('generateText', () => {
 
   describe('tool execution approval', () => {
     describe('when a single tool needs approval', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = await generateText({
@@ -7167,7 +7175,7 @@ describe('generateText', () => {
     });
 
     describe('when a single tool has a needsApproval function', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let needsApprovalCalls: Array<{ input: any; options: any }> = [];
 
       beforeEach(async () => {
@@ -7335,7 +7343,7 @@ describe('generateText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "experimental_context": undefined,
+                "context": {},
                 "messages": [
                   {
                     "content": "test-input",
@@ -7350,7 +7358,7 @@ describe('generateText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "experimental_context": undefined,
+                "context": {},
                 "messages": [
                   {
                     "content": "test-input",
@@ -7366,9 +7374,9 @@ describe('generateText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -7532,7 +7540,7 @@ describe('generateText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
@@ -7633,7 +7641,7 @@ describe('generateText', () => {
                   toolName: 'tool1',
                   output: {
                     type: 'error-text',
-                    value: 'No valid token for plugin',
+                    value: 'Error: No valid token for plugin',
                   },
                   providerOptions: undefined,
                 },
@@ -7646,9 +7654,9 @@ describe('generateText', () => {
     });
 
     describe('when a call from a single tool that needs approval is denied', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -7805,9 +7813,9 @@ describe('generateText', () => {
     });
 
     describe('when two calls from a single tool that needs approval are approved', () => {
-      let result: GenerateTextResult<any, any>;
+      let result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
@@ -8010,7 +8018,7 @@ describe('generateText', () => {
 
     describe('provider-executed tool (MCP) approval', () => {
       describe('when a provider-executed tool emits tool-approval-request', () => {
-        let result: GenerateTextResult<any, any>;
+        let result: GenerateTextResult<any, any, any>;
 
         beforeEach(async () => {
           result = await generateText({
@@ -8121,7 +8129,7 @@ describe('generateText', () => {
       });
 
       describe('when a provider-executed tool approval is approved', () => {
-        let result: GenerateTextResult<any, any>;
+        let result: GenerateTextResult<any, any, any>;
         let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
@@ -8307,7 +8315,7 @@ describe('generateText', () => {
       });
 
       describe('when a provider-executed tool approval is denied', () => {
-        let result: GenerateTextResult<any, any>;
+        let result: GenerateTextResult<any, any, any>;
         let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {

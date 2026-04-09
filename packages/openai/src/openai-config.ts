@@ -7,12 +7,12 @@ export type OpenAIConfig = {
   fetch?: FetchFunction;
   generateId?: () => string;
   /**
-   * File ID prefixes used to identify file IDs in Responses API.
-   * When undefined, all file data is treated as base64 content.
+   * This is soft-deprecated. Use provider references (e.g. `{ openai: 'file-abc123' }`)
+   * in file part data instead. File ID prefixes used to identify file IDs
+   * in Responses API. When undefined, all string file data is treated as
+   * base64 content.
    *
-   * Examples:
-   * - OpenAI: ['file-'] for IDs like 'file-abc123'
-   * - Azure OpenAI: ['assistant-'] for IDs like 'assistant-abc123'
+   * TODO: remove in v8
    */
   fileIdPrefixes?: readonly string[];
 };

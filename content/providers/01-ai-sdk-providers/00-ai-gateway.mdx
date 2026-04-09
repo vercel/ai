@@ -29,7 +29,7 @@ For most use cases, you can use the AI Gateway directly with a model string:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5',
+  model: 'openai/gpt-5.4',
   prompt: 'Hello world',
 });
 ```
@@ -39,7 +39,7 @@ const { text } = await generateText({
 import { generateText, gateway } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-5'),
+  model: gateway('openai/gpt-5.4'),
   prompt: 'Hello world',
 });
 ```
@@ -169,12 +169,40 @@ You can create language models using a provider instance. The first argument is 
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5',
+  model: 'openai/gpt-5.4',
   prompt: 'Explain quantum computing in simple terms',
 });
 ```
 
 AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
+
+## Reranking Models
+
+You can create reranking models using the `rerankingModel` method on the provider instance:
+
+```ts
+import { rerank } from 'ai';
+import { gateway } from '@ai-sdk/gateway';
+
+const { ranking } = await rerank({
+  model: gateway.rerankingModel('cohere/rerank-v3.5'),
+  query: 'What is the capital of France?',
+  documents: [
+    'Paris is the capital of France.',
+    'Berlin is the capital of Germany.',
+    'Madrid is the capital of Spain.',
+  ],
+  topN: 2,
+});
+
+console.log(ranking);
+// [
+//   { originalIndex: 0, score: 0.89, document: 'Paris is the capital of France.' },
+//   { originalIndex: 2, score: 0.15, document: 'Madrid is the capital of Spain.' },
+// ]
+```
+
+Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
 
 ## Available Models
 
@@ -215,7 +243,7 @@ availableModels.models.forEach(model => {
 
 // Use any discovered model with plain string
 const { text } = await generateText({
-  model: availableModels.models[0].id, // e.g., 'openai/gpt-4o'
+  model: availableModels.models[0].id, // e.g., 'openai/gpt-5.4'
   prompt: 'Hello world',
 });
 ```
@@ -326,7 +354,7 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-4.6',
   prompt: 'Write a haiku about programming',
 });
 
@@ -339,7 +367,7 @@ console.log(text);
 import { streamText } from 'ai';
 
 const { textStream } = await streamText({
-  model: 'openai/gpt-5',
+  model: 'openai/gpt-5.4',
   prompt: 'Explain the benefits of serverless architecture',
 });
 
@@ -381,7 +409,7 @@ import { generateText, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: 'openai/gpt-5-mini',
+  model: 'openai/gpt-5.4-mini',
   prompt: 'What is the Vercel AI Gateway?',
   stopWhen: isStepCount(10),
   tools: {
@@ -410,7 +438,7 @@ The Perplexity Search tool enables models to search the web using [Perplexity's 
 import { gateway, generateText } from 'ai';
 
 const result = await generateText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt: 'Search for news about AI regulations in January 2025.',
   tools: {
     perplexity_search: gateway.tools.perplexitySearch(),
@@ -428,7 +456,7 @@ You can also configure the search with optional parameters:
 import { gateway, generateText } from 'ai';
 
 const result = await generateText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt:
     'Search for news about AI regulations from the first week of January 2025.',
   tools: {
@@ -482,7 +510,7 @@ The tool works with both `generateText` and `streamText`:
 import { gateway, streamText } from 'ai';
 
 const result = streamText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt: 'Search for the latest news about AI regulations.',
   tools: {
     perplexity_search: gateway.tools.perplexitySearch(),
@@ -512,7 +540,7 @@ The Parallel Search tool enables models to search the web using [Parallel AI's S
 import { gateway, generateText } from 'ai';
 
 const result = await generateText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt: 'Research the latest developments in quantum computing.',
   tools: {
     parallel_search: gateway.tools.parallelSearch(),
@@ -530,7 +558,7 @@ You can also configure the search with optional parameters:
 import { gateway, generateText } from 'ai';
 
 const result = await generateText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt: 'Find detailed information about TypeScript 5.0 features.',
   tools: {
     parallel_search: gateway.tools.parallelSearch({
@@ -591,7 +619,7 @@ The tool works with both `generateText` and `streamText`:
 import { gateway, streamText } from 'ai';
 
 const result = streamText({
-  model: 'openai/gpt-5-nano',
+  model: 'openai/gpt-5.4-nano',
   prompt: 'Research the latest AI safety guidelines.',
   tools: {
     parallel_search: gateway.tools.parallelSearch(),
@@ -624,7 +652,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5',
+  model: 'openai/gpt-5.4',
   prompt: 'Summarize this document...',
   providerOptions: {
     gateway: {
@@ -725,7 +753,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-4.6',
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
@@ -754,7 +782,7 @@ The following gateway provider options are available:
 
   Specifies fallback models to use when the primary model fails or is unavailable. The gateway will try the primary model first (specified in the `model` parameter), then try each model in this array in order until one succeeds.
 
-  Example: `models: ['openai/gpt-5-nano', 'gemini-2.0-flash']` will try the fallback models in order if the primary model fails.
+  Example: `models: ['openai/gpt-5.4-nano', 'gemini-3-flash-preview']` will try the fallback models in order if the primary model fails.
 
 - **user** _string_
 
@@ -782,7 +810,19 @@ The following gateway provider options are available:
 
 - **zeroDataRetention** _boolean_
 
-  Restricts routing requests to providers that have zero data retention policies.
+  Restricts routing to providers that have zero data retention agreements with Vercel for AI Gateway. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers with zero data retention agreements will be used. If there are no providers available for the model with zero data retention, the request will fail. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
+
+- **disallowPromptTraining** _boolean_
+
+  Restricts routing to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail.
+
+- **hipaaCompliant** _boolean_
+
+  Restricts routing to models and tools from providers that have signed a BAA with Vercel for the use of AI Gateway (requires Vercel HIPAA BAA add on). BYOK credentials are skipped when `hipaaCompliant` is set to `true` to ensure that requests are only routed to providers that support HIPAA compliance.
+
+- **quotaEntityId** _string_
+
+  The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
 
 - **providerTimeouts** _object_
 
@@ -799,7 +839,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-4.6',
   prompt: 'Write a haiku about programming',
   providerOptions: {
     gateway: {
@@ -819,38 +859,93 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-4o', // Primary model
+  model: 'openai/gpt-5.4', // Primary model
   prompt: 'Write a TypeScript haiku',
   providerOptions: {
     gateway: {
-      models: ['openai/gpt-5-nano', 'gemini-2.0-flash'], // Fallback models
+      models: ['openai/gpt-5.4-nano', 'gemini-3-flash-preview'], // Fallback models
     } satisfies GatewayProviderOptions,
   },
 });
 
 // This will:
-// 1. Try openai/gpt-4o first
-// 2. If it fails, try openai/gpt-5-nano
-// 3. If that fails, try gemini-2.0-flash
+// 1. Try openai/gpt-5.4 first
+// 2. If it fails, try openai/gpt-5.4-nano
+// 3. If that fails, try gemini-3-flash-preview
 // 4. Return the result from the first model that succeeds
 ```
 
 #### Zero Data Retention Example
 
-Set `zeroDataRetention` to true to ensure requests are only routed to providers
-that have zero data retention policies. When `zeroDataRetention` is `false` or not
-specified, there is no enforcement of restricting routing.
+Set `zeroDataRetention` to true to route requests to providers that have zero data retention agreements with Vercel for AI Gateway. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers with zero data retention agreements will be used. If there are no providers available for the model with zero data retention, the request will fail. When `zeroDataRetention` is `false` or not specified, there is no enforcement of restricting routing. Request-level ZDR is only available for Vercel Pro and Enterprise plans.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: 'anthropic/claude-sonnet-4.6',
   prompt: 'Analyze this sensitive document...',
   providerOptions: {
     gateway: {
       zeroDataRetention: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### Disallow Prompt Training Example
+
+Set `disallowPromptTraining` to true to route requests to providers that have agreements with Vercel for AI Gateway to not use prompts for model training. When using BYOK credentials, this filter is not applied. If BYOK credentials fail and the request falls back to system credentials, only providers that do not train on prompt data will be used. If there are no providers available for the model that disallow prompt training, the request will fail. When `disallowPromptTraining` is `false` or not specified, there is no enforcement of restricting routing.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.6',
+  prompt: 'Analyze this proprietary business data...',
+  providerOptions: {
+    gateway: {
+      disallowPromptTraining: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### HIPAA Compliance Example
+
+Set `hipaaCompliant` to true to route requests only to models or tools by providers that have signed a BAA with Vercel for the use of AI Gateway. If the model or tool does not have a HIPAA-compliant provider, the request will fail. When `hipaaCompliant` is `false` or not specified, there is no enforcement of restricting routing. BYOK credentials are skipped when `hipaaCompliant` is set to `true` to ensure that requests are only routed to providers that support HIPAA compliance.
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.6',
+  prompt: 'Analyze this patient data...',
+  providerOptions: {
+    gateway: {
+      hipaaCompliant: true,
+    } satisfies GatewayProviderOptions,
+  },
+});
+```
+
+#### Quota Entity ID Example
+
+Set `quotaEntityId` to track and enforce quota against a specific entity. This is useful for multi-tenant applications where you need to manage quota at the entity level (e.g., per organization or team).
+
+```ts
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.6',
+  prompt: 'Summarize this report...',
+  providerOptions: {
+    gateway: {
+      quotaEntityId: 'org-123',
     } satisfies GatewayProviderOptions,
   },
 });
@@ -866,7 +961,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-4.6',
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {

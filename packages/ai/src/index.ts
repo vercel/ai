@@ -18,7 +18,6 @@ export {
   type Tool,
   type ToolApprovalRequest,
   type ToolApprovalResponse,
-  type ToolCallOptions,
   type ToolExecutionOptions,
   type ToolExecuteFunction,
 } from '@ai-sdk/provider-utils';
@@ -37,10 +36,12 @@ export * from './middleware';
 export * from './prompt';
 export * from './registry';
 export * from './rerank';
+export * from './upload-skill';
 export * from './text-stream';
 export * from './transcribe';
 export * from './types';
 export * from './ui';
+export * from './upload-file';
 export * from './ui-message-stream';
 export * from './util';
 export * from './telemetry';
