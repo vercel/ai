@@ -108,13 +108,21 @@ export class ToolLoopAgent<
         >[0],
       )) ?? baseCallArgs;
 
-    const { instructions, messages, prompt, ...callArgs } = preparedCallArgs;
+    const { instructions, messages, prompt, context, ...callArgs } =
+      preparedCallArgs;
+    const promptArgs = { system: instructions, messages, prompt } as Prompt;
+
+    if (context === undefined) {
+      return {
+        ...callArgs,
+        ...promptArgs,
+      };
+    }
 
     return {
       ...callArgs,
-
-      // restore prompt types
-      ...({ system: instructions, messages, prompt } as Prompt),
+      context,
+      ...promptArgs,
     };
   }
 
@@ -131,11 +139,12 @@ export class ToolLoopAgent<
     onStepFinish,
     onFinish,
     ...options
-  }: AgentCallParameters<CALL_OPTIONS, TOOLS>): Promise<
+  }: AgentCallParameters<CALL_OPTIONS, TOOLS, USER_CONTEXT>): Promise<
     GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>
   > {
-    return generateText({
-      ...(await this.prepareCall(options)),
+    const generate = generateText<TOOLS, USER_CONTEXT, OUTPUT>;
+    const preparedCall = await this.prepareCall(options);
+    const callbackArgs = {
       abortSignal,
       timeout,
       experimental_onStart: mergeListeners(
@@ -160,7 +169,12 @@ export class ToolLoopAgent<
       ),
       onStepFinish: mergeListeners(this.settings.onStepFinish, onStepFinish),
       onFinish: mergeListeners(this.settings.onFinish, onFinish),
-    });
+    };
+
+    return generate({
+      ...preparedCall,
+      ...callbackArgs,
+    } as unknown as Parameters<typeof generate>[0]);
   }
 
   /**
@@ -177,11 +191,12 @@ export class ToolLoopAgent<
     onStepFinish,
     onFinish,
     ...options
-  }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
+  }: AgentStreamParameters<CALL_OPTIONS, TOOLS, USER_CONTEXT>): Promise<
     StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT>
   > {
-    return streamText({
-      ...(await this.prepareCall(options)),
+    const stream = streamText<TOOLS, USER_CONTEXT, OUTPUT>;
+    const preparedCall = await this.prepareCall(options);
+    const callbackArgs = {
       abortSignal,
       timeout,
       experimental_transform,
@@ -207,6 +222,11 @@ export class ToolLoopAgent<
       ),
       onStepFinish: mergeListeners(this.settings.onStepFinish, onStepFinish),
       onFinish: mergeListeners(this.settings.onFinish, onFinish),
-    });
+    };
+
+    return stream({
+      ...preparedCall,
+      ...callbackArgs,
+    } as unknown as Parameters<typeof stream>[0]);
   }
 }
