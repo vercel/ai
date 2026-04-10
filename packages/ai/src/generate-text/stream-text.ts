@@ -1381,11 +1381,6 @@ class DefaultStreamTextResult<
 
       // initial tool execution step stream
       if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
-        const providerExecutedToolApprovals = [
-          ...approvedToolApprovals,
-          ...deniedToolApprovals,
-        ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
-
         const localApprovedToolApprovals = approvedToolApprovals.filter(
           toolApproval => !toolApproval.toolCall.providerExecuted,
         );
