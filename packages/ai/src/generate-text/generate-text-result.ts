@@ -1,3 +1,4 @@
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { CallWarning, FinishReason, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
@@ -7,7 +8,7 @@ import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { InferCompleteOutput } from './output-utils';
-import { ReasoningOutput, ReasoningFileOutput } from './reasoning-output';
+import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
@@ -16,8 +17,6 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import type { GenerationContext } from './generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * The result of a `generateText` call.
@@ -25,7 +24,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  */
 export interface GenerateTextResult<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context,
   OUTPUT extends Output,
 > {
   /**
@@ -153,7 +152,7 @@ export interface GenerateTextResult<
    * You can use this to get information about intermediate steps,
    * such as the tool calls or the response headers.
    */
-  readonly steps: Array<StepResult<TOOLS, CONTEXT>>;
+  readonly steps: Array<StepResult<TOOLS, USER_CONTEXT>>;
 
   /**
    * The generated structured output. It uses the `output` specification.

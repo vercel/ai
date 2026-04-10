@@ -1,3 +1,8 @@
+import type {
+  Context,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import {
   FlexibleSchema,
   MaybePromiseLike,
@@ -16,46 +21,43 @@ import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
-import type { GenerationContext } from '../generate-text/generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 import { CallSettings, TimeoutConfiguration } from '../prompt/call-settings';
 import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import { DownloadFunction } from '../util/download/download-function';
+import { Listener } from '../util/notify';
 import { AgentCallParameters } from './agent';
 
 export type ToolLoopAgentOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = (event: OnStartEvent<TOOLS, CONTEXT, OUTPUT>) => PromiseLike<void> | void;
+> = Listener<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 export type ToolLoopAgentOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = (
-  event: OnStepStartEvent<TOOLS, CONTEXT, OUTPUT>,
-) => PromiseLike<void> | void;
+> = Listener<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 export type ToolLoopAgentOnToolCallStartCallback<
   TOOLS extends ToolSet = ToolSet,
-> = (event: OnToolCallStartEvent<TOOLS>) => PromiseLike<void> | void;
+> = Listener<OnToolCallStartEvent<TOOLS>>;
 
 export type ToolLoopAgentOnToolCallFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-> = (event: OnToolCallFinishEvent<TOOLS>) => PromiseLike<void> | void;
+> = Listener<OnToolCallFinishEvent<TOOLS>>;
 
 export type ToolLoopAgentOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
-> = (stepResult: OnStepFinishEvent<TOOLS, CONTEXT>) => Promise<void> | void;
+  USER_CONTEXT extends Context = Context,
+> = Listener<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
 
 export type ToolLoopAgentOnFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
-> = (event: OnFinishEvent<TOOLS, CONTEXT>) => PromiseLike<void> | void;
+  USER_CONTEXT extends Context = Context,
+> = Listener<OnFinishEvent<TOOLS, USER_CONTEXT>>;
 
 /**
  * Configuration options for an agent.
@@ -63,7 +65,7 @@ export type ToolLoopAgentOnFinishCallback<
 export type ToolLoopAgentSettings<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
 > = Omit<CallSettings, 'abortSignal'> & {
   /**
@@ -108,8 +110,8 @@ export type ToolLoopAgentSettings<
    * @default isStepCount(20)
    */
   stopWhen?:
-    | StopCondition<NoInfer<TOOLS>, CONTEXT>
-    | Array<StopCondition<NoInfer<TOOLS>, CONTEXT>>;
+    | StopCondition<NoInfer<TOOLS>, USER_CONTEXT>
+    | Array<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>;
 
   /**
    * Optional telemetry configuration (experimental).
@@ -130,7 +132,7 @@ export type ToolLoopAgentSettings<
   /**
    * Optional function that you can use to provide different settings for a step.
    */
-  prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, CONTEXT>;
+  prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, USER_CONTEXT>;
 
   /**
    * A function that attempts to repair a tool call that failed to parse.
@@ -142,7 +144,7 @@ export type ToolLoopAgentSettings<
    */
   experimental_onStart?: ToolLoopAgentOnStartCallback<
     NoInfer<TOOLS>,
-    CONTEXT,
+    USER_CONTEXT,
     NoInfer<OUTPUT>
   >;
 
@@ -151,7 +153,7 @@ export type ToolLoopAgentSettings<
    */
   experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<
     NoInfer<TOOLS>,
-    NoInfer<CONTEXT>,
+    NoInfer<USER_CONTEXT>,
     NoInfer<OUTPUT>
   >;
 
@@ -196,7 +198,7 @@ export type ToolLoopAgentSettings<
    * If you need to mutate the context, analyze the tool calls and results
    * in `prepareStep` and update it there.
    */
-  context?: CONTEXT;
+  context?: InferToolSetContext<TOOLS> & USER_CONTEXT;
 
   /**
    * Custom download function to use for URLs.
@@ -221,7 +223,12 @@ export type ToolLoopAgentSettings<
       'onStepFinish'
     > &
       Pick<
-        ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, CONTEXT, NoInfer<OUTPUT>>,
+        ToolLoopAgentSettings<
+          CALL_OPTIONS,
+          TOOLS,
+          USER_CONTEXT,
+          NoInfer<OUTPUT>
+        >,
         | 'model'
         | 'tools'
         | 'maxOutputTokens'
@@ -239,10 +246,10 @@ export type ToolLoopAgentSettings<
         | 'activeTools'
         | 'providerOptions'
         | 'experimental_download'
-      > & { context: CONTEXT },
+      > & { context: InferToolSetContext<TOOLS> & USER_CONTEXT },
   ) => MaybePromiseLike<
     Pick<
-      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, CONTEXT, NoInfer<OUTPUT>>,
+      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, USER_CONTEXT, NoInfer<OUTPUT>>,
       | 'model'
       | 'tools'
       | 'maxOutputTokens'

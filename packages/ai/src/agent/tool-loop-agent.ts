@@ -4,8 +4,7 @@ import { Output } from '../generate-text/output';
 import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
-import type { GenerationContext } from '../generate-text/generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
 import {
@@ -28,20 +27,20 @@ import {
 export class ToolLoopAgent<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
-> implements Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT> {
+> implements Agent<CALL_OPTIONS, TOOLS, USER_CONTEXT, OUTPUT> {
   readonly version = 'agent-v1';
 
   private readonly settings: ToolLoopAgentSettings<
     CALL_OPTIONS,
     TOOLS,
-    CONTEXT,
+    USER_CONTEXT,
     OUTPUT
   >;
 
   constructor(
-    settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>,
+    settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, USER_CONTEXT, OUTPUT>,
   ) {
     this.settings = settings;
   }
@@ -66,7 +65,7 @@ export class ToolLoopAgent<
     options?: CALL_OPTIONS;
   }): Promise<
     Omit<
-      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>,
+      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, USER_CONTEXT, OUTPUT>,
       | 'prepareCall'
       | 'instructions'
       | 'experimental_onStart'
@@ -101,7 +100,7 @@ export class ToolLoopAgent<
             ToolLoopAgentSettings<
               CALL_OPTIONS,
               TOOLS,
-              CONTEXT,
+              USER_CONTEXT,
               OUTPUT
             >['prepareCall']
           >
@@ -145,7 +144,7 @@ export class ToolLoopAgent<
     onFinish,
     ...options
   }: AgentCallParameters<CALL_OPTIONS, TOOLS>): Promise<
-    GenerateTextResult<TOOLS, CONTEXT, OUTPUT>
+    GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>
   > {
     return generateText({
       ...(await this.prepareCall(options)),
@@ -154,13 +153,13 @@ export class ToolLoopAgent<
       experimental_onStart: this.mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
-          | ToolLoopAgentOnStartCallback<TOOLS, CONTEXT, OUTPUT>
+          | ToolLoopAgentOnStartCallback<TOOLS, USER_CONTEXT, OUTPUT>
           | undefined,
       ),
       experimental_onStepStart: this.mergeCallbacks(
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
-          | ToolLoopAgentOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>
+          | ToolLoopAgentOnStepStartCallback<TOOLS, USER_CONTEXT, OUTPUT>
           | undefined,
       ),
       experimental_onToolCallStart: this.mergeCallbacks(
@@ -194,7 +193,7 @@ export class ToolLoopAgent<
     onFinish,
     ...options
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
-    StreamTextResult<TOOLS, CONTEXT, OUTPUT>
+    StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT>
   > {
     return streamText({
       ...(await this.prepareCall(options)),
@@ -204,13 +203,13 @@ export class ToolLoopAgent<
       experimental_onStart: this.mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
-          | ToolLoopAgentOnStartCallback<TOOLS, CONTEXT, OUTPUT>
+          | ToolLoopAgentOnStartCallback<TOOLS, USER_CONTEXT, OUTPUT>
           | undefined,
       ),
       experimental_onStepStart: this.mergeCallbacks(
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
-          | ToolLoopAgentOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>
+          | ToolLoopAgentOnStepStartCallback<TOOLS, USER_CONTEXT, OUTPUT>
           | undefined,
       ),
       experimental_onToolCallStart: this.mergeCallbacks(

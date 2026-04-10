@@ -5542,7 +5542,7 @@ describe('streamText', () => {
     });
 
     it('should pass context', async () => {
-      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+      let startEvent!: any;
 
       const result = streamText({
         model: createTestModel(),
