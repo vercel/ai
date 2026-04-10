@@ -133,12 +133,10 @@ const bedrock = createAmazonBedrock({
 ```
 
 <Note>
-  The credentials settings fall back to environment variable defaults described
-  below. These may be set by your serverless environment without your awareness,
-  which can lead to merged/conflicting credential values and provider errors
-  around failed authentication. If you're experiencing issues be sure you are
-  explicitly specifying all settings (even if `undefined`) to avoid any
-  defaults.
+  Omitted options use the environment variables below. When **both**
+  `accessKeyId` and `secretAccessKey` are strings, SigV4 uses a **`sessionToken`
+  only if you pass one**—not `AWS_SESSION_TOKEN` from the environment—so static
+  keys are not mixed with workload tokens (e.g. EKS IRSA).
 </Note>
 
 You can use the following optional settings to customize the Amazon Bedrock provider instance:
@@ -160,8 +158,10 @@ You can use the following optional settings to customize the Amazon Bedrock prov
 
 - **sessionToken** _string_
 
-  Optional. The AWS session token that you want to use for the API calls.
-  It uses the `AWS_SESSION_TOKEN` environment variable by default.
+  Optional. For temporary credentials. With **both** access keys set as strings,
+  pass the token here if needed; `AWS_SESSION_TOKEN` from the environment is not
+  used. If either key is taken from the environment, omitting `sessionToken`
+  allows `AWS_SESSION_TOKEN`.
 
 - **credentialProvider** _() =&gt; Promise&lt;&#123; accessKeyId: string; secretAccessKey: string; sessionToken?: string; &#125;&gt;_
 
@@ -1359,8 +1359,10 @@ You can use the following optional settings to customize the Bedrock Anthropic p
 
 - **sessionToken** _string_
 
-  Optional. The AWS session token that you want to use for the API calls.
-  It uses the `AWS_SESSION_TOKEN` environment variable by default.
+  Optional. For temporary credentials. With **both** access keys set as strings,
+  pass the token here if needed; `AWS_SESSION_TOKEN` from the environment is not
+  used. If either key is taken from the environment, omitting `sessionToken`
+  allows `AWS_SESSION_TOKEN`.
 
 - **apiKey** _string_
 
@@ -1618,9 +1620,4 @@ dependency on the `@aws-sdk/client-bedrock-runtime` package.
 The `bedrockOptions` provider setting previously available has been removed. If
 you were using the `bedrockOptions` object, you should now use the `region`,
 `accessKeyId`, `secretAccessKey`, and `sessionToken` settings directly instead.
-
-Note that you may need to set all of these explicitly, e.g. even if you're not
-using `sessionToken`, set it to `undefined`. If you're running in a serverless
-environment, there may be default environment variables set by your containing
-environment that the Amazon Bedrock provider will then pick up and could
-conflict with the ones you're intending to use.
+Static IAM user keys do not require `sessionToken`.
