@@ -1733,10 +1733,6 @@ class DefaultStreamTextResult<
                       warnings: warnings ?? [],
                     });
 
-                    // TODO considering changing to onStreamPart listener
-                    // which receives all stream parts as they are
-                    // (and add necessary information to the stream parts
-                    // where needed)
                     void globalTelemetry.onChunk?.({
                       chunk: {
                         type: 'ai.stream.firstChunk',
@@ -1873,6 +1869,13 @@ class DefaultStreamTextResult<
                       const exhaustiveCheck: never = chunkType;
                       throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
                     }
+                  }
+
+                  if (
+                    chunkType !== 'model-call-end' &&
+                    chunkType !== 'model-call-response-metadata'
+                  ) {
+                    void globalTelemetry.onChunk?.({ chunk });
                   }
                 },
 

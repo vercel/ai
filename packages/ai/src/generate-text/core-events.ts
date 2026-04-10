@@ -342,20 +342,7 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
  */
 export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
   readonly chunk:
-    | Extract<
-        TextStreamPart<TOOLS>,
-        {
-          type:
-            | 'text-delta'
-            | 'reasoning-delta'
-            | 'source'
-            | 'tool-call'
-            | 'tool-input-start'
-            | 'tool-input-delta'
-            | 'tool-result'
-            | 'raw';
-        }
-      >
+    | TextStreamPart<TOOLS>
     | {
         readonly type: 'ai.stream.firstChunk' | 'ai.stream.finish';
         readonly callId: string;
