@@ -1,4 +1,4 @@
-import { gateway, streamText } from 'ai';
+import { gatewayTools, streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -6,7 +6,7 @@ async function main() {
     model: 'openai/gpt-5-nano',
     prompt: `Search for news about AI regulations from the first week of January 2025.`,
     tools: {
-      perplexity_search: gateway.tools.perplexitySearch(),
+      perplexity_search: gatewayTools.perplexitySearch(),
     },
   });
 
