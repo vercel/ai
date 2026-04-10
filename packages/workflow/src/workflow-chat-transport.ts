@@ -356,7 +356,12 @@ export class WorkflowChatTransport<
       // When using a negative startIndex, the server resolves it to an
       // absolute position. The reconnection endpoint should return the tail
       // index so we can compute the resolved position for subsequent retries.
-      if (useExplicitStartIndex && explicitStartIndex < 0) {
+      if (useExplicitStartIndex && explicitStartIndex > 0) {
+        // Positive startIndex: the first request starts at this absolute
+        // position, so set chunkIndex to match so subsequent retries
+        // resume from (explicitStartIndex + chunks received).
+        chunkIndex = explicitStartIndex;
+      } else if (useExplicitStartIndex && explicitStartIndex < 0) {
         const tailIndexHeader = res.headers.get('x-workflow-stream-tail-index');
         const tailIndex =
           tailIndexHeader !== null ? parseInt(tailIndexHeader, 10) : NaN;

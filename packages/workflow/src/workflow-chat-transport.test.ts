@@ -320,6 +320,60 @@ describe('WorkflowChatTransport', () => {
     });
   });
 
+  describe('positive initialStartIndex', () => {
+    function makeSSEStream(...events: string[]) {
+      return new ReadableStream({
+        start(controller) {
+          for (const event of events) {
+            controller.enqueue(new TextEncoder().encode(`data: ${event}\n\n`));
+          }
+          controller.close();
+        },
+      });
+    }
+
+    it('should adjust chunkIndex so retries resume from the correct position', async () => {
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        initialStartIndex: 100,
+      });
+
+      // First call: starts at 100, stream disconnects after delivering 0 chunks
+      // Second call: retry should resume from startIndex=100 (not 0)
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          headers: new Headers(),
+          body: makeSSEStream(), // empty — simulates immediate disconnect
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          headers: new Headers(),
+          body: makeSSEStream('{"type":"finish"}'),
+        });
+
+      const stream = await transport.reconnectToStream({
+        chatId: 'test-chat',
+      });
+
+      const reader = stream!.getReader();
+      while (!(await reader.read()).done) {}
+
+      // First call: positive startIndex
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        1,
+        '/api/chat/test-chat/stream?startIndex=100',
+        expect.any(Object),
+      );
+      // Second call: chunkIndex was set to 100, so retry resumes from 100
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        '/api/chat/test-chat/stream?startIndex=100',
+        expect.any(Object),
+      );
+    });
+  });
+
   describe('negative initialStartIndex', () => {
     function makeSSEStream(...events: string[]) {
       return new ReadableStream({
