@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.158
+
+### Patch Changes
+
+- 295beba: fix(ai): fix `lastAssistantMessageIsCompleteWithApprovalResponses` to no longer ignore `providerExecuted` tool approvals
+
 ## 6.0.157
 
 ### Patch Changes
