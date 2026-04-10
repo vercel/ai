@@ -4,6 +4,7 @@ import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { resolveRerankingModel } from '../model/resolve-model';
 import { RerankingModel } from '../types';
 import { notify } from '../util/notify';
 import type { Listener } from '../util/notify';
@@ -32,7 +33,7 @@ const originalGenerateCallId = createIdGenerator({
  * @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
 export async function rerank<VALUE extends JSONObject | string>({
-  model,
+  model: modelArg,
   documents,
   query,
   topN,
@@ -114,6 +115,7 @@ export async function rerank<VALUE extends JSONObject | string>({
     generateCallId?: () => string;
   };
 }): Promise<RerankResult<VALUE>> {
+  const model = resolveRerankingModel(modelArg);
   const callId = generateCallId();
 
   const createGlobalTelemetry = getGlobalTelemetryIntegration();

@@ -1,5 +1,63 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [2add429]
+  - ai@7.0.0-beta.77
+
+## 3.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [fcc6869]
+  - ai@7.0.0-beta.76
+
+## 3.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - ai@7.0.0-beta.75
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 3.0.0-beta.75
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - ai@7.0.0-beta.74
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 3.0.0-beta.74
+
+### Patch Changes
+
+- ai@7.0.0-beta.73
+
+## 3.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [664a0eb]
+  - ai@7.0.0-beta.72
+
+## 3.0.0-beta.72
+
+### Patch Changes
+
+- Updated dependencies [e68be55]
+  - ai@7.0.0-beta.71
+
+## 3.0.0-beta.71
+
+### Patch Changes
+
+- ai@7.0.0-beta.70
+
 ## 3.0.0-beta.70
 
 ### Patch Changes

@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import z from 'zod';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { streamModelCall } from './stream-model-call';
+import { streamLanguageModelCall } from './stream-language-model-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
@@ -29,7 +29,7 @@ const testUsage: LanguageModelV4Usage = {
   },
 };
 
-async function streamModelCallResult<TOOLS extends ToolSet>({
+async function streamLanguageModelCallResult<TOOLS extends ToolSet>({
   streamParts,
   tools,
   repairToolCall,
@@ -44,7 +44,7 @@ async function streamModelCallResult<TOOLS extends ToolSet>({
     }),
   });
 
-  const { stream } = await streamModelCall({
+  const { stream } = await streamLanguageModelCall({
     model,
     tools,
     prompt: 'test prompt',
@@ -55,7 +55,7 @@ async function streamModelCallResult<TOOLS extends ToolSet>({
   return convertReadableStreamToArray(stream);
 }
 
-describe('streamModelCall', () => {
+describe('streamLanguageModelCall', () => {
   describe('stream-start parts', () => {
     it('should convert stream-start to init-model-call', async () => {
       const model = new MockLanguageModelV4({
@@ -84,7 +84,7 @@ describe('streamModelCall', () => {
         }),
       });
 
-      const { stream } = await streamModelCall({
+      const { stream } = await streamLanguageModelCall({
         model,
         tools: undefined,
         prompt: 'test prompt',
@@ -138,7 +138,7 @@ describe('streamModelCall', () => {
 
   describe('text parts', () => {
     it('should convert text to delta', async () => {
-      const result = await streamModelCallResult({
+      const result = await streamLanguageModelCallResult({
         streamParts: [
           { type: 'text-start', id: '1' },
           { type: 'text-delta', id: '1', delta: 'text' },
@@ -199,7 +199,7 @@ describe('streamModelCall', () => {
 
   describe('reasoning parts', () => {
     it('should convert text to delta', async () => {
-      const result = await streamModelCallResult({
+      const result = await streamLanguageModelCallResult({
         streamParts: [
           { type: 'reasoning-start', id: '1' },
           { type: 'reasoning-delta', id: '1', delta: 'text' },
@@ -232,7 +232,7 @@ describe('streamModelCall', () => {
 
   describe('file parts', () => {
     it('should use GeneratedFile', async () => {
-      const result = await streamModelCallResult({
+      const result = await streamLanguageModelCallResult({
         streamParts: [
           {
             type: 'file',
@@ -289,7 +289,7 @@ describe('streamModelCall', () => {
     });
 
     it('should use GeneratedFile with providerMetadata', async () => {
-      const result = await streamModelCallResult({
+      const result = await streamLanguageModelCallResult({
         streamParts: [
           {
             type: 'file',
@@ -369,7 +369,7 @@ describe('streamModelCall', () => {
 
   describe('custom parts', () => {
     it('should forward custom parts', async () => {
-      const result = await streamModelCallResult({
+      const result = await streamLanguageModelCallResult({
         streamParts: [
           {
             type: 'custom',
@@ -436,7 +436,7 @@ describe('streamModelCall', () => {
         }),
       };
 
-      const result = await streamModelCallResult({
+      const result = await streamLanguageModelCallResult({
         streamParts: [
           {
             type: 'tool-call',
@@ -507,7 +507,7 @@ describe('streamModelCall', () => {
 
   describe('tool-approval-request parts', () => {
     it('should emit error when tool call is not found for provider approval request', async () => {
-      const result = await streamModelCallResult({
+      const result = await streamLanguageModelCallResult({
         streamParts: [
           // No tool-call part before the approval request
           {
@@ -568,7 +568,7 @@ describe('streamModelCall', () => {
         }),
       };
 
-      const result = await streamModelCallResult({
+      const result = await streamLanguageModelCallResult({
         streamParts: [
           {
             type: 'tool-call',
@@ -663,7 +663,7 @@ describe('streamModelCall', () => {
         }),
       };
 
-      const result = await streamModelCallResult({
+      const result = await streamLanguageModelCallResult({
         streamParts: [
           {
             type: 'tool-call',

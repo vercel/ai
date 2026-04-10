@@ -23,7 +23,6 @@ export type GatewayModelId =
   | 'amazon/nova-micro'
   | 'amazon/nova-pro'
   | 'anthropic/claude-3-haiku'
-  | 'anthropic/claude-3-opus'
   | 'anthropic/claude-3.5-haiku'
   | 'anthropic/claude-3.7-sonnet'
   | 'anthropic/claude-haiku-4.5'
@@ -153,7 +152,6 @@ export type GatewayModelId =
   | 'perplexity/sonar-pro'
   | 'perplexity/sonar-reasoning-pro'
   | 'prime-intellect/intellect-3'
-  | 'xai/grok-2-vision'
   | 'xai/grok-3'
   | 'xai/grok-3-fast'
   | 'xai/grok-3-mini'
@@ -183,5 +181,6 @@ export type GatewayModelId =
   | 'zai/glm-4.7-flashx'
   | 'zai/glm-5'
   | 'zai/glm-5-turbo'
+  | 'zai/glm-5.1'
   | 'zai/glm-5v-turbo'
   | (string & {});

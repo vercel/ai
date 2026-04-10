@@ -1,5 +1,69 @@
 # ai
 
+## 7.0.0-beta.77
+
+### Patch Changes
+
+- 2add429: fix(ai): skip passing invalid JSON inputs to response messages
+
+## 7.0.0-beta.76
+
+### Major Changes
+
+- fcc6869: refactor(ai/core): rename `ModelCallStreamPart` to `LanguageModelStreamPart` and align stream model call naming (`streamLanguageModelCall`, `experimental_streamLanguageModelCall`).
+
+  This updates experimental low-level stream primitives to use "language model call" terminology consistently.
+
+## 7.0.0-beta.75
+
+### Patch Changes
+
+- 176466a: chore(provider): align V4 model return types to have their own definitions across all model interfaces
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/gateway@4.0.0-beta.43
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 7.0.0-beta.74
+
+### Patch Changes
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/gateway@4.0.0-beta.42
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 7.0.0-beta.73
+
+### Patch Changes
+
+- Updated dependencies [1464561]
+  - @ai-sdk/gateway@4.0.0-beta.41
+
+## 7.0.0-beta.72
+
+### Patch Changes
+
+- 664a0eb: feat (ai/core): support plain string model IDs in `rerank()` function
+
+  The `rerank()` function now accepts plain model strings (e.g., `'cohere/rerank-v3.5'`) in addition to `RerankingModel` objects, matching the behavior of `generateText`, `embed`, and other core functions.
+
+## 7.0.0-beta.71
+
+### Patch Changes
+
+- e68be55: fix(ai): skip stringifying text when streaming partial text
+- Updated dependencies [939171f]
+  - @ai-sdk/gateway@4.0.0-beta.40
+
+## 7.0.0-beta.70
+
+### Patch Changes
+
+- Updated dependencies [0694029]
+  - @ai-sdk/gateway@4.0.0-beta.39
+
 ## 7.0.0-beta.69
 
 ### Major Changes
