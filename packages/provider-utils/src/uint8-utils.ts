@@ -10,15 +10,15 @@ export function convertBase64ToUint8Array(base64String: string) {
 }
 
 export function convertUint8ArrayToBase64(array: Uint8Array): string {
-  let latin1string = '';
+  const chunks: string[] = [];
+  const chunkSize = 4096;
 
   // Note: regular for loop to support older JavaScript versions that
   // do not support for..of on Uint8Array
-  for (let i = 0; i < array.length; i++) {
-    latin1string += String.fromCodePoint(array[i]);
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(String.fromCodePoint(...array.subarray(i, i + chunkSize)));
   }
-
-  return btoa(latin1string);
+  return btoa(chunks.join(''));
 }
 
 export function convertToBase64(value: string | Uint8Array): string {
