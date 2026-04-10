@@ -1,14 +1,14 @@
 import { openai } from '@ai-sdk/openai';
 import {
   AsyncIterableStream,
-  experimental_streamModelCall as streamModelCall,
-  type Experimental_ModelCallStreamPart as ModelCallStreamPart,
+  experimental_streamLanguageModelCall as streamLanguageModelCall,
+  type Experimental_LanguageModelStreamPart as LanguageModelStreamPart,
 } from 'ai';
 import { run } from '../lib/run';
 
 run(async () => {
-  const { stream }: { stream: AsyncIterableStream<ModelCallStreamPart> } =
-    await streamModelCall({
+  const { stream }: { stream: AsyncIterableStream<LanguageModelStreamPart> } =
+    await streamLanguageModelCall({
       model: openai('gpt-5.4'),
       prompt: 'How many people live in the capital of France?',
     });

@@ -37,7 +37,7 @@ function prepareResponse({
 }
 
 describe('OpenAISkills', () => {
-  describe('upload', () => {
+  describe('uploadSkill', () => {
     it('should send files as multipart form data', async () => {
       prepareResponse({
         url: 'https://api.openai.com/v1/skills',
@@ -45,7 +45,7 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      await skills.upload({
+      await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -61,7 +61,7 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      await skills.upload({
+      await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -77,7 +77,7 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      const result = await skills.upload({
+      const result = await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -102,7 +102,7 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      const result = await skills.upload({
+      const result = await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
         displayTitle: 'My Skill',
       });
@@ -124,7 +124,7 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      const result = await skills.upload({
+      const result = await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -138,7 +138,7 @@ describe('OpenAISkills', () => {
       });
 
       const skills = provider.skills();
-      const result = await skills.upload({
+      const result = await skills.uploadSkill({
         files: [
           {
             path: 'data.bin',

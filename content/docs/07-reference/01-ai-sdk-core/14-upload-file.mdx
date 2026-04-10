@@ -33,9 +33,9 @@ const { providerReference } = await uploadFile({
   content={[
     {
       name: 'api',
-      type: 'FilesV4',
+      type: 'FilesV4 | ProviderV4',
       description:
-        'The files API interface to use for uploading. Obtained from a provider, e.g. `openai.files()` or `anthropic.files()`.',
+        'The files API interface to use for uploading. Can be a `FilesV4` instance (e.g. `openai.files()`) or a provider instance directly (e.g. `openai`), in which case `.files()` is called automatically.',
     },
     {
       name: 'data',

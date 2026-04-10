@@ -1,6 +1,6 @@
 import {
-  LanguageModelV4,
   LanguageModelV4Content,
+  LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
 import {
@@ -8,7 +8,6 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
-  ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
@@ -649,33 +648,11 @@ export async function generateText<
       });
     }
 
-    // Forward provider-executed approval responses to the provider
-    const providerExecutedToolApprovals = [
-      ...approvedToolApprovals,
-      ...deniedToolApprovals,
-    ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
-
-    if (providerExecutedToolApprovals.length > 0) {
-      responseMessages.push({
-        role: 'tool',
-        content: providerExecutedToolApprovals.map(
-          toolApproval =>
-            ({
-              type: 'tool-approval-response',
-              approvalId: toolApproval.approvalResponse.approvalId,
-              approved: toolApproval.approvalResponse.approved,
-              reason: toolApproval.approvalResponse.reason,
-              providerExecuted: true,
-            }) satisfies ToolApprovalResponse,
-        ),
-      });
-    }
-
     const callSettings = prepareCallSettings(settings);
 
-    let currentModelResponse: Awaited<
-      ReturnType<LanguageModelV4['doGenerate']>
-    > & { response: { id: string; timestamp: Date; modelId: string } };
+    let currentModelResponse: LanguageModelV4GenerateResult & {
+      response: { id: string; timestamp: Date; modelId: string };
+    };
     let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
     let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
     const steps: GenerateTextResult<TOOLS, CONTEXT, OUTPUT>['steps'] = [];

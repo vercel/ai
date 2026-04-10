@@ -2,6 +2,7 @@ import {
   EmbeddingModelV3,
   EmbeddingModelV4,
   EmbeddingModelV4CallOptions,
+  EmbeddingModelV4Result,
 } from '@ai-sdk/provider';
 import { asEmbeddingModelV4 } from '../model/as-embedding-model-v4';
 import { EmbeddingModelMiddleware } from '../types';
@@ -74,7 +75,7 @@ const doWrap = ({
       overrideSupportsParallelCalls?.({ model }) ?? model.supportsParallelCalls,
     async doEmbed(
       params: EmbeddingModelV4CallOptions,
-    ): Promise<Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>> {
+    ): Promise<EmbeddingModelV4Result> {
       const transformedParams = await doTransform({ params });
       const doEmbed = async () => model.doEmbed(transformedParams);
       return wrapEmbed

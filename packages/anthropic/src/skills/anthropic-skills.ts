@@ -64,9 +64,9 @@ export class AnthropicSkills implements SkillsV4 {
     };
   }
 
-  async upload(
-    params: Parameters<SkillsV4['upload']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['upload']>>> {
+  async uploadSkill(
+    params: Parameters<SkillsV4['uploadSkill']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['uploadSkill']>>> {
     const warnings: SharedV4Warning[] = [];
 
     const formData = new FormData();
