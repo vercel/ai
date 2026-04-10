@@ -444,6 +444,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
+      ...(response.usage?.cost_in_usd_ticks != null && {
+        providerMetadata: {
+          xai: {
+            costInUsdTicks: response.usage.cost_in_usd_ticks,
+          },
+        },
+      }),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -489,6 +496,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     };
     let hasFunctionCall = false;
     let usage: LanguageModelV4Usage | undefined = undefined;
+    let costInUsdTicks: number | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -678,6 +686,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
               if (response.usage) {
                 usage = convertXaiResponsesUsage(response.usage);
+                costInUsdTicks = response.usage.cost_in_usd_ticks;
               }
 
               if (event.type === 'response.incomplete') {
@@ -1023,6 +1032,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
+              ...(costInUsdTicks != null && {
+                providerMetadata: {
+                  xai: {
+                    costInUsdTicks,
+                  },
+                },
+              }),
             });
           },
         }),
