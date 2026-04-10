@@ -459,15 +459,18 @@ export function DevToolsTelemetry(): TelemetryIntegration {
     },
 
     onError: async error => {
-      const errorObj = error as { callId?: string } | undefined;
+      const errorObj = error as
+        | { callId?: string; error?: unknown }
+        | undefined;
       const callId = errorObj?.callId;
       if (!callId) return;
 
       const state = callStates.get(callId);
       if (!state) return;
 
+      const cause = errorObj?.error ?? error;
       const errorMessage =
-        error instanceof Error ? error.message : String(error);
+        cause instanceof Error ? cause.message : String(cause);
 
       for (const [, stepState] of state.stepStates) {
         activeSteps.delete(stepState.stepId);
