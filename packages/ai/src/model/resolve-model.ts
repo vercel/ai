@@ -9,7 +9,6 @@ import {
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
-import '../global';
 import { UnsupportedModelVersionError } from '../error';
 import { EmbeddingModel } from '../types/embedding-model';
 import { LanguageModel } from '../types/language-model';

@@ -1,3 +1,6 @@
+// import globals
+import '../src/global';
+
 // internal re-exports
 export { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
 
