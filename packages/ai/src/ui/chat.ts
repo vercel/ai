@@ -172,7 +172,7 @@ export type ChatOnDataCallback<UI_MESSAGE extends UIMessage> = (
  * @param finishReason The reason why the generation finished.
  */
 export type ChatOnFinishCallback<UI_MESSAGE extends UIMessage> = (options: {
-  message: UI_MESSAGE;
+  message: UI_MESSAGE | undefined;
   messages: UI_MESSAGE[];
   isAbort: boolean;
   isDisconnect: boolean;
@@ -758,12 +758,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     } finally {
       try {
         this.onFinish?.({
-          message: this.activeResponse!.state.message,
+          message: this.activeResponse?.state?.message,
           messages: this.state.messages,
           isAbort,
           isDisconnect,
           isError,
-          finishReason: this.activeResponse?.state.finishReason,
+          finishReason: this.activeResponse?.state?.finishReason,
         });
       } catch (err) {
         console.error(err);
