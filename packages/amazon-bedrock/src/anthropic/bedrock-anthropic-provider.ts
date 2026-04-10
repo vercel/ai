@@ -22,6 +22,7 @@ import {
   createSigV4FetchFunction,
 } from '../bedrock-sigv4-fetch';
 import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
+import { bedrockEncodeModelId } from '../bedrock-encode-model-id';
 import { BedrockAnthropicModelId } from './bedrock-anthropic-options';
 import { VERSION } from '../version';
 
@@ -256,7 +257,7 @@ export function createBedrockAnthropic(
       fetch: fetchFunction,
 
       buildRequestUrl: (baseURL, isStreaming) =>
-        `${baseURL}/model/${encodeURIComponent(modelId)}/${
+        `${baseURL}/model/${bedrockEncodeModelId(modelId)}/${
           isStreaming ? 'invoke-with-response-stream' : 'invoke'
         }`,
 

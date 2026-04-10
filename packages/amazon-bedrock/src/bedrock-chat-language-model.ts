@@ -12,6 +12,7 @@ import {
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
+import { bedrockEncodeModelId } from './bedrock-encode-model-id';
 import {
   FetchFunction,
   ParseResult,
@@ -985,7 +986,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   private getUrl(modelId: string) {
-    const encodedModelId = encodeURIComponent(modelId);
+    const encodedModelId = bedrockEncodeModelId(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}`;
   }
 }
