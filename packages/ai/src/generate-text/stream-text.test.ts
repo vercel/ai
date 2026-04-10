@@ -5546,7 +5546,7 @@ describe('streamText', () => {
     });
 
     it('should pass context', async () => {
-      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+      let startEvent!: any;
 
       const result = streamText({
         model: createTestModel(),
@@ -23176,6 +23176,187 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(await result.text).toBe('Hello, world!');
+    });
+
+    it('should call integration onChunk with content stream chunks', async () => {
+      const chunks: Array<Record<string, unknown>> = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', world!' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        onError: () => {},
+        experimental_telemetry: {
+          integrations: {
+            onChunk: async event => {
+              chunks.push(event.chunk as Record<string, unknown>);
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(chunks.map(c => c.type)).toMatchInlineSnapshot(`
+        [
+          "ai.stream.firstChunk",
+          "text-start",
+          "text-delta",
+          "text-delta",
+          "text-end",
+          "tool-call",
+          "ai.stream.finish",
+          "tool-result",
+        ]
+      `);
+
+      const contentChunks = chunks.filter(
+        c => c.type !== 'ai.stream.firstChunk' && c.type !== 'ai.stream.finish',
+      );
+      expect(contentChunks).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": ", world!",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "testTool",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": false,
+            "input": {
+              "value": "test",
+            },
+            "output": "test-result",
+            "toolCallId": "call-1",
+            "toolName": "testTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
+    });
+
+    it('should call integration onChunk with raw chunks when includeRawChunks is enabled', async () => {
+      const chunks: Array<Record<string, unknown>> = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              {
+                type: 'raw',
+                rawValue: { type: 'content_block_delta', delta: 'Hello' },
+              },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+        includeRawChunks: true,
+        onError: () => {},
+        experimental_telemetry: {
+          integrations: {
+            onChunk: async event => {
+              chunks.push(event.chunk as Record<string, unknown>);
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      const rawChunks = chunks.filter(c => c.type === 'raw');
+      const textChunks = chunks.filter(c => c.type === 'text-delta');
+
+      expect(rawChunks).toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "delta": "Hello",
+              "type": "content_block_delta",
+            },
+            "type": "raw",
+          },
+        ]
+      `);
+      expect(textChunks).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text-delta",
+          },
+        ]
+      `);
     });
 
     it('should support multiple per-call integrations as an array', async () => {

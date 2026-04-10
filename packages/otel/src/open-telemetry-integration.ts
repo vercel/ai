@@ -1,9 +1,10 @@
 import { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type { Context as AISDKContext } from '@ai-sdk/provider-utils';
 import {
   Attributes,
   AttributeValue,
   context,
-  Context,
+  Context as OpenTelemetryContext,
   Span,
   SpanStatusCode,
   trace,
@@ -14,7 +15,6 @@ import type {
   EmbedOnFinishEvent,
   EmbedOnStartEvent,
   EmbedStartEvent,
-  GenerationContext,
   ObjectOnFinishEvent,
   ObjectOnStartEvent,
   ObjectOnStepFinishEvent,
@@ -110,9 +110,9 @@ function selectAttributes(
 
 interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  USER_CONTEXT extends AISDKContext = AISDKContext,
   OUTPUT extends Output = Output,
-> extends OnStepStartEvent<TOOLS, CONTEXT, OUTPUT> {
+> extends OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
   readonly stepToolChoice?: unknown;
@@ -122,12 +122,12 @@ interface CallState {
   operationId: string;
   telemetry: TelemetrySettings | undefined;
   rootSpan: Span | undefined;
-  rootContext: Context | undefined;
+  rootContext: OpenTelemetryContext | undefined;
   stepSpan: Span | undefined;
-  stepContext: Context | undefined;
-  embedSpans: Map<string, { span: Span; context: Context }>;
-  rerankSpan: { span: Span; context: Context } | undefined;
-  toolSpans: Map<string, { span: Span; context: Context }>;
+  stepContext: OpenTelemetryContext | undefined;
+  embedSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
+  rerankSpan: { span: Span; context: OpenTelemetryContext } | undefined;
+  toolSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
   baseTelemetryAttributes: Attributes;
   settings: Record<string, unknown>;
 }
@@ -176,7 +176,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
 
   onStart(
     event:
-      | OnStartEvent<ToolSet, Output>
+      | OnStartEvent
       | ObjectOnStartEvent
       | EmbedOnStartEvent
       | RerankOnStartEvent,
@@ -204,10 +204,10 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       return;
     }
 
-    this.onGenerateStart(event as OnStartEvent<ToolSet, Output>);
+    this.onGenerateStart(event as OnStartEvent);
   }
 
-  private onGenerateStart(event: OnStartEvent<ToolSet, Output>): void {
+  private onGenerateStart(event: OnStartEvent): void {
     const telemetry: TelemetrySettings = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
@@ -503,7 +503,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
     });
   }
 
-  onStepStart(event: OtelStepStartEvent<ToolSet, Output>): void {
+  onStepStart(event: OtelStepStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 

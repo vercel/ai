@@ -1,4 +1,4 @@
-import { tool } from '@ai-sdk/provider-utils';
+import { Context, tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
 import { Output, StreamTextOnFinishCallback } from '../generate-text';
@@ -142,43 +142,345 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('context', () => {
-    it('should infer typed context with one tool context and prepareStep', async () => {
-      const _agent = new ToolLoopAgent({
-        model: new MockLanguageModelV4(),
-        tools: {
-          weather: tool({
-            inputSchema: z.object({
-              city: z.string(),
-            }),
-            contextSchema: z.object({
-              userId: z.string(),
-            }),
-            execute: async (_input, { context }) => {
-              expectTypeOf(context).toMatchObjectType<{
-                userId: string;
-              }>();
+    const toolWithoutContext = {
+      calculator: tool({
+        inputSchema: z.object({ expression: z.string() }),
+        execute: async () => 'result',
+      }),
+    };
 
-              return 'sunny';
-            },
-          }),
+    const twoToolsWithContext = {
+      weather: tool({
+        inputSchema: z.object({ location: z.string() }),
+        contextSchema: z.object({ weatherApiKey: z.string() }),
+        execute: async ({ location }, { context: { weatherApiKey } }) => {
+          return { location, weatherApiKey };
         },
-        context: {
-          userId: 'test-user',
-          role: 'admin',
+      }),
+      db: tool({
+        inputSchema: z.object({ query: z.string() }),
+        contextSchema: z.object({ dbUrl: z.string() }),
+        execute: async ({ query }, { context: { dbUrl } }) => {
+          return { query, dbUrl };
         },
-        prepareStep: ({ context }) => {
-          expectTypeOf(context).toMatchObjectType<{
-            userId: string;
-            role: string;
-          }>();
+      }),
+    };
 
-          return {
-            context: {
-              userId: context.userId,
-              role: context.role,
-            },
-          };
+    const mixedTools = {
+      weather: tool({
+        inputSchema: z.object({ location: z.string() }),
+        contextSchema: z.object({ weatherApiKey: z.string() }),
+        execute: async ({ location }, { context: { weatherApiKey } }) => {
+          return { location, weatherApiKey };
         },
+      }),
+      calculator: tool({
+        inputSchema: z.object({ expression: z.string() }),
+        execute: async () => 'result',
+      }),
+    };
+
+    describe('no tools', () => {
+      it('should accept no context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+        });
+      });
+
+      it('should reject empty context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          // @ts-expect-error context is not accepted when no tools require it
+          context: {},
+        });
+      });
+
+      it('should accept user context', async () => {
+        const agent = new ToolLoopAgent<never, {}, { telemetryId: string }>({
+          model: new MockLanguageModelV4(),
+          context: { telemetryId: '123' },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          onFinish: ({ context }) => {
+            expectTypeOf(context).toMatchObjectType<{
+              telemetryId: string;
+            }>();
+          },
+        });
+      });
+    });
+
+    describe('single tool without contextSchema', () => {
+      it('should accept no context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: toolWithoutContext,
+        });
+      });
+
+      it('should reject empty context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: toolWithoutContext,
+          // @ts-expect-error context is not accepted when no tools require it
+          context: {},
+        });
+      });
+
+      it('should accept user context', async () => {
+        const agent = new ToolLoopAgent<
+          never,
+          typeof toolWithoutContext,
+          { telemetryId: string }
+        >({
+          model: new MockLanguageModelV4(),
+          tools: toolWithoutContext,
+          context: { telemetryId: '123' },
+        });
+
+        await agent.stream({
+          prompt: 'Hello',
+          onFinish: ({ context }) => {
+            expectTypeOf(context).toMatchObjectType<{
+              telemetryId: string;
+            }>();
+          },
+        });
+      });
+    });
+
+    describe('two tools with contextSchema', () => {
+      it('should reject no context', async () => {
+        // @ts-expect-error context is required when tools have contextSchema
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: twoToolsWithContext,
+        });
+      });
+
+      it('should reject empty context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: twoToolsWithContext,
+          // @ts-expect-error missing required weatherApiKey and dbUrl
+          context: {},
+        });
+      });
+
+      it('should reject wrong context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: twoToolsWithContext,
+          // @ts-expect-error missing required weatherApiKey and dbUrl
+          context: { wrong: 'value' },
+        });
+      });
+
+      it('should accept valid context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: twoToolsWithContext,
+          context: { weatherApiKey: 'key', dbUrl: 'url' },
+        });
+      });
+
+      it('should accept valid context with extra user properties', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: twoToolsWithContext,
+          context: {
+            weatherApiKey: 'key',
+            dbUrl: 'url',
+            telemetryId: '123',
+          },
+        });
+      });
+    });
+
+    describe('mixed tools', () => {
+      it('should reject no context', async () => {
+        // @ts-expect-error context is required when at least one tool has contextSchema
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+        });
+      });
+
+      it('should reject empty context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          // @ts-expect-error missing required weatherApiKey
+          context: {},
+        });
+      });
+
+      it('should reject wrong context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          // @ts-expect-error missing required weatherApiKey
+          context: { wrong: 'value' },
+        });
+      });
+
+      it('should accept valid context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          context: { weatherApiKey: 'key' },
+        });
+      });
+
+      it('should accept valid context with extra user properties', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          context: { weatherApiKey: 'key', telemetryId: '123' },
+        });
+      });
+    });
+
+    describe('mixed tools with user context in prepareStep', () => {
+      it('should reject no context', async () => {
+        // @ts-expect-error context is required when at least one tool has contextSchema
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          prepareStep: ({ context }) => {
+            expectTypeOf(context).toEqualTypeOf<
+              {
+                weatherApiKey: string;
+              } & Context
+            >();
+
+            return {};
+          },
+        });
+      });
+
+      it('should reject empty context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          // @ts-expect-error missing required weatherApiKey
+          context: {},
+          prepareStep: ({ context }) => {
+            expectTypeOf(context).toEqualTypeOf<{
+              weatherApiKey: string;
+            }>();
+
+            return {};
+          },
+        });
+      });
+
+      it('should reject wrong context with only user properties', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          // @ts-expect-error missing required weatherApiKey
+          context: { telemetryId: '123' },
+          prepareStep: ({ context }) => {
+            expectTypeOf(context).toMatchObjectType<{
+              weatherApiKey: string;
+              telemetryId: string;
+            }>();
+
+            return {};
+          },
+        });
+      });
+
+      it('should accept valid context and expose combined type in prepareStep', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          context: { weatherApiKey: 'key', telemetryId: '123' },
+          prepareStep: ({ context }) => {
+            expectTypeOf(context).toMatchObjectType<{
+              weatherApiKey: string;
+              telemetryId: string;
+            }>();
+
+            return {};
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          onFinish: ({ context }) => {
+            expectTypeOf(context).toMatchObjectType<{
+              weatherApiKey: string;
+              telemetryId: string;
+            }>();
+          },
+        });
+      });
+    });
+
+    describe('no tools with prepareStep', () => {
+      it('should accept no context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          prepareStep: ({ context }) => {
+            expectTypeOf(context).toEqualTypeOf<Context>();
+
+            return {};
+          },
+        });
+      });
+
+      it('should reject empty context', async () => {
+        new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          // @ts-expect-error context is not accepted when no tools require it
+          context: {},
+          prepareStep: ({ context }) => {
+            expectTypeOf(context).toEqualTypeOf<{}>();
+
+            return {};
+          },
+        });
+      });
+
+      it('should accept arbitrary context', async () => {
+        new ToolLoopAgent<never, {}, { someValue: string }>({
+          model: new MockLanguageModelV4(),
+          context: { someValue: 'value' },
+          prepareStep: ({ context }) => {
+            expectTypeOf(context).toMatchObjectType<{
+              someValue: string;
+            }>();
+
+            return {};
+          },
+        });
+      });
+
+      it('should accept user context', async () => {
+        const agent = new ToolLoopAgent<never, {}, { telemetryId: string }>({
+          model: new MockLanguageModelV4(),
+          context: { telemetryId: '123' },
+          prepareStep: ({ context }) => {
+            expectTypeOf(context).toMatchObjectType<{
+              telemetryId: string;
+            }>();
+
+            return {};
+          },
+        });
+
+        await agent.stream({
+          prompt: 'Hello',
+          onFinish: ({ context }) => {
+            expectTypeOf(context).toMatchObjectType<{
+              telemetryId: string;
+            }>();
+          },
+        });
       });
     });
   });
