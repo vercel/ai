@@ -23,7 +23,8 @@ export function tool<CONTEXT extends Context>(
   return tool;
 }
 
-export type ToolSet = Record<string, Tool<any>>;
+// key fix: Tool vs Tool<any>
+export type ToolSet = Record<string, Tool>;
 
 type UnionToIntersection<U> = (
   U extends unknown ? (arg: U) => void : never
