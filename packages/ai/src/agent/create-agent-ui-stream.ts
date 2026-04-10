@@ -9,7 +9,7 @@ import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { Agent } from './agent';
-import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
+import { UIMessageStreamOnStepFinishCallback } from '../ui-message-stream/ui-message-stream-on-step-finish-callback';
 
 /**
  * Runs the agent and stream the output as a UI message stream.
@@ -48,7 +48,9 @@ export async function createAgentUIStream<
   experimental_transform?:
     | StreamTextTransform<TOOLS>
     | Array<StreamTextTransform<TOOLS>>;
-  onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+  onStepFinish?: UIMessageStreamOnStepFinishCallback<
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+  >;
   // TODO `originalMessages` is part of this for bc, omit in v7
 } & UIMessageStreamOptions<
   UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
@@ -74,7 +76,6 @@ export async function createAgentUIStream<
     abortSignal,
     timeout,
     experimental_transform,
-    onStepFinish,
   });
 
   return result.toUIMessageStream({
@@ -82,5 +83,6 @@ export async function createAgentUIStream<
     // TODO reading `originalMessages` is here for bc, always use `validatedMessages` in v7
     originalMessages:
       uiMessageStreamOptions.originalMessages ?? validatedMessages,
+    onStepFinish,
   });
 }
