@@ -17,13 +17,13 @@
 // private, making it invisible to external type checks.  The static
 // WORKFLOW_SERIALIZE method has runtime access to the field regardless.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function serializeModel(inst: any): {
+export function serializeModel(model: any): {
   modelId: string;
   config: Record<string, unknown>;
 } {
   const config: Record<string, unknown> = {};
-  for (const key of Object.keys(inst.config)) {
-    const value = inst.config[key];
+  for (const key of Object.keys(model.config)) {
+    const value = model.config[key];
     if (isSerializable(value)) {
       config[key] = value;
     } else if (key === 'headers' && typeof value === 'function') {
@@ -36,7 +36,7 @@ export function serializeModel(inst: any): {
       }
     }
   }
-  return { modelId: inst.modelId, config };
+  return { modelId: model.modelId, config };
 }
 
 /**
