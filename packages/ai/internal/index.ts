@@ -1,6 +1,3 @@
-// import globals
-import '../src/global';
-
 // internal re-exports
 export { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
 
@@ -15,3 +12,6 @@ export { asLanguageModelUsage } from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
 export { mergeListeners } from '../src/util/merge-listeners';
+
+// import globals
+import '../src/global';
