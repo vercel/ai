@@ -121,6 +121,59 @@ describe('handleFetchError', () => {
     });
   });
 
+  describe('node.js socket termination errors', () => {
+    it('should handle TypeError with "terminated" message', () => {
+      const terminatedError = new TypeError('terminated');
+
+      const result = handleFetchError({
+        error: terminatedError,
+        url: testUrl,
+        requestBodyValues: testRequestBodyValues,
+      });
+
+      expect(APICallError.isInstance(result)).toBe(true);
+      expect((result as APICallError).isRetryable).toBe(true);
+      expect((result as APICallError).message).toBe(
+        'Cannot connect to API: terminated',
+      );
+    });
+
+    it('should handle SocketError with "other side closed" message', () => {
+      const socketError = new Error('other side closed');
+      (socketError as any).code = 'UND_ERR_SOCKET';
+
+      const result = handleFetchError({
+        error: socketError,
+        url: testUrl,
+        requestBodyValues: testRequestBodyValues,
+      });
+
+      expect(APICallError.isInstance(result)).toBe(true);
+      expect((result as APICallError).isRetryable).toBe(true);
+      expect((result as APICallError).message).toBe(
+        'Cannot connect to API: other side closed',
+      );
+    });
+
+    it('should handle TypeError with "terminated" as cause of fetch error', () => {
+      const cause = new TypeError('terminated');
+      const fetchError = new TypeError('fetch failed');
+      (fetchError as any).cause = cause;
+
+      const result = handleFetchError({
+        error: fetchError,
+        url: testUrl,
+        requestBodyValues: testRequestBodyValues,
+      });
+
+      expect(APICallError.isInstance(result)).toBe(true);
+      expect((result as APICallError).isRetryable).toBe(true);
+      expect((result as APICallError).message).toBe(
+        'Cannot connect to API: terminated',
+      );
+    });
+  });
+
   describe('unknown errors', () => {
     it('should return unknown errors as-is', () => {
       const unknownError = new Error('Something unexpected');
