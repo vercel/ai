@@ -227,6 +227,7 @@ describe('doGenerate', () => {
           "completion_tokens": 2,
           "completion_tokens_details": {
             "accepted_prediction_tokens": 0,
+            "audio_tokens": 0,
             "reasoning_tokens": 320,
             "rejected_prediction_tokens": 0,
           },
@@ -234,7 +235,10 @@ describe('doGenerate', () => {
           "num_sources_used": 0,
           "prompt_tokens": 12,
           "prompt_tokens_details": {
+            "audio_tokens": 0,
             "cached_tokens": 2,
+            "image_tokens": 0,
+            "text_tokens": 12,
           },
           "total_tokens": 334,
         },
@@ -1596,6 +1600,92 @@ describe('doGenerate', () => {
           "test-provider": {
             "acceptedPredictionTokens": 15,
             "rejectedPredictionTokens": 5,
+          },
+        }
+      `);
+    });
+
+    it('should allow extra nested usage detail fields from openai-compatible providers', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-test',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'claude-sonnet-4-6',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello!',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 3,
+            completion_tokens: 139,
+            total_tokens: 142,
+            prompt_tokens_details: {
+              cached_tokens: 0,
+              cached_creation_tokens: 27780,
+              text_tokens: 0,
+              audio_tokens: 0,
+              image_tokens: 0,
+            },
+            completion_tokens_details: {
+              text_tokens: 0,
+              audio_tokens: 0,
+              reasoning_tokens: 0,
+            },
+            input_tokens: 0,
+            output_tokens: 0,
+            input_tokens_details: null,
+            claude_cache_creation_5_m_tokens: 0,
+            claude_cache_creation_1_h_tokens: 0,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "inputTokens": {
+            "cacheRead": 0,
+            "cacheWrite": undefined,
+            "noCache": 3,
+            "total": 3,
+          },
+          "outputTokens": {
+            "reasoning": 0,
+            "text": 139,
+            "total": 139,
+          },
+          "raw": {
+            "claude_cache_creation_1_h_tokens": 0,
+            "claude_cache_creation_5_m_tokens": 0,
+            "completion_tokens": 139,
+            "completion_tokens_details": {
+              "audio_tokens": 0,
+              "reasoning_tokens": 0,
+              "text_tokens": 0,
+            },
+            "input_tokens": 0,
+            "input_tokens_details": null,
+            "output_tokens": 0,
+            "prompt_tokens": 3,
+            "prompt_tokens_details": {
+              "audio_tokens": 0,
+              "cached_creation_tokens": 27780,
+              "cached_tokens": 0,
+              "image_tokens": 0,
+              "text_tokens": 0,
+            },
+            "total_tokens": 142,
           },
         }
       `);
@@ -3377,6 +3467,78 @@ describe('doStream', () => {
               "prompt_tokens_details": {
                 "cached_tokens": 5,
               },
+            },
+          },
+        }
+      `);
+    });
+
+    it('should allow extra nested usage detail fields in stream finish', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+          `data: {"choices":[{"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":3,"completion_tokens":139,"total_tokens":142,` +
+            `"prompt_tokens_details":{"cached_tokens":0,"cached_creation_tokens":27780,"text_tokens":0,"audio_tokens":0,"image_tokens":0},` +
+            `"completion_tokens_details":{"text_tokens":0,"audio_tokens":0,"reasoning_tokens":0},` +
+            `"input_tokens":0,"output_tokens":0,"input_tokens_details":null,` +
+            `"claude_cache_creation_5_m_tokens":0,"claude_cache_creation_1_h_tokens":0}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart).toMatchInlineSnapshot(`
+        {
+          "finishReason": {
+            "raw": "stop",
+            "unified": "stop",
+          },
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": {
+              "cacheRead": 0,
+              "cacheWrite": undefined,
+              "noCache": 3,
+              "total": 3,
+            },
+            "outputTokens": {
+              "reasoning": 0,
+              "text": 139,
+              "total": 139,
+            },
+            "raw": {
+              "claude_cache_creation_1_h_tokens": 0,
+              "claude_cache_creation_5_m_tokens": 0,
+              "completion_tokens": 139,
+              "completion_tokens_details": {
+                "audio_tokens": 0,
+                "reasoning_tokens": 0,
+                "text_tokens": 0,
+              },
+              "input_tokens": 0,
+              "input_tokens_details": null,
+              "output_tokens": 0,
+              "prompt_tokens": 3,
+              "prompt_tokens_details": {
+                "audio_tokens": 0,
+                "cached_creation_tokens": 27780,
+                "cached_tokens": 0,
+                "image_tokens": 0,
+                "text_tokens": 0,
+              },
+              "total_tokens": 142,
             },
           },
         }

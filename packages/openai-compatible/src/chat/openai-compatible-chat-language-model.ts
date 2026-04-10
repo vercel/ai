@@ -757,12 +757,12 @@ const openaiCompatibleTokenUsageSchema = z
     completion_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
     prompt_tokens_details: z
-      .object({
+      .looseObject({
         cached_tokens: z.number().nullish(),
       })
       .nullish(),
     completion_tokens_details: z
-      .object({
+      .looseObject({
         reasoning_tokens: z.number().nullish(),
         accepted_prediction_tokens: z.number().nullish(),
         rejected_prediction_tokens: z.number().nullish(),
