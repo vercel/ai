@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.82
+
+### Patch Changes
+
+- e27ed76: feat(devtools): add new devtools integration for telemetry
+
 ## 7.0.0-beta.81
 
 ### Patch Changes
