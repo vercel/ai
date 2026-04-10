@@ -295,7 +295,7 @@ describe('GoogleGenerativeAIFiles', () => {
 
     describe('polling', () => {
       it('should poll until file state becomes ACTIVE', async () => {
-        let _pollCount = 0;
+        let pollCount = 0;
         const { files, fetchFn } = createMockFiles({
           pollResponses: [
             { state: 'PROCESSING' },
@@ -358,7 +358,7 @@ describe('GoogleGenerativeAIFiles', () => {
           state: 'PROCESSING',
         };
 
-        const fetchFn = vi.fn(async (url: string | URL) => {
+        const fetchFn = vi.fn(async (url: string | URL, init?: RequestInit) => {
           const urlString = url.toString();
 
           if (urlString.includes('/upload/v1beta/files')) {
@@ -516,7 +516,7 @@ describe('GoogleGenerativeAIFiles', () => {
           state: 'ACTIVE',
         };
 
-        const fetchFn = vi.fn(async (url: string | URL) => {
+        const fetchFn = vi.fn(async (url: string | URL, init?: RequestInit) => {
           const urlString = url.toString();
 
           if (urlString.includes('/upload/v1beta/files')) {

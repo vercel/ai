@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import {
   extractResourceMetadataUrl,
   type OAuthClientProvider,
+  type AuthResult,
   discoverOAuthProtectedResourceMetadata,
   buildDiscoveryUrls,
   discoverAuthorizationServerMetadata,

@@ -1,4 +1,4 @@
-import { describe, expect } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { z } from 'zod/v3';
 import { parseDateDef } from './date';
 import { getRefs } from '../refs';

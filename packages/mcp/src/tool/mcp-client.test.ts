@@ -6,6 +6,7 @@ import {
   CallToolResult,
   ListResourceTemplatesResult,
   ListResourcesResult,
+  ListToolsResult,
   ReadResourceResult,
   ListPromptsResult,
   GetPromptResult,

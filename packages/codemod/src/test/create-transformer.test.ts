@@ -87,7 +87,7 @@ describe('createTransformer', () => {
 
   test('should return null when no changes are made', () => {
     // Create a transformer function that makes no changes
-    const transformFn = vi.fn(() => {
+    const transformFn = vi.fn((fileInfo, api, options, context) => {
       // Intentionally do nothing
     });
 

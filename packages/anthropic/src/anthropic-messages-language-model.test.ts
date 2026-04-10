@@ -1,6 +1,7 @@
 import {
   APICallError,
   NoSuchProviderReferenceError,
+  LanguageModelV4,
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
@@ -14,7 +15,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnthropicLanguageModelOptions } from './anthropic-messages-options';
-import { createAnthropic } from './anthropic-provider';
+import { anthropic, createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',

@@ -4,7 +4,7 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { beforeEach, describe, expect, vi, it } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
-import { prepareTools } from '@ai-sdk/anthropic/internal';
+import { anthropicTools, prepareTools } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
 import fs from 'node:fs';
 
@@ -191,7 +191,7 @@ describe('doStream', () => {
   });
 
   vi.mock('./bedrock-event-stream-response-handler', () => ({
-    createBedrockEventStreamResponseHandler: () => {
+    createBedrockEventStreamResponseHandler: (schema: any) => {
       return async ({ response }: { response: Response }) => {
         let chunks: { success: boolean; value: any }[] = [];
         if (mockOptions.success) {

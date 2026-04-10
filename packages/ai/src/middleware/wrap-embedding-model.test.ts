@@ -28,7 +28,7 @@ describe('wrapEmbeddingModel', () => {
         }),
         middleware: {
           specificationVersion: 'v4',
-          overrideModelId: () => 'override-model',
+          overrideModelId: ({ model }) => 'override-model',
         },
       });
 
@@ -71,7 +71,7 @@ describe('wrapEmbeddingModel', () => {
         }),
         middleware: {
           specificationVersion: 'v4',
-          overrideProvider: () => 'override-provider',
+          overrideProvider: ({ model }) => 'override-provider',
         },
       });
 
@@ -114,7 +114,7 @@ describe('wrapEmbeddingModel', () => {
         }),
         middleware: {
           specificationVersion: 'v4',
-          overrideMaxEmbeddingsPerCall: () => 3,
+          overrideMaxEmbeddingsPerCall: ({ model }) => 3,
         },
       });
 
@@ -143,7 +143,7 @@ describe('wrapEmbeddingModel', () => {
         }),
         middleware: {
           specificationVersion: 'v4',
-          overrideSupportsParallelCalls: () => true,
+          overrideSupportsParallelCalls: ({ model }) => true,
         },
       });
 
@@ -285,15 +285,19 @@ describe('wrapEmbeddingModel', () => {
         doEmbed: vi.fn().mockResolvedValue('final generate result'),
       });
 
-      const wrapEmbed1 = vi.fn().mockImplementation(async ({ doEmbed }) => {
-        const result = await doEmbed();
-        return `wrapEmbed1(${result})`;
-      });
+      const wrapEmbed1 = vi
+        .fn()
+        .mockImplementation(async ({ doEmbed, params, model }) => {
+          const result = await doEmbed();
+          return `wrapEmbed1(${result})`;
+        });
 
-      const wrapEmbed2 = vi.fn().mockImplementation(async ({ doEmbed }) => {
-        const result = await doEmbed();
-        return `wrapEmbed2(${result})`;
-      });
+      const wrapEmbed2 = vi
+        .fn()
+        .mockImplementation(async ({ doEmbed, params, model }) => {
+          const result = await doEmbed();
+          return `wrapEmbed2(${result})`;
+        });
 
       const wrappedModel = wrapEmbeddingModel({
         model: mockModel,

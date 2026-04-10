@@ -2139,16 +2139,12 @@ describe('streamText', () => {
 
     it('should invoke onError callback when error is thrown in 2nd step', async () => {
       const onError = vi.fn();
-      let _responseCount = 0;
+      let responseCount = 0;
 
       const result = streamText({
         model: new MockLanguageModelV4({
-          doStream: async ({
-            prompt: _prompt,
-            tools: _tools,
-            toolChoice: _toolChoice,
-          }) => {
-            if (_responseCount++ === 0) {
+          doStream: async ({ prompt, tools, toolChoice }) => {
+            if (responseCount++ === 0) {
               return {
                 stream: convertArrayToReadableStream([
                   {
@@ -4077,7 +4073,7 @@ describe('streamText', () => {
       const stream = result.toUIMessageStream();
       let chunkCount = 0;
 
-      for await (const _chunk of stream) {
+      for await (const chunk of stream) {
         chunkCount++;
         if (chunkCount === 3) {
           break; // Break the iteration early, simulating cancellation
@@ -5767,12 +5763,12 @@ describe('streamText', () => {
       const stepStartEvents: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0][] = [];
-      let _responseCount = 0;
+      let responseCount = 0;
 
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async () => {
-            switch (_responseCount++) {
+            switch (responseCount++) {
               case 0:
                 return {
                   stream: convertArrayToReadableStream([
@@ -5910,7 +5906,7 @@ describe('streamText', () => {
       const stepStartEvents: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0][] = [];
-      let _responseCount = 0;
+      let responseCount = 0;
 
       const alternateModel = new MockLanguageModelV4({
         provider: 'alternate-provider',
@@ -5938,7 +5934,7 @@ describe('streamText', () => {
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async () => {
-            _responseCount++;
+            responseCount++;
             return {
               stream: convertArrayToReadableStream([
                 {
@@ -8084,13 +8080,13 @@ describe('streamText', () => {
 
     describe('2 steps: initial, tool-result', () => {
       beforeEach(async () => {
-        let _responseCount = 0;
+        let responseCount = 0;
         result = streamText({
           model: new MockLanguageModelV4({
             doStream: async ({ prompt, tools, toolChoice }) => {
               stepInputs.push({ prompt, tools, toolChoice });
 
-              switch (_responseCount++) {
+              switch (responseCount++) {
                 case 0: {
                   return {
                     stream: convertArrayToReadableStream([
@@ -8143,7 +8139,7 @@ describe('streamText', () => {
                 }
                 default:
                   throw new Error(
-                    `Unexpected response count: ${_responseCount}`,
+                    `Unexpected response count: ${responseCount}`,
                   );
               }
             },
@@ -10098,15 +10094,11 @@ describe('streamText', () => {
         });
 
       beforeEach(async () => {
-        let _responseCount = 0;
+        let responseCount = 0;
         result = streamText({
           model: new MockLanguageModelV4({
-            doStream: async ({
-              prompt: _prompt,
-              tools: _tools,
-              toolChoice: _toolChoice,
-            }) => {
-              switch (_responseCount++) {
+            doStream: async ({ prompt, tools, toolChoice }) => {
+              switch (responseCount++) {
                 case 0: {
                   return {
                     stream: convertArrayToReadableStream([
@@ -10162,7 +10154,7 @@ describe('streamText', () => {
                 }
                 default:
                   throw new Error(
-                    `Unexpected response count: ${_responseCount}`,
+                    `Unexpected response count: ${responseCount}`,
                   );
               }
             },
@@ -11279,11 +11271,11 @@ describe('streamText', () => {
       beforeEach(async () => {
         stopConditionCalls = [];
 
-        let _responseCount = 0;
+        let responseCount = 0;
         result = streamText({
           model: new MockLanguageModelV4({
             doStream: async () => {
-              switch (_responseCount++) {
+              switch (responseCount++) {
                 case 0: {
                   return {
                     stream: convertArrayToReadableStream([
@@ -11324,7 +11316,7 @@ describe('streamText', () => {
                 }
                 default:
                   throw new Error(
-                    `Unexpected response count: ${_responseCount}`,
+                    `Unexpected response count: ${responseCount}`,
                   );
               }
             },
@@ -11588,11 +11580,11 @@ describe('streamText', () => {
     });
 
     it('should complete tool loop with isLoopFinished()', async () => {
-      let _responseCount = 0;
+      let responseCount = 0;
       const result = streamText({
         model: new MockLanguageModelV4({
           doStream: async () => {
-            switch (_responseCount++) {
+            switch (responseCount++) {
               case 0:
                 return {
                   stream: convertArrayToReadableStream([
@@ -11638,7 +11630,7 @@ describe('streamText', () => {
                   response: {},
                 };
               default:
-                throw new Error(`Unexpected response count: ${_responseCount}`);
+                throw new Error(`Unexpected response count: ${responseCount}`);
             }
           },
         }),
@@ -12112,7 +12104,7 @@ describe('streamText', () => {
     describe('provider-executed tool result replay across steps', () => {
       it('should preserve provider metadata when replaying the next step', async () => {
         const stepInputs: Array<{ prompt: LanguageModelV4Prompt }> = [];
-        let _responseCount = 0;
+        let responseCount = 0;
 
         const result = streamText({
           ...defaultSettings(),
@@ -12120,7 +12112,7 @@ describe('streamText', () => {
             doStream: async ({ prompt }) => {
               stepInputs.push({ prompt });
 
-              switch (_responseCount++) {
+              switch (responseCount++) {
                 case 0: {
                   return {
                     stream: convertArrayToReadableStream([
@@ -12213,7 +12205,7 @@ describe('streamText', () => {
 
                 default:
                   throw new Error(
-                    `Unexpected response count: ${_responseCount}`,
+                    `Unexpected response count: ${responseCount}`,
                   );
               }
             },
@@ -15047,7 +15039,7 @@ describe('streamText', () => {
     describe('with multiple transformations', () => {
       const toUppercaseAndAddCommaTransform =
         <TOOLS extends ToolSet>() =>
-        (_options: { tools: TOOLS }) =>
+        (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
               if (chunk.type !== 'text-delta') {
@@ -15064,7 +15056,7 @@ describe('streamText', () => {
 
       const omitCommaTransform =
         <TOOLS extends ToolSet>() =>
-        (_options: { tools: TOOLS }) =>
+        (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
               if (chunk.type !== 'text-delta') {
@@ -17190,7 +17182,7 @@ describe('streamText', () => {
           model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: new ReadableStream({
-                start(_controller) {
+                start(controller) {
                   streamCalls++;
                   pullCalls = 0;
                 },
@@ -17512,7 +17504,7 @@ describe('streamText', () => {
           model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: new ReadableStream({
-                start(_controller) {
+                start(controller) {
                   streamCalls++;
                   pullCalls = 0;
                 },
@@ -17686,7 +17678,7 @@ describe('streamText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value: _value }, { context }) => {
+            execute: async ({ value }, { context }) => {
               recordedContext = context;
               return { value: 'test-result' };
             },
@@ -18774,14 +18766,14 @@ describe('streamText', () => {
         prepareStepCalls = [];
         rollDieExecutions = [];
 
-        let _responseCount = 0;
+        let responseCount = 0;
 
         result = streamText({
           model: new MockLanguageModelV4({
             doStream: async options => {
               doStreamCalls.push(options);
 
-              switch (_responseCount++) {
+              switch (responseCount++) {
                 case 0:
                   // Step 1: text + server_tool_use (code_execution) + rollDie call
                   return {
@@ -19020,7 +19012,7 @@ describe('streamText', () => {
 
                 default:
                   throw new Error(
-                    `Unexpected response count: ${_responseCount}`,
+                    `Unexpected response count: ${responseCount}`,
                   );
               }
             },
@@ -20385,11 +20377,11 @@ describe('streamText', () => {
       });
 
       it('should resolve deferred tool call when tool-error arrives in a later step', async () => {
-        let _responseCount = 0;
+        let responseCount = 0;
         const result = streamText({
           model: new MockLanguageModelV4({
             doStream: async () => {
-              switch (_responseCount++) {
+              switch (responseCount++) {
                 case 0:
                   // Step 1: tool call without result
                   return {
@@ -20456,7 +20448,7 @@ describe('streamText', () => {
                   };
                 default:
                   throw new Error(
-                    `Unexpected response count: ${_responseCount}`,
+                    `Unexpected response count: ${responseCount}`,
                   );
               }
             },

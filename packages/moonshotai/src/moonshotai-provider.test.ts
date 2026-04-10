@@ -38,7 +38,7 @@ describe('MoonshotAIProvider', () => {
   describe('createMoonshotAI', () => {
     it('should create a MoonshotAIProvider instance with default options', () => {
       const provider = createMoonshotAI();
-      const _model = provider('model-id');
+      const model = provider('model-id');
 
       const constructorCall = MoonshotAIChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
@@ -58,7 +58,7 @@ describe('MoonshotAIProvider', () => {
         headers: { 'Custom-Header': 'value' },
       };
       const provider = createMoonshotAI(options);
-      const _model = provider('model-id');
+      const model = provider('model-id');
 
       const constructorCall = MoonshotAIChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];

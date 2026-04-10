@@ -451,14 +451,14 @@ describe('ToolLoopAgent', () => {
 
   describe('experimental_onStart', () => {
     describe('generate', () => {
-      let _doGenerateOptions: LanguageModelV4CallOptions | undefined;
+      let doGenerateOptions: LanguageModelV4CallOptions | undefined;
       let mockModel: MockLanguageModelV4;
 
       beforeEach(() => {
-        _doGenerateOptions = undefined;
+        doGenerateOptions = undefined;
         mockModel = new MockLanguageModelV4({
           doGenerate: async options => {
-            _doGenerateOptions = options;
+            doGenerateOptions = options;
             return {
               content: [{ type: 'text', text: 'reply' }],
               finishReason: { unified: 'stop', raw: 'stop' },

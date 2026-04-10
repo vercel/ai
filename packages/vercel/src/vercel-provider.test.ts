@@ -26,10 +26,10 @@ vi.mock('./vercel-image-model', () => ({
 }));
 
 describe('VercelProvider', () => {
-  let _mockLanguageModel: LanguageModelV4;
+  let mockLanguageModel: LanguageModelV4;
 
   beforeEach(() => {
-    _mockLanguageModel = {
+    mockLanguageModel = {
       // Add any required methods for LanguageModelV1
     } as LanguageModelV4;
 

@@ -13,7 +13,7 @@
       }
     },
     {
-      "files": ["examples/**"],
+      "files": ["examples/**", "**/*.test.ts"],
       "rules": {
         "no-unused-vars": "off"
       }

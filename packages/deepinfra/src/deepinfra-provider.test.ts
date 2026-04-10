@@ -36,15 +36,15 @@ vi.mock('./deepinfra-image-model', () => ({
 }));
 
 describe('DeepInfraProvider', () => {
-  let _mockLanguageModel: LanguageModelV4;
-  let _mockEmbeddingModel: EmbeddingModelV4;
+  let mockLanguageModel: LanguageModelV4;
+  let mockEmbeddingModel: EmbeddingModelV4;
 
   beforeEach(() => {
     // Mock implementations of models
-    _mockLanguageModel = {
+    mockLanguageModel = {
       // Add any required methods for LanguageModelV4
     } as LanguageModelV4;
-    _mockEmbeddingModel = {
+    mockEmbeddingModel = {
       // Add any required methods for EmbeddingModelV4
     } as EmbeddingModelV4;
 
@@ -55,7 +55,7 @@ describe('DeepInfraProvider', () => {
   describe('createDeepInfra', () => {
     it('should create a DeepInfraProvider instance with default options', () => {
       const provider = createDeepInfra();
-      const _model = provider('model-id');
+      const model = provider('model-id');
 
       // Use the mocked version
       const constructorCall = DeepInfraChatLanguageModelMock.mock.calls[0];
@@ -76,7 +76,7 @@ describe('DeepInfraProvider', () => {
         headers: { 'Custom-Header': 'value' },
       };
       const provider = createDeepInfra(options);
-      const _model = provider('model-id');
+      const model = provider('model-id');
 
       const constructorCall = DeepInfraChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
@@ -172,7 +172,7 @@ describe('DeepInfraProvider', () => {
       const provider = createDeepInfra({ baseURL: customBaseURL });
       const modelId = 'deepinfra-image-model';
 
-      const _model = provider.image(modelId);
+      const model = provider.image(modelId);
 
       expect(DeepInfraImageModel).toHaveBeenCalledWith(
         modelId,

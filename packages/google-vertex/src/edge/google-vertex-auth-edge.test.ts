@@ -28,7 +28,7 @@ describe('Google Vertex Edge Auth', () => {
   const setupAtobStub = (credentials: typeof mockCredentials) => {
     vi.stubGlobal(
       'atob',
-      vi.fn().mockImplementation(() => {
+      vi.fn().mockImplementation(str => {
         const payload = {
           alg: 'RS256',
           typ: 'JWT',

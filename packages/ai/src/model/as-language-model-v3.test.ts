@@ -194,7 +194,7 @@ describe('asLanguageModelV3', () => {
     describe('doStream', () => {
       it('should convert v2 stream to v3 stream', async () => {
         const v2Model = new MockLanguageModelV2({
-          doStream: async () => {
+          doStream: async ({ prompt }) => {
             return {
               stream: convertArrayToReadableStream([
                 { type: 'text-start', id: '1' },

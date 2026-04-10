@@ -79,10 +79,10 @@ describe('doEmbed', () => {
     fetch: fakeFetchWithAuth,
   });
 
-  let _callCount = 0;
+  let callCount = 0;
 
   beforeEach(() => {
-    _callCount = 0;
+    callCount = 0;
     server.urls[embedUrl].response = {
       type: 'binary',
       headers: {

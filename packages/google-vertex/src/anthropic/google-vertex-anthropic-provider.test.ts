@@ -199,7 +199,7 @@ describe('google-vertex-anthropic-provider', () => {
     });
 
     // Create a model instance
-    const _model = provider('claude-3-5-sonnet-v2@20241022');
+    const model = provider('claude-3-5-sonnet-v2@20241022');
 
     // Verify the model was created using AnthropicMessagesLanguageModel
     // which already supports combining tools with structured outputs

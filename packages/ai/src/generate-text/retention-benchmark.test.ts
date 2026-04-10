@@ -223,7 +223,7 @@ describe('retention benchmark', () => {
       const largeBody = createLargeBody();
 
       // Run with retention enabled (default)
-      const _memoryBeforeRetained = process.memoryUsage().heapUsed;
+      const memoryBeforeRetained = process.memoryUsage().heapUsed;
 
       const resultRetained = await generateText({
         model: new MockLanguageModelV4({
@@ -242,13 +242,13 @@ describe('retention benchmark', () => {
         prompt: 'test',
       });
 
-      const _memoryAfterRetained = process.memoryUsage().heapUsed;
+      const memoryAfterRetained = process.memoryUsage().heapUsed;
       const retainedSize = (resultRetained.request.body as string)?.length ?? 0;
       const retainedResponseSize =
         (resultRetained.response.body as string)?.length ?? 0;
 
       // Run with retention disabled
-      const _memoryBeforeExcluded = process.memoryUsage().heapUsed;
+      const memoryBeforeExcluded = process.memoryUsage().heapUsed;
 
       const resultExcluded = await generateText({
         model: new MockLanguageModelV4({
@@ -268,7 +268,7 @@ describe('retention benchmark', () => {
         experimental_include: { requestBody: false, responseBody: false },
       });
 
-      const _memoryAfterExcluded = process.memoryUsage().heapUsed;
+      const memoryAfterExcluded = process.memoryUsage().heapUsed;
       const excludedSize = (resultExcluded.request.body as string)?.length ?? 0;
       const excludedResponseSize =
         (resultExcluded.response.body as string)?.length ?? 0;

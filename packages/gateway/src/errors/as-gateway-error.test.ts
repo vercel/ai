@@ -1,7 +1,11 @@
 import { APICallError } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
 import { asGatewayError } from './as-gateway-error';
-import { GatewayTimeoutError, GatewayResponseError } from './index';
+import {
+  GatewayError,
+  GatewayTimeoutError,
+  GatewayResponseError,
+} from './index';
 
 describe('asGatewayError', () => {
   describe('timeout error detection', () => {

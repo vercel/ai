@@ -345,7 +345,7 @@ describe('options.headers', () => {
 describe('options.providerOptions', () => {
   it('should pass provider options to model', async () => {
     const model = new MockEmbeddingModelV4({
-      doEmbed: async ({ providerOptions: _providerOptions }) => {
+      doEmbed: async ({ providerOptions }) => {
         return { embeddings: [[1, 2, 3]], warnings: [] };
       },
     });
@@ -623,7 +623,7 @@ describe('options.experimental_onStart', () => {
     await embedMany({
       model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
-        doEmbed: async ({ values: _values }) => {
+        doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
           return { embeddings: dummyEmbeddings, warnings: [] };
         },
@@ -817,7 +817,7 @@ describe('options.experimental_onFinish', () => {
     await embedMany({
       model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
-        doEmbed: async ({ values: _values }) => {
+        doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
           return { embeddings: dummyEmbeddings, warnings: [] };
         },
@@ -880,7 +880,7 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
     await embedMany({
       model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
-        doEmbed: async ({ values: _values }) => {
+        doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
           return { embeddings: dummyEmbeddings, warnings: [] };
         },

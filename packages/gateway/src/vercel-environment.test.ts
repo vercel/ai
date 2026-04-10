@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getVercelRequestId } from './vercel-environment';
+import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 
 const SYMBOL_FOR_REQ_CONTEXT = Symbol.for('@vercel/request-context');
 

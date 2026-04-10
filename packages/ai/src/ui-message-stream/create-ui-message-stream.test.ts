@@ -330,7 +330,7 @@ describe('createUIMessageStream', () => {
     const result: UIMessageChunk[] = [];
     const reader = stream.getReader();
     async function pull() {
-      const { value, done: _done } = await reader.read();
+      const { value, done } = await reader.read();
       result.push(value!);
     }
 

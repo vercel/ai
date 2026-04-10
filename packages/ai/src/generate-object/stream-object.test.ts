@@ -2160,7 +2160,7 @@ describe('streamObject', () => {
 
     describe('error handling in callbacks', () => {
       it('should not break the stream when a callback throws', async () => {
-        const { partialObjectStream, object: _object } = streamObject({
+        const { partialObjectStream, object } = streamObject({
           model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: convertArrayToReadableStream([

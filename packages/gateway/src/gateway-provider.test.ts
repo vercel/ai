@@ -6,7 +6,7 @@ import {
 } from './gateway-provider';
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import { GatewaySpendReport } from './gateway-spend-report';
-
+import { NoSuchModelError } from '@ai-sdk/provider';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';

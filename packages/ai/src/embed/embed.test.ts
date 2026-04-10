@@ -296,7 +296,7 @@ describe('options.experimental_onStart', () => {
 
     await embed({
       model: new MockEmbeddingModelV4({
-        doEmbed: async ({ values: _values }) => {
+        doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
           return { embeddings: [dummyEmbedding], warnings: [] };
         },
@@ -466,7 +466,7 @@ describe('options.experimental_onFinish', () => {
 
     await embed({
       model: new MockEmbeddingModelV4({
-        doEmbed: async ({ values: _values }) => {
+        doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
           return { embeddings: [dummyEmbedding], warnings: [] };
         },
@@ -526,7 +526,7 @@ describe('options.experimental_onStart and experimental_onFinish together', () =
 
     await embed({
       model: new MockEmbeddingModelV4({
-        doEmbed: async ({ values: _values }) => {
+        doEmbed: async ({ values }) => {
           callOrder.push('doEmbed');
           return { embeddings: [dummyEmbedding], warnings: [] };
         },

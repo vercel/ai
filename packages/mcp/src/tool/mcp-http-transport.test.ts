@@ -276,7 +276,7 @@ describe('HttpMCPTransport', () => {
   });
 
   it('should send custom headers with all requests', async () => {
-    const _controller = new TestResponseController();
+    const controller = new TestResponseController();
 
     const customHeaders = {
       authorization: 'Bearer test-token',

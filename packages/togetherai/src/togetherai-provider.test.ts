@@ -44,19 +44,19 @@ vi.mock('./reranking/togetherai-reranking-model', () => ({
 describe('TogetherAIProvider', () => {
   const originalEnv = { ...process.env };
 
-  let _mockLanguageModel: LanguageModelV4;
-  let _mockEmbeddingModel: EmbeddingModelV4;
-  let _mockRerankingModel: RerankingModelV4;
+  let mockLanguageModel: LanguageModelV4;
+  let mockEmbeddingModel: EmbeddingModelV4;
+  let mockRerankingModel: RerankingModelV4;
 
   beforeEach(() => {
     // Mock implementations of models
-    _mockLanguageModel = {
+    mockLanguageModel = {
       // Add any required methods for LanguageModelV4
     } as LanguageModelV4;
-    _mockEmbeddingModel = {
+    mockEmbeddingModel = {
       // Add any required methods for EmbeddingModelV4
     } as EmbeddingModelV4;
-    _mockRerankingModel = {
+    mockRerankingModel = {
       // Add any required methods for RerankingModelV4
     } as RerankingModelV4;
 
@@ -72,7 +72,7 @@ describe('TogetherAIProvider', () => {
   describe('createTogetherAI', () => {
     it('should create a TogetherAIProvider instance with default options', () => {
       const provider = createTogetherAI();
-      const _model = provider('model-id');
+      const model = provider('model-id');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -93,7 +93,7 @@ describe('TogetherAIProvider', () => {
         headers: { 'Custom-Header': 'value' },
       };
       const provider = createTogetherAI(options);
-      const _model = provider('model-id');
+      const model = provider('model-id');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -112,7 +112,7 @@ describe('TogetherAIProvider', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const provider = createTogetherAI();
-      const _model = provider('model-id');
+      const model = provider('model-id');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -135,7 +135,7 @@ describe('TogetherAIProvider', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const provider = createTogetherAI();
-      const _model = provider('model-id');
+      const model = provider('model-id');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -155,7 +155,7 @@ describe('TogetherAIProvider', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       const provider = createTogetherAI({ apiKey: 'explicit-key' });
-      const _model = provider('model-id');
+      const model = provider('model-id');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];

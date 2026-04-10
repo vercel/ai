@@ -4,7 +4,7 @@ import { XaiImageModel } from './xai-image-model';
 
 const prompt = 'A cute baby sea otter';
 
-const _imageUrl = 'https://api.example.com/images/generated.png';
+const imageUrl = 'https://api.example.com/images/generated.png';
 
 function createModel({
   headers,
