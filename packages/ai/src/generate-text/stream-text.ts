@@ -10,7 +10,6 @@ import {
   IdGenerator,
   isAbortError,
   ProviderOptions,
-  ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
@@ -1461,23 +1460,6 @@ class DefaultStreamTextResult<
               }
             }),
           );
-
-          // forward provider-executed approval responses to the provider (do not execute locally):
-          if (providerExecutedToolApprovals.length > 0) {
-            initialResponseMessages.push({
-              role: 'tool',
-              content: providerExecutedToolApprovals.map(
-                toolApproval =>
-                  ({
-                    type: 'tool-approval-response',
-                    approvalId: toolApproval.approvalResponse.approvalId,
-                    approved: toolApproval.approvalResponse.approved,
-                    reason: toolApproval.approvalResponse.reason,
-                    providerExecuted: true,
-                  }) satisfies ToolApprovalResponse,
-              ),
-            });
-          }
 
           // Local tool results (approved + denied) are sent as tool results:
           if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
