@@ -1289,6 +1289,154 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should skip validation for tool parts in output-available state when tool schema is not found', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-missing',
+                toolCallId: '1',
+                state: 'output-available',
+                input: { foo: 'bar' },
+                output: { result: 'success' },
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "input": {
+                  "foo": "bar",
+                },
+                "output": {
+                  "result": "success",
+                },
+                "providerExecuted": true,
+                "state": "output-available",
+                "toolCallId": "1",
+                "type": "tool-missing",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should skip validation for tool parts in output-error state when tool schema is not found', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-missing',
+                toolCallId: '1',
+                state: 'output-error',
+                input: { foo: 'bar' },
+                errorText: 'Tool execution failed',
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "errorText": "Tool execution failed",
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "output-error",
+                "toolCallId": "1",
+                "type": "tool-missing",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should skip validation for tool parts in output-denied state when tool schema is not found', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-missing',
+                toolCallId: '1',
+                state: 'output-denied',
+                input: { foo: 'bar' },
+                providerExecuted: true,
+                approval: {
+                  id: 'approval-1',
+                  approved: false,
+                  reason: 'User denied the tool call',
+                },
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "approved": false,
+                  "id": "approval-1",
+                  "reason": "User denied the tool call",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "output-denied",
+                "toolCallId": "1",
+                "type": "tool-missing",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
     it('should throw error when tool input validation fails', async () => {
       await expect(
         validateUIMessages<TestMessage>({
