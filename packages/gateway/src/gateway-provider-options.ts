@@ -47,7 +47,9 @@ const gatewayProviderOptions = lazySchema(() =>
        * Examples:
        * - Simple: `{ 'anthropic': [{ apiKey: 'sk-ant-...' }] }`
        * - Multiple: `{ 'vertex': [{ projectId: 'proj-1', privateKey: '...' }, { projectId: 'proj-2', privateKey: '...' }] }`
-       * - Multi-provider: `{ 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...' }] }`
+       * - Multi-provider: `{ 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...', region: 'us-east-1' }] }`
+       *
+       * Note: For Amazon Bedrock, the `region` field is required to construct the correct endpoint URL.
        */
       byok: z
         .record(z.string(), z.array(z.record(z.string(), z.unknown())))
