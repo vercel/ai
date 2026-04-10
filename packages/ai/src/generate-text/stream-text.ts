@@ -1309,7 +1309,6 @@ class DefaultStreamTextResult<
           messages,
         } as Prompt);
 
-<<<<<<< HEAD
         await notify({
           event: {
             model: modelInfo,
@@ -1337,35 +1336,6 @@ class DefaultStreamTextResult<
             include,
             ...callbackTelemetryProps,
             experimental_context,
-=======
-      const initialMessages = initialPrompt.messages;
-      const initialResponseMessages: Array<ResponseMessage> = [];
-
-      const { approvedToolApprovals, deniedToolApprovals } =
-        collectToolApprovals<TOOLS>({ messages: initialMessages });
-
-      // initial tool execution step stream
-      if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
-        const localApprovedToolApprovals = approvedToolApprovals.filter(
-          toolApproval => !toolApproval.toolCall.providerExecuted,
-        );
-        const localDeniedToolApprovals = deniedToolApprovals.filter(
-          toolApproval => !toolApproval.toolCall.providerExecuted,
-        );
-
-        const deniedProviderExecutedToolApprovals = deniedToolApprovals.filter(
-          toolApproval => toolApproval.toolCall.providerExecuted,
-        );
-
-        let toolExecutionStepStreamController:
-          | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
-          | undefined;
-        const toolExecutionStepStream = new ReadableStream<
-          TextStreamPart<TOOLS>
-        >({
-          start(controller) {
-            toolExecutionStepStreamController = controller;
->>>>>>> 6866afe7c (fix(ai): fix `lastAssistantMessageIsCompleteWithApprovalResponses` to no longer ignore `providerExecuted` tool approvals (#14323))
           },
           callbacks: [
             onStart,
