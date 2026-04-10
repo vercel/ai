@@ -142,12 +142,12 @@ run(async () => {
     },
   });
 
-  let fullResponse = '';
+  let _fullResponse = '';
 
   for await (const delta of result.fullStream) {
     switch (delta.type) {
       case 'text-delta': {
-        fullResponse += delta.text;
+        _fullResponse += delta.text;
         process.stdout.write(delta.text);
         break;
       }

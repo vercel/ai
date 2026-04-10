@@ -12,7 +12,7 @@ run(async () => {
     prompt: 'What cities are in the United States?',
   });
 
-  for await (const textPart of result.textStream) {
+  for await (const _textPart of result.textStream) {
     // consume the stream
   }
 });

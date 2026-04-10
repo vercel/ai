@@ -6,12 +6,16 @@ import { DefaultChatTransport } from 'ai';
 import { ReasoningToolsMessage } from '@/app/api/chat/reasoning-tools/route';
 
 export default function Chat() {
-  const { messages, sendMessage, addToolOutput, status } =
-    useChat<ReasoningToolsMessage>({
-      transport: new DefaultChatTransport({
-        api: '/api/chat/reasoning-tools',
-      }),
-    });
+  const {
+    messages,
+    sendMessage,
+    addToolOutput: _addToolOutput,
+    status,
+  } = useChat<ReasoningToolsMessage>({
+    transport: new DefaultChatTransport({
+      api: '/api/chat/reasoning-tools',
+    }),
+  });
 
   console.log(structuredClone(messages));
 

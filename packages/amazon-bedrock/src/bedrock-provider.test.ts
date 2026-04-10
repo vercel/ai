@@ -89,7 +89,7 @@ describe('AmazonBedrockProvider', () => {
   describe('createAmazonBedrock', () => {
     it('should create a provider instance with default options', () => {
       const provider = createAmazonBedrock();
-      const model = provider('anthropic.claude-v2');
+      const _model = provider('anthropic.claude-v2');
 
       const constructorCall = BedrockChatLanguageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe('anthropic.claude-v2');
@@ -226,7 +226,7 @@ describe('AmazonBedrockProvider', () => {
           },
         );
 
-        const provider = createAmazonBedrock({
+        const _provider = createAmazonBedrock({
           region: 'us-east-1',
         });
 
@@ -252,7 +252,7 @@ describe('AmazonBedrockProvider', () => {
           },
         );
 
-        const provider = createAmazonBedrock({
+        const _provider = createAmazonBedrock({
           apiKey: 'options-api-key',
           region: 'us-east-1',
         });
@@ -288,7 +288,7 @@ describe('AmazonBedrockProvider', () => {
       it('should pass custom fetch function to API key authentication', () => {
         const customFetch = vi.fn();
 
-        const provider = createAmazonBedrock({
+        const _provider = createAmazonBedrock({
           apiKey: 'test-api-key',
           region: 'us-east-1',
           fetch: customFetch,
@@ -307,7 +307,7 @@ describe('AmazonBedrockProvider', () => {
 
         const customFetch = vi.fn();
 
-        const provider = createAmazonBedrock({
+        const _provider = createAmazonBedrock({
           region: 'us-east-1',
           accessKeyId: 'test-access-key',
           secretAccessKey: 'test-secret-key',

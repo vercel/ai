@@ -13,7 +13,7 @@ This is a test file.
     tools: {
       str_replace_based_edit_tool: anthropic.tools.textEditor_20250728({
         maxCharacters: 10000, // optional
-        async execute({ command, path, old_str, new_str, insert_text }) {
+        async execute({ command, path: _path, old_str, new_str, insert_text }) {
           switch (command) {
             case 'view': {
               return editorContent;

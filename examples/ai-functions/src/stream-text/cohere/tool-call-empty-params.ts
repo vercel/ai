@@ -12,7 +12,7 @@ import { run } from '../../lib/run';
 const messages: ModelMessage[] = [];
 
 run(async () => {
-  let toolResponseAvailable = false;
+  let _toolResponseAvailable = false;
 
   const result = streamText({
     model: cohere('command-r-plus'),
@@ -83,5 +83,5 @@ run(async () => {
     messages.push({ role: 'tool', content: toolResponses });
   }
 
-  toolResponseAvailable = toolCalls.length > 0;
+  _toolResponseAvailable = toolCalls.length > 0;
 });

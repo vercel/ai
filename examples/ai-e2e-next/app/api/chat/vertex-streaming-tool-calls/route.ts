@@ -1,5 +1,4 @@
 import { vertex } from '@ai-sdk/google-vertex';
-import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { convertToModelMessages, streamText, UIDataTypes, UIMessage } from 'ai';
 import { z } from 'zod';
 

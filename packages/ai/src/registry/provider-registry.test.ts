@@ -21,13 +21,13 @@ describe('languageModel', () => {
           expect(id).toEqual('model');
           return model;
         },
-        embeddingModel: (id: string) => {
+        embeddingModel: () => {
           return null as any;
         },
-        imageModel: (id: string) => {
+        imageModel: () => {
           return null as any;
         },
-        rerankingModel: (id: string) => {
+        rerankingModel: () => {
           return null as any;
         },
       },
@@ -52,7 +52,7 @@ describe('languageModel', () => {
         imageModel: () => {
           return null as any;
         },
-        rerankingModel: (id: string) => {
+        rerankingModel: () => {
           return null as any;
         },
       },
@@ -232,7 +232,7 @@ describe('embeddingModel', () => {
         imageModel: () => {
           return null as any;
         },
-        rerankingModel: (id: string) => {
+        rerankingModel: () => {
           return null as any;
         },
       },
@@ -275,7 +275,7 @@ describe('embeddingModel', () => {
           speechModel: () => {
             return null as any;
           },
-          rerankingModel: (id: string) => {
+          rerankingModel: () => {
             return null as any;
           },
         },
@@ -531,7 +531,7 @@ describe('rerankingModel', () => {
         imageModel: () => {
           return null as any;
         },
-        rerankingModel: (id: string) => {
+        rerankingModel: () => {
           return null as any;
         },
       },

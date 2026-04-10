@@ -1,4 +1,4 @@
-import { UIMessage, UIDataTypes } from 'ai';
+import { UIMessage } from 'ai';
 
 export type ElicitationAction = 'accept' | 'decline' | 'cancel';
 

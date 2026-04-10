@@ -114,7 +114,8 @@ describe('OpenAICompatibleImageModel', () => {
       const recraftModel = new OpenAICompatibleImageModel('recraft-v3', {
         provider: 'recraft.image',
         headers: () => ({ Authorization: 'Bearer test-key' }),
-        url: ({ modelId, path }) => `https://external.api.recraft.ai/v1${path}`,
+        url: ({ modelId: _modelId, path }) =>
+          `https://external.api.recraft.ai/v1${path}`,
       });
 
       await recraftModel.doGenerate(

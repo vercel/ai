@@ -34,7 +34,7 @@ const model = new ChatOpenAI({
  * Send email tool - simulates sending an email (requires approval)
  */
 const sendEmailTool = tool(
-  async ({ to, subject, body }) => {
+  async ({ to, subject, body: _body }) => {
     // Simulate sending email
     await new Promise(resolve => setTimeout(resolve, 500));
     return `Email sent successfully to ${to} with subject "${subject}"`;

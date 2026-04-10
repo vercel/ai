@@ -1,7 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
-import { saveRawChunks } from '../../lib/save-raw-chunks';
 
 run(async () => {
   const result = await streamText({

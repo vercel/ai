@@ -4,7 +4,7 @@ import { yourLogMiddleware } from './your-log-middleware';
 import { run } from '../lib/run';
 
 run(async () => {
-  const result = await generateText({
+  const _result = await generateText({
     model: wrapLanguageModel({
       model: openai('gpt-4o'),
       middleware: yourLogMiddleware,

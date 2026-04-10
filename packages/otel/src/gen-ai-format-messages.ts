@@ -10,7 +10,7 @@ import {
   LanguageModelV4ToolCallPart,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type { ModelMessage, SystemModelMessage } from '@ai-sdk/provider-utils';
+import type { ModelMessage } from '@ai-sdk/provider-utils';
 import { convertDataContentToBase64String } from 'ai';
 
 type LanguageModelV4ContentPart =

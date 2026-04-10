@@ -14,7 +14,7 @@ type AIProviderNoActions = ReturnType<typeof createAI<AIState, UIState>>;
 const getMutableAIState = $getMutableAIState<AIProviderNoActions>;
 
 // mock function to fetch weather data
-const fetchWeatherData = async (location: string) => {
+const fetchWeatherData = async (_location: string) => {
   await new Promise(resolve => setTimeout(resolve, 1000));
   return { temperature: '72°F' };
 };

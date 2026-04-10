@@ -1,6 +1,5 @@
 import { google } from '@ai-sdk/google';
 import { generateImage } from 'ai';
-import fs from 'node:fs';
 import { run } from '../../lib/run';
 import { presentImages } from '../../lib/present-image';
 

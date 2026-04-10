@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createBaseten } from './baseten-provider';
-import {
-  LanguageModelV4,
-  EmbeddingModelV4,
-  NoSuchModelError,
-} from '@ai-sdk/provider';
+import { NoSuchModelError } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -69,7 +65,7 @@ describe('BasetenProvider', () => {
   describe('createBaseten', () => {
     it('should create a BasetenProvider instance with default options', () => {
       const provider = createBaseten();
-      const model = provider.chatModel('deepseek-ai/DeepSeek-V3-0324');
+      const _model = provider.chatModel('deepseek-ai/DeepSeek-V3-0324');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -92,7 +88,7 @@ describe('BasetenProvider', () => {
         headers: { 'Custom-Header': 'value' },
       };
       const provider = createBaseten(options);
-      const model = provider.chatModel('deepseek-ai/DeepSeek-V3-0324');
+      const _model = provider.chatModel('deepseek-ai/DeepSeek-V3-0324');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -313,7 +309,7 @@ describe('BasetenProvider', () => {
   describe('URL construction', () => {
     it('should use default baseURL when no modelURL is provided', () => {
       const provider = createBaseten();
-      const model = provider.chatModel('test-model');
+      const _model = provider.chatModel('test-model');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -326,7 +322,7 @@ describe('BasetenProvider', () => {
       const provider = createBaseten({
         baseURL: 'https://custom.baseten.co/v1',
       });
-      const model = provider.chatModel('test-model');
+      const _model = provider.chatModel('test-model');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -340,7 +336,7 @@ describe('BasetenProvider', () => {
         modelURL:
           'https://model-123.api.baseten.co/environments/production/sync/v1',
       });
-      const model = provider.chatModel();
+      const _model = provider.chatModel();
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -355,7 +351,7 @@ describe('BasetenProvider', () => {
   describe('Headers', () => {
     it('should include Authorization header with API key', () => {
       const provider = createBaseten();
-      const model = provider.chatModel('test-model');
+      const _model = provider.chatModel('test-model');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -369,7 +365,7 @@ describe('BasetenProvider', () => {
       const provider = createBaseten({
         headers: { 'Custom-Header': 'custom-value' },
       });
-      const model = provider.chatModel('test-model');
+      const _model = provider.chatModel('test-model');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
@@ -386,7 +382,7 @@ describe('BasetenProvider', () => {
         .mockResolvedValue(new Response('{}', { status: 200 }));
 
       const provider = createBaseten({ fetch: fetchMock });
-      const model = provider.chatModel('test-model');
+      const _model = provider.chatModel('test-model');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];

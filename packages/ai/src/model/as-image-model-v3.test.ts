@@ -127,7 +127,8 @@ describe('asImageModelV3', () => {
     });
 
     it('should preserve maxImagesPerCall as function', () => {
-      const maxImagesPerCallFn = ({ modelId }: { modelId: string }) => 5;
+      const maxImagesPerCallFn = ({ modelId: _modelId }: { modelId: string }) =>
+        5;
       const v2Model = new MockImageModelV2({
         provider: 'test-provider',
         modelId: 'test-model-id',

@@ -106,7 +106,7 @@ async function getInputFromUser(
       }
       try {
         Object.assign(data, JSON.parse(rawPayload));
-      } catch (error) {
+      } catch {
         console.error('Invalid JSON payload. Cancelling request.');
         return { action: 'cancel' };
       }

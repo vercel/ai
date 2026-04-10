@@ -59,7 +59,7 @@ describe('FireworksProvider', () => {
   describe('createFireworks', () => {
     it('should create a FireworksProvider instance with default options', () => {
       const provider = createFireworks();
-      const model = provider('model-id');
+      const _model = provider('model-id');
 
       // Use the mocked version
       const constructorCall =
@@ -81,7 +81,7 @@ describe('FireworksProvider', () => {
         headers: { 'Custom-Header': 'value' },
       };
       const provider = createFireworks(options);
-      const model = provider('model-id');
+      const _model = provider('model-id');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];

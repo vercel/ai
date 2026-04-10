@@ -377,7 +377,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
 
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
-    const promptTokenDetails = response.usage?.prompt_tokens_details;
+    const _promptTokenDetails = response.usage?.prompt_tokens_details;
     const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata.openai.acceptedPredictionTokens =

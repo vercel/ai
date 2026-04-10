@@ -5,7 +5,7 @@ import { z } from 'zod';
 const weatherTool = tool({
   description: 'Get the weather in a location',
   inputSchema: z.object({ city: z.string() }),
-  execute: async ({ city }) => ({
+  execute: async () => ({
     state: 'ready' as const,
     temperature: 72,
     weather: 'sunny',

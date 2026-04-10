@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 const messages: ModelMessage[] = [];
 
 run(async () => {
-  let toolResponseAvailable = false;
+  let _toolResponseAvailable = false;
 
   const result = streamText({
     model: togetherai('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
@@ -71,6 +71,6 @@ run(async () => {
     messages.push({ role: 'tool', content: toolResponses });
   }
 
-  toolResponseAvailable = toolCalls.length > 0;
+  _toolResponseAvailable = toolCalls.length > 0;
   console.log('Messages:', messages[0].content);
 });

@@ -32,7 +32,7 @@ describe('CerebrasProvider', () => {
   describe('createCerebras', () => {
     it('should create a CerebrasProvider instance with default options', () => {
       const provider = createCerebras();
-      const model = provider('model-id');
+      const _model = provider('model-id');
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];

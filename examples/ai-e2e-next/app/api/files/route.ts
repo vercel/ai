@@ -13,7 +13,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async (
-        pathname,
+        _pathname,
         /* clientPayload */
       ) => {
         // Generate a client token for the browser to upload the file
@@ -45,7 +45,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           // Run any logic after the file upload completed
           // const { userId } = JSON.parse(tokenPayload);
           // await db.update({ avatar: blob.url, userId });
-        } catch (error) {
+        } catch {
           throw new Error('Could not complete operation');
         }
       },

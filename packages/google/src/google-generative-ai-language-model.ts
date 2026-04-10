@@ -42,10 +42,7 @@ import {
   GoogleGenerativeAIModelId,
   googleLanguageModelOptions,
 } from './google-generative-ai-options';
-import {
-  GoogleGenerativeAIContentPart,
-  GoogleGenerativeAIProviderMetadata,
-} from './google-generative-ai-prompt';
+import { GoogleGenerativeAIProviderMetadata } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
 import { GoogleJSONAccumulator, PartialArg } from './google-json-accumulator';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -1408,16 +1405,9 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
-type ContentSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['content']
->;
 export type GroundingMetadataSchema = NonNullable<
   InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
 >;
-
-type GroundingChunkSchema = NonNullable<
-  GroundingMetadataSchema['groundingChunks']
->[number];
 
 export type UrlContextMetadataSchema = NonNullable<
   InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']

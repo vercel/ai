@@ -2977,7 +2977,7 @@ describe('OpenTelemetryIntegration integration with streamObject', () => {
       experimental_telemetry: {
         isEnabled: true,
         integrations: {
-          onStart(event: any) {
+          onStart() {
             onErrorCalls.length;
           },
           onError(event: any) {

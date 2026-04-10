@@ -54,7 +54,7 @@ describe('AlibabaProvider', () => {
   describe('createAlibaba', () => {
     it('should create an AlibabaProvider instance with default options', () => {
       const provider = createAlibaba();
-      const model = provider('qwen-plus');
+      const _model = provider('qwen-plus');
 
       const constructorCall = AlibabaLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
@@ -74,7 +74,7 @@ describe('AlibabaProvider', () => {
         headers: { 'Custom-Header': 'value' },
       };
       const provider = createAlibaba(options);
-      const model = provider('qwen-plus');
+      const _model = provider('qwen-plus');
 
       const constructorCall = AlibabaLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];

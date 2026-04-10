@@ -797,7 +797,7 @@ describe('doStream', () => {
 
       expect(responseArray).toMatchSnapshot();
 
-      const toolCallIds = responseArray
+      const _toolCallIds = responseArray
         .filter(
           chunk =>
             chunk.type === 'tool-input-delta' || chunk.type === 'tool-call',

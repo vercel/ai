@@ -1,6 +1,5 @@
 import { openai, type OpenAILanguageModelChatOptions } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { setTimeout } from 'node:timers/promises';
 import { performance } from 'node:perf_hooks';
 import { run } from '../../lib/run';
 
@@ -149,7 +148,7 @@ function createCompletion() {
         maxCompletionTokens: 100,
       } satisfies OpenAILanguageModelChatOptions,
     },
-    onFinish: ({ usage, providerMetadata }) => {
+    onFinish: ({ usage: _usage, providerMetadata }) => {
       console.log(`metadata:`, providerMetadata);
     },
   });
@@ -161,10 +160,10 @@ run(async () => {
   let end = performance.now();
   console.log(`duration: ${Math.floor(end - start)} ms`);
 
-  let fullResponse = '';
+  let _fullResponse = '';
   process.stdout.write('\nAssistant: ');
   for await (const delta of result.textStream) {
-    fullResponse += delta;
+    _fullResponse += delta;
     process.stdout.write(delta);
   }
   process.stdout.write('\n\n');

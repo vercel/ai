@@ -71,12 +71,12 @@ describe('OpenResponsesLanguageModel', () => {
     });
 
     describe('request parameters', () => {
-      let result: LanguageModelV4GenerateResult;
+      let _result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
 
-        result = await createModel().doGenerate({
+        _result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
           maxOutputTokens: 100,
           temperature: 0.5,
@@ -104,12 +104,12 @@ describe('OpenResponsesLanguageModel', () => {
     });
 
     describe('tools', () => {
-      let result: LanguageModelV4GenerateResult;
+      let _result: LanguageModelV4GenerateResult;
 
       beforeEach(async () => {
         prepareJsonFixtureResponse('lmstudio-basic.1');
 
-        result = await createModel().doGenerate({
+        _result = await createModel().doGenerate({
           prompt: TEST_PROMPT,
           tools: [
             {

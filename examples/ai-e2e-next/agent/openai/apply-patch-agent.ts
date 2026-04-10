@@ -11,7 +11,7 @@ const workspaceRoot = path.join(process.cwd(), 'workspace');
 async function ensureWorkspaceExists() {
   try {
     await fs.mkdir(workspaceRoot, { recursive: true });
-  } catch (error) {}
+  } catch {}
 }
 
 ensureWorkspaceExists();

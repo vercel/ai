@@ -1,9 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText, tool, registerTelemetryIntegration } from 'ai';
-import {
-  OpenTelemetryIntegration,
-  GenAIOpenTelemetryIntegration,
-} from '@ai-sdk/otel';
+import { GenAIOpenTelemetryIntegration } from '@ai-sdk/otel';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 

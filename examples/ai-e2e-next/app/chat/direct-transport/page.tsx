@@ -24,7 +24,7 @@ export default function Chat() {
         return result.toUIMessageStream();
       },
 
-      reconnectToStream: async ({ chatId }) => {
+      reconnectToStream: async () => {
         throw new Error('Not implemented');
       },
     } satisfies ChatTransport<UIMessage>,

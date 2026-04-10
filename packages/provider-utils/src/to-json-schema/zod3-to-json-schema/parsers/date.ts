@@ -22,7 +22,7 @@ export function parseDateDef(
 
   if (Array.isArray(strategy)) {
     return {
-      anyOf: strategy.map((item, i) => parseDateDef(def, refs, item)),
+      anyOf: strategy.map(item => parseDateDef(def, refs, item)),
     };
   }
 

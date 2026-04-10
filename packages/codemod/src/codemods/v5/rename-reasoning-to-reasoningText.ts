@@ -88,7 +88,7 @@ export default createTransformer((fileInfo, api, options, context) => {
     });
 
   // Step 2b: Look for `for...of` loops on `steps`
-  const forOfPaths = root
+  const _forOfPaths = root
     .find(j.ForOfStatement)
     .filter(path => {
       const right = path.node.right;

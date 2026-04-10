@@ -51,7 +51,7 @@ describe('xAIProvider', () => {
   describe('createXAI', () => {
     it('should create an XAIProvider instance with default options', () => {
       const provider = createXai();
-      const model = provider('model-id');
+      const _model = provider('model-id');
 
       const constructorCall = XaiResponsesLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];

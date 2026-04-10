@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 // Stabilize provider utils version used inside UA string construction
 vi.mock('./version', () => ({

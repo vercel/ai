@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const weatherTool = tool({
   description: 'Get the weather in a location',
   inputSchema: z.object({ city: z.string() }),
-  async *execute({ city }: { city: string }) {
+  async *execute({ city: _city }: { city: string }) {
     yield { state: 'loading' as const };
 
     // Add artificial delay of 5 seconds

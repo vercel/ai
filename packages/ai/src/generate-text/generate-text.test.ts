@@ -1,5 +1,4 @@
 import {
-  LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4FunctionTool,
   LanguageModelV4Prompt,
@@ -1063,7 +1062,7 @@ describe('generateText', () => {
       const stepStartEvents: Parameters<
         GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
-      let responseCount = 0;
+      let _responseCount = 0;
 
       const alternateModel = new MockLanguageModelV4({
         provider: 'alternate-provider',
@@ -1077,7 +1076,7 @@ describe('generateText', () => {
       await generateText({
         model: new MockLanguageModelV4({
           doGenerate: async () => {
-            responseCount++;
+            _responseCount++;
             return {
               ...dummyResponseValues,
               content: [
@@ -6539,7 +6538,7 @@ describe('generateText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { context }) => {
+            execute: async ({ value: _value }, { context }) => {
               recordedContext = context;
               return { value: 'test-result' };
             },
@@ -7540,12 +7539,12 @@ describe('generateText', () => {
     });
 
     describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
-      let result: GenerateTextResult<any, any, any>;
+      let _result: GenerateTextResult<any, any, any>;
       let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
         prompts = [];
-        result = await generateText({
+        _result = await generateText({
           model: new MockLanguageModelV4({
             doGenerate: async ({ prompt }) => {
               prompts.push(prompt);

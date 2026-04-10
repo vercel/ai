@@ -54,7 +54,7 @@ export class AnthropicFiles implements FilesV4 {
     filename,
     providerOptions,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
-    const anthropicOptions = await parseProviderOptions({
+    const _anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
       providerOptions,
       schema: zodSchema(anthropicUploadFileProviderOptions),

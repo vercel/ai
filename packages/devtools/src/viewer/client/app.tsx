@@ -2131,7 +2131,7 @@ function formatOutputTokens(breakdown: OutputTokenBreakdown): string {
 /**
  * Truncates tool call parameters for preview display.
  */
-function formatToolParams(args: any, maxLength = 40): string {
+function formatToolParams(args: any, _maxLength = 40): string {
   if (!args || typeof args !== 'object') return '';
 
   const entries = Object.entries(args);

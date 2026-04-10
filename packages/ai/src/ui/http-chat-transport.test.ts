@@ -12,7 +12,7 @@ class MockHttpChatTransport extends HttpChatTransport<UIMessage> {
     super(options);
   }
   protected processResponseStream(
-    stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
+    _stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
   ): ReadableStream<UIMessageChunk> {
     return new ReadableStream();
   }

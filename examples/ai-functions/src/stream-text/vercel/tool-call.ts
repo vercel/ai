@@ -3,10 +3,10 @@ import { streamText, ToolCallPart, ToolResultPart, ModelMessage } from 'ai';
 import { weatherTool } from '../../tools/weather-tool';
 import { run } from '../../lib/run';
 
-const messages: ModelMessage[] = [];
+const _messages: ModelMessage[] = [];
 
 run(async () => {
-  let toolResponseAvailable = false;
+  let _toolResponseAvailable = false;
 
   const result = streamText({
     model: vercel('v0-1.0-md'),
@@ -18,9 +18,9 @@ run(async () => {
       'What is the weather in San Francisco and what attractions should I visit?',
   });
 
-  let fullResponse = '';
-  const toolCalls: ToolCallPart[] = [];
-  const toolResponses: ToolResultPart[] = [];
+  let _fullResponse = '';
+  const _toolCalls: ToolCallPart[] = [];
+  const _toolResponses: ToolResultPart[] = [];
 
   for await (const chunk of result.fullStream) {
     switch (chunk.type) {

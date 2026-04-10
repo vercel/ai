@@ -71,7 +71,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     responseFormat,
     seed,
     reasoning,
-    stream,
+    stream: _stream,
     tools,
     toolChoice,
     providerOptions,

@@ -143,7 +143,7 @@ describe('ToolLoopAgent', () => {
 
   describe('context', () => {
     it('should infer typed context with one tool context and prepareStep', async () => {
-      const agent = new ToolLoopAgent({
+      const _agent = new ToolLoopAgent({
         model: new MockLanguageModelV4(),
         tools: {
           weather: tool({

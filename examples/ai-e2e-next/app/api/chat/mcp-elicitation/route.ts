@@ -69,7 +69,7 @@ async function processMessages(
         content:
           userResponse.action === 'accept' ? userResponse.content : undefined,
       };
-    } catch (error) {
+    } catch {
       // Return a declined response on error
       return {
         action: 'decline' as const,

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { text, usage } = await generateText({
+  const { text: _text, usage: _usage } = await generateText({
     model: openai('gpt-4o-2024-08-06'),
     tools: {
       currentLocation: tool({

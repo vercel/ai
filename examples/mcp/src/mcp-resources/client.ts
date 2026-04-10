@@ -1,6 +1,4 @@
 import { createMCPClient } from '@ai-sdk/mcp';
-import { openai } from '@ai-sdk/openai';
-import { generateText, isStepCount } from 'ai';
 
 async function main() {
   const mcpClient = await createMCPClient({

@@ -14,7 +14,7 @@ sdk.start();
 registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 run(async () => {
-  const myCustomProvider = createAnthropic({
+  const _myCustomProvider = createAnthropic({
     name: 'my-anthropic-proxy',
   });
 
@@ -27,7 +27,7 @@ run(async () => {
         inputSchema: z.object({
           city: z.string(),
         }),
-        execute: async ({ city }) => {
+        execute: async () => {
           return {
             temperature: 50,
             condition: 'sunny',

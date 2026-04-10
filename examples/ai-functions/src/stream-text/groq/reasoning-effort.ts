@@ -1,4 +1,4 @@
-import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
+import { groq } from '@ai-sdk/groq';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 

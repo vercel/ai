@@ -28,7 +28,7 @@ describe('wrapImageModel', () => {
         }),
         middleware: {
           specificationVersion: 'v4',
-          overrideModelId: ({ model }) => 'override-model',
+          overrideModelId: () => 'override-model',
         },
       });
 
@@ -71,7 +71,7 @@ describe('wrapImageModel', () => {
         }),
         middleware: {
           specificationVersion: 'v4',
-          overrideProvider: ({ model }) => 'override-provider',
+          overrideProvider: () => 'override-provider',
         },
       });
 

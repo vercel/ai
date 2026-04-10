@@ -19,7 +19,13 @@ export default function ChatComponent({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { status, sendMessage, messages, regenerate, stop } = useChat({
+  const {
+    status,
+    sendMessage,
+    messages,
+    regenerate,
+    stop: _stop,
+  } = useChat({
     id: chatData.id,
     messages: chatData.messages,
     resume,

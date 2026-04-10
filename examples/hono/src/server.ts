@@ -24,7 +24,7 @@ app.use(
   }),
 );
 
-app.post('/', async c => {
+app.post('/', async _c => {
   console.log('POST /');
   const result = streamText({
     model: openai('gpt-4o'),
@@ -33,7 +33,7 @@ app.post('/', async c => {
   return result.toUIMessageStreamResponse();
 });
 
-app.post('/text', async c => {
+app.post('/text', async _c => {
   console.log('POST /text');
   const result = streamText({
     model: openai('gpt-4o'),
@@ -42,7 +42,7 @@ app.post('/text', async c => {
   return result.toTextStreamResponse();
 });
 
-app.post('/stream-data', async c => {
+app.post('/stream-data', async _c => {
   console.log('POST /stream-data');
 
   // immediately start streaming the response

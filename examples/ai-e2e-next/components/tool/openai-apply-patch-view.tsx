@@ -60,8 +60,12 @@ export default function OpenAIApplyPatchView({
             : 'bg-red-200 text-red-900';
 
       // Parse diff for visualization
-      const { lines, addedLines, removedLines, contextLines } =
-        parseDiffForVisualization(input.operation.diff || '');
+      const {
+        lines,
+        addedLines: _addedLines,
+        removedLines: _removedLines,
+        contextLines: _contextLines,
+      } = parseDiffForVisualization(input.operation.diff || '');
 
       return (
         <div
@@ -204,8 +208,12 @@ export default function OpenAIApplyPatchView({
         : 'bg-red-200 text-red-900';
 
       // Parse diff for visualization
-      const { lines, addedLines, removedLines, contextLines } =
-        parseDiffForVisualization(input.operation.diff || '');
+      const {
+        lines,
+        addedLines: _addedLines,
+        removedLines: _removedLines,
+        contextLines: _contextLines,
+      } = parseDiffForVisualization(input.operation.diff || '');
 
       return (
         <div

@@ -16,7 +16,7 @@ export default createTransformer((fileInfo, api, options, context) => {
   };
 
   // Set to keep track of already imported new names to avoid duplicates
-  const importedNewNames = new Set<string>();
+  const _importedNewNames = new Set<string>();
 
   // Replace imports at ImportDeclaration level
   root

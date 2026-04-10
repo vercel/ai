@@ -1,11 +1,6 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { prepareCallSettings } from './prepare-call-settings';
-import {
-  getToolTimeoutMs,
-  getTotalTimeoutMs,
-  getStepTimeoutMs,
-  getChunkTimeoutMs,
-} from './call-settings';
+import { getToolTimeoutMs } from './call-settings';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareCallSettings', () => {

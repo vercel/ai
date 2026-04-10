@@ -29,7 +29,7 @@ describe('wrapLanguageModel', () => {
         }),
         middleware: {
           specificationVersion: 'v4',
-          overrideModelId: ({ model }) => 'override-model',
+          overrideModelId: () => 'override-model',
         },
       });
 
@@ -72,7 +72,7 @@ describe('wrapLanguageModel', () => {
         }),
         middleware: {
           specificationVersion: 'v4',
-          overrideProvider: ({ model }) => 'override-provider',
+          overrideProvider: () => 'override-provider',
         },
       });
 
@@ -119,7 +119,7 @@ describe('wrapLanguageModel', () => {
         }),
         middleware: {
           specificationVersion: 'v4',
-          overrideSupportedUrls: ({ model }) => ({
+          overrideSupportedUrls: () => ({
             'override/*': [/^https:\/\/.*$/],
           }),
         },
@@ -406,13 +406,13 @@ describe('wrapLanguageModel', () => {
 
       const wrapGenerate1 = vi
         .fn()
-        .mockImplementation(async ({ doGenerate, params, model }) => {
+        .mockImplementation(async ({ doGenerate }) => {
           const result = await doGenerate();
           return `wrapGenerate1(${result})`;
         });
       const wrapGenerate2 = vi
         .fn()
-        .mockImplementation(async ({ doGenerate, params, model }) => {
+        .mockImplementation(async ({ doGenerate }) => {
           const result = await doGenerate();
           return `wrapGenerate2(${result})`;
         });
@@ -450,18 +450,14 @@ describe('wrapLanguageModel', () => {
         doStream: vi.fn().mockResolvedValue('final stream result'),
       });
 
-      const wrapStream1 = vi
-        .fn()
-        .mockImplementation(async ({ doStream, params, model }) => {
-          const result = await doStream();
-          return `wrapStream1(${result})`;
-        });
-      const wrapStream2 = vi
-        .fn()
-        .mockImplementation(async ({ doStream, params, model }) => {
-          const result = await doStream();
-          return `wrapStream2(${result})`;
-        });
+      const wrapStream1 = vi.fn().mockImplementation(async ({ doStream }) => {
+        const result = await doStream();
+        return `wrapStream1(${result})`;
+      });
+      const wrapStream2 = vi.fn().mockImplementation(async ({ doStream }) => {
+        const result = await doStream();
+        return `wrapStream2(${result})`;
+      });
 
       const wrappedModel = wrapLanguageModel({
         model: mockModel,

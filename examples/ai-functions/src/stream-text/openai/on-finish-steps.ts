@@ -23,6 +23,6 @@ run(async () => {
   });
 
   // consume the text stream
-  for await (const textPart of result.textStream) {
+  for await (const _textPart of result.textStream) {
   }
 });

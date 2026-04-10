@@ -4,7 +4,7 @@ import { Fragment, useState } from 'react';
 import type { AI } from './ai';
 import { useActions } from '@ai-sdk/rsc';
 
-import { useAIState, useUIState } from '@ai-sdk/rsc';
+import { useUIState } from '@ai-sdk/rsc';
 import { generateId } from 'ai';
 import { Message } from './message';
 

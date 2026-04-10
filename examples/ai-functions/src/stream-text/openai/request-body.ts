@@ -9,7 +9,7 @@ run(async () => {
   });
 
   // consume stream
-  for await (const textPart of result.textStream) {
+  for await (const _textPart of result.textStream) {
   }
 
   console.log('REQUEST BODY');
