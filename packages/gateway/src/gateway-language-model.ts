@@ -108,6 +108,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
           options.headers,
           this.getModelConfigHeaders(this.modelId, true),
           await resolve(this.config.o11yHeaders),
+          { accept: 'text/event-stream' },
         ),
         body: args,
         successfulResponseHandler: createEventSourceResponseHandler(z.any()),
