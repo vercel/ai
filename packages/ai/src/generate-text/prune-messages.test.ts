@@ -407,15 +407,6 @@ describe('pruneMessages', () => {
             {
               "content": [
                 {
-                  "text": "I need to get the weather in Tokyo and Busan.",
-                  "type": "reasoning",
-                },
-              ],
-              "role": "assistant",
-            },
-            {
-              "content": [
-                {
                   "text": "I have got the weather in Tokyo and Busan.",
                   "type": "reasoning",
                 },
@@ -715,6 +706,143 @@ describe('pruneMessages', () => {
           ]
         `);
       });
+    });
+  });
+
+  describe('orphaned reasoning', () => {
+    it('should remove assistant messages containing only reasoning parts after tool call pruning', () => {
+      const messages: ModelMessage[] = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Check for errors' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Let me check for errors...',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'checkErrors',
+              input: '{}',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'checkErrors',
+              output: { type: 'text', value: 'no errors' },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Errors checked successfully.',
+            },
+            {
+              type: 'text',
+              text: 'No errors found.',
+            },
+          ],
+        },
+      ];
+
+      // Prune all tool calls — the first assistant message becomes reasoning-only
+      const result = pruneMessages({
+        messages,
+        toolCalls: 'all',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Check for errors",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "Errors checked successfully.",
+                "type": "reasoning",
+              },
+              {
+                "text": "No errors found.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should keep assistant messages that have reasoning plus non-reasoning parts', () => {
+      const messages: ModelMessage[] = [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'The user said hello.',
+            },
+            {
+              type: 'text',
+              text: 'Hi there!',
+            },
+          ],
+        },
+      ];
+
+      const result = pruneMessages({
+        messages,
+        toolCalls: 'all',
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "The user said hello.",
+                "type": "reasoning",
+              },
+              {
+                "text": "Hi there!",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
     });
   });
 });
