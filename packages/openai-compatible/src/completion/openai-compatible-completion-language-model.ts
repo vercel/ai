@@ -64,8 +64,8 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
 
-  static [WORKFLOW_SERIALIZE](inst: OpenAICompatibleCompletionLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleCompletionLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

@@ -37,8 +37,8 @@ export class BedrockImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
 
-  static [WORKFLOW_SERIALIZE](inst: BedrockImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: BedrockImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

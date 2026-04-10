@@ -26,8 +26,8 @@ interface OpenAISpeechModelConfig extends OpenAIConfig {
 export class OpenAISpeechModel implements SpeechModelV4 {
   readonly specificationVersion = 'v4';
 
-  static [WORKFLOW_SERIALIZE](inst: OpenAISpeechModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenAISpeechModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

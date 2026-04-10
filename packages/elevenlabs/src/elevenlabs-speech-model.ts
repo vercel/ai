@@ -65,8 +65,8 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: ElevenLabsSpeechModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: ElevenLabsSpeechModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

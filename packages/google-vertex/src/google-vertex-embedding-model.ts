@@ -29,8 +29,8 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
 
   private readonly config: GoogleVertexConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: GoogleVertexEmbeddingModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: GoogleVertexEmbeddingModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

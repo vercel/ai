@@ -803,8 +803,8 @@ import {
 class CustomChatLanguageModel implements LanguageModelV4 {
   // Note: classId is generated automatically by the workflow SWC compiler at build time
 
-  static [WORKFLOW_SERIALIZE](inst: CustomChatLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: CustomChatLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

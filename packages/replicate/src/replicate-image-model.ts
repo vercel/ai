@@ -52,8 +52,8 @@ export class ReplicateImageModel implements ImageModelV4 {
     return FLUX_2_MODEL_PATTERN.test(this.modelId);
   }
 
-  static [WORKFLOW_SERIALIZE](inst: ReplicateImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: ReplicateImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

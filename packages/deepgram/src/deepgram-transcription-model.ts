@@ -72,8 +72,8 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: DeepgramTranscriptionModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: DeepgramTranscriptionModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

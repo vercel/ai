@@ -35,8 +35,8 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: MistralEmbeddingModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: MistralEmbeddingModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

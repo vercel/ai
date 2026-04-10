@@ -50,8 +50,8 @@ export class FalSpeechModel implements SpeechModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: FalSpeechModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: FalSpeechModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

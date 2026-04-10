@@ -8,8 +8,8 @@
  *
  * @example
  * ```ts
- * static [WORKFLOW_SERIALIZE](inst: MyLanguageModel) {
- *   return serializeModel(inst);
+ * static [WORKFLOW_SERIALIZE](model: MyLanguageModel) {
+ *   return serializeModel(model);
  * }
  * ```
  */

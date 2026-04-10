@@ -33,8 +33,8 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: GroqTranscriptionModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: GroqTranscriptionModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

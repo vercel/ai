@@ -47,8 +47,8 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: ElevenLabsTranscriptionModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: ElevenLabsTranscriptionModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

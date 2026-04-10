@@ -31,8 +31,8 @@ export class GatewayImageModel implements ImageModelV4 {
   // Set a very large number to prevent client-side splitting of requests
   readonly maxImagesPerCall = Number.MAX_SAFE_INTEGER;
 
-  static [WORKFLOW_SERIALIZE](inst: GatewayImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: GatewayImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

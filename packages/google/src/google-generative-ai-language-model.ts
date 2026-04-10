@@ -75,8 +75,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
   private readonly config: GoogleGenerativeAIConfig;
   private readonly generateId: () => string;
 
-  static [WORKFLOW_SERIALIZE](inst: GoogleGenerativeAILanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAILanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

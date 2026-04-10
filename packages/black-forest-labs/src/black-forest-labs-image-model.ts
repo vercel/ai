@@ -52,8 +52,8 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: BlackForestLabsImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: BlackForestLabsImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

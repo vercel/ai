@@ -120,8 +120,8 @@ export class FireworksImageModel implements ImageModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: FireworksImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: FireworksImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

@@ -36,8 +36,8 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedUrls = { '*/*': [/.*/] };
 
-  static [WORKFLOW_SERIALIZE](inst: GatewayLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: GatewayLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

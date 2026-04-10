@@ -103,8 +103,8 @@ const languageMap = {
 export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
 
-  static [WORKFLOW_SERIALIZE](inst: OpenAITranscriptionModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenAITranscriptionModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

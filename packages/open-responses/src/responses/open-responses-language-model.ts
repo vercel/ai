@@ -46,8 +46,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
   private readonly config: OpenResponsesConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: OpenResponsesLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenResponsesLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

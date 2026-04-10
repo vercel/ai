@@ -103,8 +103,8 @@ export class HumeSpeechModel implements SpeechModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: HumeSpeechModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: HumeSpeechModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

@@ -54,8 +54,8 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
 
   private readonly config: XaiChatConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: XaiChatLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: XaiChatLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

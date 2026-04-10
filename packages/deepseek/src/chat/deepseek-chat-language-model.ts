@@ -60,8 +60,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
   private readonly config: DeepSeekChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
 
-  static [WORKFLOW_SERIALIZE](inst: DeepSeekChatLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: DeepSeekChatLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

@@ -34,8 +34,8 @@ interface OpenAIImageModelConfig extends OpenAIConfig {
 export class OpenAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
-  static [WORKFLOW_SERIALIZE](inst: OpenAIImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenAIImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

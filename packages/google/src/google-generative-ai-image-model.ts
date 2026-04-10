@@ -44,8 +44,8 @@ interface GoogleGenerativeAIImageModelConfig {
 export class GoogleGenerativeAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
-  static [WORKFLOW_SERIALIZE](inst: GoogleGenerativeAIImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAIImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

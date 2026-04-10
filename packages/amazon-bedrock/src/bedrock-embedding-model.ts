@@ -37,8 +37,8 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
   readonly maxEmbeddingsPerCall = 1;
   readonly supportsParallelCalls = true;
 
-  static [WORKFLOW_SERIALIZE](inst: BedrockEmbeddingModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: BedrockEmbeddingModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

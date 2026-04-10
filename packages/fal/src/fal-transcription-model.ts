@@ -78,8 +78,8 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: FalTranscriptionModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: FalTranscriptionModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

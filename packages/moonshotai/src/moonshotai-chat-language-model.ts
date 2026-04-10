@@ -16,8 +16,8 @@ import { convertMoonshotAIChatUsage } from './convert-moonshotai-chat-usage';
 import { MoonshotAIChatModelId } from './moonshotai-chat-options';
 
 export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageModel {
-  static [WORKFLOW_SERIALIZE](inst: MoonshotAIChatLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: MoonshotAIChatLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

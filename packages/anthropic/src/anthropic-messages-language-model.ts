@@ -154,8 +154,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   private readonly config: AnthropicMessagesConfig;
   private readonly generateId: () => string;
 
-  static [WORKFLOW_SERIALIZE](inst: AnthropicMessagesLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: AnthropicMessagesLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

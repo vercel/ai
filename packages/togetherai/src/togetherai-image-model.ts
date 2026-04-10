@@ -36,8 +36,8 @@ export class TogetherAIImageModel implements ImageModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: TogetherAIImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: TogetherAIImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

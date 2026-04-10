@@ -43,8 +43,8 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
   private readonly config: PerplexityChatConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: PerplexityLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: PerplexityLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

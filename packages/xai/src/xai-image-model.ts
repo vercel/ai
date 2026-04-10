@@ -37,8 +37,8 @@ export class XaiImageModel implements ImageModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: XaiImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: XaiImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

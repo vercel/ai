@@ -111,8 +111,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
   private readonly config: OpenAIConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: OpenAIResponsesLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenAIResponsesLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

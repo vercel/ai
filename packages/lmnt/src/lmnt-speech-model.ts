@@ -96,8 +96,8 @@ export class LMNTSpeechModel implements SpeechModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: LMNTSpeechModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: LMNTSpeechModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

@@ -51,8 +51,8 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: DeepgramSpeechModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: DeepgramSpeechModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

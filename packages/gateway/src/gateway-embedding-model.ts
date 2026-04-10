@@ -31,8 +31,8 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
-  static [WORKFLOW_SERIALIZE](inst: GatewayEmbeddingModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: GatewayEmbeddingModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

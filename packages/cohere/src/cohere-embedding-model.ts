@@ -36,8 +36,8 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
 
   private readonly config: CohereEmbeddingConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: CohereEmbeddingModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: CohereEmbeddingModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

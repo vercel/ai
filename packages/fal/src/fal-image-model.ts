@@ -39,8 +39,8 @@ export class FalImageModel implements ImageModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: FalImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: FalImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

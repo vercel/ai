@@ -40,8 +40,8 @@ interface GoogleVertexImageModelConfig {
 export class GoogleVertexImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
-  static [WORKFLOW_SERIALIZE](inst: GoogleVertexImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: GoogleVertexImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

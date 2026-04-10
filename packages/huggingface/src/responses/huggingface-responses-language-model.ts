@@ -41,8 +41,8 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
 
   private readonly config: HuggingFaceConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: HuggingFaceResponsesLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: HuggingFaceResponsesLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

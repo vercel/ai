@@ -43,8 +43,8 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: ProdiaLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: ProdiaLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

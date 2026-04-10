@@ -20,8 +20,8 @@ type DeepInfraChatConfig = {
 };
 
 export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageModel {
-  static [WORKFLOW_SERIALIZE](inst: DeepInfraChatLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: DeepInfraChatLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

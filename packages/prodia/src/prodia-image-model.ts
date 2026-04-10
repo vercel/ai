@@ -32,8 +32,8 @@ export class ProdiaImageModel implements ImageModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: ProdiaImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: ProdiaImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

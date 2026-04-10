@@ -57,8 +57,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
     return this.config.provider.split('.')[0].trim();
   }
 
-  static [WORKFLOW_SERIALIZE](inst: OpenAICompletionLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenAICompletionLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

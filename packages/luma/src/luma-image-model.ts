@@ -49,8 +49,8 @@ export class LumaImageModel implements ImageModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: LumaImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: LumaImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

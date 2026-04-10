@@ -57,8 +57,8 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
 
   private readonly config: AlibabaConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: AlibabaLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: AlibabaLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

@@ -38,8 +38,8 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
 
   private readonly config: GoogleGenerativeAIEmbeddingConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: GoogleGenerativeAIEmbeddingModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAIEmbeddingModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

@@ -53,8 +53,8 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
   private readonly config: MistralChatConfig;
   private readonly generateId: () => string;
 
-  static [WORKFLOW_SERIALIZE](inst: MistralChatLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: MistralChatLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

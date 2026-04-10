@@ -56,8 +56,8 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
     return this.config.provider.split('.')[0].trim();
   }
 
-  static [WORKFLOW_SERIALIZE](inst: OpenAICompatibleImageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleImageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

@@ -28,8 +28,8 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
 
   private readonly config: OpenAIConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: OpenAIEmbeddingModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenAIEmbeddingModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

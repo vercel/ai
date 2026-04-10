@@ -87,8 +87,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
 
-  static [WORKFLOW_SERIALIZE](inst: OpenAICompatibleChatLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleChatLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

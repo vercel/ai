@@ -56,8 +56,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
   private readonly config: XaiResponsesConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: XaiResponsesLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: XaiResponsesLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

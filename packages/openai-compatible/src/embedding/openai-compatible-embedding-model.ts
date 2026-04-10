@@ -62,8 +62,8 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
     return this.config.supportsParallelCalls ?? true;
   }
 
-  static [WORKFLOW_SERIALIZE](inst: OpenAICompatibleEmbeddingModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleEmbeddingModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

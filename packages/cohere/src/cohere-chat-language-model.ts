@@ -54,8 +54,8 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
   private readonly config: CohereChatConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: CohereChatLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: CohereChatLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

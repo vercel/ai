@@ -54,8 +54,8 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
   private readonly config: GroqChatConfig;
 
-  static [WORKFLOW_SERIALIZE](inst: GroqChatLanguageModel) {
-    return serializeModel(inst);
+  static [WORKFLOW_SERIALIZE](model: GroqChatLanguageModel) {
+    return serializeModel(model);
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
