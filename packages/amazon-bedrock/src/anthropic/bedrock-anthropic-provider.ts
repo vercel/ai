@@ -37,6 +37,11 @@ const BEDROCK_TOOL_NAME_MAP: Record<string, string> = {
   text_editor_20250728: 'str_replace_based_edit_tool',
 };
 
+// Map Anthropic beta values to their Bedrock equivalents
+const BEDROCK_BETA_REMAP: Record<string, string> = {
+  'advanced-tool-use-2025-11-20': 'tool-examples-2025-10-29',
+};
+
 // Map tool types to required anthropic_beta values for Bedrock
 const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
   bash_20250124: 'computer-use-2025-01-24',
@@ -271,7 +276,11 @@ export function createBedrockAnthropic(
               }
             : undefined;
 
-        const requiredBetas = new Set<string>(betas);
+        // Remap Anthropic betas to their Bedrock equivalents
+        const requiredBetas = new Set<string>();
+        for (const beta of betas) {
+          requiredBetas.add(BEDROCK_BETA_REMAP[beta] ?? beta);
+        }
         const transformedTools = tools?.map((tool: Record<string, unknown>) => {
           const toolType = tool.type as string | undefined;
 
