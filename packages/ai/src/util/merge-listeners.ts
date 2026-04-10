@@ -14,8 +14,8 @@ export function mergeListeners<EVENT>(
 ): Listener<EVENT> {
   return async (event: EVENT) => {
     await Promise.allSettled(
-      listeners.map(async callback => {
-        await callback?.(event);
+      listeners.map(async listener => {
+        await listener?.(event);
       }),
     );
   };
