@@ -1956,28 +1956,45 @@ class DefaultStreamTextResult<
                     }))
                   ) {
                     // append to messages for the next step:
-                    responseMessages.push(
-                      ...(await toResponseMessages({
-                        content:
-                          // use transformed content to create the messages for the next step:
-                          recordedSteps[recordedSteps.length - 1].content,
-                        tools,
-                      })),
-                    );
+                    const nextMessages = await toResponseMessages({
+                      content:
+                        // use transformed content to create the messages for the next step:
+                        recordedSteps[recordedSteps.length - 1].content,
+                      tools,
+                    });
 
-                    try {
-                      await streamStep({
-                        currentStep: currentStep + 1,
-                        responseMessages,
-                        usage: combinedUsage,
-                      });
-                    } catch (error) {
-                      controller.enqueue({
-                        type: 'error',
-                        error,
-                      });
+                    // Guard: some providers (e.g. Anthropic) reject requests
+                    // whose last message has role "assistant". This happens when
+                    // only provider-executed deferred tool results exist (no
+                    // client tool results produce a role:"tool" message). In
+                    // that case, skip the continuation to avoid a 400 error.
+                    const lastMsg = nextMessages[nextMessages.length - 1];
+                    if (
+                      nextMessages.length > 0 &&
+                      lastMsg != null &&
+                      'role' in lastMsg &&
+                      lastMsg.role === 'assistant' &&
+                      pendingDeferredToolCalls.size > 0 &&
+                      clientToolCalls.length === 0
+                    ) {
+                      // fall through — do not continue the tool loop
+                    } else {
+                      responseMessages.push(...nextMessages);
 
-                      self.closeStream();
+                      try {
+                        await streamStep({
+                          currentStep: currentStep + 1,
+                          responseMessages,
+                          usage: combinedUsage,
+                        });
+                      } catch (error) {
+                        controller.enqueue({
+                          type: 'error',
+                          error,
+                        });
+
+                        self.closeStream();
+                      }
                     }
                   } else {
                     controller.enqueue({
