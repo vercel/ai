@@ -550,7 +550,20 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index ?? toolCalls.length;
+                let index = toolCallDelta.index ?? toolCalls.length;
+
+                // Some providers (e.g. Ollama) reuse index 0 for all tool
+                // calls in a single response. When the slot is already
+                // occupied by a *different* tool call (different id), treat
+                // this delta as a brand-new tool call to avoid silently
+                // dropping it or corrupting the existing one.
+                if (
+                  toolCalls[index] != null &&
+                  toolCallDelta.id != null &&
+                  toolCalls[index].id !== toolCallDelta.id
+                ) {
+                  index = toolCalls.length;
+                }
 
                 if (toolCalls[index] == null) {
                   if (toolCallDelta.id == null) {
