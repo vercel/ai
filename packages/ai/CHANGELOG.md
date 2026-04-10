@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.79
+
+### Patch Changes
+
+- 6866afe: fix(ai): fix `lastAssistantMessageIsCompleteWithApprovalResponses` to no longer ignore `providerExecuted` tool approvals
+
 ## 7.0.0-beta.78
 
 ### Patch Changes
