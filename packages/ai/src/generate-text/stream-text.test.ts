@@ -897,6 +897,83 @@ describe('streamText', () => {
         `);
     });
 
+    it('should handle reasoning-delta without preceding reasoning-start', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              // reasoning-delta without reasoning-start:
+              {
+                type: 'reasoning-delta',
+                id: 'rs_abc:0',
+                delta: 'thinking...',
+              },
+              { type: 'reasoning-end', id: 'rs_abc:0' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        ...defaultSettings(),
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const errorParts = parts.filter(p => p.type === 'error');
+      const reasoningParts = parts.filter(p => p.type === 'reasoning-delta');
+
+      expect(errorParts).toHaveLength(0);
+      expect(reasoningParts).toHaveLength(1);
+      expect(reasoningParts[0]).toMatchObject({
+        type: 'reasoning-delta',
+        text: 'thinking...',
+      });
+    });
+
+    it('should handle reasoning-end without preceding reasoning-start', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              // reasoning-end without reasoning-start or reasoning-delta:
+              { type: 'reasoning-end', id: 'rs_abc:0' },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        ...defaultSettings(),
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const errorParts = parts.filter(p => p.type === 'error');
+
+      expect(errorParts).toHaveLength(0);
+    });
+
     it('should send sources', async () => {
       const result = streamText({
         model: modelWithSources,
