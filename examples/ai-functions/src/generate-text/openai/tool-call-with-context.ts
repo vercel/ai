@@ -46,11 +46,15 @@ run(async () => {
       }),
     },
     context: {
-      // weatherApiKey: 'weather-123',
-      // calculatorApiKey: 'calculator-456',
-      // somethingElse: 'other-context',
+      weatherApiKey: 'weather-123',
+      calculatorApiKey: 'calculator-456',
+      somethingElse: 'other-context',
     },
-    prepareStep: async ({ context }) => {
+    prepareStep: async ({
+      context,
+    }: {
+      context: { weatherApiKey: string; somethingElse: string };
+    }) => {
       console.log('prepareStep context:', context);
       return {};
     },
