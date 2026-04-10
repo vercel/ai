@@ -1,5 +1,12 @@
 # ai
 
+## 7.0.0-beta.81
+
+### Patch Changes
+
+- 2fe1099: feat(ai): emit streaming chunks throught the onChunk callback
+- f04adcb: feat(ai): refresh `customProvider` and `createProviderRegistry` to support file and skill upload abstractions
+
 ## 7.0.0-beta.80
 
 ### Patch Changes
