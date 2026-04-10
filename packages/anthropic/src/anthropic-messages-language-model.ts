@@ -140,6 +140,12 @@ type AnthropicMessagesConfig = {
    * Defaults to true.
    */
   supportsStrictTools?: boolean;
+
+  /**
+   * When false, the fine-grained tool streaming beta header will not be sent.
+   * Defaults to true.
+   */
+  supportsFineGrainedToolStreaming?: boolean;
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
@@ -650,7 +656,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
     }
 
     // only when streaming: enable fine-grained tool streaming
-    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
+    if (
+      stream &&
+      (anthropicOptions?.toolStreaming ?? true) &&
+      (this.config.supportsFineGrainedToolStreaming ?? true)
+    ) {
       betas.add('fine-grained-tool-streaming-2025-05-14');
     }
 

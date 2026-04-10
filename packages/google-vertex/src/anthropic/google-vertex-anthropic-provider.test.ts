@@ -52,6 +52,7 @@ describe('google-vertex-anthropic-provider', () => {
         transformRequestBody: expect.any(Function),
         supportsNativeStructuredOutput: false,
         supportsStrictTools: false,
+        supportsFineGrainedToolStreaming: false,
       }),
     );
   });
