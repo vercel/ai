@@ -1,5 +1,57 @@
 # @ai-sdk/react
 
+## 4.0.0-beta.80
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+  - ai@7.0.0-beta.80
+
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- Updated dependencies [6866afe]
+  - ai@7.0.0-beta.79
+
+## 4.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [f372547]
+  - ai@7.0.0-beta.78
+
+## 4.0.0-beta.77
+
+### Patch Changes
+
+- Updated dependencies [2add429]
+  - ai@7.0.0-beta.77
+
+## 4.0.0-beta.76
+
+### Patch Changes
+
+- Updated dependencies [fcc6869]
+  - ai@7.0.0-beta.76
+
+## 4.0.0-beta.75
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - ai@7.0.0-beta.75
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.74
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - ai@7.0.0-beta.74
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
 ## 4.0.0-beta.73
 
 ### Patch Changes

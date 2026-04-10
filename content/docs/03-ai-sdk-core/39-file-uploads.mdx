@@ -39,6 +39,16 @@ const { text } = await generateText({
 });
 ```
 
+As a shorthand, you can pass a provider instance directly to `api` instead of calling `.files()` explicitly — the SDK will call `.files()` for you:
+
+```ts highlight="3"
+const { providerReference } = await uploadFile({
+  api: openai, // shorthand for openai.files()
+  data: fs.readFileSync('./photo.png'),
+  filename: 'photo.png',
+});
+```
+
 ## Supported File Types
 
 You can upload images, PDFs, text files, and other documents depending on the provider.

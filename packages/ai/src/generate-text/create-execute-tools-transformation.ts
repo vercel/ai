@@ -1,21 +1,24 @@
-import { IdGenerator, ModelMessage } from '@ai-sdk/provider-utils';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import {
+  IdGenerator,
+  InferToolSetContext,
+  ModelMessage,
+} from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { executeToolCall } from './execute-tool-call';
 import { isApprovalNeeded } from './is-approval-needed';
+import { LanguageModelStreamPart } from './stream-language-model-call';
 import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
 import { TypedToolCall } from './tool-call';
-import type { GenerationContext } from './generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
-import { ModelCallStreamPart } from './stream-model-call';
 
 export function createExecuteToolsTransformation<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
 >({
   tools,
   telemetry,
@@ -38,7 +41,7 @@ export function createExecuteToolsTransformation<
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  context: CONTEXT;
+  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
@@ -50,17 +53,22 @@ export function createExecuteToolsTransformation<
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
-}): TransformStream<ModelCallStreamPart<TOOLS>, ModelCallStreamPart<TOOLS>> {
+}): TransformStream<
+  LanguageModelStreamPart<TOOLS>,
+  LanguageModelStreamPart<TOOLS>
+> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // forward stream
   return new TransformStream<
-    ModelCallStreamPart<TOOLS>,
-    ModelCallStreamPart<TOOLS>
+    LanguageModelStreamPart<TOOLS>,
+    LanguageModelStreamPart<TOOLS>
   >({
     async transform(
-      chunk: ModelCallStreamPart<TOOLS>,
-      controller: TransformStreamDefaultController<ModelCallStreamPart<TOOLS>>,
+      chunk: LanguageModelStreamPart<TOOLS>,
+      controller: TransformStreamDefaultController<
+        LanguageModelStreamPart<TOOLS>
+      >,
     ) {
       // immediately forward all chunks
       controller.enqueue(chunk);

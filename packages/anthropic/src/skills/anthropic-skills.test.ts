@@ -48,7 +48,7 @@ function prepareVersionMetadataResponse() {
 }
 
 describe('AnthropicSkills', () => {
-  describe('upload', () => {
+  describe('uploadSkill', () => {
     it('should send files as multipart form data', async () => {
       prepareResponse({
         url: 'https://api.anthropic.com/v1/skills',
@@ -57,7 +57,7 @@ describe('AnthropicSkills', () => {
       prepareVersionMetadataResponse();
 
       const skills = provider.skills();
-      await skills.upload({
+      await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -74,7 +74,7 @@ describe('AnthropicSkills', () => {
       prepareVersionMetadataResponse();
 
       const skills = provider.skills();
-      await skills.upload({
+      await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -92,7 +92,7 @@ describe('AnthropicSkills', () => {
       prepareVersionMetadataResponse();
 
       const skills = provider.skills();
-      const result = await skills.upload({
+      const result = await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -122,7 +122,7 @@ describe('AnthropicSkills', () => {
       prepareVersionMetadataResponse();
 
       const skills = provider.skills();
-      await skills.upload({
+      await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
         displayTitle: 'My Custom Title',
       });
@@ -139,7 +139,7 @@ describe('AnthropicSkills', () => {
       prepareVersionMetadataResponse();
 
       const skills = provider.skills();
-      await skills.upload({
+      await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 
@@ -155,7 +155,7 @@ describe('AnthropicSkills', () => {
       prepareVersionMetadataResponse();
 
       const skills = provider.skills();
-      const result = await skills.upload({
+      const result = await skills.uploadSkill({
         files: [{ path: 'index.ts', content: testFileContentBase64 }],
       });
 

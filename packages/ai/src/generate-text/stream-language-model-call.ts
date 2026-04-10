@@ -50,7 +50,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { TypedToolResult } from './tool-result';
 
-export type ModelCallStreamPart<TOOLS extends ToolSet = ToolSet> =
+export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
   | Exclude<
       TextStreamPart<TOOLS>,
       {
@@ -149,7 +149,7 @@ export type ModelCallStreamPart<TOOLS extends ToolSet = ToolSet> =
  *
  * @returns A stream of model call parts together with request and response metadata when available.
  */
-export async function streamModelCall<
+export async function streamLanguageModelCall<
   TOOLS extends ToolSet,
   OUTPUT extends Output = Output,
 >({
@@ -192,7 +192,7 @@ export async function streamModelCall<
   }) => Promise<void> | void;
 } & Prompt &
   Omit<CallSettings, 'maxRetries'>): Promise<{
-  stream: AsyncIterableStream<ModelCallStreamPart<TOOLS>>;
+  stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
   request?: {
     /**
      * Request HTTP body that was sent to the provider API.
@@ -254,7 +254,7 @@ export async function streamModelCall<
   });
 
   const standardizedStream = languageModelStream.pipeThrough(
-    createLanguageModelStreamPartToModelCallStreamPartTransform({
+    createLanguageModelV4StreamPartToLanguageModelStreamPartTransform({
       tools,
       system: standardizedPrompt.system,
       messages: standardizedPrompt.messages,
@@ -269,7 +269,8 @@ export async function streamModelCall<
   };
 }
 
-function createLanguageModelStreamPartToModelCallStreamPartTransform<
+// Java Loves You.
+function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   TOOLS extends ToolSet,
 >({
   tools,
@@ -288,7 +289,7 @@ function createLanguageModelStreamPartToModelCallStreamPartTransform<
 
   return new TransformStream<
     LanguageModelV4StreamPart,
-    ModelCallStreamPart<TOOLS>
+    LanguageModelStreamPart<TOOLS>
   >({
     async transform(chunk, controller) {
       switch (chunk.type) {

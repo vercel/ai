@@ -1,11 +1,14 @@
-import { GenerationContext } from './generation-context';
-import { ModelCallStreamPart } from './stream-model-call';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import { ModelMessage } from '@ai-sdk/provider-utils';
+import { LanguageModelStreamPart } from './stream-language-model-call';
 
 export function invokeToolCallbacksFromStream<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context,
 >({
   stream,
   tools,
@@ -13,12 +16,12 @@ export function invokeToolCallbacksFromStream<
   abortSignal,
   context,
 }: {
-  stream: ReadableStream<ModelCallStreamPart<TOOLS>>;
+  stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
-  context: CONTEXT;
-}): ReadableStream<ModelCallStreamPart<TOOLS>> {
+  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+}): ReadableStream<LanguageModelStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
   const ongoingToolCallToolNames: Record<string, string> = {};

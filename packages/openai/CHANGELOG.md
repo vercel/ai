@@ -1,5 +1,29 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
 ## 4.0.0-beta.25
 
 ### Patch Changes
