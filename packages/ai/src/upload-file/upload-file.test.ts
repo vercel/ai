@@ -1,4 +1,4 @@
-import { FilesV4, FilesV4UploadFileResult } from '@ai-sdk/provider';
+import { FilesV4, FilesV4UploadFileResult, ProviderV4 } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { uploadFile } from './upload-file';
 
@@ -159,6 +159,38 @@ describe('uploadFile', () => {
     expect(result.warnings).toEqual([
       { type: 'unsupported', feature: 'filename' },
     ]);
+  });
+
+  it('should resolve FilesV4 from ProviderV4 with files() method', async () => {
+    const uploadFileSpy = vi.fn().mockResolvedValue(mockResult);
+    const mockFiles = createMockFiles({ uploadFile: uploadFileSpy });
+    const mockProvider = {
+      specificationVersion: 'v4' as const,
+      languageModel: vi.fn(),
+      embeddingModel: vi.fn(),
+      imageModel: vi.fn(),
+      files: vi.fn().mockReturnValue(mockFiles),
+    } satisfies ProviderV4;
+
+    await uploadFile({ api: mockProvider, data: new Uint8Array([1]) });
+
+    expect(mockProvider.files).toHaveBeenCalled();
+    expect(uploadFileSpy).toHaveBeenCalled();
+  });
+
+  it('should throw when ProviderV4 has no files() method', async () => {
+    const mockProvider = {
+      specificationVersion: 'v4' as const,
+      languageModel: vi.fn(),
+      embeddingModel: vi.fn(),
+      imageModel: vi.fn(),
+    } satisfies ProviderV4;
+
+    await expect(
+      uploadFile({ api: mockProvider, data: new Uint8Array([1]) }),
+    ).rejects.toThrow(
+      'The provider does not support file uploads. Make sure it exposes a files() method.',
+    );
   });
 
   it('should return result without providerMetadata when not provided', async () => {

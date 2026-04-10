@@ -23,7 +23,6 @@ export type GatewayModelId =
   | 'amazon/nova-micro'
   | 'amazon/nova-pro'
   | 'anthropic/claude-3-haiku'
-  | 'anthropic/claude-3-opus'
   | 'anthropic/claude-3.5-haiku'
   | 'anthropic/claude-3.7-sonnet'
   | 'anthropic/claude-haiku-4.5'

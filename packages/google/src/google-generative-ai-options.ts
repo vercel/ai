@@ -190,6 +190,17 @@ export const googleLanguageModelOptions = lazySchema(() =>
         .optional(),
 
       /**
+       * Optional. When set to true, function call arguments will be streamed
+       * incrementally via partialArgs in streaming responses. Only supported
+       * on the Vertex AI API (not the Gemini API).
+       *
+       * @default true
+       *
+       * https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc
+       */
+      streamFunctionCallArguments: z.boolean().optional(),
+
+      /**
        * Optional. The service tier to use for the request.
        */
       serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),

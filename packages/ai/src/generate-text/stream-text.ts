@@ -10,7 +10,6 @@ import {
   IdGenerator,
   isAbortError,
   ProviderOptions,
-  ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
@@ -101,7 +100,10 @@ import {
   isStopConditionMet,
   StopCondition,
 } from './stop-condition';
-import { ModelCallStreamPart, streamModelCall } from './stream-model-call';
+import {
+  LanguageModelStreamPart,
+  streamLanguageModelCall,
+} from './stream-language-model-call';
 import {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -1459,23 +1461,6 @@ class DefaultStreamTextResult<
             }),
           );
 
-          // forward provider-executed approval responses to the provider (do not execute locally):
-          if (providerExecutedToolApprovals.length > 0) {
-            initialResponseMessages.push({
-              role: 'tool',
-              content: providerExecutedToolApprovals.map(
-                toolApproval =>
-                  ({
-                    type: 'tool-approval-response',
-                    approvalId: toolApproval.approvalResponse.approvalId,
-                    approved: toolApproval.approvalResponse.approved,
-                    reason: toolApproval.approvalResponse.reason,
-                    providerExecuted: true,
-                  }) satisfies ToolApprovalResponse,
-              ),
-            });
-          }
-
           // Local tool results (approved + denied) are sent as tool results:
           if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
             const localToolContent: ToolContent = [];
@@ -1619,7 +1604,7 @@ class DefaultStreamTextResult<
             request,
             response,
           } = await retry(async () =>
-            streamModelCall({
+            streamLanguageModelCall({
               model: prepareStepResult?.model ?? model,
               tools: stepActiveTools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
@@ -1730,7 +1715,7 @@ class DefaultStreamTextResult<
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
-                ModelCallStreamPart<TOOLS>,
+                LanguageModelStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {

@@ -25,9 +25,9 @@ export class OpenAISkills implements SkillsV4 {
 
   constructor(private readonly config: OpenAISkillsConfig) {}
 
-  async upload(
-    params: Parameters<SkillsV4['upload']>[0],
-  ): Promise<Awaited<ReturnType<SkillsV4['upload']>>> {
+  async uploadSkill(
+    params: Parameters<SkillsV4['uploadSkill']>[0],
+  ): Promise<Awaited<ReturnType<SkillsV4['uploadSkill']>>> {
     const warnings: SharedV4Warning[] = [];
 
     if (params.displayTitle != null) {

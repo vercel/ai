@@ -11,7 +11,7 @@ import {
 import { TypedToolCall } from './tool-call';
 import type { GenerationContext } from './generation-context';
 import type { ToolSet } from '@ai-sdk/provider-utils';
-import { ModelCallStreamPart } from './stream-model-call';
+import { LanguageModelStreamPart } from './stream-language-model-call';
 
 export function createExecuteToolsTransformation<
   TOOLS extends ToolSet,
@@ -50,17 +50,22 @@ export function createExecuteToolsTransformation<
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
-}): TransformStream<ModelCallStreamPart<TOOLS>, ModelCallStreamPart<TOOLS>> {
+}): TransformStream<
+  LanguageModelStreamPart<TOOLS>,
+  LanguageModelStreamPart<TOOLS>
+> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // forward stream
   return new TransformStream<
-    ModelCallStreamPart<TOOLS>,
-    ModelCallStreamPart<TOOLS>
+    LanguageModelStreamPart<TOOLS>,
+    LanguageModelStreamPart<TOOLS>
   >({
     async transform(
-      chunk: ModelCallStreamPart<TOOLS>,
-      controller: TransformStreamDefaultController<ModelCallStreamPart<TOOLS>>,
+      chunk: LanguageModelStreamPart<TOOLS>,
+      controller: TransformStreamDefaultController<
+        LanguageModelStreamPart<TOOLS>
+      >,
     ) {
       // immediately forward all chunks
       controller.enqueue(chunk);
