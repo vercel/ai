@@ -271,6 +271,95 @@ describe('google-provider', () => {
       }
     `);
   });
+
+  it('should include external HTTPS URLs in supportedUrls for Gemini 2.5+ models', () => {
+    const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
+    provider('gemini-2.5-pro');
+
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+    const patterns = supportedUrls['*'];
+
+    const externalUrls = [
+      'https://example.com/image.jpg',
+      'https://cdn.example.com/audio.mp3',
+      'https://s3.amazonaws.com/bucket/file.pdf?X-Amz-Signature=abc',
+    ];
+
+    for (const url of externalUrls) {
+      expect(patterns.some((p: RegExp) => p.test(url))).toBe(true);
+    }
+  });
+
+  it('should include external HTTPS URLs in supportedUrls for gemini-flash-latest', () => {
+    const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
+    provider('gemini-flash-latest');
+
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+    const patterns = supportedUrls['*'];
+
+    expect(
+      patterns.some((p: RegExp) => p.test('https://example.com/file.jpg')),
+    ).toBe(true);
+  });
+
+  it('should NOT include external HTTPS URLs in supportedUrls for Gemini 2.0 models', () => {
+    const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
+    provider('gemini-2.0-flash');
+
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+    const patterns = supportedUrls['*'];
+
+    // YouTube and Files API URLs should still be supported
+    expect(
+      patterns.some((p: RegExp) =>
+        p.test(
+          'https://generativelanguage.googleapis.com/v1beta/files/test123',
+        ),
+      ),
+    ).toBe(true);
+
+    // But arbitrary external HTTPS should NOT be supported
+    expect(
+      patterns.some((p: RegExp) => p.test('https://example.com/image.jpg')),
+    ).toBe(false);
+    expect(
+      patterns.some((p: RegExp) => p.test('https://vimeo.com/123456789')),
+    ).toBe(false);
+  });
+
+  it('should NOT include external HTTPS URLs in supportedUrls for non-versioned gemini-pro', () => {
+    const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
+    provider('gemini-pro');
+
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+    const patterns = supportedUrls['*'];
+
+    expect(
+      patterns.some((p: RegExp) => p.test('https://example.com/image.jpg')),
+    ).toBe(false);
+  });
+
+  it('should NOT include external HTTPS URLs for tuned model path IDs', () => {
+    const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
+    provider('tunedModels/gemini-2.5-tuned' as any);
+
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+    const patterns = supportedUrls['*'];
+
+    expect(
+      patterns.some((p: RegExp) => p.test('https://example.com/image.jpg')),
+    ).toBe(false);
+  });
 });
 
 describe('google provider - custom provider name', () => {
