@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 5036db8: feat(google-vertex): add support for streaming tool arguments input
+
 ## 4.0.0-beta.31
 
 ### Patch Changes
