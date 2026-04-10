@@ -40,18 +40,38 @@ export function serializeModel(model: any): {
 }
 
 /**
- * Prepares a deserialized model config for use with a model constructor.
- * Wraps plain-object `headers` back into a function, since model code
- * expects `config.headers()` to be callable.
+ * Deserializes a model instance from workflow step boundary data.
+ * The symmetric opposite of `serializeModel`: accepts a model class
+ * constructor and the serialized `{ modelId, config }` payload, and
+ * returns a fully constructed model instance.
  *
- * Used inside `static [WORKFLOW_DESERIALIZE]` in provider models.
+ * Internally wraps plain-object `headers` back into a function before
+ * passing the config to the constructor.
+ *
+ * Used as the body of `static [WORKFLOW_DESERIALIZE]` in provider models.
  *
  * @example
  * ```ts
  * static [WORKFLOW_DESERIALIZE](options: { modelId: string; config: MyConfig }) {
- *   return new MyLanguageModel(options.modelId, deserializeModelConfig(options.config));
+ *   return deserializeModel(MyLanguageModel, options);
  * }
  * ```
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function deserializeModel<T>(
+  ModelClass: new (modelId: any, config: any) => T,
+  options: { modelId: string; config: any },
+): T {
+  return new ModelClass(
+    options.modelId,
+    deserializeModelConfig(options.config),
+  );
+}
+
+/**
+ * Prepares a deserialized model config for use with a model constructor.
+ * Wraps plain-object `headers` back into a function, since model code
+ * expects `config.headers()` to be callable.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function deserializeModelConfig<T>(config: T): T {

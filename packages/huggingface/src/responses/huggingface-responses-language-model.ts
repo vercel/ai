@@ -17,7 +17,7 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -49,10 +49,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
     modelId: HuggingFaceResponsesModelId;
     config: HuggingFaceConfig;
   }) {
-    return new HuggingFaceResponsesLanguageModel(
-      options.modelId,
-      options.config,
-    );
+    return deserializeModel(HuggingFaceResponsesLanguageModel, options);
   }
 
   constructor(modelId: HuggingFaceResponsesModelId, config: HuggingFaceConfig) {

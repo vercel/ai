@@ -23,7 +23,7 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -68,10 +68,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     modelId: DeepSeekChatModelId;
     config: DeepSeekChatConfig;
   }) {
-    return new DeepSeekChatLanguageModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(DeepSeekChatLanguageModel, options);
   }
 
   constructor(modelId: DeepSeekChatModelId, config: DeepSeekChatConfig) {

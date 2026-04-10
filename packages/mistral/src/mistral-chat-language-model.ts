@@ -20,7 +20,7 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -61,10 +61,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     modelId: MistralChatModelId;
     config: MistralChatConfig;
   }) {
-    return new MistralChatLanguageModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(MistralChatLanguageModel, options);
   }
 
   constructor(modelId: MistralChatModelId, config: MistralChatConfig) {

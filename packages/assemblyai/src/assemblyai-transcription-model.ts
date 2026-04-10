@@ -6,7 +6,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   postToApi,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -195,10 +195,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     modelId: AssemblyAITranscriptionModelId;
     config: AssemblyAITranscriptionModelConfig;
   }) {
-    return new AssemblyAITranscriptionModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(AssemblyAITranscriptionModel, options);
   }
 
   constructor(

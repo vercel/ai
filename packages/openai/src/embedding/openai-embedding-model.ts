@@ -7,7 +7,7 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -36,10 +36,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
     modelId: OpenAIEmbeddingModelId;
     config: OpenAIConfig;
   }) {
-    return new OpenAIEmbeddingModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(OpenAIEmbeddingModel, options);
   }
 
   get provider(): string {

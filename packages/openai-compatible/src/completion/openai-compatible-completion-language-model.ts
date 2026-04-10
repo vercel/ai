@@ -19,7 +19,7 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -72,10 +72,7 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
     modelId: string;
     config: OpenAICompatibleCompletionConfig;
   }) {
-    return new OpenAICompatibleCompletionLanguageModel(
-      options.modelId,
-      options.config,
-    );
+    return deserializeModel(OpenAICompatibleCompletionLanguageModel, options);
   }
 
   constructor(

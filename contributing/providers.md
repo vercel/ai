@@ -39,6 +39,7 @@ All provider model classes must support workflow serialization so they can cross
 ```typescript
 import {
   serializeModel,
+  deserializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -54,7 +55,7 @@ export class MyLanguageModel implements LanguageModelV4 {
     modelId: string;
     config: MyConfig;
   }) {
-    return new MyLanguageModel(options.modelId, options.config);
+    return deserializeModel(MyLanguageModel, options);
   }
 
   // ... rest of class

@@ -22,7 +22,7 @@ import {
   ParseResult,
   postJsonToApi,
   safeParseJSON,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -62,10 +62,7 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
     modelId: XaiChatModelId;
     config: XaiChatConfig;
   }) {
-    return new XaiChatLanguageModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(XaiChatLanguageModel, options);
   }
 
   constructor(modelId: XaiChatModelId, config: XaiChatConfig) {

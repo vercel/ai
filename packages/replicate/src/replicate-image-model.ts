@@ -12,7 +12,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -60,10 +60,7 @@ export class ReplicateImageModel implements ImageModelV4 {
     modelId: ReplicateImageModelId;
     config: ReplicateImageModelConfig;
   }) {
-    return new ReplicateImageModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(ReplicateImageModel, options);
   }
 
   constructor(

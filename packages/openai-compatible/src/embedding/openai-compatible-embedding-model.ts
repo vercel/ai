@@ -10,7 +10,7 @@ import {
   FetchFunction,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -70,10 +70,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
     modelId: string;
     config: OpenAICompatibleEmbeddingConfig;
   }) {
-    return new OpenAICompatibleEmbeddingModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(OpenAICompatibleEmbeddingModel, options);
   }
 
   constructor(

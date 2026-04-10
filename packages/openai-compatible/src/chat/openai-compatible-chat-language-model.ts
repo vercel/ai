@@ -24,7 +24,7 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -95,10 +95,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     modelId: string;
     config: OpenAICompatibleChatConfig;
   }) {
-    return new OpenAICompatibleChatLanguageModel(
-      options.modelId,
-      options.config,
-    );
+    return deserializeModel(OpenAICompatibleChatLanguageModel, options);
   }
 
   constructor(

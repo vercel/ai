@@ -4,7 +4,7 @@ import {
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -104,10 +104,7 @@ export class LMNTSpeechModel implements SpeechModelV4 {
     modelId: LMNTSpeechModelId;
     config: LMNTSpeechModelConfig;
   }) {
-    return new LMNTSpeechModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(LMNTSpeechModel, options);
   }
 
   constructor(

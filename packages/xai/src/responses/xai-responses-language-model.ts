@@ -19,7 +19,7 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -64,10 +64,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     modelId: XaiResponsesModelId;
     config: XaiResponsesConfig;
   }) {
-    return new XaiResponsesLanguageModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(XaiResponsesLanguageModel, options);
   }
 
   constructor(modelId: XaiResponsesModelId, config: XaiResponsesConfig) {

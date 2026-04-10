@@ -16,7 +16,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -48,10 +48,7 @@ export class GoogleVertexImageModel implements ImageModelV4 {
     modelId: string;
     config: GoogleVertexImageModelConfig;
   }) {
-    return new GoogleVertexImageModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(GoogleVertexImageModel, options);
   }
 
   get maxImagesPerCall(): number {

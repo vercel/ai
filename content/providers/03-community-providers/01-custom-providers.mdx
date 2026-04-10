@@ -795,6 +795,7 @@ Then add the static serialization methods to your model class:
 ```ts filename="custom-chat-language-model.ts"
 import {
   serializeModel,
+  deserializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -810,7 +811,7 @@ class CustomChatLanguageModel implements LanguageModelV4 {
     modelId: string;
     config: CustomChatConfig;
   }) {
-    return new CustomChatLanguageModel(options.modelId, options.config);
+    return deserializeModel(CustomChatLanguageModel, options);
   }
 
   // ... rest of class

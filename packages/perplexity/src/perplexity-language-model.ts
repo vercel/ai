@@ -17,7 +17,7 @@ import {
   createJsonResponseHandler,
   isCustomReasoning,
   postJsonToApi,
-  deserializeModelConfig,
+  deserializeModel,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -51,10 +51,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     modelId: PerplexityLanguageModelId;
     config: PerplexityChatConfig;
   }) {
-    return new PerplexityLanguageModel(
-      options.modelId,
-      deserializeModelConfig(options.config),
-    );
+    return deserializeModel(PerplexityLanguageModel, options);
   }
 
   constructor(
