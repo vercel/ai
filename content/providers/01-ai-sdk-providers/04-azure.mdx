@@ -361,45 +361,55 @@ The following Azure-specific metadata may be returned:
 
 #### Web Search Tool
 
-The Azure OpenAI responses API supports web search(preview) through the `azure.tools.webSearchPreview` tool.
+The Azure OpenAI responses API supports web search through the `azure.tools.webSearch` tool.
 
 ```ts
 const result = await generateText({
-  model: azure('gpt-4.1-mini'),
+  model: azure('gpt-5'),
   prompt: 'What happened in San Francisco last week?',
   tools: {
-    web_search_preview: azure.tools.webSearchPreview({
+        web_search: azure.tools.webSearch({
       // optional configuration:
-      searchContextSize: 'low',
+      searchContextSize: 'high',
       userLocation: {
         type: 'approximate',
         city: 'San Francisco',
         region: 'California',
       },
+      filters: {
+        allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+      },
     }),
   },
   // Force web search tool (optional):
-  toolChoice: { type: 'tool', toolName: 'web_search_preview' },
+  toolChoice: { type: 'tool', toolName: 'web_search' },
 });
-
-console.log(result.text);
 
 // URL sources directly from `results`
 const sources = result.sources;
-for (const source of sources) {
-  console.log('source:', source);
+
+// Or access sources from tool results
+for (const toolResult of result.toolResults) {
+  if (toolResult.toolName === 'web_search') {
+    console.log('Query:', toolResult.output.action.query);
+    console.log('Sources:', toolResult.output.sources);
+    // `sources` is an array of object: { type: 'url', url: string }
+  }
 }
 ```
 
-<Note>
-  The tool must be named `web_search_preview` when using Azure OpenAI's web
-  search(preview) functionality. This name is required by Azure OpenAI's API
-  specification and cannot be customized.
-</Note>
+The web search tool supports the following configuration options:
+
+- **externalWebAccess** _boolean_ - Whether to use external web access for fetching live content. Defaults to `true`.
+- **searchContextSize** _'low' | 'medium' | 'high'_ - Controls the amount of context used for the search. Higher values provide more comprehensive results but may have higher latency and cost.
+- **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
+- **filters** - Optional filter configuration to restrict search results.
+  - **allowedDomains** _string[]_ - Array of allowed domains for the search. Subdomains of the provided domains are automatically included.
+
+For detailed information on configuration options see the [Azure OpenAI Web Search Tool documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/web-search).
 
 <Note>
-  The 'web_search_preview' tool is only supported with the default responses
-  API, and is not supported when using 'azure.chat' or 'azure.completion'
+  On Microsoft Foundry environment , Live internet access is not supported. The parameter `externalWebAccess` if passed will be ignored.
 </Note>
 
 #### File Search Tool
