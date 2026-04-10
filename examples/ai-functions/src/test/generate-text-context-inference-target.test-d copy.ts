@@ -15,15 +15,19 @@ const schema = <T>(): Schema<T> => ({});
 
 type Tool<
   INPUT extends JSONValue | unknown | never = any,
-  CONTEXT extends Context = Record<never, never>,
+  CONTEXT extends Context | unknown | never = any,
 > = {
   inputSchema: Schema<INPUT>;
   contextSchema?: Schema<CONTEXT>;
-  execute?: (input: INPUT, options: { context: CONTEXT }) => unknown;
+  execute?: (input: INPUT, options: { context: NoInfer<CONTEXT> }) => unknown;
 };
 
-type InferToolContext<TOOL> =
-  TOOL extends Tool<any, infer CONTEXT> ? CONTEXT : never;
+type InferToolContext<TOOL extends Tool> =
+  TOOL extends Tool<any, infer CONTEXT>
+    ? HasRequiredKey<CONTEXT> extends true
+      ? CONTEXT
+      : never
+    : never;
 
 export function tool<INPUT, CONTEXT extends Context>(
   tool: Tool<INPUT, CONTEXT>,
@@ -36,7 +40,11 @@ export function tool(tool: any): any {
   return tool;
 }
 
-export type ToolSet = Record<string, Tool<any, any>>;
+export type ToolSet = Record<
+  string,
+  (Tool<never, never> | Tool<any, never> | Tool<never, any> | Tool<any, any>) &
+    Pick<Tool<any, any>, 'execute'>
+>;
 
 type UnionToIntersection<U> = (
   U extends unknown ? (arg: U) => void : never
@@ -44,27 +52,22 @@ type UnionToIntersection<U> = (
   ? I
   : never;
 
-type InferToolSetContext<TOOLS> = UnionToIntersection<
+type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
   {
     [K in keyof TOOLS]: InferToolContext<NoInfer<TOOLS[K]>>;
   }[keyof TOOLS]
 >;
 
-type HasRequiredToolContext<TOOLS extends ToolSet> = {
-  [NAME in keyof TOOLS]: {} extends InferToolContext<NoInfer<TOOLS[NAME]>>
-    ? never
-    : NAME;
-}[keyof TOOLS] extends never
-  ? false
-  : true;
+// if there is any required key in the context, return true
+type HasRequiredKey<CONTEXT> = {} extends CONTEXT ? false : true;
 
 type ContextParameter<TOOLS extends ToolSet, USER_CONTEXT extends Context> = {
   tools?: TOOLS;
-} & (HasRequiredToolContext<NoInfer<TOOLS>> extends true
-  ? { context: InferToolSetContext<NoInfer<TOOLS>> & USER_CONTEXT }
-  : {} extends USER_CONTEXT
-    ? { context?: USER_CONTEXT }
-    : { context: USER_CONTEXT });
+} & (HasRequiredKey<InferToolSetContext<TOOLS>> extends true
+  ? { context: InferToolSetContext<TOOLS> & USER_CONTEXT }
+  : HasRequiredKey<USER_CONTEXT> extends true
+    ? { context: USER_CONTEXT }
+    : { context?: USER_CONTEXT });
 
 type PrepareStepFunction<
   TOOLS extends ToolSet,
@@ -113,7 +116,8 @@ const mixedTools = {
 
 describe('generateText target behavior', () => {
   it('keeps the control case correct', () => {
-    type A = HasRequiredToolContext<typeof mixedTools>;
+    type A = HasRequiredKey<InferToolSetContext<typeof mixedTools>>;
+    type A2 = HasRequiredKey<{}>;
     type B = InferToolSetContext<typeof mixedTools>;
 
     type C = typeof mixedTools;
