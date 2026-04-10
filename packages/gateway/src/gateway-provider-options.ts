@@ -44,10 +44,15 @@ const gatewayProviderOptions = lazySchema(() =>
        *
        * Each provider can have multiple credentials (tried in order).
        *
+       * Each credential can optionally include a `modelMappings` array to map
+       * AI Gateway model slugs to custom deployment names (e.g., for Azure
+       * deployments with non-default names).
+       *
        * Examples:
        * - Simple: `{ 'anthropic': [{ apiKey: 'sk-ant-...' }] }`
        * - Multiple: `{ 'vertex': [{ projectId: 'proj-1', privateKey: '...' }, { projectId: 'proj-2', privateKey: '...' }] }`
        * - Multi-provider: `{ 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...' }] }`
+       * - With model mappings: `{ 'azure': [{ apiKey: '...', resourceName: '...', modelMappings: [{ gatewayModelSlug: 'openai/gpt-5.4-nano', customModelId: 'my-deployment' }] }] }`
        */
       byok: z
         .record(z.string(), z.array(z.record(z.string(), z.unknown())))
