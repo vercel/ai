@@ -463,10 +463,15 @@ describe('doGenerate', () => {
       }
     `);
 
-    expect(result.warnings).toContainEqual({
-      type: 'other',
-      message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
-    });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "Use 'openaiCompatible' instead.",
+          "setting": "providerOptions key 'openai-compatible'",
+          "type": "deprecated",
+        },
+      ]
+    `);
   });
 
   it('should include provider-specific options', async () => {
@@ -609,6 +614,40 @@ describe('doGenerate', () => {
       expect(result.providerMetadata!['test-provider']).toMatchObject({
         acceptedPredictionTokens: 15,
       });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareJsonResponse({ content: 'Hello!' });
+
+      const result = await provider('grok-3').doGenerate({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should use raw metadata key when no provider options are passed', async () => {
@@ -3122,6 +3161,48 @@ describe('doStream', () => {
       expect(await server.calls[0].requestBodyJson).toMatchObject({
         someCustomOption: 'camel-value',
       });
+    });
+
+    it('should emit deprecated warning when raw provider options key is used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: {
+          'test-provider': { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const streamStart = parts.find(part => part.type === 'stream-start');
+
+      expect(streamStart?.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "Use 'testProvider' instead.",
+            "setting": "providerOptions key 'test-provider'",
+            "type": "deprecated",
+          },
+        ]
+      `);
+    });
+
+    it('should not emit deprecated warning when camelCase provider options key is used', async () => {
+      prepareStreamResponse({ content: ['Hello'] });
+
+      const { stream } = await provider('grok-3').doStream({
+        providerOptions: {
+          testProvider: { reasoningEffort: 'high' },
+        },
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const streamStart = parts.find(part => part.type === 'stream-start');
+
+      expect(streamStart?.warnings).toMatchInlineSnapshot(`[]`);
     });
 
     it('should use camelCase metadata key in finish event when camelCase options are used', async () => {

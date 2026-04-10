@@ -10,7 +10,6 @@ import {
   IdGenerator,
   isAbortError,
   ProviderOptions,
-  ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
@@ -101,7 +100,10 @@ import {
   isStopConditionMet,
   StopCondition,
 } from './stop-condition';
-import { ModelCallStreamPart, streamModelCall } from './stream-model-call';
+import {
+  LanguageModelStreamPart,
+  streamLanguageModelCall,
+} from './stream-language-model-call';
 import {
   ConsumeStreamOptions,
   StreamTextResult,
@@ -639,7 +641,7 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
-  let lastPublishedJson = '';
+  let lastPublishedValue = '';
 
   function publishTextChunk({
     controller,
@@ -712,11 +714,15 @@ function createOutputTransformStream<
 
       // null should be allowed (valid JSON value) but undefined should not:
       if (result !== undefined) {
-        // only send new json if it has changed:
-        const currentJson = JSON.stringify(result.partial);
-        if (currentJson !== lastPublishedJson) {
+        // only send new value if it has changed:
+        // For string partials (text output), compare directly to avoid unnecessary JSON.stringify overhead
+        const currentValue =
+          typeof result.partial === 'string'
+            ? result.partial
+            : JSON.stringify(result.partial);
+        if (currentValue !== lastPublishedValue) {
           publishTextChunk({ controller, partialOutput: result.partial });
-          lastPublishedJson = currentJson;
+          lastPublishedValue = currentValue;
         }
       }
     },
@@ -1384,11 +1390,6 @@ class DefaultStreamTextResult<
 
       // initial tool execution step stream
       if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
-        const providerExecutedToolApprovals = [
-          ...approvedToolApprovals,
-          ...deniedToolApprovals,
-        ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
-
         const localApprovedToolApprovals = approvedToolApprovals.filter(
           toolApproval => !toolApproval.toolCall.providerExecuted,
         );
@@ -1463,23 +1464,6 @@ class DefaultStreamTextResult<
               }
             }),
           );
-
-          // forward provider-executed approval responses to the provider (do not execute locally):
-          if (providerExecutedToolApprovals.length > 0) {
-            initialResponseMessages.push({
-              role: 'tool',
-              content: providerExecutedToolApprovals.map(
-                toolApproval =>
-                  ({
-                    type: 'tool-approval-response',
-                    approvalId: toolApproval.approvalResponse.approvalId,
-                    approved: toolApproval.approvalResponse.approved,
-                    reason: toolApproval.approvalResponse.reason,
-                    providerExecuted: true,
-                  }) satisfies ToolApprovalResponse,
-              ),
-            });
-          }
 
           // Local tool results (approved + denied) are sent as tool results:
           if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
@@ -1624,7 +1608,7 @@ class DefaultStreamTextResult<
             request,
             response,
           } = await retry(async () =>
-            streamModelCall({
+            streamLanguageModelCall({
               model: prepareStepResult?.model ?? model,
               tools: stepActiveTools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
@@ -1739,7 +1723,7 @@ class DefaultStreamTextResult<
           self.addStream(
             streamWithToolResults.pipeThrough(
               new TransformStream<
-                ModelCallStreamPart<TOOLS>,
+                LanguageModelStreamPart<TOOLS>,
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {

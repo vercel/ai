@@ -33,6 +33,7 @@ export function prepareTools({
         functionCallingConfig?: {
           mode: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
           allowedFunctionNames?: string[];
+          streamFunctionCallArguments?: boolean;
         };
         includeServerSideToolInvocations?: boolean;
       };

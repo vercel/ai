@@ -1,5 +1,45 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/openai-compatible@3.0.0-beta.21
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/openai-compatible@3.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- e5bdc8d: fix (provider/xai): handle mid-stream error chunks
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- 813851f: fix (provider/xai): add response.incomplete and response.failed streaming event handling
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/openai-compatible@3.0.0-beta.19
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
 ## 4.0.0-beta.27
 
 ### Patch Changes

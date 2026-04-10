@@ -91,11 +91,13 @@ registerTelemetryIntegration(
 );
 ```
 
+The `GenAIOpenTelemetryIntegration` also accepts a custom `Tracer` in the same way.
+
 ## Telemetry Integrations
 
 Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and register it globally or pass it via `experimental_telemetry.integrations`.
 
-The `OpenTelemetryIntegration` from `@ai-sdk/otel` is the primary integration for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
+The `GenAIOpenTelemetryIntegration` and `OpenTelemetryIntegration` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
 
 ### Registering integrations globally
 
@@ -224,7 +226,157 @@ The event types for each method are the same as the corresponding [event callbac
 
 ## Collected Data
 
-### generateText function
+The `@ai-sdk/otel` package provides two integrations that emit different span formats.
+The `GenAIOpenTelemetryIntegration` follows the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and is the recommended integration.
+The `OpenTelemetryIntegration` emits legacy AI SDK-specific spans.
+
+### GenAI Semantic Conventions
+
+The `GenAIOpenTelemetryIntegration` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
+All attributes use the `gen_ai.*` prefix. Provider names are mapped to well-known values (e.g. `openai`, `anthropic`, `gcp.vertex_ai`).
+
+#### generateText / streamText
+
+For `generateText` and `streamText`, the integration records 3 types of spans:
+
+- **`invoke_agent {modelId}`** (root span, `INTERNAL`): covers the full operation including all steps and tool calls.
+
+  Initial attributes:
+  - `gen_ai.operation.name`: `"invoke_agent"`
+  - `gen_ai.provider.name`: the provider (e.g. `"openai"`, `"anthropic"`)
+  - `gen_ai.request.model`: the requested model ID
+  - `gen_ai.agent.name`: the `functionId` from telemetry settings
+  - `gen_ai.system_instructions`: system instructions formatted as a JSON array of parts (when `recordInputs` is enabled)
+  - `gen_ai.input.messages`: the input messages in [GenAI SemConv message format](#genai-message-format) (when `recordInputs` is enabled)
+  - `gen_ai.request.temperature`: the temperature setting
+  - `gen_ai.request.max_tokens`: the maximum output tokens
+  - `gen_ai.request.top_p`: the topP setting
+  - `gen_ai.request.top_k`: the topK setting
+  - `gen_ai.request.frequency_penalty`: the frequency penalty
+  - `gen_ai.request.presence_penalty`: the presence penalty
+  - `gen_ai.request.stop_sequences`: the stop sequences
+  - `gen_ai.request.seed`: the seed value
+
+  Attributes set on finish:
+  - `gen_ai.response.finish_reasons`: array of finish reasons (e.g. `["stop"]`, `["tool_call"]`)
+  - `gen_ai.usage.input_tokens`: the number of input tokens used
+  - `gen_ai.usage.output_tokens`: the number of output tokens used
+  - `gen_ai.usage.cache_read.input_tokens`: cached input tokens read
+  - `gen_ai.usage.cache_creation.input_tokens`: cached input tokens created
+  - `gen_ai.output.messages`: the output in [GenAI SemConv message format](#genai-message-format) (when `recordOutputs` is enabled)
+
+- **`chat {modelId}`** (step span, `CLIENT`): one span per LLM provider call, nested under the root span.
+
+  Initial attributes:
+  - `gen_ai.operation.name`: `"chat"`
+  - `gen_ai.provider.name`: the provider
+  - `gen_ai.request.model`: the requested model ID
+  - `gen_ai.request.temperature`, `gen_ai.request.max_tokens`, `gen_ai.request.top_p`, `gen_ai.request.top_k`, `gen_ai.request.frequency_penalty`, `gen_ai.request.presence_penalty`, `gen_ai.request.stop_sequences`: request parameters
+  - `gen_ai.input.messages`: the prompt messages in [GenAI SemConv message format](#genai-message-format) (when `recordInputs` is enabled)
+  - `gen_ai.tool.definitions`: the tool definitions as stringified JSON (when `recordInputs` is enabled)
+
+  Attributes set on finish:
+  - `gen_ai.response.finish_reasons`: array of finish reasons
+  - `gen_ai.response.id`: the response ID from the provider
+  - `gen_ai.response.model`: the model that generated the response (may differ from the requested model)
+  - `gen_ai.usage.input_tokens`: input tokens used in this step
+  - `gen_ai.usage.output_tokens`: output tokens used in this step
+  - `gen_ai.usage.cache_read.input_tokens`: cached input tokens read
+  - `gen_ai.usage.cache_creation.input_tokens`: cached input tokens created
+  - `gen_ai.output.messages`: the output in [GenAI SemConv message format](#genai-message-format) (when `recordOutputs` is enabled)
+
+- **`execute_tool {toolName}`** (tool span, `INTERNAL`): one span per tool execution, nested under the step span. See [GenAI tool call spans](#genai-tool-call-spans) for details.
+
+#### Deprecated object APIs (generateObject / streamObject)
+
+<Note type="warning">
+  `generateObject` and `streamObject` are deprecated. Use `generateText` and
+  `streamText` with the `output` property instead.
+</Note>
+
+The deprecated object APIs emit the same span hierarchy as `generateText`/`streamText` with these additional attributes on the root span:
+
+- `gen_ai.output.type`: `"json"`
+
+The step spans also include `gen_ai.output.type: "json"`, and `gen_ai.output.messages` contains the generated object as a text part.
+
+#### embed / embedMany
+
+For `embed` and `embedMany`, the integration records spans with `CLIENT` kind:
+
+- **`embeddings {modelId}`** (root span): covers the full embedding operation.
+
+  Initial attributes:
+  - `gen_ai.operation.name`: `"embeddings"`
+  - `gen_ai.provider.name`: the provider
+  - `gen_ai.request.model`: the requested model ID
+
+  Attributes set on finish:
+  - `gen_ai.usage.input_tokens`: the number of tokens used
+
+- **`embeddings {modelId}`** (inner span, `embedMany` only): one span per provider batch call, nested under the root span.
+
+  Initial attributes:
+  - `gen_ai.operation.name`: `"embeddings"`
+  - `gen_ai.provider.name`: the provider
+  - `gen_ai.request.model`: the model ID
+
+  Attributes set on finish:
+  - `gen_ai.usage.input_tokens`: the number of tokens used
+
+#### rerank
+
+For `rerank`, the integration records spans with `CLIENT` kind:
+
+- **`rerank {modelId}`** (root span): covers the full rerank operation.
+
+  Initial attributes:
+  - `gen_ai.operation.name`: `"rerank"`
+  - `gen_ai.provider.name`: the provider
+  - `gen_ai.request.model`: the requested model ID
+
+- **`rerank {modelId}`** (inner span): one span per provider rerank call, nested under the root span.
+
+  Initial attributes:
+  - `gen_ai.operation.name`: `"rerank"`
+  - `gen_ai.provider.name`: the provider
+  - `gen_ai.request.model`: the model ID
+
+#### GenAI span details
+
+##### GenAI message format
+
+The `gen_ai.input.messages` and `gen_ai.output.messages` attributes follow the [OpenTelemetry GenAI Semantic Conventions message format](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/).
+Messages are JSON arrays of objects with a `role` and a `parts` array. Each part has a `type` and type-specific fields:
+
+- `text`: `{ type: "text", content: "..." }`
+- `reasoning`: `{ type: "reasoning", content: "..." }`
+- `tool_call`: `{ type: "tool_call", id: "...", name: "...", arguments: ... }`
+- `tool_call_response`: `{ type: "tool_call_response", id: "...", response: ... }`
+- `blob`: `{ type: "blob", modality: "image"|"video"|"audio", mime_type: "...", content: "..." }` (base64-encoded)
+- `uri`: `{ type: "uri", modality: "image"|"video"|"audio", mime_type: "...", uri: "..." }` (for URL-based files)
+
+Output messages also include a `finish_reason` field (e.g. `"stop"`, `"tool_call"`, `"length"`, `"content_filter"`).
+
+System instructions are recorded separately in `gen_ai.system_instructions` as a JSON array of `{ type: "text", content: "..." }` parts.
+
+##### GenAI tool call spans
+
+Tool call spans (`execute_tool {toolName}`) are nested under the step span and contain:
+
+- `gen_ai.operation.name`: `"execute_tool"`
+- `gen_ai.tool.name`: the name of the tool
+- `gen_ai.tool.call.id`: the tool call ID
+- `gen_ai.tool.type`: `"function"`
+- `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
+- `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
+
+### Legacy AI SDK Spans (`OpenTelemetryIntegration`)
+
+The `OpenTelemetryIntegration` emits spans using AI SDK-specific `ai.*` prefixed attributes.
+This is the legacy format. Consider migrating to the `GenAIOpenTelemetryIntegration` for better compatibility with observability platforms.
+
+#### generateText function
 
 `generateText` records 3 types of spans:
 
@@ -254,9 +406,9 @@ The event types for each method are the same as the corresponding [event callbac
   - `ai.response.toolCalls`: the tool calls that were made as part of the generation (stringified JSON)
   - `ai.response.finishReason`: the reason why the generation finished
 
-- `ai.toolCall` (span): a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
+- `ai.toolCall` (span): a tool call that is made as part of the generateText call. See [Legacy tool call spans](#legacy-tool-call-spans) for more details.
 
-### streamText function
+#### streamText function
 
 `streamText` records 3 types of spans and 2 types of events:
 
@@ -290,7 +442,7 @@ The event types for each method are the same as the corresponding [event callbac
   - `ai.response.avgCompletionTokensPerSecond`: the average number of completion tokens per second
   - `ai.response.finishReason`: the reason why the generation finished
 
-- `ai.toolCall` (span): a tool call that is made as part of the generateText call. See [Tool call spans](#tool-call-spans) for more details.
+- `ai.toolCall` (span): a tool call that is made as part of the streamText call. See [Legacy tool call spans](#legacy-tool-call-spans) for more details.
 
 - `ai.stream.firstChunk` (event): an event that is emitted when the first chunk of the stream is received.
 
@@ -298,9 +450,7 @@ The event types for each method are the same as the corresponding [event callbac
 
 - `ai.stream.finish` (event): an event that is emitted when the finish part of the LLM stream is received.
 
-It also records a `ai.stream.firstChunk` event when the first chunk of the stream is received.
-
-### Deprecated object APIs
+#### Deprecated object APIs
 
 <Note type="warning">
   `generateObject` and `streamObject` are deprecated. Use `generateText` and
@@ -316,7 +466,7 @@ Legacy object spans include the same core metadata as other LLM spans, plus
 object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
 `ai.settings.output`.
 
-### embed function
+#### embed function
 
 `embed` records 2 types of spans:
 
@@ -336,7 +486,7 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
   - `ai.values`: the values that were passed into the provider (array)
   - `ai.embeddings`: an array of JSON-stringified embeddings
 
-### embedMany function
+#### embedMany function
 
 `embedMany` records 2 types of spans:
 
@@ -356,9 +506,9 @@ object-specific attributes such as `ai.schema.*`, `ai.response.object`, and
   - `ai.values`: the values that were sent to the provider
   - `ai.embeddings`: an array of JSON-stringified embeddings for each value
 
-## Span Details
+#### Legacy span details
 
-### Basic LLM span information
+##### Basic LLM span information
 
 Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.streamText`, `ai.streamText.doStream`) contain the following attributes:
 
@@ -373,7 +523,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
 
-### Call LLM span information
+##### Call LLM span information
 
 Spans that correspond to individual LLM calls (`ai.generateText.doGenerate`, `ai.streamText.doStream`) contain
 [basic LLM span information](#basic-llm-span-information) and the following attributes:
@@ -397,7 +547,7 @@ Spans that correspond to individual LLM calls (`ai.generateText.doGenerate`, `ai
   - `gen_ai.usage.input_tokens`: the number of prompt tokens that were used
   - `gen_ai.usage.output_tokens`: the number of completion tokens that were used
 
-### Basic embedding span information
+##### Basic embedding span information
 
 Many spans that use embedding models (`ai.embed`, `ai.embed.doEmbed`, `ai.embedMany`, `ai.embedMany.doEmbed`) contain the following attributes:
 
@@ -410,7 +560,7 @@ Many spans that use embedding models (`ai.embed`, `ai.embed.doEmbed`, `ai.embedM
 - `ai.usage.tokens`: the number of tokens that were used
 - `resource.name`: the functionId that was set through `telemetry.functionId`
 
-### Tool call spans
+##### Legacy tool call spans
 
 Tool call spans (`ai.toolCall`) contain the following attributes:
 

@@ -9,7 +9,7 @@ import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { executeToolCall } from './execute-tool-call';
 import { isApprovalNeeded } from './is-approval-needed';
-import { ModelCallStreamPart } from './stream-model-call';
+import { LanguageModelStreamPart } from './stream-language-model-call';
 import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
@@ -53,17 +53,22 @@ export function createExecuteToolsTransformation<
     | StreamTextOnToolCallFinishCallback<TOOLS>
     | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
-}): TransformStream<ModelCallStreamPart<TOOLS>, ModelCallStreamPart<TOOLS>> {
+}): TransformStream<
+  LanguageModelStreamPart<TOOLS>,
+  LanguageModelStreamPart<TOOLS>
+> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // forward stream
   return new TransformStream<
-    ModelCallStreamPart<TOOLS>,
-    ModelCallStreamPart<TOOLS>
+    LanguageModelStreamPart<TOOLS>,
+    LanguageModelStreamPart<TOOLS>
   >({
     async transform(
-      chunk: ModelCallStreamPart<TOOLS>,
-      controller: TransformStreamDefaultController<ModelCallStreamPart<TOOLS>>,
+      chunk: LanguageModelStreamPart<TOOLS>,
+      controller: TransformStreamDefaultController<
+        LanguageModelStreamPart<TOOLS>
+      >,
     ) {
       // immediately forward all chunks
       controller.enqueue(chunk);

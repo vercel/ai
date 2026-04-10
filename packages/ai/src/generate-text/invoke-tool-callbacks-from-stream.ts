@@ -4,7 +4,7 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ModelMessage } from '@ai-sdk/provider-utils';
-import { ModelCallStreamPart } from './stream-model-call';
+import { LanguageModelStreamPart } from './stream-language-model-call';
 
 export function invokeToolCallbacksFromStream<
   TOOLS extends ToolSet,
@@ -16,12 +16,12 @@ export function invokeToolCallbacksFromStream<
   abortSignal,
   context,
 }: {
-  stream: ReadableStream<ModelCallStreamPart<TOOLS>>;
+  stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
   context: InferToolSetContext<TOOLS> & USER_CONTEXT;
-}): ReadableStream<ModelCallStreamPart<TOOLS>> {
+}): ReadableStream<LanguageModelStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
   const ongoingToolCallToolNames: Record<string, string> = {};

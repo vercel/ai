@@ -221,6 +221,11 @@ describe('logWarnings', () => {
           details: 'detail2',
         },
         {
+          type: 'deprecated',
+          setting: "providerOptions key 'old-key'",
+          message: "Use 'oldKey' instead.",
+        },
+        {
           type: 'other',
           message: 'other msg',
         },
@@ -229,7 +234,7 @@ describe('logWarnings', () => {
       logWarnings({ warnings, provider: 'zzz', model: 'MMM' });
 
       expect(mockConsoleInfo).toHaveBeenCalledTimes(1);
-      expect(mockConsoleWarn).toHaveBeenCalledTimes(3);
+      expect(mockConsoleWarn).toHaveBeenCalledTimes(4);
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         1,
         'AI SDK Warning (zzz / MMM): ' +
@@ -242,6 +247,10 @@ describe('logWarnings', () => {
       );
       expect(mockConsoleWarn).toHaveBeenNthCalledWith(
         3,
+        `AI SDK Warning (zzz / MMM): Deprecated: "providerOptions key 'old-key'". Use 'oldKey' instead.`,
+      );
+      expect(mockConsoleWarn).toHaveBeenNthCalledWith(
+        4,
         'AI SDK Warning (zzz / MMM): other msg',
       );
     });

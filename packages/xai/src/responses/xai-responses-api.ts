@@ -523,6 +523,32 @@ export const xaiResponsesChunkSchema = z.union([
     output: z.string().optional(),
   }),
   z.object({
+    type: z.literal('response.incomplete'),
+    response: z.object({
+      incomplete_details: z.object({ reason: z.string() }).nullish(),
+      usage: xaiResponsesUsageSchema.nullish(),
+    }),
+  }),
+  z.object({
+    type: z.literal('response.failed'),
+    response: z.object({
+      error: z
+        .object({
+          code: z.string().nullish(),
+          message: z.string(),
+        })
+        .nullish(),
+      incomplete_details: z.object({ reason: z.string() }).nullish(),
+      usage: xaiResponsesUsageSchema.nullish(),
+    }),
+  }),
+  z.object({
+    type: z.literal('error'),
+    code: z.string().nullish(),
+    message: z.string(),
+    param: z.string().nullish(),
+  }),
+  z.object({
     type: z.literal('response.done'),
     response: xaiResponsesResponseSchema,
   }),

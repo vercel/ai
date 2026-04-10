@@ -20,6 +20,7 @@ import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
 } from '../openai-compatible-error';
+import { warnIfDeprecatedProviderOptionsKey } from '../utils/to-camel-case';
 
 type OpenAICompatibleEmbeddingConfig = {
   /**
@@ -88,10 +89,18 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
 
     if (deprecatedOptions != null) {
       warnings.push({
-        type: 'other',
-        message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
+        type: 'deprecated',
+        setting: "providerOptions key 'openai-compatible'",
+        message: "Use 'openaiCompatible' instead.",
       });
     }
+
+    // Warn when the raw (non-camelCase) provider name is used
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsName,
+      providerOptions,
+      warnings,
+    });
 
     const compatibleOptions = Object.assign(
       deprecatedOptions ?? {},

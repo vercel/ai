@@ -1,5 +1,79 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [f372547]
+  - ai@7.0.0-beta.78
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [2add429]
+  - ai@7.0.0-beta.77
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [fcc6869]
+  - ai@7.0.0-beta.76
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - ai@7.0.0-beta.75
+
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - ai@7.0.0-beta.74
+  - @ai-sdk/provider@4.0.0-beta.9
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- ai@7.0.0-beta.73
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [664a0eb]
+  - ai@7.0.0-beta.72
+
+## 1.0.0-beta.17
+
+### Patch Changes
+
+- fc15550: feat(otel): add the genAI semantic otel integration
+- Updated dependencies [e68be55]
+  - ai@7.0.0-beta.71
+
+## 1.0.0-beta.16
+
+### Patch Changes
+
+- ai@7.0.0-beta.70
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+- Updated dependencies [72223e7]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - ai@7.0.0-beta.69
+
 ## 1.0.0-beta.14
 
 ### Patch Changes

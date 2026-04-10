@@ -1,5 +1,35 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/anthropic@4.0.0-beta.23
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 5.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/anthropic@4.0.0-beta.22
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 5.0.0-beta.25
+
+### Patch Changes
+
+- 24ac76f: fix(amazon-bedrock): preserve empty text blocks when reasoning content is present
+- cdc15f3: feat(bedrock): support native structured output for anthropic models without reasoning
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/anthropic@4.0.0-beta.21
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
 ## 5.0.0-beta.24
 
 ### Patch Changes

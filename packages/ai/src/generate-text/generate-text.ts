@@ -1,14 +1,18 @@
 import {
-  LanguageModelV4,
   LanguageModelV4Content,
+  LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
+import type {
+  Context,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import {
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
-  ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
@@ -52,6 +56,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
+import { ContextParameter } from './context-parameter';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -84,12 +89,6 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
-import type {
-  Context,
-  InferToolSetContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
-import { ContextParameter } from './context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -125,6 +124,7 @@ export type GenerateTextOnStartCallback<
 > = Listener<
   OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT, GenerateTextIncludeSettings>
 >;
+
 /**
  * Callback that is set using the `experimental_onStepStart` option.
  *
@@ -646,33 +646,11 @@ export async function generateText<
       });
     }
 
-    // Forward provider-executed approval responses to the provider
-    const providerExecutedToolApprovals = [
-      ...approvedToolApprovals,
-      ...deniedToolApprovals,
-    ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
-
-    if (providerExecutedToolApprovals.length > 0) {
-      responseMessages.push({
-        role: 'tool',
-        content: providerExecutedToolApprovals.map(
-          toolApproval =>
-            ({
-              type: 'tool-approval-response',
-              approvalId: toolApproval.approvalResponse.approvalId,
-              approved: toolApproval.approvalResponse.approved,
-              reason: toolApproval.approvalResponse.reason,
-              providerExecuted: true,
-            }) satisfies ToolApprovalResponse,
-        ),
-      });
-    }
-
     const callSettings = prepareCallSettings(settings);
 
-    let currentModelResponse: Awaited<
-      ReturnType<LanguageModelV4['doGenerate']>
-    > & { response: { id: string; timestamp: Date; modelId: string } };
+    let currentModelResponse: LanguageModelV4GenerateResult & {
+      response: { id: string; timestamp: Date; modelId: string };
+    };
     let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
     let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
     const steps: GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>['steps'] = [];
