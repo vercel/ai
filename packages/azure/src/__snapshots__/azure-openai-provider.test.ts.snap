@@ -244,6 +244,777 @@ exports[`responses > doGenerate > file search tool > without results include > s
 ]
 `;
 
+<<<<<<< HEAD
+=======
+exports[`responses > doGenerate > image generation tool > should include generate image tool call and result in content 1`] = `
+[
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ig_0649b3e997efd46d00691e6a4c90488196af204d9557f8dba4",
+    "toolName": "image_generation",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "result": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+    },
+    "toolCallId": "ig_0649b3e997efd46d00691e6a4c90488196af204d9557f8dba4",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "providerMetadata": {
+      "azure": {
+        "itemId": "msg_0649b3e997efd46d00691e6a61a17c8196ada7b50d67bbb6b5",
+      },
+    },
+    "text": "Here is an anime-like image of a cute cat waving hello. If you'd like any adjustments or another style, just let me know!",
+    "type": "text",
+  },
+]
+`;
+
+exports[`responses > doGenerate > reasoning > should generate with reasoning encrypted content 1`] = `
+{
+  "content": [
+    {
+      "providerMetadata": {
+        "azure": {
+          "itemId": "rs_09d58369f84fca7901693cb838c60c81968c2e61898eec89c7",
+          "reasoningEncryptedContent": "gAAAAABpPLg7YtHo-XROa4SQaGVDHn0JzkSOrg5lJcLFlex18wO9qm_qKFKaHh2m09jkyfNbQrD5lkcDupkwuuRs9EkPfjpbn42juiStvKBpjp-jucgoLqoXBRAAhoNg5rekRiKw5mCYfE0ycsFbYRIhbk_fpRek9AR3rrh1eWVtRfCuKb_dErh4bUeAP53K4AWB9KE8MrG3Lyf3ngCvzQcPSx6y2JAaKBG0RyDXshdp_4ObIN3dOCyeMnuYGXyVSY2COxXcE99JHu8ASBsoNFtGF-7Hl7GSthu-49Avaw3SQv-WUGDk1mr_eOGMiQwiwu8-KBkSSmlgtqYkMOtZSH6_qcChocDTzjj5PNBF0tr1484LNsadlnqY1h_JiaDkxv2YCowUEdupGdz9L-cdFM0Jl_HzOL_ib8658F3Wq3pLyF8wuk1aDaCRTch6cydu4_4YaHlUg8IL2UR12pPnrSTAf9-v0D6W4nnpxH9eM6bT78D7mOF-qsMJtJFsfj20wEStYmrytxdIiGpKIQBZyUMfhLrd0ks0AP4zgu0PEtA6NF7rxUeO8KA2bGC_T7WSKu6yLXofRfxfwK0dosWLFTVPpPKjV47If3sMEoKqLIRhUYvgCIAckJYRqBC-IV7ojqeZIaXHW9JB_zwZp_d3NzHCSkS0b5YrxOArtBDh67-ty5kBRf5QOfCXKRBu1iek_ShCmzree480gC-cPxWw4T8b4p3S3LVZXt3G2UhrATRvOw0YeaT8EQrPS7sizgw_kBbC5gqc-HEwcrW9FfdNYCOfO_nbuiWL6IfIinTLTlx-M8H7eGwYV2V_9WiqGYuToxCuL9t4-oHT_oZeMphemkU7HRtYXy4zOyOrP_vUATNw_e7tD9WE2QNm6OodqEf46toPMyYdCpjlk6IOJo2QoffwoH_q0XU-F5wVC3BLx8tAr738vpnW8al6iV4FvhZzRjgJfsFcGtkQJrI52xoZYFmzk3NiFYTedknX1GAmFgmsoA06Gb_YIih2kImZIqI_Evfkr9T1FVtmWcELjvlPc2Vc6_5sKTuv2PI77lgmM3w_wjiNu0r2WrcHvZ3YERuszapCQ7gD2JTmZ0c_x4P_c6OufS_7Gf3gaEKRaJVk8o6vwkNrDu2pedkBJh-EN_FHChv-3C6wM2ImXTh3eJKoKKtfJEvWr7lB2LSGWadvFp3cGsL9S6HNM5-DWM4SDSb8TOEQVO1GJy--GYWxr3LTZzoELikNDibX7y09m_QLKFNZ_ZRThamtmAb5HpMlGAt-jRMaB_LIT2UluJxDsAQXMwCCBu8BnA1VEPvQyDCJkQRqrUxV8OWNP49sfvSWFP579Y9SHeEyMqimazRvCyPkW5UCL7MDBTMRGQ==",
+        },
+      },
+      "text": "**Compiling final result**
+
+I need to present the final result, which is 570. The user wanted me to perform each arithmetic step separately and report it clearly. So, I've done the necessary tool calls and now I'm summarizing the steps, which are: (12 + 7) = 19, then 19 * 3 = 57, and finally 57 * 10 = 570. I’ll keep it concise and straightforward without heavy formatting. The final result is 570!",
+      "type": "reasoning",
+    },
+    {
+      "providerMetadata": {
+        "azure": {
+          "itemId": "msg_09d58369f84fca7901693cb83b12388196b17d2b310fe6c361",
+        },
+      },
+      "text": "(12 + 7) = 19
+19 × 3 = 57
+57 × 10 = 570
+
+Final result: 570",
+      "type": "text",
+    },
+  ],
+  "finishReason": {
+    "raw": undefined,
+    "unified": "stop",
+  },
+  "providerMetadata": {
+    "azure": {
+      "responseId": "resp_09d58369f84fca7901693cb8381f608196acdaff061ff8de58",
+      "serviceTier": "default",
+    },
+  },
+  "request": {
+    "body": {
+      "conversation": undefined,
+      "include": [
+        "reasoning.encrypted_content",
+      ],
+      "input": [
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "input_text",
+            },
+          ],
+          "role": "user",
+        },
+      ],
+      "instructions": undefined,
+      "max_output_tokens": undefined,
+      "max_tool_calls": undefined,
+      "metadata": undefined,
+      "model": "test-deployment",
+      "parallel_tool_calls": undefined,
+      "previous_response_id": undefined,
+      "prompt_cache_key": undefined,
+      "prompt_cache_retention": undefined,
+      "reasoning": {
+        "effort": "high",
+        "summary": "auto",
+      },
+      "safety_identifier": undefined,
+      "service_tier": undefined,
+      "store": false,
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": [
+        {
+          "description": undefined,
+          "name": "calculator",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "a": {
+                "type": "number",
+              },
+              "b": {
+                "type": "number",
+              },
+              "op": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "a",
+              "b",
+            ],
+            "type": "object",
+          },
+          "type": "function",
+        },
+      ],
+      "top_logprobs": undefined,
+      "top_p": undefined,
+      "truncation": undefined,
+      "user": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "background": false,
+      "content_filters": null,
+      "created_at": 1765587000,
+      "error": null,
+      "id": "resp_09d58369f84fca7901693cb8381f608196acdaff061ff8de58",
+      "incomplete_details": null,
+      "instructions": null,
+      "max_output_tokens": null,
+      "max_tool_calls": null,
+      "metadata": {},
+      "model": "gpt-5-mini",
+      "object": "response",
+      "output": [
+        {
+          "encrypted_content": "gAAAAABpPLg7YtHo-XROa4SQaGVDHn0JzkSOrg5lJcLFlex18wO9qm_qKFKaHh2m09jkyfNbQrD5lkcDupkwuuRs9EkPfjpbn42juiStvKBpjp-jucgoLqoXBRAAhoNg5rekRiKw5mCYfE0ycsFbYRIhbk_fpRek9AR3rrh1eWVtRfCuKb_dErh4bUeAP53K4AWB9KE8MrG3Lyf3ngCvzQcPSx6y2JAaKBG0RyDXshdp_4ObIN3dOCyeMnuYGXyVSY2COxXcE99JHu8ASBsoNFtGF-7Hl7GSthu-49Avaw3SQv-WUGDk1mr_eOGMiQwiwu8-KBkSSmlgtqYkMOtZSH6_qcChocDTzjj5PNBF0tr1484LNsadlnqY1h_JiaDkxv2YCowUEdupGdz9L-cdFM0Jl_HzOL_ib8658F3Wq3pLyF8wuk1aDaCRTch6cydu4_4YaHlUg8IL2UR12pPnrSTAf9-v0D6W4nnpxH9eM6bT78D7mOF-qsMJtJFsfj20wEStYmrytxdIiGpKIQBZyUMfhLrd0ks0AP4zgu0PEtA6NF7rxUeO8KA2bGC_T7WSKu6yLXofRfxfwK0dosWLFTVPpPKjV47If3sMEoKqLIRhUYvgCIAckJYRqBC-IV7ojqeZIaXHW9JB_zwZp_d3NzHCSkS0b5YrxOArtBDh67-ty5kBRf5QOfCXKRBu1iek_ShCmzree480gC-cPxWw4T8b4p3S3LVZXt3G2UhrATRvOw0YeaT8EQrPS7sizgw_kBbC5gqc-HEwcrW9FfdNYCOfO_nbuiWL6IfIinTLTlx-M8H7eGwYV2V_9WiqGYuToxCuL9t4-oHT_oZeMphemkU7HRtYXy4zOyOrP_vUATNw_e7tD9WE2QNm6OodqEf46toPMyYdCpjlk6IOJo2QoffwoH_q0XU-F5wVC3BLx8tAr738vpnW8al6iV4FvhZzRjgJfsFcGtkQJrI52xoZYFmzk3NiFYTedknX1GAmFgmsoA06Gb_YIih2kImZIqI_Evfkr9T1FVtmWcELjvlPc2Vc6_5sKTuv2PI77lgmM3w_wjiNu0r2WrcHvZ3YERuszapCQ7gD2JTmZ0c_x4P_c6OufS_7Gf3gaEKRaJVk8o6vwkNrDu2pedkBJh-EN_FHChv-3C6wM2ImXTh3eJKoKKtfJEvWr7lB2LSGWadvFp3cGsL9S6HNM5-DWM4SDSb8TOEQVO1GJy--GYWxr3LTZzoELikNDibX7y09m_QLKFNZ_ZRThamtmAb5HpMlGAt-jRMaB_LIT2UluJxDsAQXMwCCBu8BnA1VEPvQyDCJkQRqrUxV8OWNP49sfvSWFP579Y9SHeEyMqimazRvCyPkW5UCL7MDBTMRGQ==",
+          "id": "rs_09d58369f84fca7901693cb838c60c81968c2e61898eec89c7",
+          "summary": [
+            {
+              "text": "**Compiling final result**
+
+I need to present the final result, which is 570. The user wanted me to perform each arithmetic step separately and report it clearly. So, I've done the necessary tool calls and now I'm summarizing the steps, which are: (12 + 7) = 19, then 19 * 3 = 57, and finally 57 * 10 = 570. I’ll keep it concise and straightforward without heavy formatting. The final result is 570!",
+              "type": "summary_text",
+            },
+          ],
+          "type": "reasoning",
+        },
+        {
+          "content": [
+            {
+              "annotations": [],
+              "logprobs": [],
+              "text": "(12 + 7) = 19
+19 × 3 = 57
+57 × 10 = 570
+
+Final result: 570",
+              "type": "output_text",
+            },
+          ],
+          "id": "msg_09d58369f84fca7901693cb83b12388196b17d2b310fe6c361",
+          "role": "assistant",
+          "status": "completed",
+          "type": "message",
+        },
+      ],
+      "parallel_tool_calls": true,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": null,
+      "reasoning": {
+        "effort": "high",
+        "summary": "detailed",
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "status": "completed",
+      "store": false,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text",
+        },
+        "verbosity": "medium",
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "description": "A minimal calculator for basic arithmetic. Call it once per step.",
+          "name": "calculator",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "a": {
+                "description": "First operand.",
+                "type": "number",
+              },
+              "b": {
+                "description": "Second operand.",
+                "type": "number",
+              },
+              "op": {
+                "default": "add",
+                "description": "Arithmetic operation to perform.",
+                "enum": [
+                  "add",
+                  "subtract",
+                  "multiply",
+                  "divide",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "a",
+              "b",
+              "op",
+            ],
+            "type": "object",
+          },
+          "strict": true,
+          "type": "function",
+        },
+      ],
+      "top_logprobs": 0,
+      "top_p": 1,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 564,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 101,
+        "output_tokens_details": {
+          "reasoning_tokens": 64,
+        },
+        "total_tokens": 665,
+      },
+      "user": null,
+    },
+    "headers": {
+      "content-length": "3544",
+      "content-type": "application/json",
+    },
+    "id": "resp_09d58369f84fca7901693cb8381f608196acdaff061ff8de58",
+    "modelId": "gpt-5-mini",
+    "timestamp": 2025-12-13T00:50:00.000Z,
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": undefined,
+      "noCache": 564,
+      "total": 564,
+    },
+    "outputTokens": {
+      "reasoning": 64,
+      "text": 37,
+      "total": 101,
+    },
+    "raw": {
+      "input_tokens": 564,
+      "input_tokens_details": {
+        "cached_tokens": 0,
+      },
+      "output_tokens": 101,
+      "output_tokens_details": {
+        "reasoning_tokens": 64,
+      },
+    },
+  },
+  "warnings": [],
+}
+`;
+
+exports[`responses > doGenerate > text > should extract text content 1`] = `
+{
+  "content": [
+    {
+      "providerMetadata": {
+        "azure": {
+          "itemId": "msg_0d6bb044bb6ff37200698c51952e288193beb9044db4d8c810",
+        },
+      },
+      "text": "Word",
+      "type": "text",
+    },
+  ],
+  "finishReason": {
+    "raw": undefined,
+    "unified": "stop",
+  },
+  "providerMetadata": {
+    "azure": {
+      "responseId": "resp_0d6bb044bb6ff37200698c51948054819385e24e2ad931ae6e",
+      "serviceTier": "default",
+    },
+  },
+  "request": {
+    "body": {
+      "conversation": undefined,
+      "include": undefined,
+      "input": [
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "input_text",
+            },
+          ],
+          "role": "user",
+        },
+      ],
+      "instructions": undefined,
+      "max_output_tokens": undefined,
+      "max_tool_calls": undefined,
+      "metadata": undefined,
+      "model": "test-deployment",
+      "parallel_tool_calls": undefined,
+      "previous_response_id": undefined,
+      "prompt_cache_key": undefined,
+      "prompt_cache_retention": undefined,
+      "safety_identifier": undefined,
+      "service_tier": undefined,
+      "store": undefined,
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": undefined,
+      "top_logprobs": undefined,
+      "top_p": undefined,
+      "truncation": undefined,
+      "user": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "background": false,
+      "completed_at": 1770803605,
+      "content_filters": [
+        {
+          "blocked": false,
+          "content_filter_offsets": {
+            "check_offset": 0,
+            "end_offset": 1447,
+            "start_offset": 1429,
+          },
+          "content_filter_raw": null,
+          "content_filter_results": {
+            "hate": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "jailbreak": {
+              "detected": false,
+              "filtered": false,
+            },
+            "self_harm": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "sexual": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "violence": {
+              "filtered": false,
+              "severity": "safe",
+            },
+          },
+          "source_type": "prompt",
+        },
+        {
+          "blocked": false,
+          "content_filter_offsets": {
+            "check_offset": 0,
+            "end_offset": 4,
+            "start_offset": 0,
+          },
+          "content_filter_raw": null,
+          "content_filter_results": {
+            "hate": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "protected_material_code": {
+              "detected": false,
+              "filtered": false,
+            },
+            "protected_material_text": {
+              "detected": false,
+              "filtered": false,
+            },
+            "self_harm": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "sexual": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "violence": {
+              "filtered": false,
+              "severity": "safe",
+            },
+          },
+          "source_type": "completion",
+        },
+      ],
+      "created_at": 1770803604,
+      "error": null,
+      "id": "resp_0d6bb044bb6ff37200698c51948054819385e24e2ad931ae6e",
+      "incomplete_details": null,
+      "instructions": null,
+      "max_output_tokens": null,
+      "max_tool_calls": null,
+      "metadata": {},
+      "model": "gpt-5.1",
+      "object": "response",
+      "output": [
+        {
+          "content": [
+            {
+              "annotations": [],
+              "logprobs": [],
+              "text": "Word",
+              "type": "output_text",
+            },
+          ],
+          "id": "msg_0d6bb044bb6ff37200698c51952e288193beb9044db4d8c810",
+          "role": "assistant",
+          "status": "completed",
+          "type": "message",
+        },
+      ],
+      "parallel_tool_calls": true,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": null,
+      "reasoning": {
+        "effort": "none",
+        "summary": null,
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "status": "completed",
+      "store": true,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text",
+        },
+        "verbosity": "medium",
+      },
+      "tool_choice": "auto",
+      "tools": [],
+      "top_logprobs": 0,
+      "top_p": 1,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 11,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 11,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+        "total_tokens": 22,
+      },
+      "user": null,
+    },
+    "headers": {
+      "content-length": "1978",
+      "content-type": "application/json",
+    },
+    "id": "resp_0d6bb044bb6ff37200698c51948054819385e24e2ad931ae6e",
+    "modelId": "gpt-5.1",
+    "timestamp": 2026-02-11T09:53:24.000Z,
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": undefined,
+      "noCache": 11,
+      "total": 11,
+    },
+    "outputTokens": {
+      "reasoning": 0,
+      "text": 11,
+      "total": 11,
+    },
+    "raw": {
+      "input_tokens": 11,
+      "input_tokens_details": {
+        "cached_tokens": 0,
+      },
+      "output_tokens": 11,
+      "output_tokens_details": {
+        "reasoning_tokens": 0,
+      },
+    },
+  },
+  "warnings": [],
+}
+`;
+
+exports[`responses > doGenerate > tool call > should extract tool call content 1`] = `
+{
+  "content": [
+    {
+      "input": "{"location":"San Francisco"}",
+      "providerMetadata": {
+        "azure": {
+          "itemId": "fc_0a2fa1b539ba14ba00698c519ebab0819494302fc0b5c31440",
+        },
+      },
+      "toolCallId": "call_YunNGbIwdVJ2i0y0Mybva4Pw",
+      "toolName": "weather",
+      "type": "tool-call",
+    },
+  ],
+  "finishReason": {
+    "raw": undefined,
+    "unified": "tool-calls",
+  },
+  "providerMetadata": {
+    "azure": {
+      "responseId": "resp_0a2fa1b539ba14ba00698c519df7a88194874af28c8bfccb12",
+      "serviceTier": "default",
+    },
+  },
+  "request": {
+    "body": {
+      "conversation": undefined,
+      "include": undefined,
+      "input": [
+        {
+          "content": [
+            {
+              "text": "Hello",
+              "type": "input_text",
+            },
+          ],
+          "role": "user",
+        },
+      ],
+      "instructions": undefined,
+      "max_output_tokens": undefined,
+      "max_tool_calls": undefined,
+      "metadata": undefined,
+      "model": "test-deployment",
+      "parallel_tool_calls": undefined,
+      "previous_response_id": undefined,
+      "prompt_cache_key": undefined,
+      "prompt_cache_retention": undefined,
+      "safety_identifier": undefined,
+      "service_tier": undefined,
+      "store": undefined,
+      "temperature": undefined,
+      "tool_choice": undefined,
+      "tools": undefined,
+      "top_logprobs": undefined,
+      "top_p": undefined,
+      "truncation": undefined,
+      "user": undefined,
+    },
+  },
+  "response": {
+    "body": {
+      "background": false,
+      "completed_at": 1770803615,
+      "content_filters": [
+        {
+          "blocked": false,
+          "content_filter_offsets": {
+            "check_offset": 0,
+            "end_offset": 1554,
+            "start_offset": 1517,
+          },
+          "content_filter_raw": null,
+          "content_filter_results": {
+            "hate": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "jailbreak": {
+              "detected": false,
+              "filtered": false,
+            },
+            "self_harm": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "sexual": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "violence": {
+              "filtered": false,
+              "severity": "safe",
+            },
+          },
+          "source_type": "prompt",
+        },
+        {
+          "blocked": false,
+          "content_filter_offsets": {
+            "check_offset": 0,
+            "end_offset": 1090,
+            "start_offset": 0,
+          },
+          "content_filter_raw": null,
+          "content_filter_results": {
+            "hate": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "protected_material_code": {
+              "detected": false,
+              "filtered": false,
+            },
+            "protected_material_text": {
+              "detected": false,
+              "filtered": false,
+            },
+            "self_harm": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "sexual": {
+              "filtered": false,
+              "severity": "safe",
+            },
+            "violence": {
+              "filtered": false,
+              "severity": "safe",
+            },
+          },
+          "source_type": "completion",
+        },
+      ],
+      "created_at": 1770803613,
+      "error": null,
+      "id": "resp_0a2fa1b539ba14ba00698c519df7a88194874af28c8bfccb12",
+      "incomplete_details": null,
+      "instructions": null,
+      "max_output_tokens": null,
+      "max_tool_calls": null,
+      "metadata": {},
+      "model": "gpt-5.1",
+      "object": "response",
+      "output": [
+        {
+          "arguments": "{"location":"San Francisco"}",
+          "call_id": "call_YunNGbIwdVJ2i0y0Mybva4Pw",
+          "id": "fc_0a2fa1b539ba14ba00698c519ebab0819494302fc0b5c31440",
+          "name": "weather",
+          "status": "completed",
+          "type": "function_call",
+        },
+      ],
+      "parallel_tool_calls": true,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": null,
+      "reasoning": {
+        "effort": "none",
+        "summary": null,
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "status": "completed",
+      "store": true,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text",
+        },
+        "verbosity": "medium",
+      },
+      "tool_choice": "auto",
+      "tools": [
+        {
+          "description": null,
+          "name": "weather",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "location": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "location",
+            ],
+            "type": "object",
+          },
+          "strict": true,
+          "type": "function",
+        },
+      ],
+      "top_logprobs": 0,
+      "top_p": 1,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 45,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 24,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+        "total_tokens": 69,
+      },
+      "user": null,
+    },
+    "headers": {
+      "content-length": "2190",
+      "content-type": "application/json",
+    },
+    "id": "resp_0a2fa1b539ba14ba00698c519df7a88194874af28c8bfccb12",
+    "modelId": "gpt-5.1",
+    "timestamp": 2026-02-11T09:53:33.000Z,
+  },
+  "usage": {
+    "inputTokens": {
+      "cacheRead": 0,
+      "cacheWrite": undefined,
+      "noCache": 45,
+      "total": 45,
+    },
+    "outputTokens": {
+      "reasoning": 0,
+      "text": 24,
+      "total": 24,
+    },
+    "raw": {
+      "input_tokens": 45,
+      "input_tokens_details": {
+        "cached_tokens": 0,
+      },
+      "output_tokens": 24,
+      "output_tokens_details": {
+        "reasoning_tokens": 0,
+      },
+    },
+  },
+  "warnings": [],
+}
+`;
+
+>>>>>>> afeaec079 (Backport: test(azure): shrink image generation fixture from 6.9MB to 12.6KB (#13488))
 exports[`responses > doGenerate > web search preview tool > should stream web search preview results include 1`] = `
 [
   {
@@ -311,6 +1082,1363 @@ If you want more details or other news stories, feel free to ask!",
 ]
 `;
 
+<<<<<<< HEAD
+=======
+exports[`responses > doStream > file search tool > should stream file search results with results include 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-09-17T15:02:09.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_06456cb9918b63780068cacd717c3481a1b8c7094da5770b41",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model definition in this document?",
+        "How does the document define an embedding model?",
+      ],
+      "results": [
+        {
+          "attributes": {},
+          "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+          "filename": "ai.pdf",
+          "score": 0.9312,
+          "text": "AI 1
+
+AI
+Generative artificial intelligence refers to models that predict and generate 
+various types of outputs (such as text, images, or audio) based on whatʼs 
+statistically likely, pulling from patterns theyʼve learned from their training data. 
+For example:
+
+Given a photo, a generative model can generate a caption.
+
+Given an audio file, a generative model can generate a transcription.
+
+Given a text description, a generative model can generate an image.
+
+A large language model LLM is a subset of generative models focused 
+primarily on text. An LLM takes a sequence of words as input and aims to 
+predict the most likely sequence to follow. It assigns probabilities to potential 
+next sequences and then selects one. The model continues to generate 
+sequences until it meets a specified stopping criterion.
+
+LLMs learn by training on massive collections of written text, which means they 
+will be better suited to some use cases than others. For example, a model 
+trained on GitHub data would understand the probabilities of sequences in 
+source code particularly well.
+
+However, it's crucial to understand LLMs' limitations. When asked about less 
+known or absent information, like the birthday of a personal relative, LLMs 
+might "hallucinate" or make up information. It's essential to consider how well-
+represented the information you need is in the model.
+
+An embedding model is used to convert complex data (like words or images) 
+into a dense vector (a list of numbers) representation, known as an embedding. 
+Unlike generative models, embedding models do not generate new text or data. 
+Instead, they provide representations of semantic and synactic relationships 
+between entities that can be used as input for other models or other natural 
+language processing tasks.
+
+In the next section, you will learn about the difference between models 
+providers and models, and which ones are available in the AI SDK.",
+        },
+      ],
+    },
+    "toolCallId": "fs_06456cb9918b63780068cacd74a1dc81a1bf68dd57f140b4b6",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_06456cb9918b63780068cacd7663c481a191dd84333d842728",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "The",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " document",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " defines",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " model",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tool",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " converts",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " complex",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " words",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " images",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dense",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "a",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " list",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " called",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Unlike",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gener",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ative",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " don",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "’t",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generate",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " new",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " text",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " they",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " provide",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " representations",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " capture",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " semantic",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " synt",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": "actic",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " relationships",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " be",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " used",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " input",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " other",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NLP",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tasks",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "azure": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "index": 379,
+        "type": "file_citation",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+    "providerMetadata": {
+      "azure": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 379,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_06456cb9918b63780068cacd7c922081a1ae15f2672a51980f",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "azure": {
+        "responseId": "resp_06456cb9918b63780068cacd710b0881a1b00b5fca56e7100b",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 2304,
+        "cacheWrite": undefined,
+        "noCache": 1444,
+        "total": 3748,
+      },
+      "outputTokens": {
+        "reasoning": 448,
+        "text": 95,
+        "total": 543,
+      },
+      "raw": {
+        "input_tokens": 3748,
+        "input_tokens_details": {
+          "cached_tokens": 2304,
+        },
+        "output_tokens": 543,
+        "output_tokens_details": {
+          "reasoning_tokens": 448,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`responses > doStream > file search tool > should stream file search results without results include 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
+    "modelId": "gpt-5-mini-2025-08-07",
+    "timestamp": 2025-09-17T14:03:38.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0459517ad68504ad0068cabfba951881929654a05214361b35",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
+    "toolName": "file_search",
+    "type": "tool-call",
+  },
+  {
+    "result": {
+      "queries": [
+        "What is an embedding model according to this document?",
+        "What is an embedding model defined as in the document?",
+        "definition of embedding model",
+      ],
+      "results": null,
+    },
+    "toolCallId": "fs_0459517ad68504ad0068cabfbd76888192a5dc4475fadabf8a",
+    "toolName": "file_search",
+    "type": "tool-result",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-start",
+  },
+  {
+    "id": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9:0",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "rs_0459517ad68504ad0068cabfbf337881929cf5266be7a008a9",
+        "reasoningEncryptedContent": null,
+      },
+    },
+    "type": "reasoning-end",
+  },
+  {
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "According",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " to",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " the",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " document",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " model",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " converts",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " complex",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " (",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "e",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".g",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".,",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " words",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " images",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ")",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " into",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " dense",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " list",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " numbers",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " —",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " called",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-0",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "azure": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "index": 154,
+        "type": "file_citation",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " Unlike",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " gener",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "ative",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " embedding",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " do",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " not",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " generate",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " new",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " text",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " data",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": ";",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " instead",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " they",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " produce",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " vector",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " representations",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " that",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " capture",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " semantic",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " synt",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": "actic",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " relationships",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " and",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " can",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " be",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " used",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " as",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " input",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " for",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " other",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " models",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " NLP",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " tasks",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "delta": " ",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "filename": "ai.pdf",
+    "id": "id-1",
+    "mediaType": "text/plain",
+    "providerMetadata": {
+      "azure": {
+        "fileId": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+        "index": 382,
+        "type": "file_citation",
+      },
+    },
+    "sourceType": "document",
+    "title": "ai.pdf",
+    "type": "source",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+    "providerMetadata": {
+      "azure": {
+        "annotations": [
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 154,
+            "type": "file_citation",
+          },
+          {
+            "file_id": "file-Ebzhf8H4DPGPr9pUhr7n7v",
+            "filename": "ai.pdf",
+            "index": 382,
+            "type": "file_citation",
+          },
+        ],
+        "itemId": "msg_0459517ad68504ad0068cabfc6b5c48192a15ac773668537f1",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "azure": {
+        "responseId": "resp_0459517ad68504ad0068cabfba22b88192836339640e9a765a",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 2304,
+        "cacheWrite": undefined,
+        "noCache": 1433,
+        "total": 3737,
+      },
+      "outputTokens": {
+        "reasoning": 512,
+        "text": 109,
+        "total": 621,
+      },
+      "raw": {
+        "input_tokens": 3737,
+        "input_tokens_details": {
+          "cached_tokens": 2304,
+        },
+        "output_tokens": 621,
+        "output_tokens_details": {
+          "reasoning_tokens": 512,
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`responses > doStream > image generation tool > should stream image generation tool results include 1`] = `
+[
+  {
+    "type": "stream-start",
+    "warnings": [],
+  },
+  {
+    "id": "resp_0ca0ba552749d18c0069414e505a908197bdd5635c7e764a55",
+    "modelId": "gpt-4.1-mini",
+    "timestamp": 2025-12-16T12:19:28.000Z,
+    "type": "response-metadata",
+  },
+  {
+    "input": "{}",
+    "providerExecuted": true,
+    "toolCallId": "ig_0ca0ba552749d18c0069414e512d78819791ec2c3fe1d486b8",
+    "toolName": "image_generation",
+    "type": "tool-call",
+  },
+  {
+    "preliminary": true,
+    "result": {
+      "result": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+    },
+    "toolCallId": "ig_0ca0ba552749d18c0069414e512d78819791ec2c3fe1d486b8",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "result": {
+      "result": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC",
+    },
+    "toolCallId": "ig_0ca0ba552749d18c0069414e512d78819791ec2c3fe1d486b8",
+    "toolName": "image_generation",
+    "type": "tool-result",
+  },
+  {
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+      },
+    },
+    "type": "text-start",
+  },
+  {
+    "delta": "Here",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " is",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " an",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " anime",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": "-like",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " image",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " of",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " a",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " cute",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " rac",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": "coon",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " waving",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " hello",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": ".",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " If",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " you",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " want",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " any",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " changes",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " or",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " another",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " style",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": ",",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " just",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " let",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " me",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": " know",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "delta": "!",
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "type": "text-delta",
+  },
+  {
+    "id": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+    "providerMetadata": {
+      "azure": {
+        "itemId": "msg_0ca0ba552749d18c0069414e6a4bd08197b70d83e91162dd13",
+      },
+    },
+    "type": "text-end",
+  },
+  {
+    "finishReason": {
+      "raw": undefined,
+      "unified": "stop",
+    },
+    "providerMetadata": {
+      "azure": {
+        "responseId": "resp_0ca0ba552749d18c0069414e505a908197bdd5635c7e764a55",
+        "serviceTier": "default",
+      },
+    },
+    "type": "finish",
+    "usage": {
+      "inputTokens": {
+        "cacheRead": 0,
+        "cacheWrite": undefined,
+        "noCache": 1979,
+        "total": 1979,
+      },
+      "outputTokens": {
+        "reasoning": 0,
+        "text": 67,
+        "total": 67,
+      },
+      "raw": {
+        "input_tokens": 1979,
+        "input_tokens_details": {
+          "cached_tokens": 0,
+        },
+        "output_tokens": 67,
+        "output_tokens_details": {
+          "reasoning_tokens": 0,
+        },
+      },
+    },
+  },
+]
+`;
+
+>>>>>>> afeaec079 (Backport: test(azure): shrink image generation fixture from 6.9MB to 12.6KB (#13488))
 exports[`responses > doStream > should send code interpreter calls 1`] = `
 [
   {
