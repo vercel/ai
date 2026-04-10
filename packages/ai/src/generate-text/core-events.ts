@@ -1,8 +1,11 @@
 import type { JSONValue, LanguageModelV4ToolChoice } from '@ai-sdk/provider';
 import type {
+  Context,
+  InferToolSetContext,
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/call-settings';
 import type { ToolChoice } from '../types/language-model';
@@ -12,8 +15,6 @@ import type { StepResult } from './step-result';
 import type { StopCondition } from './stop-condition';
 import { TextStreamPart } from './stream-text-result';
 import type { TypedToolCall } from './tool-call';
-import type { GenerationContext } from './generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Common model information used across callback events.
@@ -32,7 +33,7 @@ export interface CallbackModelInfo {
  */
 export interface OnStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -106,8 +107,8 @@ export interface OnStartEvent<
    * When the condition is an array, any of the conditions can be met to stop.
    */
   readonly stopWhen:
-    | StopCondition<NoInfer<TOOLS>, CONTEXT>
-    | Array<StopCondition<NoInfer<TOOLS>, CONTEXT>>
+    | StopCondition<NoInfer<TOOLS>, USER_CONTEXT>
+    | Array<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>
     | undefined;
 
   /** The output specification for structured outputs, if configured. */
@@ -151,7 +152,7 @@ export interface OnStartEvent<
  */
 export interface OnStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
   INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
@@ -193,7 +194,7 @@ export interface OnStepStartEvent<
   readonly activeTools: Array<keyof TOOLS> | undefined;
 
   /** Array of results from previous steps (empty for first step). */
-  readonly steps: ReadonlyArray<StepResult<TOOLS, CONTEXT>>;
+  readonly steps: ReadonlyArray<StepResult<TOOLS, USER_CONTEXT>>;
 
   /** Additional provider-specific options for this step. */
   readonly providerOptions: ProviderOptions | undefined;
@@ -212,8 +213,8 @@ export interface OnStepStartEvent<
    * When the condition is an array, any of the conditions can be met to stop.
    */
   readonly stopWhen:
-    | StopCondition<TOOLS, CONTEXT>
-    | Array<StopCondition<TOOLS, CONTEXT>>
+    | StopCondition<TOOLS, USER_CONTEXT>
+    | Array<StopCondition<TOOLS, USER_CONTEXT>>
     | undefined;
 
   /** The output specification for structured outputs, if configured. */
@@ -358,8 +359,8 @@ export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
  */
 export type OnStepFinishEvent<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
-> = StepResult<TOOLS, CONTEXT>;
+  USER_CONTEXT extends Context = Context,
+> = StepResult<TOOLS, USER_CONTEXT>;
 
 /**
  * Event passed to the `onFinish` callback.
@@ -369,10 +370,10 @@ export type OnStepFinishEvent<
  */
 export type OnFinishEvent<
   TOOLS extends ToolSet = ToolSet,
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
-> = StepResult<TOOLS, CONTEXT> & {
+  USER_CONTEXT extends Context = Context,
+> = StepResult<TOOLS, USER_CONTEXT> & {
   /** Array containing results from all steps in the generation. */
-  readonly steps: StepResult<TOOLS, CONTEXT>[];
+  readonly steps: StepResult<TOOLS, USER_CONTEXT>[];
 
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;
@@ -384,7 +385,7 @@ export type OnFinishEvent<
    *
    * @default undefined
    */
-  context: CONTEXT;
+  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;

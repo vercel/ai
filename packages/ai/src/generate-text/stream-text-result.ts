@@ -1,3 +1,4 @@
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { IdGenerator } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
 import {
@@ -23,7 +24,7 @@ import {
   InferElementOutput,
   InferPartialOutput,
 } from './output-utils';
-import { ReasoningOutput, ReasoningFileOutput } from './reasoning-output';
+import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
@@ -35,8 +36,6 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import type { GenerationContext } from './generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -109,7 +108,7 @@ export type ConsumeStreamOptions = {
  */
 export interface StreamTextResult<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context,
   OUTPUT extends Output,
 > {
   /**
@@ -239,7 +238,7 @@ export interface StreamTextResult<
    *
    * Automatically consumes the stream.
    */
-  readonly steps: PromiseLike<Array<StepResult<TOOLS, CONTEXT>>>;
+  readonly steps: PromiseLike<Array<StepResult<TOOLS, USER_CONTEXT>>>;
 
   /**
    * Additional request information from the last step.
