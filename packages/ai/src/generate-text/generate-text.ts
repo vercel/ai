@@ -9,8 +9,11 @@ import {
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
+<<<<<<< HEAD
   SystemModelMessage,
   ToolApprovalResponse,
+=======
+>>>>>>> f37254792 (fix(ai): fix `providerExecuted` tool approvals being passed to language model twice (#14289))
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -583,6 +586,176 @@ export async function generateText<
                 | undefined
                 | GenerateTextOnToolCallFinishCallback<TOOLS>,
             ],
+<<<<<<< HEAD
+=======
+          }),
+        executeToolInTelemetryContext: globalTelemetry.executeTool,
+      });
+
+      const toolContent: Array<any> = [];
+
+      // add regular tool results for approved tool calls:
+      for (const output of toolOutputs) {
+        const modelOutput = await createToolModelOutput({
+          toolCallId: output.toolCallId,
+          input: output.input,
+          tool: tools?.[output.toolName],
+          output: output.type === 'tool-result' ? output.output : output.error,
+          errorMode: output.type === 'tool-error' ? 'text' : 'none',
+        });
+
+        toolContent.push({
+          type: 'tool-result' as const,
+          toolCallId: output.toolCallId,
+          toolName: output.toolName,
+          output: modelOutput,
+        });
+      }
+
+      // add execution denied tool results for all denied tool approvals:
+      for (const toolApproval of deniedToolApprovals) {
+        toolContent.push({
+          type: 'tool-result' as const,
+          toolCallId: toolApproval.toolCall.toolCallId,
+          toolName: toolApproval.toolCall.toolName,
+          output: {
+            type: 'execution-denied' as const,
+            reason: toolApproval.approvalResponse.reason,
+            // For provider-executed tools, include approvalId so provider can correlate
+            ...(toolApproval.toolCall.providerExecuted && {
+              providerOptions: {
+                openai: {
+                  approvalId: toolApproval.approvalResponse.approvalId,
+                },
+              },
+            }),
+          },
+        });
+      }
+
+      responseMessages.push({
+        role: 'tool',
+        content: toolContent,
+      });
+    }
+
+    const callSettings = prepareCallSettings(settings);
+
+    let currentModelResponse: LanguageModelV4GenerateResult & {
+      response: { id: string; timestamp: Date; modelId: string };
+    };
+    let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
+    let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
+    const steps: GenerateTextResult<TOOLS, CONTEXT, OUTPUT>['steps'] = [];
+
+    // Track provider-executed tool calls that support deferred results
+    // (e.g., code_execution in programmatic tool calling scenarios).
+    // These tools may not return their results in the same turn as their call.
+    const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
+
+    do {
+      // Set up step timeout if configured
+      const stepTimeoutId =
+        stepTimeoutMs != null
+          ? setTimeout(() => stepAbortController!.abort(), stepTimeoutMs)
+          : undefined;
+
+      try {
+        const stepInputMessages = [...initialMessages, ...responseMessages];
+
+        const prepareStepResult = await prepareStep?.({
+          model,
+          steps,
+          stepNumber: steps.length,
+          messages: stepInputMessages,
+          context,
+        });
+
+        const stepModel = resolveLanguageModel(
+          prepareStepResult?.model ?? model,
+        );
+
+        const promptMessages = await convertToLanguageModelPrompt({
+          prompt: {
+            system: prepareStepResult?.system ?? initialPrompt.system,
+            messages: prepareStepResult?.messages ?? stepInputMessages,
+          },
+          supportedUrls: await stepModel.supportedUrls,
+          download,
+          provider: stepModel.provider.split('.')[0],
+        });
+
+        context = prepareStepResult?.context ?? context;
+
+        const stepActiveTools = filterActiveTools({
+          tools,
+          activeTools: prepareStepResult?.activeTools ?? activeTools,
+        });
+
+        const stepTools = await prepareTools({
+          tools: stepActiveTools,
+        });
+
+        const stepToolChoice = prepareToolChoice({
+          toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+        });
+
+        const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
+
+        const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
+
+        const stepProviderOptions = mergeObjects(
+          providerOptions,
+          prepareStepResult?.providerOptions,
+        );
+
+        const onStepStartEvent = {
+          callId,
+          stepNumber: steps.length,
+          provider: stepModel.provider,
+          modelId: stepModel.modelId,
+          system: stepSystem,
+          messages: stepMessages,
+          tools,
+          toolChoice: stepToolChoice,
+          activeTools: prepareStepResult?.activeTools ?? activeTools,
+          steps: [...steps],
+          providerOptions: stepProviderOptions,
+          timeout,
+          headers,
+          stopWhen,
+          output,
+          abortSignal,
+          include,
+          functionId: telemetry?.functionId,
+          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
+          context,
+          promptMessages,
+          stepTools,
+          stepToolChoice,
+        };
+
+        await notify({
+          event: onStepStartEvent,
+          callbacks: [
+            onStepStart,
+            globalTelemetry.onStepStart as
+              | undefined
+              | GenerateTextOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>,
+          ],
+        });
+
+        currentModelResponse = await retry(async () => {
+          const result = await stepModel.doGenerate({
+            ...callSettings,
+            tools: stepTools,
+            toolChoice: stepToolChoice,
+            responseFormat: await output?.responseFormat,
+            prompt: promptMessages,
+            providerOptions: stepProviderOptions,
+            abortSignal: mergedAbortSignal,
+            headers: headersWithUserAgent,
+>>>>>>> f37254792 (fix(ai): fix `providerExecuted` tool approvals being passed to language model twice (#14289))
           });
 
           const toolContent: Array<any> = [];

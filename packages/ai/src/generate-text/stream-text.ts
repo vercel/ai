@@ -12,8 +12,11 @@ import {
   isAbortError,
   ModelMessage,
   ProviderOptions,
+<<<<<<< HEAD
   SystemModelMessage,
   ToolApprovalResponse,
+=======
+>>>>>>> f37254792 (fix(ai): fix `providerExecuted` tool approvals being passed to language model twice (#14289))
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
@@ -1372,6 +1375,7 @@ class DefaultStreamTextResult<
             toolApproval => !toolApproval.toolCall.providerExecuted,
           );
 
+<<<<<<< HEAD
           const deniedProviderExecutedToolApprovals =
             deniedToolApprovals.filter(
               toolApproval => toolApproval.toolCall.providerExecuted,
@@ -1387,6 +1391,11 @@ class DefaultStreamTextResult<
               toolExecutionStepStreamController = controller;
             },
           });
+=======
+          // Local tool results (approved + denied) are sent as tool results:
+          if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
+            const localToolContent: ToolContent = [];
+>>>>>>> f37254792 (fix(ai): fix `providerExecuted` tool approvals being passed to language model twice (#14289))
 
           self.addStream(toolExecutionStepStream);
 
