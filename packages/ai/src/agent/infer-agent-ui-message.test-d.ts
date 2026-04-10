@@ -4,6 +4,7 @@ import {
   DataUIPart,
   DynamicToolUIPart,
   FileUIPart,
+  InvalidToolUIPart,
   ReasoningFileUIPart,
   ReasoningUIPart,
   SourceDocumentUIPart,
@@ -34,6 +35,7 @@ describe('InferAgentUIMessage', () => {
       | ReasoningUIPart
       // No static tools, so no ToolUIPart
       | DynamicToolUIPart
+      | InvalidToolUIPart
       | SourceUrlUIPart
       | SourceDocumentUIPart
       | FileUIPart
