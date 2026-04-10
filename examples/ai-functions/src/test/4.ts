@@ -10,12 +10,17 @@ type Schema<T> = {
 
 const schema = <T>(): Schema<T> => ({});
 
-type Tool<CONTEXT extends Context = Record<never, never>> = {
+type Tool<CONTEXT extends Context | unknown | never = any> = {
   contextSchema?: Schema<CONTEXT>;
+  execute?: (context: NoInfer<CONTEXT>) => unknown;
 };
 
-type InferToolContext<TOOL extends Tool<any>> =
-  TOOL extends Tool<infer CONTEXT> ? CONTEXT : never;
+type InferToolContext<TOOL extends Tool> =
+  TOOL extends Tool<infer CONTEXT>
+    ? HasRequiredKey<CONTEXT> extends true
+      ? CONTEXT
+      : never
+    : never;
 
 export function tool<CONTEXT extends Context>(
   tool: Tool<CONTEXT>,
@@ -24,7 +29,10 @@ export function tool<CONTEXT extends Context>(
 }
 
 // key fix: Tool vs Tool<any>
-export type ToolSet = Record<string, Tool>;
+export type ToolSet = Record<
+  string,
+  (Tool<never> | Tool<any>) & Pick<Tool<any>, 'execute'>
+>;
 
 type UnionToIntersection<U> = (
   U extends unknown ? (arg: U) => void : never
@@ -38,6 +46,8 @@ type InferToolSetContext<TOOLS extends ToolSet> = UnionToIntersection<
   }[keyof TOOLS]
 >;
 
+type T4 = InferToolContext<(typeof mixedTools)['weather']>;
+type T5 = InferToolContext<(typeof mixedTools)['calculator']>;
 type T3 = InferToolSetContext<typeof mixedTools>;
 
 // if `{}` is not assignable, the context has at least one required key
@@ -59,6 +69,9 @@ declare function inferA<TOOLS extends ToolSet = ToolSet>(
 const mixedTools = {
   weather: tool({
     contextSchema: schema<{ weatherApiKey: string }>(),
+    execute: context => {
+      return { weatherApiKey: context.weatherApiKey };
+    },
   }),
   calculator: tool({}),
 };
