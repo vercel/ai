@@ -8,6 +8,7 @@ import {
   type UIMessageChunk,
   uiMessageChunkSchema,
 } from 'ai';
+import { getErrorMessage } from './get-error-message.js';
 import { iteratorToStream, streamToIterator } from './stream-iterator.js';
 
 export interface SendMessagesOptions<UI_MESSAGE extends UIMessage> {
@@ -21,6 +22,12 @@ export interface SendMessagesOptions<UI_MESSAGE extends UIMessage> {
 export interface ReconnectToStreamOptions {
   chatId: string;
   abortSignal?: AbortSignal;
+  /**
+   * Override the `startIndex` for this reconnection.
+   * Negative values read from the end of the stream.
+   * When omitted, falls back to the constructor's `initialStartIndex`.
+   */
+  startIndex?: number;
 }
 
 type OnChatSendMessage<UI_MESSAGE extends UIMessage> = (
@@ -80,6 +87,19 @@ export interface WorkflowChatTransportOptions<UI_MESSAGE extends UIMessage> {
   maxConsecutiveErrors?: number;
 
   /**
+   * Default `startIndex` to use when reconnecting to a stream without a known
+   * chunk position (i.e. the initial reconnection, not a retry).
+   * Negative values read from the end of the stream (e.g. `-10` fetches the
+   * last 10 chunks), which is useful for resuming a chat UI after a page
+   * refresh without replaying the full conversation.
+   *
+   * Can be overridden per-call via `ReconnectToStreamOptions.startIndex`.
+   *
+   * Defaults to `0` (replay from the beginning).
+   */
+  initialStartIndex?: number;
+
+  /**
    * Function to prepare the request for sending messages.
    * Allows customizing the API endpoint, headers, credentials, and body.
    */
@@ -113,6 +133,7 @@ export class WorkflowChatTransport<
   private readonly onChatSendMessage?: OnChatSendMessage<UI_MESSAGE>;
   private readonly onChatEnd?: OnChatEnd;
   private readonly maxConsecutiveErrors: number;
+  private readonly initialStartIndex: number;
   private readonly prepareSendMessagesRequest?: PrepareSendMessagesRequest<UI_MESSAGE>;
   private readonly prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 
@@ -134,6 +155,7 @@ export class WorkflowChatTransport<
     this.onChatSendMessage = options.onChatSendMessage;
     this.onChatEnd = options.onChatEnd;
     this.maxConsecutiveErrors = options.maxConsecutiveErrors ?? 3;
+    this.initialStartIndex = options.initialStartIndex ?? 0;
     this.prepareSendMessagesRequest = options.prepareSendMessagesRequest;
     this.prepareReconnectToStreamRequest =
       options.prepareReconnectToStreamRequest;
@@ -278,6 +300,16 @@ export class WorkflowChatTransport<
   ): AsyncGenerator<UIMessageChunk> {
     let chunkIndex = initialChunkIndex;
 
+    // When called from the public reconnectToStream (initialChunkIndex === 0),
+    // honour the caller's startIndex (or the constructor default) for the
+    // first request. This enables negative values so the client can read only
+    // the tail of the stream (e.g. the last 10 chunks) instead of replaying
+    // everything. After the first request, fall back to the running chunkIndex
+    // so that retries resume from the correct position.
+    const explicitStartIndex = options.startIndex ?? this.initialStartIndex;
+    let useExplicitStartIndex =
+      initialChunkIndex === 0 && explicitStartIndex !== 0;
+
     const defaultApi = `${this.api}/${encodeURIComponent(workflowRunId ?? options.chatId)}/stream`;
 
     // Prepare the request using the configurator if provided
@@ -296,9 +328,19 @@ export class WorkflowChatTransport<
 
     let gotFinish = false;
     let consecutiveErrors = 0;
+    // When a negative startIndex is used but the tail-index header is absent,
+    // retries fall back to startIndex 0 (replay everything) instead of using
+    // the incremental chunkIndex which would be wrong.
+    let replayFromStart = false;
 
     while (!gotFinish) {
-      const url = `${baseUrl}?startIndex=${chunkIndex}`;
+      const startIndex = useExplicitStartIndex
+        ? explicitStartIndex
+        : replayFromStart
+          ? 0
+          : chunkIndex;
+
+      const url = `${baseUrl}?startIndex=${startIndex}`;
       const res = await this.fetch(url, {
         headers: requestConfig?.headers,
         credentials: requestConfig?.credentials,
@@ -310,6 +352,32 @@ export class WorkflowChatTransport<
           `Failed to fetch chat: ${res.status} ${await res.text()}`,
         );
       }
+
+      // When using a negative startIndex, the server resolves it to an
+      // absolute position. The reconnection endpoint should return the tail
+      // index so we can compute the resolved position for subsequent retries.
+      if (useExplicitStartIndex && explicitStartIndex < 0) {
+        const tailIndexHeader = res.headers.get('x-workflow-stream-tail-index');
+        const tailIndex =
+          tailIndexHeader !== null ? parseInt(tailIndexHeader, 10) : NaN;
+
+        if (!Number.isNaN(tailIndex)) {
+          // Resolve: e.g. tailIndex=499, startIndex=-20 → 500 + (-20) = 480
+          chunkIndex = Math.max(0, tailIndex + 1 + explicitStartIndex);
+        } else {
+          // Header missing or unparseable — fall back to replaying from the
+          // beginning so retries don't resume from a wrong position.
+          console.warn(
+            '[WorkflowChatTransport] Negative initialStartIndex is configured ' +
+              `(${explicitStartIndex}) but the reconnection endpoint did not ` +
+              'return a valid "x-workflow-stream-tail-index" header. Retries ' +
+              'will replay the stream from the beginning. See: ' +
+              'https://workflow.dev/docs/ai/resumable-streams#resuming-from-the-end-of-the-stream',
+          );
+          replayFromStart = true;
+        }
+      }
+      useExplicitStartIndex = false;
 
       try {
         const chunkStream = parseJsonEventStream({
@@ -337,7 +405,7 @@ export class WorkflowChatTransport<
 
         if (consecutiveErrors >= this.maxConsecutiveErrors) {
           throw new Error(
-            `Failed to reconnect after ${this.maxConsecutiveErrors} consecutive errors. Last error: ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to reconnect after ${this.maxConsecutiveErrors} consecutive errors. Last error: ${getErrorMessage(error)}`,
           );
         }
       }
