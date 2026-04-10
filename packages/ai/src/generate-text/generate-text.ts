@@ -1,6 +1,6 @@
 import {
-  LanguageModelV4,
   LanguageModelV4Content,
+  LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
 import {
@@ -673,9 +673,9 @@ export async function generateText<
 
     const callSettings = prepareCallSettings(settings);
 
-    let currentModelResponse: Awaited<
-      ReturnType<LanguageModelV4['doGenerate']>
-    > & { response: { id: string; timestamp: Date; modelId: string } };
+    let currentModelResponse: LanguageModelV4GenerateResult & {
+      response: { id: string; timestamp: Date; modelId: string };
+    };
     let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
     let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
     const steps: GenerateTextResult<TOOLS, CONTEXT, OUTPUT>['steps'] = [];

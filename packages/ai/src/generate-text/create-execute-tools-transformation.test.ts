@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { asLanguageModelUsage } from '../types/usage';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
-import { ModelCallStreamPart } from './stream-model-call';
+import { LanguageModelStreamPart } from './stream-language-model-call';
 
 const finishChunk = {
   type: 'model-call-end' as const,
@@ -38,7 +38,7 @@ describe('createExecuteToolsTransformation', () => {
       }),
     };
 
-    const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -117,7 +117,7 @@ describe('createExecuteToolsTransformation', () => {
       }),
     };
 
-    const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -202,7 +202,7 @@ describe('createExecuteToolsTransformation', () => {
 
     let toolExecuted = false;
 
-    const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
       convertArrayToReadableStream([
         {
           type: 'tool-call',
@@ -254,7 +254,7 @@ describe('createExecuteToolsTransformation', () => {
 
       const callOrder: string[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -304,7 +304,7 @@ describe('createExecuteToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -377,7 +377,7 @@ describe('createExecuteToolsTransformation', () => {
 
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -434,7 +434,7 @@ describe('createExecuteToolsTransformation', () => {
       const finishEvents: unknown[] = [];
       const toolError = new Error('tool failed');
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -484,7 +484,7 @@ describe('createExecuteToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -531,7 +531,7 @@ describe('createExecuteToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -584,7 +584,7 @@ describe('createExecuteToolsTransformation', () => {
       const startEvents: unknown[] = [];
       const finishEvents: unknown[] = [];
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -645,7 +645,7 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',
@@ -732,7 +732,7 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const inputStream: ReadableStream<ModelCallStreamPart<typeof tools>> =
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
           {
             type: 'tool-call',

@@ -48,9 +48,9 @@ export {
   type StopCondition,
 } from './stop-condition';
 export {
-  streamModelCall as experimental_streamModelCall,
-  type ModelCallStreamPart as Experimental_ModelCallStreamPart,
-} from './stream-model-call';
+  streamLanguageModelCall as experimental_streamLanguageModelCall,
+  type LanguageModelStreamPart as Experimental_LanguageModelStreamPart,
+} from './stream-language-model-call';
 export {
   streamText,
   type StreamTextOnChunkCallback,

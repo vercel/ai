@@ -3173,4 +3173,45 @@ describe('XaiResponsesLanguageModel', () => {
       });
     });
   });
+
+  describe('error event handling', () => {
+    it('should emit error chunk for server error events', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'error',
+          code: null,
+          message:
+            'Service temporarily unavailable. The model did not respond to this request.',
+          param: null,
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          type: 'error',
+          code: null,
+          message:
+            'Service temporarily unavailable. The model did not respond to this request.',
+          param: null,
+        },
+      });
+    });
+  });
 });
