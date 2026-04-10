@@ -2687,6 +2687,25 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass AUDIO responseModalities in provider options', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          responseModalities: ['TEXT', 'AUDIO'],
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        responseModalities: ['TEXT', 'AUDIO'],
+      },
+    });
+  });
+
   it('should pass mediaResolution in provider options', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -2878,6 +2897,55 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  it('should include audio inlineData parts', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'Here is audio:' },
+                {
+                  inlineData: {
+                    mimeType: 'audio/wav',
+                    data: 'audiodata',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+      },
+    };
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "Here is audio:",
+          "type": "text",
+        },
+        {
+          "data": "audiodata",
+          "mediaType": "audio/wav",
+          "providerMetadata": undefined,
+          "type": "file",
+        },
+      ]
+    `);
+  });
+
   it('should correctly parse and separate reasoning parts from text output', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -5846,6 +5914,30 @@ describe('doStream', () => {
       ],
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+  });
+
+  it('should only pass valid provider options with AUDIO responseModalities', async () => {
+    prepareChunksFixtureResponse('google-text');
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        google: { foo: 'bar', responseModalities: ['TEXT', 'AUDIO'] },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: 'Hello' }],
+        },
+      ],
+      generationConfig: {
+        responseModalities: ['TEXT', 'AUDIO'],
       },
     });
   });

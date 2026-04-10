@@ -48,7 +48,9 @@ export type GoogleGenerativeAIModelId =
 export const googleLanguageModelOptions = lazySchema(() =>
   zodSchema(
     z.object({
-      responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),
+      responseModalities: z
+        .array(z.enum(['TEXT', 'IMAGE', 'AUDIO']))
+        .optional(),
 
       thinkingConfig: z
         .object({
