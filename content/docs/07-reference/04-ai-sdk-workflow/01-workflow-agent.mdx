@@ -607,11 +607,9 @@ console.log(result.steps);
 
 ### Agent in a Workflow with Durable Tools
 
-```ts filename="app/api/chat/workflow.ts"
-'use workflow';
-
-import { WorkflowAgent } from '@ai-sdk/workflow';
-import { tool } from 'ai';
+```ts filename="workflow/agent-chat.ts"
+import { WorkflowAgent, type ModelCallStreamPart } from '@ai-sdk/workflow';
+import { convertToModelMessages, tool, type UIMessage } from 'ai';
 import { getWritable } from 'workflow';
 import { z } from 'zod';
 
@@ -626,39 +624,45 @@ async function searchFlightsStep(input: {
   return response.json();
 }
 
-const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
-  instructions: 'You are a flight booking assistant.',
-  tools: {
-    searchFlights: tool({
-      description: 'Search for available flights',
-      inputSchema: z.object({
-        origin: z.string(),
-        destination: z.string(),
-      }),
-      execute: searchFlightsStep,
-    }),
-  },
-});
+export async function chat(messages: UIMessage[]) {
+  'use workflow';
 
-export default async function flightWorkflow(messages: any[]) {
-  return await agent.stream({
-    messages,
-    writable: getWritable(),
+  const modelMessages = await convertToModelMessages(messages);
+
+  const agent = new WorkflowAgent({
+    model: 'anthropic/claude-sonnet-4-6',
+    instructions: 'You are a flight booking assistant.',
+    tools: {
+      searchFlights: tool({
+        description: 'Search for available flights',
+        inputSchema: z.object({
+          origin: z.string(),
+          destination: z.string(),
+        }),
+        execute: searchFlightsStep,
+      }),
+    },
   });
+
+  const result = await agent.stream({
+    messages: modelMessages,
+    writable: getWritable<ModelCallStreamPart>(),
+  });
+
+  return { messages: result.messages };
 }
 ```
 
 ```ts filename="app/api/chat/route.ts"
-import { createUIMessageStreamResponse } from 'ai';
 import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
-import { start } from 'workflow';
-import flightWorkflow from './workflow';
+import { createUIMessageStreamResponse, type UIMessage } from 'ai';
+import { start } from 'workflow/api';
+import { chat } from '@/workflow/agent-chat';
 
 export async function POST(request: Request) {
-  const { messages } = await request.json();
+  const { messages }: { messages: UIMessage[] } = await request.json();
 
-  const run = await start(flightWorkflow, { input: messages });
+  const run = await start(chat, [messages]);
 
   return createUIMessageStreamResponse({
     stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
