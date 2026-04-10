@@ -5,6 +5,12 @@ import {
 } from '@ai-sdk/provider';
 import { isProviderReference } from '@ai-sdk/provider-utils';
 
+export type HuggingFaceResponsesFunctionCallOutput = {
+  type: 'function_call_output';
+  call_id: string;
+  output: string;
+};
+
 export async function convertToHuggingFaceResponsesMessages({
   prompt,
 }: {
@@ -103,7 +109,35 @@ export async function convertToHuggingFaceResponsesMessages({
       }
 
       case 'tool': {
-        warnings.push({ type: 'unsupported', feature: 'tool messages' });
+        for (const part of content) {
+          const output = part.output;
+
+          let contentValue: string;
+          switch (output.type) {
+            case 'text':
+            case 'error-text':
+              contentValue = output.value;
+              break;
+            case 'json':
+            case 'error-json':
+              contentValue = JSON.stringify(output.value);
+              break;
+            case 'execution-denied':
+              contentValue = output.reason ?? 'Tool execution denied.';
+              break;
+            case 'content':
+              contentValue = JSON.stringify(output.value);
+              break;
+          }
+
+          const functionCallOutput: HuggingFaceResponsesFunctionCallOutput = {
+            type: 'function_call_output',
+            call_id: part.toolCallId,
+            output: contentValue,
+          };
+
+          messages.push(functionCallOutput);
+        }
         break;
       }
 
