@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mergeListeners } from './merge-listeners';
 
 describe('mergeListeners', () => {
-  it('should await listeners in order and continue after errors', async () => {
+  it('should invoke listeners in parallel, wait for them to settle, and continue after errors', async () => {
     const calls: string[] = [];
 
     let resolveFirstListener!: () => void;
@@ -24,10 +24,27 @@ describe('mergeListeners', () => {
       event => {
         calls.push(`third: ${event.value}`);
       },
-    )!;
+    );
 
-    const mergedPromise = merged({ value: 'hello' });
+    let mergedResolved = false;
+    const mergedPromise = Promise.resolve(merged({ value: 'hello' })).then(
+      () => {
+        mergedResolved = true;
+      },
+    );
     calls.push('after call');
+
+    await Promise.resolve();
+
+    expect(mergedResolved).toBe(false);
+    expect(calls).toMatchInlineSnapshot(`
+      [
+        "first start: hello",
+        "second before throw",
+        "third: hello",
+        "after call",
+      ]
+    `);
 
     resolveFirstListener();
     await mergedPromise;
@@ -35,10 +52,34 @@ describe('mergeListeners', () => {
     expect(calls).toMatchInlineSnapshot(`
       [
         "first start: hello",
-        "after call",
-        "first end",
         "second before throw",
         "third: hello",
+        "after call",
+        "first end",
+      ]
+    `);
+  });
+
+  it('should ignore rejected listeners', async () => {
+    const calls: string[] = [];
+
+    const merged = mergeListeners<{ value: string }>(
+      async event => {
+        calls.push(`first before reject: ${event.value}`);
+        await Promise.resolve();
+        throw new Error('listener error');
+      },
+      event => {
+        calls.push(`second: ${event.value}`);
+      },
+    );
+
+    await expect(merged({ value: 'hello' })).resolves.toBeUndefined();
+
+    expect(calls).toMatchInlineSnapshot(`
+      [
+        "first before reject: hello",
+        "second: hello",
       ]
     `);
   });
@@ -52,7 +93,7 @@ describe('mergeListeners', () => {
         calls.push(event.value);
       },
       undefined,
-    )!;
+    );
 
     await merged({ value: 'hello' });
 
