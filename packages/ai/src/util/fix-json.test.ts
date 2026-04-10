@@ -175,6 +175,24 @@ describe('object', () => {
   test('should handle closing after empty object', () => {
     assert.strictEqual(fixJson('{"a": {"b": {}'), '{"a": {"b": {}}}');
   });
+
+  test('should handle escape sequences in object keys', () => {
+    assert.strictEqual(
+      fixJson('{"key\\"name": "value"}'),
+      '{"key\\"name": "value"}',
+    );
+  });
+
+  test('should handle backslash escape in object keys', () => {
+    assert.strictEqual(
+      fixJson('{"key\\\\name": "value"}'),
+      '{"key\\\\name": "value"}',
+    );
+  });
+
+  test('should handle incomplete object with escaped key', () => {
+    assert.strictEqual(fixJson('{"key\\"name": "val'), '{"key\\"name": "val"}');
+  });
 });
 
 describe('nesting', () => {
