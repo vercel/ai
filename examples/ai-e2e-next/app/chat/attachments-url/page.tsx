@@ -47,7 +47,7 @@ export default function Page() {
       </div>
 
       <form
-        onSubmit={() => {
+        onSubmit={event => {
           if (isUploading) {
             alert('Please wait for the files to finish uploading.');
             return;

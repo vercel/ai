@@ -12,7 +12,7 @@ run(async () => {
         inputSchema: z.object({
           location: z.string().describe('The location to get the weather for'),
         }),
-        execute: async (): Promise<{ temperature: number }> => {
+        execute: async ({ location }): Promise<{ temperature: number }> => {
           throw new Error('could not get weather');
         },
       }),

@@ -11,6 +11,12 @@
       "rules": {
         "no-redeclare": "off"
       }
+    },
+    {
+      "files": ["examples/**"],
+      "rules": {
+        "no-unused-vars": "off"
+      }
     }
   ],
   "rules": {

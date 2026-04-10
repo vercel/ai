@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   MCPElicitationUIMessage,
   ElicitationAction,
+  ElicitationDataTypes,
 } from '@/app/api/chat/mcp-elicitation/types';
 import { isDataUIPart } from 'ai';
 
@@ -87,7 +88,7 @@ export default function MCPElicitationChat() {
 
     // Immediately close modal and clear state to prevent double-submission
     setShowModal(false);
-    const _elicitationToRespond = currentElicitation;
+    const elicitationToRespond = currentElicitation;
     const dataToSend = action === 'accept' ? { ...formData } : undefined;
     setCurrentElicitation(null);
     setFormData({});

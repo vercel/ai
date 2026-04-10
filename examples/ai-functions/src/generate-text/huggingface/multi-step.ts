@@ -37,7 +37,7 @@ run(async () => {
           weather: z.string(),
           temperature: z.number(),
         }),
-        execute: async ({ location, weather }) => {
+        execute: async ({ location, weather, temperature }) => {
           const activities = {
             sunny: ['visit a park', 'go for a walk', 'outdoor dining'],
             cloudy: ['visit a museum', 'go shopping', 'indoor activities'],

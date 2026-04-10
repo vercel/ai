@@ -159,13 +159,8 @@ app.get('/authorize', (req, res) => {
 
 // Token endpoint
 app.post('/token', express.urlencoded({ extended: true }), (req, res) => {
-  const {
-    grant_type,
-    code,
-    code_verifier: _code_verifier,
-    refresh_token: _refresh_token,
-    client_id: _client_id,
-  } = req.body;
+  const { grant_type, code, code_verifier, refresh_token, client_id } =
+    req.body;
 
   if (grant_type === 'authorization_code') {
     // Verify PKCE

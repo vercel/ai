@@ -2,6 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { readFileSync } from 'fs';
 import { run } from '../../lib/run';
+import { saveRawChunks } from '../../lib/save-raw-chunks';
 
 const skillZip = readFileSync('data/island-rescue-skill.zip').toString(
   'base64',

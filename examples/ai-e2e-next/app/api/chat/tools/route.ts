@@ -17,11 +17,11 @@ export const maxDuration = 30;
 const getWeatherInformationTool = tool({
   description: 'show the weather in a given city to the user',
   inputSchema: z.object({ city: z.string() }),
-  async *execute({ city: _city }: { city: string }, { messages }) {
+  async *execute({ city }: { city: string }, { messages }) {
     yield { state: 'loading' as const };
 
     // count the number of assistant messages. throw error if 2 or less
-    const _assistantMessageCount = messages.filter(
+    const assistantMessageCount = messages.filter(
       message => message.role === 'assistant',
     ).length;
 

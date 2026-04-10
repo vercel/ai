@@ -32,7 +32,7 @@ myUIMessage.parts.forEach(part => {
 export const serverWeatherTool = tool({
   description: 'Get the weather in a location',
   inputSchema: z.object({ location: z.string() }),
-  execute() {
+  execute({ location }: { location: string }) {
     return {
       condition: 'sunny',
       temperature: 72,

@@ -6,7 +6,7 @@ run(async () => {
   const result = streamText({
     model: openai('gpt-4o'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    onFinish({ usage, finishReason, text }) {
+    onFinish({ usage, finishReason, text, toolCalls, toolResults, response }) {
       console.log();
       console.log('onFinish');
       console.log('Token usage:', usage);

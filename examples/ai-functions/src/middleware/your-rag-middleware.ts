@@ -14,7 +14,7 @@ export const yourRagMiddleware: LanguageModelMiddleware = {
 
     const instruction =
       'Use the following information to answer the question:\n' +
-      findSources()
+      findSources({ text: lastUserMessageText })
         .map(chunk => JSON.stringify(chunk))
         .join('\n');
 
@@ -23,7 +23,7 @@ export const yourRagMiddleware: LanguageModelMiddleware = {
 };
 
 // example, could implement anything here:
-function findSources(): Array<{
+function findSources({ text }: { text: string }): Array<{
   title: string;
   previewText: string | undefined;
   url: string | undefined;

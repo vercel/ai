@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
 import { ipAddress } from '@vercel/functions';
 
 // You can get this endpoint name from the application details on the Kasada Portal.
@@ -140,7 +140,10 @@ function addKasadaCORSHeaders(response: Response): void {
   response.headers.append('access-control-allow-headers', kasadaHeaders);
 }
 
-export async function kasadaHandler(request: NextRequest): Promise<Response> {
+export async function kasadaHandler(
+  request: NextRequest,
+  ev: NextFetchEvent,
+): Promise<Response> {
   // If the request is an OPTIONS request we don't send it to Kasada
   // but we do add the necessary CORS headers.
   if (request.method === 'OPTIONS') {

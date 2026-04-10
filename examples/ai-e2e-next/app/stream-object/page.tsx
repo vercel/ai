@@ -39,7 +39,7 @@ function NotificationsView({
 }: {
   notificationStream: StreamableValue<PartialNotification>;
 }) {
-  const [data, _pending, _error] = useStreamableValue(notificationStream);
+  const [data, pending, error] = useStreamableValue(notificationStream);
 
   return (
     <div className="flex flex-col gap-4 mt-4">

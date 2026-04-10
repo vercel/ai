@@ -20,7 +20,7 @@ run(async () => {
           try {
             const result = eval(expression);
             return { expression, result };
-          } catch {
+          } catch (error) {
             return { expression, error: 'Invalid expression' };
           }
         },

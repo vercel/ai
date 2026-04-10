@@ -123,7 +123,7 @@ const toolTests = (model: LanguageModelV4) => {
           computer: vertexAnthropic.tools.computer_20241022({
             displayWidthPx: 1024,
             displayHeightPx: 768,
-            async execute({ action }) {
+            async execute({ action, coordinate, text }) {
               switch (action) {
                 case 'screenshot': {
                   return {
@@ -209,7 +209,7 @@ README.md     build         data          node_modules  package.json  src       
         model,
         tools: {
           str_replace_editor: vertexAnthropic.tools.textEditor_20250124({
-            async execute({ command, old_str, new_str, insert_text }) {
+            async execute({ command, path, old_str, new_str, insert_text }) {
               switch (command) {
                 case 'view': {
                   return editorContent;

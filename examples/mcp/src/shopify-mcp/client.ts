@@ -5,7 +5,7 @@ import 'dotenv/config';
 import { createMCPClient, MCPClient } from '@ai-sdk/mcp';
 
 async function main() {
-  const _transport = new StreamableHTTPClientTransport(
+  const transport = new StreamableHTTPClientTransport(
     new URL('https://cowboy.com/api/mcp'),
   );
 

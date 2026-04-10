@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 const messages: ModelMessage[] = [];
 
 run(async () => {
-  let _toolResponseAvailable = false;
+  let toolResponseAvailable = false;
 
   const result = streamText({
     model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
@@ -72,6 +72,6 @@ run(async () => {
     messages.push({ role: 'tool', content: toolResponses });
   }
 
-  _toolResponseAvailable = toolCalls.length > 0;
+  toolResponseAvailable = toolCalls.length > 0;
   console.log('Messages:', messages[0].content);
 });

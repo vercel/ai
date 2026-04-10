@@ -1,12 +1,12 @@
-import type { NextRequest } from 'next/server';
+import type { NextFetchEvent, NextRequest } from 'next/server';
 import { kasadaHandler } from './kasada/kasada-server';
 
-export async function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest, ev: NextFetchEvent) {
   if (req.method === 'POST') {
     if (process.env.NODE_ENV === 'development') {
       return undefined;
     }
-    return kasadaHandler(req);
+    return kasadaHandler(req, ev);
   }
 }
 

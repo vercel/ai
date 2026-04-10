@@ -42,7 +42,7 @@ export default function Page() {
       {messages.length === 0 && <Card type="chat-attachments" />}
 
       <form
-        onSubmit={() => {
+        onSubmit={event => {
           sendMessage({ text: input, files });
           setInput('');
           setFiles(undefined);

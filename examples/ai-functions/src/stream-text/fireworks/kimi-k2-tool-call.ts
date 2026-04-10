@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 const messages: ModelMessage[] = [];
 
 run(async () => {
-  let _toolResponseAvailable = false;
+  let toolResponseAvailable = false;
 
   const result = streamText({
     model: fireworks('accounts/fireworks/models/kimi-k2-instruct'),
@@ -52,7 +52,7 @@ run(async () => {
         process.stdout.write(
           `\nTool response: '${delta.toolName}' ${JSON.stringify(delta.output)}`,
         );
-        _toolResponseAvailable = true;
+        toolResponseAvailable = true;
         break;
       }
 
@@ -72,7 +72,7 @@ run(async () => {
     messages.push({ role: 'tool', content: toolResponses });
   }
 
-  _toolResponseAvailable = toolCalls.length > 0;
+  toolResponseAvailable = toolCalls.length > 0;
   console.log('Messages:', messages[0].content);
 
   console.log();

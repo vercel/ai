@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 export default function Page() {
-  const [_generation, setGeneration] = useState('');
+  const [generation, setGeneration] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   return (

@@ -26,14 +26,14 @@ run(async () => {
     stopWhen: isStepCount(2),
   });
 
-  let _fullResponse = '';
+  let fullResponse = '';
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
   for await (const delta of result.fullStream) {
     switch (delta.type) {
       case 'text-delta': {
-        _fullResponse += delta.text;
+        fullResponse += delta.text;
         process.stdout.write(delta.text);
         break;
       }

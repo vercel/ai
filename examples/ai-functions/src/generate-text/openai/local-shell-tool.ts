@@ -3,7 +3,7 @@ import { generateText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const _result = await generateText({
+  const result = await generateText({
     model: openai.responses('gpt-5-codex'),
     tools: {
       local_shell: openai.tools.localShell({

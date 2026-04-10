@@ -138,9 +138,9 @@ async function testStream(abortSignal?: AbortSignal) {
 
     (async () => {
       try {
-        let _text = '';
+        let text = '';
         for await (const chunk of result.textStream) {
-          _text += chunk;
+          text += chunk;
         }
 
         const hasApiKey = !!process.env.AI_GATEWAY_API_KEY;

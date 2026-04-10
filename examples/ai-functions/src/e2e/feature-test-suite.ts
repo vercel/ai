@@ -162,7 +162,7 @@ export function createFeatureTestSuite({
   return () => {
     const errorValidator =
       customAssertions.errorValidator ||
-      (() => {
+      ((error: APICallError) => {
         throw new Error('errorValidator not implemented');
       });
 
@@ -724,7 +724,7 @@ export function createFeatureTestSuite({
                           .string()
                           .describe('The city to check temperature for'),
                       }),
-                      execute: async () => {
+                      execute: async ({ city }) => {
                         weatherCalls++;
                         return `${sfTemp}`;
                       },

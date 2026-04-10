@@ -1,6 +1,6 @@
 import { createUIMessageStreamResponse, simulateReadableStream } from 'ai';
 
-export async function POST() {
+export async function POST(req: Request) {
   return createUIMessageStreamResponse({
     stream: simulateReadableStream({
       initialDelayInMs: 0, // Delay before the first chunk
