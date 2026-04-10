@@ -490,7 +490,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     let usage: LanguageModelV4Usage | undefined = undefined;
     let isFirstChunk = true;
-    const contentBlocks: Record<string, { type: 'text' }> = {};
+    const contentBlocks: Record<string, { type: 'text'; fromDelta: boolean }> =
+      {};
     const seenToolCalls = new Set<string>();
 
     // Track ongoing function calls by output_index so we can stream
@@ -617,12 +618,14 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               const blockId = `text-${event.item_id}`;
 
               if (contentBlocks[blockId] == null) {
-                contentBlocks[blockId] = { type: 'text' };
+                contentBlocks[blockId] = { type: 'text', fromDelta: false };
                 controller.enqueue({
                   type: 'text-start',
                   id: blockId,
                 });
               }
+
+              contentBlocks[blockId].fromDelta = true;
 
               controller.enqueue({
                 type: 'text-delta',
@@ -934,14 +937,24 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                   if (contentPart.text && contentPart.text.length > 0) {
                     const blockId = `text-${part.id}`;
 
-                    // Only emit text if we haven't already streamed it via output_text.delta events
                     if (contentBlocks[blockId] == null) {
-                      contentBlocks[blockId] = { type: 'text' };
+                      contentBlocks[blockId] = {
+                        type: 'text',
+                        fromDelta: false,
+                      };
                       controller.enqueue({
                         type: 'text-start',
                         id: blockId,
                       });
+                    }
 
+                    // Emit text-delta only from output_item.done and only when
+                    // no output_text.delta events have already streamed the text
+                    // for this block (to avoid emitting duplicate text).
+                    if (
+                      event.type === 'response.output_item.done' &&
+                      !contentBlocks[blockId].fromDelta
+                    ) {
                       controller.enqueue({
                         type: 'text-delta',
                         id: blockId,

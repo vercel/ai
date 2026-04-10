@@ -2031,6 +2031,88 @@ describe('XaiResponsesLanguageModel', () => {
         const fullTextDelta = textDeltas.find(d => d.delta === 'Hello world');
         expect(fullTextDelta).toBeUndefined();
       });
+
+      it('should emit text from response.output_item.done when no streaming deltas were received', async () => {
+        // Regression test for: doStream drops final text fragments when content
+        // block already exists but no output_text.delta events were sent.
+        // output_item.added creates the block; output_item.done must still emit
+        // the final text.
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              created_at: 1700000000,
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          // Message item added with initial text - creates the content block
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'in_progress',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'partial text',
+                  annotations: [],
+                },
+              ],
+            },
+            output_index: 0,
+          }),
+          // No output_text.delta events - all text arrives via output_item.done
+          // Message item done with the full final text (including the END_OK marker)
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'full text with END_OK_9981',
+                  annotations: [],
+                },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const textDeltas = parts.filter(part => part.type === 'text-delta');
+
+        // Should emit exactly one text-delta from output_item.done
+        expect(textDeltas).toHaveLength(1);
+        expect(textDeltas[0].delta).toBe('full text with END_OK_9981');
+
+        // The END_OK marker must not be dropped
+        expect(textDeltas[0].delta).toContain('END_OK_9981');
+      });
     });
 
     describe('tool call streaming', () => {
