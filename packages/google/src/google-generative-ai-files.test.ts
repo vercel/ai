@@ -31,7 +31,7 @@ function createMockFiles({
 } = {}) {
   let pollIndex = 0;
 
-  const fetchFn = vi.fn(async (url: string | URL) => {
+  const fetchFn = vi.fn(async (url: string | URL, init?: RequestInit) => {
     const urlString = url.toString();
     onRequest?.(urlString, init);
 

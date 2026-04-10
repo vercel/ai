@@ -37,7 +37,6 @@ export class GatewayAuthenticationError extends GatewayError {
   static createContextualError({
     apiKeyProvided,
     oidcTokenProvided,
-    _message = 'Authentication failed',
     statusCode = 401,
     cause,
     generationId,
