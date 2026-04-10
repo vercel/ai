@@ -38,7 +38,9 @@ export class BedrockImageModel implements ImageModelV4 {
   }
 
   private getUrl(modelId: string): string {
-    const encodedModelId = encodeURIComponent(modelId);
+    const encodedModelId = modelId.startsWith('arn:')
+      ? modelId
+      : encodeURIComponent(modelId);
     return `${this.config.baseUrl()}/model/${encodedModelId}/invoke`;
   }
 
