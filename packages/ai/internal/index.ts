@@ -11,4 +11,4 @@ export { prepareRetries } from '../src/util/prepare-retries';
 export { asLanguageModelUsage } from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
-export { mergeCallbacks } from '../src/agent/merge-callbacks';
+export { mergeListeners } from '../src/util/merge-listeners';

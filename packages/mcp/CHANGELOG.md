@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.0-beta.23
+
+### Patch Changes
+
+- a98bf66: feat(mcp): surface 'serverInfo' exposed from the MCP server
+
 ## 2.0.0-beta.22
 
 ### Patch Changes

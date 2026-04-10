@@ -28,7 +28,7 @@ import {
 import {
   convertToLanguageModelPrompt,
   mergeAbortSignals,
-  mergeCallbacks,
+  mergeListeners,
   standardizePrompt,
 } from 'ai/internal';
 import { recordSpan } from './telemetry.js';
@@ -1212,31 +1212,31 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     };
 
     // Merge constructor + stream callbacks (constructor first, then stream)
-    const mergedOnStepFinish = mergeCallbacks(
+    const mergedOnStepFinish = mergeListeners(
       this.constructorOnStepFinish as
         | StreamTextOnStepFinishCallback<TTools, any>
         | undefined,
       options.onStepFinish,
     );
-    const mergedOnFinish = mergeCallbacks(
+    const mergedOnFinish = mergeListeners(
       this.constructorOnFinish as
         | StreamTextOnFinishCallback<TTools, OUTPUT>
         | undefined,
       options.onFinish,
     );
-    const mergedOnStart = mergeCallbacks(
+    const mergedOnStart = mergeListeners(
       this.constructorOnStart,
       options.experimental_onStart,
     );
-    const mergedOnStepStart = mergeCallbacks(
+    const mergedOnStepStart = mergeListeners(
       this.constructorOnStepStart,
       options.experimental_onStepStart,
     );
-    const mergedOnToolCallStart = mergeCallbacks(
+    const mergedOnToolCallStart = mergeListeners(
       this.constructorOnToolCallStart,
       options.experimental_onToolCallStart,
     );
-    const mergedOnToolCallFinish = mergeCallbacks(
+    const mergedOnToolCallFinish = mergeListeners(
       this.constructorOnToolCallFinish,
       options.experimental_onToolCallFinish,
     );

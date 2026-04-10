@@ -3,12 +3,12 @@ import {
   LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import {
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
-  ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError } from '../error';
@@ -47,7 +47,7 @@ import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
-import { notify } from '../util/notify';
+import { Listener, notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -85,7 +85,6 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -118,9 +117,7 @@ export type GenerateTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
-> = (
-  event: OnStartEvent<TOOLS, CONTEXT, OUTPUT, GenerateTextIncludeSettings>,
-) => PromiseLike<void> | void;
+> = Listener<OnStartEvent<TOOLS, CONTEXT, OUTPUT, GenerateTextIncludeSettings>>;
 
 /**
  * Callback that is set using the `experimental_onStepStart` option.
@@ -135,9 +132,9 @@ export type GenerateTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
   OUTPUT extends Output = Output,
-> = (
-  event: OnStepStartEvent<TOOLS, CONTEXT, OUTPUT, GenerateTextIncludeSettings>,
-) => PromiseLike<void> | void;
+> = Listener<
+  OnStepStartEvent<TOOLS, CONTEXT, OUTPUT, GenerateTextIncludeSettings>
+>;
 
 /**
  * Callback that is set using the `experimental_onToolCallStart` option.
@@ -149,7 +146,7 @@ export type GenerateTextOnStepStartCallback<
  */
 export type GenerateTextOnToolCallStartCallback<
   TOOLS extends ToolSet = ToolSet,
-> = (event: OnToolCallStartEvent<TOOLS>) => PromiseLike<void> | void;
+> = Listener<OnToolCallStartEvent<TOOLS>>;
 
 /**
  * Callback that is set using the `experimental_onToolCallFinish` option.
@@ -165,7 +162,7 @@ export type GenerateTextOnToolCallStartCallback<
  */
 export type GenerateTextOnToolCallFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-> = (event: OnToolCallFinishEvent<TOOLS>) => PromiseLike<void> | void;
+> = Listener<OnToolCallFinishEvent<TOOLS>>;
 
 /**
  * Callback that is set using the `onStepFinish` option.
@@ -178,7 +175,7 @@ export type GenerateTextOnToolCallFinishCallback<
 export type GenerateTextOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
-> = (event: OnStepFinishEvent<TOOLS, CONTEXT>) => Promise<void> | void;
+> = Listener<OnStepFinishEvent<TOOLS, CONTEXT>>;
 
 /**
  * Callback that is set using the `onFinish` option.
@@ -192,7 +189,7 @@ export type GenerateTextOnStepFinishCallback<
 export type GenerateTextOnFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
-> = (event: OnFinishEvent<TOOLS, CONTEXT>) => PromiseLike<void> | void;
+> = Listener<OnFinishEvent<TOOLS, CONTEXT>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -646,28 +643,6 @@ export async function generateText<
       responseMessages.push({
         role: 'tool',
         content: toolContent,
-      });
-    }
-
-    // Forward provider-executed approval responses to the provider
-    const providerExecutedToolApprovals = [
-      ...approvedToolApprovals,
-      ...deniedToolApprovals,
-    ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
-
-    if (providerExecutedToolApprovals.length > 0) {
-      responseMessages.push({
-        role: 'tool',
-        content: providerExecutedToolApprovals.map(
-          toolApproval =>
-            ({
-              type: 'tool-approval-response',
-              approvalId: toolApproval.approvalResponse.approvalId,
-              approved: toolApproval.approvalResponse.approved,
-              reason: toolApproval.approvalResponse.reason,
-              providerExecuted: true,
-            }) satisfies ToolApprovalResponse,
-        ),
       });
     }
 

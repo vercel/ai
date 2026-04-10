@@ -5,10 +5,10 @@ import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import type { GenerationContext } from '../generate-text/generation-context';
+import { mergeListeners } from '../util/merge-listeners';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
-import { mergeCallbacks } from './merge-callbacks';
 import {
   ToolLoopAgentOnStartCallback,
   ToolLoopAgentOnStepStartCallback,
@@ -139,28 +139,28 @@ export class ToolLoopAgent<
       ...(await this.prepareCall(options)),
       abortSignal,
       timeout,
-      experimental_onStart: mergeCallbacks(
+      experimental_onStart: mergeListeners(
         this.settings.experimental_onStart,
         experimental_onStart as
           | ToolLoopAgentOnStartCallback<TOOLS, CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onStepStart: mergeCallbacks(
+      experimental_onStepStart: mergeListeners(
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
           | ToolLoopAgentOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onToolCallStart: mergeCallbacks(
+      experimental_onToolCallStart: mergeListeners(
         this.settings.experimental_onToolCallStart,
         experimental_onToolCallStart,
       ),
-      experimental_onToolCallFinish: mergeCallbacks(
+      experimental_onToolCallFinish: mergeListeners(
         this.settings.experimental_onToolCallFinish,
         experimental_onToolCallFinish,
       ),
-      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
-      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
+      onStepFinish: mergeListeners(this.settings.onStepFinish, onStepFinish),
+      onFinish: mergeListeners(this.settings.onFinish, onFinish),
     });
   }
 
@@ -186,28 +186,28 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       experimental_transform,
-      experimental_onStart: mergeCallbacks(
+      experimental_onStart: mergeListeners(
         this.settings.experimental_onStart,
         experimental_onStart as
           | ToolLoopAgentOnStartCallback<TOOLS, CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onStepStart: mergeCallbacks(
+      experimental_onStepStart: mergeListeners(
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
           | ToolLoopAgentOnStepStartCallback<TOOLS, CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onToolCallStart: mergeCallbacks(
+      experimental_onToolCallStart: mergeListeners(
         this.settings.experimental_onToolCallStart,
         experimental_onToolCallStart,
       ),
-      experimental_onToolCallFinish: mergeCallbacks(
+      experimental_onToolCallFinish: mergeListeners(
         this.settings.experimental_onToolCallFinish,
         experimental_onToolCallFinish,
       ),
-      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
-      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
+      onStepFinish: mergeListeners(this.settings.onStepFinish, onStepFinish),
+      onFinish: mergeListeners(this.settings.onFinish, onFinish),
     });
   }
 }

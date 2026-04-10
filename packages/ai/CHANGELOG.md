@@ -1,5 +1,19 @@
 # ai
 
+## 7.0.0-beta.79
+
+### Patch Changes
+
+- 6866afe: fix(ai): fix `lastAssistantMessageIsCompleteWithApprovalResponses` to no longer ignore `providerExecuted` tool approvals
+
+## 7.0.0-beta.78
+
+### Patch Changes
+
+- f372547: fix(ai): fix `providerExecuted` tool approvals being passed to language model twice
+- Updated dependencies [7943a4b]
+  - @ai-sdk/gateway@4.0.0-beta.44
+
 ## 7.0.0-beta.77
 
 ### Patch Changes
