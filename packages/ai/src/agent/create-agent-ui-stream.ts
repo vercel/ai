@@ -1,7 +1,6 @@
 import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
-import type { GenerationContext } from '../generate-text/generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
@@ -27,7 +26,7 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
 export async function createAgentUIStream<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
 >({
@@ -40,7 +39,7 @@ export async function createAgentUIStream<
   onStepFinish,
   ...uiMessageStreamOptions
 }: {
-  agent: Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>;
+  agent: Agent<CALL_OPTIONS, TOOLS, USER_CONTEXT, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
