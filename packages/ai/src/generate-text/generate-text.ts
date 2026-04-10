@@ -1356,8 +1356,6 @@ function asContent<TOOLS extends ToolSet>({
           break;
         }
 
-        const dynamic = 'dynamic' in toolCall ? toolCall.dynamic : undefined;
-
         if (part.isError) {
           contentParts.push({
             type: 'tool-error' as const,
@@ -1366,7 +1364,7 @@ function asContent<TOOLS extends ToolSet>({
             input: toolCall.input,
             error: part.result,
             providerExecuted: true,
-            ...(dynamic != null ? { dynamic } : {}),
+            dynamic: toolCall.dynamic,
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
               : {}),
@@ -1379,7 +1377,7 @@ function asContent<TOOLS extends ToolSet>({
             input: toolCall.input,
             output: part.result,
             providerExecuted: true,
-            ...(dynamic != null ? { dynamic } : {}),
+            dynamic: toolCall.dynamic,
             ...(part.providerMetadata != null
               ? { providerMetadata: part.providerMetadata }
               : {}),
