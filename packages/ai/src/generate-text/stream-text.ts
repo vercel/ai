@@ -1732,10 +1732,6 @@ class DefaultStreamTextResult<
                       warnings: warnings ?? [],
                     });
 
-                    // TODO considering changing to onStreamPart listener
-                    // which receives all stream parts as they are
-                    // (and add necessary information to the stream parts
-                    // where needed)
                     void globalTelemetry.onChunk?.({
                       chunk: {
                         type: 'ai.stream.firstChunk',
@@ -1872,6 +1868,19 @@ class DefaultStreamTextResult<
                       const exhaustiveCheck: never = chunkType;
                       throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
                     }
+                  }
+
+                  if (
+                    chunkType === 'text-delta' ||
+                    chunkType === 'reasoning-delta' ||
+                    chunkType === 'source' ||
+                    chunkType === 'tool-call' ||
+                    chunkType === 'tool-input-start' ||
+                    chunkType === 'tool-input-delta' ||
+                    chunkType === 'tool-result' ||
+                    chunkType === 'raw'
+                  ) {
+                    void globalTelemetry.onChunk?.({ chunk });
                   }
                 },
 
