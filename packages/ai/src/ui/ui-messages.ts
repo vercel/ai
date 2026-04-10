@@ -264,6 +264,26 @@ export function isDataUIPart<DATA_TYPES extends UIDataTypes>(
 }
 
 /**
+ * The possible states of a tool call invocation.
+ *
+ * - `input-streaming`: The tool call input is still being streamed.
+ * - `input-available`: The tool call input is fully available.
+ * - `approval-requested`: The tool call requires user approval before execution.
+ * - `approval-responded`: The user has responded to the approval request.
+ * - `output-available`: The tool call has completed and output is available.
+ * - `output-error`: The tool call has completed with an error.
+ * - `output-denied`: The tool call was denied by the user.
+ */
+export type ToolCallState =
+  | 'input-streaming'
+  | 'input-available'
+  | 'approval-requested'
+  | 'approval-responded'
+  | 'output-available'
+  | 'output-error'
+  | 'output-denied';
+
+/**
  * A UI tool invocation contains all the information needed to render a tool invocation in the UI.
  * It can be derived from a tool without knowing the tool name, and can be used to define
  * UI components for the tool.
