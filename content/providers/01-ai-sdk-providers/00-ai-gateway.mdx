@@ -159,7 +159,7 @@ You can connect your own provider credentials to use with Vercel AI Gateway. Thi
 
 To set up BYOK, add your provider credentials in your Vercel team's AI Gateway settings. Once configured, AI Gateway automatically uses your credentials. No code changes are needed.
 
-For providers like Azure where deployment names may differ from AI Gateway model slugs, you can configure model mappings to map gateway model slugs to your custom deployment names. See [model mappings](https://vercel.com/docs/ai-gateway/byok#model-mappings) for details.
+For providers like Azure where you use custom deployment names, you can configure model mappings to map gateway model slugs to your deployment names. See [model mappings](https://vercel.com/docs/ai-gateway/byok#model-mappings) for details.
 
 Learn more in the [BYOK documentation](https://vercel.com/docs/ai-gateway/byok).
 
@@ -804,7 +804,7 @@ The following gateway provider options are available:
 
   Each provider can have multiple credentials (tried in order). The structure is a record where keys are provider slugs and values are arrays of credential objects.
 
-  Each credential can optionally include a `modelMappings` array to map AI Gateway model slugs to custom deployment names (for example, Azure deployments with non-default names). If a BYOK request fails, the gateway falls back to system credentials using the default model name.
+  Each credential can optionally include a `modelMappings` array to map AI Gateway model slugs to your deployment names (for example, custom Azure deployment names). If a BYOK request fails, the gateway falls back to system credentials using the default model name.
 
   Examples:
 
