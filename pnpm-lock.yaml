@@ -93,7 +93,7 @@ importers:
         specifier: 4.0.0-beta.20
         version: link:../../packages/groq
       '@ai-sdk/mcp':
-        specifier: 2.0.0-beta.22
+        specifier: 2.0.0-beta.23
         version: link:../../packages/mcp
       '@ai-sdk/mistral':
         specifier: 4.0.0-beta.19
