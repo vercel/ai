@@ -117,6 +117,7 @@ import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import type { GenerationContext } from './generation-context';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import { buildEffectiveTools } from './load-tool-schema';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -869,6 +870,9 @@ class DefaultStreamTextResult<
   }) {
     this.outputSpecification = output;
     this.includeRawChunks = includeRawChunks;
+
+    const effectiveTools = buildEffectiveTools(tools);
+    tools = effectiveTools ?? tools;
     this.tools = tools;
 
     const createGlobalTelemetry = getGlobalTelemetryIntegration<

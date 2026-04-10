@@ -85,6 +85,7 @@ import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import { buildEffectiveTools } from './load-tool-schema';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -469,6 +470,9 @@ export async function generateText<
     };
   }): Promise<GenerateTextResult<TOOLS, CONTEXT, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
+
+  const effectiveTools = buildEffectiveTools(tools);
+
   const createGlobalTelemetry = getGlobalTelemetryIntegration<any, OUTPUT>();
   const stopConditions = asArray(stopWhen);
 
@@ -568,7 +572,7 @@ export async function generateText<
         toolCalls: localApprovedToolApprovals.map(
           toolApproval => toolApproval.toolCall,
         ),
-        tools: tools as TOOLS,
+        tools: effectiveTools as TOOLS,
         telemetry,
         callId,
         messages: initialMessages,
@@ -608,7 +612,7 @@ export async function generateText<
         const modelOutput = await createToolModelOutput({
           toolCallId: output.toolCallId,
           input: output.input,
-          tool: tools?.[output.toolName],
+          tool: effectiveTools?.[output.toolName],
           output: output.type === 'tool-result' ? output.output : output.error,
           errorMode: output.type === 'tool-error' ? 'text' : 'none',
         });
@@ -697,7 +701,7 @@ export async function generateText<
         context = prepareStepResult?.context ?? context;
 
         const stepActiveTools = filterActiveTools({
-          tools,
+          tools: effectiveTools,
           activeTools: prepareStepResult?.activeTools ?? activeTools,
         });
 
@@ -787,7 +791,7 @@ export async function generateText<
             .map(toolCall =>
               parseToolCall({
                 toolCall,
-                tools,
+                tools: effectiveTools,
                 repairToolCall,
                 system,
                 messages: stepInputMessages,
@@ -805,7 +809,7 @@ export async function generateText<
             continue; // ignore invalid tool calls
           }
 
-          const tool = tools?.[toolCall.toolName];
+          const tool = effectiveTools?.[toolCall.toolName];
 
           if (tool == null) {
             // ignore tool calls for tools that are not available,
@@ -863,7 +867,7 @@ export async function generateText<
           toolCall => !toolCall.providerExecuted,
         );
 
-        if (tools != null) {
+        if (effectiveTools != null) {
           clientToolOutputs.push(
             ...(await executeTools({
               toolCalls: clientToolCalls.filter(
@@ -871,7 +875,7 @@ export async function generateText<
                   !toolCall.invalid &&
                   toolApprovalRequests[toolCall.toolCallId] == null,
               ),
-              tools,
+              tools: effectiveTools,
               telemetry,
               callId,
               messages: stepInputMessages,
@@ -912,7 +916,7 @@ export async function generateText<
         // the client tool's result is sent back.
         for (const toolCall of stepToolCalls) {
           if (!toolCall.providerExecuted) continue;
-          const tool = tools?.[toolCall.toolName];
+          const tool = effectiveTools?.[toolCall.toolName];
           if (tool?.type === 'provider' && tool.supportsDeferredResults) {
             // Check if this tool call already has a result in the current response
             const hasResultInResponse = currentModelResponse.content.some(
@@ -941,14 +945,14 @@ export async function generateText<
           toolCalls: stepToolCalls,
           toolOutputs: clientToolOutputs,
           toolApprovalRequests: Object.values(toolApprovalRequests),
-          tools,
+          tools: effectiveTools,
         });
 
         // append to messages for potential next step:
         responseMessages.push(
           ...(await toResponseMessages({
             content: stepContent,
-            tools,
+            tools: effectiveTools,
           })),
         );
 

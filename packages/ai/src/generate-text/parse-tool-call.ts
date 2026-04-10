@@ -152,10 +152,24 @@ async function doParseToolCall<TOOLS extends ToolSet>({
 
   // when the tool call has no arguments, we try passing an empty object to the schema
   // (many LLMs generate empty strings for tool calls with no arguments)
-  const parseResult =
+  let parseResult =
     toolCall.input.trim() === ''
       ? await safeValidateTypes({ value: {}, schema })
       : await safeParseJSON({ text: toolCall.input, schema });
+
+  // For lazy tools, the LLM may send strings for nested objects/arrays
+  // because it only sees a minimal schema. Try to repair by JSON.parsing
+  // string values that should be objects/arrays according to the real schema.
+  if (parseResult.success === false && tool.lazy) {
+    const rawParseResult = await safeParseJSON({ text: toolCall.input });
+    if (rawParseResult.success) {
+      const repaired = repairLazyToolInput(
+        rawParseResult.value as Record<string, unknown>,
+        (await schema.jsonSchema) as Record<string, unknown>,
+      );
+      parseResult = await safeValidateTypes({ value: repaired, schema });
+    }
+  }
 
   if (parseResult.success === false) {
     throw new InvalidToolInputError({
@@ -165,12 +179,15 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parsedInput: any = parseResult.value;
+
   return tool.type === 'dynamic'
     ? {
         type: 'tool-call',
         toolCallId: toolCall.toolCallId,
         toolName: toolCall.toolName,
-        input: parseResult.value,
+        input: parsedInput,
         providerExecuted: toolCall.providerExecuted,
         providerMetadata: toolCall.providerMetadata,
         dynamic: true,
@@ -180,9 +197,51 @@ async function doParseToolCall<TOOLS extends ToolSet>({
         type: 'tool-call',
         toolCallId: toolCall.toolCallId,
         toolName,
-        input: parseResult.value,
+        input: parsedInput,
         providerExecuted: toolCall.providerExecuted,
         providerMetadata: toolCall.providerMetadata,
         title: tool.title,
       };
+}
+
+/**
+ * Repairs lazy tool input by JSON.parsing string values that should be
+ * objects or arrays according to the JSON Schema. LLMs send strings for
+ * nested fields when the tool definition has a minimal schema.
+ */
+function repairLazyToolInput(
+  input: Record<string, unknown>,
+  jsonSchema: Record<string, unknown>,
+): Record<string, unknown> {
+  const properties = jsonSchema.properties as
+    | Record<string, Record<string, unknown>>
+    | undefined;
+
+  if (properties == null) {
+    return input;
+  }
+
+  const repaired = { ...input };
+
+  for (const [key, value] of Object.entries(repaired)) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+
+    const propSchema = properties[key];
+    if (propSchema == null) {
+      continue;
+    }
+
+    const expectedType = propSchema.type as string | undefined;
+    if (expectedType === 'object' || expectedType === 'array') {
+      try {
+        repaired[key] = JSON.parse(value);
+      } catch {
+        // keep original string if not valid JSON
+      }
+    }
+  }
+
+  return repaired;
 }

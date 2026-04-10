@@ -144,6 +144,20 @@ export type Tool<
   providerOptions?: ProviderOptions;
 
   /**
+   * When true, only the tool's name and description are sent to the LLM.
+   * The full inputSchema and details can be loaded on demand via
+   * the __load_tool_schema__ utility tool.
+   */
+  lazy?: boolean;
+
+  /**
+   * Extended documentation for the tool, loaded on demand when the LLM
+   * calls __load_tool_schema__. Only used when lazy is true.
+   * Use this for detailed usage instructions, examples, edge cases, etc.
+   */
+  skill?: string;
+
+  /**
    * The schema of the input that the tool expects.
    * The language model will use this to generate the input.
    * It is also used to validate the output of the language model.
