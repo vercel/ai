@@ -1,0 +1,177 @@
+---
+title: 'Dewey'
+description: 'Learn how to use the Dewey retrieval and research tools with the AI SDK.'
+---
+
+# Dewey
+
+[Dewey](https://meetdewey.com) is a managed document intelligence backend that handles
+the full RAG pipeline — PDF conversion, section extraction, chunking, embedding, and
+hybrid retrieval — behind a single REST API.
+
+The [`@meetdewey/vercel-ai`](https://github.com/meetdewey/vercel-ai-dewey) package
+provides two ready-to-use AI SDK `tool()` definitions that connect your application
+to a Dewey document collection:
+
+- **`deweyRetrievalTool`** — calls Dewey's hybrid semantic + BM25 search and returns
+  ranked chunks with citation metadata. The model decides when and how many times to
+  search.
+- **`deweyResearchTool`** — delegates a question to Dewey's agentic research endpoint.
+  Dewey runs a multi-step loop internally (searching, reading sections, synthesising)
+  and returns a cited answer and source list.
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @meetdewey/vercel-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @meetdewey/vercel-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @meetdewey/vercel-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @meetdewey/vercel-ai" dark />
+  </Tab>
+</Tabs>
+
+Get your API key from the [Dewey dashboard](https://app.meetdewey.com).
+
+## deweyRetrievalTool
+
+Use `deweyRetrievalTool` when you want the model to retrieve relevant passages on
+demand. The model receives ranked chunks as tool output and can call the tool multiple
+times with different queries.
+
+```ts
+import { streamText } from 'ai'
+import { anthropic } from '@ai-sdk/anthropic'
+import { deweyRetrievalTool } from '@meetdewey/vercel-ai'
+
+const result = streamText({
+  model: anthropic('claude-haiku-4-5-20251001'),
+  system:
+    'Answer questions using the search tool. Always cite your sources by filename and section.',
+  messages,
+  tools: {
+    search: deweyRetrievalTool({
+      apiKey: process.env.DEWEY_API_KEY!,
+      collectionId: process.env.DEWEY_COLLECTION_ID!,
+      limit: 8, // max chunks per call (1–50)
+    }),
+  },
+  maxSteps: 5,
+})
+```
+
+### Tool output
+
+Each result in the returned array contains:
+
+| Field          | Type     | Description                              |
+| -------------- | -------- | ---------------------------------------- |
+| `content`      | `string` | Chunk text                               |
+| `score`        | `number` | Relevance score from hybrid RRF ranking  |
+| `filename`     | `string` | Source document filename                 |
+| `sectionTitle` | `string` | Section heading                          |
+| `sectionLevel` | `number` | Heading depth (1 = top-level)            |
+| `documentId`   | `string` | Document UUID                            |
+| `sectionId`    | `string` | Section UUID                             |
+
+### Options
+
+| Option         | Type     | Default | Description                                      |
+| -------------- | -------- | ------- | ------------------------------------------------ |
+| `apiKey`       | `string` | —       | Dewey project API key (`dwy_live_...`)           |
+| `collectionId` | `string` | —       | UUID of the collection to search                 |
+| `limit`        | `number` | `10`    | Default max chunks (1–50); model can override    |
+| `baseUrl`      | `string` | —       | Override API base URL for local development      |
+
+## deweyResearchTool
+
+Use `deweyResearchTool` for complex, multi-document questions. Dewey handles the
+inner retrieval loop so your outer model only needs one tool call to get a
+fully-cited answer.
+
+```ts
+import { generateText } from 'ai'
+import { openai } from '@ai-sdk/openai'
+import { deweyResearchTool } from '@meetdewey/vercel-ai'
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  system: 'You are a helpful assistant. Use the research tool for document questions.',
+  messages,
+  tools: {
+    research: deweyResearchTool({
+      apiKey: process.env.DEWEY_API_KEY!,
+      collectionId: process.env.DEWEY_COLLECTION_ID!,
+      depth: 'balanced', // 'quick' | 'balanced' | 'deep' | 'exhaustive'
+    }),
+  },
+  maxSteps: 3,
+})
+```
+
+### Tool output
+
+```ts
+{
+  answer: string  // full cited answer text
+  sources: Array<{
+    filename: string
+    sectionTitle: string
+    sectionId: string
+    documentId: string
+  }>
+}
+```
+
+### Options
+
+| Option         | Type     | Default      | Description                                                       |
+| -------------- | -------- | ------------ | ----------------------------------------------------------------- |
+| `apiKey`       | `string` | —            | Dewey project API key                                             |
+| `collectionId` | `string` | —            | UUID of the collection to research                                |
+| `depth`        | `string` | `'balanced'` | `'quick'` / `'balanced'` / `'deep'` / `'exhaustive'`             |
+| `model`        | `string` | —            | Model ID for Dewey's research loop (requires matching BYOK key)   |
+| `baseUrl`      | `string` | —            | Override API base URL for local development                       |
+
+## Next.js example
+
+```ts
+// app/api/chat/route.ts
+import { streamText } from 'ai'
+import { anthropic } from '@ai-sdk/anthropic'
+import { deweyRetrievalTool } from '@meetdewey/vercel-ai'
+
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+
+  const result = streamText({
+    model: anthropic('claude-haiku-4-5-20251001'),
+    system:
+      'You are a helpful research assistant. Search the document collection ' +
+      'to answer questions. Always cite the source filename and section.',
+    messages,
+    tools: {
+      search: deweyRetrievalTool({
+        apiKey: process.env.DEWEY_API_KEY!,
+        collectionId: process.env.DEWEY_COLLECTION_ID!,
+      }),
+    },
+    maxSteps: 5,
+  })
+
+  return result.toDataStreamResponse()
+}
+```
+
+## References
+
+- [Dewey documentation](https://meetdewey.com/docs)
+- [`@meetdewey/vercel-ai` on GitHub](https://github.com/meetdewey/vercel-ai-dewey)
+- [`@meetdewey/vercel-ai` on npm](https://www.npmjs.com/package/@meetdewey/vercel-ai)
+- [Free tier signup](https://meetdewey.com) — no credit card required
