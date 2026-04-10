@@ -1,0 +1,26 @@
+{
+  "name": "@example/next-shopgraph-extraction",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "4.0.0-beta.28",
+    "@ai-sdk/react": "4.0.0-beta.82",
+    "ai": "7.0.0-beta.82",
+    "next": "^15.5.9",
+    "react": "^18",
+    "react-dom": "^18",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.24",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "typescript": "5.8.3"
+  }
+}
