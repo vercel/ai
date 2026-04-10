@@ -9,6 +9,7 @@ import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
 import {
+  ToolLoopAgentOnFinishCallback,
   ToolLoopAgentOnStepFinishCallback,
   ToolLoopAgentSettings,
 } from './tool-loop-agent-settings';
@@ -58,12 +59,15 @@ export class ToolLoopAgent<
   }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
-      'prepareCall' | 'instructions' | 'onStepFinish'
+      'prepareCall' | 'instructions' | 'onStepFinish' | 'onFinish'
     > &
       Prompt
   > {
-    const { onStepFinish: _settingsOnStepFinish, ...settingsWithoutCallback } =
-      this.settings;
+    const {
+      onStepFinish: _settingsOnStepFinish,
+      onFinish: _settingsOnFinish,
+      ...settingsWithoutCallback
+    } = this.settings;
     const baseCallArgs = {
       ...settingsWithoutCallback,
       stopWhen: this.settings.stopWhen ?? stepCountIs(20),
@@ -104,6 +108,21 @@ export class ToolLoopAgent<
     return methodCallback ?? constructorCallback;
   }
 
+  private mergeOnFinishCallbacks(
+    methodCallback: ToolLoopAgentOnFinishCallback<TOOLS> | undefined,
+  ): ToolLoopAgentOnFinishCallback<TOOLS> | undefined {
+    const constructorCallback = this.settings.onFinish;
+
+    if (methodCallback && constructorCallback) {
+      return async event => {
+        await constructorCallback(event);
+        await methodCallback(event);
+      };
+    }
+
+    return methodCallback ?? constructorCallback;
+  }
+
   /**
    * Generates an output from the agent (non-streaming).
    */
@@ -111,6 +130,7 @@ export class ToolLoopAgent<
     abortSignal,
     timeout,
     onStepFinish,
+    onFinish,
     ...options
   }: AgentCallParameters<CALL_OPTIONS, TOOLS>): Promise<
     GenerateTextResult<TOOLS, OUTPUT>
@@ -120,6 +140,7 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
+      onFinish: this.mergeOnFinishCallbacks(onFinish),
     });
   }
 
@@ -131,6 +152,7 @@ export class ToolLoopAgent<
     timeout,
     experimental_transform,
     onStepFinish,
+    onFinish,
     ...options
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
     StreamTextResult<TOOLS, OUTPUT>
@@ -141,6 +163,7 @@ export class ToolLoopAgent<
       timeout,
       experimental_transform,
       onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
+      onFinish: this.mergeOnFinishCallbacks(onFinish),
     });
   }
 }

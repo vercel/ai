@@ -5,7 +5,10 @@ import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { TimeoutConfiguration } from '../prompt/call-settings';
-import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
+import type {
+  ToolLoopAgentOnFinishCallback,
+  ToolLoopAgentOnStepFinishCallback,
+} from './tool-loop-agent-settings';
 
 /**
  * Parameters for calling an agent.
@@ -61,6 +64,11 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
     onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
+
+    /**
+     * Callback that is called when all steps are finished and the response is complete.
+     */
+    onFinish?: ToolLoopAgentOnFinishCallback<TOOLS>;
   };
 
 /**
