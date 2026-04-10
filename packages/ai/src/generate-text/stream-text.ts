@@ -1,7 +1,6 @@
 import {
   getErrorMessage,
   LanguageModelV3,
-  LanguageModelV3ToolChoice,
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -10,19 +9,13 @@ import {
   DelayedPromise,
   IdGenerator,
   isAbortError,
-  ModelMessage,
   ProviderOptions,
-<<<<<<< HEAD
-  SystemModelMessage,
-  ToolApprovalResponse,
-=======
->>>>>>> f37254792 (fix(ai): fix `providerExecuted` tool approvals being passed to language model twice (#14289))
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { Listener, notify } from '../util/notify';
+import { notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
@@ -1363,11 +1356,6 @@ class DefaultStreamTextResult<
           deniedToolApprovals.length > 0 ||
           approvedToolApprovals.length > 0
         ) {
-          const providerExecutedToolApprovals = [
-            ...approvedToolApprovals,
-            ...deniedToolApprovals,
-          ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
-
           const localApprovedToolApprovals = approvedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
           );
@@ -1375,7 +1363,6 @@ class DefaultStreamTextResult<
             toolApproval => !toolApproval.toolCall.providerExecuted,
           );
 
-<<<<<<< HEAD
           const deniedProviderExecutedToolApprovals =
             deniedToolApprovals.filter(
               toolApproval => toolApproval.toolCall.providerExecuted,
@@ -1391,11 +1378,6 @@ class DefaultStreamTextResult<
               toolExecutionStepStreamController = controller;
             },
           });
-=======
-          // Local tool results (approved + denied) are sent as tool results:
-          if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
-            const localToolContent: ToolContent = [];
->>>>>>> f37254792 (fix(ai): fix `providerExecuted` tool approvals being passed to language model twice (#14289))
 
           self.addStream(toolExecutionStepStream);
 
@@ -1446,23 +1428,6 @@ class DefaultStreamTextResult<
                 }
               }),
             );
-
-            // forward provider-executed approval responses to the provider (do not execute locally):
-            if (providerExecutedToolApprovals.length > 0) {
-              initialResponseMessages.push({
-                role: 'tool',
-                content: providerExecutedToolApprovals.map(
-                  toolApproval =>
-                    ({
-                      type: 'tool-approval-response',
-                      approvalId: toolApproval.approvalResponse.approvalId,
-                      approved: toolApproval.approvalResponse.approved,
-                      reason: toolApproval.approvalResponse.reason,
-                      providerExecuted: true,
-                    }) satisfies ToolApprovalResponse,
-                ),
-              });
-            }
 
             // Local tool results (approved + denied) are sent as tool results:
             if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
