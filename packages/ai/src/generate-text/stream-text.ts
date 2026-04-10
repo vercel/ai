@@ -1871,14 +1871,8 @@ class DefaultStreamTextResult<
                   }
 
                   if (
-                    chunkType === 'text-delta' ||
-                    chunkType === 'reasoning-delta' ||
-                    chunkType === 'source' ||
-                    chunkType === 'tool-call' ||
-                    chunkType === 'tool-input-start' ||
-                    chunkType === 'tool-input-delta' ||
-                    chunkType === 'tool-result' ||
-                    chunkType === 'raw'
+                    chunkType !== 'model-call-end' &&
+                    chunkType !== 'model-call-response-metadata'
                   ) {
                     void globalTelemetry.onChunk?.({ chunk });
                   }

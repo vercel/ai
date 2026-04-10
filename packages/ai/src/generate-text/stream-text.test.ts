@@ -23223,8 +23223,10 @@ describe('streamText', () => {
       expect(chunks.map(c => c.type)).toMatchInlineSnapshot(`
         [
           "ai.stream.firstChunk",
+          "text-start",
           "text-delta",
           "text-delta",
+          "text-end",
           "tool-call",
           "ai.stream.finish",
           "tool-result",
@@ -23238,6 +23240,10 @@ describe('streamText', () => {
         [
           {
             "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
             "providerMetadata": undefined,
             "text": "Hello",
             "type": "text-delta",
@@ -23247,6 +23253,10 @@ describe('streamText', () => {
             "providerMetadata": undefined,
             "text": ", world!",
             "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
           },
           {
             "input": {
