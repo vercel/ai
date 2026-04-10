@@ -1,5 +1,11 @@
 # ai
 
+## 6.0.157
+
+### Patch Changes
+
+- ff11aee: fix(ai): fix `providerExecuted` tool approvals being passed to language model twice
+
 ## 6.0.156
 
 ### Patch Changes
