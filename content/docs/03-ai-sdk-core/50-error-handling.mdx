@@ -93,6 +93,42 @@ try {
 }
 ```
 
+## Handling tool execution errors
+
+When a tool's `execute` function throws an error, the AI SDK does **not** re-throw it.
+Instead, it catches the error and represents it as a `tool-error` content part.
+This allows multi-step tool use to continue — the error is sent back to the model
+as a tool result, giving it the opportunity to retry or adjust.
+
+With `generateText`, tool execution errors appear in the result steps:
+
+```ts highlight="6-10"
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const { steps } = await generateText({
+  model: __MODEL__,
+  tools: {
+    // ...
+  },
+  prompt: 'What is the weather in San Francisco?',
+  maxSteps: 3,
+});
+
+for (const step of steps) {
+  for (const part of step.content) {
+    if (part.type === 'tool-error') {
+      console.error(`Tool "${part.toolName}" failed:`, part.error);
+    }
+  }
+}
+```
+
+With `streamText`, they appear as `tool-error` parts in the full stream (shown in the example above).
+
+For more details, including how to monitor tool errors with event listeners,
+see [Handling Errors](/docs/ai-sdk-core/tools-and-tool-calling#handling-errors) in the tool calling documentation.
+
 ## Handling stream aborts
 
 When streams are aborted (e.g., via chat stop button), you may want to perform cleanup operations like updating stored messages in your UI. Use the `onAbort` callback to handle these cases.
