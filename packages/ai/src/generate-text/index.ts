@@ -70,6 +70,7 @@ export type {
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type {
   DynamicToolCall,
+  InvalidToolCall,
   StaticToolCall,
   TypedToolCall,
 } from './tool-call';

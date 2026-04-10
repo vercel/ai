@@ -28,7 +28,12 @@ import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import {
+  DynamicToolCall,
+  InvalidToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
 import { TypedToolError } from './tool-error';
 import { StaticToolOutputDenied } from './tool-output-denied';
 import {
@@ -173,6 +178,13 @@ export interface StreamTextResult<
    * Automatically consumes the stream.
    */
   readonly dynamicToolCalls: PromiseLike<DynamicToolCall[]>;
+
+  /**
+   * The invalid tool calls from the last step (tool not found or bad input).
+   *
+   * Automatically consumes the stream.
+   */
+  readonly invalidToolCalls: PromiseLike<InvalidToolCall[]>;
 
   /**
    * The static tool results that have been generated in the last step.

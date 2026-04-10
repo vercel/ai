@@ -82,6 +82,7 @@ export type UIMessagePart<
   | ReasoningUIPart
   | ToolUIPart<TOOLS>
   | DynamicToolUIPart
+  | InvalidToolUIPart
   | SourceUrlUIPart
   | SourceDocumentUIPart
   | FileUIPart
@@ -469,6 +470,25 @@ export type DynamicToolUIPart = {
 );
 
 /**
+ * A tool call that failed validation: either the tool does not exist
+ * or the model produced input that does not match the tool's schema.
+ */
+export type InvalidToolUIPart = {
+  type: 'invalid-tool';
+
+  toolName: string;
+  toolCallId: string;
+  title?: string;
+  providerExecuted?: boolean;
+
+  state: 'error';
+  input: unknown;
+  rawInput?: unknown;
+  errorText: string;
+  callProviderMetadata?: ProviderMetadata;
+};
+
+/**
  * Type guard to check if a message part is a text part.
  */
 export function isTextUIPart(
@@ -536,16 +556,33 @@ export function isDynamicToolUIPart(
 }
 
 /**
+ * Check if a message part is an invalid tool part.
+ *
+ * Invalid tools are tool calls where the tool does not exist or
+ * the model produced input that does not match the tool's schema.
+ */
+export function isInvalidToolUIPart(
+  part: UIMessagePart<UIDataTypes, UITools>,
+): part is InvalidToolUIPart {
+  return part.type === 'invalid-tool';
+}
+
+/**
  * Check if a message part is a tool part.
  *
- * Tool parts are either static or dynamic tools.
+ * Tool parts are static, dynamic, or invalid tools.
  *
- * Use `isStaticToolUIPart` or `isDynamicToolUIPart` to check the type of the tool.
+ * Use `isStaticToolUIPart`, `isDynamicToolUIPart`, or `isInvalidToolUIPart`
+ * to check the specific type.
  */
 export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
-): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
-  return isStaticToolUIPart(part) || isDynamicToolUIPart(part);
+): part is ToolUIPart<TOOLS> | DynamicToolUIPart | InvalidToolUIPart {
+  return (
+    isStaticToolUIPart(part) ||
+    isDynamicToolUIPart(part) ||
+    isInvalidToolUIPart(part)
+  );
 }
 
 /**
@@ -560,15 +597,17 @@ export function getStaticToolName<TOOLS extends UITools>(
 }
 
 /**
- * Returns the name of the tool (static or dynamic).
+ * Returns the name of the tool (static, dynamic, or invalid).
  *
  * This function will not restrict the name to the keys of the tool set.
  * If you need to restrict the name to the keys of the tool set, use `getStaticToolName` instead.
  */
 export function getToolName(
-  part: ToolUIPart<UITools> | DynamicToolUIPart,
+  part: ToolUIPart<UITools> | DynamicToolUIPart | InvalidToolUIPart,
 ): string {
-  return isDynamicToolUIPart(part) ? part.toolName : getStaticToolName(part);
+  return isDynamicToolUIPart(part) || isInvalidToolUIPart(part)
+    ? part.toolName
+    : getStaticToolName(part);
 }
 
 /**
