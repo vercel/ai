@@ -25,6 +25,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-3.1-pro-preview'
   | 'gemini-3.1-pro-preview-customtools'
   | 'gemini-3.1-flash-image-preview'
+  | 'gemini-3.1-flash-live-preview'
   | 'gemini-3.1-flash-lite-preview'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
