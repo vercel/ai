@@ -52,7 +52,6 @@ export class LumaImageModel implements ImageModelV4 {
 
   async doGenerate({
     prompt,
-    n: _n,
     size,
     aspectRatio,
     seed,

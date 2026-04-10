@@ -50,11 +50,7 @@ export class GatewayImageModel implements ImageModelV4 {
   > {
     const resolvedHeaders = await resolve(this.config.headers());
     try {
-      const {
-        responseHeaders,
-        value: responseBody,
-        rawValue: _rawValue,
-      } = await postJsonToApi({
+      const { responseHeaders, value: responseBody } = await postJsonToApi({
         url: this.getUrl(),
         headers: combineHeaders(
           resolvedHeaders,
