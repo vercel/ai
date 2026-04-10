@@ -2,15 +2,12 @@ import {
   LanguageModelV3,
   LanguageModelV3Content,
   LanguageModelV3ToolCall,
-  LanguageModelV3ToolChoice,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
   ProviderOptions,
-  SystemModelMessage,
-  ToolApprovalResponse,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
@@ -630,28 +627,6 @@ export async function generateText<
           responseMessages.push({
             role: 'tool',
             content: toolContent,
-          });
-        }
-
-        // Forward provider-executed approval responses to the provider
-        const providerExecutedToolApprovals = [
-          ...approvedToolApprovals,
-          ...deniedToolApprovals,
-        ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
-
-        if (providerExecutedToolApprovals.length > 0) {
-          responseMessages.push({
-            role: 'tool',
-            content: providerExecutedToolApprovals.map(
-              toolApproval =>
-                ({
-                  type: 'tool-approval-response',
-                  approvalId: toolApproval.approvalResponse.approvalId,
-                  approved: toolApproval.approvalResponse.approved,
-                  reason: toolApproval.approvalResponse.reason,
-                  providerExecuted: true,
-                }) satisfies ToolApprovalResponse,
-            ),
           });
         }
 

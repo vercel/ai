@@ -22338,7 +22338,7 @@ describe('streamText', () => {
           });
         });
 
-        it('should send tool-approval-response to the model', async () => {
+        it('should send tool-approval-response to the model exactly once', async () => {
           await result.consumeStream();
           expect(prompts[0]).toMatchInlineSnapshot(`
             [
@@ -22370,12 +22370,6 @@ describe('streamText', () => {
               },
               {
                 "content": [
-                  {
-                    "approvalId": "mcp-approval-1",
-                    "approved": true,
-                    "reason": undefined,
-                    "type": "tool-approval-response",
-                  },
                   {
                     "approvalId": "mcp-approval-1",
                     "approved": true,
@@ -22513,7 +22507,7 @@ describe('streamText', () => {
           });
         });
 
-        it('should send denied tool-approval-response to the model', async () => {
+        it('should send denied tool-approval-response to the model exactly once', async () => {
           await result.consumeStream();
           expect(prompts[0]).toMatchInlineSnapshot(`
             [
@@ -22545,12 +22539,6 @@ describe('streamText', () => {
               },
               {
                 "content": [
-                  {
-                    "approvalId": "mcp-approval-1",
-                    "approved": false,
-                    "reason": "User denied the request",
-                    "type": "tool-approval-response",
-                  },
                   {
                     "approvalId": "mcp-approval-1",
                     "approved": false,
