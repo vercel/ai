@@ -9,28 +9,28 @@ import { z } from 'zod';
 import type { ContextParameter } from './context-parameter';
 
 describe('ContextParameter', () => {
-  it('makes context optional for an empty toolset', () => {
+  it('uses context?: never for an empty toolset without required user context', () => {
     type Tools = {};
     type Expected = {
       tools?: Tools;
-      context?: Context;
+      context?: never;
     };
 
-    expectTypeOf<ContextParameter<Tools>>().toMatchTypeOf<Expected>();
-    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools>>();
+    expectTypeOf<ContextParameter<Tools, Context>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools, Context>>();
   });
 
-  it('makes context optional when the inferred context type has no required keys', () => {
+  it('uses context?: never when the inferred tool context has no required keys', () => {
     type Tools = {
       weather: Tool<{ city: string }>;
     };
     type Expected = {
       tools?: Tools;
-      context?: Context;
+      context?: never;
     };
 
-    expectTypeOf<ContextParameter<Tools>>().toMatchTypeOf<Expected>();
-    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools>>();
+    expectTypeOf<ContextParameter<Tools, Context>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools, Context>>();
   });
 
   it('makes context required when tool contextSchema adds required keys', () => {
@@ -44,8 +44,8 @@ describe('ContextParameter', () => {
       } & Context;
     };
 
-    expectTypeOf<ContextParameter<Tools>>().toMatchTypeOf<Expected>();
-    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools>>();
+    expectTypeOf<ContextParameter<Tools, Context>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools, Context>>();
   });
 
   it('requires context for the mixed toolset from tool-call-with-context example', () => {
@@ -64,8 +64,8 @@ describe('ContextParameter', () => {
       } & Context;
     };
 
-    expectTypeOf<ContextParameter<Tools>>().toMatchTypeOf<Expected>();
-    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools>>();
+    expectTypeOf<ContextParameter<Tools, Context>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools, Context>>();
   });
 
   it('includes required keys from tool-call-with-context example contextSchema inference', () => {
@@ -98,8 +98,12 @@ describe('ContextParameter', () => {
       } & Context;
     };
 
-    expectTypeOf<ContextParameter<typeof tools>>().toMatchTypeOf<Expected>();
-    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<typeof tools>>();
+    expectTypeOf<
+      ContextParameter<typeof tools, Context>
+    >().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<
+      ContextParameter<typeof tools, Context>
+    >();
   });
 
   it('keeps the weather tool context specific for the generateText regression toolset', () => {
@@ -127,7 +131,7 @@ describe('ContextParameter', () => {
     expectTypeOf<WeatherContext>().toMatchObjectType<{
       weatherApiKey: string;
     }>();
-    expectTypeOf<ContextParameter<typeof tools>>().toMatchTypeOf<{
+    expectTypeOf<ContextParameter<typeof tools, Context>>().toMatchTypeOf<{
       tools?: typeof tools;
       context: {
         weatherApiKey: string;
@@ -147,8 +151,8 @@ describe('ContextParameter', () => {
       } & Context;
     };
 
-    expectTypeOf<ContextParameter<Tools>>().toMatchTypeOf<Expected>();
-    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools>>();
+    expectTypeOf<ContextParameter<Tools, Context>>().toMatchTypeOf<Expected>();
+    expectTypeOf<Expected>().toMatchTypeOf<ContextParameter<Tools, Context>>();
   });
 
   it('makes context required for an explicit context type with required keys', () => {
@@ -171,6 +175,19 @@ describe('ContextParameter', () => {
   });
 
   describe('negative cases', () => {
+    it('errors when context is provided for an empty toolset without required user context', () => {
+      type Tools = {};
+
+      const unnecessaryContext: ContextParameter<Tools, Context> = {
+        // @ts-expect-error - context is not accepted when neither tools nor user context require it
+        context: {},
+      };
+
+      expectTypeOf(unnecessaryContext).toEqualTypeOf<
+        ContextParameter<Tools, Context>
+      >();
+    });
+
     it('errors when context is omitted for a mixed toolset with one contextual tool', () => {
       type Tools = {
         weather: Tool<{ location: string }>;
@@ -182,9 +199,11 @@ describe('ContextParameter', () => {
       };
 
       // @ts-expect-error - context is required when one tool in the set requires it
-      const missingContext: ContextParameter<Tools> = {};
+      const missingContext: ContextParameter<Tools, Context> = {};
 
-      expectTypeOf(missingContext).toEqualTypeOf<ContextParameter<Tools>>();
+      expectTypeOf(missingContext).toEqualTypeOf<
+        ContextParameter<Tools, Context>
+      >();
     });
 
     it('errors when required contextual fields are missing', () => {
@@ -192,13 +211,13 @@ describe('ContextParameter', () => {
         weather: Tool<{ city: string }, any, { userId: string }>;
       };
 
-      const missingRequiredField: ContextParameter<Tools> = {
+      const missingRequiredField: ContextParameter<Tools, Context> = {
         // @ts-expect-error - required context fields from the tool set must be provided
         context: {},
       };
 
       expectTypeOf(missingRequiredField).toEqualTypeOf<
-        ContextParameter<Tools>
+        ContextParameter<Tools, Context>
       >();
     });
 
@@ -228,14 +247,14 @@ describe('ContextParameter', () => {
         }),
       };
 
-      const missingExampleFields: ContextParameter<typeof tools> = {
+      const missingExampleFields: ContextParameter<typeof tools, Context> = {
         tools,
         // @ts-expect-error - required contextSchema fields must be provided
         context: {},
       };
 
       expectTypeOf(missingExampleFields).toEqualTypeOf<
-        ContextParameter<typeof tools>
+        ContextParameter<typeof tools, Context>
       >();
     });
 
