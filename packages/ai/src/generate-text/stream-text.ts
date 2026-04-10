@@ -73,6 +73,7 @@ import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
+import { ContextParameter } from './context-parameter';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -341,7 +342,7 @@ export function streamText<
   experimental_onStepStart: onStepStart,
   experimental_onToolCallStart: onToolCallStart,
   experimental_onToolCallFinish: onToolCallFinish,
-  context = {} as InferToolSetContext<TOOLS> & USER_CONTEXT,
+  context: contextArg,
   experimental_include: include,
   _internal: {
     now = originalNow,
@@ -350,7 +351,8 @@ export function streamText<
   } = {},
   ...settings
 }: CallSettings &
-  Prompt & {
+  Prompt &
+  ContextParameter<TOOLS, USER_CONTEXT> & {
     /**
      * The language model to use.
      */
@@ -363,11 +365,6 @@ export function streamText<
      * Can be specified as a number (milliseconds) or as an object with `totalMs`.
      */
     timeout?: TimeoutConfiguration<TOOLS>;
-
-    /**
-     * The tools that the model can call. The model needs to support calling tools.
-     */
-    tools?: TOOLS;
 
     /**
      * The tool choice strategy. Default: 'auto'.
@@ -530,18 +527,6 @@ export function streamText<
     >;
 
     /**
-     * User-defined runtime context.
-     *
-     * Treat the context object as immutable inside tools.
-     * Mutating the context object can lead to race conditions and unexpected results
-     * when tools are called in parallel.
-     *
-     * If you need to mutate the context, analyze the tool calls and results
-     * in `prepareStep` and update it there.
-     */
-    context?: InferToolSetContext<TOOLS> & USER_CONTEXT;
-
-    /**
      * Settings for controlling what data is included in step results.
      * Disabling inclusion can help reduce memory usage when processing
      * large payloads like images.
@@ -566,6 +551,9 @@ export function streamText<
       generateCallId?: IdGenerator;
     };
   }): StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT> {
+  let context: InferToolSetContext<TOOLS> & USER_CONTEXT = (contextArg ??
+    {}) as InferToolSetContext<TOOLS> & USER_CONTEXT;
+
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
