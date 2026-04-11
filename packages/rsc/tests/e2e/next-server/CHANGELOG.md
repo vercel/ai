@@ -4,6 +4,19 @@
 
 ### Patch Changes
 
+- ai@7.0.0-beta.83
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
+- Updated dependencies [e27ed76]
+  - ai@7.0.0-beta.82
+
+## 0.0.1-beta.0
+
+### Patch Changes
+
 - Updated dependencies [2fe1099]
 - Updated dependencies [f04adcb]
   - ai@7.0.0-beta.81

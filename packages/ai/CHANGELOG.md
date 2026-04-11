@@ -1,5 +1,18 @@
 # ai
 
+## 7.0.0-beta.83
+
+### Patch Changes
+
+- Updated dependencies [6b0a40d]
+  - @ai-sdk/gateway@4.0.0-beta.46
+
+## 7.0.0-beta.82
+
+### Patch Changes
+
+- e27ed76: feat(devtools): add new devtools integration for telemetry
+
 ## 7.0.0-beta.81
 
 ### Patch Changes
