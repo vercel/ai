@@ -1,0 +1,45 @@
+{
+  "id": "msg_01TestWebAndRegularTool",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-4-20250514",
+  "content": [
+    {
+      "type": "text",
+      "text": "I'll save the results and search for the latest news."
+    },
+    {
+      "type": "tool_use",
+      "id": "toolu_01SaveResults",
+      "name": "save_results",
+      "input": { "filename": "news.txt" }
+    },
+    {
+      "type": "server_tool_use",
+      "id": "srvtoolu_01WebSearch",
+      "name": "web_search",
+      "input": { "query": "latest news" }
+    },
+    {
+      "type": "web_search_tool_result",
+      "tool_use_id": "srvtoolu_01WebSearch",
+      "content": [
+        {
+          "type": "web_search_result",
+          "url": "https://example.com/news",
+          "title": "Breaking News Today",
+          "encrypted_content": "EqMBCioICBgCIiRiY2JjZWJjMy1lYTFhLTRmNjktYTUwMy01YzgwNWU1Y2U0NzESDA==",
+          "page_age": "1 hour ago"
+        }
+      ]
+    }
+  ],
+  "stop_reason": "tool_use",
+  "stop_sequence": null,
+  "usage": {
+    "input_tokens": 80,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 60
+  }
+}
