@@ -282,6 +282,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
       }),
+      ...(anthropicOptions?.inferenceGeo && {
+        inference_geo: anthropicOptions.inferenceGeo,
+      }),
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
       }),
