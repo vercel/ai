@@ -115,4 +115,33 @@ describe('mergeObjects', () => {
     expect(mergeObjects({ a: 1 }, undefined)).toEqual({ a: 1 });
     expect(mergeObjects(undefined, { b: 2 })).toEqual({ b: 2 });
   });
+
+  it('should filter out __proto__ keys to prevent prototype pollution', () => {
+    const target = { a: 1 };
+    const source = JSON.parse(
+      '{"b": 2, "__proto__": {"polluted": true}}',
+    );
+    const result = mergeObjects(target, source);
+
+    expect(result).toEqual({ a: 1, b: 2 });
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('should filter out nested __proto__ keys', () => {
+    const target = { a: { x: 1 } };
+    const source = { a: JSON.parse('{"y": 2, "__proto__": {"polluted": true}}') };
+    const result = mergeObjects(target, source);
+
+    expect((result as any)?.a).toEqual({ x: 1, y: 2 });
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('should preserve legitimate constructor and prototype keys', () => {
+    const target = { a: 1 };
+    const source = { constructor: 'MyClass', prototype: { method: true } };
+    const result = mergeObjects(target, source);
+
+    expect((result as any).constructor).toBe('MyClass');
+    expect((result as any).prototype).toEqual({ method: true });
+  });
 });

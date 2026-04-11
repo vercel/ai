@@ -3,6 +3,7 @@ import { Stream } from 'node:stream';
 import { JSONRPCMessage, JSONRPCMessageSchema } from '../json-rpc-message';
 import { MCPTransport } from '../mcp-transport';
 import { MCPClientError } from '../../error/mcp-client-error';
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 import { createChildProcess } from './create-child-process';
 
 export interface StdioConfig {
@@ -150,5 +151,5 @@ function serializeMessage(message: JSONRPCMessage): string {
 }
 
 export function deserializeMessage(line: string): JSONRPCMessage {
-  return JSONRPCMessageSchema.parse(JSON.parse(line));
+  return JSONRPCMessageSchema.parse(secureJsonParse(line));
 }
