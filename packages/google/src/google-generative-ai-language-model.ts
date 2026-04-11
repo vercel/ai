@@ -85,24 +85,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-<<<<<<< HEAD
-  private async getArgs({
-    prompt,
-    maxOutputTokens,
-    temperature,
-    topP,
-    topK,
-    frequencyPenalty,
-    presencePenalty,
-    stopSequences,
-    responseFormat,
-    seed,
-    tools,
-    toolChoice,
-    providerOptions,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
-=======
   private async getArgs(
     {
       prompt,
@@ -117,13 +99,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       seed,
       tools,
       toolChoice,
-      reasoning,
       providerOptions,
-    }: LanguageModelV4CallOptions,
+    }: LanguageModelV3CallOptions,
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
-    const warnings: SharedV4Warning[] = [];
->>>>>>> 5b7e7c2a9 (fix(google-vertex): don't send streamFunctionCallArguments for vertex doGenerate (#14352))
+    const warnings: SharedV3Warning[] = [];
 
     const providerOptionsName = this.config.provider.includes('vertex')
       ? 'vertex'
@@ -193,26 +173,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       modelId: this.modelId,
     });
 
-<<<<<<< HEAD
-    const streamFunctionCallArguments = isVertexProvider
-      ? (googleOptions?.streamFunctionCallArguments ?? true)
-      : undefined;
-=======
-    const resolvedThinking = resolveThinkingConfig({
-      reasoning,
-      modelId: this.modelId,
-      warnings,
-    });
-    const thinkingConfig =
-      googleOptions?.thinkingConfig || resolvedThinking
-        ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
-        : undefined;
-
     const streamFunctionCallArguments =
       isStreaming && isVertexProvider
         ? (googleOptions?.streamFunctionCallArguments ?? false)
         : undefined;
->>>>>>> 5b7e7c2a9 (fix(google-vertex): don't send streamFunctionCallArguments for vertex doGenerate (#14352))
 
     const toolConfig =
       googleToolConfig ||
@@ -506,18 +470,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-<<<<<<< HEAD
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings, providerOptionsName } = await this.getArgs(options);
-=======
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings, providerOptionsName } = await this.getArgs(
       options,
       { isStreaming: true },
     );
->>>>>>> 5b7e7c2a9 (fix(google-vertex): don't send streamFunctionCallArguments for vertex doGenerate (#14352))
 
     const headers = combineHeaders(
       await resolve(this.config.headers),
