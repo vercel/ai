@@ -5,6 +5,10 @@ import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { ToolSet } from '../generate-text/tool-set';
 import { TimeoutConfiguration } from '../prompt/call-settings';
+import type {
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
+} from '../generate-text/callback-events';
 import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
 /**
@@ -56,6 +60,20 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
      * Timeout in milliseconds. Can be specified as a number or as an object with `totalMs`.
      */
     timeout?: TimeoutConfiguration;
+
+    /**
+     * Callback that is called before each tool execution begins.
+     */
+    experimental_onToolCallStart?: (
+      event: OnToolCallStartEvent<TOOLS>,
+    ) => PromiseLike<void> | void;
+
+    /**
+     * Callback that is called after each tool execution completes.
+     */
+    experimental_onToolCallFinish?: (
+      event: OnToolCallFinishEvent<TOOLS>,
+    ) => PromiseLike<void> | void;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
