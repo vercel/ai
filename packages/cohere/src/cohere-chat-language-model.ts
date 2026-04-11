@@ -19,6 +19,10 @@ import {
   mapReasoningToProviderBudget,
   parseProviderOptions,
   postJsonToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -34,7 +38,7 @@ import { mapCohereFinishReason } from './map-cohere-finish-reason';
 type CohereChatConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   generateId: () => string;
 };
@@ -49,6 +53,17 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
   };
 
   private readonly config: CohereChatConfig;
+
+  static [WORKFLOW_SERIALIZE](model: CohereChatLanguageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: CohereChatModelId;
+    config: CohereChatConfig;
+  }) {
+    return deserializeModel(CohereChatLanguageModel, options);
+  }
 
   constructor(modelId: CohereChatModelId, config: CohereChatConfig) {
     this.modelId = modelId;
@@ -151,7 +166,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -232,7 +247,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: { ...args, stream: true },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

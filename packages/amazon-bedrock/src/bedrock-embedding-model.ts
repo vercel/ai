@@ -11,6 +11,10 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import {
   BedrockEmbeddingModelId,
@@ -21,7 +25,7 @@ import { z } from 'zod/v4';
 
 type BedrockEmbeddingConfig = {
   baseUrl: () => string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
 };
 
@@ -32,6 +36,17 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
   readonly provider = 'amazon-bedrock';
   readonly maxEmbeddingsPerCall = 1;
   readonly supportsParallelCalls = true;
+
+  static [WORKFLOW_SERIALIZE](model: BedrockEmbeddingModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: BedrockEmbeddingConfig;
+  }) {
+    return deserializeModel(BedrockEmbeddingModel, options);
+  }
 
   constructor(
     readonly modelId: BedrockEmbeddingModelId,
@@ -107,7 +122,10 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
     const { value: response } = await postJsonToApi({
       url,
       headers: await resolve(
-        combineHeaders(await resolve(this.config.headers), headers),
+        combineHeaders(
+          this.config.headers ? await resolve(this.config.headers) : undefined,
+          headers,
+        ),
       ),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({

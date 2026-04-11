@@ -18,6 +18,10 @@ import {
   parseProviderOptions,
   postFormDataToApi,
   resolve,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -37,6 +41,17 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: ProdiaLanguageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: ProdiaLanguageModelId;
+    config: ProdiaModelConfig;
+  }) {
+    return deserializeModel(ProdiaLanguageModel, options);
   }
 
   constructor(
@@ -169,7 +184,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
 

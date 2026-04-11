@@ -16,6 +16,10 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
@@ -37,7 +41,7 @@ import {
 
 type OpenAICompletionConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -51,6 +55,17 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
 
   private get providerOptionsName(): string {
     return this.config.provider.split('.')[0].trim();
+  }
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompletionLanguageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAICompletionModelId;
+    config: OpenAICompletionConfig;
+  }) {
+    return deserializeModel(OpenAICompletionLanguageModel, options);
   }
 
   constructor(
@@ -174,7 +189,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -229,7 +244,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

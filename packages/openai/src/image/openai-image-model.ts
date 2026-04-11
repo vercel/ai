@@ -11,6 +11,10 @@ import {
   downloadBlob,
   postFormDataToApi,
   postJsonToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -29,6 +33,17 @@ interface OpenAIImageModelConfig extends OpenAIConfig {
 
 export class OpenAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIImageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIImageModelId;
+    config: OpenAIImageModelConfig;
+  }) {
+    return deserializeModel(OpenAIImageModel, options);
+  }
 
   get maxImagesPerCall(): number {
     return modelMaxImagesPerCall[this.modelId] ?? 1;
@@ -80,7 +95,7 @@ export class OpenAIImageModel implements ImageModelV4 {
           path: '/images/edits',
           modelId: this.modelId,
         }),
-        headers: combineHeaders(this.config.headers(), headers),
+        headers: combineHeaders(this.config.headers?.(), headers),
         formData: convertToFormData<OpenAIImageEditInput>({
           model: this.modelId,
           prompt,
@@ -158,7 +173,7 @@ export class OpenAIImageModel implements ImageModelV4 {
         path: '/images/generations',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         prompt,

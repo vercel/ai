@@ -12,6 +12,10 @@ import {
   getFromApi,
   parseProviderOptions,
   postFormDataToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { RevaiConfig } from './revai-config';
@@ -227,6 +231,17 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     return this.config.provider;
   }
 
+  static [WORKFLOW_SERIALIZE](model: RevaiTranscriptionModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: RevaiTranscriptionModelId;
+    config: RevaiTranscriptionModelConfig;
+  }) {
+    return deserializeModel(RevaiTranscriptionModel, options);
+  }
+
   constructor(
     readonly modelId: RevaiTranscriptionModelId,
     private readonly config: RevaiTranscriptionModelConfig,
@@ -324,7 +339,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
         path: '/speechtotext/v1/jobs',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: revaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -364,7 +379,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
           path: `/speechtotext/v1/jobs/${jobId}`,
           modelId: this.modelId,
         }),
-        headers: combineHeaders(this.config.headers(), options.headers),
+        headers: combineHeaders(this.config.headers?.(), options.headers),
         failedResponseHandler: revaiFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           revaiTranscriptionJobResponseSchema,
@@ -398,7 +413,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
         path: `/speechtotext/v1/jobs/${jobId}/transcript`,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       failedResponseHandler: revaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         revaiTranscriptionResponseSchema,

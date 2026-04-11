@@ -79,3 +79,9 @@ export {
   EventSourceParserStream,
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
+export {
+  serializeModel,
+  deserializeModel,
+  deserializeModelConfig,
+} from './serialize-model';
+export { WORKFLOW_SERIALIZE, WORKFLOW_DESERIALIZE } from '@workflow/serde';

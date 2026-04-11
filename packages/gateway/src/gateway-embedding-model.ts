@@ -9,6 +9,10 @@ import {
   lazySchema,
   postJsonToApi,
   resolve,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
@@ -17,17 +21,30 @@ import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
 
+type GatewayEmbeddingConfig = GatewayConfig & {
+  provider: string;
+  o11yHeaders: Resolvable<Record<string, string>>;
+};
+
 export class GatewayEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
+  static [WORKFLOW_SERIALIZE](model: GatewayEmbeddingModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GatewayEmbeddingConfig;
+  }) {
+    return deserializeModel(GatewayEmbeddingModel, options);
+  }
+
   constructor(
     readonly modelId: string,
-    private readonly config: GatewayConfig & {
-      provider: string;
-      o11yHeaders: Resolvable<Record<string, string>>;
-    },
+    private readonly config: GatewayEmbeddingConfig,
   ) {}
 
   get provider(): string {
@@ -42,7 +59,9 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
   }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers())
+      : undefined;
     try {
       const {
         responseHeaders,
@@ -80,7 +99,10 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
         warnings: [],
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 

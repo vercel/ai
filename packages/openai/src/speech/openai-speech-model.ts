@@ -4,6 +4,10 @@ import {
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -21,6 +25,17 @@ interface OpenAISpeechModelConfig extends OpenAIConfig {
 
 export class OpenAISpeechModel implements SpeechModelV4 {
   readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: OpenAISpeechModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAISpeechModelId;
+    config: OpenAISpeechModelConfig;
+  }) {
+    return deserializeModel(OpenAISpeechModel, options);
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -112,7 +127,7 @@ export class OpenAISpeechModel implements SpeechModelV4 {
         path: '/audio/speech',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

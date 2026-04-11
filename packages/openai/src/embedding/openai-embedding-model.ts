@@ -7,6 +7,10 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -23,6 +27,17 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
   readonly supportsParallelCalls = true;
 
   private readonly config: OpenAIConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIEmbeddingModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIEmbeddingModelId;
+    config: OpenAIConfig;
+  }) {
+    return deserializeModel(OpenAIEmbeddingModel, options);
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -67,7 +82,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         input: values,

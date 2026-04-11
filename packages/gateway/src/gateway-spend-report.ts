@@ -106,7 +106,9 @@ export class GatewaySpendReport {
 
       const { value } = await getFromApi({
         url: `${baseUrl.origin}/v1/report?${searchParams.toString()}`,
-        headers: await resolve(this.config.headers()),
+        headers: this.config.headers
+          ? await resolve(this.config.headers())
+          : undefined,
         successfulResponseHandler: createJsonResponseHandler(
           gatewaySpendReportResponseSchema,
         ),

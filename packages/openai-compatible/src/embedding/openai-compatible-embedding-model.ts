@@ -10,6 +10,10 @@ import {
   FetchFunction,
   parseProviderOptions,
   postJsonToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -35,7 +39,7 @@ type OpenAICompatibleEmbeddingConfig = {
 
   provider: string;
   url: (options: { modelId: string; path: string }) => string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
 };
@@ -56,6 +60,17 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
 
   get supportsParallelCalls(): boolean {
     return this.config.supportsParallelCalls ?? true;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleEmbeddingModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleEmbeddingConfig;
+  }) {
+    return deserializeModel(OpenAICompatibleEmbeddingModel, options);
   }
 
   constructor(
@@ -134,7 +149,7 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         input: values,

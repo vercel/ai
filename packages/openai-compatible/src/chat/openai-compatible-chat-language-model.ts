@@ -24,6 +24,10 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -48,7 +52,7 @@ import { prepareTools } from './openai-compatible-prepare-tools';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   includeUsage?: boolean;
@@ -82,6 +86,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   private readonly config: OpenAICompatibleChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleChatLanguageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleChatConfig;
+  }) {
+    return deserializeModel(OpenAICompatibleChatLanguageModel, options);
+  }
 
   constructor(
     modelId: OpenAICompatibleChatModelId,
@@ -289,7 +304,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: transformedBody,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -400,7 +415,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

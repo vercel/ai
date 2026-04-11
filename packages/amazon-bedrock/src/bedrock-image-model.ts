@@ -12,6 +12,10 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import {
   BedrockImageModelId,
@@ -22,7 +26,7 @@ import { z } from 'zod/v4';
 
 type BedrockImageModelConfig = {
   baseUrl: () => string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -32,6 +36,17 @@ type BedrockImageModelConfig = {
 export class BedrockImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
+
+  static [WORKFLOW_SERIALIZE](model: BedrockImageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: BedrockImageModelConfig;
+  }) {
+    return deserializeModel(BedrockImageModel, options);
+  }
 
   get maxImagesPerCall(): number {
     return modelMaxImagesPerCall[this.modelId] ?? 1;
@@ -220,7 +235,10 @@ export class BedrockImageModel implements ImageModelV4 {
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.getUrl(this.modelId),
       headers: await resolve(
-        combineHeaders(await resolve(this.config.headers), headers),
+        combineHeaders(
+          this.config.headers ? await resolve(this.config.headers) : undefined,
+          headers,
+        ),
       ),
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({

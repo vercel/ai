@@ -13,6 +13,10 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -46,6 +50,17 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: BlackForestLabsImageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: BlackForestLabsImageModelId;
+    config: BlackForestLabsImageModelConfig;
+  }) {
+    return deserializeModel(BlackForestLabsImageModel, options);
   }
 
   constructor(

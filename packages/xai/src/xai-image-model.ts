@@ -9,6 +9,10 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
@@ -18,7 +22,7 @@ import { XaiImageModelId } from './xai-image-settings';
 interface XaiImageModelConfig {
   provider: string;
   baseURL: string | undefined;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -31,6 +35,17 @@ export class XaiImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: XaiImageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: XaiImageModelId;
+    config: XaiImageModelConfig;
+  }) {
+    return deserializeModel(XaiImageModel, options);
   }
 
   constructor(
@@ -135,7 +150,7 @@ export class XaiImageModel implements ImageModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${baseURL}${endpoint}`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

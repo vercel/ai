@@ -23,6 +23,10 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
 import { convertDeepSeekUsage } from './convert-to-deepseek-usage';
@@ -42,7 +46,7 @@ import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
 
 export type DeepSeekChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -55,6 +59,17 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
 
   private readonly config: DeepSeekChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
+
+  static [WORKFLOW_SERIALIZE](model: DeepSeekChatLanguageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: DeepSeekChatModelId;
+    config: DeepSeekChatConfig;
+  }) {
+    return deserializeModel(DeepSeekChatLanguageModel, options);
+  }
 
   constructor(modelId: DeepSeekChatModelId, config: DeepSeekChatConfig) {
     this.modelId = modelId;
@@ -159,7 +174,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -238,7 +253,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

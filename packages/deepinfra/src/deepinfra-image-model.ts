@@ -13,6 +13,10 @@ import {
   FetchFunction,
   postFormDataToApi,
   postJsonToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { z } from 'zod/v4';
@@ -20,7 +24,7 @@ import { z } from 'zod/v4';
 interface DeepInfraImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
@@ -33,6 +37,17 @@ export class DeepInfraImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: DeepInfraImageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: DeepInfraImageModelId;
+    config: DeepInfraImageModelConfig;
+  }) {
+    return deserializeModel(DeepInfraImageModel, options);
   }
 
   constructor(
@@ -61,7 +76,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
     if (files != null && files.length > 0) {
       const { value: response, responseHeaders } = await postFormDataToApi({
         url: this.getEditUrl(),
-        headers: combineHeaders(this.config.headers(), headers),
+        headers: combineHeaders(this.config.headers?.(), headers),
         formData: convertToFormData<DeepInfraFormDataInput>(
           {
             model: this.modelId,
@@ -102,7 +117,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
     const splitSize = size?.split('x');
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         prompt,
         num_images: n,

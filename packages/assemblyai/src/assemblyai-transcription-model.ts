@@ -6,6 +6,10 @@ import {
   parseProviderOptions,
   postJsonToApi,
   postToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { AssemblyAIConfig } from './assemblyai-config';
@@ -183,6 +187,17 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     return this.config.provider;
   }
 
+  static [WORKFLOW_SERIALIZE](model: AssemblyAITranscriptionModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: AssemblyAITranscriptionModelId;
+    config: AssemblyAITranscriptionModelConfig;
+  }) {
+    return deserializeModel(AssemblyAITranscriptionModel, options);
+  }
+
   constructor(
     readonly modelId: AssemblyAITranscriptionModelId,
     private readonly config: AssemblyAITranscriptionModelConfig,
@@ -289,7 +304,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         {
           method: 'GET',
           headers: combineHeaders(
-            this.config.headers(),
+            this.config.headers?.(),
             headers,
           ) as HeadersInit,
           signal: abortSignal,
@@ -340,7 +355,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       }),
       headers: {
         'Content-Type': 'application/octet-stream',
-        ...combineHeaders(this.config.headers(), options.headers),
+        ...combineHeaders(this.config.headers?.(), options.headers),
       },
       body: {
         content: options.audio,
@@ -361,7 +376,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         path: '/v2/transcript',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         audio_url: uploadResponse.upload_url,

@@ -17,6 +17,10 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { HuggingFaceConfig } from '../huggingface-config';
@@ -36,6 +40,17 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: HuggingFaceResponsesModelId;
 
   private readonly config: HuggingFaceConfig;
+
+  static [WORKFLOW_SERIALIZE](model: HuggingFaceResponsesLanguageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: HuggingFaceResponsesModelId;
+    config: HuggingFaceConfig;
+  }) {
+    return deserializeModel(HuggingFaceResponsesLanguageModel, options);
+  }
 
   constructor(modelId: HuggingFaceResponsesModelId, config: HuggingFaceConfig) {
     this.modelId = modelId;
@@ -170,7 +185,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: huggingfaceFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -345,7 +360,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
         path: '/responses',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: huggingfaceFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

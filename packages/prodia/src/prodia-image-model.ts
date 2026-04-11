@@ -7,6 +7,10 @@ import {
   parseProviderOptions,
   postToApi,
   resolve,
+  deserializeModel,
+  serializeModel,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -26,6 +30,17 @@ export class ProdiaImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: ProdiaImageModel) {
+    return serializeModel(model);
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: ProdiaImageModelId;
+    config: ProdiaModelConfig;
+  }) {
+    return deserializeModel(ProdiaImageModel, options);
   }
 
   constructor(
@@ -116,7 +131,7 @@ export class ProdiaImageModel implements ImageModelV4 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const combinedHeaders = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
 
