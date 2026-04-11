@@ -35,3 +35,10 @@ export {
 } from './to-ui-message-chunk.js';
 
 export type { ModelCallStreamPart } from './do-stream-step.js';
+
+export {
+  WorkflowChatTransport,
+  type WorkflowChatTransportOptions,
+  type SendMessagesOptions,
+  type ReconnectToStreamOptions,
+} from './workflow-chat-transport.js';

@@ -1,11 +1,23 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { WorkflowChatTransport } from '@ai-sdk/workflow';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 
 export default function Chat() {
+  const transport = useMemo(
+    () =>
+      new WorkflowChatTransport({
+        api: '/api/chat',
+        maxConsecutiveErrors: 5,
+        initialStartIndex: -50,
+      }),
+    [],
+  );
+
   const { status, sendMessage, messages, addToolApprovalResponse } = useChat({
+    transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
