@@ -189,7 +189,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
 
     const streamFunctionCallArguments =
       isStreaming && isVertexProvider
-        ? (googleOptions?.streamFunctionCallArguments ?? true)
+        ? (googleOptions?.streamFunctionCallArguments ?? false)
         : undefined;
 
     const toolConfig =

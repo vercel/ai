@@ -5713,7 +5713,7 @@ describe('doStream', () => {
     ).toMatchInlineSnapshot(`undefined`);
   });
 
-  it('should default streamFunctionCallArguments to true for Vertex provider even without provider option', async () => {
+  it('should default streamFunctionCallArguments to false for Vertex provider without provider option', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
       chunks: [
@@ -5759,14 +5759,10 @@ describe('doStream', () => {
       ],
     });
 
-    expect((await server.calls[0].requestBodyJson).toolConfig)
-      .toMatchInlineSnapshot(`
-      {
-        "functionCallingConfig": {
-          "streamFunctionCallArguments": true,
-        },
-      }
-    `);
+    expect(
+      (await server.calls[0].requestBodyJson).toolConfig?.functionCallingConfig
+        ?.streamFunctionCallArguments,
+    ).toMatchInlineSnapshot(`undefined`);
   });
 
   it('should allow Vertex provider to opt out of streamFunctionCallArguments by setting it to false', async () => {
