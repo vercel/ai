@@ -1,7 +1,10 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
-import { BlackForestLabsImageModel } from './black-forest-labs-image-model';
+import {
+  BlackForestLabsImageModel,
+} from './black-forest-labs-image-model';
+import { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
 
 const prompt = 'A cute baby sea otter';
 
@@ -31,6 +34,14 @@ function createBasicModel({
   });
 }
 
+function createModelWithId(modelId: BlackForestLabsImageModelId) {
+  return new BlackForestLabsImageModel(modelId, {
+    provider: 'black-forest-labs.image',
+    baseURL: 'https://api.example.com/v1',
+    headers: () => ({ 'x-key': 'test-key' }),
+  });
+}
+
 describe('BlackForestLabsImageModel', () => {
   const server = createTestServer({
     'https://api.example.com/v1/test-model': {
@@ -38,6 +49,24 @@ describe('BlackForestLabsImageModel', () => {
         type: 'json-value',
         body: {
           id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+        },
+      },
+    },
+    'https://api.example.com/v1/flux-pro-1.0-fill': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'req-fill-123',
+          polling_url: 'https://api.example.com/poll',
+        },
+      },
+    },
+    'https://api.example.com/v1/flux-pro-1.1': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'req-img2img-123',
           polling_url: 'https://api.example.com/poll',
         },
       },
@@ -571,6 +600,153 @@ describe('BlackForestLabsImageModel', () => {
       expect(model.modelId).toBe('test-model');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(1);
+    });
+  });
+
+  describe('image field name mapping', () => {
+    it('sends "image" field for flux-pro-1.0-fill model (inpainting)', async () => {
+      const model = createModelWithId('flux-pro-1.0-fill');
+      const testImageBase64 = Buffer.from('test-image-data').toString('base64');
+
+      await model.doGenerate({
+        prompt,
+        files: [
+          {
+            type: 'base64',
+            data: testImageBase64,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: {
+          type: 'base64',
+          data: Buffer.from('test-mask-data').toString('base64'),
+          mediaType: 'image/png',
+        },
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      // Fill model must use "image" not "input_image"
+      expect(requestBody).toHaveProperty('image');
+      expect(requestBody).not.toHaveProperty('input_image');
+      expect(requestBody.image).toBe(testImageBase64);
+      expect(requestBody).toHaveProperty('mask');
+    });
+
+    it('sends "input_image" field for flux-pro-1.1 model (img2img)', async () => {
+      const model = createModelWithId('flux-pro-1.1');
+      const testImageBase64 = Buffer.from('test-image-data').toString('base64');
+
+      await model.doGenerate({
+        prompt,
+        files: [
+          {
+            type: 'base64',
+            data: testImageBase64,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      // Non-fill model must use "input_image"
+      expect(requestBody).toHaveProperty('input_image');
+      expect(requestBody).not.toHaveProperty('image');
+      expect(requestBody.input_image).toBe(testImageBase64);
+    });
+
+    it('sends "input_image" field for generic test-model', async () => {
+      const model = createBasicModel();
+      const testImageBase64 = Buffer.from('test-image-data').toString('base64');
+
+      await model.doGenerate({
+        prompt,
+        files: [
+          {
+            type: 'base64',
+            data: testImageBase64,
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toHaveProperty('input_image');
+      expect(requestBody).not.toHaveProperty('image');
+    });
+
+    it('uses correct field suffixes for multiple images with fill model', async () => {
+      const model = createModelWithId('flux-pro-1.0-fill');
+      const img1 = Buffer.from('image-1').toString('base64');
+      const img2 = Buffer.from('image-2').toString('base64');
+      const img3 = Buffer.from('image-3').toString('base64');
+
+      await model.doGenerate({
+        prompt,
+        files: [
+          { type: 'base64', data: img1, mediaType: 'image/png' },
+          { type: 'base64', data: img2, mediaType: 'image/png' },
+          { type: 'base64', data: img3, mediaType: 'image/png' },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      // Fill model: image, image_2, image_3
+      expect(requestBody).toHaveProperty('image', img1);
+      expect(requestBody).toHaveProperty('image_2', img2);
+      expect(requestBody).toHaveProperty('image_3', img3);
+      expect(requestBody).not.toHaveProperty('input_image');
+      expect(requestBody).not.toHaveProperty('input_image_2');
+      expect(requestBody).not.toHaveProperty('input_image_3');
+    });
+
+    it('uses correct field suffixes for multiple images with non-fill model', async () => {
+      const model = createModelWithId('flux-pro-1.1');
+      const img1 = Buffer.from('image-1').toString('base64');
+      const img2 = Buffer.from('image-2').toString('base64');
+
+      await model.doGenerate({
+        prompt,
+        files: [
+          { type: 'base64', data: img1, mediaType: 'image/png' },
+          { type: 'base64', data: img2, mediaType: 'image/png' },
+        ],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: '1:1',
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      // Non-fill model: input_image, input_image_2
+      expect(requestBody).toHaveProperty('input_image', img1);
+      expect(requestBody).toHaveProperty('input_image_2', img2);
+      expect(requestBody).not.toHaveProperty('image');
+      expect(requestBody).not.toHaveProperty('image_2');
     });
   });
 });
