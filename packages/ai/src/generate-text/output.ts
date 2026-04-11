@@ -218,7 +218,7 @@ export const array = <ELEMENT>({
     // JSON schema that describes an array of elements:
     responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
       // remove $schema from schema.jsonSchema:
-      const { $schema, ...itemSchema } = jsonSchema;
+      const { $schema: _$schema, ...itemSchema } = jsonSchema;
 
       return {
         type: 'json' as const,

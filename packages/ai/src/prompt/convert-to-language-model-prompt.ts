@@ -412,7 +412,7 @@ async function downloadAssets(
       if (typeof data === 'string') {
         try {
           data = new URL(data);
-        } catch (ignored) {}
+        } catch {}
       }
 
       return { mediaType, data };
