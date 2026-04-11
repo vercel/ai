@@ -11,6 +11,7 @@ import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20260209ArgsSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
+import { replaceOneOfWithAnyOf } from './convert-anthropic-schema';
 
 export interface AnthropicToolOptions {
   deferLoading?: boolean;
@@ -89,7 +90,7 @@ export async function prepareTools({
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
-          input_schema: tool.inputSchema,
+          input_schema: replaceOneOfWithAnyOf(tool.inputSchema),
           cache_control: cacheControl,
           ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
           ...(supportsStrictTools === true && tool.strict != null
