@@ -254,6 +254,8 @@ export function convertToGoogleGenerativeAIMessages(
       case 'assistant': {
         systemMessagesAllowed = false;
 
+        let functionCallSignature: string | undefined;
+
         contents.push({
           role: 'model',
           parts: content
@@ -372,12 +374,21 @@ export function convertToGoogleGenerativeAIMessages(
                     };
                   }
 
+                  // With parallel tool calls, only the first tool call in a message may have a thoughtSignature.
+                  // Google expects to receive them on all tool calls though in subsequent turns.
+                  if (
+                    functionCallSignature == null &&
+                    thoughtSignature != null
+                  ) {
+                    functionCallSignature = thoughtSignature;
+                  }
+
                   return {
                     functionCall: {
                       name: part.toolName,
                       args: part.input,
                     },
-                    thoughtSignature,
+                    thoughtSignature: thoughtSignature ?? functionCallSignature,
                   };
                 }
 

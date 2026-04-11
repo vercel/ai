@@ -1286,7 +1286,7 @@ describe('assistant messages', () => {
 });
 
 describe('parallel tool calls', () => {
-  it('should include thought signature on functionCall when provided', async () => {
+  it('should propagate thought signature from first functionCall to all parallel functionCalls', async () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
         role: 'assistant',
@@ -1321,8 +1321,147 @@ describe('parallel tool calls', () => {
         args: { city: 'london' },
         name: 'checkweather',
       },
+      thoughtSignature: 'sig_parallel',
+    });
+  });
+
+  it('should propagate thought signature across three or more parallel functionCalls', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'checkweather',
+            input: { city: 'paris' },
+            providerOptions: { google: { thoughtSignature: 'sig_multi' } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call2',
+            toolName: 'checkweather',
+            input: { city: 'london' },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call3',
+            toolName: 'checkweather',
+            input: { city: 'tokyo' },
+          },
+        ],
+      },
+    ]);
+
+    for (const part of result.contents[0].parts) {
+      expect(part).toHaveProperty('thoughtSignature', 'sig_multi');
+    }
+  });
+
+  it('should not propagate when only a single functionCall exists', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'checkweather',
+            input: { city: 'paris' },
+            providerOptions: { google: { thoughtSignature: 'sig_single' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        args: { city: 'paris' },
+        name: 'checkweather',
+      },
+      thoughtSignature: 'sig_single',
+    });
+  });
+
+  it('should not modify parts when no functionCall has a thought signature', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'checkweather',
+            input: { city: 'paris' },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call2',
+            toolName: 'checkweather',
+            input: { city: 'london' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionCall: {
+        args: { city: 'paris' },
+        name: 'checkweather',
+      },
       thoughtSignature: undefined,
     });
+
+    expect(result.contents[0].parts[1]).toEqual({
+      functionCall: {
+        args: { city: 'london' },
+        name: 'checkweather',
+      },
+      thoughtSignature: undefined,
+    });
+  });
+
+  it('should preserve existing thought signatures and only fill missing ones', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call1',
+            toolName: 'checkweather',
+            input: { city: 'paris' },
+            providerOptions: { google: { thoughtSignature: 'sig_a' } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call2',
+            toolName: 'checkweather',
+            input: { city: 'london' },
+            providerOptions: { google: { thoughtSignature: 'sig_b' } },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call3',
+            toolName: 'checkweather',
+            input: { city: 'tokyo' },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toHaveProperty(
+      'thoughtSignature',
+      'sig_a',
+    );
+    expect(result.contents[0].parts[1]).toHaveProperty(
+      'thoughtSignature',
+      'sig_b',
+    );
+    expect(result.contents[0].parts[2]).toHaveProperty(
+      'thoughtSignature',
+      'sig_a',
+    );
   });
 });
 
