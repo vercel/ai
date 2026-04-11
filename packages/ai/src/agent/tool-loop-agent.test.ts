@@ -720,4 +720,226 @@ describe('ToolLoopAgent', () => {
       });
     });
   });
+
+  describe('onFinish', () => {
+    describe('generate', () => {
+      let mockModel: MockLanguageModelV3;
+
+      beforeEach(() => {
+        mockModel = new MockLanguageModelV3({
+          doGenerate: async () => {
+            return {
+              content: [{ type: 'text', text: 'reply' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                cachedInputTokens: undefined,
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 10,
+                  text: 10,
+                  reasoning: undefined,
+                },
+              },
+              warnings: [],
+            };
+          },
+        });
+      });
+
+      it('should call onFinish from constructor', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          onFinish: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+        });
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
+      });
+
+      it('should call onFinish from generate method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          onFinish: async () => {
+            calls.push('method');
+          },
+        });
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
+      it('should call both constructor and method onFinish in correct order', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          onFinish: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello, world!',
+          onFinish: async () => {
+            calls.push('method');
+          },
+        });
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
+      });
+    });
+
+    describe('stream', () => {
+      let mockModel: MockLanguageModelV3;
+
+      beforeEach(() => {
+        mockModel = new MockLanguageModelV3({
+          doStream: async () => {
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'stream-start',
+                  warnings: [],
+                },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello' },
+                { type: 'text-delta', id: '1', delta: ', ' },
+                { type: 'text-delta', id: '1', delta: 'world!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: {
+                    testProvider: { testKey: 'testValue' },
+                  },
+                },
+              ]),
+            };
+          },
+        });
+      });
+
+      it('should call onFinish from constructor', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          onFinish: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+          ]
+        `);
+      });
+
+      it('should call onFinish from stream method', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          onFinish: async () => {
+            calls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "method",
+          ]
+        `);
+      });
+
+      it('should call both constructor and method onFinish in correct order', async () => {
+        const calls: string[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          onFinish: async () => {
+            calls.push('constructor');
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'Hello, world!',
+          onFinish: async () => {
+            calls.push('method');
+          },
+        });
+
+        await result.consumeStream();
+
+        expect(calls).toMatchInlineSnapshot(`
+          [
+            "constructor",
+            "method",
+          ]
+        `);
+      });
+    });
+  });
 });
