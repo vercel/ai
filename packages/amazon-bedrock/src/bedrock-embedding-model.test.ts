@@ -24,6 +24,19 @@ const cohereV4EmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/
   'cohere.embed-v4:0',
 )}/invoke`;
 
+// Cross-region inference prepends a region prefix to the model ID.
+// AWS supports multiple prefix formats: 2-letter codes (us., eu., ap.),
+// multi-letter codes (apac., global.), and hyphenated codes (us-gov.).
+const crossRegionCohereModels = [
+  'eu.cohere.embed-v4:0',
+  'apac.cohere.embed-v4:0',
+  'global.cohere.embed-v4:0',
+  'us-gov.cohere.embed-v4:0',
+];
+const cohereEuCrossRegionEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
+  'eu.cohere.embed-v4:0',
+)}/invoke`;
+
 describe('doEmbed', () => {
   const mockConfigHeaders = {
     'config-header': 'config-value',
@@ -71,6 +84,20 @@ describe('doEmbed', () => {
         ),
       },
     },
+    ...Object.fromEntries(
+      crossRegionCohereModels.map(modelId => [
+        `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(modelId)}/invoke`,
+        {
+          response: {
+            type: 'binary' as const,
+            headers: { 'content-type': 'application/json' },
+            body: Buffer.from(
+              JSON.stringify({ embeddings: { float: [mockEmbeddings[0]] } }),
+            ),
+          },
+        },
+      ]),
+    ),
   });
 
   const model = new BedrockEmbeddingModel('amazon.titan-embed-text-v2:0', {
@@ -228,6 +255,38 @@ describe('doEmbed', () => {
       output_dimension: 256,
     });
   });
+
+  it.each(crossRegionCohereModels)(
+    'should support cross-region inference prefix for Cohere embedding models (%s)',
+    async modelId => {
+      const crossRegionModel = new BedrockEmbeddingModel(modelId, {
+        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+        headers: mockConfigHeaders,
+        fetch: fakeFetchWithAuth,
+      });
+
+      const { embeddings } = await crossRegionModel.doEmbed({
+        values: [testValues[0]],
+        providerOptions: {
+          bedrock: {
+            inputType: 'search_document',
+            outputDimension: 1024,
+          },
+        },
+      });
+
+      expect(embeddings.length).toBe(1);
+      expect(embeddings[0]).toEqual([-0.09, 0.05, -0.02, 0.01, 0.04]);
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toEqual({
+        input_type: 'search_document',
+        texts: [testValues[0]],
+        truncate: undefined,
+        output_dimension: 1024,
+      });
+    },
+  );
 
   it('should properly combine headers from all sources', async () => {
     const optionsHeaders = {
