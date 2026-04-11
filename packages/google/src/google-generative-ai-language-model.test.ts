@@ -383,6 +383,11 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_2_5_FLASH]: {},
   });
 
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
+  });
+
   function prepareJsonFixtureResponse(
     filename: string,
     {
@@ -485,13 +490,11 @@ describe('doGenerate', () => {
         id: response?.id,
         timestamp: response?.timestamp,
         modelId: response?.modelId,
-      }).toMatchInlineSnapshot(`
-        {
-          "id": undefined,
-          "modelId": undefined,
-          "timestamp": undefined,
-        }
-      `);
+      }).toMatchObject({
+        id: 'Un6LacrVMcjUxs0PmJfWoQc',
+        modelId: 'gemini-3-pro-preview',
+        timestamp: new Date('2024-01-01T00:00:00.000Z'),
+      });
     });
   });
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
@@ -518,7 +521,7 @@ describe('doGenerate', () => {
       },
     };
 
-    const { content, finishReason } = await model.doGenerate({
+    const { content, finishReason, response } = await model.doGenerate({
       prompt: TEST_PROMPT,
     });
 
@@ -529,6 +532,10 @@ describe('doGenerate', () => {
         "unified": "error",
       }
     `);
+    expect(response).toMatchObject({
+      modelId: 'gemini-2.0-flash-lite',
+      timestamp: expect.any(Date),
+    });
   });
 
   it('should expose finishMessage in provider metadata', async () => {

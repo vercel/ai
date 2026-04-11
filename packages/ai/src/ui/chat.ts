@@ -4,6 +4,7 @@ import {
   IdGenerator,
   InferSchema,
 } from '@ai-sdk/provider-utils';
+import { JSONObject } from '@ai-sdk/provider';
 import { FinishReason } from '../types/language-model';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
@@ -57,7 +58,7 @@ export type ChatRequestOptions = {
   /**
    * Additional body JSON properties that should be sent to the API endpoint.
    */
-  body?: object; // TODO JSONStringifyable
+  body?: JSONObject;
 
   metadata?: unknown;
 };
