@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- 5b7e7c2: fix(google-vertex): don't send streamFunctionCallArguments for unary API calls and change default to false
+
 ## 4.0.0-beta.33
 
 ### Patch Changes
