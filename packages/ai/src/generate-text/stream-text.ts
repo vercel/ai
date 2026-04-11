@@ -9,6 +9,7 @@ import {
   DelayedPromise,
   IdGenerator,
   isAbortError,
+  ModelMessage,
   ProviderOptions,
   ToolContent,
 } from '@ai-sdk/provider-utils';
@@ -208,6 +209,29 @@ export type StreamTextOnAbortCallback<
    * Details for all previously finished steps.
    */
   readonly steps: StepResult<TOOLS, USER_CONTEXT>[];
+  /**
+   * Token usage for the current (aborted) step.
+   * undefined if the provider had not yet sent usage data before the abort.
+   */
+  readonly usage?: LanguageModelUsage;
+  /**
+   * Aggregated token usage across all completed steps plus the current step.
+   * undefined if no usage data was received before the abort.
+   */
+  readonly totalUsage?: LanguageModelUsage;
+  /**
+   * The input messages for the most recently started step: initial messages
+   * plus all prior completed step response messages. Empty array if abort
+   * fires before the first step starts. Use with your own tokenizer to
+   * estimate prompt token cost when provider usage is unavailable.
+   */
+  readonly inputMessages: ModelMessage[];
+  /**
+   * The text that was actively being streamed in the current step at abort
+   * time. undefined if no text was being streamed. Resets at each step
+   * boundary. Use with your own tokenizer to estimate completion token cost.
+   */
+  readonly partialText?: string;
 }>;
 
 /**
@@ -883,9 +907,12 @@ class DefaultStreamTextResult<
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedRawFinishReason: string | undefined = undefined;
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
+    let currentStepUsage: LanguageModelUsage | undefined = undefined;
+    let completedStepsUsage: LanguageModelUsage | undefined = undefined;
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS, USER_CONTEXT>[] = [];
+    let currentStepInputMessages: ModelMessage[] = [];
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -900,6 +927,9 @@ class DefaultStreamTextResult<
         providerMetadata: ProviderMetadata | undefined;
       }
     > = {};
+
+    // Text accumulated before eventProcessor, used by abort() to report partialText.
+    let pullLevelTextContent: Record<string, string> = {};
 
     let activeReasoningContent: Record<
       string,
@@ -1229,7 +1259,22 @@ class DefaultStreamTextResult<
       async pull(controller) {
         // abort handling:
         function abort() {
-          onAbort?.({ steps: recordedSteps });
+          const totalUsage =
+            currentStepUsage != null || completedStepsUsage != null
+              ? addLanguageModelUsage(
+                  completedStepsUsage ?? createNullLanguageModelUsage(),
+                  currentStepUsage ?? createNullLanguageModelUsage(),
+                )
+              : undefined;
+          const partialText =
+            Object.values(pullLevelTextContent).join('') || undefined;
+          onAbort?.({
+            steps: recordedSteps,
+            usage: currentStepUsage,
+            totalUsage,
+            inputMessages: currentStepInputMessages,
+            partialText,
+          });
           controller.enqueue({
             type: 'abort',
             // The `reason` is usually of type DOMException, but it can also be of any type,
@@ -1551,6 +1596,7 @@ class DefaultStreamTextResult<
           stepFinish = new DelayedPromise<void>();
 
           const stepInputMessages = [...initialMessages, ...responseMessages];
+          currentStepInputMessages = stepInputMessages;
 
           const prepareStepResult = await prepareStep?.({
             model,
@@ -1726,6 +1772,8 @@ class DefaultStreamTextResult<
                     const msToFirstChunk = now() - stepStartTimestampMs;
                     stepFirstChunk = false;
 
+                    pullLevelTextContent = {};
+
                     // Step start:
                     controller.enqueue({
                       type: 'start-step',
@@ -1747,15 +1795,27 @@ class DefaultStreamTextResult<
 
                   const chunkType = chunk.type;
                   switch (chunkType) {
-                    case 'tool-approval-request':
-                    case 'text-start':
+                    case 'tool-approval-request': {
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
+                    case 'text-start': {
+                      pullLevelTextContent[chunk.id] = '';
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
                     case 'text-end': {
+                      delete pullLevelTextContent[chunk.id];
                       controller.enqueue(chunk);
                       break;
                     }
 
                     case 'text-delta': {
                       if (chunk.text.length > 0) {
+                        pullLevelTextContent[chunk.id] =
+                          (pullLevelTextContent[chunk.id] ?? '') + chunk.text;
                         controller.enqueue(chunk);
                       }
                       break;
@@ -1813,6 +1873,7 @@ class DefaultStreamTextResult<
                       // Note: tool executions might not be finished yet when the finish event is emitted.
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;
+                      currentStepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
@@ -1894,6 +1955,10 @@ class DefaultStreamTextResult<
                   });
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
+
+                  // track cumulative usage of completed steps for the onAbort callback:
+                  completedStepsUsage = combinedUsage;
+                  currentStepUsage = undefined;
 
                   // wait for the step to be fully processed by the event processor
                   // to ensure that the recorded steps are complete:

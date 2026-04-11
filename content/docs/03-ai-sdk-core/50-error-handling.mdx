@@ -123,7 +123,11 @@ for await (const textPart of textStream) {
 
 The `onAbort` callback receives:
 
-- `steps`: An array of all completed steps before the abort
+- `steps`: All completed steps before the abort
+- `usage`: Token usage for the current (aborted) step, or `undefined` if not yet received
+- `totalUsage`: Aggregated usage across all completed steps plus the current step, or `undefined` if no usage data was received
+- `inputMessages`: The input messages for the current step, including prior step responses
+- `partialText`: The text being streamed at abort time, or `undefined` if no text was generated
 
 You can also handle abort events directly in the stream:
 
