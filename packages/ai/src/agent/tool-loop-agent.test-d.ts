@@ -35,6 +35,23 @@ describe('ToolLoopAgent', () => {
   });
 
   describe('generate', () => {
+    it('should accept experimental_onToolCallStart and experimental_onToolCallFinish', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV3(),
+      });
+
+      // Should compile without error
+      await agent.generate({
+        prompt: 'Hello',
+        experimental_onToolCallStart: async ({ toolCall }) => {
+          toolCall;
+        },
+        experimental_onToolCallFinish: async ({ toolCall }) => {
+          toolCall;
+        },
+      });
+    });
+
     it('should not allow system prompt', async () => {
       const agent = new ToolLoopAgent({
         model: new MockLanguageModelV3(),
