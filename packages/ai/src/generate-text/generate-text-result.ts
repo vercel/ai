@@ -11,7 +11,12 @@ import { InferCompleteOutput } from './output-utils';
 import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import {
+  DynamicToolCall,
+  InvalidToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
 import {
   DynamicToolResult,
   StaticToolResult,
@@ -73,6 +78,11 @@ export interface GenerateTextResult<
    * The dynamic tool calls that were made in the last step.
    */
   readonly dynamicToolCalls: Array<DynamicToolCall>;
+
+  /**
+   * The invalid tool calls from the last step (tool not found or bad input).
+   */
+  readonly invalidToolCalls: Array<InvalidToolCall>;
 
   /**
    * The results of the tool calls from the last step.

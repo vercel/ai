@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@ai-sdk/provider-utils';
 import {
   AssistantContent,
   AssistantModelMessage,
@@ -84,7 +85,10 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           input:
-            part.invalid && typeof part.input !== 'object' ? {} : part.input,
+            part.invalid === true &&
+            (typeof part.input !== 'object' || part.input === null)
+              ? {}
+              : part.input,
           providerExecuted: part.providerExecuted,
           providerOptions: part.providerMetadata,
         });
@@ -142,6 +146,16 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
 
   const toolResultContent: ToolContent = [];
   for (const part of inputContent) {
+    if (part.type === 'tool-call' && part.invalid === true) {
+      toolResultContent.push({
+        type: 'tool-result',
+        toolCallId: part.toolCallId,
+        toolName: part.toolName,
+        output: { type: 'text', value: getErrorMessage(part.error) },
+      });
+      continue;
+    }
+
     if (
       !(part.type === 'tool-result' || part.type === 'tool-error') ||
       part.providerExecuted

@@ -10,7 +10,6 @@ import type {
 } from '@ai-sdk/provider-utils';
 import {
   createIdGenerator,
-  getErrorMessage,
   IdGenerator,
   ProviderOptions,
   withUserAgentSuffix,
@@ -837,24 +836,7 @@ export async function generateText<
           }
         }
 
-        // insert error tool outputs for invalid tool calls:
-        // TODO AI SDK 6: invalid inputs should not require output parts
-        const invalidToolCalls = stepToolCalls.filter(
-          toolCall => toolCall.invalid && toolCall.dynamic,
-        );
-
         clientToolOutputs = [];
-
-        for (const toolCall of invalidToolCalls) {
-          clientToolOutputs.push({
-            type: 'tool-error',
-            toolCallId: toolCall.toolCallId,
-            toolName: toolCall.toolName,
-            input: toolCall.input,
-            error: getErrorMessage(toolCall.error!),
-            dynamic: true,
-          });
-        }
 
         // execute client tool calls:
         clientToolCalls = stepToolCalls.filter(
@@ -1059,6 +1041,7 @@ export async function generateText<
       toolCalls: lastStep.toolCalls,
       staticToolCalls: lastStep.staticToolCalls,
       dynamicToolCalls: lastStep.dynamicToolCalls,
+      invalidToolCalls: lastStep.invalidToolCalls,
       toolResults: lastStep.toolResults,
       staticToolResults: lastStep.staticToolResults,
       dynamicToolResults: lastStep.dynamicToolResults,
@@ -1218,6 +1201,10 @@ class DefaultGenerateTextResult<
 
   get dynamicToolCalls() {
     return this.finalStep.dynamicToolCalls;
+  }
+
+  get invalidToolCalls() {
+    return this.finalStep.invalidToolCalls;
   }
 
   get toolResults() {

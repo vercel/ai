@@ -551,7 +551,8 @@ describe('generateText', () => {
       // test type inference
       if (
         result.toolCalls[0].toolName === 'tool1' &&
-        !result.toolCalls[0].dynamic
+        !result.toolCalls[0].dynamic &&
+        !result.toolCalls[0].invalid
       ) {
         assertType<string>(result.toolCalls[0].input.value);
       }
@@ -4459,7 +4460,8 @@ describe('generateText', () => {
       // test type inference
       if (
         result.toolCalls[0].toolName === 'tool1' &&
-        !result.toolCalls[0].dynamic
+        !result.toolCalls[0].dynamic &&
+        !result.toolCalls[0].invalid
       ) {
         assertType<string>(result.toolCalls[0].input.value);
       }
@@ -6652,7 +6654,6 @@ describe('generateText', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "dynamic": true,
               "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
@@ -6670,30 +6671,11 @@ describe('generateText', () => {
               "invalid": true,
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "rawInput": "{ "cities": "San Francisco" }",
               "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
-            },
-            {
-              "dynamic": true,
-              "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
-          Error message: [
-            {
-              "expected": "string",
-              "code": "invalid_type",
-              "path": [
-                "city"
-              ],
-              "message": "Invalid input: expected string, received undefined"
-            }
-          ]",
-              "input": {
-                "cities": "San Francisco",
-              },
-              "toolCallId": "call-1",
-              "toolName": "cityAttractions",
-              "type": "tool-error",
             },
           ]
         `);

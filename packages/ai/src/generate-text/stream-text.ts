@@ -1188,6 +1188,7 @@ class DefaultStreamTextResult<
               toolCalls: finalStep.toolCalls,
               staticToolCalls: finalStep.staticToolCalls,
               dynamicToolCalls: finalStep.dynamicToolCalls,
+              invalidToolCalls: finalStep.invalidToolCalls,
               toolResults: finalStep.toolResults,
               staticToolResults: finalStep.staticToolResults,
               dynamicToolResults: finalStep.dynamicToolResults,
@@ -2083,6 +2084,10 @@ class DefaultStreamTextResult<
     return this.finalStep.then(step => step.dynamicToolCalls);
   }
 
+  get invalidToolCalls() {
+    return this.finalStep.then(step => step.invalidToolCalls);
+  }
+
   get toolResults() {
     return this.finalStep.then(step => step.toolResults);
   }
@@ -2258,11 +2263,9 @@ class DefaultStreamTextResult<
           })
         : undefined;
 
-    // TODO simplify once dynamic is no longer needed for invalid tool inputs
     const isDynamic = (part: { toolName: string; dynamic?: boolean }) => {
       const tool = this.tools?.[part.toolName];
 
-      // provider-executed, dynamic tools are not listed in the tools object
       if (tool == null) {
         return part.dynamic;
       }
@@ -2436,8 +2439,6 @@ class DefaultStreamTextResult<
             }
 
             case 'tool-call': {
-              const dynamic = isDynamic(part);
-
               if (part.invalid) {
                 controller.enqueue({
                   type: 'tool-input-error',
@@ -2450,11 +2451,13 @@ class DefaultStreamTextResult<
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
-                  ...(dynamic != null ? { dynamic } : {}),
+                  invalid: true,
                   errorText: onError(part.error),
                   ...(part.title != null ? { title: part.title } : {}),
                 });
               } else {
+                const dynamic = isDynamic(part);
+
                 controller.enqueue({
                   type: 'tool-input-available',
                   toolCallId: part.toolCallId,

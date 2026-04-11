@@ -13898,7 +13898,11 @@ describe('streamText', () => {
             }
 
             // assuming test arg structure:
-            if (chunk.type === 'tool-call' && !chunk.dynamic) {
+            if (
+              chunk.type === 'tool-call' &&
+              !chunk.dynamic &&
+              !chunk.invalid
+            ) {
               chunk.input = {
                 ...chunk.input,
                 value: chunk.input.value.toUpperCase(),

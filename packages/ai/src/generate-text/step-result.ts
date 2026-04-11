@@ -22,7 +22,12 @@ import {
   convertFromReasoningOutputs,
 } from './reasoning-output';
 import { ResponseMessage } from './response-message';
-import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
+import {
+  DynamicToolCall,
+  InvalidToolCall,
+  StaticToolCall,
+  TypedToolCall,
+} from './tool-call';
 import {
   DynamicToolResult,
   StaticToolResult,
@@ -117,6 +122,11 @@ export type StepResult<
    * The dynamic tool calls that were made in the last step.
    */
   readonly dynamicToolCalls: Array<DynamicToolCall>;
+
+  /**
+   * The invalid tool calls from the last step (tool not found or bad input).
+   */
+  readonly invalidToolCalls: Array<InvalidToolCall>;
 
   /**
    * The results of the tool calls.
@@ -291,13 +301,20 @@ export class DefaultStepResult<
   get staticToolCalls() {
     return this.toolCalls.filter(
       (toolCall): toolCall is StaticToolCall<TOOLS> =>
-        toolCall.dynamic !== true,
+        toolCall.invalid !== true && toolCall.dynamic !== true,
     );
   }
 
   get dynamicToolCalls() {
     return this.toolCalls.filter(
-      (toolCall): toolCall is DynamicToolCall => toolCall.dynamic === true,
+      (toolCall): toolCall is DynamicToolCall =>
+        toolCall.invalid !== true && toolCall.dynamic === true,
+    );
+  }
+
+  get invalidToolCalls() {
+    return this.toolCalls.filter(
+      (toolCall): toolCall is InvalidToolCall => toolCall.invalid === true,
     );
   }
 
