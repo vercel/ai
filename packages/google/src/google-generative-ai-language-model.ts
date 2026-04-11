@@ -85,21 +85,24 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private async getArgs({
-    prompt,
-    maxOutputTokens,
-    temperature,
-    topP,
-    topK,
-    frequencyPenalty,
-    presencePenalty,
-    stopSequences,
-    responseFormat,
-    seed,
-    tools,
-    toolChoice,
-    providerOptions,
-  }: LanguageModelV3CallOptions) {
+  private async getArgs(
+    {
+      prompt,
+      maxOutputTokens,
+      temperature,
+      topP,
+      topK,
+      frequencyPenalty,
+      presencePenalty,
+      stopSequences,
+      responseFormat,
+      seed,
+      tools,
+      toolChoice,
+      providerOptions,
+    }: LanguageModelV3CallOptions,
+    { isStreaming = false }: { isStreaming?: boolean } = {},
+  ) {
     const warnings: SharedV3Warning[] = [];
 
     const providerOptionsName = this.config.provider.includes('vertex')
@@ -170,9 +173,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       modelId: this.modelId,
     });
 
-    const streamFunctionCallArguments = isVertexProvider
-      ? (googleOptions?.streamFunctionCallArguments ?? true)
-      : undefined;
+    const streamFunctionCallArguments =
+      isStreaming && isVertexProvider
+        ? (googleOptions?.streamFunctionCallArguments ?? false)
+        : undefined;
 
     const toolConfig =
       googleToolConfig ||
@@ -468,7 +472,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
   async doStream(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings, providerOptionsName } = await this.getArgs(options);
+    const { args, warnings, providerOptionsName } = await this.getArgs(
+      options,
+      { isStreaming: true },
+    );
 
     const headers = combineHeaders(
       await resolve(this.config.headers),
