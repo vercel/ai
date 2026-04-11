@@ -182,8 +182,23 @@ export const anthropicProviderOptions = z.object({
   speed: z.enum(['fast', 'standard']).optional(),
 
   /**
+<<<<<<< HEAD
    * Context management configuration for automatic context window management.
    * Enables features like automatic compaction and clearing of tool uses/thinking blocks.
+=======
+   * Controls where model inference runs for this request.
+   *
+   * - `"global"`: Inference may run in any available geography (default).
+   * - `"us"`: Inference runs only in US-based infrastructure.
+   *
+   * See https://platform.claude.com/docs/en/build-with-claude/data-residency
+   */
+  inferenceGeo: z.enum(['us', 'global']).optional(),
+
+  /**
+   * A set of beta features to enable.
+   * Allow a provider to receive the full `betas` set if it needs it.
+>>>>>>> 61f1a61bc (Backport: feat (provider/anthropic): add support for inference_geo provider option (#14344))
    */
   contextManagement: z
     .object({
