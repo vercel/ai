@@ -1,6 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod/v4';
-import type { Context } from './context';
 import type { InferToolSetContext } from './infer-tool-set-context';
 import { tool } from './tool';
 
@@ -59,8 +58,6 @@ describe('InferToolSetContext', () => {
       }),
     };
 
-    expectTypeOf<
-      InferToolSetContext<typeof tools>
-    >().toMatchObjectType<Context>();
+    expectTypeOf<InferToolSetContext<typeof tools>>().toEqualTypeOf<unknown>();
   });
 });

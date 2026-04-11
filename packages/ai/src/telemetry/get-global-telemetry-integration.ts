@@ -1,6 +1,8 @@
-import type { Output } from '../generate-text/output';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { Output } from '../generate-text/output';
 import { asArray } from '../util/as-array';
+import { mergeListeners } from '../util/merge-listeners';
+import type { Listener } from '../util/notify';
 import type { TelemetryIntegration } from './telemetry-integration';
 import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
 
@@ -52,19 +54,13 @@ export function getGlobalTelemetryIntegration<
     function createTelemetryComposite<EVENT>(
       getListenerFromIntegration: (
         integration: TelemetryIntegration,
-      ) => ((event: EVENT) => PromiseLike<void> | void) | undefined,
-    ): ((event: EVENT) => Promise<void>) | undefined {
+      ) => Listener<EVENT> | undefined,
+    ): Listener<EVENT> | undefined {
       const listeners = allIntegrations
         .map(getListenerFromIntegration)
-        .filter(Boolean) as Array<(event: EVENT) => PromiseLike<void> | void>;
+        .filter(Boolean) as Array<Listener<EVENT>>;
 
-      return async (event: EVENT) => {
-        for (const listener of listeners) {
-          try {
-            await listener(event);
-          } catch (_ignored) {}
-        }
-      };
+      return mergeListeners(...listeners);
     }
 
     const executeWrappers = allIntegrations
