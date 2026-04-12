@@ -26,8 +26,7 @@ export function lastAssistantMessageIsCompleteWithApprovalResponses({
 
   const lastStepToolInvocations = message.parts
     .slice(lastStepStartIndex + 1)
-    .filter(isToolUIPart)
-    .filter(part => !part.providerExecuted);
+    .filter(isToolUIPart);
 
   return (
     // has at least one tool approval response

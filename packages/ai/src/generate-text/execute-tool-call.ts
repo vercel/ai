@@ -1,3 +1,8 @@
+import type {
+  Context,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import {
   getToolTimeoutMs,
@@ -14,8 +19,6 @@ import { TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
-import type { GenerationContext } from './generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Executes a single tool call and manages its lifecycle callbacks.
@@ -30,7 +33,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  */
 export async function executeToolCall<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
 >({
   toolCall,
   tools,
@@ -54,7 +57,7 @@ export async function executeToolCall<
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  context: CONTEXT;
+  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
   timeout?: TimeoutConfiguration<TOOLS>;
   stepNumber?: number;
   provider?: string;

@@ -1,3 +1,16 @@
+import type { ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  EmbedFinishEvent,
+  EmbedOnFinishEvent,
+  EmbedOnStartEvent,
+  EmbedStartEvent,
+} from '../embed/embed-events';
+import type {
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
+} from '../generate-object/structured-output-events';
 import type {
   OnChunkEvent,
   OnFinishEvent,
@@ -7,25 +20,11 @@ import type {
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
 } from '../generate-text/core-events';
-import type { Output } from '../generate-text/output';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 import type {
-  EmbedOnStartEvent,
-  EmbedOnFinishEvent,
-  EmbedStartEvent,
-  EmbedFinishEvent,
-} from '../embed/embed-events';
-import type {
-  ObjectOnStartEvent,
-  ObjectOnFinishEvent,
-  ObjectOnStepStartEvent,
-  ObjectOnStepFinishEvent,
-} from '../generate-object/structured-output-events';
-import type {
-  RerankOnStartEvent,
-  RerankOnFinishEvent,
-  RerankStartEvent,
   RerankFinishEvent,
+  RerankOnFinishEvent,
+  RerankOnStartEvent,
+  RerankStartEvent,
 } from '../rerank/rerank-events';
 import { Listener } from '../util/notify';
 
@@ -42,10 +41,7 @@ export interface TelemetryIntegration {
    * Use the `operationId` field to distinguish between operation types.
    */
   onStart?: Listener<
-    | OnStartEvent<ToolSet, Output>
-    | ObjectOnStartEvent
-    | EmbedOnStartEvent
-    | RerankOnStartEvent
+    OnStartEvent | ObjectOnStartEvent | EmbedOnStartEvent | RerankOnStartEvent
   >;
 
   /**
@@ -57,13 +53,13 @@ export interface TelemetryIntegration {
    * The event includes the step number, accumulated previous step results,
    * and the messages that will be sent to the model.
    */
-  onStepStart?: Listener<OnStepStartEvent<ToolSet, Output>>;
+  onStepStart?: Listener<OnStepStartEvent>;
 
   /**
    * Called when a tool execution begins, before the tool's `execute` function
    * is invoked. Use this to create tool-level spans or log tool invocations.
    */
-  onToolCallStart?: Listener<OnToolCallStartEvent<ToolSet>>;
+  onToolCallStart?: Listener<OnToolCallStartEvent>;
 
   /**
    * Called when a tool execution completes, either successfully or with an error.
@@ -72,7 +68,7 @@ export interface TelemetryIntegration {
    *
    * The event includes execution duration (`durationMs`) for performance tracking.
    */
-  onToolCallFinish?: Listener<OnToolCallFinishEvent<ToolSet>>;
+  onToolCallFinish?: Listener<OnToolCallFinishEvent>;
 
   /**
    * Called for each chunk received during streaming.
@@ -86,7 +82,7 @@ export interface TelemetryIntegration {
    * and results, usage statistics, finish reason, and optional request/response
    * bodies.
    */
-  onStepFinish?: Listener<OnStepFinishEvent<ToolSet>>;
+  onStepFinish?: Listener<OnStepFinishEvent>;
 
   /**
    * Called when an object generation step (single LLM invocation) begins.

@@ -924,6 +924,48 @@ describe('MCPClient', () => {
     }
   });
 
+  it('should expose serverInfo from initialization', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          initializeResult: {
+            protocolVersion: '2025-11-25',
+            serverInfo: {
+              name: 'my-server',
+              version: '2.0.0',
+              title: 'My Server',
+            },
+            capabilities: { tools: {} },
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(client.serverInfo).toMatchInlineSnapshot(`
+      {
+        "name": "my-server",
+        "title": "My Server",
+        "version": "2.0.0",
+      }
+    `);
+  });
+
+  it('should expose serverInfo without title when server omits it', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(client.serverInfo).toMatchInlineSnapshot(`
+      {
+        "name": "mock-mcp-server",
+        "version": "1.0.0",
+      }
+    `);
+  });
+
   it('should close transport when client is closed', async () => {
     const mockTransport = new MockMCPTransport();
     const closeSpy = vi.spyOn(mockTransport, 'close');

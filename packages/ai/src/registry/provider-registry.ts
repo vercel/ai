@@ -1,5 +1,7 @@
 import {
   EmbeddingModelV4,
+  Experimental_VideoModelV4,
+  FilesV4,
   ImageModelV4,
   LanguageModelV4,
   NoSuchModelError,
@@ -7,6 +9,7 @@ import {
   ProviderV3,
   ProviderV4,
   RerankingModelV4,
+  SkillsV4,
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
@@ -79,6 +82,13 @@ export interface ProviderRegistryProvider<
   rerankingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): RerankingModelV4;
+
+  videoModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): Experimental_VideoModelV4;
+
+  files<KEY extends keyof PROVIDERS>(providerId: KEY & string): FilesV4;
+  skills<KEY extends keyof PROVIDERS>(providerId: KEY & string): SkillsV4;
 }
 
 /**
@@ -178,7 +188,8 @@ class DefaultProviderRegistry<
       | 'imageModel'
       | 'transcriptionModel'
       | 'speechModel'
-      | 'rerankingModel',
+      | 'rerankingModel'
+      | 'videoModel',
   ): ProviderV4 {
     const provider = this.providers[id as keyof PROVIDERS];
 
@@ -202,7 +213,8 @@ class DefaultProviderRegistry<
       | 'imageModel'
       | 'transcriptionModel'
       | 'speechModel'
-      | 'rerankingModel',
+      | 'rerankingModel'
+      | 'videoModel',
   ): [string, string] {
     const index = id.indexOf(this.separator);
 
@@ -327,5 +339,68 @@ class DefaultProviderRegistry<
     }
 
     return model;
+  }
+
+  videoModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): Experimental_VideoModelV4 {
+    const [providerId, modelId] = this.splitId(id, 'videoModel');
+    const provider = this.getProvider(providerId, 'videoModel');
+
+    const model = (provider as any).videoModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'videoModel' });
+    }
+
+    return model;
+  }
+
+  files<KEY extends keyof PROVIDERS>(providerId: KEY & string): FilesV4 {
+    const providerInstance = this.providers[providerId as keyof PROVIDERS];
+
+    if (providerInstance == null) {
+      throw new NoSuchProviderError({
+        modelId: providerId,
+        modelType: 'languageModel',
+        providerId,
+        availableProviders: Object.keys(this.providers),
+      });
+    }
+
+    const filesInterface = asProviderV4(providerInstance).files?.();
+
+    if (filesInterface == null) {
+      throw new Error(
+        `Provider '${providerId}' does not support files. ` +
+          `Make sure the provider has a files() method.`,
+      );
+    }
+
+    return filesInterface;
+  }
+
+  skills<KEY extends keyof PROVIDERS>(providerId: KEY & string): SkillsV4 {
+    const providerInstance = this.providers[providerId as keyof PROVIDERS];
+
+    if (providerInstance == null) {
+      throw new NoSuchProviderError({
+        modelId: providerId,
+        modelType: 'languageModel',
+        providerId,
+        availableProviders: Object.keys(this.providers),
+      });
+    }
+
+    const skillsInterface = asProviderV4(providerInstance).skills?.();
+
+    if (skillsInterface == null) {
+      throw new Error(
+        `Provider '${providerId}' does not support skills. ` +
+          `Make sure the provider has a skills() method.`,
+      );
+    }
+
+    return skillsInterface;
   }
 }

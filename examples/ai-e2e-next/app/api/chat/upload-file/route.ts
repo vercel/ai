@@ -5,18 +5,14 @@ import { xai } from '@ai-sdk/xai';
 import {
   consumeStream,
   convertToModelMessages,
+  createProviderRegistry,
   streamText,
   UIMessage,
 } from 'ai';
 
 export const maxDuration = 60;
 
-const providerMap = {
-  anthropic: (modelId: string) => anthropic(modelId),
-  google: (modelId: string) => google(modelId),
-  openai: (modelId: string) => openai.responses(modelId),
-  xai: (modelId: string) => xai(modelId),
-};
+const registry = createProviderRegistry({ anthropic, google, openai, xai });
 
 export async function POST(req: Request) {
   const {
@@ -29,7 +25,7 @@ export async function POST(req: Request) {
     providerId: 'anthropic' | 'google' | 'openai' | 'xai';
   } = await req.json();
 
-  const model = providerMap[providerId](modelId);
+  const model = registry.languageModel(`${providerId}:${modelId}`);
 
   const result = streamText({
     model,

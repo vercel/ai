@@ -316,7 +316,7 @@ describe('bindTelemetryIntegration', () => {
   });
 
   it('bound integration works correctly with getGlobalTelemetryIntegration', async () => {
-    class DevToolsIntegration implements TelemetryIntegration {
+    class DevToolsTelemetry implements TelemetryIntegration {
       calls: string[] = [];
 
       async onStart() {
@@ -328,7 +328,7 @@ describe('bindTelemetryIntegration', () => {
       }
     }
 
-    const instance = new DevToolsIntegration();
+    const instance = new DevToolsTelemetry();
     const bound = bindTelemetryIntegration(instance);
     const listeners = getGlobalTelemetryIntegration()({
       integrations: [bound],

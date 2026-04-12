@@ -250,7 +250,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       messages: [],
     },
     providerMetadata: undefined,
-    context: undefined,
+    context: {},
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onStepFinish']>>[0];
 }

@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- 3ae1786: fix: better context type inference
+
 ## 5.0.0-beta.16
 
 ### Patch Changes
