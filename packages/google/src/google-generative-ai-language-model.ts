@@ -810,6 +810,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                   part.functionCall.args == null &&
                   part.functionCall.partialArgs == null &&
                   part.functionCall.willContinue == null;
+                // Detect the final streaming chunk: has partialArgs but
+                // willContinue is absent (not explicitly true).  For array
+                // args the Vertex API omits the separate empty terminal
+                // chunk and instead sends the last data with no
+                // willContinue flag.
+                const isFinalStreamingChunk =
+                  part.functionCall.partialArgs != null &&
+                  part.functionCall.willContinue == null &&
+                  part.functionCall.name == null &&
+                  part.functionCall.args == null;
                 const isCompleteCall =
                   part.functionCall.name != null &&
                   part.functionCall.args != null &&
@@ -866,6 +876,40 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                         id: active.toolCallId,
                         delta: textDelta,
                         providerMetadata: providerMeta,
+                      });
+                    }
+
+                    // If this is the final streaming chunk (no willContinue),
+                    // finalize the tool call immediately.  For array args the
+                    // Vertex API does not send a separate empty terminal chunk.
+                    if (isFinalStreamingChunk) {
+                      const finalized = activeStreamingToolCalls.pop()!;
+                      const { finalJSON, closingDelta } =
+                        finalized.accumulator.finalize();
+
+                      if (closingDelta.length > 0) {
+                        controller.enqueue({
+                          type: 'tool-input-delta',
+                          id: finalized.toolCallId,
+                          delta: closingDelta,
+                          providerMetadata: finalized.providerMetadata,
+                        });
+                      }
+
+                      controller.enqueue({
+                        type: 'tool-input-end',
+                        id: finalized.toolCallId,
+                        input: JSON.stringify(finalJSON),
+                        providerMetadata: finalized.providerMetadata,
+                      });
+
+                      controller.enqueue({
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: finalized.toolCallId,
+                        toolName: finalized.toolName,
+                        args: JSON.stringify(finalJSON),
+                        providerMetadata: finalized.providerMetadata,
                       });
                     }
                   }
