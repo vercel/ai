@@ -1,4 +1,9 @@
-import { NoSuchModelError } from '@ai-sdk/provider';
+import {
+  Experimental_VideoModelV4,
+  FilesV4,
+  NoSuchModelError,
+  SkillsV4,
+} from '@ai-sdk/provider';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { NoSuchProviderError } from './no-such-provider-error';
@@ -687,5 +692,152 @@ describe('middleware functionality', () => {
     expect(overrideModelId).toHaveBeenCalledWith({ model: model1 });
     expect(overrideModelId).toHaveBeenCalledWith({ model: model2 });
     expect(overrideModelId).toHaveBeenCalledWith({ model: model3 });
+  });
+});
+
+describe('videoModel', () => {
+  it('should return video model from provider', () => {
+    const model = {
+      specificationVersion: 'v4',
+      provider: 'test',
+      modelId: 'model',
+      maxVideosPerCall: 1,
+      doGenerate: vi.fn(),
+    } as unknown as Experimental_VideoModelV4;
+
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+        videoModel: (id: string) => {
+          expect(id).toEqual('model');
+          return model;
+        },
+      } as any,
+    });
+
+    expect(registry.videoModel('provider:model')).toEqual(model);
+  });
+
+  it('should throw NoSuchProviderError if provider does not exist', () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.videoModel('provider:model')).toThrowError(
+      NoSuchProviderError,
+    );
+  });
+
+  it('should throw NoSuchModelError if provider does not return a model', () => {
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+        videoModel: () => null,
+      } as any,
+    });
+
+    expect(() => registry.videoModel('provider:model')).toThrowError(
+      NoSuchModelError,
+    );
+  });
+
+  it("should throw NoSuchModelError if model id doesn't contain a separator", () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.videoModel('model')).toThrowError(NoSuchModelError);
+  });
+});
+
+describe('files', () => {
+  const mockFilesV4: FilesV4 = {
+    specificationVersion: 'v4',
+    provider: 'test',
+    uploadFile: vi.fn(),
+  };
+
+  it('should return files interface from provider', () => {
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+        files: () => mockFilesV4,
+      },
+    });
+
+    expect(registry.files('provider')).toBe(mockFilesV4);
+  });
+
+  it('should throw NoSuchProviderError if provider does not exist', () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.files('provider')).toThrowError(NoSuchProviderError);
+  });
+
+  it('should throw Error if provider has no files interface', () => {
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+      },
+    });
+
+    expect(() => registry.files('provider')).toThrowError(
+      "Provider 'provider' does not support files.",
+    );
+  });
+});
+
+describe('skills', () => {
+  const mockSkillsV4: SkillsV4 = {
+    specificationVersion: 'v4',
+    provider: 'test',
+    uploadSkill: vi.fn(),
+  };
+
+  it('should return skills interface from provider', () => {
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+        skills: () => mockSkillsV4,
+      },
+    });
+
+    expect(registry.skills('provider')).toBe(mockSkillsV4);
+  });
+
+  it('should throw NoSuchProviderError if provider does not exist', () => {
+    const registry = createProviderRegistry({});
+
+    // @ts-expect-error - should not accept arbitrary strings
+    expect(() => registry.skills('provider')).toThrowError(NoSuchProviderError);
+  });
+
+  it('should throw Error if provider has no skills interface', () => {
+    const registry = createProviderRegistry({
+      provider: {
+        specificationVersion: 'v4',
+        languageModel: () => null as any,
+        embeddingModel: () => null as any,
+        imageModel: () => null as any,
+      },
+    });
+
+    expect(() => registry.skills('provider')).toThrowError(
+      "Provider 'provider' does not support skills.",
+    );
   });
 });

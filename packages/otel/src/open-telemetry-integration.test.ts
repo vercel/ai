@@ -227,7 +227,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     model,
     functionId: undefined,
     metadata: undefined,
-    context: undefined,
+    context: {},
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
     reasoning: [],

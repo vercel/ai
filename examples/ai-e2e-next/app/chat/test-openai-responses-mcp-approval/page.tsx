@@ -4,43 +4,11 @@ import ChatInput from '@/components/chat-input';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
 import OpenAIMCPApprovalView from '@/components/tool/openai-mcp-approval-view';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, UIMessage, isToolUIPart } from 'ai';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+} from 'ai';
 import { OpenAIResponsesMCPApprovalMessage } from '@/app/api/chat/openai-responses-mcp-approval/route';
-
-// Custom helper that handles provider-executed tools (like OpenAI MCP)
-function lastAssistantMessageIsCompleteWithProviderExecutedApprovalResponses({
-  messages,
-}: {
-  messages: UIMessage[];
-}): boolean {
-  const message = messages[messages.length - 1];
-
-  if (!message || message.role !== 'assistant') {
-    return false;
-  }
-
-  const lastStepStartIndex = message.parts.reduce((lastIndex, part, index) => {
-    return part.type === 'step-start' ? index : lastIndex;
-  }, -1);
-
-  // Include provider-executed tools (unlike the default helper)
-  const lastStepToolInvocations = message.parts
-    .slice(lastStepStartIndex + 1)
-    .filter(isToolUIPart);
-
-  return (
-    // has at least one tool approval response
-    lastStepToolInvocations.filter(part => part.state === 'approval-responded')
-      .length > 0 &&
-    // all tool approvals must have a response
-    lastStepToolInvocations.every(
-      part =>
-        part.state === 'output-available' ||
-        part.state === 'output-error' ||
-        part.state === 'approval-responded',
-    )
-  );
-}
 
 export default function TestOpenAIResponsesMCPApproval() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
@@ -49,7 +17,7 @@ export default function TestOpenAIResponsesMCPApproval() {
         api: '/api/chat/openai-responses-mcp-approval',
       }),
       sendAutomaticallyWhen:
-        lastAssistantMessageIsCompleteWithProviderExecutedApprovalResponses,
+        lastAssistantMessageIsCompleteWithApprovalResponses,
     });
 
   return (

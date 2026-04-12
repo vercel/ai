@@ -1,8 +1,7 @@
 import { ServerResponse } from 'node:http';
 import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
-import type { GenerationContext } from '../generate-text/generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/call-settings';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
@@ -30,7 +29,7 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
 export async function pipeAgentUIStreamToResponse<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  CONTEXT extends GenerationContext<TOOLS> = GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
 >({
@@ -42,7 +41,7 @@ export async function pipeAgentUIStreamToResponse<
   ...options
 }: {
   response: ServerResponse;
-  agent: Agent<CALL_OPTIONS, TOOLS, CONTEXT, OUTPUT>;
+  agent: Agent<CALL_OPTIONS, TOOLS, USER_CONTEXT, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;

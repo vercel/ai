@@ -8,7 +8,9 @@ import { Context } from './context';
 /**
  * Additional options that are sent into each tool execution.
  */
-export interface ToolExecutionOptions<CONTEXT extends Context> {
+export interface ToolExecutionOptions<
+  CONTEXT extends Context | unknown | never,
+> {
   /**
    * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
    */
@@ -41,7 +43,10 @@ export interface ToolExecutionOptions<CONTEXT extends Context> {
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
  */
-export type ToolNeedsApprovalFunction<INPUT, CONTEXT extends Context> = (
+export type ToolNeedsApprovalFunction<
+  INPUT,
+  CONTEXT extends Context | unknown | never,
+> = (
   input: INPUT,
   options: {
     /**
@@ -72,7 +77,11 @@ export type ToolNeedsApprovalFunction<INPUT, CONTEXT extends Context> = (
 /**
  * Function that executes the tool and returns either a single result or a stream of results.
  */
-export type ToolExecuteFunction<INPUT, OUTPUT, CONTEXT extends Context> = (
+export type ToolExecuteFunction<
+  INPUT,
+  OUTPUT,
+  CONTEXT extends Context | unknown | never,
+> = (
   input: INPUT,
   options: ToolExecutionOptions<CONTEXT>,
 ) => AsyncIterable<OUTPUT> | PromiseLike<OUTPUT> | OUTPUT;
@@ -91,7 +100,7 @@ type NeverOptional<N, T> = 0 extends 1 & N
 type ToolOutputProperties<
   INPUT,
   OUTPUT,
-  CONTEXT extends Context,
+  CONTEXT extends Context | unknown | never,
 > = NeverOptional<
   OUTPUT,
   | {
@@ -122,7 +131,7 @@ type ToolOutputProperties<
 export type Tool<
   INPUT extends JSONValue | unknown | never = any,
   OUTPUT extends JSONValue | unknown | never = any,
-  CONTEXT extends Context = Context,
+  CONTEXT extends Context | unknown | never = any,
 > = {
   /**
    * An optional description of what the tool does.

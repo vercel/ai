@@ -610,7 +610,9 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let startEvent!: Parameters<ToolLoopAgentOnStartCallback>[0];
+        let startEvent!: Parameters<
+          ToolLoopAgentOnStartCallback<{}, { userId: string }>
+        >[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -653,7 +655,9 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass messages when using messages option', async () => {
-        let startEvent!: Parameters<ToolLoopAgentOnStartCallback>[0];
+        let startEvent!: Parameters<
+          ToolLoopAgentOnStartCallback<{}, { userId: string }>
+        >[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -791,7 +795,9 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let startEvent!: Parameters<ToolLoopAgentOnStartCallback>[0];
+        let startEvent!: Parameters<
+          ToolLoopAgentOnStartCallback<{}, { userId: string }>
+        >[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -995,7 +1001,9 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let stepStartEvent!: Parameters<ToolLoopAgentOnStepStartCallback>[0];
+        let stepStartEvent!: Parameters<
+          ToolLoopAgentOnStepStartCallback<{}, { userId: string }>
+        >[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
@@ -1147,7 +1155,9 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass correct event information', async () => {
-        let stepStartEvent!: Parameters<ToolLoopAgentOnStepStartCallback>[0];
+        let stepStartEvent!: Parameters<
+          ToolLoopAgentOnStepStartCallback<{}, { userId: string }>
+        >[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,

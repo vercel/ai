@@ -1,12 +1,15 @@
+import type {
+  Context,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import {
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import { LanguageModel, ToolChoice } from '../types/language-model';
-import type { GenerationContext } from './generation-context';
 import { StepResult } from './step-result';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Function that you can use to provide different settings for a step.
@@ -23,12 +26,12 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  */
 export type PrepareStepFunction<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
 > = (options: {
   /**
    * The steps that have been executed so far.
    */
-  steps: Array<StepResult<NoInfer<TOOLS>, NoInfer<CONTEXT>>>;
+  steps: Array<StepResult<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>;
 
   /**
    * The number of the step that is being executed.
@@ -50,10 +53,10 @@ export type PrepareStepFunction<
    *
    * To modify the context, return a new context in the result.
    */
-  context: CONTEXT;
+  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }) =>
-  | PromiseLike<PrepareStepResult<TOOLS, CONTEXT>>
-  | PrepareStepResult<TOOLS, CONTEXT>;
+  | PromiseLike<PrepareStepResult<TOOLS, USER_CONTEXT>>
+  | PrepareStepResult<TOOLS, USER_CONTEXT>;
 
 /**
  * The result type returned by a {@link PrepareStepFunction},
@@ -61,7 +64,7 @@ export type PrepareStepFunction<
  */
 export type PrepareStepResult<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
 > =
   | {
       /**
@@ -97,7 +100,7 @@ export type PrepareStepResult<
        * Changing the context will affect the context in this step
        * and all subsequent steps.
        */
-      context?: CONTEXT;
+      context?: InferToolSetContext<TOOLS> & USER_CONTEXT;
 
       /**
        * Additional provider-specific options for this step.

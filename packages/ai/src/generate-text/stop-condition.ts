@@ -1,12 +1,11 @@
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { StepResult } from './step-result';
-import type { GenerationContext } from './generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export type StopCondition<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
 > = (options: {
-  steps: Array<StepResult<TOOLS, CONTEXT>>;
+  steps: Array<StepResult<TOOLS, USER_CONTEXT>>;
 }) => PromiseLike<boolean> | boolean;
 
 export function isStepCount(stepCount: number): StopCondition<any, any> {
@@ -26,13 +25,13 @@ export function hasToolCall(toolName: string): StopCondition<any, any> {
 
 export async function isStopConditionMet<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  USER_CONTEXT extends Context = Context,
 >({
   stopConditions,
   steps,
 }: {
-  stopConditions: Array<StopCondition<TOOLS, CONTEXT>>;
-  steps: Array<StepResult<TOOLS, CONTEXT>>;
+  stopConditions: Array<StopCondition<TOOLS, USER_CONTEXT>>;
+  steps: Array<StepResult<TOOLS, USER_CONTEXT>>;
 }): Promise<boolean> {
   return (
     await Promise.all(stopConditions.map(condition => condition({ steps })))

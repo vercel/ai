@@ -116,14 +116,14 @@ You can also pass one or more integrations to individual `generateText` or `stre
 
 ```ts highlight="6-8"
 import { streamText } from 'ai';
-import { devToolsIntegration } from '@ai-sdk/devtools';
+import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
 const result = streamText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
   experimental_telemetry: {
     isEnabled: true,
-    integrations: [devToolsIntegration()],
+    integrations: [DevToolsTelemetry()],
   },
 });
 ```
@@ -133,7 +133,7 @@ You can combine multiple integrations — they all receive the same lifecycle ev
 ```ts
 experimental_telemetry: {
   isEnabled: true,
-  integrations: [devToolsIntegration(), customLogger()],
+  integrations: [DevToolsTelemetry(), customLogger()],
 },
 ```
 
