@@ -24,12 +24,16 @@ export interface BedrockCredentials {
  */
 export function createSigV4FetchFunction(
   getCredentials: () => BedrockCredentials | PromiseLike<BedrockCredentials>,
-  fetch: FetchFunction = globalThis.fetch,
+  fetch?: FetchFunction,
 ): FetchFunction {
   return async (
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
+    // Resolve fetch lazily to avoid caching globalThis.fetch at
+    // initialization time.  Telemetry libraries (OpenTelemetry, Datadog)
+    // and test frameworks often patch globalThis.fetch after imports.
+    const effectiveFetch = fetch ?? globalThis.fetch;
     const request = input instanceof Request ? input : undefined;
     const originalHeaders = combineHeaders(
       normalizeHeaders(request?.headers),
@@ -51,7 +55,7 @@ export function createSigV4FetchFunction(
     const effectiveMethod = init?.method ?? request?.method;
 
     if (effectiveMethod?.toUpperCase() !== 'POST' || !effectiveBody) {
-      return fetch(input, {
+      return effectiveFetch(input, {
         ...init,
         headers: headersWithUserAgent as HeadersInit,
       });
@@ -84,7 +88,7 @@ export function createSigV4FetchFunction(
     // Use the combined headers directly as HeadersInit
     const combinedHeaders = combineHeaders(headersWithUserAgent, signedHeaders);
 
-    return fetch(input, {
+    return effectiveFetch(input, {
       ...init,
       body,
       headers: combinedHeaders as HeadersInit,
@@ -113,12 +117,14 @@ function prepareBodyString(body: BodyInit | undefined): string {
  */
 export function createApiKeyFetchFunction(
   apiKey: string,
-  fetch: FetchFunction = globalThis.fetch,
+  fetch?: FetchFunction,
 ): FetchFunction {
   return async (
     input: RequestInfo | URL,
     init?: RequestInit,
   ): Promise<Response> => {
+    // Resolve fetch lazily — see createSigV4FetchFunction for rationale.
+    const effectiveFetch = fetch ?? globalThis.fetch;
     const originalHeaders = normalizeHeaders(init?.headers);
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
@@ -130,7 +136,7 @@ export function createApiKeyFetchFunction(
       Authorization: `Bearer ${apiKey}`,
     });
 
-    return fetch(input, {
+    return effectiveFetch(input, {
       ...init,
       headers: finalHeaders as HeadersInit,
     });
