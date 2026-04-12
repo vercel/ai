@@ -47,6 +47,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -106,7 +107,8 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
           content: {
             parts,
           },
-          outputDimensionality: googleOptions?.outputDimensionality,
+          outputDimensionality:
+            googleOptions?.outputDimensionality ?? dimensions,
           taskType: googleOptions?.taskType,
         },
         failedResponseHandler: googleFailedResponseHandler,
@@ -146,7 +148,8 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
                   ? [...textPart, ...valueParts]
                   : [{ text: value }],
             },
-            outputDimensionality: googleOptions?.outputDimensionality,
+            outputDimensionality:
+              googleOptions?.outputDimensionality ?? dimensions,
             taskType: googleOptions?.taskType,
           };
         }),
