@@ -33,9 +33,14 @@ export function mergeObjects<T extends object, U extends object>(
   // Create a new object to avoid mutating the inputs
   const result = { ...base } as T & U;
 
+  // Dangerous keys that could lead to prototype pollution
+  const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
   // Iterate through all keys in the source object
   for (const key in overrides) {
     if (Object.prototype.hasOwnProperty.call(overrides, key)) {
+      // Skip keys that could cause prototype pollution
+      if (UNSAFE_KEYS.has(key)) continue;
       const overridesValue = overrides[key];
 
       // Skip if the overrides value is undefined
