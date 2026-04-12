@@ -206,7 +206,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       part.state === 'output-error'
                         ? (part.input ??
                           ('rawInput' in part ? part.rawInput : undefined))
-                        : part.input,
+                        : (part.input ?? {}),
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
                       ? { providerOptions: part.callProviderMetadata }
