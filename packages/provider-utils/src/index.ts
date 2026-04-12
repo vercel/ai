@@ -62,6 +62,7 @@ export {
   type Schema,
   type ValidationResult,
 } from './schema';
+export { secureJsonParse } from './secure-json-parse';
 export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';

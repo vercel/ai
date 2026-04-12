@@ -116,3 +116,50 @@ describe('mergeObjects', () => {
     expect(mergeObjects(undefined, { b: 2 })).toEqual({ b: 2 });
   });
 });
+
+describe('mergeObjects prototype pollution protection', () => {
+  it('should not allow __proto__ key', () => {
+    const base = { a: 1 };
+    const overrides = JSON.parse('{"__proto__": {"polluted": true}}');
+    const result = mergeObjects(base, overrides);
+
+    expect(result).toEqual({ a: 1 });
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('should not allow constructor key', () => {
+    const base = { a: 1 };
+    const overrides = JSON.parse('{"constructor": {"prototype": {"polluted": true}}}');
+    const result = mergeObjects(base, overrides);
+
+    expect(result).toEqual({ a: 1 });
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('should not allow prototype key', () => {
+    const base = { a: 1 };
+    const overrides = JSON.parse('{"prototype": {"polluted": true}}');
+    const result = mergeObjects(base, overrides);
+
+    expect(result).toEqual({ a: 1 });
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('should filter dangerous keys in nested merges', () => {
+    const base = { a: { b: 1 } };
+    const overrides = { a: JSON.parse('{"__proto__": {"polluted": true}, "c": 2}') };
+    const result = mergeObjects(base, overrides);
+
+    expect(result).toEqual({ a: { b: 1, c: 2 } });
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
+  it('should still merge normal keys alongside filtered keys', () => {
+    const base = { x: 1 };
+    const overrides = JSON.parse('{"__proto__": {"bad": true}, "y": 2}');
+    const result = mergeObjects(base, overrides);
+
+    expect(result).toEqual({ x: 1, y: 2 });
+    expect(({} as any).bad).toBeUndefined();
+  });
+});

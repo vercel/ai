@@ -36,6 +36,8 @@ export function mergeObjects<T extends object, U extends object>(
   // Iterate through all keys in the source object
   for (const key in overrides) {
     if (Object.prototype.hasOwnProperty.call(overrides, key)) {
+      // Skip prototype pollution keys
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
       const overridesValue = overrides[key];
 
       // Skip if the overrides value is undefined
