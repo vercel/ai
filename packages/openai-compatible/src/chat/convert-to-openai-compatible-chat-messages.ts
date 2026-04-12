@@ -12,18 +12,6 @@ function getOpenAIMetadata(message: {
   return message?.providerOptions?.openaiCompatible ?? {};
 }
 
-function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
-  switch (mediaType) {
-    case 'audio/wav':
-      return 'wav';
-    case 'audio/mp3':
-    case 'audio/mpeg':
-      return 'mp3';
-    default:
-      return null;
-  }
-}
-
 export function convertToOpenAICompatibleChatMessages(
   prompt: LanguageModelV3Prompt,
 ): OpenAICompatibleChatPrompt {
@@ -74,35 +62,18 @@ export function convertToOpenAICompatibleChatMessages(
                 }
 
                 if (part.mediaType.startsWith('audio/')) {
-                  const format = getAudioFormat(part.mediaType);
-
-                  // Standard wav/mp3 with inline data: use input_audio format
-                  if (format !== null && !(part.data instanceof URL)) {
-                    return {
-                      type: 'input_audio',
-                      input_audio: {
-                        data: convertToBase64(part.data),
-                        format,
-                      },
-                      ...partMetadata,
-                    };
-                  }
-
-                  // Any other audio/* type: pass as a file with data URI or URL.
-                  // This matches how video/* is handled and avoids the need to
-                  // maintain a hard-coded allowlist as providers add new formats.
+                  // Pass all audio as input_audio regardless of format — aligns
+                  // with how images are handled (no hard-coded format allowlist),
+                  // and avoids maintenance as providers add new supported formats.
                   const fileData =
                     part.data instanceof URL
                       ? part.data.toString()
                       : `data:${part.mediaType};base64,${convertToBase64(part.data)}`;
-
                   return {
-                    type: 'file',
-                    file: {
-                      filename:
-                        part.filename ??
-                        `audio.${part.mediaType.split('/')[1] ?? 'bin'}`,
-                      file_data: fileData,
+                    type: 'input_audio',
+                    input_audio: {
+                      data: fileData,
+                      format: part.mediaType.split('/')[1] ?? 'wav',
                     },
                     ...partMetadata,
                   };

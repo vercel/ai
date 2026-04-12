@@ -147,7 +147,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'input_audio',
-            input_audio: { data: 'AAECAw==', format: 'mp3' },
+            input_audio: { data: 'AAECAw==', format: 'mpeg' },
           },
         ],
       },
@@ -174,14 +174,14 @@ describe('user messages', () => {
         content: [
           {
             type: 'input_audio',
-            input_audio: { data: 'AAECAw==', format: 'mp3' },
+            input_audio: { data: 'AAECAw==', format: 'mpeg' },
           },
         ],
       },
     ]);
   });
 
-  it('should convert audio parts with URLs to file parts', async () => {
+  it('should convert audio parts with URLs as input_audio', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
@@ -199,10 +199,10 @@ describe('user messages', () => {
         role: 'user',
         content: [
           {
-            type: 'file',
-            file: {
-              filename: 'audio.wav',
-              file_data: 'https://example.com/audio.wav',
+            type: 'input_audio',
+            input_audio: {
+              data: 'https://example.com/audio.wav',
+              format: 'wav',
             },
           },
         ],
@@ -210,7 +210,7 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should convert extended audio format (ogg) to file part', async () => {
+  it('should convert extended audio format (ogg) as input_audio', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
@@ -228,10 +228,10 @@ describe('user messages', () => {
         role: 'user',
         content: [
           {
-            type: 'file',
-            file: {
-              filename: 'audio.ogg',
-              file_data: 'data:audio/ogg;base64,AAECAw==',
+            type: 'input_audio',
+            input_audio: {
+              data: 'data:audio/ogg;base64,AAECAw==',
+              format: 'ogg',
             },
           },
         ],
@@ -239,7 +239,7 @@ describe('user messages', () => {
     ]);
   });
 
-  it('should convert any audio/* type as a file part (wildcard audio support)', async () => {
+  it('should convert any audio/* type as input_audio (no format whitelist)', async () => {
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
@@ -257,10 +257,10 @@ describe('user messages', () => {
         role: 'user',
         content: [
           {
-            type: 'file',
-            file: {
-              filename: 'audio.unsupported-format',
-              file_data: 'data:audio/unsupported-format;base64,AAECAw==',
+            type: 'input_audio',
+            input_audio: {
+              data: 'data:audio/unsupported-format;base64,AAECAw==',
+              format: 'unsupported-format',
             },
           },
         ],
