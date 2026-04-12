@@ -1,20 +1,23 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  LanguageModelV3Usage,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  isCustomReasoning,
   jsonSchema,
+  mapReasoningToProviderEffort,
+  parseProviderOptions,
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -30,9 +33,10 @@ import {
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
 import { OpenResponsesConfig } from './open-responses-config';
+import { openResponsesOptionsSchema } from './open-responses-options';
 
-export class OpenResponsesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenResponsesLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: string;
 
@@ -60,16 +64,17 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
     presencePenalty,
     frequencyPenalty,
     seed,
+    reasoning,
     prompt,
     providerOptions,
     tools,
     toolChoice,
     responseFormat,
-  }: LanguageModelV3CallOptions): Promise<{
+  }: LanguageModelV4CallOptions): Promise<{
     body: Omit<OpenResponsesRequestBody, 'stream' | 'stream_options'>;
-    warnings: SharedV3Warning[];
+    warnings: SharedV4Warning[];
   }> {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     if (stopSequences != null) {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
@@ -127,6 +132,28 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
+    const openResponsesOptions = await parseProviderOptions({
+      provider: this.config.providerOptionsName,
+      providerOptions,
+      schema: openResponsesOptionsSchema,
+    });
+
+    const resolvedReasoningEffort = isCustomReasoning(reasoning)
+      ? reasoning === 'none'
+        ? 'none'
+        : mapReasoningToProviderEffort({
+            reasoning,
+            effortMap: {
+              minimal: 'low',
+              low: 'low',
+              medium: 'medium',
+              high: 'high',
+              xhigh: 'xhigh',
+            },
+            warnings,
+          })
+      : undefined;
+
     return {
       body: {
         model: this.modelId,
@@ -137,6 +164,18 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         top_p: topP,
         presence_penalty: presencePenalty,
         frequency_penalty: frequencyPenalty,
+        reasoning:
+          resolvedReasoningEffort != null ||
+          openResponsesOptions?.reasoningSummary != null
+            ? {
+                ...(resolvedReasoningEffort != null && {
+                  effort: resolvedReasoningEffort,
+                }),
+                ...(openResponsesOptions?.reasoningSummary != null && {
+                  summary: openResponsesOptions.reasoningSummary,
+                }),
+              }
+            : undefined,
         tools: functionTools?.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
         ...(textFormat != null && { text: { format: textFormat } }),
@@ -146,8 +185,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { body, warnings } = await this.getArgs(options);
 
     const {
@@ -172,7 +211,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
     let hasToolCalls = false;
 
     for (const part of response.output!) {
@@ -255,8 +294,8 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { body, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -276,7 +315,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const usage: LanguageModelV3Usage = {
+    const usage: LanguageModelV4Usage = {
       inputTokens: {
         total: undefined,
         noCache: undefined,
@@ -320,7 +359,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
 
     let isActiveReasoning = false;
     let hasToolCalls = false;
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -333,7 +372,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<OpenResponsesChunk>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

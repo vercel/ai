@@ -37,6 +37,7 @@
     { "path": "packages/openai" },
     { "path": "packages/openai-compatible" },
     { "path": "packages/open-responses" },
+    { "path": "packages/otel" },
     { "path": "packages/perplexity" },
     { "path": "packages/provider" },
     { "path": "packages/provider-utils" },
@@ -52,5 +53,8 @@
     { "path": "packages/vue" },
     { "path": "packages/xai" }
   ],
-  "include": []
+  "include": [],
+  "compilerOptions": {
+    "strictNullChecks": true
+  }
 }

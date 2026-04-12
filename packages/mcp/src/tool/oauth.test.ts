@@ -883,6 +883,21 @@ describe('startAuthorization', () => {
       }),
     ).rejects.toThrow(/does not support code challenge method/);
   });
+
+  it('does not add trailing slash to pathless resource URL', async () => {
+    const { authorizationUrl } = await startAuthorization(
+      'https://auth.example.com',
+      {
+        clientInformation: validClientInfo,
+        redirectUrl: 'http://localhost:3000/callback',
+        resource: new URL('https://mcp.example.com'),
+      },
+    );
+
+    expect(authorizationUrl.searchParams.get('resource')).toBe(
+      'https://mcp.example.com',
+    );
+  });
 });
 
 describe('exchangeAuthorization', () => {
@@ -927,16 +942,11 @@ describe('exchangeAuthorization', () => {
     });
 
     expect(tokens).toEqual(validTokens);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        href: 'https://auth.example.com/token',
-      }),
-      expect.objectContaining({
-        method: 'POST',
-        headers: new Headers({
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-      }),
+    const [fetchUrl, fetchOptions] = mockFetch.mock.calls[0];
+    expect(fetchUrl.href).toBe('https://auth.example.com/token');
+    expect(fetchOptions.method).toBe('POST');
+    expect(fetchOptions.headers.get('Content-Type')).toBe(
+      'application/x-www-form-urlencoded',
     );
 
     const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
@@ -1094,6 +1104,25 @@ describe('exchangeAuthorization', () => {
     expect(body.get('client_secret')).toBe('secret123');
     expect(body.get('redirect_uri')).toBe('http://localhost:3000/callback');
     expect(body.get('resource')).toBe('https://api.example.com/mcp-server');
+  });
+
+  it('does not add trailing slash to pathless resource URL', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validTokens,
+    });
+
+    await exchangeAuthorization('https://auth.example.com', {
+      clientInformation: validClientInfo,
+      authorizationCode: 'code123',
+      codeVerifier: 'verifier123',
+      redirectUri: 'http://localhost:3000/callback',
+      resource: new URL('https://mcp.example.com'),
+    });
+
+    const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
+    expect(body.get('resource')).toBe('https://mcp.example.com');
   });
 });
 
@@ -1270,6 +1299,23 @@ describe('refreshAuthorization', () => {
         refreshToken: 'refresh123',
       }),
     ).rejects.toThrow('Token refresh failed');
+  });
+
+  it('does not add trailing slash to pathless resource URL', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => validTokensWithNewRefreshToken,
+    });
+
+    await refreshAuthorization('https://auth.example.com', {
+      clientInformation: validClientInfo,
+      refreshToken: 'refresh123',
+      resource: new URL('https://mcp.example.com'),
+    });
+
+    const body = mockFetch.mock.calls[0][1].body as URLSearchParams;
+    expect(body.get('resource')).toBe('https://mcp.example.com');
   });
 });
 
@@ -1804,7 +1850,7 @@ describe('auth function', () => {
     const authUrl: URL = redirectCall[0];
     // Should use the PRM's resource value, not the full requested URL
     expect(authUrl.searchParams.get('resource')).toBe(
-      'https://api.example.com/',
+      'https://api.example.com',
     );
   });
 

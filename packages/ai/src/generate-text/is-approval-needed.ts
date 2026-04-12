@@ -1,17 +1,24 @@
-import { ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  Context,
+  InferToolSetContext,
+  ModelMessage,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import { TypedToolCall } from './tool-call';
-import { ToolSet } from './tool-set';
 
-export async function isApprovalNeeded<TOOLS extends ToolSet>({
+export async function isApprovalNeeded<
+  TOOLS extends ToolSet,
+  USER_CONTEXT extends Context = Context,
+>({
   tool,
   toolCall,
   messages,
-  experimental_context,
+  context,
 }: {
   tool: TOOLS[keyof TOOLS];
   toolCall: TypedToolCall<TOOLS>;
   messages: ModelMessage[];
-  experimental_context: unknown;
+  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }) {
   if (tool.needsApproval == null) {
     return false;
@@ -24,6 +31,6 @@ export async function isApprovalNeeded<TOOLS extends ToolSet>({
   return await tool.needsApproval(toolCall.input, {
     toolCallId: toolCall.toolCallId,
     messages,
-    experimental_context,
+    context,
   });
 }

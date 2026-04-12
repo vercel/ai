@@ -21,18 +21,14 @@ run(async () => {
   console.log('Reasoning:', step1.reasoning ?? '(none)');
   console.log('Text:', step1.text);
 
-  const fileParts1 = step1.content.filter(part => part.type === 'file');
-  const thoughtFiles1 = fileParts1.filter(
-    p => p.providerMetadata?.google?.thought === true,
+  const thoughtFiles1 = step1.content.filter(
+    part => part.type === 'reasoning-file',
   );
-  const outputFiles1 = fileParts1
-    .filter(p => p.providerMetadata?.google?.thought !== true)
-    .map(p => p.file);
   console.log(
     'Reasoning images:',
     thoughtFiles1.length > 0 ? thoughtFiles1.length : 'none',
   );
-  await presentImages(outputFiles1);
+  await presentImages(step1.files);
 
   const step2 = await generateText({
     model: google('gemini-3-pro-image-preview'),
@@ -57,16 +53,12 @@ run(async () => {
   console.log('Reasoning:', step2.reasoning ?? '(none)');
   console.log('Text:', step2.text);
 
-  const fileParts2 = step2.content.filter(part => part.type === 'file');
-  const thoughtFiles2 = fileParts2.filter(
-    p => p.providerMetadata?.google?.thought === true,
+  const thoughtFiles2 = step2.content.filter(
+    part => part.type === 'reasoning-file',
   );
-  const outputFiles2 = fileParts2
-    .filter(p => p.providerMetadata?.google?.thought !== true)
-    .map(p => p.file);
   console.log(
     'Reasoning images:',
     thoughtFiles2.length > 0 ? thoughtFiles2.length : 'none',
   );
-  await presentImages(outputFiles2);
+  await presentImages(step2.files);
 });

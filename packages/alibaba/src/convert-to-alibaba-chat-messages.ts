@@ -3,7 +3,7 @@ import {
   type LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import { convertToBase64, isProviderReference } from '@ai-sdk/provider-utils';
 import type { AlibabaChatPrompt } from './alibaba-chat-prompt';
 import type { CacheControlValidator } from './get-cache-control';
 
@@ -53,26 +53,13 @@ export function convertToAlibabaChatMessages({
       }
 
       case 'user': {
-        const isSinglePart = content.length === 1;
-
-        if (
-          isSinglePart &&
-          content[0].type === 'text' &&
-          !messageCacheControl
-        ) {
-          messages.push({
-            role: 'user',
-            content: content[0].text,
-          });
-          break;
-        }
-
         messages.push({
           role: 'user',
-          content: content.map(part => {
-            const partCacheControl = isSinglePart
-              ? messageCacheControl
-              : cacheControlValidator?.getCacheControl(part.providerOptions);
+          content: content.map((part, index) => {
+            const isLastPart = index === content.length - 1;
+            const partCacheControl =
+              cacheControlValidator?.getCacheControl(part.providerOptions) ??
+              (isLastPart ? messageCacheControl : undefined);
 
             switch (part.type) {
               case 'text': {
@@ -86,6 +73,12 @@ export function convertToAlibabaChatMessages({
               }
 
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -163,17 +156,15 @@ export function convertToAlibabaChatMessages({
           r => r.type !== 'tool-approval-response',
         );
 
-        const isSinglePart = toolResponses.length === 1;
-
         for (let i = 0; i < toolResponses.length; i++) {
           const toolResponse = toolResponses[i];
           const output = toolResponse.output;
+          const isLastPart = i === toolResponses.length - 1;
 
-          const partCacheControl = isSinglePart
-            ? messageCacheControl
-            : cacheControlValidator?.getCacheControl(
-                (toolResponse as any).providerOptions,
-              );
+          const partCacheControl =
+            cacheControlValidator?.getCacheControl(
+              toolResponse.providerOptions,
+            ) ?? (isLastPart ? messageCacheControl : undefined);
 
           let contentValue: string;
           switch (output.type) {

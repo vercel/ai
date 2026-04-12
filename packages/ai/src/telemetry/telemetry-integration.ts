@@ -1,3 +1,16 @@
+import type { ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  EmbedFinishEvent,
+  EmbedOnFinishEvent,
+  EmbedOnStartEvent,
+  EmbedStartEvent,
+} from '../embed/embed-events';
+import type {
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
+} from '../generate-object/structured-output-events';
 import type {
   OnChunkEvent,
   OnFinishEvent,
@@ -6,9 +19,13 @@ import type {
   OnStepStartEvent,
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
-} from '../generate-text/callback-events';
-import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
+} from '../generate-text/core-events';
+import type {
+  RerankFinishEvent,
+  RerankOnFinishEvent,
+  RerankOnStartEvent,
+  RerankStartEvent,
+} from '../rerank/rerank-events';
 import { Listener } from '../util/notify';
 
 /**
@@ -17,14 +34,15 @@ import { Listener } from '../util/notify';
  */
 export interface TelemetryIntegration {
   /**
-   * Called when the generation operation begins, before any LLM calls are made.
-   * Use this to initialize telemetry spans, record input parameters, or set up
-   * tracking state for the entire generation lifecycle.
+   * Called when an operation begins. Fired for text generation
+   * (generateText/streamText), object generation (generateObject/streamObject),
+   * embedding (embed/embedMany), and reranking operations.
    *
-   * The event includes the full configuration: model, messages, tools, sampling
-   * parameters, and telemetry settings.
+   * Use the `operationId` field to distinguish between operation types.
    */
-  onStart?: Listener<OnStartEvent<ToolSet, Output>>;
+  onStart?: Listener<
+    OnStartEvent | ObjectOnStartEvent | EmbedOnStartEvent | RerankOnStartEvent
+  >;
 
   /**
    * Called when an individual step (single LLM invocation) begins.
@@ -35,13 +53,13 @@ export interface TelemetryIntegration {
    * The event includes the step number, accumulated previous step results,
    * and the messages that will be sent to the model.
    */
-  onStepStart?: Listener<OnStepStartEvent<ToolSet, Output>>;
+  onStepStart?: Listener<OnStepStartEvent>;
 
   /**
    * Called when a tool execution begins, before the tool's `execute` function
    * is invoked. Use this to create tool-level spans or log tool invocations.
    */
-  onToolCallStart?: Listener<OnToolCallStartEvent<ToolSet>>;
+  onToolCallStart?: Listener<OnToolCallStartEvent>;
 
   /**
    * Called when a tool execution completes, either successfully or with an error.
@@ -50,7 +68,7 @@ export interface TelemetryIntegration {
    *
    * The event includes execution duration (`durationMs`) for performance tracking.
    */
-  onToolCallFinish?: Listener<OnToolCallFinishEvent<ToolSet>>;
+  onToolCallFinish?: Listener<OnToolCallFinishEvent>;
 
   /**
    * Called for each chunk received during streaming.
@@ -64,15 +82,62 @@ export interface TelemetryIntegration {
    * and results, usage statistics, finish reason, and optional request/response
    * bodies.
    */
-  onStepFinish?: Listener<OnStepFinishEvent<ToolSet>>;
+  onStepFinish?: Listener<OnStepFinishEvent>;
 
   /**
-   * Called when the entire generation completes (all steps finished).
-   * The event extends the final step's result with aggregated data: an array
-   * of all step results (`steps`) and total token usage across all steps
-   * (`totalUsage`).
+   * Called when an object generation step (single LLM invocation) begins.
+   * For generateObject/streamObject there is always exactly one step.
+   *
+   * @deprecated
    */
-  onFinish?: Listener<OnFinishEvent<ToolSet>>;
+  onObjectStepStart?: Listener<ObjectOnStepStartEvent>;
+
+  /**
+   * Called when an object generation step (single LLM invocation) completes,
+   * with the raw result before JSON parsing and schema validation.
+   *
+   * @deprecated
+   */
+  onObjectStepFinish?: Listener<ObjectOnStepFinishEvent>;
+
+  /**
+   * Called when an individual embedding model call (doEmbed) begins.
+   * For `embed`, there is one call. For `embedMany`, there may be multiple
+   * calls when values are chunked.
+   */
+  onEmbedStart?: Listener<EmbedStartEvent>;
+
+  /**
+   * Called when an individual embedding model call (doEmbed) completes.
+   * Contains the embeddings, usage, and any warnings from the model response.
+   */
+  onEmbedFinish?: Listener<EmbedFinishEvent>;
+
+  /**
+   * Called when an individual reranking model call (doRerank) begins.
+   * There is one call per `rerank` invocation.
+   */
+  onRerankStart?: Listener<RerankStartEvent>;
+
+  /**
+   * Called when an individual reranking model call (doRerank) completes.
+   * Contains the ranking results from the model response.
+   */
+  onRerankFinish?: Listener<RerankFinishEvent>;
+
+  /**
+   * Called when an operation completes. Fired for text generation
+   * (generateText/streamText), object generation (generateObject/streamObject),
+   * embedding (embed/embedMany), and reranking operations.
+   *
+   * Use the event shape or `operationId` to distinguish between operation types.
+   */
+  onFinish?: Listener<
+    | OnFinishEvent<ToolSet>
+    | ObjectOnFinishEvent<unknown>
+    | EmbedOnFinishEvent
+    | RerankOnFinishEvent
+  >;
 
   /**
    * Called when an unrecoverable error occurs during the generation lifecycle.

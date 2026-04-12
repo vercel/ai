@@ -130,6 +130,10 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Fast Mode section](#fast-mode) for more details.
 
+- `inferenceGeo` _"us" | "global"_
+
+  Optional. See [Data Residency section](#data-residency) for more details.
+
 - `thinking` _object_
 
   Optional. See [Reasoning section](#reasoning) for more details.
@@ -145,6 +149,12 @@ The following optional provider options are available for Anthropic models:
   - `"outputFormat"`: Use the `output_format` parameter to specify the structured output format.
   - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
   - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
+
+- `metadata` _object_
+
+  Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
+
+  - `userId` _string_ - An external identifier for the end-user. Should be a UUID, hash, or other opaque identifier. Must not contain PII.
 
 ### Structured Outputs and Tool Input Streaming
 
@@ -217,6 +227,27 @@ const { text } = await generateText({
 ```
 
 The `speed` option accepts `'fast'` or `'standard'` (default behavior).
+
+### Data Residency
+
+Anthropic supports an [`inferenceGeo` option](https://platform.claude.com/docs/en/build-with-claude/data-residency) that controls where model inference runs for a request.
+
+```ts highlight="8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'Summarize the key points of this document.',
+  providerOptions: {
+    anthropic: {
+      inferenceGeo: 'us',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` (default, any available geography).
 
 ### Reasoning
 
@@ -1155,12 +1186,12 @@ import {
   anthropic,
   forwardAnthropicContainerIdFromLastStep,
 } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   prompt:
     'Get the weather for Tokyo, Sydney, and London, then calculate the average temperature.',
   tools: {

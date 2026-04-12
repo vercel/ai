@@ -1,15 +1,15 @@
 import {
   APICallError,
   InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -18,6 +18,7 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   generateId,
+  isCustomReasoning,
   isParsableJson,
   parseProviderOptions,
   ParseResult,
@@ -25,6 +26,11 @@ import {
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  resolveProviderOptionsKey,
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
@@ -57,7 +63,7 @@ export type OpenAICompatibleChatConfig = {
   /**
    * The supported URLs for the model.
    */
-  supportedUrls?: () => LanguageModelV3['supportedUrls'];
+  supportedUrls?: () => LanguageModelV4['supportedUrls'];
 
   /**
    * Optional function to transform the request body before sending it to the API.
@@ -67,8 +73,8 @@ export type OpenAICompatibleChatConfig = {
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
 
-export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly supportsStructuredOutputs: boolean;
 
@@ -119,14 +125,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     providerOptions,
     stopSequences,
     responseFormat,
     seed,
     toolChoice,
     tools,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options - check for deprecated 'openai-compatible' key
     const deprecatedOptions = await parseProviderOptions({
@@ -137,10 +144,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
     if (deprecatedOptions != null) {
       warnings.push({
-        type: 'other',
-        message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
+        type: 'deprecated',
+        setting: "providerOptions key 'openai-compatible'",
+        message: "Use 'openaiCompatible' instead.",
       });
     }
+
+    // Warn when the raw (non-camelCase) provider name is used
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsName,
+      providerOptions,
+      warnings,
+    });
 
     const compatibleOptions = Object.assign(
       deprecatedOptions ?? {},
@@ -151,6 +166,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       })) ?? {},
       (await parseProviderOptions({
         provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompatibleLanguageModelChatOptions,
+      })) ?? {},
+      (await parseProviderOptions({
+        provider: toCamelCase(this.providerOptionsName),
         providerOptions,
         schema: openaiCompatibleLanguageModelChatOptions,
       })) ?? {},
@@ -184,7 +204,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       toolChoice,
     });
 
+    const metadataKey = resolveProviderOptionsKey(
+      this.providerOptionsName,
+      providerOptions,
+    );
+
     return {
+      metadataKey,
       args: {
         // model id:
         model: this.modelId,
@@ -217,9 +243,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
         stop: stopSequences,
         seed,
         ...Object.fromEntries(
-          Object.entries(
-            providerOptions?.[this.providerOptionsName] ?? {},
-          ).filter(
+          Object.entries({
+            ...providerOptions?.[this.providerOptionsName],
+            ...providerOptions?.[toCamelCase(this.providerOptionsName)],
+          }).filter(
             ([key]) =>
               !Object.keys(
                 openaiCompatibleLanguageModelChatOptions.shape,
@@ -227,7 +254,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
           ),
         ),
 
-        reasoning_effort: compatibleOptions.reasoningEffort,
+        reasoning_effort:
+          compatibleOptions.reasoningEffort ??
+          (isCustomReasoning(reasoning) && reasoning !== 'none'
+            ? reasoning
+            : undefined),
         verbosity: compatibleOptions.textVerbosity,
 
         // messages:
@@ -242,9 +273,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
-    const { args, warnings } = await this.getArgs({ ...options });
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
+    const { args, warnings, metadataKey } = await this.getArgs({ ...options });
 
     const transformedBody = this.transformRequestBody(args);
     const body = JSON.stringify(transformedBody);
@@ -269,7 +300,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = responseBody.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -300,7 +331,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
           ...(thoughtSignature
             ? {
                 providerMetadata: {
-                  [this.providerOptionsName]: { thoughtSignature },
+                  [metadataKey]: { thoughtSignature },
                 },
               }
             : {}),
@@ -309,8 +340,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     }
 
     // provider metadata:
-    const providerMetadata: SharedV3ProviderMetadata = {
-      [this.providerOptionsName]: {},
+    const providerMetadata: SharedV4ProviderMetadata = {
+      [metadataKey]: {},
       ...(await this.config.metadataExtractor?.extractMetadata?.({
         parsedBody: rawResponse,
       })),
@@ -318,11 +349,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     const completionTokenDetails =
       responseBody.usage?.completion_tokens_details;
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
-      providerMetadata[this.providerOptionsName].acceptedPredictionTokens =
+      providerMetadata[metadataKey].acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
     }
     if (completionTokenDetails?.rejected_prediction_tokens != null) {
-      providerMetadata[this.providerOptionsName].rejectedPredictionTokens =
+      providerMetadata[metadataKey].rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
     }
 
@@ -345,9 +376,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings } = await this.getArgs({ ...options });
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
+    const { args, warnings, metadataKey } = await this.getArgs({
+      ...options,
+    });
 
     const body = this.transformRequestBody({
       ...args,
@@ -388,14 +421,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       thoughtSignature?: string;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
-    const providerOptionsName = this.providerOptionsName;
+    const providerOptionsName = metadataKey;
     let isActiveReasoning = false;
     let isActiveText = false;
 
@@ -403,7 +436,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -684,7 +717,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               });
             }
 
-            const providerMetadata: SharedV3ProviderMetadata = {
+            const providerMetadata: SharedV4ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
             };

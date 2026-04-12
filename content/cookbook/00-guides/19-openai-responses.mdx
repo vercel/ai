@@ -84,11 +84,11 @@ const { text } = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5), // enable multi-step 'agentic' LLM calls
+  stopWhen: isStepCount(5), // enable multi-step 'agentic' LLM calls
 });
 ```
 
-This example demonstrates how `stopWhen` transforms a single LLM call into an agent. The `stopWhen: stepCountIs(5)` parameter allows the model to autonomously call tools, analyze results, and make additional tool calls as needed - turning what would be a simple one-shot completion into an intelligent agent that can chain multiple actions together to complete complex tasks.
+This example demonstrates how `stopWhen` transforms a single LLM call into an agent. The `stopWhen: isStepCount(5)` parameter allows the model to autonomously call tools, analyze results, and make additional tool calls as needed - turning what would be a simple one-shot completion into an intelligent agent that can chain multiple actions together to complete complex tasks.
 
 ### Web Search Tool
 

@@ -20,11 +20,18 @@ export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
 export { getRuntimeEnvironmentUserAgent } from './get-runtime-environment-user-agent';
+export type { HasRequiredKey } from './has-required-key';
 export { injectJsonInstructionIntoMessages } from './inject-json-instruction';
 export * from './is-abort-error';
 export { isNonNullable } from './is-non-nullable';
+export { isProviderReference } from './is-provider-reference';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
+export {
+  isCustomReasoning,
+  mapReasoningToProviderBudget,
+  mapReasoningToProviderEffort,
+} from './map-reasoning-to-provider';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';
 export { type MaybePromiseLike } from './maybe-promise-like';
@@ -41,6 +48,7 @@ export {
   type ProviderToolFactoryWithOutputSchema,
 } from './provider-tool-factory';
 export * from './remove-undefined-entries';
+export { resolveProviderReference } from './resolve-provider-reference';
 export * from './resolve';
 export * from './response-handler';
 export {

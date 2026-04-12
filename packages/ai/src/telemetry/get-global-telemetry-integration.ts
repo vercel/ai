@@ -1,13 +1,10 @@
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
 import { asArray } from '../util/as-array';
-import { OpenTelemetryIntegration } from './open-telemetry-integration';
+import { mergeListeners } from '../util/merge-listeners';
+import type { Listener } from '../util/notify';
 import type { TelemetryIntegration } from './telemetry-integration';
-import {
-  getGlobalTelemetryIntegrations,
-  hasIntegration,
-  registerTelemetryIntegration,
-} from './telemetry-integration-registry';
+import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
 
 /**
  * Wraps a telemetry integration with bound methods.
@@ -24,14 +21,17 @@ export function bindTelemetryIntegration(
     onToolCallFinish: integration.onToolCallFinish?.bind(integration),
     onChunk: integration.onChunk?.bind(integration),
     onStepFinish: integration.onStepFinish?.bind(integration),
+    onObjectStepStart: integration.onObjectStepStart?.bind(integration),
+    onObjectStepFinish: integration.onObjectStepFinish?.bind(integration),
+    onEmbedStart: integration.onEmbedStart?.bind(integration),
+    onEmbedFinish: integration.onEmbedFinish?.bind(integration),
+    onRerankStart: integration.onRerankStart?.bind(integration),
+    onRerankFinish: integration.onRerankFinish?.bind(integration),
     onFinish: integration.onFinish?.bind(integration),
     onError: integration.onError?.bind(integration),
     executeTool: integration.executeTool?.bind(integration),
   };
 }
-
-// global otel integration TODO remove when OTel is moved to a separate package
-const otelIntegration = new OpenTelemetryIntegration();
 
 export function getGlobalTelemetryIntegration<
   TOOLS extends ToolSet = ToolSet,
@@ -39,10 +39,6 @@ export function getGlobalTelemetryIntegration<
 >(): (args?: {
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }) => TelemetryIntegration {
-  if (!hasIntegration(otelIntegration)) {
-    registerTelemetryIntegration(otelIntegration);
-  }
-
   const globalIntegrations = getGlobalTelemetryIntegrations();
 
   return ({
@@ -58,19 +54,13 @@ export function getGlobalTelemetryIntegration<
     function createTelemetryComposite<EVENT>(
       getListenerFromIntegration: (
         integration: TelemetryIntegration,
-      ) => ((event: EVENT) => PromiseLike<void> | void) | undefined,
-    ): ((event: EVENT) => Promise<void>) | undefined {
+      ) => Listener<EVENT> | undefined,
+    ): Listener<EVENT> | undefined {
       const listeners = allIntegrations
         .map(getListenerFromIntegration)
-        .filter(Boolean) as Array<(event: EVENT) => PromiseLike<void> | void>;
+        .filter(Boolean) as Array<Listener<EVENT>>;
 
-      return async (event: EVENT) => {
-        for (const listener of listeners) {
-          try {
-            await listener(event);
-          } catch (_ignored) {}
-        }
-      };
+      return mergeListeners(...listeners);
     }
 
     const executeWrappers = allIntegrations
@@ -91,6 +81,24 @@ export function getGlobalTelemetryIntegration<
       onChunk: createTelemetryComposite(integration => integration.onChunk),
       onStepFinish: createTelemetryComposite(
         integration => integration.onStepFinish,
+      ),
+      onObjectStepStart: createTelemetryComposite(
+        integration => integration.onObjectStepStart,
+      ),
+      onObjectStepFinish: createTelemetryComposite(
+        integration => integration.onObjectStepFinish,
+      ),
+      onEmbedStart: createTelemetryComposite(
+        integration => integration.onEmbedStart,
+      ),
+      onEmbedFinish: createTelemetryComposite(
+        integration => integration.onEmbedFinish,
+      ),
+      onRerankStart: createTelemetryComposite(
+        integration => integration.onRerankStart,
+      ),
+      onRerankFinish: createTelemetryComposite(
+        integration => integration.onRerankFinish,
       ),
       onFinish: createTelemetryComposite(integration => integration.onFinish),
       onError: createTelemetryComposite(integration => integration.onError),

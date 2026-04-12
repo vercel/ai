@@ -196,8 +196,7 @@ console.log(
 
 const packageTable = publishedPackages
   .map(pkg => {
-    const encodedName = encodeURIComponent(pkg.name);
-    return `| \`${pkg.name}\` | [\`${pkg.version}\`](https://www.npmjs.com/package/${encodedName}/v/${pkg.version}) |`;
+    return `| \`${pkg.name}\` | [\`${pkg.version}\`](https://www.npmjs.com/package/${pkg.name}/v/${pkg.version}) |`;
   })
   .join('\n');
 

@@ -1,9 +1,13 @@
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3ProviderOptions,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4ProviderOptions,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
+import {
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -33,8 +37,8 @@ export type OpenAICompatibleImageModelConfig = {
   };
 };
 
-export class OpenAICompatibleImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAICompatibleImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 10;
 
   get provider(): string {
@@ -53,10 +57,15 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     private readonly config: OpenAICompatibleImageModelConfig,
   ) {}
 
-  // TODO: deprecate non-camelCase keys and remove in future major version
   private getArgs(
-    providerOptions: SharedV3ProviderOptions,
+    providerOptions: SharedV4ProviderOptions,
+    warnings: SharedV4Warning[],
   ): Record<string, unknown> {
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsKey,
+      providerOptions,
+      warnings,
+    });
     return {
       ...providerOptions[this.providerOptionsKey],
       ...providerOptions[toCamelCase(this.providerOptionsKey)],
@@ -74,10 +83,10 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -94,7 +103,7 @@ export class OpenAICompatibleImageModel implements ImageModelV3 {
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
-    const args = this.getArgs(providerOptions);
+    const args = this.getArgs(providerOptions, warnings);
 
     // Image editing mode - use form data and /images/edits endpoint
     if (files != null && files.length > 0) {
@@ -187,7 +196,7 @@ type OpenAICompatibleFormDataInput = {
   [key: string]: unknown;
 };
 
-async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
+async function fileToBlob(file: ImageModelV4File): Promise<Blob> {
   if (file.type === 'url') {
     return downloadBlob(file.url);
   }
@@ -198,8 +207,4 @@ async function fileToBlob(file: ImageModelV3File): Promise<Blob> {
       : convertBase64ToUint8Array(file.data);
 
   return new Blob([data as BlobPart], { type: file.mediaType });
-}
-
-function toCamelCase(str: string): string {
-  return str.replace(/[_-]([a-z])/g, g => g[1].toUpperCase());
 }

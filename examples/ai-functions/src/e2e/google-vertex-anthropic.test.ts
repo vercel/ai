@@ -8,7 +8,7 @@ import {
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
 import { LanguageModelV3, LanguageModelV4 } from '@ai-sdk/provider';
-import { APICallError, generateText, stepCountIs } from 'ai';
+import { APICallError, generateText, isStepCount } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { describe, expect, it } from 'vitest';
@@ -156,7 +156,7 @@ const toolTests = (model: LanguageModelV4) => {
         },
         prompt:
           'How can I switch to dark mode? Take a look at the screen and tell me.',
-        stopWhen: stepCountIs(5),
+        stopWhen: isStepCount(5),
       });
 
       console.log(result.text);
@@ -164,7 +164,7 @@ const toolTests = (model: LanguageModelV4) => {
       expect(result.text.toLowerCase()).toMatch(/color theme|dark mode/);
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
@@ -188,7 +188,7 @@ README.md     build         data          node_modules  package.json  src       
           }),
         },
         prompt: 'List the files in my directory.',
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
       });
 
       expect(result.text).toBeTruthy();
@@ -197,7 +197,7 @@ README.md     build         data          node_modules  package.json  src       
       expect(result.text).toContain('node_modules'); // Check for directory
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
@@ -233,13 +233,13 @@ README.md     build         data          node_modules  package.json  src       
           }),
         },
         prompt: 'Update my README file to talk about AI.',
-        stopWhen: stepCountIs(5),
+        stopWhen: isStepCount(5),
       });
 
       expect(result.text).toBeTruthy();
       expect(editorContent).not.toBe('## README\nThis is a test file.');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 };
