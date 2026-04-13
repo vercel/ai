@@ -1,7 +1,6 @@
 import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
-  LanguageModelV4ToolCall,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
 import type {
@@ -106,7 +105,7 @@ export async function* streamTextIterator({
 
   const steps: StepResult<any, any>[] = [];
   let done = false;
-  let isFirstIteration = true;
+  let _isFirstIteration = true;
   let stepNumber = 0;
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
@@ -280,7 +279,7 @@ export async function* streamTextIterator({
           },
         );
 
-      isFirstIteration = false;
+      _isFirstIteration = false;
       stepNumber++;
       steps.push(step);
       lastStep = step;

@@ -7,7 +7,6 @@ import type {
   SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
-  asSchema,
   type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
   type FinishReason,
   type LanguageModelResponseMetadata,
@@ -18,8 +17,6 @@ import {
   type StopCondition,
   type StreamTextOnStepFinishCallback,
   type SystemModelMessage,
-  type ToolApprovalRequest,
-  type ToolApprovalResponse,
   type ToolCallRepairFunction,
   type ToolChoice,
   type ToolSet,
@@ -31,7 +28,6 @@ import {
   mergeCallbacks,
   standardizePrompt,
 } from 'ai/internal';
-import { recordSpan } from './telemetry.js';
 import { streamTextIterator } from './stream-text-iterator.js';
 import type { CompatibleLanguageModel } from './types.js';
 
@@ -48,7 +44,7 @@ export type InferWorkflowAgentTools<WORKFLOW_AGENT> =
  * Infer the UI message type of a workflow agent.
  */
 export type InferWorkflowAgentUIMessage<
-  WORKFLOW_AGENT,
+  _WORKFLOW_AGENT,
   MESSAGE_METADATA = unknown,
 > = UIMessage<MESSAGE_METADATA>;
 
@@ -1050,7 +1046,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       collectToolApprovalsFromMessages(prompt.messages);
 
     if (approvedToolApprovals.length > 0 || deniedToolApprovals.length > 0) {
-      const toolResultMessages: ModelMessage[] = [];
+      const _toolResultMessages: ModelMessage[] = [];
       const toolResultContent: Array<{
         type: 'tool-result';
         toolCallId: string;
@@ -1865,18 +1861,6 @@ function filterTools<TTools extends ToolSet>(
     }
   }
   return filtered;
-}
-
-/**
- * Safely parse tool call input JSON. Returns the parsed value or the raw string
- * if parsing fails (e.g., for tool calls that were repaired).
- */
-function safeParseInput(input: string | undefined): unknown {
-  try {
-    return JSON.parse(input || '{}');
-  } catch {
-    return input;
-  }
 }
 
 // Matches AI SDK's getErrorMessage from @ai-sdk/provider-utils
