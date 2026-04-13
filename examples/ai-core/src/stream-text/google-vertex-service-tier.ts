@@ -1,7 +1,7 @@
-import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { vertex } from '@ai-sdk/google-vertex';
 import { streamText } from 'ai';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
@@ -10,7 +10,7 @@ run(async () => {
     providerOptions: {
       vertex: {
         serviceTier: 'priority',
-      } satisfies GoogleLanguageModelOptions,
+      } satisfies GoogleGenerativeAIProviderOptions,
     },
   });
 

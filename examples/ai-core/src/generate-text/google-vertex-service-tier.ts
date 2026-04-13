@@ -1,7 +1,7 @@
-import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { type GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
@@ -10,7 +10,7 @@ run(async () => {
     providerOptions: {
       vertex: {
         serviceTier: 'flex',
-      } satisfies GoogleLanguageModelOptions,
+      } satisfies GoogleGenerativeAIProviderOptions,
     },
   });
 
