@@ -229,7 +229,7 @@ With the `stopWhen` setting, you can enable multi-step calls in `generateText` a
 The AI SDK provides several built-in stopping conditions:
 
 - `isStepCount(count)` — stops after a specified number of steps (default: `isStepCount(20)`)
-- `hasToolCall(toolName)` — stops when a specific tool is called
+- `hasToolCall(...toolNames)` — stops when any of the specified tools is called
 - `isLoopFinished()` — never triggers, letting the loop run until naturally finished
 
 You can also combine multiple conditions in an array or create custom conditions. See [Loop Control](/docs/agents/loop-control) for more details.
