@@ -1,6 +1,5 @@
 import { JSONObject } from '@ai-sdk/provider';
 import { isJSONSerializable } from './is-json-serializable';
-import { Resolvable, resolve } from './resolve';
 
 /**
  * Serializes a model instance for workflow step boundaries.
@@ -24,7 +23,7 @@ import { Resolvable, resolve } from './resolve';
  */
 export function serializeModelOptions<
   CONFIG extends {
-    headers?: Resolvable<Record<string, string | undefined>>;
+    headers?: () => Record<string, string | undefined>;
   },
 >(options: {
   modelId: string;
@@ -36,7 +35,7 @@ export function serializeModelOptions<
   const serializableConfig: JSONObject = {};
   for (const [key, value] of Object.entries(options.config)) {
     if (key === 'headers') {
-      const resolvedHeaders = resolve(value);
+      const resolvedHeaders = value();
       if (isJSONSerializable(resolvedHeaders)) {
         serializableConfig[key] = resolvedHeaders;
       }
@@ -68,7 +67,7 @@ export function serializeModelOptions<
  */
 export function deserializeModelOptions<
   CONFIG extends {
-    headers?: Resolvable<Record<string, string | undefined>>;
+    headers?: () => Record<string, string | undefined>;
   },
 >(options: {
   modelId: string;
