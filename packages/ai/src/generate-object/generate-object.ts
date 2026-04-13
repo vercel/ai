@@ -28,9 +28,9 @@ import { LanguageModelRequestMetadata } from '../types/language-model-request-me
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
-import type { Callback } from '../util/notify';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';

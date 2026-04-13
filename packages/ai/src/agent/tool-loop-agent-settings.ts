@@ -25,8 +25,8 @@ import { CallSettings, TimeoutConfiguration } from '../prompt/call-settings';
 import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
+import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
-import type { Callback } from '../util/notify';
 import { ContextParameter } from '../generate-text/context-parameter';
 import { AgentCallParameters } from './agent';
 

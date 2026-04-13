@@ -26,7 +26,7 @@ import type {
   RerankOnStartEvent,
   RerankStartEvent,
 } from '../rerank/rerank-events';
-import type { Callback } from '../util/notify';
+import type { Callback } from '../util/callback';
 
 /**
  * Implement this interface to create custom telemetry integrations.

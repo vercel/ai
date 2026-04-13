@@ -9,13 +9,13 @@ import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import { Warning } from '../types/warning';
+import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
 import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
 import { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
-import type { Callback } from '../util/notify';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',

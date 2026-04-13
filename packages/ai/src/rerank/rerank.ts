@@ -6,8 +6,8 @@ import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { resolveRerankingModel } from '../model/resolve-model';
 import { RerankingModel } from '../types';
+import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
-import type { Callback } from '../util/notify';
 import type { RerankOnFinishEvent, RerankOnStartEvent } from './rerank-events';
 import { RerankResult } from './rerank-result';
 

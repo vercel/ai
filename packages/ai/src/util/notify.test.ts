@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import type { Callback } from './callback';
 import { notify } from './notify';
-import type { Callback } from './notify';
 
 describe('notify', () => {
   describe('callback invocation', () => {

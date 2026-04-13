@@ -1,9 +1,5 @@
 import { asArray } from './as-array';
-
-/**
- * A callback function that can be used with `notify`.
- */
-export type Callback<EVENT> = (event: EVENT) => PromiseLike<void> | void;
+import type { Callback } from './callback';
 
 /**
  * Notifies all provided callbacks with the given event.

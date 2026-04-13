@@ -1,4 +1,4 @@
-import type { Callback } from '../util/notify';
+import type { Callback } from '../util/callback';
 
 /**
  * Creates an async callback that invokes the provided callbacks in parallel.

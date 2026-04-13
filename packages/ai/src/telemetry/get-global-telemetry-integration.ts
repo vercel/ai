@@ -1,8 +1,8 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { Output } from '../generate-text/output';
 import { asArray } from '../util/as-array';
+import type { Callback } from '../util/callback';
 import { mergeCallbacks } from '../util/merge-callbacks';
-import type { Callback } from '../util/notify';
 import type { TelemetryIntegration } from './telemetry-integration';
 import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
 

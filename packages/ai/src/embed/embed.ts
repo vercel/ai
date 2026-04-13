@@ -8,12 +8,12 @@ import { resolveEmbeddingModel } from '../model/resolve-model';
 import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
+import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
 import { EmbedResult } from './embed-result';
 import { VERSION } from '../version';
-import type { Callback } from '../util/notify';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
