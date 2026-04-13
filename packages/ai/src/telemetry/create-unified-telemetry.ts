@@ -79,7 +79,7 @@ export function createUnifiedTelemetry({
             let execute = args.execute;
             for (const wrapper of executeWrappers) {
               const inner = execute;
-              execute = () => wrapper!({ ...args, execute: inner });
+              execute = () => wrapper({ ...args, execute: inner });
             }
             return execute();
           }
