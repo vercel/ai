@@ -2265,6 +2265,7 @@ describe('generateText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
+          "invalidToolCalls": [],
           "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",

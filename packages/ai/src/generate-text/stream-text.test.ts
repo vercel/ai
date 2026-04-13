@@ -7168,6 +7168,7 @@ describe('streamText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
+          "invalidToolCalls": [],
           "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
@@ -7483,6 +7484,7 @@ describe('streamText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
+          "invalidToolCalls": [],
           "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
@@ -7758,6 +7760,7 @@ describe('streamText', () => {
           ],
           "finishReason": "stop",
           "functionId": undefined,
+          "invalidToolCalls": [],
           "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
@@ -8469,6 +8472,7 @@ describe('streamText', () => {
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
+              "invalidToolCalls": [],
               "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
@@ -10364,6 +10368,7 @@ describe('streamText', () => {
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
+              "invalidToolCalls": [],
               "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
@@ -14482,6 +14487,7 @@ describe('streamText', () => {
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
+            "invalidToolCalls": [],
             "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
@@ -15775,6 +15781,7 @@ describe('streamText', () => {
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
+            "invalidToolCalls": [],
             "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
@@ -17820,11 +17827,10 @@ describe('streamText', () => {
         });
       });
 
-      it('should add tool call and result error parts to the content', async () => {
+      it('should only add an invalid tool call part to the content', async () => {
         expect(await result.content).toMatchInlineSnapshot(`
           [
             {
-              "dynamic": true,
               "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
@@ -17842,37 +17848,17 @@ describe('streamText', () => {
               "invalid": true,
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "rawInput": "{ "cities": "San Francisco" }",
               "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
             },
-            {
-              "dynamic": true,
-              "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
-          Error message: [
-            {
-              "expected": "string",
-              "code": "invalid_type",
-              "path": [
-                "city"
-              ],
-              "message": "Invalid input: expected string, received undefined"
-            }
-          ]",
-              "input": {
-                "cities": "San Francisco",
-              },
-              "title": undefined,
-              "toolCallId": "call-1",
-              "toolName": "cityAttractions",
-              "type": "tool-error",
-            },
           ]
         `);
       });
 
-      it('should add tool call and result error parts to the full stream', async () => {
+      it('should only add an invalid tool call part to the full stream', async () => {
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
             [
@@ -17901,7 +17887,6 @@ describe('streamText', () => {
                 "type": "tool-input-end",
               },
               {
-                "dynamic": true,
                 "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
@@ -17919,31 +17904,11 @@ describe('streamText', () => {
                 "invalid": true,
                 "providerExecuted": undefined,
                 "providerMetadata": undefined,
+                "rawInput": "{ "cities": "San Francisco" }",
                 "title": undefined,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-call",
-              },
-              {
-                "dynamic": true,
-                "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
-            Error message: [
-              {
-                "expected": "string",
-                "code": "invalid_type",
-                "path": [
-                  "city"
-                ],
-                "message": "Invalid input: expected string, received undefined"
-              }
-            ]",
-                "input": {
-                  "cities": "San Francisco",
-                },
-                "title": undefined,
-                "toolCallId": "call-1",
-                "toolName": "cityAttractions",
-                "type": "tool-error",
               },
               {
                 "finishReason": "stop",
@@ -17999,7 +17964,7 @@ describe('streamText', () => {
           `);
       });
 
-      it('should add tool call and result error parts to the ui message stream', async () => {
+      it('should only add an invalid tool call part to the ui message stream', async () => {
         expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
             [
@@ -18034,24 +17999,10 @@ describe('streamText', () => {
                 "input": {
                   "cities": "San Francisco",
                 },
+                "invalid": true,
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-input-error",
-              },
-              {
-                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
-            Error message: [
-              {
-                "expected": "string",
-                "code": "invalid_type",
-                "path": [
-                  "city"
-                ],
-                "message": "Invalid input: expected string, received undefined"
-              }
-            ]",
-                "toolCallId": "call-1",
-                "type": "tool-output-error",
               },
               {
                 "type": "finish-step",

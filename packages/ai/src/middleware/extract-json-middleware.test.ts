@@ -171,11 +171,29 @@ describe('extractJsonMiddleware', () => {
       });
 
       expect(result.text).toBe('{"value": "test"}');
-      expect(result.content).toHaveLength(3);
-      expect(result.content[1]).toMatchObject({
-        type: 'tool-call',
-        toolCallId: 'call-1',
-      });
+      expect(result.content).toHaveLength(2);
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "{"value": "test"}",
+            "type": "text",
+          },
+          {
+            "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'testTool'. No tools are available.],
+            "input": {
+              "foo": "bar",
+            },
+            "invalid": true,
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "rawInput": "{"foo": "bar"}",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "testTool",
+            "type": "tool-call",
+          },
+        ]
+      `);
     });
   });
 
