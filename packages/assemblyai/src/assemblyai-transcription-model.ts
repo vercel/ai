@@ -188,7 +188,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: AssemblyAITranscriptionModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModel({ modelId: model.modelId, config: model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
@@ -219,7 +219,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     });
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {
-      speech_model: this.modelId,
+      speech_model: this.modelId as 'best' | 'nano',
     };
 
     // Add provider-specific options

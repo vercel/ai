@@ -345,7 +345,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: GladiaTranscriptionModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModel({ modelId: model.modelId, config: model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
@@ -356,7 +356,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   }
 
   constructor(
-    readonly modelId: 'default',
+    readonly modelId: string,
     private readonly config: GladiaTranscriptionModelConfig,
   ) {}
 

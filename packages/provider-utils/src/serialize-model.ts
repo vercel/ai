@@ -22,45 +22,35 @@ import { isJSONSerializable } from './is-json-serializable';
  * }
  * ```
  */
-export function serializeModel<
-  MODEL_ID extends string,
-  MODEL extends { modelId: MODEL_ID },
-  CONFIG extends object,
->({
-  model,
-  getConfig,
-}: {
-  model: MODEL;
-  getConfig: (model: MODEL) => CONFIG;
+export function serializeModelOptions<
+  CONFIG extends {
+    headers?: () => Record<string, string | undefined>;
+  },
+>(options: {
+  modelId: string;
+  config: CONFIG;
 }): {
-  modelId: MODEL_ID;
+  modelId: string;
   config: JSONObject;
 } {
-  const resolvedConfig = getConfig(model);
   const serializableConfig: JSONObject = {};
-  for (const [key, value] of Object.entries(
-    resolvedConfig as Record<string, unknown>,
-  )) {
-    if (isJSONSerializable(value)) {
-      serializableConfig[key] = value;
-    } else if (key === 'headers' && typeof value === 'function') {
-      // Resolve headers at serialization time so auth credentials
-      // survive the workflow step boundary. On deserialization the
-      // resolved object is wrapped back into a function.
+  for (const [key, value] of Object.entries(options.config)) {
+    if (key === 'headers') {
       const resolvedHeaders = value();
       if (isJSONSerializable(resolvedHeaders)) {
         serializableConfig[key] = resolvedHeaders;
       }
+    } else if (isJSONSerializable(value)) {
+      serializableConfig[key] = value;
     }
   }
-  return { modelId: model.modelId, config: serializableConfig };
+  return { modelId: options.modelId, config: serializableConfig };
 }
 
 /**
- * Deserializes a model instance from workflow step boundary data.
- * Accepts a model class constructor and the serialized
- * `{ modelId, config }` payload, then returns a constructed model
- * instance by passing the config through unchanged.
+ * Deserializes model options from workflow step boundary data.
+ * Restores special-case config values, such as converting a
+ * serialized `headers` object back into a function.
  *
  * Used as the body of `static [WORKFLOW_DESERIALIZE]` in provider models.
  *
@@ -74,12 +64,25 @@ export function serializeModel<
  * }
  * ```
  */
-export function deserializeModel<MODEL, MODEL_ID extends string, CONFIG>({
-  ModelClass,
-  options,
-}: {
-  ModelClass: new (modelId: MODEL_ID, config: CONFIG) => MODEL;
-  options: { modelId: MODEL_ID; config: CONFIG };
-}): MODEL {
-  return new ModelClass(options.modelId, options.config);
+export function deserializeModelOptions<
+  CONFIG extends {
+    headers?: () => Record<string, string | undefined>;
+  },
+>(options: {
+  modelId: string;
+  config: CONFIG;
+}): {
+  modelId: string;
+  config: CONFIG;
+} {
+  const result = { ...options.config };
+
+  // TODO this is not fully type safe - it would be better to have types
+  // for the serialized config
+  if (result.headers != null && typeof result.headers !== 'function') {
+    const resolvedHeaders = result.headers;
+    result.headers = () => resolvedHeaders;
+  }
+
+  return { modelId: options.modelId, config: result };
 }
