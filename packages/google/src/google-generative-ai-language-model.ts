@@ -38,6 +38,7 @@ import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIModelId,
   googleLanguageModelOptions,
+  VertexServiceTierMap,
 } from './google-generative-ai-options';
 import {
   GoogleGenerativeAIContentPart,
@@ -151,6 +152,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       });
     }
 
+    // Vertex API requires another service tier format.
+    let sanitizedServiceTier: string | undefined = googleOptions?.serviceTier;
+    if (googleOptions?.serviceTier && isVertexProvider) {
+      sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
+    }
+
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
 
@@ -242,7 +249,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         toolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
-        serviceTier: googleOptions?.serviceTier,
+        serviceTier: sanitizedServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsName,
