@@ -6,8 +6,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   postToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -188,14 +187,17 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: AssemblyAITranscriptionModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: AssemblyAITranscriptionModelId;
     config: AssemblyAITranscriptionModelConfig;
   }) {
-    return deserializeModel(AssemblyAITranscriptionModel, options);
+    return new AssemblyAITranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -216,7 +218,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     });
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {
-      speech_model: this.modelId,
+      speech_model: this.modelId as 'best' | 'nano',
     };
 
     // Add provider-specific options

@@ -9,8 +9,7 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -38,14 +37,17 @@ export class XaiImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: XaiImageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: XaiImageModelId;
     config: XaiImageModelConfig;
   }) {
-    return deserializeModel(XaiImageModel, options);
+    return new XaiImageModel(options.modelId, options.config);
   }
 
   constructor(

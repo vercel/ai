@@ -12,8 +12,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -40,14 +39,17 @@ export class FalImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: FalImageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: FalImageModelId;
     config: FalImageModelConfig;
   }) {
-    return deserializeModel(FalImageModel, options);
+    return new FalImageModel(options.modelId, options.config);
   }
 
   constructor(

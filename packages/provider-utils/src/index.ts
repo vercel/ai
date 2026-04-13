@@ -1,20 +1,16 @@
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
+export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
+export { convertToFormData } from './convert-to-form-data';
 export {
   createToolNameMapping,
   type ToolNameMapping,
 } from './create-tool-name-mapping';
 export * from './delay';
 export { DelayedPromise } from './delayed-promise';
-export * from './extract-response-headers';
-export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
-export { convertToFormData } from './convert-to-form-data';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
-export {
-  readResponseWithSizeLimit,
-  DEFAULT_MAX_DOWNLOAD_SIZE,
-} from './read-response-with-size-limit';
+export * from './extract-response-headers';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
@@ -26,13 +22,13 @@ export { isNonNullable } from './is-non-nullable';
 export { isProviderReference } from './is-provider-reference';
 export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
+export { loadOptionalSetting } from './load-optional-setting';
+export { loadSetting } from './load-setting';
 export {
   isCustomReasoning,
   mapReasoningToProviderBudget,
   mapReasoningToProviderEffort,
 } from './map-reasoning-to-provider';
-export { loadOptionalSetting } from './load-optional-setting';
-export { loadSetting } from './load-setting';
 export { type MaybePromiseLike } from './maybe-promise-like';
 export { mediaTypeToExtension } from './media-type-to-extension';
 export { normalizeHeaders } from './normalize-headers';
@@ -46,9 +42,13 @@ export {
   type ProviderToolFactory,
   type ProviderToolFactoryWithOutputSchema,
 } from './provider-tool-factory';
+export {
+  DEFAULT_MAX_DOWNLOAD_SIZE,
+  readResponseWithSizeLimit,
+} from './read-response-with-size-limit';
 export * from './remove-undefined-entries';
-export { resolveProviderReference } from './resolve-provider-reference';
 export * from './resolve';
+export { resolveProviderReference } from './resolve-provider-reference';
 export * from './response-handler';
 export {
   asSchema,
@@ -61,6 +61,7 @@ export {
   type Schema,
   type ValidationResult,
 } from './schema';
+export { serializeModelOptions } from './serialize-model-options';
 export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';
@@ -74,13 +75,8 @@ export * from './types';
 
 // external re-exports
 export type * from '@standard-schema/spec';
+export { WORKFLOW_DESERIALIZE, WORKFLOW_SERIALIZE } from '@workflow/serde';
 export {
   EventSourceParserStream,
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
-export {
-  serializeModel,
-  deserializeModel,
-  deserializeModelConfig,
-} from './serialize-model';
-export { WORKFLOW_SERIALIZE, WORKFLOW_DESERIALIZE } from '@workflow/serde';

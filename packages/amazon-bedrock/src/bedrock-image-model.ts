@@ -12,8 +12,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -38,14 +37,17 @@ export class BedrockImageModel implements ImageModelV4 {
   readonly provider = 'amazon-bedrock';
 
   static [WORKFLOW_SERIALIZE](model: BedrockImageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: BedrockImageModelConfig;
   }) {
-    return deserializeModel(BedrockImageModel, options);
+    return new BedrockImageModel(options.modelId, options.config);
   }
 
   get maxImagesPerCall(): number {

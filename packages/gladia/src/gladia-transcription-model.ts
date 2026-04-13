@@ -13,8 +13,7 @@ import {
   parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -345,18 +344,21 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: GladiaTranscriptionModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: 'default';
     config: GladiaTranscriptionModelConfig;
   }) {
-    return deserializeModel(GladiaTranscriptionModel, options);
+    return new GladiaTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
-    readonly modelId: 'default',
+    readonly modelId: string,
     private readonly config: GladiaTranscriptionModelConfig,
   ) {}
 

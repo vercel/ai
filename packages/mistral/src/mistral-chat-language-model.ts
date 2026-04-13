@@ -20,8 +20,7 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -54,14 +53,17 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: MistralChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: MistralChatModelId;
     config: MistralChatConfig;
   }) {
-    return deserializeModel(MistralChatLanguageModel, options);
+    return new MistralChatLanguageModel(options.modelId, options.config);
   }
 
   constructor(modelId: MistralChatModelId, config: MistralChatConfig) {

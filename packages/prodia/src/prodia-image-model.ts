@@ -7,8 +7,7 @@ import {
   parseProviderOptions,
   postToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
@@ -33,14 +32,17 @@ export class ProdiaImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: ProdiaImageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: ProdiaImageModelId;
     config: ProdiaModelConfig;
   }) {
-    return deserializeModel(ProdiaImageModel, options);
+    return new ProdiaImageModel(options.modelId, options.config);
   }
 
   constructor(

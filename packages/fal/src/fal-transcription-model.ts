@@ -12,8 +12,7 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -79,14 +78,17 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: FalTranscriptionModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: FalTranscriptionModelId;
     config: FalTranscriptionModelConfig;
   }) {
-    return deserializeModel(FalTranscriptionModel, options);
+    return new FalTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(

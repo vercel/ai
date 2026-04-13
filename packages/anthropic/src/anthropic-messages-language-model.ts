@@ -32,8 +32,7 @@ import {
   Resolvable,
   resolve,
   resolveProviderReference,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -155,14 +154,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: AnthropicMessagesLanguageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: AnthropicMessagesModelId;
     config: AnthropicMessagesConfig;
   }) {
-    return deserializeModel(AnthropicMessagesLanguageModel, options);
+    return new AnthropicMessagesLanguageModel(options.modelId, options.config);
   }
 
   constructor(

@@ -8,8 +8,7 @@ import {
   FetchFunction,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -37,14 +36,17 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
   private readonly config: CohereEmbeddingConfig;
 
   static [WORKFLOW_SERIALIZE](model: CohereEmbeddingModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: CohereEmbeddingModelId;
     config: CohereEmbeddingConfig;
   }) {
-    return deserializeModel(CohereEmbeddingModel, options);
+    return new CohereEmbeddingModel(options.modelId, options.config);
   }
 
   constructor(modelId: CohereEmbeddingModelId, config: CohereEmbeddingConfig) {

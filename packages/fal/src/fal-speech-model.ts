@@ -7,8 +7,7 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -51,14 +50,17 @@ export class FalSpeechModel implements SpeechModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: FalSpeechModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: FalSpeechModelId;
     config: FalSpeechModelConfig;
   }) {
-    return deserializeModel(FalSpeechModel, options);
+    return new FalSpeechModel(options.modelId, options.config);
   }
 
   constructor(

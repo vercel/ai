@@ -18,8 +18,7 @@ import {
   FetchFunction,
   postFormDataToApi,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -57,14 +56,17 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompatibleImageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: OpenAICompatibleImageModelConfig;
   }) {
-    return deserializeModel(OpenAICompatibleImageModel, options);
+    return new OpenAICompatibleImageModel(options.modelId, options.config);
   }
 
   constructor(

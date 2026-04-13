@@ -14,8 +14,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type ParseResult,
@@ -37,14 +36,17 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   readonly supportedUrls = { '*/*': [/.*/] };
 
   static [WORKFLOW_SERIALIZE](model: GatewayLanguageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: GatewayModelId;
     config: GatewayChatConfig;
   }) {
-    return deserializeModel(GatewayLanguageModel, options);
+    return new GatewayLanguageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -72,7 +74,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const { abortSignal } = options;
 
     const resolvedHeaders = this.config.headers
-      ? await resolve(this.config.headers())
+      ? await resolve(this.config.headers)
       : undefined;
 
     try {
@@ -119,7 +121,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     const { abortSignal } = options;
 
     const resolvedHeaders = this.config.headers
-      ? await resolve(this.config.headers())
+      ? await resolve(this.config.headers)
       : undefined;
 
     try {

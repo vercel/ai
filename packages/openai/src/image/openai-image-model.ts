@@ -11,8 +11,7 @@ import {
   downloadBlob,
   postFormDataToApi,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -35,14 +34,17 @@ export class OpenAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: OpenAIImageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: OpenAIImageModelId;
     config: OpenAIImageModelConfig;
   }) {
-    return deserializeModel(OpenAIImageModel, options);
+    return new OpenAIImageModel(options.modelId, options.config);
   }
 
   get maxImagesPerCall(): number {

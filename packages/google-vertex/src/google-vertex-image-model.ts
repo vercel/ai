@@ -16,8 +16,7 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -41,14 +40,17 @@ export class GoogleVertexImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: GoogleVertexImageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GoogleVertexImageModelConfig;
   }) {
-    return deserializeModel(GoogleVertexImageModel, options);
+    return new GoogleVertexImageModel(options.modelId, options.config);
   }
 
   get maxImagesPerCall(): number {

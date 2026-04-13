@@ -16,8 +16,7 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -58,14 +57,17 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompletionLanguageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: OpenAICompletionModelId;
     config: OpenAICompletionConfig;
   }) {
-    return deserializeModel(OpenAICompletionLanguageModel, options);
+    return new OpenAICompletionLanguageModel(options.modelId, options.config);
   }
 
   constructor(

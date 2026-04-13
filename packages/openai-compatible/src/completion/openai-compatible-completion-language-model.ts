@@ -19,8 +19,7 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -65,14 +64,20 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
   private readonly chunkSchema; // type inferred via constructor
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompatibleCompletionLanguageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: OpenAICompatibleCompletionConfig;
   }) {
-    return deserializeModel(OpenAICompatibleCompletionLanguageModel, options);
+    return new OpenAICompatibleCompletionLanguageModel(
+      options.modelId,
+      options.config,
+    );
   }
 
   constructor(

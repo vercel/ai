@@ -17,8 +17,7 @@ import {
   createJsonResponseHandler,
   isCustomReasoning,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -44,14 +43,17 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
   private readonly config: PerplexityChatConfig;
 
   static [WORKFLOW_SERIALIZE](model: PerplexityLanguageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: PerplexityLanguageModelId;
     config: PerplexityChatConfig;
   }) {
-    return deserializeModel(PerplexityLanguageModel, options);
+    return new PerplexityLanguageModel(options.modelId, options.config);
   }
 
   constructor(

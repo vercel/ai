@@ -9,8 +9,7 @@ import {
   FetchFunction,
   getFromApi,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -121,14 +120,17 @@ export class FireworksImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: FireworksImageModel) {
-    return serializeModel(model);
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: FireworksImageModelId;
     config: FireworksImageModelConfig;
   }) {
-    return deserializeModel(FireworksImageModel, options);
+    return new FireworksImageModel(options.modelId, options.config);
   }
 
   constructor(
