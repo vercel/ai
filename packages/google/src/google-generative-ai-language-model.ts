@@ -41,11 +41,9 @@ import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIModelId,
   googleLanguageModelOptions,
+  VertexServiceTierMap,
 } from './google-generative-ai-options';
-import {
-  GoogleGenerativeAIContentPart,
-  GoogleGenerativeAIProviderMetadata,
-} from './google-generative-ai-prompt';
+import { GoogleGenerativeAIProviderMetadata } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
 import { GoogleJSONAccumulator, PartialArg } from './google-json-accumulator';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -155,6 +153,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       });
     }
 
+    // Vertex API requires another service tier format.
+    let sanitizedServiceTier: string | undefined = googleOptions?.serviceTier;
+    if (googleOptions?.serviceTier && isVertexProvider) {
+      sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
+    }
+
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
 
@@ -256,7 +260,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         toolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
-        serviceTier: googleOptions?.serviceTier,
+        serviceTier: sanitizedServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsName,
@@ -1415,16 +1419,9 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
-type ContentSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['content']
->;
 export type GroundingMetadataSchema = NonNullable<
   InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
 >;
-
-type GroundingChunkSchema = NonNullable<
-  GroundingMetadataSchema['groundingChunks']
->[number];
 
 export type UrlContextMetadataSchema = NonNullable<
   InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']

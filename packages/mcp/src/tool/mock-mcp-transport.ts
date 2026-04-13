@@ -5,7 +5,6 @@ import {
   MCPTool,
   MCPResource,
   MCPPrompt,
-  GetPromptResult,
   CallToolResult,
   LATEST_PROTOCOL_VERSION,
 } from './types';

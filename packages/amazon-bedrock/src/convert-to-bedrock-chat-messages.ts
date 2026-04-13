@@ -370,12 +370,6 @@ export async function convertToBedrockChatMessages(
   return { system, messages };
 }
 
-function isBedrockImageFormat(format: string): format is BedrockImageFormat {
-  return Object.values(BEDROCK_IMAGE_MIME_TYPES).includes(
-    format as BedrockImageFormat,
-  );
-}
-
 function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {
   if (!mimeType) {
     throw new UnsupportedFunctionalityError({

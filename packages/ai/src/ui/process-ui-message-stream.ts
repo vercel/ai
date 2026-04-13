@@ -1,4 +1,3 @@
-import { TypeValidationContext } from '@ai-sdk/provider';
 import { FlexibleSchema, validateTypes } from '@ai-sdk/provider-utils';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import { ProviderMetadata } from '../types';

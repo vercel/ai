@@ -25,8 +25,8 @@ import { CallSettings, TimeoutConfiguration } from '../prompt/call-settings';
 import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
+import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
-import { Listener } from '../util/notify';
 import { ContextParameter } from '../generate-text/context-parameter';
 import { AgentCallParameters } from './agent';
 
@@ -34,31 +34,31 @@ export type ToolLoopAgentOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Listener<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
+> = Callback<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 export type ToolLoopAgentOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Listener<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
+> = Callback<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 export type ToolLoopAgentOnToolCallStartCallback<
   TOOLS extends ToolSet = ToolSet,
-> = Listener<OnToolCallStartEvent<TOOLS>>;
+> = Callback<OnToolCallStartEvent<TOOLS>>;
 
 export type ToolLoopAgentOnToolCallFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-> = Listener<OnToolCallFinishEvent<TOOLS>>;
+> = Callback<OnToolCallFinishEvent<TOOLS>>;
 
 export type ToolLoopAgentOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
-> = Listener<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
+> = Callback<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
 
 export type ToolLoopAgentOnFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
-> = Listener<OnFinishEvent<TOOLS, USER_CONTEXT>>;
+> = Callback<OnFinishEvent<TOOLS, USER_CONTEXT>>;
 
 /**
  * Configuration options for an agent.

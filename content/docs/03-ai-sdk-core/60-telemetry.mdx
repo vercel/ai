@@ -145,7 +145,6 @@ Implement the `TelemetryIntegration` interface from the `ai` package. All method
 
 ```ts
 import type { TelemetryIntegration } from 'ai';
-import { bindTelemetryIntegration } from 'ai';
 
 class MyIntegration implements TelemetryIntegration {
   async onStart(event) {
@@ -176,11 +175,9 @@ class MyIntegration implements TelemetryIntegration {
 }
 
 export function myIntegration(): TelemetryIntegration {
-  return bindTelemetryIntegration(new MyIntegration());
+  return new MyIntegration();
 }
 ```
-
-Use `bindTelemetryIntegration` for class-based integrations to ensure `this` is correctly bound when methods are extracted and called as callbacks.
 
 ### Available lifecycle methods
 

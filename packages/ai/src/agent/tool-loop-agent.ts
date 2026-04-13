@@ -6,7 +6,7 @@ import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import { Prompt } from '../prompt';
-import { mergeListeners } from '../util/merge-listeners';
+import { mergeCallbacks } from '../util/merge-callbacks';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
 import {
   ToolLoopAgentOnStartCallback,
@@ -147,28 +147,28 @@ export class ToolLoopAgent<
     const callbackArgs = {
       abortSignal,
       timeout,
-      experimental_onStart: mergeListeners(
+      experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
           | ToolLoopAgentOnStartCallback<TOOLS, USER_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onStepStart: mergeListeners(
+      experimental_onStepStart: mergeCallbacks(
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
           | ToolLoopAgentOnStepStartCallback<TOOLS, USER_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onToolCallStart: mergeListeners(
+      experimental_onToolCallStart: mergeCallbacks(
         this.settings.experimental_onToolCallStart,
         experimental_onToolCallStart,
       ),
-      experimental_onToolCallFinish: mergeListeners(
+      experimental_onToolCallFinish: mergeCallbacks(
         this.settings.experimental_onToolCallFinish,
         experimental_onToolCallFinish,
       ),
-      onStepFinish: mergeListeners(this.settings.onStepFinish, onStepFinish),
-      onFinish: mergeListeners(this.settings.onFinish, onFinish),
+      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
     };
 
     return generate({
@@ -200,28 +200,28 @@ export class ToolLoopAgent<
       abortSignal,
       timeout,
       experimental_transform,
-      experimental_onStart: mergeListeners(
+      experimental_onStart: mergeCallbacks(
         this.settings.experimental_onStart,
         experimental_onStart as
           | ToolLoopAgentOnStartCallback<TOOLS, USER_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onStepStart: mergeListeners(
+      experimental_onStepStart: mergeCallbacks(
         this.settings.experimental_onStepStart,
         experimental_onStepStart as
           | ToolLoopAgentOnStepStartCallback<TOOLS, USER_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onToolCallStart: mergeListeners(
+      experimental_onToolCallStart: mergeCallbacks(
         this.settings.experimental_onToolCallStart,
         experimental_onToolCallStart,
       ),
-      experimental_onToolCallFinish: mergeListeners(
+      experimental_onToolCallFinish: mergeCallbacks(
         this.settings.experimental_onToolCallFinish,
         experimental_onToolCallFinish,
       ),
-      onStepFinish: mergeListeners(this.settings.onStepFinish, onStepFinish),
-      onFinish: mergeListeners(this.settings.onFinish, onFinish),
+      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
     };
 
     return stream({

@@ -34,7 +34,7 @@ import { prepareTools } from '../prompt/prepare-tools';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
+import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
@@ -48,10 +48,11 @@ import {
   LanguageModelUsage,
 } from '../types/usage';
 import { asArray } from '../util/as-array';
+import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
-import { Listener, notify } from '../util/notify';
+import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -121,7 +122,7 @@ export type GenerateTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Listener<
+> = Callback<
   OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT, GenerateTextIncludeSettings>
 >;
 
@@ -138,7 +139,7 @@ export type GenerateTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Listener<
+> = Callback<
   OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT, GenerateTextIncludeSettings>
 >;
 
@@ -152,7 +153,7 @@ export type GenerateTextOnStepStartCallback<
  */
 export type GenerateTextOnToolCallStartCallback<
   TOOLS extends ToolSet = ToolSet,
-> = Listener<OnToolCallStartEvent<TOOLS>>;
+> = Callback<OnToolCallStartEvent<TOOLS>>;
 
 /**
  * Callback that is set using the `experimental_onToolCallFinish` option.
@@ -168,7 +169,7 @@ export type GenerateTextOnToolCallStartCallback<
  */
 export type GenerateTextOnToolCallFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-> = Listener<OnToolCallFinishEvent<TOOLS>>;
+> = Callback<OnToolCallFinishEvent<TOOLS>>;
 
 /**
  * Callback that is set using the `onStepFinish` option.
@@ -181,7 +182,7 @@ export type GenerateTextOnToolCallFinishCallback<
 export type GenerateTextOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
-> = Listener<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
+> = Callback<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
 
 /**
  * Callback that is set using the `onFinish` option.
@@ -195,7 +196,7 @@ export type GenerateTextOnStepFinishCallback<
 export type GenerateTextOnFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
-> = Listener<OnFinishEvent<TOOLS, USER_CONTEXT>>;
+> = Callback<OnFinishEvent<TOOLS, USER_CONTEXT>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -467,7 +468,6 @@ export async function generateText<
     {}) as InferToolSetContext<TOOLS> & USER_CONTEXT;
 
   const model = resolveLanguageModel(modelArg);
-  const createGlobalTelemetry = getGlobalTelemetryIntegration<any, OUTPUT>();
   const stopConditions = asArray(stopWhen);
 
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
@@ -499,7 +499,8 @@ export async function generateText<
   } as Prompt);
 
   const callId = generateCallId();
-  const globalTelemetry = createGlobalTelemetry({
+
+  const unifiedTelemetry = createUnifiedTelemetry({
     integrations: telemetry?.integrations,
   });
 
@@ -541,7 +542,7 @@ export async function generateText<
     },
     callbacks: [
       onStart,
-      globalTelemetry.onStart as
+      unifiedTelemetry.onStart as
         | undefined
         | GenerateTextOnStartCallback<TOOLS, USER_CONTEXT, OUTPUT>,
     ],
@@ -581,7 +582,7 @@ export async function generateText<
             event,
             callbacks: [
               onToolCallStart,
-              globalTelemetry.onToolCallStart as
+              unifiedTelemetry.onToolCallStart as
                 | undefined
                 | GenerateTextOnToolCallStartCallback<TOOLS>,
             ],
@@ -591,12 +592,12 @@ export async function generateText<
             event,
             callbacks: [
               onToolCallFinish,
-              globalTelemetry.onToolCallFinish as
+              unifiedTelemetry.onToolCallFinish as
                 | undefined
                 | GenerateTextOnToolCallFinishCallback<TOOLS>,
             ],
           }),
-        executeToolInTelemetryContext: globalTelemetry.executeTool,
+        executeToolInTelemetryContext: unifiedTelemetry.executeTool,
       });
 
       const toolContent: Array<any> = [];
@@ -746,7 +747,7 @@ export async function generateText<
           event: onStepStartEvent,
           callbacks: [
             onStepStart,
-            globalTelemetry.onStepStart as
+            unifiedTelemetry.onStepStart as
               | undefined
               | GenerateTextOnStepStartCallback<TOOLS, USER_CONTEXT, OUTPUT>,
           ],
@@ -884,7 +885,7 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolCallStart,
-                    globalTelemetry.onToolCallStart as
+                    unifiedTelemetry.onToolCallStart as
                       | undefined
                       | GenerateTextOnToolCallStartCallback<TOOLS>,
                   ],
@@ -894,12 +895,12 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolCallFinish,
-                    globalTelemetry.onToolCallFinish as
+                    unifiedTelemetry.onToolCallFinish as
                       | undefined
                       | GenerateTextOnToolCallFinishCallback<TOOLS>,
                   ],
                 }),
-              executeToolInTelemetryContext: globalTelemetry.executeTool,
+              executeToolInTelemetryContext: unifiedTelemetry.executeTool,
             })),
           );
         }
@@ -1004,7 +1005,7 @@ export async function generateText<
           event: currentStepResult,
           callbacks: [
             onStepFinish,
-            globalTelemetry.onStepFinish as
+            unifiedTelemetry.onStepFinish as
               | undefined
               | GenerateTextOnStepFinishCallback<TOOLS, USER_CONTEXT>,
           ],
@@ -1074,7 +1075,7 @@ export async function generateText<
       event: onFinishEvent,
       callbacks: [
         onFinish,
-        globalTelemetry.onFinish as
+        unifiedTelemetry.onFinish as
           | undefined
           | GenerateTextOnFinishCallback<TOOLS, USER_CONTEXT>,
       ],
@@ -1100,7 +1101,7 @@ export async function generateText<
       output: resolvedOutput,
     });
   } catch (error) {
-    await globalTelemetry.onError?.({ callId, error });
+    await unifiedTelemetry.onError?.({ callId, error });
     throw wrapGatewayError(error);
   }
 }
