@@ -1,5 +1,3 @@
-import type { ToolSet } from '@ai-sdk/provider-utils';
-import type { Output } from '../generate-text/output';
 import { asArray } from '../util/as-array';
 import { mergeListeners } from '../util/merge-listeners';
 import type { Listener } from '../util/notify';
@@ -33,10 +31,7 @@ export function bindTelemetryIntegration(
   };
 }
 
-export function getGlobalTelemetryIntegration<
-  _TOOLS extends ToolSet = ToolSet,
-  _OUTPUT extends Output = Output,
->(): (args?: {
+export function getGlobalTelemetryIntegration(): (args?: {
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }) => TelemetryIntegration {
   const globalIntegrations = getGlobalTelemetryIntegrations();
