@@ -8,7 +8,7 @@ import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
-import type { Listener } from '../util/notify';
+import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
@@ -94,13 +94,13 @@ export async function embed({
    * Callback that is called when the embed operation begins,
    * before the embedding model is called.
    */
-  experimental_onStart?: Listener<EmbedOnStartEvent>;
+  experimental_onStart?: Callback<EmbedOnStartEvent>;
 
   /**
    * Callback that is called when the embed operation completes,
    * after the embedding model returns.
    */
-  experimental_onFinish?: Listener<EmbedOnFinishEvent>;
+  experimental_onFinish?: Callback<EmbedOnFinishEvent>;
 
   /**
    * Internal. For test use only. May change without notice.

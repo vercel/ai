@@ -22,24 +22,23 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-
 import { asLanguageModelUsage } from '../types/usage';
+import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
-import type { Listener } from '../util/notify';
 import { prepareHeaders } from '../util/prepare-headers';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
+import { GenerateObjectResult } from './generate-object-result';
+import { getOutputStrategy } from './output-strategy';
+import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
+import { RepairTextFunction } from './repair-text';
 import type {
   ObjectOnFinishEvent,
   ObjectOnStartEvent,
   ObjectOnStepFinishEvent,
   ObjectOnStepStartEvent,
 } from './structured-output-events';
-import { GenerateObjectResult } from './generate-object-result';
-import { getOutputStrategy } from './output-strategy';
-import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
-import { RepairTextFunction } from './repair-text';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
@@ -190,25 +189,25 @@ export async function generateObject<
        * Callback that is called when the generateObject operation begins,
        * before the LLM call is made.
        */
-      experimental_onStart?: Listener<ObjectOnStartEvent>;
+      experimental_onStart?: Callback<ObjectOnStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
-      experimental_onStepStart?: Listener<ObjectOnStepStartEvent>;
+      experimental_onStepStart?: Callback<ObjectOnStepStartEvent>;
 
       /**
        * Callback that is called when the model call (step) completes,
        * with the raw result before JSON parsing.
        */
-      onStepFinish?: Listener<ObjectOnStepFinishEvent>;
+      onStepFinish?: Callback<ObjectOnStepFinishEvent>;
 
       /**
        * Callback that is called when the entire operation completes
        * with the final parsed and validated object.
        */
-      onFinish?: Listener<ObjectOnFinishEvent<RESULT>>;
+      onFinish?: Callback<ObjectOnFinishEvent<RESULT>>;
 
       /**
        * Internal. For test use only. May change without notice.

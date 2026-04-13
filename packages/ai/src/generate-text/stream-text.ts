@@ -68,12 +68,13 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import type { Callback } from '../util/callback';
 import { consumeStream } from '../util/consume-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
-import { Listener, notify } from '../util/notify';
+import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -148,7 +149,7 @@ export type StreamTextTransform<TOOLS extends ToolSet> = (options: {
  *
  * @param event - The event that is passed to the callback.
  */
-export type StreamTextOnErrorCallback = Listener<{
+export type StreamTextOnErrorCallback = Callback<{
   error: unknown;
 }>;
 
@@ -160,7 +161,7 @@ export type StreamTextOnErrorCallback = Listener<{
 export type StreamTextOnStepFinishCallback<
   TOOLS extends ToolSet,
   USER_CONTEXT extends Context,
-> = Listener<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
+> = Callback<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
 
 /**
  * Callback that is set using the `onChunk` option.
@@ -193,7 +194,7 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
 export type StreamTextOnFinishCallback<
   TOOLS extends ToolSet,
   USER_CONTEXT extends Context,
-> = Listener<OnFinishEvent<TOOLS, USER_CONTEXT>>;
+> = Callback<OnFinishEvent<TOOLS, USER_CONTEXT>>;
 
 /**
  * Callback that is set using the `onAbort` option.
@@ -203,7 +204,7 @@ export type StreamTextOnFinishCallback<
 export type StreamTextOnAbortCallback<
   TOOLS extends ToolSet,
   USER_CONTEXT extends Context,
-> = Listener<{
+> = Callback<{
   /**
    * Details for all previously finished steps.
    */
@@ -228,7 +229,7 @@ export type StreamTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Listener<
+> = Callback<
   OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT, StreamTextIncludeSettings>
 >;
 
@@ -245,16 +246,16 @@ export type StreamTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Listener<
+> = Callback<
   OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT, StreamTextIncludeSettings>
 >;
 
 export type StreamTextOnToolCallStartCallback<TOOLS extends ToolSet = ToolSet> =
-  Listener<OnToolCallStartEvent<TOOLS>>;
+  Callback<OnToolCallStartEvent<TOOLS>>;
 
 export type StreamTextOnToolCallFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-> = Listener<OnToolCallFinishEvent<TOOLS>>;
+> = Callback<OnToolCallFinishEvent<TOOLS>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
