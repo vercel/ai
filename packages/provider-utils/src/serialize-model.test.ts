@@ -1,21 +1,31 @@
-import { describe, it, expect } from 'vitest';
-import { serializeModel, deserializeModelConfig } from './serialize-model';
+import { describe, expect, it } from 'vitest';
+import { deserializeModel, serializeModel } from './serialize-model';
+
+class TestModel {
+  constructor(
+    readonly modelId: string,
+    readonly config: Record<string, unknown>,
+  ) {}
+}
 
 describe('serializeModel', () => {
   it('returns modelId and serializable config', () => {
-    const result = serializeModel({
-      modelId: 'claude-sonnet-4-20250514',
-      config: {
-        provider: 'anthropic.messages',
-        baseURL: 'https://api.anthropic.com/v1',
-        headers: () => ({ 'x-api-key': 'sk-test' }),
-        fetch: undefined,
-        generateId: () => 'id',
-        supportedUrls: () => ({}),
-        supportsNativeStructuredOutput: true,
-        supportsStrictTools: false,
-      },
+    const model = new TestModel('claude-sonnet-4-20250514', {
+      provider: 'anthropic.messages',
+      baseURL: 'https://api.anthropic.com/v1',
+      headers: () => ({ 'x-api-key': 'sk-test' }),
+      fetch: undefined,
+      generateId: () => 'id',
+      supportedUrls: () => ({}),
+      supportsNativeStructuredOutput: true,
+      supportsStrictTools: false,
     });
+
+    const result = serializeModel({
+      model,
+      getConfig: model => model.config,
+    });
+
     expect(result).toEqual({
       modelId: 'claude-sonnet-4-20250514',
       config: {
@@ -30,14 +40,17 @@ describe('serializeModel', () => {
   });
 
   it('resolves headers functions but filters out other functions', () => {
-    const result = serializeModel({
-      modelId: 'gpt-4',
-      config: {
-        provider: 'openai',
-        headers: () => ({ authorization: 'Bearer sk-test' }),
-        url: () => 'https://api.openai.com/v1/chat/completions',
-      },
+    const model = new TestModel('gpt-4', {
+      provider: 'openai',
+      headers: () => ({ authorization: 'Bearer sk-test' }),
+      url: () => 'https://api.openai.com/v1/chat/completions',
     });
+
+    const result = serializeModel({
+      model,
+      getConfig: model => model.config,
+    });
+
     expect(result).toEqual({
       modelId: 'gpt-4',
       config: {
@@ -48,20 +61,23 @@ describe('serializeModel', () => {
   });
 
   it('filters out objects containing functions', () => {
-    const result = serializeModel({
-      modelId: 'model',
-      config: {
-        provider: 'openai-compatible',
-        errorStructure: {
-          errorSchema: {},
-          errorToMessage: () => 'error',
-        },
-        metadataExtractor: {
-          extractMetadata: async () => undefined,
-          createStreamExtractor: () => ({}),
-        },
+    const model = new TestModel('model', {
+      provider: 'openai-compatible',
+      errorStructure: {
+        errorSchema: {},
+        errorToMessage: () => 'error',
+      },
+      metadataExtractor: {
+        extractMetadata: async () => undefined,
+        createStreamExtractor: () => ({}),
       },
     });
+
+    const result = serializeModel({
+      model,
+      getConfig: model => model.config,
+    });
+
     expect(result).toEqual({
       modelId: 'model',
       config: { provider: 'openai-compatible' },
@@ -69,14 +85,17 @@ describe('serializeModel', () => {
   });
 
   it('keeps arrays of primitives', () => {
-    const result = serializeModel({
-      modelId: 'model',
-      config: {
-        provider: 'test',
-        tags: ['a', 'b'],
-        fn: () => {},
-      },
+    const model = new TestModel('model', {
+      provider: 'test',
+      tags: ['a', 'b'],
+      fn: () => {},
     });
+
+    const result = serializeModel({
+      model,
+      getConfig: model => model.config,
+    });
+
     expect(result).toEqual({
       modelId: 'model',
       config: { provider: 'test', tags: ['a', 'b'] },
@@ -84,14 +103,17 @@ describe('serializeModel', () => {
   });
 
   it('filters out class instances', () => {
-    const result = serializeModel({
-      modelId: 'model',
-      config: {
-        provider: 'test',
-        date: new Date(),
-        regex: /test/,
-      },
+    const model = new TestModel('model', {
+      provider: 'test',
+      date: new Date(),
+      regex: /test/,
     });
+
+    const result = serializeModel({
+      model,
+      getConfig: model => model.config,
+    });
+
     expect(result).toEqual({
       modelId: 'model',
       config: { provider: 'test' },
@@ -99,38 +121,44 @@ describe('serializeModel', () => {
   });
 });
 
-describe('deserializeModelConfig', () => {
-  it('wraps plain-object headers back into a function', () => {
-    // Simulate what happens after workflow deserialization: headers is a
-    // plain object (was resolved at serialization time), not a function.
-    const serialized: Record<string, unknown> = {
-      provider: 'anthropic.messages',
-      headers: { 'x-api-key': 'sk-test' },
+describe('deserializeModel', () => {
+  it('constructs a model instance from serialized options', () => {
+    const config = {
+      provider: 'test',
+      baseURL: 'https://example.com',
+      headers: { authorization: 'Bearer sk-test' },
     };
-    const config = deserializeModelConfig(serialized);
-    expect(typeof config.headers).toBe('function');
-    expect((config.headers as () => Record<string, string>)()).toEqual({
-      'x-api-key': 'sk-test',
+
+    const model = deserializeModel({
+      ModelClass: TestModel,
+      options: {
+        modelId: 'gpt-4.1',
+        config,
+      },
     });
+
+    expect(model).toBeInstanceOf(TestModel);
+    expect(model.modelId).toBe('gpt-4.1');
+    expect(model.config).toEqual(config);
   });
 
-  it('preserves headers that are already functions', () => {
-    const headersFn = () => ({ 'x-api-key': 'sk-test' });
-    const config = deserializeModelConfig({
-      provider: 'test',
-      headers: headersFn,
-    });
-    expect(config.headers).toBe(headersFn);
-  });
+  it('passes the config through unchanged', () => {
+    const headers = { 'x-api-key': 'sk-test' };
 
-  it('passes through config without headers unchanged', () => {
-    const config = deserializeModelConfig({
-      provider: 'test',
-      baseURL: 'https://example.com',
+    const model = deserializeModel({
+      ModelClass: TestModel,
+      options: {
+        modelId: 'claude-sonnet-4-20250514',
+        config: {
+          provider: 'anthropic.messages',
+          headers,
+        },
+      },
     });
-    expect(config).toEqual({
-      provider: 'test',
-      baseURL: 'https://example.com',
+
+    expect(model.config).toEqual({
+      provider: 'anthropic.messages',
+      headers,
     });
   });
 });
