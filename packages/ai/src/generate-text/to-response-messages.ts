@@ -85,10 +85,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           input:
-            part.invalid === true &&
-            (typeof part.input !== 'object' || part.input === null)
-              ? {}
-              : part.input,
+            part.invalid && typeof part.input !== 'object' ? {} : part.input,
           providerExecuted: part.providerExecuted,
           providerOptions: part.providerMetadata,
         });
