@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+
 ## 4.0.0-beta.11
 
 ### Major Changes
