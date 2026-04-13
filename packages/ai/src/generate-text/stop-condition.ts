@@ -44,7 +44,9 @@ export function isLoopFinished(): StopCondition<any, any> {
  *
  * @param toolName - The name of the tool that should stop the loop.
  */
-export function hasToolCall(toolName: string): StopCondition<any, any> {
+export function hasToolCall<TOOLS extends ToolSet>(
+  toolName: keyof TOOLS | (string & {}), // autocomplete support for tool names
+): StopCondition<TOOLS, any> {
   return ({ steps }) =>
     steps[steps.length - 1]?.toolCalls?.some(
       toolCall => toolCall.toolName === toolName,
