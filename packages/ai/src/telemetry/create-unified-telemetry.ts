@@ -5,6 +5,27 @@ import type { TelemetryIntegration } from './telemetry-integration';
 import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
 
 /**
+ * The subset of `TelemetryIntegration` keys whose values are listener callbacks.
+ * This excludes non-listener properties such as `executeTool`.
+ */
+type TelemetryListenerKey = keyof {
+  [K in keyof TelemetryIntegration as TelemetryIntegration[K] extends
+    | Listener<any>
+    | undefined
+    ? K
+    : never]: true;
+};
+
+/**
+ * Resolves the event type accepted by a telemetry listener key.
+ * For example, `'onStepStart'` maps to `OnStepStartEvent`.
+ */
+type TelemetryEvent<K extends TelemetryListenerKey> =
+  TelemetryIntegration[K] extends Listener<infer EVENT> | undefined
+    ? EVENT
+    : never;
+
+/**
  * Creates a unified telemetry target that sends telemetry events
  * to all registered global telemetry integrations and to
  * any per-call integrations passed to the function.
@@ -19,7 +40,7 @@ export function createUnifiedTelemetry({
 }: {
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }): TelemetryIntegration {
-  const integrations = [
+  const integrations: Array<TelemetryIntegration> = [
     ...getGlobalTelemetryIntegrations(),
     ...asArray(localIntegrations),
   ].map(
@@ -47,14 +68,12 @@ export function createUnifiedTelemetry({
     }),
   );
 
-  function createTelemetryComposite<EVENT>(
-    getListenerFromIntegration: (
-      integration: TelemetryIntegration,
-    ) => Listener<EVENT> | undefined,
-  ): Listener<EVENT> | undefined {
+  function createTelemetryComposite<KEY extends TelemetryListenerKey>(
+    key: KEY,
+  ): Listener<TelemetryEvent<KEY>> | undefined {
     const listeners = integrations
-      .map(getListenerFromIntegration)
-      .filter(Boolean) as Array<Listener<EVENT>>;
+      .map(integration => integration[key])
+      .filter(Boolean) as Array<Listener<TelemetryEvent<KEY>>>;
 
     return mergeListeners(...listeners);
   }
@@ -64,40 +83,20 @@ export function createUnifiedTelemetry({
     .filter(Boolean) as Array<TelemetryIntegration['executeTool']>;
 
   return {
-    onStart: createTelemetryComposite(integration => integration.onStart),
-    onStepStart: createTelemetryComposite(
-      integration => integration.onStepStart,
-    ),
-    onToolCallStart: createTelemetryComposite(
-      integration => integration.onToolCallStart,
-    ),
-    onToolCallFinish: createTelemetryComposite(
-      integration => integration.onToolCallFinish,
-    ),
-    onChunk: createTelemetryComposite(integration => integration.onChunk),
-    onStepFinish: createTelemetryComposite(
-      integration => integration.onStepFinish,
-    ),
-    onObjectStepStart: createTelemetryComposite(
-      integration => integration.onObjectStepStart,
-    ),
-    onObjectStepFinish: createTelemetryComposite(
-      integration => integration.onObjectStepFinish,
-    ),
-    onEmbedStart: createTelemetryComposite(
-      integration => integration.onEmbedStart,
-    ),
-    onEmbedFinish: createTelemetryComposite(
-      integration => integration.onEmbedFinish,
-    ),
-    onRerankStart: createTelemetryComposite(
-      integration => integration.onRerankStart,
-    ),
-    onRerankFinish: createTelemetryComposite(
-      integration => integration.onRerankFinish,
-    ),
-    onFinish: createTelemetryComposite(integration => integration.onFinish),
-    onError: createTelemetryComposite(integration => integration.onError),
+    onStart: createTelemetryComposite('onStart'),
+    onStepStart: createTelemetryComposite('onStepStart'),
+    onToolCallStart: createTelemetryComposite('onToolCallStart'),
+    onToolCallFinish: createTelemetryComposite('onToolCallFinish'),
+    onChunk: createTelemetryComposite('onChunk'),
+    onStepFinish: createTelemetryComposite('onStepFinish'),
+    onObjectStepStart: createTelemetryComposite('onObjectStepStart'),
+    onObjectStepFinish: createTelemetryComposite('onObjectStepFinish'),
+    onEmbedStart: createTelemetryComposite('onEmbedStart'),
+    onEmbedFinish: createTelemetryComposite('onEmbedFinish'),
+    onRerankStart: createTelemetryComposite('onRerankStart'),
+    onRerankFinish: createTelemetryComposite('onRerankFinish'),
+    onFinish: createTelemetryComposite('onFinish'),
+    onError: createTelemetryComposite('onError'),
     executeTool:
       executeWrappers.length > 0
         ? async params => {
