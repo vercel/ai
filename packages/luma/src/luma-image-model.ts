@@ -22,7 +22,7 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { LumaImageSettings, LumaReferenceType } from './luma-image-settings';
+import { LumaReferenceType } from './luma-image-settings';
 import { z } from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -69,7 +69,6 @@ export class LumaImageModel implements ImageModelV4 {
 
   async doGenerate({
     prompt,
-    n,
     size,
     aspectRatio,
     seed,

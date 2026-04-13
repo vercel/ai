@@ -1,7 +1,6 @@
 import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
-  SharedV4Warning,
   LanguageModelV4FilePart,
   LanguageModelV4StreamPart,
   LanguageModelV4GenerateResult,

@@ -1,25 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { mergeListeners } from './merge-listeners';
+import { mergeCallbacks } from './merge-callbacks';
 
-describe('mergeListeners', () => {
-  it('should invoke listeners in parallel, wait for them to settle, and continue after errors', async () => {
+describe('mergeCallbacks', () => {
+  it('should invoke callbacks in parallel, wait for them to settle, and continue after errors', async () => {
     const calls: string[] = [];
 
-    let resolveFirstListener!: () => void;
-    const firstListenerCompleted = new Promise<void>(resolve => {
-      resolveFirstListener = resolve;
+    let resolveFirstCallback!: () => void;
+    const firstCallbackCompleted = new Promise<void>(resolve => {
+      resolveFirstCallback = resolve;
     });
 
-    const merged = mergeListeners<{ value: string }>(
+    const merged = mergeCallbacks<{ value: string }>(
       async event => {
         calls.push(`first start: ${event.value}`);
-        await firstListenerCompleted;
+        await firstCallbackCompleted;
         calls.push('first end');
       },
       undefined,
       () => {
         calls.push('second before throw');
-        throw new Error('listener error');
+        throw new Error('callback error');
       },
       event => {
         calls.push(`third: ${event.value}`);
@@ -46,7 +46,7 @@ describe('mergeListeners', () => {
       ]
     `);
 
-    resolveFirstListener();
+    resolveFirstCallback();
     await mergedPromise;
 
     expect(calls).toMatchInlineSnapshot(`
@@ -60,14 +60,14 @@ describe('mergeListeners', () => {
     `);
   });
 
-  it('should ignore rejected listeners', async () => {
+  it('should ignore rejected callbacks', async () => {
     const calls: string[] = [];
 
-    const merged = mergeListeners<{ value: string }>(
+    const merged = mergeCallbacks<{ value: string }>(
       async event => {
         calls.push(`first before reject: ${event.value}`);
         await Promise.resolve();
-        throw new Error('listener error');
+        throw new Error('callback error');
       },
       event => {
         calls.push(`second: ${event.value}`);
@@ -84,10 +84,10 @@ describe('mergeListeners', () => {
     `);
   });
 
-  it('should ignore undefined listeners', async () => {
+  it('should ignore undefined callbacks', async () => {
     const calls: string[] = [];
 
-    const merged = mergeListeners<{ value: string }>(
+    const merged = mergeCallbacks<{ value: string }>(
       undefined,
       event => {
         calls.push(event.value);

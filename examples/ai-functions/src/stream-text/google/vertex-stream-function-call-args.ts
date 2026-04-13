@@ -16,6 +16,11 @@ run(async () => {
         }),
       },
     },
+    providerOptions: {
+      vertex: {
+        streamFunctionCallArguments: true,
+      },
+    },
     includeRawChunks: true,
   });
 

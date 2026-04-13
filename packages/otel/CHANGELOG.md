@@ -1,5 +1,73 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.34
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - ai@7.0.0-beta.88
+  - @ai-sdk/provider@4.0.0-beta.11
+
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- ai@7.0.0-beta.87
+
+## 1.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [5a6f514]
+  - ai@7.0.0-beta.86
+
+## 1.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [57bf606]
+  - ai@7.0.0-beta.85
+
+## 1.0.0-beta.30
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - ai@7.0.0-beta.84
+
+## 1.0.0-beta.29
+
+### Patch Changes
+
+- ai@7.0.0-beta.83
+
+## 1.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [e27ed76]
+  - ai@7.0.0-beta.82
+
+## 1.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [2fe1099]
+- Updated dependencies [f04adcb]
+  - ai@7.0.0-beta.81
+
+## 1.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - ai@7.0.0-beta.80
+
 ## 1.0.0-beta.25
 
 ### Patch Changes

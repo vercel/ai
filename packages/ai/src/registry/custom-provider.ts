@@ -3,6 +3,7 @@ import {
   EmbeddingModelV4,
   Experimental_VideoModelV3,
   Experimental_VideoModelV4,
+  FilesV4,
   ImageModelV2,
   ImageModelV3,
   ImageModelV4,
@@ -15,6 +16,7 @@ import {
   ProviderV4,
   RerankingModelV3,
   RerankingModelV4,
+  SkillsV4,
   SpeechModelV2,
   SpeechModelV3,
   SpeechModelV4,
@@ -69,6 +71,8 @@ export function customProvider<
     string,
     Experimental_VideoModelV3 | Experimental_VideoModelV4
   >,
+  FILES extends FilesV4 | undefined = undefined,
+  SKILLS extends SkillsV4 | undefined = undefined,
 >({
   languageModels,
   embeddingModels,
@@ -77,6 +81,8 @@ export function customProvider<
   speechModels,
   rerankingModels,
   videoModels,
+  files,
+  skills,
   fallbackProvider: fallbackProviderArg,
 }: {
   languageModels?: LANGUAGE_MODELS;
@@ -86,6 +92,8 @@ export function customProvider<
   speechModels?: SPEECH_MODELS;
   rerankingModels?: RERANKING_MODELS;
   videoModels?: VIDEO_MODELS;
+  files?: FILES;
+  skills?: SKILLS;
   fallbackProvider?: ProviderV4 | ProviderV3 | ProviderV2;
 }): ProviderV4 & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV4;
@@ -97,10 +105,14 @@ export function customProvider<
   rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV4;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV4;
   videoModel(modelId: ExtractModelId<VIDEO_MODELS>): Experimental_VideoModelV4;
-} {
+} & (FILES extends FilesV4 ? { files(): FilesV4 } : { files?(): FilesV4 }) &
+  (SKILLS extends SkillsV4 ? { skills(): SkillsV4 } : { skills?(): SkillsV4 }) {
   const fallbackProvider = fallbackProviderArg
     ? asProviderV4(fallbackProviderArg)
     : undefined;
+
+  const resolvedFiles = files ?? fallbackProvider?.files?.();
+  const resolvedSkills = skills ?? fallbackProvider?.skills?.();
 
   return {
     specificationVersion: 'v4',
@@ -187,16 +199,16 @@ export function customProvider<
         return asVideoModelV4(videoModels[modelId]);
       }
 
-      // TODO AI SDK v7
-      // @ts-expect-error - videoModel support is experimental
-      const videoModel = fallbackProvider?.videoModel;
+      const videoModel = (fallbackProvider as any)?.videoModel;
       if (videoModel) {
         return videoModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'videoModel' });
     },
-  };
+    ...(resolvedFiles != null ? { files: () => resolvedFiles } : {}),
+    ...(resolvedSkills != null ? { skills: () => resolvedSkills } : {}),
+  } as any; // necessary workaround to satisfy the complex return type while maintaining type safety
 }
 
 /**
