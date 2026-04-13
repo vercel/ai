@@ -8,7 +8,7 @@ import {
   type UIMessageChunk,
   uiMessageChunkSchema,
 } from 'ai';
-import { getErrorMessage } from './get-error-message.js';
+import { getErrorMessage } from '@ai-sdk/provider-utils';
 import { iteratorToStream, streamToIterator } from './stream-iterator.js';
 
 export interface SendMessagesOptions<UI_MESSAGE extends UIMessage> {
