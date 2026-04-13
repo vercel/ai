@@ -73,13 +73,21 @@ export function createUnifiedTelemetry({
     onRerankFinish: mergeTelemetryCallback('onRerankFinish'),
     onFinish: mergeTelemetryCallback('onFinish'),
     onError: mergeTelemetryCallback('onError'),
+
+    /**
+     * Composes all `executeTool` wrappers around the original tool execution.
+     * Each wrapper receives an `execute` function that calls the next wrapper in
+     * the chain, so integrations can establish nested telemetry context before
+     * delegating to the underlying tool.
+     */
     executeTool:
       executeWrappers.length > 0
         ? async args => {
             let execute = args.execute;
-            for (const wrapper of executeWrappers) {
-              const inner = execute;
-              execute = () => wrapper({ ...args, execute: inner });
+            for (const executeWrapper of executeWrappers) {
+              const innerExecute = execute;
+              execute = () =>
+                executeWrapper({ ...args, execute: innerExecute });
             }
             return execute();
           }
