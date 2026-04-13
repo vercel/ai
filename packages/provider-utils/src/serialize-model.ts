@@ -2,17 +2,23 @@ import { JSONObject } from '@ai-sdk/provider';
 import { isJSONSerializable } from './is-json-serializable';
 
 /**
- * Serializes a language model instance for workflow step boundaries.
- * Extracts the modelId and only the serializable config properties,
- * filtering out functions (headers, fetch, generateId, etc.) and
- * objects containing functions (errorStructure, metadataExtractor, etc.).
+ * Serializes a model instance for workflow step boundaries.
+ * Returns the modelId plus the JSON-serializable config properties
+ * from `getConfig(model)`.
+ *
+ * Non-serializable values are omitted. As a special case, a
+ * function-valued `headers` property is resolved during serialization
+ * and included if the returned value is JSON-serializable.
  *
  * Used as the body of `static [WORKFLOW_SERIALIZE]` in provider models.
  *
  * @example
  * ```ts
  * static [WORKFLOW_SERIALIZE](model: MyLanguageModel) {
- *   return serializeModel(model);
+ *   return serializeModel({
+ *     model,
+ *     getConfig: model => model.config,
+ *   });
  * }
  * ```
  */
@@ -47,19 +53,19 @@ export function serializeModel<MODEL extends { modelId: string }>({
 
 /**
  * Deserializes a model instance from workflow step boundary data.
- * The symmetric opposite of `serializeModel`: accepts a model class
- * constructor and the serialized `{ modelId, config }` payload, and
- * returns a fully constructed model instance.
- *
- * Internally wraps plain-object `headers` back into a function before
- * passing the config to the constructor.
+ * Accepts a model class constructor and the serialized
+ * `{ modelId, config }` payload, then returns a constructed model
+ * instance by passing the config through unchanged.
  *
  * Used as the body of `static [WORKFLOW_DESERIALIZE]` in provider models.
  *
  * @example
  * ```ts
  * static [WORKFLOW_DESERIALIZE](options: { modelId: string; config: MyConfig }) {
- *   return deserializeModel(MyLanguageModel, options);
+ *   return deserializeModel({
+ *     ModelClass: MyLanguageModel,
+ *     options,
+ *   });
  * }
  * ```
  */
