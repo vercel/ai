@@ -24,7 +24,7 @@ do {
      add finish-step
      add finish
    bookkeeping:
-     keep track of tool calls/outputs/errors, active tools
+     keep track of tool calls/outputs/errors
    timeout mgmt
    events:
      telemetry, tool input delta
