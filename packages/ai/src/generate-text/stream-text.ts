@@ -1898,7 +1898,8 @@ class DefaultStreamTextResult<
                   await stepFinish.promise;
 
                   const clientToolCalls = stepToolCalls.filter(
-                    toolCall => toolCall.providerExecuted !== true,
+                    toolCall =>
+                      toolCall.providerExecuted !== true && !toolCall.invalid,
                   );
                   const clientToolOutputs = stepToolOutputs.filter(
                     toolOutput => toolOutput.providerExecuted !== true,
@@ -1944,13 +1945,20 @@ class DefaultStreamTextResult<
                   clearStepTimeout();
                   clearChunkTimeout();
 
+                  // filtered so that the step is not stopped by the condition `clientToolOutputs.length === clientToolCalls.length`
+                  const hasInvalidToolCalls = stepToolCalls.some(
+                    toolCall => toolCall.invalid,
+                  );
+
                   if (
                     // Continue if:
                     // 1. There are client tool calls that have all been executed, OR
-                    // 2. There are pending deferred results from provider-executed tools
+                    // 2. There are pending deferred results from provider-executed tools, OR
+                    // 3. There are invalid tool calls (error feedback is sent to the model via toResponseMessages)
                     ((clientToolCalls.length > 0 &&
                       clientToolOutputs.length === clientToolCalls.length) ||
-                      pendingDeferredToolCalls.size > 0) &&
+                      pendingDeferredToolCalls.size > 0 ||
+                      hasInvalidToolCalls) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
                       stopConditions,

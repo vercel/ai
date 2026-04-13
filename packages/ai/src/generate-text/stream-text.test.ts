@@ -18015,6 +18015,268 @@ describe('streamText', () => {
           `);
       });
     });
+
+    describe('invalid tool call alongside valid tool call should not break the loop', () => {
+      let result: StreamTextResult<any, any, any>;
+
+      beforeEach(async () => {
+        let responseCount = 0;
+        result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'stream-start', warnings: [] },
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'weather',
+                        input: `{ "location": "San Francisco" }`,
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-2',
+                        toolName: 'cityAttractions',
+                        input: `{ "cities": "San Francisco" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                }
+                case 1: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'stream-start', warnings: [] },
+                      { type: 'text-start', id: '1' },
+                      {
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Final answer from model.',
+                      },
+                      { type: 'text-end', id: '1' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                }
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            weather: tool({
+              inputSchema: z.object({ location: z.string() }),
+              execute: async ({ location }) => ({
+                temperature: 72,
+                location,
+              }),
+            }),
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+            }),
+          },
+          prompt: 'What is the weather and attractions in San Francisco?',
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId(),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+        });
+      });
+
+      it('should complete 2 steps', async () => {
+        expect((await result.steps).length).toBe(2);
+      });
+
+      it('should return text from the second step', async () => {
+        expect(await result.text).toMatchInlineSnapshot(
+          `"Final answer from model."`,
+        );
+      });
+
+      it('should have the invalid tool call in the first step', async () => {
+        const steps = await result.steps;
+        expect(steps[0].invalidToolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
+              "input": {
+                "cities": "San Francisco",
+              },
+              "invalid": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "rawInput": "{ "cities": "San Francisco" }",
+              "title": undefined,
+              "toolCallId": "call-2",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should have the valid tool result in the first step', async () => {
+        const steps = await result.steps;
+        expect(steps[0].toolResults).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": false,
+              "input": {
+                "location": "San Francisco",
+              },
+              "output": {
+                "location": "San Francisco",
+                "temperature": 72,
+              },
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('single invalid tool call should continue the loop', () => {
+      let result: StreamTextResult<any, any, any>;
+
+      beforeEach(async () => {
+        let responseCount = 0;
+        result = streamText({
+          model: new MockLanguageModelV4({
+            doStream: async () => {
+              switch (responseCount++) {
+                case 0: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'stream-start', warnings: [] },
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'cityAttractions',
+                        input: `{ "cities": "San Francisco" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                }
+                case 1: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'stream-start', warnings: [] },
+                      { type: 'text-start', id: '1' },
+                      {
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Sorry, I made an error.',
+                      },
+                      { type: 'text-end', id: '1' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
+                }
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+            }),
+          },
+          prompt: 'What are the tourist attractions in San Francisco?',
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId(),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+        });
+      });
+
+      it('should complete 2 steps', async () => {
+        expect((await result.steps).length).toBe(2);
+      });
+
+      it('should return text from the second step', async () => {
+        expect(await result.text).toMatchInlineSnapshot(
+          `"Sorry, I made an error."`,
+        );
+      });
+
+      it('should have the invalid tool call in the first step', async () => {
+        const steps = await result.steps;
+        expect(steps[0].invalidToolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
+              "input": {
+                "cities": "San Francisco",
+              },
+              "invalid": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "rawInput": "{ "cities": "San Francisco" }",
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should have no tool results in the first step', async () => {
+        const steps = await result.steps;
+        expect(steps[0].toolResults).toMatchInlineSnapshot(`[]`);
+      });
+    });
   });
 
   describe('tools with preliminary results', () => {
