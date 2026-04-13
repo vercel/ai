@@ -9,13 +9,13 @@ import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import { Warning } from '../types/warning';
+import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
 import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
 import { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
-import type { Listener } from '../util/notify';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
@@ -110,13 +110,13 @@ export async function embedMany({
    * Callback that is called when the embedMany operation begins,
    * before the embedding model is called.
    */
-  experimental_onStart?: Listener<EmbedOnStartEvent>;
+  experimental_onStart?: Callback<EmbedOnStartEvent>;
 
   /**
    * Callback that is called when the embedMany operation completes,
    * after all embedding model calls return.
    */
-  experimental_onFinish?: Listener<EmbedOnFinishEvent>;
+  experimental_onFinish?: Callback<EmbedOnFinishEvent>;
 
   /**
    * Internal. For test use only. May change without notice.
