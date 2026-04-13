@@ -8,8 +8,11 @@ import {
   type UIMessageChunk,
   uiMessageChunkSchema,
 } from 'ai';
-import { getErrorMessage } from '@ai-sdk/provider-utils';
-import { iteratorToStream, streamToIterator } from './stream-iterator.js';
+import {
+  convertAsyncIteratorToReadableStream,
+  getErrorMessage,
+} from '@ai-sdk/provider-utils';
+import { createAsyncIterableStream } from 'ai/internal';
 
 export interface SendMessagesOptions<UI_MESSAGE extends UIMessage> {
   trigger: 'submit-message' | 'regenerate-message';
@@ -182,9 +185,9 @@ export class WorkflowChatTransport<
   async sendMessages(
     options: SendMessagesOptions<UI_MESSAGE> & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk>> {
-    return iteratorToStream(this.sendMessagesIterator(options), {
-      signal: options.abortSignal,
-    });
+    return convertAsyncIteratorToReadableStream(
+      this.sendMessagesIterator(options),
+    );
   }
 
   private async *sendMessagesIterator(
@@ -247,7 +250,7 @@ export class WorkflowChatTransport<
         stream: res.body,
         schema: uiMessageChunkSchema,
       });
-      for await (const chunk of streamToIterator(chunkStream)) {
+      for await (const chunk of createAsyncIterableStream(chunkStream)) {
         if (!chunk.success) {
           throw chunk.error;
         }
@@ -290,7 +293,7 @@ export class WorkflowChatTransport<
     options: ReconnectToStreamOptions & ChatRequestOptions,
   ): Promise<ReadableStream<UIMessageChunk> | null> {
     const it = this.reconnectToStreamIterator(options);
-    return iteratorToStream(it, { signal: options.abortSignal });
+    return convertAsyncIteratorToReadableStream(it);
   }
 
   private async *reconnectToStreamIterator(
@@ -389,7 +392,7 @@ export class WorkflowChatTransport<
           stream: res.body,
           schema: uiMessageChunkSchema,
         });
-        for await (const chunk of streamToIterator(chunkStream)) {
+        for await (const chunk of createAsyncIterableStream(chunkStream)) {
           if (!chunk.success) {
             throw chunk.error;
           }
