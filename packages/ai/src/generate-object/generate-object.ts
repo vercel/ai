@@ -17,7 +17,7 @@ import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
+import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
@@ -278,8 +278,7 @@ export async function generateObject<
     `ai/${VERSION}`,
   );
 
-  const createGlobalTelemetry = getGlobalTelemetryIntegration();
-  const globalTelemetry = createGlobalTelemetry({
+  const unifiedTelemetry = createUnifiedTelemetry({
     integrations: telemetry?.integrations,
   });
 
@@ -316,7 +315,7 @@ export async function generateObject<
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata,
     },
-    callbacks: [onStart, globalTelemetry.onStart],
+    callbacks: [onStart, unifiedTelemetry.onStart],
   });
 
   try {
@@ -346,7 +345,7 @@ export async function generateObject<
         metadata: telemetry?.metadata as Record<string, unknown> | undefined,
         promptMessages,
       },
-      callbacks: [onStepStart, globalTelemetry.onObjectStepStart],
+      callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
     });
 
     const generateResult = await retry(() =>
@@ -418,7 +417,7 @@ export async function generateObject<
 
     await notify({
       event: stepFinishEvent,
-      callbacks: [onStepFinish, globalTelemetry.onObjectStepFinish],
+      callbacks: [onStepFinish, unifiedTelemetry.onObjectStepFinish],
     });
 
     const object = await parseAndValidateObjectResultWithRepair(
@@ -447,7 +446,7 @@ export async function generateObject<
         functionId: telemetry?.functionId,
         metadata: telemetry?.metadata as Record<string, unknown> | undefined,
       },
-      callbacks: [onFinish, globalTelemetry.onFinish],
+      callbacks: [onFinish, unifiedTelemetry.onFinish],
     });
 
     return new DefaultGenerateObjectResult({
@@ -461,7 +460,7 @@ export async function generateObject<
       providerMetadata: resultProviderMetadata,
     });
   } catch (error) {
-    await globalTelemetry.onError?.({ callId, error });
+    await unifiedTelemetry.onError?.({ callId, error });
     throw wrapGatewayError(error);
   }
 }
