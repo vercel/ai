@@ -1,5 +1,13 @@
 # @ai-sdk/langchain
 
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+- Updated dependencies [ff5eba1]
+  - ai@7.0.0-beta.89
+
 ## 3.0.0-beta.88
 
 ### Major Changes
