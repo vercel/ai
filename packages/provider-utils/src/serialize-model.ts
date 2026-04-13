@@ -3,8 +3,7 @@ import { isJSONSerializable } from './is-json-serializable';
 
 /**
  * Serializes a model instance for workflow step boundaries.
- * Returns the modelId plus the JSON-serializable config properties
- * from `getConfig(model)`.
+ * Returns the `modelId` plus the JSON-serializable config properties.
  *
  * Non-serializable values are omitted. As a special case, a
  * function-valued `headers` property is resolved during serialization
@@ -15,9 +14,9 @@ import { isJSONSerializable } from './is-json-serializable';
  * @example
  * ```ts
  * static [WORKFLOW_SERIALIZE](model: MyLanguageModel) {
- *   return serializeModel({
- *     model,
- *     getConfig: model => model.config,
+ *   return serializeModelOptions({
+ *     modelId: model.modelId,
+ *     config: model.config,
  *   });
  * }
  * ```
@@ -49,18 +48,20 @@ export function serializeModelOptions<
 
 /**
  * Deserializes model options from workflow step boundary data.
- * Restores special-case config values, such as converting a
- * serialized `headers` object back into a function.
+ * Restores special-case config values, such as converting a serialized
+ * `headers` object back into a function.
  *
  * Used as the body of `static [WORKFLOW_DESERIALIZE]` in provider models.
  *
  * @example
  * ```ts
  * static [WORKFLOW_DESERIALIZE](options: { modelId: string; config: MyConfig }) {
- *   return deserializeModel({
- *     ModelClass: MyLanguageModel,
- *     options,
- *   });
+ *   const deserializedOptions = deserializeModelOptions(options);
+ *
+ *   return new MyLanguageModel(
+ *     deserializedOptions.modelId,
+ *     deserializedOptions.config,
+ *   );
  * }
  * ```
  */
