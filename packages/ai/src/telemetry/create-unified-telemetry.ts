@@ -45,15 +45,14 @@ export function createUnifiedTelemetry({
     ...asArray(localIntegrations),
   ];
 
-  function mergeTelemetryCallback<KEY extends TelemetryListenerKey>(
+  const mergeTelemetryCallback = <KEY extends TelemetryListenerKey>(
     key: KEY,
-  ): Listener<TelemetryEvent<KEY>> | undefined {
-    return mergeListeners(
+  ): Listener<TelemetryEvent<KEY>> | undefined =>
+    mergeListeners(
       ...(integrations
         .map(integration => integration[key]?.bind(integration))
         .filter(Boolean) as Array<Listener<TelemetryEvent<KEY>>>),
     );
-  }
 
   const executeWrappers = integrations
     .map(integration => integration.executeTool?.bind(integration))
@@ -76,11 +75,11 @@ export function createUnifiedTelemetry({
     onError: mergeTelemetryCallback('onError'),
     executeTool:
       executeWrappers.length > 0
-        ? async params => {
-            let execute = params.execute;
+        ? async args => {
+            let execute = args.execute;
             for (const wrapper of executeWrappers) {
               const inner = execute;
-              execute = () => wrapper!({ ...params, execute: inner });
+              execute = () => wrapper!({ ...args, execute: inner });
             }
             return execute();
           }
