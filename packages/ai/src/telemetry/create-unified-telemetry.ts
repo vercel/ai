@@ -1,27 +1,27 @@
 import { asArray } from '../util/as-array';
-import { mergeListeners } from '../util/merge-listeners';
-import type { Listener } from '../util/notify';
+import { Callback } from '../util/callback';
+import { mergeCallbacks } from '../util/merge-callbacks';
 import type { TelemetryIntegration } from './telemetry-integration';
 import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
 
 /**
- * The subset of `TelemetryIntegration` keys whose values are listener callbacks.
- * This excludes non-listener properties such as `executeTool`.
+ * The subset of `TelemetryIntegration` keys whose values are Callback callbacks.
+ * This excludes non-Callback properties such as `executeTool`.
  */
-type TelemetryListenerKey = keyof {
+type TelemetryCallbackKey = keyof {
   [K in keyof TelemetryIntegration as TelemetryIntegration[K] extends
-    | Listener<any>
+    | Callback<any>
     | undefined
     ? K
     : never]: true;
 };
 
 /**
- * Resolves the event type accepted by a telemetry listener key.
+ * Resolves the event type accepted by a telemetry Callback key.
  * For example, `'onStepStart'` maps to `OnStepStartEvent`.
  */
-type TelemetryEvent<K extends TelemetryListenerKey> =
-  TelemetryIntegration[K] extends Listener<infer EVENT> | undefined
+type TelemetryEvent<K extends TelemetryCallbackKey> =
+  TelemetryIntegration[K] extends Callback<infer EVENT> | undefined
     ? EVENT
     : never;
 
@@ -45,13 +45,13 @@ export function createUnifiedTelemetry({
     ...asArray(localIntegrations),
   ];
 
-  const mergeTelemetryCallback = <KEY extends TelemetryListenerKey>(
+  const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
-  ): Listener<TelemetryEvent<KEY>> | undefined =>
-    mergeListeners(
+  ): Callback<TelemetryEvent<KEY>> | undefined =>
+    mergeCallbacks(
       ...(integrations
         .map(integration => integration[key]?.bind(integration))
-        .filter(Boolean) as Array<Listener<TelemetryEvent<KEY>>>),
+        .filter(Boolean) as Array<Callback<TelemetryEvent<KEY>>>),
     );
 
   const executeWrappers = integrations
