@@ -40,16 +40,16 @@ export function isLoopFinished(): StopCondition<any, any> {
 
 /**
  * Creates a stop condition that returns `true` when the most recent step
- * contains a tool call with the specified name.
+ * contains a tool call with any of the specified names.
  *
- * @param toolName - The name of the tool that should stop the loop.
+ * @param toolName - The names of the tools that should stop the loop.
  */
 export function hasToolCall<TOOLS extends ToolSet>(
-  toolName: keyof TOOLS | (string & {}), // autocomplete support for tool names
+  ...toolName: Array<keyof TOOLS | (string & {})> // autocomplete support for tool names
 ): StopCondition<TOOLS, any> {
   return ({ steps }) =>
-    steps[steps.length - 1]?.toolCalls?.some(
-      toolCall => toolCall.toolName === toolName,
+    steps[steps.length - 1]?.toolCalls?.some(toolCall =>
+      toolName.includes(toolCall.toolName),
     ) ?? false;
 }
 
