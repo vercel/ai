@@ -164,6 +164,25 @@ type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
 }>;
 ```
 
+### `InvalidToolUIPart`
+
+A tool call that failed validation: either the tool does not exist or the model produced input that does not match the tool's schema.
+
+```typescript
+type InvalidToolUIPart = {
+  type: 'invalid-tool';
+  toolName: string;
+  toolCallId: string;
+  title?: string;
+  providerExecuted?: boolean;
+  state: 'error';
+  input: unknown;
+  rawInput?: unknown;
+  errorText: string;
+  callProviderMetadata?: ProviderMetadata;
+};
+```
+
 ### `CustomContentUIPart`
 
 A provider-specific custom content part of a message.

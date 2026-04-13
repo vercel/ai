@@ -2522,6 +2522,11 @@ To see `streamText` in action, check out [these examples](#examples).
       description: 'The dynamic tool calls that have been executed in the last step.',
     },
     {
+      name: 'invalidToolCalls',
+      type: 'PromiseLike<Array<InvalidToolCall>>',
+      description: 'The invalid tool calls from the last step (tool not found or bad input). Automatically consumes the stream.',
+    },
+    {
       name: 'staticToolResults',
       type: 'PromiseLike<Array<StaticToolResult<TOOLS>>>',
       description: 'The static tool results that have been generated in the last step.',
