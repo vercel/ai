@@ -653,6 +653,7 @@ export async function generateText<
     };
     let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
     let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
+    let hasInvalidToolCalls = false;
     const steps: GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>['steps'] = [];
 
     // Track provider-executed tool calls that support deferred results
@@ -844,6 +845,9 @@ export async function generateText<
           toolCall => !toolCall.providerExecuted && !toolCall.invalid,
         );
 
+        // filtered so that the step is not stopped by the condition `clientToolOutputs.length === clientToolCalls.length`
+        hasInvalidToolCalls = stepToolCalls.some(toolCall => toolCall.invalid);
+
         if (tools != null) {
           clientToolOutputs.push(
             ...(await executeTools({
@@ -998,10 +1002,12 @@ export async function generateText<
     } while (
       // Continue if:
       // 1. There are client tool calls that have all been executed, OR
-      // 2. There are pending deferred results from provider-executed tools
+      // 2. There are pending deferred results from provider-executed tools, OR
+      // 3. There are invalid tool calls (error feedback is sent to the model via toResponseMessages)
       ((clientToolCalls.length > 0 &&
         clientToolOutputs.length === clientToolCalls.length) ||
-        pendingDeferredToolCalls.size > 0) &&
+        pendingDeferredToolCalls.size > 0 ||
+        hasInvalidToolCalls) &&
       // continue until a stop condition is met:
       !(await isStopConditionMet({ stopConditions, steps }))
     );
