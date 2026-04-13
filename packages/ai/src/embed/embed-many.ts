@@ -15,7 +15,7 @@ import { splitArray } from '../util/split-array';
 import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
 import { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
-import type { Listener } from '../util/notify';
+import type { Callback } from '../util/notify';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
@@ -110,13 +110,13 @@ export async function embedMany({
    * Callback that is called when the embedMany operation begins,
    * before the embedding model is called.
    */
-  experimental_onStart?: Listener<EmbedOnStartEvent>;
+  experimental_onStart?: Callback<EmbedOnStartEvent>;
 
   /**
    * Callback that is called when the embedMany operation completes,
    * after all embedding model calls return.
    */
-  experimental_onFinish?: Listener<EmbedOnFinishEvent>;
+  experimental_onFinish?: Callback<EmbedOnFinishEvent>;
 
   /**
    * Internal. For test use only. May change without notice.

@@ -7,7 +7,7 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { resolveRerankingModel } from '../model/resolve-model';
 import { RerankingModel } from '../types';
 import { notify } from '../util/notify';
-import type { Listener } from '../util/notify';
+import type { Callback } from '../util/notify';
 import type { RerankOnFinishEvent, RerankOnStartEvent } from './rerank-events';
 import { RerankResult } from './rerank-result';
 
@@ -100,13 +100,13 @@ export async function rerank<VALUE extends JSONObject | string>({
    * Callback that is called when the rerank operation begins,
    * before the reranking model is called.
    */
-  experimental_onStart?: Listener<RerankOnStartEvent>;
+  experimental_onStart?: Callback<RerankOnStartEvent>;
 
   /**
    * Callback that is called when the rerank operation completes,
    * after the reranking model returns.
    */
-  experimental_onFinish?: Listener<RerankOnFinishEvent>;
+  experimental_onFinish?: Callback<RerankOnFinishEvent>;
 
   /**
    * Internal. For test use only. May change without notice.

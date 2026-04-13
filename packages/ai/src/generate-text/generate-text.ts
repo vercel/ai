@@ -51,7 +51,8 @@ import { asArray } from '../util/as-array';
 import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
-import { Listener, notify } from '../util/notify';
+import { notify } from '../util/notify';
+import type { Callback } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
@@ -121,7 +122,7 @@ export type GenerateTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Listener<
+> = Callback<
   OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT, GenerateTextIncludeSettings>
 >;
 
@@ -138,7 +139,7 @@ export type GenerateTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Listener<
+> = Callback<
   OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT, GenerateTextIncludeSettings>
 >;
 
@@ -152,7 +153,7 @@ export type GenerateTextOnStepStartCallback<
  */
 export type GenerateTextOnToolCallStartCallback<
   TOOLS extends ToolSet = ToolSet,
-> = Listener<OnToolCallStartEvent<TOOLS>>;
+> = Callback<OnToolCallStartEvent<TOOLS>>;
 
 /**
  * Callback that is set using the `experimental_onToolCallFinish` option.
@@ -168,7 +169,7 @@ export type GenerateTextOnToolCallStartCallback<
  */
 export type GenerateTextOnToolCallFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-> = Listener<OnToolCallFinishEvent<TOOLS>>;
+> = Callback<OnToolCallFinishEvent<TOOLS>>;
 
 /**
  * Callback that is set using the `onStepFinish` option.
@@ -181,7 +182,7 @@ export type GenerateTextOnToolCallFinishCallback<
 export type GenerateTextOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
-> = Listener<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
+> = Callback<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
 
 /**
  * Callback that is set using the `onFinish` option.
@@ -195,7 +196,7 @@ export type GenerateTextOnStepFinishCallback<
 export type GenerateTextOnFinishCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
-> = Listener<OnFinishEvent<TOOLS, USER_CONTEXT>>;
+> = Callback<OnFinishEvent<TOOLS, USER_CONTEXT>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
