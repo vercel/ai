@@ -201,6 +201,7 @@
     "rare-maps-invent",
     "reasoning-summary",
     "red-colts-complain",
+    "remove-commonjs-exports",
     "remove-tool-call-options-v7",
     "remove-useragent-usechat",
     "rerank-string-model-resolution",
