@@ -18,7 +18,6 @@ import {
   parseProviderOptions,
   postFormDataToApi,
   resolve,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -54,8 +53,7 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
     modelId: ProdiaLanguageModelId;
     config: ProdiaModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new ProdiaLanguageModel(modelId, config);
+    return new ProdiaLanguageModel(options.modelId, options.config);
   }
 
   constructor(

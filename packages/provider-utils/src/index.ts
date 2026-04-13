@@ -61,10 +61,7 @@ export {
   type Schema,
   type ValidationResult,
 } from './schema';
-export {
-  deserializeModelOptions,
-  serializeModelOptions,
-} from './serialize-model';
+export { serializeModelOptions } from './serialize-model';
 export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';
