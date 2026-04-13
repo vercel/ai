@@ -19,9 +19,11 @@ import {
   getToolName,
   InferUIMessageData,
   InferUIMessageTools,
+  InvalidToolUIPart,
   isCustomContentUIPart,
   isDataUIPart,
   isFileUIPart,
+  isInvalidToolUIPart,
   isReasoningFileUIPart,
   isReasoningUIPart,
   ReasoningFileUIPart,
@@ -144,6 +146,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             | FileUIPart
             | ReasoningFileUIPart
             | DynamicToolUIPart
+            | InvalidToolUIPart
             | DataUIPart<InferUIMessageData<UI_MESSAGE>>
           > = [];
 
@@ -193,6 +196,20 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   type: 'reasoning' as const,
                   text: part.text,
                   providerOptions: part.providerMetadata,
+                });
+              } else if (isInvalidToolUIPart(part)) {
+                content.push({
+                  type: 'tool-call' as const,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  input:
+                    typeof part.input === 'object' && part.input !== null
+                      ? part.input
+                      : {},
+                  providerExecuted: part.providerExecuted,
+                  ...(part.callProviderMetadata != null
+                    ? { providerOptions: part.callProviderMetadata }
+                    : {}),
                 });
               } else if (isToolUIPart(part)) {
                 const toolName = getToolName(part);
@@ -274,6 +291,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             // Include non-provider-executed tools, OR provider-executed tools with approval responses
             const toolParts = block.filter(
               part =>
+                !isInvalidToolUIPart(part) &&
                 isToolUIPart(part) &&
                 (part.providerExecuted !== true ||
                   part.approval?.approved != null),
@@ -282,11 +300,29 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               | DynamicToolUIPart
             )[];
 
+            const invalidToolParts = block.filter(isInvalidToolUIPart);
+
             // tool message with tool results
-            if (toolParts.length > 0) {
+            if (toolParts.length > 0 || invalidToolParts.length > 0) {
               {
                 const content: Array<ToolResultPart | ToolApprovalResponse> =
                   [];
+
+                for (const invalidPart of invalidToolParts) {
+                  content.push({
+                    type: 'tool-result',
+                    toolCallId: invalidPart.toolCallId,
+                    toolName: invalidPart.toolName,
+                    output: {
+                      type: 'error-text' as const,
+                      value: invalidPart.errorText,
+                    },
+                    ...(invalidPart.callProviderMetadata != null
+                      ? { providerOptions: invalidPart.callProviderMetadata }
+                      : {}),
+                  });
+                }
+
                 for (const toolPart of toolParts) {
                   // add approval response for approved tool calls:
                   if (toolPart.approval?.approved != null) {

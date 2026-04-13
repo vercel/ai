@@ -57,7 +57,15 @@ export default function Chat() {
                       </div>
                     );
                 }
+                break;
               }
+
+              case 'invalid-tool':
+                return (
+                  <div key={index} className="text-red-500">
+                    Error: {part.errorText}
+                  </div>
+                );
             }
           })}
           <br />

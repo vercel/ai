@@ -2972,4 +2972,198 @@ describe('convertToModelMessages', () => {
       });
     });
   });
+
+  describe('when converting invalid tool invocations', () => {
+    it('should convert a single invalid tool call with error', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'invalid-tool',
+              toolName: 'cityAttractions',
+              toolCallId: 'call-1',
+              state: 'error' as const,
+              input: { cities: 'San Francisco' },
+              errorText: 'Invalid input for tool cityAttractions',
+            },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'Try again' }],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "cities": "San Francisco",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Invalid input for tool cityAttractions",
+                },
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+          {
+            "content": [
+              {
+                "text": "Try again",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should convert an invalid tool call with non-object input', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'invalid-tool',
+              toolName: 'cityAttractions',
+              toolCallId: 'call-1',
+              state: 'error' as const,
+              input: 'invalid json',
+              errorText: 'JSON parsing failed',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "JSON parsing failed",
+                },
+                "toolCallId": "call-1",
+                "toolName": "cityAttractions",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should convert an invalid tool call alongside a valid tool call', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-weather' as const,
+              toolCallId: 'call-1',
+              state: 'output-available' as const,
+              input: { location: 'San Francisco' },
+              output: 'sunny',
+            },
+            {
+              type: 'invalid-tool',
+              toolName: 'cityAttractions',
+              toolCallId: 'call-2',
+              state: 'error' as const,
+              input: { cities: 'San Francisco' },
+              errorText: 'Invalid input for tool cityAttractions',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "location": "San Francisco",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "input": {
+                  "cities": "San Francisco",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-2",
+                "toolName": "cityAttractions",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Invalid input for tool cityAttractions",
+                },
+                "toolCallId": "call-2",
+                "toolName": "cityAttractions",
+                "type": "tool-result",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "sunny",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+  });
 });
