@@ -15,6 +15,9 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -39,6 +42,24 @@ interface GoogleGenerativeAIImageModelConfig {
 
 export class GoogleGenerativeAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAIImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleGenerativeAIImageModelConfig;
+  }) {
+    return new GoogleGenerativeAIImageModel(
+      options.modelId,
+      {},
+      options.config,
+    );
+  }
 
   get maxImagesPerCall(): number {
     if (this.settings.maxImagesPerCall != null) {
@@ -151,7 +172,10 @@ export class GoogleGenerativeAIImageModel implements ImageModelV4 {
       predictions: Array<{ bytesBase64Encoded: string }>;
     }>({
       url: `${this.config.baseURL}/models/${this.modelId}:predict`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
+      headers: combineHeaders(
+        this.config.headers ? await resolve(this.config.headers) : undefined,
+        headers,
+      ),
       body,
       failedResponseHandler: googleFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

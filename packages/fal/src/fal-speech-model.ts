@@ -7,6 +7,9 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FalConfig } from './fal-config';
@@ -44,6 +47,20 @@ export class FalSpeechModel implements SpeechModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: FalSpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FalSpeechModelId;
+    config: FalSpeechModelConfig;
+  }) {
+    return new FalSpeechModel(options.modelId, options.config);
   }
 
   constructor(
@@ -112,7 +129,7 @@ export class FalSpeechModel implements SpeechModelV4 {
         path: `https://fal.run/${this.modelId}`,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

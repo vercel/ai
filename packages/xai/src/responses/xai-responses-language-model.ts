@@ -19,6 +19,9 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
@@ -40,7 +43,7 @@ import { prepareResponsesTools } from './xai-responses-prepare-tools';
 type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -51,6 +54,20 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: XaiResponsesModelId;
 
   private readonly config: XaiResponsesConfig;
+
+  static [WORKFLOW_SERIALIZE](model: XaiResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: XaiResponsesModelId;
+    config: XaiResponsesConfig;
+  }) {
+    return new XaiResponsesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: XaiResponsesModelId, config: XaiResponsesConfig) {
     this.modelId = modelId;
@@ -246,7 +263,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -473,7 +490,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

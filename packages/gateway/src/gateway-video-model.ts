@@ -60,7 +60,9 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
       headers: Record<string, string> | undefined;
     };
   }> {
-    const resolvedHeaders = await resolve(this.config.headers());
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
     try {
       const { responseHeaders, value: responseBody } = await postJsonToApi({
         url: this.getUrl(),
@@ -178,7 +180,10 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
         },
       };
     } catch (error) {
-      throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
     }
   }
 
