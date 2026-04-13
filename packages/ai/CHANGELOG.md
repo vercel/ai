@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.86
+
+### Patch Changes
+
+- 5a6f514: feat(ai): support several tools in hasToolCall stop condition
+
 ## 7.0.0-beta.85
 
 ### Major Changes
