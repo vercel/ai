@@ -13,7 +13,6 @@ import {
   InferSchema,
   lazySchema,
   safeValidateTypes,
-  validateTypes,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 

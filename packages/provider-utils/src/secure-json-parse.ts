@@ -83,7 +83,7 @@ export function secureJsonParse(text: string) {
   try {
     // Performance optimization, see https://github.com/fastify/secure-json-parse/pull/90
     Error.stackTraceLimit = 0;
-  } catch (e) {
+  } catch {
     // Fallback in case Error is immutable (v8 readonly)
     return _parse(text);
   }

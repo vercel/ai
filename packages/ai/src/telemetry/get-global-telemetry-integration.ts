@@ -34,8 +34,8 @@ export function bindTelemetryIntegration(
 }
 
 export function getGlobalTelemetryIntegration<
-  TOOLS extends ToolSet = ToolSet,
-  OUTPUT extends Output = Output,
+  _TOOLS extends ToolSet = ToolSet,
+  _OUTPUT extends Output = Output,
 >(): (args?: {
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }) => TelemetryIntegration {

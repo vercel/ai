@@ -1,8 +1,7 @@
-import { TypeValidationContext, TypeValidationError } from '@ai-sdk/provider';
+import { TypeValidationError } from '@ai-sdk/provider';
 import {
   FlexibleSchema,
   lazySchema,
-  StandardSchemaV1,
   Tool,
   validateTypes,
   zodSchema,

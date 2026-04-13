@@ -17,6 +17,6 @@ export async function notify<EVENT>(options: {
     if (callback == null) continue;
     try {
       await callback(options.event);
-    } catch (_ignored) {}
+    } catch {}
   }
 }

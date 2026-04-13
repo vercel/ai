@@ -619,7 +619,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
             },
           }),
         );
-      } catch (_ignored) {
+      } catch {
         // JSON.stringify might fail for non-serializable results
       }
     } else {

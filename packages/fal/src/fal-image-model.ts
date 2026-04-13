@@ -199,7 +199,7 @@ export class FalImageModel implements ImageModelV4 {
         fal: {
           images: targetImages.map((image, index) => {
             const {
-              url,
+              url: _url,
               content_type: contentType,
               file_name: fileName,
               file_data: fileData,

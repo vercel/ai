@@ -192,7 +192,7 @@ export function createVertexAnthropic(
         }`,
       transformRequestBody: args => {
         // Remove model from args and add anthropic version
-        const { model, ...rest } = args;
+        const { model: _model, ...rest } = args;
         return {
           ...rest,
           anthropic_version: 'vertex-2023-10-16',

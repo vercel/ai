@@ -141,7 +141,7 @@ const arrayOutputStrategy = <ELEMENT>(
     // possible future optimization: use arrays directly when model supports grammar-guided generation
     jsonSchema: async () => {
       // remove $schema from schema.jsonSchema:
-      const { $schema, ...itemSchema } = await schema.jsonSchema;
+      const { $schema: _$schema, ...itemSchema } = await schema.jsonSchema;
 
       return {
         $schema: 'http://json-schema.org/draft-07/schema#',

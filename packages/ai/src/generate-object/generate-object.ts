@@ -19,15 +19,11 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import {
-  CallWarning,
-  FinishReason,
-  LanguageModel,
-} from '../types/language-model';
+import { LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata } from '../types/provider-metadata';
-import { asLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+
+import { asLanguageModelUsage } from '../types/usage';
 import { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
 import type { Listener } from '../util/notify';

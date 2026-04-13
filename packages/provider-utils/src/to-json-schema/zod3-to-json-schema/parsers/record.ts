@@ -38,7 +38,7 @@ export function parseRecordDef(
     def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodString &&
     def.keyType._def.checks?.length
   ) {
-    const { type, ...keyType } = parseStringDef(def.keyType._def, refs);
+    const { type: _type, ...keyType } = parseStringDef(def.keyType._def, refs);
 
     return {
       ...schema,
@@ -56,7 +56,7 @@ export function parseRecordDef(
     def.keyType._def.type._def.typeName === ZodFirstPartyTypeKind.ZodString &&
     def.keyType._def.type._def.checks?.length
   ) {
-    const { type, ...keyType } = parseBrandedDef(
+    const { type: _type, ...keyType } = parseBrandedDef(
       def.keyType._def,
       refs,
     ) as JsonSchema7StringType;
