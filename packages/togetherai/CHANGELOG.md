@@ -1,5 +1,14 @@
 # @ai-sdk/togetherai
 
+## 3.0.0-beta.23
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/openai-compatible@3.0.0-beta.23
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
 ## 3.0.0-beta.22
 
 ### Patch Changes

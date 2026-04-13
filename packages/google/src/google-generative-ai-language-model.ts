@@ -42,10 +42,7 @@ import {
   GoogleGenerativeAIModelId,
   googleLanguageModelOptions,
 } from './google-generative-ai-options';
-import {
-  GoogleGenerativeAIContentPart,
-  GoogleGenerativeAIProviderMetadata,
-} from './google-generative-ai-prompt';
+import { GoogleGenerativeAIProviderMetadata } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
 import { GoogleJSONAccumulator, PartialArg } from './google-json-accumulator';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -88,22 +85,25 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private async getArgs({
-    prompt,
-    maxOutputTokens,
-    temperature,
-    topP,
-    topK,
-    frequencyPenalty,
-    presencePenalty,
-    stopSequences,
-    responseFormat,
-    seed,
-    tools,
-    toolChoice,
-    reasoning,
-    providerOptions,
-  }: LanguageModelV4CallOptions) {
+  private async getArgs(
+    {
+      prompt,
+      maxOutputTokens,
+      temperature,
+      topP,
+      topK,
+      frequencyPenalty,
+      presencePenalty,
+      stopSequences,
+      responseFormat,
+      seed,
+      tools,
+      toolChoice,
+      reasoning,
+      providerOptions,
+    }: LanguageModelV4CallOptions,
+    { isStreaming = false }: { isStreaming?: boolean } = {},
+  ) {
     const warnings: SharedV4Warning[] = [];
 
     const providerOptionsName = this.config.provider.includes('vertex')
@@ -184,9 +184,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         ? { ...resolvedThinking, ...googleOptions?.thinkingConfig }
         : undefined;
 
-    const streamFunctionCallArguments = isVertexProvider
-      ? (googleOptions?.streamFunctionCallArguments ?? true)
-      : undefined;
+    const streamFunctionCallArguments =
+      isStreaming && isVertexProvider
+        ? (googleOptions?.streamFunctionCallArguments ?? false)
+        : undefined;
 
     const toolConfig =
       googleToolConfig ||
@@ -478,7 +479,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings, providerOptionsName } = await this.getArgs(options);
+    const { args, warnings, providerOptionsName } = await this.getArgs(
+      options,
+      { isStreaming: true },
+    );
 
     const headers = combineHeaders(
       await resolve(this.config.headers),
@@ -1408,16 +1412,9 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
-type ContentSchema = NonNullable<
-  InferSchema<typeof responseSchema>['candidates'][number]['content']
->;
 export type GroundingMetadataSchema = NonNullable<
   InferSchema<typeof responseSchema>['candidates'][number]['groundingMetadata']
 >;
-
-type GroundingChunkSchema = NonNullable<
-  GroundingMetadataSchema['groundingChunks']
->[number];
 
 export type UrlContextMetadataSchema = NonNullable<
   InferSchema<typeof responseSchema>['candidates'][number]['urlContextMetadata']
