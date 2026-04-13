@@ -12,7 +12,7 @@ export { prepareRetries } from '../src/util/prepare-retries';
 export { asLanguageModelUsage } from '../src/types/usage';
 export { resolveLanguageModel } from '../src/model/resolve-model';
 export { mergeAbortSignals } from '../src/util/merge-abort-signals';
-export { mergeListeners } from '../src/util/merge-listeners';
+export { mergeCallbacks } from '../src/util/merge-callbacks';
 
 // import globals
 import '../src/global';
