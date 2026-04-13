@@ -1,5 +1,13 @@
 # @ai-sdk/groq
 
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
 ## 4.0.0-beta.21
 
 ### Patch Changes
