@@ -1,5 +1,18 @@
 # ai
 
+## 7.0.0-beta.88
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/gateway@4.0.0-beta.49
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
 ## 7.0.0-beta.87
 
 ### Patch Changes
