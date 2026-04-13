@@ -38,7 +38,7 @@ run(async () => {
       }
 
       case 'tool-call': {
-        if (chunk.dynamic) {
+        if (chunk.dynamic || chunk.invalid) {
           console.log('DYNAMIC CALL', JSON.stringify(chunk, null, 2));
           continue;
         }
