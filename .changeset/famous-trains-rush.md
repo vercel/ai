@@ -1,6 +1,6 @@
 ---
 "@ai-sdk/otel": patch
-"ai": patch
+"ai": major
 ---
 
 feat(ai): add new 'InvalidToolCall' part
