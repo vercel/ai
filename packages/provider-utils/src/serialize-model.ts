@@ -25,23 +25,23 @@ export function serializeModel<MODEL extends { modelId: string }>({
   modelId: string;
   config: JSONObject;
 } {
-  const config: JSONObject = {};
-  const modelConfig = getConfig(model);
-  for (const key of Object.keys(modelConfig)) {
-    const value = modelConfig[key];
+  const resolvedConfig = getConfig(model);
+  const serializableConfig: JSONObject = {};
+  for (const key of Object.keys(resolvedConfig)) {
+    const value = resolvedConfig[key];
     if (isJSONSerializable(value)) {
-      config[key] = value;
+      serializableConfig[key] = value;
     } else if (key === 'headers' && typeof value === 'function') {
       // Resolve headers at serialization time so auth credentials
       // survive the workflow step boundary. On deserialization the
       // resolved object is wrapped back into a function.
       const resolved = value();
       if (isJSONSerializable(resolved)) {
-        config[key] = resolved;
+        serializableConfig[key] = resolved;
       }
     }
   }
-  return { modelId: model.modelId, config };
+  return { modelId: model.modelId, config: serializableConfig };
 }
 
 /**
