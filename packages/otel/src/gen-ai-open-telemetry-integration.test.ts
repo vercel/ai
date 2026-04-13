@@ -223,6 +223,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     toolResults: [],
     staticToolResults: [],
     dynamicToolResults: [],
+    invalidToolCalls: [],
     finishReason: 'stop' as const,
     rawFinishReason: 'stop',
     usage: {
