@@ -7,8 +7,8 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -36,14 +36,18 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: MistralEmbeddingModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: MistralEmbeddingModelId;
     config: MistralEmbeddingConfig;
   }) {
-    return deserializeModel({ ModelClass: MistralEmbeddingModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new MistralEmbeddingModel(modelId, config);
   }
 
   constructor(

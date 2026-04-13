@@ -13,8 +13,8 @@ import {
   FetchFunction,
   postFormDataToApi,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -40,14 +40,18 @@ export class DeepInfraImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: DeepInfraImageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: DeepInfraImageModelId;
     config: DeepInfraImageModelConfig;
   }) {
-    return deserializeModel({ ModelClass: DeepInfraImageModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new DeepInfraImageModel(modelId, config);
   }
 
   constructor(

@@ -19,8 +19,8 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -57,14 +57,18 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
   private readonly config: XaiResponsesConfig;
 
   static [WORKFLOW_SERIALIZE](model: XaiResponsesLanguageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: XaiResponsesModelId;
     config: XaiResponsesConfig;
   }) {
-    return deserializeModel({ ModelClass: XaiResponsesLanguageModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new XaiResponsesLanguageModel(modelId, config);
   }
 
   constructor(modelId: XaiResponsesModelId, config: XaiResponsesConfig) {

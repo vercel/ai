@@ -11,8 +11,8 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -38,14 +38,18 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
   readonly supportsParallelCalls = true;
 
   static [WORKFLOW_SERIALIZE](model: BedrockEmbeddingModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: BedrockEmbeddingConfig;
   }) {
-    return deserializeModel({ ModelClass: BedrockEmbeddingModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new BedrockEmbeddingModel(modelId, config);
   }
 
   constructor(

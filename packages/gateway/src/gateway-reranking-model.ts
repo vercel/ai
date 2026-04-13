@@ -43,7 +43,7 @@ export class GatewayRerankingModel implements RerankingModelV4 {
     Awaited<ReturnType<RerankingModelV4['doRerank']>>
   > {
     const resolvedHeaders = this.config.headers
-      ? await resolve(this.config.headers())
+      ? await resolve(this.config.headers)
       : undefined;
     try {
       const {

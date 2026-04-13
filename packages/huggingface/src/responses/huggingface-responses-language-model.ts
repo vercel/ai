@@ -17,8 +17,8 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -42,17 +42,18 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
   private readonly config: HuggingFaceConfig;
 
   static [WORKFLOW_SERIALIZE](model: HuggingFaceResponsesLanguageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: HuggingFaceResponsesModelId;
     config: HuggingFaceConfig;
   }) {
-    return deserializeModel({
-      ModelClass: HuggingFaceResponsesLanguageModel,
-      options,
-    });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new HuggingFaceResponsesLanguageModel(modelId, config);
   }
 
   constructor(modelId: HuggingFaceResponsesModelId, config: HuggingFaceConfig) {

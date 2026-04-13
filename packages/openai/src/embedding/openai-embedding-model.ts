@@ -7,8 +7,8 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -29,14 +29,18 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
   private readonly config: OpenAIConfig;
 
   static [WORKFLOW_SERIALIZE](model: OpenAIEmbeddingModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: OpenAIEmbeddingModelId;
     config: OpenAIConfig;
   }) {
-    return deserializeModel({ ModelClass: OpenAIEmbeddingModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new OpenAIEmbeddingModel(modelId, config);
   }
 
   get provider(): string {

@@ -10,8 +10,8 @@ import {
   createJsonErrorResponseHandler,
   postJsonToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type Resolvable,
@@ -32,14 +32,18 @@ export class GatewayImageModel implements ImageModelV4 {
   readonly maxImagesPerCall = Number.MAX_SAFE_INTEGER;
 
   static [WORKFLOW_SERIALIZE](model: GatewayImageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GatewayImageConfig;
   }) {
-    return deserializeModel({ ModelClass: GatewayImageModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new GatewayImageModel(modelId, config);
   }
 
   constructor(
@@ -66,7 +70,7 @@ export class GatewayImageModel implements ImageModelV4 {
     Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
     const resolvedHeaders = this.config.headers
-      ? await resolve(this.config.headers())
+      ? await resolve(this.config.headers)
       : undefined;
     try {
       const {

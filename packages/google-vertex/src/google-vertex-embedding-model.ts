@@ -8,8 +8,8 @@ import {
   postJsonToApi,
   resolve,
   parseProviderOptions,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -30,17 +30,18 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
   private readonly config: GoogleVertexConfig;
 
   static [WORKFLOW_SERIALIZE](model: GoogleVertexEmbeddingModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GoogleVertexConfig;
   }) {
-    return deserializeModel({
-      ModelClass: GoogleVertexEmbeddingModel,
-      options,
-    });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new GoogleVertexEmbeddingModel(modelId, config);
   }
 
   get provider(): string {

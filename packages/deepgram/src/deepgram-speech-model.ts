@@ -4,8 +4,8 @@ import {
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -52,14 +52,18 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: DeepgramSpeechModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: DeepgramSpeechModelId;
     config: DeepgramSpeechModelConfig;
   }) {
-    return deserializeModel({ ModelClass: DeepgramSpeechModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new DeepgramSpeechModel(modelId, config);
   }
 
   constructor(

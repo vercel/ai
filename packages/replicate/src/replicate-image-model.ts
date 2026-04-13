@@ -12,8 +12,8 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
@@ -53,14 +53,18 @@ export class ReplicateImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: ReplicateImageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: ReplicateImageModelId;
     config: ReplicateImageModelConfig;
   }) {
-    return deserializeModel({ ModelClass: ReplicateImageModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new ReplicateImageModel(modelId, config);
   }
 
   constructor(

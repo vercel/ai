@@ -4,8 +4,8 @@ import {
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -66,14 +66,18 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: ElevenLabsSpeechModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: ElevenLabsSpeechModelId;
     config: ElevenLabsSpeechModelConfig;
   }) {
-    return deserializeModel({ ModelClass: ElevenLabsSpeechModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new ElevenLabsSpeechModel(modelId, config);
   }
 
   constructor(

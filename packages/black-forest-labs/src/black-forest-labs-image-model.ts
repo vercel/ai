@@ -13,8 +13,8 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
@@ -53,14 +53,18 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: BlackForestLabsImageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: BlackForestLabsImageModelId;
     config: BlackForestLabsImageModelConfig;
   }) {
-    return deserializeModel({ ModelClass: BlackForestLabsImageModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new BlackForestLabsImageModel(modelId, config);
   }
 
   constructor(

@@ -27,8 +27,8 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
@@ -76,17 +76,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAILanguageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GoogleGenerativeAIConfig;
   }) {
-    return deserializeModel({
-      ModelClass: GoogleGenerativeAILanguageModel,
-      options,
-    });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new GoogleGenerativeAILanguageModel(modelId, config);
   }
 
   constructor(

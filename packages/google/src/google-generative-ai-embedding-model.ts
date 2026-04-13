@@ -10,8 +10,8 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
@@ -39,17 +39,18 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
   private readonly config: GoogleGenerativeAIEmbeddingConfig;
 
   static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAIEmbeddingModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GoogleGenerativeAIEmbeddingConfig;
   }) {
-    return deserializeModel({
-      ModelClass: GoogleGenerativeAIEmbeddingModel,
-      options,
-    });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new GoogleGenerativeAIEmbeddingModel(modelId, config);
   }
 
   get provider(): string {

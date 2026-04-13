@@ -19,8 +19,8 @@ import {
   mapReasoningToProviderBudget,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -55,14 +55,18 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
   private readonly config: CohereChatConfig;
 
   static [WORKFLOW_SERIALIZE](model: CohereChatLanguageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: CohereChatModelId;
     config: CohereChatConfig;
   }) {
-    return deserializeModel({ ModelClass: CohereChatLanguageModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new CohereChatLanguageModel(modelId, config);
   }
 
   constructor(modelId: CohereChatModelId, config: CohereChatConfig) {

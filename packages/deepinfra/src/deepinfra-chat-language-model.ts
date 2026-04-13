@@ -6,8 +6,8 @@ import {
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
   FetchFunction,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -21,17 +21,18 @@ type DeepInfraChatConfig = {
 
 export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageModel {
   static [WORKFLOW_SERIALIZE](model: DeepInfraChatLanguageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: DeepInfraChatConfig;
   }) {
-    return deserializeModel({
-      ModelClass: DeepInfraChatLanguageModel,
-      options,
-    });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new DeepInfraChatLanguageModel(modelId, config);
   }
 
   constructor(modelId: string, config: DeepInfraChatConfig) {

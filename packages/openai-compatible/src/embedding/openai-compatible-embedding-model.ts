@@ -10,8 +10,8 @@ import {
   FetchFunction,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -63,17 +63,18 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompatibleEmbeddingModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: OpenAICompatibleEmbeddingConfig;
   }) {
-    return deserializeModel({
-      ModelClass: OpenAICompatibleEmbeddingModel,
-      options,
-    });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new OpenAICompatibleEmbeddingModel(modelId, config);
   }
 
   constructor(

@@ -6,8 +6,8 @@ import {
   parseProviderOptions,
   postJsonToApi,
   postToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -188,17 +188,18 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: AssemblyAITranscriptionModel) {
-    return serializeModel({ modelId: model.modelId, config: model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: AssemblyAITranscriptionModelId;
     config: AssemblyAITranscriptionModelConfig;
   }) {
-    return deserializeModel({
-      ModelClass: AssemblyAITranscriptionModel,
-      options,
-    });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new AssemblyAITranscriptionModel(modelId, config);
   }
 
   constructor(

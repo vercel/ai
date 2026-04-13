@@ -26,8 +26,8 @@ import {
   parseProviderOptions,
   postJsonToApi,
   type ParseResult,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -58,14 +58,18 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
   private readonly config: AlibabaConfig;
 
   static [WORKFLOW_SERIALIZE](model: AlibabaLanguageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: AlibabaChatModelId;
     config: AlibabaConfig;
   }) {
-    return deserializeModel({ ModelClass: AlibabaLanguageModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new AlibabaLanguageModel(modelId, config);
   }
 
   constructor(modelId: AlibabaChatModelId, config: AlibabaConfig) {

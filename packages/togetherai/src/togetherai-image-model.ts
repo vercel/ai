@@ -9,8 +9,8 @@ import {
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
@@ -37,14 +37,18 @@ export class TogetherAIImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: TogetherAIImageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: TogetherAIImageModelId;
     config: TogetherAIImageModelConfig;
   }) {
-    return deserializeModel({ ModelClass: TogetherAIImageModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new TogetherAIImageModel(modelId, config);
   }
 
   constructor(

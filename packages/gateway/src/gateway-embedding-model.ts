@@ -9,8 +9,8 @@ import {
   lazySchema,
   postJsonToApi,
   resolve,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   zodSchema,
@@ -32,14 +32,18 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
   readonly supportsParallelCalls = true;
 
   static [WORKFLOW_SERIALIZE](model: GatewayEmbeddingModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GatewayEmbeddingConfig;
   }) {
-    return deserializeModel({ ModelClass: GatewayEmbeddingModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new GatewayEmbeddingModel(modelId, config);
   }
 
   constructor(
@@ -60,7 +64,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
     Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     const resolvedHeaders = this.config.headers
-      ? await resolve(this.config.headers())
+      ? await resolve(this.config.headers)
       : undefined;
     try {
       const {

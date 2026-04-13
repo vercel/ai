@@ -25,8 +25,8 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -112,9 +112,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   private readonly config: OpenAIConfig;
 
   static [WORKFLOW_SERIALIZE](model: OpenAIResponsesLanguageModel) {
-    return serializeModel({
-      model,
-      getConfig: (model: OpenAIResponsesLanguageModel) => model.config,
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
     });
   }
 
@@ -122,10 +122,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     modelId: OpenAIResponsesModelId;
     config: OpenAIConfig;
   }) {
-    return deserializeModel({
-      ModelClass: OpenAIResponsesLanguageModel,
-      options,
-    });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new OpenAIResponsesLanguageModel(modelId, config);
   }
 
   constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {

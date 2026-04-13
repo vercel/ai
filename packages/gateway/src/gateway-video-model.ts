@@ -61,7 +61,7 @@ export class GatewayVideoModel implements Experimental_VideoModelV4 {
     };
   }> {
     const resolvedHeaders = this.config.headers
-      ? await resolve(this.config.headers())
+      ? await resolve(this.config.headers)
       : undefined;
     try {
       const { responseHeaders, value: responseBody } = await postJsonToApi({

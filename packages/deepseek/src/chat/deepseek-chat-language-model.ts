@@ -23,8 +23,8 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -61,14 +61,18 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
 
   static [WORKFLOW_SERIALIZE](model: DeepSeekChatLanguageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: DeepSeekChatModelId;
     config: DeepSeekChatConfig;
   }) {
-    return deserializeModel({ ModelClass: DeepSeekChatLanguageModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new DeepSeekChatLanguageModel(modelId, config);
   }
 
   constructor(modelId: DeepSeekChatModelId, config: DeepSeekChatConfig) {

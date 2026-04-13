@@ -22,8 +22,8 @@ import {
   ParseResult,
   postJsonToApi,
   safeParseJSON,
-  deserializeModel,
-  serializeModel,
+  deserializeModelOptions,
+  serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -55,14 +55,18 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
   private readonly config: XaiChatConfig;
 
   static [WORKFLOW_SERIALIZE](model: XaiChatLanguageModel) {
-    return serializeModel({ model, getConfig: model => model.config });
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: XaiChatModelId;
     config: XaiChatConfig;
   }) {
-    return deserializeModel({ ModelClass: XaiChatLanguageModel, options });
+    const { modelId, config } = deserializeModelOptions(options);
+    return new XaiChatLanguageModel(modelId, config);
   }
 
   constructor(modelId: XaiChatModelId, config: XaiChatConfig) {
