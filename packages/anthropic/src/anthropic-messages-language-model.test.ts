@@ -925,8 +925,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             "output_config": {
               "format": {
                 "schema": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
+                  "description": "{$schema: "http://json-schema.org/draft-07/schema#"}",
                   "properties": {
                     "name": {
                       "type": "string",
@@ -1012,8 +1012,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             "output_config": {
               "format": {
                 "schema": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
+                  "description": "{$schema: "http://json-schema.org/draft-07/schema#"}",
                   "properties": {
                     "name": {
                       "type": "string",
@@ -6155,8 +6155,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             "output_config": {
               "format": {
                 "schema": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
+                  "description": "{$schema: "http://json-schema.org/draft-07/schema#"}",
                   "properties": {
                     "characters": {
                       "items": {

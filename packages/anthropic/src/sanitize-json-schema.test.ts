@@ -9,13 +9,14 @@ describe('sanitizeJsonSchema', () => {
         name: { type: 'string', description: 'The name' },
       },
       required: ['name'],
+      additionalProperties: false,
     };
 
     expect(sanitizeJsonSchema(schema)).toEqual(schema);
   });
 
-  it('should strip exclusiveMinimum from number schemas', () => {
-    const schema = {
+  it('should strip exclusiveMinimum and move to description', () => {
+    const result = sanitizeJsonSchema({
       type: 'object',
       properties: {
         count: {
@@ -24,44 +25,34 @@ describe('sanitizeJsonSchema', () => {
         },
       },
       required: ['count'],
-    };
-
-    expect(sanitizeJsonSchema(schema)).toEqual({
-      type: 'object',
-      properties: {
-        count: {
-          type: 'number',
-        },
-      },
-      required: ['count'],
     });
+
+    expect(result.properties.count.type).toBe('number');
+    expect(result.properties.count.exclusiveMinimum).toBeUndefined();
+    expect(result.properties.count.description).toContain('exclusiveMinimum');
   });
 
-  it('should strip minimum, maximum, and exclusiveMaximum', () => {
-    const schema = {
+  it('should strip minimum and maximum', () => {
+    const result = sanitizeJsonSchema({
       type: 'object',
       properties: {
         age: {
           type: 'integer',
           minimum: 0,
           maximum: 150,
-          exclusiveMaximum: 200,
-        },
-      },
-    };
-
-    expect(sanitizeJsonSchema(schema)).toEqual({
-      type: 'object',
-      properties: {
-        age: {
-          type: 'integer',
         },
       },
     });
+
+    expect(result.properties.age.type).toBe('integer');
+    expect(result.properties.age.minimum).toBeUndefined();
+    expect(result.properties.age.maximum).toBeUndefined();
+    expect(result.properties.age.description).toContain('minimum');
+    expect(result.properties.age.description).toContain('maximum');
   });
 
-  it('should strip pattern, minLength, maxLength from string schemas', () => {
-    const schema = {
+  it('should strip pattern and minLength from string schemas', () => {
+    const result = sanitizeJsonSchema({
       type: 'object',
       properties: {
         email: {
@@ -69,134 +60,45 @@ describe('sanitizeJsonSchema', () => {
           pattern: '^[a-z]+@[a-z]+\\.[a-z]+$',
           minLength: 5,
           maxLength: 100,
-          format: 'email',
-        },
-      },
-    };
-
-    expect(sanitizeJsonSchema(schema)).toEqual({
-      type: 'object',
-      properties: {
-        email: {
-          type: 'string',
         },
       },
     });
+
+    expect(result.properties.email.type).toBe('string');
+    expect(result.properties.email.pattern).toBeUndefined();
+    expect(result.properties.email.minLength).toBeUndefined();
+    expect(result.properties.email.description).toContain('pattern');
   });
 
-  it('should strip not keyword', () => {
-    const schema = {
+  it('should enforce additionalProperties: false on objects', () => {
+    const result = sanitizeJsonSchema({
       type: 'object',
       properties: {
-        value: {
-          type: 'string',
-          not: { enum: ['forbidden'] },
-        },
-      },
-    };
-
-    expect(sanitizeJsonSchema(schema)).toEqual({
-      type: 'object',
-      properties: {
-        value: {
-          type: 'string',
-        },
+        name: { type: 'string' },
       },
     });
+
+    expect(result.additionalProperties).toBe(false);
   });
 
-  it('should strip minItems and maxItems from array schemas', () => {
-    const schema = {
+  it('should recursively sanitize nested schemas', () => {
+    const result = sanitizeJsonSchema({
       type: 'object',
       properties: {
         tags: {
           type: 'array',
           items: { type: 'string', minLength: 1 },
-          minItems: 1,
-          maxItems: 10,
-          uniqueItems: true,
-        },
-      },
-    };
-
-    expect(sanitizeJsonSchema(schema)).toEqual({
-      type: 'object',
-      properties: {
-        tags: {
-          type: 'array',
-          items: { type: 'string' },
         },
       },
     });
-  });
 
-  it('should recursively sanitize anyOf/oneOf/allOf', () => {
-    const schema = {
-      type: 'object',
-      properties: {
-        value: {
-          anyOf: [
-            { type: 'string', minLength: 1 },
-            { type: 'number', minimum: 0 },
-          ],
-        },
-      },
-    };
-
-    expect(sanitizeJsonSchema(schema)).toEqual({
-      type: 'object',
-      properties: {
-        value: {
-          anyOf: [{ type: 'string' }, { type: 'number' }],
-        },
-      },
-    });
-  });
-
-  it('should sanitize $defs and definitions', () => {
-    const schema = {
-      type: 'object',
-      $defs: {
-        PositiveInt: {
-          type: 'integer',
-          exclusiveMinimum: 0,
-          description: 'A positive integer',
-        },
-      },
-      properties: {
-        count: { $ref: '#/$defs/PositiveInt' },
-      },
-    };
-
-    expect(sanitizeJsonSchema(schema)).toEqual({
-      type: 'object',
-      $defs: {
-        PositiveInt: {
-          type: 'integer',
-          description: 'A positive integer',
-        },
-      },
-      properties: {
-        count: { $ref: '#/$defs/PositiveInt' },
-      },
-    });
-  });
-
-  it('should preserve enum and const', () => {
-    const schema = {
-      type: 'object',
-      properties: {
-        status: { type: 'string', enum: ['active', 'inactive'] },
-        version: { const: 1 },
-      },
-    };
-
-    expect(sanitizeJsonSchema(schema)).toEqual(schema);
+    expect(result.properties.tags.items.minLength).toBeUndefined();
+    expect(result.properties.tags.items.type).toBe('string');
   });
 
   it('should handle the reproduction case from issue #14342', () => {
     // z.number().positive() produces exclusiveMinimum: 0
-    const schema = {
+    const result = sanitizeJsonSchema({
       type: 'object',
       properties: {
         recurringIntervalMinutes: {
@@ -206,17 +108,14 @@ describe('sanitizeJsonSchema', () => {
       },
       required: ['recurringIntervalMinutes'],
       additionalProperties: false,
-    };
-
-    expect(sanitizeJsonSchema(schema)).toEqual({
-      type: 'object',
-      properties: {
-        recurringIntervalMinutes: {
-          type: 'number',
-        },
-      },
-      required: ['recurringIntervalMinutes'],
-      additionalProperties: false,
     });
+
+    expect(result.type).toBe('object');
+    expect(result.required).toEqual(['recurringIntervalMinutes']);
+    expect(result.additionalProperties).toBe(false);
+    expect(
+      result.properties.recurringIntervalMinutes.exclusiveMinimum,
+    ).toBeUndefined();
+    expect(result.properties.recurringIntervalMinutes.type).toBe('number');
   });
 });

@@ -50,7 +50,8 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@anthropic-ai/sdk": "^0.88.0"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
