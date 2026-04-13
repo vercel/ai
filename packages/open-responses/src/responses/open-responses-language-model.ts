@@ -20,7 +20,6 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -57,8 +56,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     modelId: string;
     config: OpenResponsesConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new OpenResponsesLanguageModel(modelId, config);
+    return new OpenResponsesLanguageModel(options.modelId, options.config);
   }
 
   constructor(modelId: string, config: OpenResponsesConfig) {

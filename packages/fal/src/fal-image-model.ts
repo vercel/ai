@@ -12,7 +12,6 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -50,8 +49,7 @@ export class FalImageModel implements ImageModelV4 {
     modelId: FalImageModelId;
     config: FalImageModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new FalImageModel(modelId, config);
+    return new FalImageModel(options.modelId, options.config);
   }
 
   constructor(

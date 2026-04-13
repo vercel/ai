@@ -9,7 +9,6 @@ import {
   FetchFunction,
   getFromApi,
   postJsonToApi,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -131,8 +130,7 @@ export class FireworksImageModel implements ImageModelV4 {
     modelId: FireworksImageModelId;
     config: FireworksImageModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new FireworksImageModel(modelId, config);
+    return new FireworksImageModel(options.modelId, options.config);
   }
 
   constructor(

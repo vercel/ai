@@ -4,7 +4,6 @@ import {
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -37,8 +36,7 @@ export class OpenAISpeechModel implements SpeechModelV4 {
     modelId: OpenAISpeechModelId;
     config: OpenAISpeechModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new OpenAISpeechModel(modelId, config);
+    return new OpenAISpeechModel(options.modelId, options.config);
   }
 
   get provider(): string {

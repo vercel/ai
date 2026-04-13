@@ -11,7 +11,6 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -48,8 +47,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
     modelId: string;
     config: BedrockEmbeddingConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new BedrockEmbeddingModel(modelId, config);
+    return new BedrockEmbeddingModel(options.modelId, options.config);
   }
 
   constructor(

@@ -7,7 +7,6 @@ import {
   parseProviderOptions,
   postToApi,
   resolve,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -43,8 +42,7 @@ export class ProdiaImageModel implements ImageModelV4 {
     modelId: ProdiaImageModelId;
     config: ProdiaModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new ProdiaImageModel(modelId, config);
+    return new ProdiaImageModel(options.modelId, options.config);
   }
 
   constructor(

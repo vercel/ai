@@ -7,7 +7,6 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   postJsonToApi,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -46,8 +45,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV4 {
     modelId: MistralEmbeddingModelId;
     config: MistralEmbeddingConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new MistralEmbeddingModel(modelId, config);
+    return new MistralEmbeddingModel(options.modelId, options.config);
   }
 
   constructor(

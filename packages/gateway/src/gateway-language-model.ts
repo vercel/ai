@@ -14,7 +14,6 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -47,9 +46,7 @@ export class GatewayLanguageModel implements LanguageModelV4 {
     modelId: GatewayModelId;
     config: GatewayChatConfig;
   }) {
-    const { modelId, config } =
-      deserializeModelOptions<GatewayChatConfig>(options);
-    return new GatewayLanguageModel(modelId, config);
+    return new GatewayLanguageModel(options.modelId, options.config);
   }
 
   constructor(

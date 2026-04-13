@@ -15,7 +15,6 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -55,8 +54,11 @@ export class GoogleGenerativeAIImageModel implements ImageModelV4 {
     modelId: string;
     config: GoogleGenerativeAIImageModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new GoogleGenerativeAIImageModel(modelId, {}, config);
+    return new GoogleGenerativeAIImageModel(
+      options.modelId,
+      {},
+      options.config,
+    );
   }
 
   get maxImagesPerCall(): number {

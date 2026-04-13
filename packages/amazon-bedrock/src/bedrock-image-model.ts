@@ -12,7 +12,6 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -48,8 +47,7 @@ export class BedrockImageModel implements ImageModelV4 {
     modelId: string;
     config: BedrockImageModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new BedrockImageModel(modelId, config);
+    return new BedrockImageModel(options.modelId, options.config);
   }
 
   get maxImagesPerCall(): number {

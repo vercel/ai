@@ -6,7 +6,6 @@ import {
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
   FetchFunction,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -31,8 +30,7 @@ export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageMode
     modelId: string;
     config: DeepInfraChatConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new DeepInfraChatLanguageModel(modelId, config);
+    return new DeepInfraChatLanguageModel(options.modelId, options.config);
   }
 
   constructor(modelId: string, config: DeepInfraChatConfig) {

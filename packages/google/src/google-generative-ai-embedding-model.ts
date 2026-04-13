@@ -10,7 +10,6 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -49,8 +48,10 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
     modelId: string;
     config: GoogleGenerativeAIEmbeddingConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new GoogleGenerativeAIEmbeddingModel(modelId, config);
+    return new GoogleGenerativeAIEmbeddingModel(
+      options.modelId,
+      options.config,
+    );
   }
 
   get provider(): string {

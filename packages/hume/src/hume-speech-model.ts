@@ -4,7 +4,6 @@ import {
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -114,8 +113,7 @@ export class HumeSpeechModel implements SpeechModelV4 {
     modelId: '';
     config: HumeSpeechModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new HumeSpeechModel(modelId as '', config);
+    return new HumeSpeechModel(options.modelId as '', options.config);
   }
 
   constructor(

@@ -32,7 +32,6 @@ import {
   Resolvable,
   resolve,
   resolveProviderReference,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -165,8 +164,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
     modelId: AnthropicMessagesModelId;
     config: AnthropicMessagesConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new AnthropicMessagesLanguageModel(modelId, config);
+    return new AnthropicMessagesLanguageModel(options.modelId, options.config);
   }
 
   constructor(

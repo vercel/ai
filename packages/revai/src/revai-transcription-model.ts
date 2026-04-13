@@ -12,7 +12,6 @@ import {
   getFromApi,
   parseProviderOptions,
   postFormDataToApi,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -242,11 +241,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     modelId: RevaiTranscriptionModelId;
     config: RevaiTranscriptionModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new RevaiTranscriptionModel(
-      modelId as RevaiTranscriptionModelId,
-      config,
-    );
+    return new RevaiTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(

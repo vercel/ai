@@ -8,7 +8,6 @@ import {
   FetchFunction,
   parseProviderOptions,
   postJsonToApi,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -47,8 +46,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
     modelId: CohereEmbeddingModelId;
     config: CohereEmbeddingConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new CohereEmbeddingModel(modelId, config);
+    return new CohereEmbeddingModel(options.modelId, options.config);
   }
 
   constructor(modelId: CohereEmbeddingModelId, config: CohereEmbeddingConfig) {

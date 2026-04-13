@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  deserializeModelOptions,
-  serializeModelOptions,
-} from './serialize-model';
+import { serializeModelOptions } from './serialize-model';
 
 type TestConfig = Record<string, unknown> & {
   headers?: () => Record<string, string | undefined>;
@@ -112,55 +109,6 @@ describe('serializeModelOptions', () => {
     expect(result).toEqual({
       modelId: 'model',
       config: { provider: 'test' },
-    });
-  });
-});
-
-describe('deserializeModelOptions', () => {
-  it('returns the serialized options with headers restored as a function', () => {
-    const config = {
-      provider: 'test',
-      baseURL: 'https://example.com',
-      headers: { authorization: 'Bearer sk-test' },
-    } as unknown as {
-      provider: string;
-      baseURL: string;
-      headers?: () => Record<string, string | undefined>;
-    };
-
-    const result = deserializeModelOptions({
-      modelId: 'gpt-4.1',
-      config,
-    });
-
-    expect(result.modelId).toBe('gpt-4.1');
-    expect(result.config).toEqual({
-      provider: 'test',
-      baseURL: 'https://example.com',
-      headers: expect.any(Function),
-    });
-    expect(result.config.headers?.()).toEqual({
-      authorization: 'Bearer sk-test',
-    });
-  });
-
-  it('preserves an existing headers function', () => {
-    const headers = () => ({ 'x-api-key': 'sk-test' });
-
-    const result = deserializeModelOptions({
-      modelId: 'claude-sonnet-4-20250514',
-      config: {
-        provider: 'anthropic.messages',
-        headers,
-      },
-    });
-
-    expect(result).toEqual({
-      modelId: 'claude-sonnet-4-20250514',
-      config: {
-        provider: 'anthropic.messages',
-        headers,
-      },
     });
   });
 });

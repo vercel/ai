@@ -6,7 +6,6 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -58,8 +57,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
     modelId: ElevenLabsTranscriptionModelId;
     config: ElevenLabsTranscriptionModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new ElevenLabsTranscriptionModel(modelId, config);
+    return new ElevenLabsTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(

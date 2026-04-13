@@ -9,7 +9,6 @@ import {
   lazySchema,
   postJsonToApi,
   resolve,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -42,8 +41,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
     modelId: string;
     config: GatewayEmbeddingConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new GatewayEmbeddingModel(modelId, config);
+    return new GatewayEmbeddingModel(options.modelId, options.config);
   }
 
   constructor(

@@ -6,7 +6,6 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
-  deserializeModelOptions,
   serializeModelOptions,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -44,8 +43,7 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
     modelId: GroqTranscriptionModelId;
     config: GroqTranscriptionModelConfig;
   }) {
-    const { modelId, config } = deserializeModelOptions(options);
-    return new GroqTranscriptionModel(modelId, config);
+    return new GroqTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
