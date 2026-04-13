@@ -1,4 +1,5 @@
-import { JSONObject, JSONValue } from '@ai-sdk/provider';
+import { JSONObject } from '@ai-sdk/provider';
+import { isJSONSerializable } from './is-json-serializable';
 
 /**
  * Serializes a language model instance for workflow step boundaries.
@@ -70,27 +71,4 @@ export function deserializeModel<MODEL, CONFIG>({
   options: { modelId: string; config: CONFIG };
 }): MODEL {
   return new ModelClass(options.modelId, options.config);
-}
-
-// TODO extract, test, is JSON Value
-function isJSONSerializable(value: unknown): value is JSONValue {
-  if (value === null || value === undefined) return true;
-
-  const type = typeof value;
-  if (type === 'string' || type === 'number' || type === 'boolean') return true;
-  if (type === 'function' || type === 'symbol' || type === 'bigint')
-    return false;
-
-  if (Array.isArray(value)) {
-    return value.every(isJSONSerializable);
-  }
-
-  // Only allow plain objects (not class instances like RegExp, Date, etc.)
-  if (Object.getPrototypeOf(value) === Object.prototype) {
-    return Object.values(value as Record<string, unknown>).every(
-      isJSONSerializable,
-    );
-  }
-
-  return false;
 }
