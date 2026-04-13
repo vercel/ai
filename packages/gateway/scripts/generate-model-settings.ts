@@ -36,6 +36,10 @@ const MODALITY_CONFIG: Record<
     outputFile: 'gateway-video-model-settings.ts',
     typeName: 'GatewayVideoModelId',
   },
+  reranking: {
+    outputFile: 'gateway-reranking-model-settings.ts',
+    typeName: 'GatewayRerankingModelId',
+  },
 };
 
 async function fetchModels(): Promise<ModelsResponse> {
