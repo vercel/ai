@@ -5,6 +5,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
 
 type BaseToolCall = {
   type: 'tool-call';
+  title?: string;
   toolCallId: string;
   providerExecuted?: boolean;
   providerMetadata?: ProviderMetadata;
@@ -21,7 +22,6 @@ export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
     dynamic?: false | undefined;
     invalid?: false | undefined;
     error?: never;
-    title?: string;
   };
 }>;
 
@@ -35,7 +35,6 @@ export type DynamicToolCall = BaseToolCall & {
   dynamic: true;
   invalid?: false | undefined;
   error?: never;
-  title?: string;
 };
 
 /**
@@ -50,7 +49,6 @@ export type InvalidToolCall = BaseToolCall & {
   invalid: true;
   dynamic?: boolean;
   error: unknown;
-  title?: string;
 };
 
 /**
