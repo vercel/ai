@@ -1,3 +1,5 @@
+import { JSONObject, JSONValue } from '@ai-sdk/provider';
+
 /**
  * Serializes a language model instance for workflow step boundaries.
  * Extracts the modelId and only the serializable config properties,
@@ -21,20 +23,20 @@ export function serializeModel<MODEL extends { modelId: string }>({
   getConfig: (model: MODEL) => Record<string, unknown>;
 }): {
   modelId: string;
-  config: Record<string, unknown>;
+  config: JSONObject;
 } {
-  const config: Record<string, unknown> = {};
+  const config: JSONObject = {};
   const modelConfig = getConfig(model);
   for (const key of Object.keys(modelConfig)) {
     const value = modelConfig[key];
-    if (isSerializable(value)) {
+    if (isJSONSerializable(value)) {
       config[key] = value;
     } else if (key === 'headers' && typeof value === 'function') {
       // Resolve headers at serialization time so auth credentials
       // survive the workflow step boundary. On deserialization the
       // resolved object is wrapped back into a function.
       const resolved = value();
-      if (isSerializable(resolved)) {
+      if (isJSONSerializable(resolved)) {
         config[key] = resolved;
       }
     }
@@ -60,10 +62,7 @@ export function serializeModel<MODEL extends { modelId: string }>({
  * }
  * ```
  */
-export function deserializeModel<
-  MODEL extends { modelId: string },
-  CONFIG extends Record<string, unknown>,
->({
+export function deserializeModel<MODEL, CONFIG>({
   ModelClass,
   options,
 }: {
@@ -74,7 +73,7 @@ export function deserializeModel<
 }
 
 // TODO extract, test, is JSON Value
-function isSerializable(value: unknown): boolean {
+function isJSONSerializable(value: unknown): value is JSONValue {
   if (value === null || value === undefined) return true;
 
   const type = typeof value;
@@ -83,13 +82,13 @@ function isSerializable(value: unknown): boolean {
     return false;
 
   if (Array.isArray(value)) {
-    return value.every(isSerializable);
+    return value.every(isJSONSerializable);
   }
 
   // Only allow plain objects (not class instances like RegExp, Date, etc.)
   if (Object.getPrototypeOf(value) === Object.prototype) {
     return Object.values(value as Record<string, unknown>).every(
-      isSerializable,
+      isJSONSerializable,
     );
   }
 
