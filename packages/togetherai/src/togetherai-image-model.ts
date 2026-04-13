@@ -37,14 +37,14 @@ export class TogetherAIImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: TogetherAIImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: TogetherAIImageModelId;
     config: TogetherAIImageModelConfig;
   }) {
-    return deserializeModel(TogetherAIImageModel, options);
+    return deserializeModel({ ModelClass: TogetherAIImageModel, options });
   }
 
   constructor(

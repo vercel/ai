@@ -55,14 +55,14 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
   private readonly config: GroqChatConfig;
 
   static [WORKFLOW_SERIALIZE](model: GroqChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: GroqChatModelId;
     config: GroqChatConfig;
   }) {
-    return deserializeModel(GroqChatLanguageModel, options);
+    return deserializeModel({ ModelClass: GroqChatLanguageModel, options });
   }
 
   constructor(modelId: GroqChatModelId, config: GroqChatConfig) {

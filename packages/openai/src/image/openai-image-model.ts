@@ -35,14 +35,14 @@ export class OpenAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: OpenAIImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: OpenAIImageModelId;
     config: OpenAIImageModelConfig;
   }) {
-    return deserializeModel(OpenAIImageModel, options);
+    return deserializeModel({ ModelClass: OpenAIImageModel, options });
   }
 
   get maxImagesPerCall(): number {

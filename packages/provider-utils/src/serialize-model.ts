@@ -22,20 +22,25 @@ import { isJSONSerializable } from './is-json-serializable';
  * }
  * ```
  */
-export function serializeModel<MODEL extends { modelId: string }>({
+export function serializeModel<
+  MODEL_ID extends string,
+  MODEL extends { modelId: MODEL_ID },
+  CONFIG extends object,
+>({
   model,
   getConfig,
 }: {
   model: MODEL;
-  getConfig: (model: MODEL) => Record<string, unknown>;
+  getConfig: (model: MODEL) => CONFIG;
 }): {
-  modelId: string;
+  modelId: MODEL_ID;
   config: JSONObject;
 } {
   const resolvedConfig = getConfig(model);
   const serializableConfig: JSONObject = {};
-  for (const key of Object.keys(resolvedConfig)) {
-    const value = resolvedConfig[key];
+  for (const [key, value] of Object.entries(
+    resolvedConfig as Record<string, unknown>,
+  )) {
     if (isJSONSerializable(value)) {
       serializableConfig[key] = value;
     } else if (key === 'headers' && typeof value === 'function') {
@@ -69,12 +74,12 @@ export function serializeModel<MODEL extends { modelId: string }>({
  * }
  * ```
  */
-export function deserializeModel<MODEL, CONFIG>({
+export function deserializeModel<MODEL, MODEL_ID extends string, CONFIG>({
   ModelClass,
   options,
 }: {
-  ModelClass: new (modelId: string, config: CONFIG) => MODEL;
-  options: { modelId: string; config: CONFIG };
+  ModelClass: new (modelId: MODEL_ID, config: CONFIG) => MODEL;
+  options: { modelId: MODEL_ID; config: CONFIG };
 }): MODEL {
   return new ModelClass(options.modelId, options.config);
 }

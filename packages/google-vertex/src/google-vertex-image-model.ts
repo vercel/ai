@@ -41,14 +41,14 @@ export class GoogleVertexImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: GoogleVertexImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GoogleVertexImageModelConfig;
   }) {
-    return deserializeModel(GoogleVertexImageModel, options);
+    return deserializeModel({ ModelClass: GoogleVertexImageModel, options });
   }
 
   get maxImagesPerCall(): number {

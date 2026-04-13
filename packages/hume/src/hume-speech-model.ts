@@ -104,14 +104,14 @@ export class HumeSpeechModel implements SpeechModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: HumeSpeechModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: '';
     config: HumeSpeechModelConfig;
   }) {
-    return deserializeModel(HumeSpeechModel, options);
+    return deserializeModel({ ModelClass: HumeSpeechModel, options });
   }
 
   constructor(

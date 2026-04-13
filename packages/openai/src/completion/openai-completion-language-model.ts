@@ -58,14 +58,17 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompletionLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: OpenAICompletionModelId;
     config: OpenAICompletionConfig;
   }) {
-    return deserializeModel(OpenAICompletionLanguageModel, options);
+    return deserializeModel({
+      ModelClass: OpenAICompletionLanguageModel,
+      options,
+    });
   }
 
   constructor(

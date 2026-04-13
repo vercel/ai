@@ -53,14 +53,14 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: BlackForestLabsImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: BlackForestLabsImageModelId;
     config: BlackForestLabsImageModelConfig;
   }) {
-    return deserializeModel(BlackForestLabsImageModel, options);
+    return deserializeModel({ ModelClass: BlackForestLabsImageModel, options });
   }
 
   constructor(

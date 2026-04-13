@@ -58,14 +58,14 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
   private readonly config: AlibabaConfig;
 
   static [WORKFLOW_SERIALIZE](model: AlibabaLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: AlibabaChatModelId;
     config: AlibabaConfig;
   }) {
-    return deserializeModel(AlibabaLanguageModel, options);
+    return deserializeModel({ ModelClass: AlibabaLanguageModel, options });
   }
 
   constructor(modelId: AlibabaChatModelId, config: AlibabaConfig) {

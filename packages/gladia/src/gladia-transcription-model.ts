@@ -345,14 +345,14 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: GladiaTranscriptionModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: 'default';
     config: GladiaTranscriptionModelConfig;
   }) {
-    return deserializeModel(GladiaTranscriptionModel, options);
+    return deserializeModel({ ModelClass: GladiaTranscriptionModel, options });
   }
 
   constructor(

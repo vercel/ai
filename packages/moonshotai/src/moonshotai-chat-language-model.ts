@@ -17,14 +17,17 @@ import { MoonshotAIChatModelId } from './moonshotai-chat-options';
 
 export class MoonshotAIChatLanguageModel extends OpenAICompatibleChatLanguageModel {
   static [WORKFLOW_SERIALIZE](model: MoonshotAIChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: MoonshotAIChatModelId;
     config: OpenAICompatibleChatConfig;
   }) {
-    return deserializeModel(MoonshotAIChatLanguageModel, options);
+    return deserializeModel({
+      ModelClass: MoonshotAIChatLanguageModel,
+      options,
+    });
   }
 
   constructor(

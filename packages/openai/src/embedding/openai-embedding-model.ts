@@ -29,14 +29,14 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
   private readonly config: OpenAIConfig;
 
   static [WORKFLOW_SERIALIZE](model: OpenAIEmbeddingModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: OpenAIEmbeddingModelId;
     config: OpenAIConfig;
   }) {
-    return deserializeModel(OpenAIEmbeddingModel, options);
+    return deserializeModel({ ModelClass: OpenAIEmbeddingModel, options });
   }
 
   get provider(): string {

@@ -65,14 +65,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
   private readonly config: OpenAIChatConfig;
 
   static [WORKFLOW_SERIALIZE](model: OpenAIChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: OpenAIChatModelId;
     config: OpenAIChatConfig;
   }) {
-    return deserializeModel(OpenAIChatLanguageModel, options);
+    return deserializeModel({ ModelClass: OpenAIChatLanguageModel, options });
   }
 
   constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {

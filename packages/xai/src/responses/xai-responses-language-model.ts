@@ -57,14 +57,14 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
   private readonly config: XaiResponsesConfig;
 
   static [WORKFLOW_SERIALIZE](model: XaiResponsesLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: XaiResponsesModelId;
     config: XaiResponsesConfig;
   }) {
-    return deserializeModel(XaiResponsesLanguageModel, options);
+    return deserializeModel({ ModelClass: XaiResponsesLanguageModel, options });
   }
 
   constructor(modelId: XaiResponsesModelId, config: XaiResponsesConfig) {

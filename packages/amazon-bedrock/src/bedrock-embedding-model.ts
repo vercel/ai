@@ -38,14 +38,14 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
   readonly supportsParallelCalls = true;
 
   static [WORKFLOW_SERIALIZE](model: BedrockEmbeddingModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: BedrockEmbeddingConfig;
   }) {
-    return deserializeModel(BedrockEmbeddingModel, options);
+    return deserializeModel({ ModelClass: BedrockEmbeddingModel, options });
   }
 
   constructor(

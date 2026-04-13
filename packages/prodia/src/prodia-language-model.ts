@@ -44,14 +44,14 @@ export class ProdiaLanguageModel implements LanguageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: ProdiaLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: ProdiaLanguageModelId;
     config: ProdiaModelConfig;
   }) {
-    return deserializeModel(ProdiaLanguageModel, options);
+    return deserializeModel({ ModelClass: ProdiaLanguageModel, options });
   }
 
   constructor(

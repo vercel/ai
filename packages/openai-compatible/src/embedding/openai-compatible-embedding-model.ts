@@ -63,14 +63,17 @@ export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompatibleEmbeddingModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: OpenAICompatibleEmbeddingConfig;
   }) {
-    return deserializeModel(OpenAICompatibleEmbeddingModel, options);
+    return deserializeModel({
+      ModelClass: OpenAICompatibleEmbeddingModel,
+      options,
+    });
   }
 
   constructor(

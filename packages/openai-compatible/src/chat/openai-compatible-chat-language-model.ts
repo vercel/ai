@@ -83,19 +83,22 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   readonly supportsStructuredOutputs: boolean;
 
   readonly modelId: OpenAICompatibleChatModelId;
-  private readonly config: OpenAICompatibleChatConfig;
+  protected readonly config: OpenAICompatibleChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompatibleChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: OpenAICompatibleChatConfig;
   }) {
-    return deserializeModel(OpenAICompatibleChatLanguageModel, options);
+    return deserializeModel({
+      ModelClass: OpenAICompatibleChatLanguageModel,
+      options,
+    });
   }
 
   constructor(

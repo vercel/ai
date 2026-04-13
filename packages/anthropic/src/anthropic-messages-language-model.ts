@@ -155,14 +155,17 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: AnthropicMessagesLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: AnthropicMessagesModelId;
     config: AnthropicMessagesConfig;
   }) {
-    return deserializeModel(AnthropicMessagesLanguageModel, options);
+    return deserializeModel({
+      ModelClass: AnthropicMessagesLanguageModel,
+      options,
+    });
   }
 
   constructor(

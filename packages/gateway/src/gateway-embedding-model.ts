@@ -32,14 +32,14 @@ export class GatewayEmbeddingModel implements EmbeddingModelV4 {
   readonly supportsParallelCalls = true;
 
   static [WORKFLOW_SERIALIZE](model: GatewayEmbeddingModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GatewayEmbeddingConfig;
   }) {
-    return deserializeModel(GatewayEmbeddingModel, options);
+    return deserializeModel({ ModelClass: GatewayEmbeddingModel, options });
   }
 
   constructor(

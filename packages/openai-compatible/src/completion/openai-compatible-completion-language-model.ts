@@ -65,14 +65,17 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
   private readonly chunkSchema; // type inferred via constructor
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompatibleCompletionLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: OpenAICompatibleCompletionConfig;
   }) {
-    return deserializeModel(OpenAICompatibleCompletionLanguageModel, options);
+    return deserializeModel({
+      ModelClass: OpenAICompatibleCompletionLanguageModel,
+      options,
+    });
   }
 
   constructor(

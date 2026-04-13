@@ -37,14 +37,14 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
   private readonly config: CohereEmbeddingConfig;
 
   static [WORKFLOW_SERIALIZE](model: CohereEmbeddingModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: CohereEmbeddingModelId;
     config: CohereEmbeddingConfig;
   }) {
-    return deserializeModel(CohereEmbeddingModel, options);
+    return deserializeModel({ ModelClass: CohereEmbeddingModel, options });
   }
 
   constructor(modelId: CohereEmbeddingModelId, config: CohereEmbeddingConfig) {

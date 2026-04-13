@@ -50,14 +50,14 @@ export class LumaImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: LumaImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: LumaImageModelConfig;
   }) {
-    return deserializeModel(LumaImageModel, options);
+    return deserializeModel({ ModelClass: LumaImageModel, options });
   }
 
   constructor(

@@ -51,14 +51,14 @@ export class FalSpeechModel implements SpeechModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: FalSpeechModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: FalSpeechModelId;
     config: FalSpeechModelConfig;
   }) {
-    return deserializeModel(FalSpeechModel, options);
+    return deserializeModel({ ModelClass: FalSpeechModel, options });
   }
 
   constructor(

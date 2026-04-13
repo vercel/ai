@@ -66,14 +66,14 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: ElevenLabsSpeechModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: ElevenLabsSpeechModelId;
     config: ElevenLabsSpeechModelConfig;
   }) {
-    return deserializeModel(ElevenLabsSpeechModel, options);
+    return deserializeModel({ ModelClass: ElevenLabsSpeechModel, options });
   }
 
   constructor(

@@ -32,14 +32,14 @@ export class GatewayImageModel implements ImageModelV4 {
   readonly maxImagesPerCall = Number.MAX_SAFE_INTEGER;
 
   static [WORKFLOW_SERIALIZE](model: GatewayImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GatewayImageConfig;
   }) {
-    return deserializeModel(GatewayImageModel, options);
+    return deserializeModel({ ModelClass: GatewayImageModel, options });
   }
 
   constructor(

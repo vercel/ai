@@ -232,14 +232,14 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: RevaiTranscriptionModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: RevaiTranscriptionModelId;
     config: RevaiTranscriptionModelConfig;
   }) {
-    return deserializeModel(RevaiTranscriptionModel, options);
+    return deserializeModel({ ModelClass: RevaiTranscriptionModel, options });
   }
 
   constructor(

@@ -37,14 +37,14 @@ export class GatewayLanguageModel implements LanguageModelV4 {
   readonly supportedUrls = { '*/*': [/.*/] };
 
   static [WORKFLOW_SERIALIZE](model: GatewayLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: GatewayModelId;
     config: GatewayChatConfig;
   }) {
-    return deserializeModel(GatewayLanguageModel, options);
+    return deserializeModel({ ModelClass: GatewayLanguageModel, options });
   }
 
   constructor(

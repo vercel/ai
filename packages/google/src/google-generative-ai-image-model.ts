@@ -15,7 +15,6 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
-  deserializeModelConfig,
   serializeModel,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
@@ -45,7 +44,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAIImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {

@@ -42,14 +42,17 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
   private readonly config: HuggingFaceConfig;
 
   static [WORKFLOW_SERIALIZE](model: HuggingFaceResponsesLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: HuggingFaceResponsesModelId;
     config: HuggingFaceConfig;
   }) {
-    return deserializeModel(HuggingFaceResponsesLanguageModel, options);
+    return deserializeModel({
+      ModelClass: HuggingFaceResponsesLanguageModel,
+      options,
+    });
   }
 
   constructor(modelId: HuggingFaceResponsesModelId, config: HuggingFaceConfig) {

@@ -33,14 +33,14 @@ export class ProdiaImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: ProdiaImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: ProdiaImageModelId;
     config: ProdiaModelConfig;
   }) {
-    return deserializeModel(ProdiaImageModel, options);
+    return deserializeModel({ ModelClass: ProdiaImageModel, options });
   }
 
   constructor(

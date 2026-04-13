@@ -188,14 +188,17 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: AssemblyAITranscriptionModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: AssemblyAITranscriptionModelId;
     config: AssemblyAITranscriptionModelConfig;
   }) {
-    return deserializeModel(AssemblyAITranscriptionModel, options);
+    return deserializeModel({
+      ModelClass: AssemblyAITranscriptionModel,
+      options,
+    });
   }
 
   constructor(

@@ -104,14 +104,14 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: OpenAITranscriptionModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: OpenAITranscriptionModelId;
     config: OpenAITranscriptionModelConfig;
   }) {
-    return deserializeModel(OpenAITranscriptionModel, options);
+    return deserializeModel({ ModelClass: OpenAITranscriptionModel, options });
   }
 
   get provider(): string {

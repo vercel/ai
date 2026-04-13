@@ -38,14 +38,14 @@ export class BedrockImageModel implements ImageModelV4 {
   readonly provider = 'amazon-bedrock';
 
   static [WORKFLOW_SERIALIZE](model: BedrockImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: BedrockImageModelConfig;
   }) {
-    return deserializeModel(BedrockImageModel, options);
+    return deserializeModel({ ModelClass: BedrockImageModel, options });
   }
 
   get maxImagesPerCall(): number {

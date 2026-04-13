@@ -30,14 +30,17 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
   private readonly config: GoogleVertexConfig;
 
   static [WORKFLOW_SERIALIZE](model: GoogleVertexEmbeddingModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GoogleVertexConfig;
   }) {
-    return deserializeModel(GoogleVertexEmbeddingModel, options);
+    return deserializeModel({
+      ModelClass: GoogleVertexEmbeddingModel,
+      options,
+    });
   }
 
   get provider(): string {

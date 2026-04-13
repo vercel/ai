@@ -40,14 +40,14 @@ export class DeepInfraImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: DeepInfraImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: DeepInfraImageModelId;
     config: DeepInfraImageModelConfig;
   }) {
-    return deserializeModel(DeepInfraImageModel, options);
+    return deserializeModel({ ModelClass: DeepInfraImageModel, options });
   }
 
   constructor(

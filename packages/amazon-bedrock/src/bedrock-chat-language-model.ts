@@ -62,14 +62,14 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
   readonly provider = 'amazon-bedrock';
 
   static [WORKFLOW_SERIALIZE](model: BedrockChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: BedrockChatConfig;
   }) {
-    return deserializeModel(BedrockChatLanguageModel, options);
+    return deserializeModel({ ModelClass: BedrockChatLanguageModel, options });
   }
 
   constructor(

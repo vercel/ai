@@ -55,14 +55,14 @@ export class XaiChatLanguageModel implements LanguageModelV4 {
   private readonly config: XaiChatConfig;
 
   static [WORKFLOW_SERIALIZE](model: XaiChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: XaiChatModelId;
     config: XaiChatConfig;
   }) {
-    return deserializeModel(XaiChatLanguageModel, options);
+    return deserializeModel({ ModelClass: XaiChatLanguageModel, options });
   }
 
   constructor(modelId: XaiChatModelId, config: XaiChatConfig) {

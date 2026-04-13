@@ -79,14 +79,14 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: FalTranscriptionModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: FalTranscriptionModelId;
     config: FalTranscriptionModelConfig;
   }) {
-    return deserializeModel(FalTranscriptionModel, options);
+    return deserializeModel({ ModelClass: FalTranscriptionModel, options });
   }
 
   constructor(

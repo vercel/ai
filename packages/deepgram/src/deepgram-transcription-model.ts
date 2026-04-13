@@ -73,14 +73,17 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: DeepgramTranscriptionModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: DeepgramTranscriptionModelId;
     config: DeepgramTranscriptionModelConfig;
   }) {
-    return deserializeModel(DeepgramTranscriptionModel, options);
+    return deserializeModel({
+      ModelClass: DeepgramTranscriptionModel,
+      options,
+    });
   }
 
   constructor(

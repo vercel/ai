@@ -55,14 +55,14 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
   private readonly config: CohereChatConfig;
 
   static [WORKFLOW_SERIALIZE](model: CohereChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: CohereChatModelId;
     config: CohereChatConfig;
   }) {
-    return deserializeModel(CohereChatLanguageModel, options);
+    return deserializeModel({ ModelClass: CohereChatLanguageModel, options });
   }
 
   constructor(modelId: CohereChatModelId, config: CohereChatConfig) {

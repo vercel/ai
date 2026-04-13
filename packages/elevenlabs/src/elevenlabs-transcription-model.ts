@@ -48,14 +48,17 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: ElevenLabsTranscriptionModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: ElevenLabsTranscriptionModelId;
     config: ElevenLabsTranscriptionModelConfig;
   }) {
-    return deserializeModel(ElevenLabsTranscriptionModel, options);
+    return deserializeModel({
+      ModelClass: ElevenLabsTranscriptionModel,
+      options,
+    });
   }
 
   constructor(

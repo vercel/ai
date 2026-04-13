@@ -57,14 +57,17 @@ export class OpenAICompatibleImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: OpenAICompatibleImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: OpenAICompatibleImageModelConfig;
   }) {
-    return deserializeModel(OpenAICompatibleImageModel, options);
+    return deserializeModel({
+      ModelClass: OpenAICompatibleImageModel,
+      options,
+    });
   }
 
   constructor(

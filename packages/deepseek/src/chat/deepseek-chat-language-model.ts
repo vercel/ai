@@ -61,14 +61,14 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
 
   static [WORKFLOW_SERIALIZE](model: DeepSeekChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: DeepSeekChatModelId;
     config: DeepSeekChatConfig;
   }) {
-    return deserializeModel(DeepSeekChatLanguageModel, options);
+    return deserializeModel({ ModelClass: DeepSeekChatLanguageModel, options });
   }
 
   constructor(modelId: DeepSeekChatModelId, config: DeepSeekChatConfig) {

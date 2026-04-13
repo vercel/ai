@@ -54,14 +54,14 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
   private readonly generateId: () => string;
 
   static [WORKFLOW_SERIALIZE](model: MistralChatLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: MistralChatModelId;
     config: MistralChatConfig;
   }) {
-    return deserializeModel(MistralChatLanguageModel, options);
+    return deserializeModel({ ModelClass: MistralChatLanguageModel, options });
   }
 
   constructor(modelId: MistralChatModelId, config: MistralChatConfig) {

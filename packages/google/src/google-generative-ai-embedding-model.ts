@@ -39,14 +39,17 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
   private readonly config: GoogleGenerativeAIEmbeddingConfig;
 
   static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAIEmbeddingModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
     config: GoogleGenerativeAIEmbeddingConfig;
   }) {
-    return deserializeModel(GoogleGenerativeAIEmbeddingModel, options);
+    return deserializeModel({
+      ModelClass: GoogleGenerativeAIEmbeddingModel,
+      options,
+    });
   }
 
   get provider(): string {

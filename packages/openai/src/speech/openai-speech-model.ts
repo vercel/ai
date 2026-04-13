@@ -27,14 +27,14 @@ export class OpenAISpeechModel implements SpeechModelV4 {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: OpenAISpeechModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: OpenAISpeechModelId;
     config: OpenAISpeechModelConfig;
   }) {
-    return deserializeModel(OpenAISpeechModel, options);
+    return deserializeModel({ ModelClass: OpenAISpeechModel, options });
   }
 
   get provider(): string {

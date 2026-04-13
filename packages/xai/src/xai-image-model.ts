@@ -38,14 +38,14 @@ export class XaiImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: XaiImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: XaiImageModelId;
     config: XaiImageModelConfig;
   }) {
-    return deserializeModel(XaiImageModel, options);
+    return deserializeModel({ ModelClass: XaiImageModel, options });
   }
 
   constructor(

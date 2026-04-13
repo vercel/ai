@@ -44,14 +44,14 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
   private readonly config: PerplexityChatConfig;
 
   static [WORKFLOW_SERIALIZE](model: PerplexityLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: PerplexityLanguageModelId;
     config: PerplexityChatConfig;
   }) {
-    return deserializeModel(PerplexityLanguageModel, options);
+    return deserializeModel({ ModelClass: PerplexityLanguageModel, options });
   }
 
   constructor(

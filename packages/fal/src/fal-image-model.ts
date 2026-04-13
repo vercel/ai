@@ -40,14 +40,14 @@ export class FalImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: FalImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: FalImageModelId;
     config: FalImageModelConfig;
   }) {
-    return deserializeModel(FalImageModel, options);
+    return deserializeModel({ ModelClass: FalImageModel, options });
   }
 
   constructor(

@@ -121,14 +121,14 @@ export class FireworksImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: FireworksImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: FireworksImageModelId;
     config: FireworksImageModelConfig;
   }) {
-    return deserializeModel(FireworksImageModel, options);
+    return deserializeModel({ ModelClass: FireworksImageModel, options });
   }
 
   constructor(

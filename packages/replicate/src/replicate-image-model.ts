@@ -53,14 +53,14 @@ export class ReplicateImageModel implements ImageModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: ReplicateImageModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: ReplicateImageModelId;
     config: ReplicateImageModelConfig;
   }) {
-    return deserializeModel(ReplicateImageModel, options);
+    return deserializeModel({ ModelClass: ReplicateImageModel, options });
   }
 
   constructor(

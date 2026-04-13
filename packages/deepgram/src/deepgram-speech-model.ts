@@ -52,14 +52,14 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
   }
 
   static [WORKFLOW_SERIALIZE](model: DeepgramSpeechModel) {
-    return serializeModel(model);
+    return serializeModel({ model, getConfig: model => model.config });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: DeepgramSpeechModelId;
     config: DeepgramSpeechModelConfig;
   }) {
-    return deserializeModel(DeepgramSpeechModel, options);
+    return deserializeModel({ ModelClass: DeepgramSpeechModel, options });
   }
 
   constructor(
