@@ -5,33 +5,6 @@ import type { TelemetryIntegration } from './telemetry-integration';
 import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
 
 /**
- * Wraps a telemetry integration with bound methods.
- * Use this when creating class-based integrations to ensure methods
- * work correctly when passed as callbacks.
- */
-function bindTelemetryIntegration(
-  integration: TelemetryIntegration,
-): TelemetryIntegration {
-  return {
-    onStart: integration.onStart?.bind(integration),
-    onStepStart: integration.onStepStart?.bind(integration),
-    onToolCallStart: integration.onToolCallStart?.bind(integration),
-    onToolCallFinish: integration.onToolCallFinish?.bind(integration),
-    onChunk: integration.onChunk?.bind(integration),
-    onStepFinish: integration.onStepFinish?.bind(integration),
-    onObjectStepStart: integration.onObjectStepStart?.bind(integration),
-    onObjectStepFinish: integration.onObjectStepFinish?.bind(integration),
-    onEmbedStart: integration.onEmbedStart?.bind(integration),
-    onEmbedFinish: integration.onEmbedFinish?.bind(integration),
-    onRerankStart: integration.onRerankStart?.bind(integration),
-    onRerankFinish: integration.onRerankFinish?.bind(integration),
-    onFinish: integration.onFinish?.bind(integration),
-    onError: integration.onError?.bind(integration),
-    executeTool: integration.executeTool?.bind(integration),
-  };
-}
-
-/**
  * Creates a unified telemetry target that sends telemetry events
  * to all registered global telemetry integrations and to
  * any per-call integrations passed to the function.
@@ -42,15 +15,36 @@ function bindTelemetryIntegration(
  * any per-call integrations passed to the function.
  */
 export function createUnifiedTelemetry({
-  integrations,
+  integrations: localIntegrations,
 }: {
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }): TelemetryIntegration {
-  const globalIntegrations = getGlobalTelemetryIntegrations();
-
-  const localIntegrations = asArray(integrations);
-  const allIntegrations = [...globalIntegrations, ...localIntegrations].map(
-    bindTelemetryIntegration,
+  const integrations = [
+    ...getGlobalTelemetryIntegrations(),
+    ...asArray(localIntegrations),
+  ].map(
+    /**
+     * Wraps a telemetry integration with bound methods.
+     * Use this when creating class-based integrations to ensure methods
+     * work correctly when passed as callbacks.
+     */
+    integration => ({
+      onStart: integration.onStart?.bind(integration),
+      onStepStart: integration.onStepStart?.bind(integration),
+      onToolCallStart: integration.onToolCallStart?.bind(integration),
+      onToolCallFinish: integration.onToolCallFinish?.bind(integration),
+      onChunk: integration.onChunk?.bind(integration),
+      onStepFinish: integration.onStepFinish?.bind(integration),
+      onObjectStepStart: integration.onObjectStepStart?.bind(integration),
+      onObjectStepFinish: integration.onObjectStepFinish?.bind(integration),
+      onEmbedStart: integration.onEmbedStart?.bind(integration),
+      onEmbedFinish: integration.onEmbedFinish?.bind(integration),
+      onRerankStart: integration.onRerankStart?.bind(integration),
+      onRerankFinish: integration.onRerankFinish?.bind(integration),
+      onFinish: integration.onFinish?.bind(integration),
+      onError: integration.onError?.bind(integration),
+      executeTool: integration.executeTool?.bind(integration),
+    }),
   );
 
   function createTelemetryComposite<EVENT>(
@@ -58,14 +52,14 @@ export function createUnifiedTelemetry({
       integration: TelemetryIntegration,
     ) => Listener<EVENT> | undefined,
   ): Listener<EVENT> | undefined {
-    const listeners = allIntegrations
+    const listeners = integrations
       .map(getListenerFromIntegration)
       .filter(Boolean) as Array<Listener<EVENT>>;
 
     return mergeListeners(...listeners);
   }
 
-  const executeWrappers = allIntegrations
+  const executeWrappers = integrations
     .map(integration => integration.executeTool)
     .filter(Boolean) as Array<TelemetryIntegration['executeTool']>;
 
