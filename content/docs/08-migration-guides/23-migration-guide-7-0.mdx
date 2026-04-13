@@ -19,6 +19,26 @@ An example upgrade command would be:
 pnpm install ai@latest @ai-sdk/react@latest @ai-sdk/openai@latest @ai-sdk/otel@latest
 ```
 
+## All Packages
+
+### ESM Only — CommonJS Support Removed
+
+All AI SDK packages are now ESM-only. The `require()` function is no longer supported.
+
+If your project uses CommonJS (`require()`), switch to ESM `import` syntax:
+
+```tsx filename="Before (CommonJS)"
+const { generateText } = require('ai');
+const { openai } = require('@ai-sdk/openai');
+```
+
+```tsx filename="After (ESM)"
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+```
+
+If your `package.json` does not already include `"type": "module"`, add it or rename your files to use the `.mjs` extension.
+
 ## AI SDK Core
 
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
