@@ -153,11 +153,11 @@ export interface TelemetryIntegration {
    * nested traces — e.g. when a tool's `execute` function calls `generateText`,
    * the inner call's spans become children of the tool span.
    *
-   * @param params.callId - The call ID of the tool call.
-   * @param params.toolCallId - The tool call ID.
-   * @param params.execute - The function to execute.
+   * @param options.callId - The call ID of the tool call.
+   * @param options.toolCallId - The tool call ID.
+   * @param options.execute - The function to execute.
    */
-  executeTool?: <T>(params: {
+  executeTool?: <T>(options: {
     callId: string;
     toolCallId: string;
     execute: () => PromiseLike<T>;

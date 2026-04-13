@@ -22,7 +22,7 @@ import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
+import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -460,8 +460,7 @@ class DefaultStreamObjectResult<
 
     const callSettings = prepareCallSettings(settings);
 
-    const createGlobalTelemetry = getGlobalTelemetryIntegration();
-    const globalTelemetry = createGlobalTelemetry({
+    const unifiedTelemetry = createUnifiedTelemetry({
       integrations: telemetry?.integrations,
     });
 
@@ -524,7 +523,7 @@ class DefaultStreamObjectResult<
           functionId: telemetry?.functionId,
           metadata: telemetry?.metadata,
         },
-        callbacks: [onStart, globalTelemetry.onStart],
+        callbacks: [onStart, unifiedTelemetry.onStart],
       });
 
       const standardizedPrompt = await standardizePrompt({
@@ -566,7 +565,7 @@ class DefaultStreamObjectResult<
           metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           promptMessages: callOptions.prompt,
         },
-        callbacks: [onStepStart, globalTelemetry.onObjectStepStart],
+        callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
       });
 
       const transformer: Transformer<
@@ -785,7 +784,10 @@ class DefaultStreamObjectResult<
                       | Record<string, unknown>
                       | undefined,
                   },
-                  callbacks: [onStepFinish, globalTelemetry.onObjectStepFinish],
+                  callbacks: [
+                    onStepFinish,
+                    unifiedTelemetry.onObjectStepFinish,
+                  ],
                 });
 
                 await notify({
@@ -808,7 +810,7 @@ class DefaultStreamObjectResult<
                       | Record<string, unknown>
                       | undefined,
                   },
-                  callbacks: [onFinish, globalTelemetry.onFinish],
+                  callbacks: [onFinish, unifiedTelemetry.onFinish],
                 });
               } catch (error) {
                 controller.enqueue({ type: 'error', error });
@@ -820,7 +822,7 @@ class DefaultStreamObjectResult<
       stitchableStream.addStream(transformedStream);
     })()
       .catch(async error => {
-        await globalTelemetry.onError?.({ callId, error });
+        await unifiedTelemetry.onError?.({ callId, error });
 
         stitchableStream.addStream(
           new ReadableStream({
