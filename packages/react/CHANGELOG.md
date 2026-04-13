@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 4.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [57bf606]
+  - ai@7.0.0-beta.85
+
 ## 4.0.0-beta.84
 
 ### Patch Changes

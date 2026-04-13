@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.85
+
+### Major Changes
+
+- 57bf606: chore(ai): simplify unified telemetry creation
+
 ## 7.0.0-beta.84
 
 ### Patch Changes
