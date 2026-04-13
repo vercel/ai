@@ -1,10 +1,10 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import { CallSettings } from './call-settings';
+import { ModelCallOptions } from './model-call-options';
 
 /**
- * Validates call settings and returns a new object with limited values.
+ * Validates model call options and returns a new object with normalized values.
  */
-export function prepareCallSettings({
+export function prepareModelCallOptions({
   maxOutputTokens,
   temperature,
   topP,
@@ -14,10 +14,7 @@ export function prepareCallSettings({
   seed,
   stopSequences,
   reasoning,
-}: Omit<CallSettings, 'abortSignal' | 'headers' | 'maxRetries'>): Omit<
-  CallSettings,
-  'abortSignal' | 'headers' | 'maxRetries'
-> {
+}: ModelCallOptions): ModelCallOptions {
   if (maxOutputTokens != null) {
     if (!Number.isInteger(maxOutputTokens)) {
       throw new InvalidArgumentError({

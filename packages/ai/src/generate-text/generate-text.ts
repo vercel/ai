@@ -20,15 +20,16 @@ import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-f
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
+import { ModelCallOptions } from '../prompt/model-call-options';
+import { prepareModelCallOptions } from '../prompt/prepare-model-call-options';
 import {
-  CallSettings,
   getStepTimeoutMs,
   getTotalTimeoutMs,
+  RequestOptions,
   TimeoutConfiguration,
-} from '../prompt/call-settings';
+} from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { Prompt } from '../prompt/prompt';
@@ -292,21 +293,14 @@ export async function generateText<
   onStepFinish,
   onFinish,
   ...settings
-}: CallSettings &
+}: ModelCallOptions &
+  RequestOptions<TOOLS> &
   Prompt &
   ContextParameter<TOOLS, USER_CONTEXT> & {
     /**
      * The language model to use.
      */
     model: LanguageModel;
-
-    /**
-     * Timeout in milliseconds. The call will be aborted if it takes longer
-     * than the specified timeout. Can be used alongside abortSignal.
-     *
-     * Can be specified as a number (milliseconds) or as an object with `totalMs`.
-     */
-    timeout?: TimeoutConfiguration<TOOLS>;
 
     /**
      * The tool choice strategy. Default: 'auto'.
@@ -485,7 +479,7 @@ export async function generateText<
     abortSignal: mergedAbortSignal,
   });
 
-  const callSettings = prepareCallSettings(settings);
+  const callSettings = prepareModelCallOptions(settings);
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -647,7 +641,7 @@ export async function generateText<
       });
     }
 
-    const callSettings = prepareCallSettings(settings);
+    const callSettings = prepareModelCallOptions(settings);
 
     let currentModelResponse: LanguageModelV4GenerateResult & {
       response: { id: string; timestamp: Date; modelId: string };

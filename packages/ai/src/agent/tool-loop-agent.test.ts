@@ -257,6 +257,102 @@ describe('ToolLoopAgent', () => {
         `);
       });
     });
+
+    describe('ModelCallOptions forwarding', () => {
+      it('should forward temperature to generateText', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          temperature: 0.5,
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(doGenerateOptions?.temperature).toBe(0.5);
+      });
+
+      it('should forward maxOutputTokens to generateText', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          maxOutputTokens: 256,
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(doGenerateOptions?.maxOutputTokens).toBe(256);
+      });
+
+      it('should forward topP to generateText', async () => {
+        const agent = new ToolLoopAgent({ model: mockModel, topP: 0.9 });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(doGenerateOptions?.topP).toBe(0.9);
+      });
+
+      it('should forward topK to generateText', async () => {
+        const agent = new ToolLoopAgent({ model: mockModel, topK: 40 });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(doGenerateOptions?.topK).toBe(40);
+      });
+
+      it('should forward presencePenalty to generateText', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          presencePenalty: 0.1,
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(doGenerateOptions?.presencePenalty).toBe(0.1);
+      });
+
+      it('should forward frequencyPenalty to generateText', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          frequencyPenalty: 0.2,
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(doGenerateOptions?.frequencyPenalty).toBe(0.2);
+      });
+
+      it('should forward stopSequences to generateText', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          stopSequences: ['STOP', 'END'],
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(doGenerateOptions?.stopSequences).toEqual(['STOP', 'END']);
+      });
+
+      it('should forward seed to generateText', async () => {
+        const agent = new ToolLoopAgent({ model: mockModel, seed: 42 });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(doGenerateOptions?.seed).toBe(42);
+      });
+    });
+
+    describe('RequestOptions forwarding', () => {
+      it('should forward headers to generateText', async () => {
+        const agent = new ToolLoopAgent({
+          model: mockModel,
+          headers: { 'x-custom': 'value' },
+        });
+
+        await agent.generate({ prompt: 'test' });
+
+        expect(doGenerateOptions?.headers).toMatchObject({
+          'x-custom': 'value',
+        });
+      });
+    });
   });
 
   describe('stream', () => {

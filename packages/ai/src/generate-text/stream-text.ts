@@ -21,15 +21,16 @@ import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { ModelCallOptions } from '../prompt/model-call-options';
+import { prepareModelCallOptions } from '../prompt/prepare-model-call-options';
 import {
-  CallSettings,
   getChunkTimeoutMs,
   getStepTimeoutMs,
   getTotalTimeoutMs,
+  RequestOptions,
   TimeoutConfiguration,
-} from '../prompt/call-settings';
+} from '../prompt/request-options';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { Prompt } from '../prompt/prompt';
@@ -351,21 +352,14 @@ export function streamText<
     generateCallId = originalGenerateCallId,
   } = {},
   ...settings
-}: CallSettings &
+}: ModelCallOptions &
+  RequestOptions<TOOLS> &
   Prompt &
   ContextParameter<TOOLS, USER_CONTEXT> & {
     /**
      * The language model to use.
      */
     model: LanguageModel;
-
-    /**
-     * Timeout in milliseconds. The call will be aborted if it takes longer
-     * than the specified timeout. Can be used alongside abortSignal.
-     *
-     * Can be specified as a number (milliseconds) or as an object with `totalMs`.
-     */
-    timeout?: TimeoutConfiguration<TOOLS>;
 
     /**
      * The tool choice strategy. Default: 'auto'.
@@ -798,7 +792,7 @@ class DefaultStreamTextResult<
     model: LanguageModelV4;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
-    settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
+    settings: ModelCallOptions;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;
@@ -1303,7 +1297,7 @@ class DefaultStreamTextResult<
       abortSignal,
     });
 
-    const callSettings = prepareCallSettings(settings);
+    const callSettings = prepareModelCallOptions(settings);
 
     const self = this;
 
