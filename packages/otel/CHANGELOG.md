@@ -1,5 +1,13 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.30
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - ai@7.0.0-beta.84
+
 ## 1.0.0-beta.29
 
 ### Patch Changes
