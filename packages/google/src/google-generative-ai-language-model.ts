@@ -27,6 +27,9 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -41,6 +44,7 @@ import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIModelId,
   googleLanguageModelOptions,
+  VertexServiceTierMap,
 } from './google-generative-ai-options';
 import { GoogleGenerativeAIProviderMetadata } from './google-generative-ai-prompt';
 import { prepareTools } from './google-prepare-tools';
@@ -50,7 +54,7 @@ import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-fi
 type GoogleGenerativeAIConfig = {
   provider: string;
   baseURL: string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
 
@@ -67,6 +71,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
 
   private readonly config: GoogleGenerativeAIConfig;
   private readonly generateId: () => string;
+
+  static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAILanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleGenerativeAIConfig;
+  }) {
+    return new GoogleGenerativeAILanguageModel(options.modelId, options.config);
+  }
 
   constructor(
     modelId: GoogleGenerativeAIModelId,
@@ -150,6 +168,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
           'and will be ignored with the current Google provider ' +
           `(${this.config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
       });
+    }
+
+    // Vertex API requires another service tier format.
+    let sanitizedServiceTier: string | undefined = googleOptions?.serviceTier;
+    if (googleOptions?.serviceTier && isVertexProvider) {
+      sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
@@ -253,7 +277,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         toolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
-        serviceTier: googleOptions?.serviceTier,
+        serviceTier: sanitizedServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
       providerOptionsName,
@@ -266,7 +290,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     const { args, warnings, providerOptionsName } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
 
@@ -485,7 +509,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     );
 
     const headers = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       options.headers,
     );
 

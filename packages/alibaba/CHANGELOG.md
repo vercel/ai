@@ -1,5 +1,18 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-beta.26
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/openai-compatible@3.0.0-beta.24
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
 ## 2.0.0-beta.25
 
 ### Patch Changes

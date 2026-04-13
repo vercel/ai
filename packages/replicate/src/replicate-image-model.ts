@@ -12,6 +12,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -46,6 +49,20 @@ export class ReplicateImageModel implements ImageModelV4 {
 
   private get isFlux2Model(): boolean {
     return FLUX_2_MODEL_PATTERN.test(this.modelId);
+  }
+
+  static [WORKFLOW_SERIALIZE](model: ReplicateImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: ReplicateImageModelId;
+    config: ReplicateImageModelConfig;
+  }) {
+    return new ReplicateImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -148,7 +165,7 @@ export class ReplicateImageModel implements ImageModelV4 {
           : `${this.config.baseURL}/models/${modelId}/predictions`,
 
       headers: combineHeaders(
-        await resolve(this.config.headers),
+        this.config.headers ? await resolve(this.config.headers) : undefined,
         headers,
         preferHeader,
       ),

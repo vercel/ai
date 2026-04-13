@@ -4,6 +4,9 @@ import {
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { HumeConfig } from './hume-config';
@@ -97,6 +100,20 @@ export class HumeSpeechModel implements SpeechModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: HumeSpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: '';
+    config: HumeSpeechModelConfig;
+  }) {
+    return new HumeSpeechModel(options.modelId as '', options.config);
   }
 
   constructor(
@@ -215,7 +232,7 @@ export class HumeSpeechModel implements SpeechModelV4 {
         path: '/v0/tts/file',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: humeFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

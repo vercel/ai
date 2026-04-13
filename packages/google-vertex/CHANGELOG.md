@@ -1,5 +1,27 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.47
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/anthropic@4.0.0-beta.27
+  - @ai-sdk/google@4.0.0-beta.37
+  - @ai-sdk/openai-compatible@3.0.0-beta.24
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 5.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [9a0a618]
+  - @ai-sdk/google@4.0.0-beta.36
+
 ## 5.0.0-beta.45
 
 ### Patch Changes
