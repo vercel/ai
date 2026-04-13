@@ -51,6 +51,7 @@ function resolveSync<T>(value: Resolvable<T>): T {
   const result = resolve(value);
 
   // the serialization for workflows currently only supports synchronous values
+  // TODO introduce SerializationError
   if (result instanceof Promise) {
     throw new Error('Promise returned from resolveSync');
   }
