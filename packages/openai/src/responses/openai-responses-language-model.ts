@@ -112,14 +112,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   private readonly config: OpenAIConfig;
 
   static [WORKFLOW_SERIALIZE](model: OpenAIResponsesLanguageModel) {
-    return serializeModel(model);
+    return serializeModel({
+      model,
+      getConfig: (model: OpenAIResponsesLanguageModel) => model.config,
+    });
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: OpenAIResponsesModelId;
     config: OpenAIConfig;
   }) {
-    return deserializeModel(OpenAIResponsesLanguageModel, options);
+    return deserializeModel({
+      ModelClass: OpenAIResponsesLanguageModel,
+      options,
+    });
   }
 
   constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {

@@ -13,17 +13,20 @@
  * }
  * ```
  */
-// Parameter uses `any` because provider model classes declare `config` as
-// private, making it invisible to external type checks.  The static
-// WORKFLOW_SERIALIZE method has runtime access to the field regardless.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function serializeModel(model: any): {
+export function serializeModel<MODEL extends { modelId: string }>({
+  model,
+  getConfig,
+}: {
+  model: MODEL;
+  getConfig: (model: MODEL) => Record<string, unknown>;
+}): {
   modelId: string;
   config: Record<string, unknown>;
 } {
   const config: Record<string, unknown> = {};
-  for (const key of Object.keys(model.config)) {
-    const value = model.config[key];
+  const modelConfig = getConfig(model);
+  for (const key of Object.keys(modelConfig)) {
+    const value = modelConfig[key];
     if (isSerializable(value)) {
       config[key] = value;
     } else if (key === 'headers' && typeof value === 'function') {
@@ -57,32 +60,20 @@ export function serializeModel(model: any): {
  * }
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function deserializeModel<T>(
-  ModelClass: new (modelId: any, config: any) => T,
-  options: { modelId: string; config: any },
-): T {
-  return new ModelClass(
-    options.modelId,
-    deserializeModelConfig(options.config),
-  );
+export function deserializeModel<
+  MODEL extends { modelId: string },
+  CONFIG extends Record<string, unknown>,
+>({
+  ModelClass,
+  options,
+}: {
+  ModelClass: new (modelId: string, config: CONFIG) => MODEL;
+  options: { modelId: string; config: CONFIG };
+}): MODEL {
+  return new ModelClass(options.modelId, options.config);
 }
 
-/**
- * Prepares a deserialized model config for use with a model constructor.
- * Wraps plain-object `headers` back into a function, since model code
- * expects `config.headers()` to be callable.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function deserializeModelConfig<T>(config: T): T {
-  const result = { ...config } as any;
-  if (result.headers != null && typeof result.headers !== 'function') {
-    const resolvedHeaders = result.headers;
-    result.headers = () => resolvedHeaders;
-  }
-  return result;
-}
-
+// TODO extract, test, is JSON Value
 function isSerializable(value: unknown): boolean {
   if (value === null || value === undefined) return true;
 
