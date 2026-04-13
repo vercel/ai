@@ -6,7 +6,6 @@ import {
 import {
   FetchFunction,
   generateId,
-  loadApiKey,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { OpenResponsesLanguageModel } from './responses/open-responses-language-model';
