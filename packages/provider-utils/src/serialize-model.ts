@@ -36,9 +36,9 @@ export function serializeModel<MODEL extends { modelId: string }>({
       // Resolve headers at serialization time so auth credentials
       // survive the workflow step boundary. On deserialization the
       // resolved object is wrapped back into a function.
-      const resolved = value();
-      if (isJSONSerializable(resolved)) {
-        serializableConfig[key] = resolved;
+      const resolvedHeaders = value();
+      if (isJSONSerializable(resolvedHeaders)) {
+        serializableConfig[key] = resolvedHeaders;
       }
     }
   }
