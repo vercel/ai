@@ -43,60 +43,37 @@ export function createUnifiedTelemetry({
   const integrations: Array<TelemetryIntegration> = [
     ...getGlobalTelemetryIntegrations(),
     ...asArray(localIntegrations),
-  ].map(
-    /**
-     * Wraps a telemetry integration with bound methods.
-     * Use this when creating class-based integrations to ensure methods
-     * work correctly when passed as callbacks.
-     */
-    integration => ({
-      onStart: integration.onStart?.bind(integration),
-      onStepStart: integration.onStepStart?.bind(integration),
-      onToolCallStart: integration.onToolCallStart?.bind(integration),
-      onToolCallFinish: integration.onToolCallFinish?.bind(integration),
-      onChunk: integration.onChunk?.bind(integration),
-      onStepFinish: integration.onStepFinish?.bind(integration),
-      onObjectStepStart: integration.onObjectStepStart?.bind(integration),
-      onObjectStepFinish: integration.onObjectStepFinish?.bind(integration),
-      onEmbedStart: integration.onEmbedStart?.bind(integration),
-      onEmbedFinish: integration.onEmbedFinish?.bind(integration),
-      onRerankStart: integration.onRerankStart?.bind(integration),
-      onRerankFinish: integration.onRerankFinish?.bind(integration),
-      onFinish: integration.onFinish?.bind(integration),
-      onError: integration.onError?.bind(integration),
-      executeTool: integration.executeTool?.bind(integration),
-    }),
-  );
+  ];
 
-  function createTelemetryComposite<KEY extends TelemetryListenerKey>(
+  function mergeTelemetryCallback<KEY extends TelemetryListenerKey>(
     key: KEY,
   ): Listener<TelemetryEvent<KEY>> | undefined {
-    const listeners = integrations
-      .map(integration => integration[key])
-      .filter(Boolean) as Array<Listener<TelemetryEvent<KEY>>>;
-
-    return mergeListeners(...listeners);
+    return mergeListeners(
+      ...(integrations
+        .map(integration => integration[key]?.bind(integration))
+        .filter(Boolean) as Array<Listener<TelemetryEvent<KEY>>>),
+    );
   }
 
   const executeWrappers = integrations
-    .map(integration => integration.executeTool)
-    .filter(Boolean) as Array<TelemetryIntegration['executeTool']>;
+    .map(integration => integration.executeTool?.bind(integration))
+    .filter(Boolean) as Array<NonNullable<TelemetryIntegration['executeTool']>>;
 
   return {
-    onStart: createTelemetryComposite('onStart'),
-    onStepStart: createTelemetryComposite('onStepStart'),
-    onToolCallStart: createTelemetryComposite('onToolCallStart'),
-    onToolCallFinish: createTelemetryComposite('onToolCallFinish'),
-    onChunk: createTelemetryComposite('onChunk'),
-    onStepFinish: createTelemetryComposite('onStepFinish'),
-    onObjectStepStart: createTelemetryComposite('onObjectStepStart'),
-    onObjectStepFinish: createTelemetryComposite('onObjectStepFinish'),
-    onEmbedStart: createTelemetryComposite('onEmbedStart'),
-    onEmbedFinish: createTelemetryComposite('onEmbedFinish'),
-    onRerankStart: createTelemetryComposite('onRerankStart'),
-    onRerankFinish: createTelemetryComposite('onRerankFinish'),
-    onFinish: createTelemetryComposite('onFinish'),
-    onError: createTelemetryComposite('onError'),
+    onStart: mergeTelemetryCallback('onStart'),
+    onStepStart: mergeTelemetryCallback('onStepStart'),
+    onToolCallStart: mergeTelemetryCallback('onToolCallStart'),
+    onToolCallFinish: mergeTelemetryCallback('onToolCallFinish'),
+    onChunk: mergeTelemetryCallback('onChunk'),
+    onStepFinish: mergeTelemetryCallback('onStepFinish'),
+    onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
+    onObjectStepFinish: mergeTelemetryCallback('onObjectStepFinish'),
+    onEmbedStart: mergeTelemetryCallback('onEmbedStart'),
+    onEmbedFinish: mergeTelemetryCallback('onEmbedFinish'),
+    onRerankStart: mergeTelemetryCallback('onRerankStart'),
+    onRerankFinish: mergeTelemetryCallback('onRerankFinish'),
+    onFinish: mergeTelemetryCallback('onFinish'),
+    onError: mergeTelemetryCallback('onError'),
     executeTool:
       executeWrappers.length > 0
         ? async params => {
