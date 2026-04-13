@@ -2331,7 +2331,7 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-data',
+                      type: 'file-data',
                       mediaType: 'image/png',
                       data: 'base64_data',
                     },
@@ -2377,8 +2377,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-url',
+                      type: 'file-url',
                       url: 'https://example.com/screenshot.png',
+                      mediaType: 'image/png',
                     },
                   ],
                 },
@@ -2473,6 +2474,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     {
                       type: 'file-url',
                       url: 'https://example.com/document.pdf',
+                      mediaType: 'application/pdf',
                     },
                   ],
                 },
@@ -2523,6 +2525,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     {
                       type: 'file-url',
                       url: 'https://example.com/test.pdf',
+                      mediaType: 'application/pdf',
                     },
                   ],
                 },
@@ -2576,7 +2579,7 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'The weather in San Francisco is 72°F',
                     },
                     {
-                      type: 'image-data',
+                      type: 'file-data',
                       mediaType: 'image/png',
                       data: 'base64_data',
                     },
@@ -4566,7 +4569,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     { type: 'text', text: 'Here is the file:' },
-                    { type: 'file-url', url: 'https://example.com/test.pdf' },
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/test.pdf',
+                      mediaType: 'application/pdf',
+                    },
                   ],
                 },
               },
