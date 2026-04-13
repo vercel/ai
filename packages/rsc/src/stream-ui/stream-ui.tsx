@@ -10,20 +10,21 @@ import {
   safeParseJSON,
 } from '@ai-sdk/provider-utils';
 import {
-  CallSettings,
   CallWarning,
   FinishReason,
   InvalidToolInputError,
   LanguageModelUsage,
+  ModelCallOptions,
   NoSuchToolError,
   Prompt,
+  RequestOptions,
   Schema,
   ToolChoice,
 } from 'ai';
 import {
   asLanguageModelUsage,
   convertToLanguageModelPrompt,
-  prepareCallSettings,
+  prepareModelCallOptions,
   prepareRetries,
   prepareToolChoice,
   prepareTools,
@@ -111,7 +112,8 @@ export async function streamUI<
   providerOptions,
   onFinish,
   ...settings
-}: CallSettings &
+}: ModelCallOptions &
+  Omit<RequestOptions, 'timeout'> &
   Prompt & {
     /**
      * The language model to use.
@@ -280,7 +282,7 @@ export async function streamUI<
 
   const result = await retry(async () =>
     model.doStream({
-      ...prepareCallSettings(settings),
+      ...prepareModelCallOptions(settings),
       tools: languageModelTools,
       toolChoice: languageModelToolChoice,
       prompt: await convertToLanguageModelPrompt({
