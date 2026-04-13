@@ -7,13 +7,11 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  convertUint8ArrayToBase64,
   createJsonResponseHandler,
   delay,
   type FetchFunction,
   lazySchema,
   parseProviderOptions,
-  postJsonToApi,
   zodSchema,
   getFromApi,
 } from '@ai-sdk/provider-utils';

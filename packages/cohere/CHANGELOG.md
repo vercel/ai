@@ -1,5 +1,13 @@
 # @ai-sdk/cohere
 
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
 ## 4.0.0-beta.19
 
 ### Patch Changes

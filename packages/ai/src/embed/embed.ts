@@ -5,15 +5,15 @@ import {
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
+import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { EmbeddingModel } from '../types';
+import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
+import { VERSION } from '../version';
 import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
 import { EmbedResult } from './embed-result';
-import { VERSION } from '../version';
-import type { Listener } from '../util/notify';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
@@ -94,13 +94,13 @@ export async function embed({
    * Callback that is called when the embed operation begins,
    * before the embedding model is called.
    */
-  experimental_onStart?: Listener<EmbedOnStartEvent>;
+  experimental_onStart?: Callback<EmbedOnStartEvent>;
 
   /**
    * Callback that is called when the embed operation completes,
    * after the embedding model returns.
    */
-  experimental_onFinish?: Listener<EmbedOnFinishEvent>;
+  experimental_onFinish?: Callback<EmbedOnFinishEvent>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -123,8 +123,7 @@ export async function embed({
 
   const callId = generateCallId();
 
-  const createGlobalTelemetry = getGlobalTelemetryIntegration();
-  const globalTelemetry = createGlobalTelemetry({
+  const unifiedTelemetry = createUnifiedTelemetry({
     integrations: telemetry?.integrations,
   });
 
@@ -145,7 +144,7 @@ export async function embed({
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata,
     },
-    callbacks: [onStart, globalTelemetry.onStart],
+    callbacks: [onStart, unifiedTelemetry.onStart],
   });
 
   try {
@@ -167,7 +166,7 @@ export async function embed({
             functionId: telemetry?.functionId,
             metadata: telemetry?.metadata,
           },
-          callbacks: [globalTelemetry.onEmbedStart],
+          callbacks: [unifiedTelemetry.onEmbedStart],
         });
 
         const modelResponse = await model.doEmbed({
@@ -191,7 +190,7 @@ export async function embed({
             embeddings: modelResponse.embeddings,
             usage,
           },
-          callbacks: [globalTelemetry.onEmbedFinish],
+          callbacks: [unifiedTelemetry.onEmbedFinish],
         });
 
         return {
@@ -223,7 +222,7 @@ export async function embed({
         functionId: telemetry?.functionId,
         metadata: telemetry?.metadata,
       },
-      callbacks: [onFinish, globalTelemetry.onFinish],
+      callbacks: [onFinish, unifiedTelemetry.onFinish],
     });
 
     return new DefaultEmbedResult({
@@ -235,7 +234,7 @@ export async function embed({
       response,
     });
   } catch (error) {
-    await globalTelemetry.onError?.({ callId, error });
+    await unifiedTelemetry.onError?.({ callId, error });
     throw error;
   }
 }

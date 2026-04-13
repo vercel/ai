@@ -1,6 +1,16 @@
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { StepResult } from './step-result';
 
+/**
+ * A predicate that decides whether a tool-calling loop should stop after the
+ * current step.
+ *
+ * A tool calling loop continues until one of the following conditions is met:
+ * - The model returns a finish reason other than `tool-calls`
+ * - A tool without an execute function is called
+ * - A tool call needs approval
+ * - One of the provided stop conditions returns `true`
+ */
 export type StopCondition<
   TOOLS extends ToolSet,
   USER_CONTEXT extends Context = Context,
@@ -8,21 +18,49 @@ export type StopCondition<
   steps: Array<StepResult<TOOLS, USER_CONTEXT>>;
 }) => PromiseLike<boolean> | boolean;
 
+/**
+ * Creates a stop condition that returns `true` when the number of completed
+ * steps equals `stepCount`.
+ *
+ * @param stepCount - The number of steps to allow before stopping.
+ */
 export function isStepCount(stepCount: number): StopCondition<any, any> {
   return ({ steps }) => steps.length === stepCount;
 }
 
+/**
+ * Creates a stop condition that never returns `true`.
+ *
+ * This lets the tool-calling loop continue until it reaches one of its
+ * natural termination conditions.
+ */
 export function isLoopFinished(): StopCondition<any, any> {
   return () => false;
 }
 
-export function hasToolCall(toolName: string): StopCondition<any, any> {
+/**
+ * Creates a stop condition that returns `true` when the most recent step
+ * contains a tool call with any of the specified names.
+ *
+ * @param toolName - The names of the tools that should stop the loop.
+ */
+export function hasToolCall<TOOLS extends ToolSet>(
+  ...toolName: Array<keyof TOOLS | (string & {})> // autocomplete support for tool names
+): StopCondition<TOOLS, any> {
   return ({ steps }) =>
-    steps[steps.length - 1]?.toolCalls?.some(
-      toolCall => toolCall.toolName === toolName,
+    steps[steps.length - 1]?.toolCalls?.some(toolCall =>
+      toolName.includes(toolCall.toolName),
     ) ?? false;
 }
 
+/**
+ * Evaluates the provided stop conditions for the current list of steps.
+ *
+ * Returns `true` as soon as any stop condition is met.
+ *
+ * @param stopConditions - The stop conditions to evaluate.
+ * @param steps - The completed steps accumulated so far.
+ */
 export async function isStopConditionMet<
   TOOLS extends ToolSet,
   USER_CONTEXT extends Context = Context,

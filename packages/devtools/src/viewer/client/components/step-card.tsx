@@ -75,17 +75,6 @@ export function StepCard({
   const output = parseJson(step.output) as ParsedOutput | null;
   const usage = parseJson(step.usage) as ParsedUsage | null;
 
-  const nextStep = steps[index + 1];
-  const nextInput = nextStep
-    ? (parseJson(nextStep.input) as ParsedInput | null)
-    : null;
-  const toolResults: ContentPart[] =
-    nextInput?.prompt
-      ?.filter((msg: PromptMessage) => msg.role === 'tool')
-      ?.flatMap((msg: PromptMessage) =>
-        Array.isArray(msg.content) ? msg.content : [],
-      ) ?? [];
-
   const summary = getStepSummary(output, step.error);
   const isFirstStep = index === 0;
   const inputSummary = getStepInputSummary(input, isFirstStep);

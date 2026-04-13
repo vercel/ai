@@ -2,12 +2,12 @@ import { JSONObject, RerankingModelV4CallOptions } from '@ai-sdk/provider';
 import { createIdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
-import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { resolveRerankingModel } from '../model/resolve-model';
+import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { RerankingModel } from '../types';
+import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
-import type { Listener } from '../util/notify';
 import type { RerankOnFinishEvent, RerankOnStartEvent } from './rerank-events';
 import { RerankResult } from './rerank-result';
 
@@ -100,13 +100,13 @@ export async function rerank<VALUE extends JSONObject | string>({
    * Callback that is called when the rerank operation begins,
    * before the reranking model is called.
    */
-  experimental_onStart?: Listener<RerankOnStartEvent>;
+  experimental_onStart?: Callback<RerankOnStartEvent>;
 
   /**
    * Callback that is called when the rerank operation completes,
    * after the reranking model returns.
    */
-  experimental_onFinish?: Listener<RerankOnFinishEvent>;
+  experimental_onFinish?: Callback<RerankOnFinishEvent>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -118,8 +118,7 @@ export async function rerank<VALUE extends JSONObject | string>({
   const model = resolveRerankingModel(modelArg);
   const callId = generateCallId();
 
-  const createGlobalTelemetry = getGlobalTelemetryIntegration();
-  const globalTelemetry = createGlobalTelemetry({
+  const unifiedTelemetry = createUnifiedTelemetry({
     integrations: telemetry?.integrations,
   });
 
@@ -143,7 +142,7 @@ export async function rerank<VALUE extends JSONObject | string>({
         functionId: telemetry?.functionId,
         metadata: telemetry?.metadata,
       },
-      callbacks: [onStart, globalTelemetry.onStart],
+      callbacks: [onStart, unifiedTelemetry.onStart],
     });
 
     await notify({
@@ -167,7 +166,7 @@ export async function rerank<VALUE extends JSONObject | string>({
         functionId: telemetry?.functionId,
         metadata: telemetry?.metadata,
       },
-      callbacks: [onFinish, globalTelemetry.onFinish],
+      callbacks: [onFinish, unifiedTelemetry.onFinish],
     });
 
     return new DefaultRerankResult({
@@ -210,7 +209,7 @@ export async function rerank<VALUE extends JSONObject | string>({
       functionId: telemetry?.functionId,
       metadata: telemetry?.metadata,
     },
-    callbacks: [onStart, globalTelemetry.onStart],
+    callbacks: [onStart, unifiedTelemetry.onStart],
   });
 
   try {
@@ -232,7 +231,7 @@ export async function rerank<VALUE extends JSONObject | string>({
             functionId: telemetry?.functionId,
             metadata: telemetry?.metadata,
           },
-          callbacks: [globalTelemetry.onRerankStart],
+          callbacks: [unifiedTelemetry.onRerankStart],
         });
 
         const modelResponse = await model.doRerank({
@@ -255,7 +254,7 @@ export async function rerank<VALUE extends JSONObject | string>({
             documentsType: documentsToSend.type,
             ranking,
           },
-          callbacks: [globalTelemetry.onRerankFinish],
+          callbacks: [unifiedTelemetry.onRerankFinish],
         });
 
         return {
@@ -301,7 +300,7 @@ export async function rerank<VALUE extends JSONObject | string>({
         functionId: telemetry?.functionId,
         metadata: telemetry?.metadata,
       },
-      callbacks: [onFinish, globalTelemetry.onFinish],
+      callbacks: [onFinish, unifiedTelemetry.onFinish],
     });
 
     return new DefaultRerankResult({
@@ -321,7 +320,7 @@ export async function rerank<VALUE extends JSONObject | string>({
       },
     });
   } catch (error) {
-    await globalTelemetry.onError?.({ callId, error });
+    await unifiedTelemetry.onError?.({ callId, error });
     throw error;
   }
 }

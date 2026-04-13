@@ -3,11 +3,9 @@ import type {
   OnStepStartEvent,
   OnStepFinishEvent,
   OnChunkEvent,
-  OnFinishEvent,
   ObjectOnStartEvent,
   ObjectOnStepStartEvent,
   ObjectOnStepFinishEvent,
-  ObjectOnFinishEvent,
   TelemetryIntegration,
   ToolSet,
 } from 'ai';
