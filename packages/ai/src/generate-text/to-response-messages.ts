@@ -151,7 +151,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         type: 'tool-result',
         toolCallId: part.toolCallId,
         toolName: part.toolName,
-        output: { type: 'text', value: getErrorMessage(part.error) },
+        output: { type: 'error-text', value: getErrorMessage(part.error) },
       });
       continue;
     }
