@@ -13,7 +13,7 @@ run(async () => {
         inputSchema: z.object({ city: z.string() }),
       }),
     },
-    // stopWhen: hasToolCall('cityAttractions'),
+    stopWhen: hasToolCall('cityAttractions', 'weather'),
     prompt:
       'What is the weather in San Francisco and what attractions should I visit?',
   });
