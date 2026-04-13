@@ -81,6 +81,38 @@ describe('stop conditions', () => {
       ).toBe(false);
     });
 
+    it('should return true when the last step contains any tool call from the provided tool names', () => {
+      const toolNames = ['search', 'finalAnswer'] as const;
+      const stopCondition = hasToolCall(...toolNames);
+
+      expect(
+        stopCondition({
+          steps: [
+            createStepResult(),
+            createStepResult({
+              toolCalls: [{ toolName: 'finalAnswer' }] as any,
+            }),
+          ],
+        }),
+      ).toBe(true);
+    });
+
+    it('should return false when the last step does not contain any tool call from the provided tool names', () => {
+      const toolNames = ['search', 'finalAnswer'] as const;
+      const stopCondition = hasToolCall(...toolNames);
+
+      expect(
+        stopCondition({
+          steps: [
+            createStepResult(),
+            createStepResult({
+              toolCalls: [{ toolName: 'weather' }] as any,
+            }),
+          ],
+        }),
+      ).toBe(false);
+    });
+
     it('should return false when there are no steps', () => {
       const stopCondition = hasToolCall('finalAnswer');
 

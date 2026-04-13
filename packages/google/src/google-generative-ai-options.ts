@@ -212,3 +212,10 @@ export const googleLanguageModelOptions = lazySchema(() =>
 export type GoogleLanguageModelOptions = InferSchema<
   typeof googleLanguageModelOptions
 >;
+
+// Vertex API requires another service tier format.
+export const VertexServiceTierMap = {
+  standard: 'SERVICE_TIER_STANDARD',
+  flex: 'SERVICE_TIER_FLEX',
+  priority: 'SERVICE_TIER_PRIORITY',
+} as const;
