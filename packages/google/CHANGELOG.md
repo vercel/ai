@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.63
+
+### Patch Changes
+
+- 1e1a5ab: fix(google): fix `serviceTier` to be correctly formatted for Vertex API
+
 ## 3.0.62
 
 ### Patch Changes
