@@ -31,7 +31,12 @@ import { googleFailedResponseHandler } from './google-error';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
+<<<<<<< HEAD
   googleGenerativeAIProviderOptions,
+=======
+  googleLanguageModelOptions,
+  VertexServiceTierMap,
+>>>>>>> 1e1a5ab49 (Backport: fix(google): fix `serviceTier` to be correctly formatted for Vertex API (#14397))
 } from './google-generative-ai-options';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -115,6 +120,25 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       });
     }
 
+<<<<<<< HEAD
+=======
+    if (googleOptions?.streamFunctionCallArguments && !isVertexProvider) {
+      warnings.push({
+        type: 'other',
+        message:
+          "'streamFunctionCallArguments' is only supported on the Vertex AI API " +
+          'and will be ignored with the current Google provider ' +
+          `(${this.config.provider}). See https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc`,
+      });
+    }
+
+    // Vertex API requires another service tier format.
+    let sanitizedServiceTier: string | undefined = googleOptions?.serviceTier;
+    if (googleOptions?.serviceTier && isVertexProvider) {
+      sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
+    }
+
+>>>>>>> 1e1a5ab49 (Backport: fix(google): fix `serviceTier` to be correctly formatted for Vertex API (#14397))
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
 
@@ -184,7 +208,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           : googleToolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
-        serviceTier: googleOptions?.serviceTier,
+        serviceTier: sanitizedServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
     };
