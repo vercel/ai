@@ -6728,6 +6728,130 @@ describe('generateText', () => {
         `);
       });
     });
+
+    describe('invalid tool call alongside valid tool call should not break the loop', () => {
+      let result: GenerateTextResult<any, any, any>;
+
+      beforeEach(async () => {
+        let responseCount = 0;
+        result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'weather',
+                        input: `{ "location": "San Francisco" }`,
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-2',
+                        toolName: 'cityAttractions',
+                        input: `{ "cities": "San Francisco" }`,
+                      },
+                    ],
+                    finishReason: {
+                      unified: 'tool-calls',
+                      raw: undefined,
+                    },
+                  };
+                case 1:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      { type: 'text', text: 'Final answer from model.' },
+                    ],
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            weather: tool({
+              inputSchema: z.object({ location: z.string() }),
+              execute: async ({ location }) => ({
+                temperature: 72,
+                location,
+              }),
+            }),
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+            }),
+          },
+          prompt: 'What is the weather and attractions in San Francisco?',
+          stopWhen: isStepCount(3),
+        });
+      });
+
+      it('should complete 2 steps', () => {
+        expect(result.steps).toHaveLength(2);
+      });
+
+      it('should return text from the second step', () => {
+        expect(result.text).toBe('Final answer from model.');
+      });
+
+      it('should have the invalid tool call in the first step', () => {
+        expect(result.steps[0].invalidToolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
+              "input": {
+                "cities": "San Francisco",
+              },
+              "invalid": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "rawInput": "{ "cities": "San Francisco" }",
+              "title": undefined,
+              "toolCallId": "call-2",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should have the valid tool result in the first step', () => {
+        expect(result.steps[0].toolResults).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": false,
+              "input": {
+                "location": "San Francisco",
+              },
+              "output": {
+                "location": "San Francisco",
+                "temperature": 72,
+              },
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
   });
 
   describe('tools with preliminary results', () => {

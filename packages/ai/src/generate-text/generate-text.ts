@@ -841,16 +841,14 @@ export async function generateText<
 
         // execute client tool calls:
         clientToolCalls = stepToolCalls.filter(
-          toolCall => !toolCall.providerExecuted,
+          toolCall => !toolCall.providerExecuted && !toolCall.invalid,
         );
 
         if (tools != null) {
           clientToolOutputs.push(
             ...(await executeTools({
               toolCalls: clientToolCalls.filter(
-                toolCall =>
-                  !toolCall.invalid &&
-                  toolApprovalRequests[toolCall.toolCallId] == null,
+                toolCall => toolApprovalRequests[toolCall.toolCallId] == null,
               ),
               tools,
               telemetry,
