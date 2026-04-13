@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { serializeModelOptions } from './serialize-model';
+import { serializeModelOptions } from './serialize-model-options';
 
 type TestConfig = Record<string, unknown> & {
   headers?: () => Record<string, string | undefined>;
@@ -92,6 +92,30 @@ describe('serializeModelOptions', () => {
       modelId: 'model',
       config: { provider: 'test', tags: ['a', 'b'] },
     });
+  });
+
+  it('throws when headers resolve asynchronously', () => {
+    expect(() =>
+      serializeModelOptions({
+        modelId: 'model',
+        config: {
+          provider: 'test',
+          headers: async () => ({ 'x-api-key': 'sk-test' }),
+        },
+      }),
+    ).toThrow('Promise returned from resolveSync');
+  });
+
+  it('throws when headers is a function returning a Promise', () => {
+    expect(() =>
+      serializeModelOptions({
+        modelId: 'model',
+        config: {
+          provider: 'test',
+          headers: () => Promise.resolve({ 'x-api-key': 'sk-test' }),
+        },
+      }),
+    ).toThrow('Promise returned from resolveSync');
   });
 
   it('filters out class instances', () => {

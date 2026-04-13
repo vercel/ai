@@ -1,6 +1,6 @@
 import { JSONObject } from '@ai-sdk/provider';
 import { isJSONSerializable } from './is-json-serializable';
-import { Resolvable, resolve } from './resolve';
+import { Resolvable } from './resolve';
 
 /**
  * Serializes a model instance for workflow step boundaries.
@@ -48,13 +48,16 @@ export function serializeModelOptions<
 }
 
 function resolveSync<T>(value: Resolvable<T>): T {
-  const result = resolve(value);
+  let next: unknown = value;
+  if (typeof value === 'function') {
+    next = (value as () => unknown)();
+  }
 
   // the serialization for workflows currently only supports synchronous values
   // TODO introduce SerializationError
-  if (result instanceof Promise) {
+  if (next instanceof Promise) {
     throw new Error('Promise returned from resolveSync');
   }
 
-  return result;
+  return next as T;
 }
