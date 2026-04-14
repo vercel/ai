@@ -198,7 +198,7 @@ describe('bedrock-mantle-provider', () => {
     ];
     const config = constructorCall[1];
 
-    const resolvedHeaders = config.headers();
+    const resolvedHeaders = config.headers!();
     expect(resolvedHeaders).toMatchObject(customHeaders);
     expect(resolvedHeaders['user-agent']).toContain('ai-sdk/amazon-bedrock/');
   });
