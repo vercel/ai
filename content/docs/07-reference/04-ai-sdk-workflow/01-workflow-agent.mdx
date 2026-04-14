@@ -79,6 +79,36 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         "Tool call selection strategy. Options: 'auto' | 'none' | 'required' | { type: 'tool', toolName: string }. Default: 'auto'.",
     },
     {
+      name: 'stopWhen',
+      type: 'StopCondition | StopCondition[]',
+      isOptional: true,
+      description: 'Default stop condition for the agent loop. Per-stream values override this default.',
+    },
+    {
+      name: 'activeTools',
+      type: 'Array<string>',
+      isOptional: true,
+      description: 'Default set of active tools. Limits which tools the model can call. Per-stream values override this default.',
+    },
+    {
+      name: 'output',
+      type: 'OutputSpecification',
+      isOptional: true,
+      description: 'Default structured output specification. Per-stream values override this default.',
+    },
+    {
+      name: 'experimental_repairToolCall',
+      type: 'ToolCallRepairFunction',
+      isOptional: true,
+      description: 'Default function to repair tool calls that fail to parse. Per-stream values override this default.',
+    },
+    {
+      name: 'experimental_download',
+      type: 'DownloadFunction',
+      isOptional: true,
+      description: 'Default custom download function for URLs. Per-stream values override this default.',
+    },
+    {
       name: 'prepareStep',
       type: 'PrepareStepCallback',
       isOptional: true,
