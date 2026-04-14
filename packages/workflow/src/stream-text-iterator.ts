@@ -8,7 +8,6 @@ import type {
   LanguageModel,
   ModelMessage,
   StepResult,
-  StreamTextOnStepFinishCallback,
   ToolCallRepairFunction,
   ToolChoice,
   ToolSet,
@@ -23,7 +22,8 @@ import { serializeToolSet } from './serializable-schema.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
-  StreamTextOnErrorCallback,
+  WorkflowAgentOnErrorCallback,
+  WorkflowAgentOnStepFinishCallback,
   TelemetrySettings,
   WorkflowAgentOnStepStartCallback,
 } from './workflow-agent.js';
@@ -74,9 +74,9 @@ export async function* streamTextIterator({
   model: LanguageModel;
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
-  onStepFinish?: StreamTextOnStepFinishCallback<any, any>;
+  onStepFinish?: WorkflowAgentOnStepFinishCallback<any>;
   onStepStart?: WorkflowAgentOnStepStartCallback;
-  onError?: StreamTextOnErrorCallback;
+  onError?: WorkflowAgentOnErrorCallback;
   prepareStep?: PrepareStepCallback<any>;
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;

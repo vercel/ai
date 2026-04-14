@@ -36,6 +36,15 @@ import type { CompatibleLanguageModel } from './types.js';
 export type { CompatibleLanguageModel } from './types.js';
 
 /**
+ * Callback function to be called after each step completes.
+ * Alias for the AI SDK's StreamTextOnStepFinishCallback, using
+ * WorkflowAgent-consistent naming.
+ */
+export type WorkflowAgentOnStepFinishCallback<
+  TTools extends ToolSet = ToolSet,
+> = StreamTextOnStepFinishCallback<TTools, any>;
+
+/**
  * Infer the type of the tools of a workflow agent.
  */
 export type InferWorkflowAgentTools<WORKFLOW_AGENT> =
@@ -416,12 +425,12 @@ export interface WorkflowAgentOptions<
   /**
    * Callback function to be called after each step completes.
    */
-  onStepFinish?: StreamTextOnStepFinishCallback<ToolSet, any>;
+  onStepFinish?: WorkflowAgentOnStepFinishCallback<ToolSet>;
 
   /**
    * Callback that is called when the LLM response and all request tool executions are finished.
    */
-  onFinish?: StreamTextOnFinishCallback<ToolSet>;
+  onFinish?: WorkflowAgentOnFinishCallback<ToolSet>;
 
   /**
    * Callback called when the agent starts streaming, before any LLM calls.
@@ -454,7 +463,7 @@ export interface WorkflowAgentOptions<
 /**
  * Callback that is called when the LLM response and all request tool executions are finished.
  */
-export type StreamTextOnFinishCallback<
+export type WorkflowAgentOnFinishCallback<
   TTools extends ToolSet = ToolSet,
   OUTPUT = never,
 > = (event: {
@@ -498,14 +507,14 @@ export type StreamTextOnFinishCallback<
 /**
  * Callback that is invoked when an error occurs during streaming.
  */
-export type StreamTextOnErrorCallback = (event: {
+export type WorkflowAgentOnErrorCallback = (event: {
   error: unknown;
 }) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `onAbort` option.
  */
-export type StreamTextOnAbortCallback<TTools extends ToolSet = ToolSet> =
+export type WorkflowAgentOnAbortCallback<TTools extends ToolSet = ToolSet> =
   (event: {
     /**
      * Details for all previously finished steps.
@@ -692,24 +701,24 @@ export interface WorkflowAgentStreamOptions<
   /**
    * Callback function to be called after each step completes.
    */
-  onStepFinish?: StreamTextOnStepFinishCallback<TTools, any>;
+  onStepFinish?: WorkflowAgentOnStepFinishCallback<TTools>;
 
   /**
    * Callback that is invoked when an error occurs during streaming.
    * You can use it to log errors.
    */
-  onError?: StreamTextOnErrorCallback;
+  onError?: WorkflowAgentOnErrorCallback;
 
   /**
    * Callback that is called when the LLM response and all request tool executions
    * (for tools that have an `execute` function) are finished.
    */
-  onFinish?: StreamTextOnFinishCallback<TTools, OUTPUT>;
+  onFinish?: WorkflowAgentOnFinishCallback<TTools, OUTPUT>;
 
   /**
    * Callback that is called when the operation is aborted.
    */
-  onAbort?: StreamTextOnAbortCallback<TTools>;
+  onAbort?: WorkflowAgentOnAbortCallback<TTools>;
 
   /**
    * Callback called when the agent starts streaming, before any LLM calls.
@@ -894,11 +903,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private telemetry?: TelemetrySettings;
   private experimentalContext: unknown;
   private prepareStep?: PrepareStepCallback<TBaseTools>;
-  private constructorOnStepFinish?: StreamTextOnStepFinishCallback<
-    ToolSet,
-    any
-  >;
-  private constructorOnFinish?: StreamTextOnFinishCallback<ToolSet>;
+  private constructorOnStepFinish?: WorkflowAgentOnStepFinishCallback<ToolSet>;
+  private constructorOnFinish?: WorkflowAgentOnFinishCallback<ToolSet>;
   private constructorOnStart?: WorkflowAgentOnStartCallback;
   private constructorOnStepStart?: WorkflowAgentOnStepStartCallback;
   private constructorOnToolCallStart?: WorkflowAgentOnToolCallStartCallback;
@@ -1186,13 +1192,13 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // Merge constructor + stream callbacks (constructor first, then stream)
     const mergedOnStepFinish = mergeCallbacks(
       this.constructorOnStepFinish as
-        | StreamTextOnStepFinishCallback<TTools, any>
+        | WorkflowAgentOnStepFinishCallback<TTools>
         | undefined,
       options.onStepFinish,
     );
     const mergedOnFinish = mergeCallbacks(
       this.constructorOnFinish as
-        | StreamTextOnFinishCallback<TTools, OUTPUT>
+        | WorkflowAgentOnFinishCallback<TTools, OUTPUT>
         | undefined,
       options.onFinish,
     );
