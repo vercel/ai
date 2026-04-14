@@ -212,11 +212,6 @@ export type StreamTextOnAbortCallback<
 }>;
 
 /**
- * Include settings for streamText (requestBody only).
- */
-type StreamTextIncludeSettings = { requestBody?: boolean };
-
-/**
  * Callback that is set using the `experimental_onStart` option.
  *
  * Called when the streamText operation begins, before any LLM calls.
@@ -229,9 +224,7 @@ export type StreamTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<
-  OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT, StreamTextIncludeSettings>
->;
+> = Callback<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onStepStart` option.
@@ -246,9 +239,7 @@ export type StreamTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<
-  OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT, StreamTextIncludeSettings>
->;
+> = Callback<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 export type StreamTextOnToolCallStartCallback<TOOLS extends ToolSet = ToolSet> =
   Callback<OnToolCallStartEvent<TOOLS>>;
@@ -1351,7 +1342,6 @@ class DefaultStreamTextResult<
           providerOptions,
           stopWhen,
           output,
-          include,
           ...onStartTelemetryProps,
           context,
         },
@@ -1620,7 +1610,6 @@ class DefaultStreamTextResult<
                     headers,
                     stopWhen,
                     output,
-                    include,
                     ...callbackTelemetryProps,
                     context,
                     promptMessages,
