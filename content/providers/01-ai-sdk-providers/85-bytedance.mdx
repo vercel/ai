@@ -260,7 +260,7 @@ const { video } = await generateVideo({
   duration: 4,
   providerOptions: {
     bytedance: {
-      referenceAudio: 'https://example.com/background-music.mp3',
+      referenceAudio: ['https://example.com/background-music.mp3'],
       generateAudio: true,
       watermark: false,
     } satisfies ByteDanceVideoProviderOptions,
@@ -314,9 +314,9 @@ The following provider options are available via `providerOptions.bytedance`:
 
   Array of reference video URLs (up to 3 videos, max 15 seconds each) for reference-guided video generation. The model uses the referenced videos to guide style, motion, or composition. Supported by Seedance 2.0.
 
-- **referenceAudio** _string_
+- **referenceAudio** _string[]_
 
-  URL or data URI of reference audio (max 15 seconds) for audio-guided video generation. The model uses the referenced audio as background music or synchronized sound. Supports data URIs (e.g., `data:audio/wav;base64,...`). Supported by Seedance 2.0.
+  Array of reference audio URLs (up to 3, max 15 seconds each) for audio-guided video generation. The model uses the referenced audio as background music or synchronized sound. Supports data URIs (e.g., `data:audio/wav;base64,...`). Supported by Seedance 2.0.
 
 #### Polling Options
 
@@ -340,8 +340,8 @@ The following provider options are available via `providerOptions.bytedance`:
 
 | Model                   | Model ID                            | Capabilities                                                                                                                   |
 | ----------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Seedance 2.0            | `dreamina-seedance-2-0-260128`      | T2V, I2V, reference videos (up to 3), reference audio, audio-video sync. Duration: 4s. Resolution: 480p, 720p.                 |
-| Seedance 2.0 Fast       | `dreamina-seedance-2-0-fast-260128` | T2V, I2V, reference videos (up to 3), reference audio, audio-video sync. Optimized for speed. Duration: 4s. Resolution: 480p, 720p. |
+| Seedance 2.0            | `dreamina-seedance-2-0-260128`      | T2V, I2V, reference videos (up to 3), reference audio (up to 3), audio-video sync. Duration: 4-15s. Resolution: 480p, 720p.                 |
+| Seedance 2.0 Fast       | `dreamina-seedance-2-0-fast-260128` | T2V, I2V, reference videos (up to 3), reference audio (up to 3), audio-video sync. Optimized for speed. Duration: 4-15s. Resolution: 480p, 720p. |
 | Seedance 1.5 Pro        | `seedance-1-5-pro-251215`           | T2V, I2V (first frame), I2V (first+last frame), audio-video sync, draft mode. Duration: 4-12s. Resolution: 480p, 720p, 1080p. |
 | Seedance 1.0 Pro        | `seedance-1-0-pro-250528`      | T2V, I2V (first frame), I2V (first+last frame). Duration: 2-12s. Resolution: 480p, 720p, 1080p.                               |
 | Seedance 1.0 Pro Fast   | `seedance-1-0-pro-fast-251015` | T2V, I2V (first frame). Optimized for speed and cost. Duration: 2-12s.                                                        |

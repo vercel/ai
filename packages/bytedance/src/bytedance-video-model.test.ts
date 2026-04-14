@@ -697,7 +697,7 @@ describe('ByteDanceVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           bytedance: {
-            referenceAudio: 'https://example.com/audio.mp3',
+            referenceAudio: ['https://example.com/audio.mp3'],
           },
         },
       });
@@ -716,6 +716,48 @@ describe('ByteDanceVideoModel', () => {
       ]);
     });
 
+    it('should add multiple reference audios', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceAudio: [
+              'https://example.com/audio1.mp3',
+              'https://example.com/audio2.mp3',
+              'https://example.com/audio3.mp3',
+            ],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'https://example.com/audio1.mp3' },
+          role: 'reference_audio',
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'https://example.com/audio2.mp3' },
+          role: 'reference_audio',
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'https://example.com/audio3.mp3' },
+          role: 'reference_audio',
+        },
+      ]);
+    });
+
     it('should support data URI for reference audio', async () => {
       const model = createBasicModel({
         modelId: 'dreamina-seedance-2-0-260128',
@@ -725,7 +767,7 @@ describe('ByteDanceVideoModel', () => {
         ...defaultOptions,
         providerOptions: {
           bytedance: {
-            referenceAudio: 'data:audio/mp3;base64,SGVsbG8=',
+            referenceAudio: ['data:audio/mp3;base64,SGVsbG8='],
           },
         },
       });
@@ -754,7 +796,7 @@ describe('ByteDanceVideoModel', () => {
         providerOptions: {
           bytedance: {
             referenceVideos: ['https://example.com/ref.mp4'],
-            referenceAudio: 'https://example.com/audio.mp3',
+            referenceAudio: ['https://example.com/audio.mp3'],
           },
         },
       });

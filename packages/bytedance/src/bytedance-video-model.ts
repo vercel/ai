@@ -30,7 +30,7 @@ export type ByteDanceVideoProviderOptions = {
   lastFrameImage?: string | null;
   referenceImages?: string[] | null;
   referenceVideos?: string[] | null;
-  referenceAudio?: string | null;
+  referenceAudio?: string[] | null;
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
   [key: string]: unknown;
@@ -64,7 +64,7 @@ export const byteDanceVideoProviderOptionsSchema = lazySchema(() =>
         lastFrameImage: z.string().nullish(),
         referenceImages: z.array(z.string()).nullish(),
         referenceVideos: z.array(z.string()).nullish(),
-        referenceAudio: z.string().nullish(),
+        referenceAudio: z.array(z.string()).nullish(),
         pollIntervalMs: z.number().positive().nullish(),
         pollTimeoutMs: z.number().positive().nullish(),
       })
@@ -220,12 +220,17 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
     }
 
     // Add reference audio if provided
-    if (byteDanceOptions?.referenceAudio != null) {
-      content.push({
-        type: 'audio_url',
-        audio_url: { url: byteDanceOptions.referenceAudio },
-        role: 'reference_audio',
-      });
+    if (
+      byteDanceOptions?.referenceAudio != null &&
+      byteDanceOptions.referenceAudio.length > 0
+    ) {
+      for (const audioUrl of byteDanceOptions.referenceAudio) {
+        content.push({
+          type: 'audio_url',
+          audio_url: { url: audioUrl },
+          role: 'reference_audio',
+        });
+      }
     }
 
     const body: Record<string, unknown> = {
