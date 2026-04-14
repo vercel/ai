@@ -1574,7 +1574,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                   effectiveTools as ToolSet,
                   iterMessages,
                   experimentalContext,
-                  steps.length,
+                  currentStepNumber,
                 ),
             ),
           );
