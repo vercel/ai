@@ -29,6 +29,9 @@ export type ByteDanceVideoProviderOptions = {
   draft?: boolean | null;
   lastFrameImage?: string | null;
   referenceImages?: string[] | null;
+  referenceVideos?: string[] | null;
+  referenceAudio?: string | null;
+  tools?: Array<{ type: string }> | null;
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
   [key: string]: unknown;
@@ -43,6 +46,9 @@ const HANDLED_PROVIDER_OPTIONS = new Set([
   'draft',
   'lastFrameImage',
   'referenceImages',
+  'referenceVideos',
+  'referenceAudio',
+  'tools',
   'pollIntervalMs',
   'pollTimeoutMs',
 ]);
@@ -59,6 +65,9 @@ export const byteDanceVideoProviderOptionsSchema = lazySchema(() =>
         draft: z.boolean().nullish(),
         lastFrameImage: z.string().nullish(),
         referenceImages: z.array(z.string()).nullish(),
+        referenceVideos: z.array(z.string()).nullish(),
+        referenceAudio: z.string().nullish(),
+        tools: z.array(z.object({ type: z.string() }).passthrough()).nullish(),
         pollIntervalMs: z.number().positive().nullish(),
         pollTimeoutMs: z.number().positive().nullish(),
       })
@@ -199,6 +208,29 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
+    // Add reference videos if provided
+    if (
+      byteDanceOptions?.referenceVideos != null &&
+      byteDanceOptions.referenceVideos.length > 0
+    ) {
+      for (const videoUrl of byteDanceOptions.referenceVideos) {
+        content.push({
+          type: 'video_url',
+          video_url: { url: videoUrl },
+          role: 'reference_video',
+        });
+      }
+    }
+
+    // Add reference audio if provided
+    if (byteDanceOptions?.referenceAudio != null) {
+      content.push({
+        type: 'audio_url',
+        audio_url: { url: byteDanceOptions.referenceAudio },
+        role: 'reference_audio',
+      });
+    }
+
     const body: Record<string, unknown> = {
       model: this.modelId,
       content,
@@ -243,6 +275,9 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       }
       if (byteDanceOptions.draft != null) {
         body.draft = byteDanceOptions.draft;
+      }
+      if (byteDanceOptions.tools != null) {
+        body.tools = byteDanceOptions.tools;
       }
 
       // Pass through any additional options not explicitly handled

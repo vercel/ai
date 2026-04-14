@@ -652,6 +652,152 @@ describe('ByteDanceVideoModel', () => {
       ]);
     });
 
+    it('should add reference videos with role', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceVideos: [
+              'https://example.com/ref1.mp4',
+              'https://example.com/ref2.mp4',
+            ],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'https://example.com/ref1.mp4' },
+          role: 'reference_video',
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'https://example.com/ref2.mp4' },
+          role: 'reference_video',
+        },
+      ]);
+    });
+
+    it('should add reference audio with role', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceAudio: 'https://example.com/audio.mp3',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'https://example.com/audio.mp3' },
+          role: 'reference_audio',
+        },
+      ]);
+    });
+
+    it('should support data URI for reference audio', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceAudio: 'data:audio/mp3;base64,SGVsbG8=',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'data:audio/mp3;base64,SGVsbG8=' },
+          role: 'reference_audio',
+        },
+      ]);
+    });
+
+    it('should pass tools option in body', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            tools: [{ type: 'web_search' }],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.tools).toStrictEqual([{ type: 'web_search' }]);
+    });
+
+    it('should support reference videos, audio, and tools together', async () => {
+      const model = createBasicModel({
+        modelId: 'dreamina-seedance-2-0-260128',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          bytedance: {
+            referenceVideos: ['https://example.com/ref.mp4'],
+            referenceAudio: 'https://example.com/audio.mp3',
+            tools: [{ type: 'web_search' }],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.content).toStrictEqual([
+        {
+          type: 'text',
+          text: prompt,
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'https://example.com/ref.mp4' },
+          role: 'reference_video',
+        },
+        {
+          type: 'audio_url',
+          audio_url: { url: 'https://example.com/audio.mp3' },
+          role: 'reference_audio',
+        },
+      ]);
+      expect(requestBody.tools).toStrictEqual([{ type: 'web_search' }]);
+    });
+
     it('should pass through additional options', async () => {
       const model = createBasicModel();
 

@@ -215,6 +215,85 @@ const { video } = await generateVideo({
 });
 ```
 
+### Reference Video
+
+Seedance 2.0 supports reference videos that guide the style, motion, or composition of the generated video:
+
+```ts
+import {
+  byteDance,
+  type ByteDanceVideoProviderOptions,
+} from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: byteDance.video('dreamina-seedance-2-0-260128'),
+  prompt:
+    'First-person perspective promotional ad, using the composition and camera movement from the reference video',
+  aspectRatio: '16:9',
+  duration: 4,
+  providerOptions: {
+    bytedance: {
+      referenceVideos: ['https://example.com/reference-video.mp4'],
+      watermark: false,
+    } satisfies ByteDanceVideoProviderOptions,
+  },
+});
+```
+
+### Reference Audio
+
+Seedance 2.0 supports reference audio that is used as background music or sound for the generated video:
+
+```ts
+import {
+  byteDance,
+  type ByteDanceVideoProviderOptions,
+} from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: byteDance.video('dreamina-seedance-2-0-260128'),
+  prompt:
+    'A serene mountain landscape at sunrise with gentle camera movement',
+  aspectRatio: '16:9',
+  duration: 4,
+  providerOptions: {
+    bytedance: {
+      referenceAudio: 'https://example.com/background-music.mp3',
+      generateAudio: true,
+      watermark: false,
+    } satisfies ByteDanceVideoProviderOptions,
+  },
+});
+```
+
+### Web Search Tool
+
+Seedance 2.0 supports enabling web search to improve the timeliness and accuracy of generated video content:
+
+```ts
+import {
+  byteDance,
+  type ByteDanceVideoProviderOptions,
+} from '@ai-sdk/bytedance';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: byteDance.video('dreamina-seedance-2-0-260128'),
+  prompt:
+    'A news-style recap of the latest technology trends',
+  aspectRatio: '16:9',
+  duration: 4,
+  providerOptions: {
+    bytedance: {
+      tools: [{ type: 'web_search' }],
+      watermark: false,
+    } satisfies ByteDanceVideoProviderOptions,
+  },
+});
+```
+
 ### Video Provider Options
 
 The following provider options are available via `providerOptions.bytedance`:
@@ -255,6 +334,22 @@ The following provider options are available via `providerOptions.bytedance`:
 
   Array of reference image URLs (1-4 images) for multi-reference image-to-video generation. The model extracts key features from each image and reproduces them in the video. Use `[Image 1]`, `[Image 2]`, etc. in your prompt to reference specific images. Supported by Seedance 1.0 Lite I2V.
 
+#### Media Reference Options
+
+- **referenceVideos** _string[]_
+
+  Array of reference video URLs (up to 3 videos, max 15 seconds each) for reference-guided video generation. The model uses the referenced videos to guide style, motion, or composition. Supported by Seedance 2.0.
+
+- **referenceAudio** _string_
+
+  URL or data URI of reference audio (max 15 seconds) for audio-guided video generation. The model uses the referenced audio as background music or synchronized sound. Supports data URIs (e.g., `data:audio/wav;base64,...`). Supported by Seedance 2.0.
+
+#### Tool Options
+
+- **tools** _Array&lt;\{ type: string \}&gt;_
+
+  Array of tool configurations to enable during generation. Currently supports `{ type: 'web_search' }` for improved timeliness of generated content. May increase latency. Supported by Seedance 2.0.
+
 #### Polling Options
 
 - **pollIntervalMs** _number_
@@ -275,9 +370,10 @@ The following provider options are available via `providerOptions.bytedance`:
 
 ### Video Model Capabilities
 
-| Model                   | Model ID                       | Capabilities                                                                                                                  |
-| ----------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| Seedance 1.5 Pro        | `seedance-1-5-pro-251215`      | T2V, I2V (first frame), I2V (first+last frame), audio-video sync, draft mode. Duration: 4-12s. Resolution: 480p, 720p, 1080p. |
+| Model                   | Model ID                       | Capabilities                                                                                                                                           |
+| ----------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Seedance 2.0            | `dreamina-seedance-2-0-260128` | T2V, I2V, reference videos (up to 3), reference audio, web search tool, audio-video sync. Duration: 4s. Resolution: 480p, 720p.                        |
+| Seedance 1.5 Pro        | `seedance-1-5-pro-251215`      | T2V, I2V (first frame), I2V (first+last frame), audio-video sync, draft mode. Duration: 4-12s. Resolution: 480p, 720p, 1080p.                          |
 | Seedance 1.0 Pro        | `seedance-1-0-pro-250528`      | T2V, I2V (first frame), I2V (first+last frame). Duration: 2-12s. Resolution: 480p, 720p, 1080p.                               |
 | Seedance 1.0 Pro Fast   | `seedance-1-0-pro-fast-251015` | T2V, I2V (first frame). Optimized for speed and cost. Duration: 2-12s.                                                        |
 | Seedance 1.0 Lite (T2V) | `seedance-1-0-lite-t2v-250428` | Text-to-video only. Duration: 2-12s. Resolution: 480p, 720p, 1080p.                                                           |
