@@ -51,6 +51,12 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 <PropertiesTable
   content={[
     {
+      name: 'id',
+      type: 'string',
+      isOptional: true,
+      description: 'The id of the agent. Used for telemetry identification.',
+    },
+    {
       name: 'model',
       type: 'LanguageModel',
       isRequired: true,
@@ -294,6 +300,11 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 
 <PropertiesTable
   content={[
+    {
+      name: 'id',
+      type: 'string | undefined',
+      description: 'The id of the agent. Used for telemetry identification. Read-only.',
+    },
     {
       name: 'tools',
       type: 'Record<string, Tool>',

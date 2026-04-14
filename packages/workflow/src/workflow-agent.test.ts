@@ -55,6 +55,23 @@ type MockIterator = AsyncGenerator<
 >;
 
 describe('WorkflowAgent', () => {
+  describe('id property', () => {
+    it('should expose id when provided in constructor', () => {
+      const agent = new WorkflowAgent({
+        model: async () => createMockModel(),
+        id: 'my-agent',
+      });
+      expect(agent.id).toBe('my-agent');
+    });
+
+    it('should be undefined when not provided', () => {
+      const agent = new WorkflowAgent({
+        model: async () => createMockModel(),
+      });
+      expect(agent.id).toBeUndefined();
+    });
+  });
+
   describe('tool execution error handling', () => {
     it('should convert FatalError to tool error result', async () => {
       const errorMessage = 'This is a fatal error';
