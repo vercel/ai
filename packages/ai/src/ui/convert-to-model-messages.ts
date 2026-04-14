@@ -203,10 +203,10 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     toolCallId: part.toolCallId,
                     toolName,
                     input:
-                      (part.state === 'output-error'
+                      part.state === 'output-error'
                         ? (part.input ??
                           ('rawInput' in part ? part.rawInput : undefined))
-                        : part.input) ?? {},
+                        : part.input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
                       ? { providerOptions: part.callProviderMetadata }
