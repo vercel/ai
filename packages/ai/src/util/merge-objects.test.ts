@@ -129,7 +129,9 @@ describe('mergeObjects', () => {
 
   it('should filter out nested __proto__ keys', () => {
     const target = { a: { x: 1 } };
-    const source = { a: JSON.parse('{"y": 2, "__proto__": {"polluted": true}}') };
+    const source = {
+      a: JSON.parse('{"y": 2, "__proto__": {"polluted": true}}'),
+    };
     const result = mergeObjects(target, source);
 
     expect((result as any)?.a).toEqual({ x: 1, y: 2 });
