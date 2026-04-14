@@ -720,6 +720,12 @@ export type WorkflowAgentStreamOptions<
       | Array<StreamTextTransform<TTools>>;
 
     /**
+     * Custom download function to use for URLs.
+     * By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction;
+
+    /**
      * Callback function to be called after each step completes.
      */
     onStepFinish?: WorkflowAgentOnStepFinishCallback<TTools>;
