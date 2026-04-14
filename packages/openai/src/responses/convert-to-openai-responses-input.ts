@@ -36,6 +36,10 @@ import {
   toolSearchOutputSchema,
 } from '../tool/tool-search';
 
+function serializeToolCallArguments(input: unknown): string {
+  return JSON.stringify(input === undefined ? {} : input);
+}
+
 /**
  * This is soft-deprecated. Use provider references instead. Kept for backward compatibility
  * with the `fileIdPrefixes` option.
@@ -362,7 +366,7 @@ export async function convertToOpenAIResponsesInput({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: resolvedToolName,
-                arguments: JSON.stringify(part.input),
+                arguments: serializeToolCallArguments(part.input),
                 id,
               });
               break;
