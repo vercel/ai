@@ -1903,7 +1903,7 @@ describe('WorkflowAgent', () => {
       const onToolCallFinish = vi.fn();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
         experimental_onToolCallStart: onToolCallStart,
         experimental_onToolCallFinish: onToolCallFinish,
@@ -1988,7 +1988,7 @@ describe('WorkflowAgent', () => {
       const onToolCallFinish = vi.fn();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
         experimental_onToolCallFinish: onToolCallFinish,
       });
@@ -2047,7 +2047,7 @@ describe('WorkflowAgent', () => {
       const onStepStart = vi.fn();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         experimental_onStepStart: onStepStart,
       });
