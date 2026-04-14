@@ -2027,7 +2027,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2057,7 +2057,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
