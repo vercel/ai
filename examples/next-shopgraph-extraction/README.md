@@ -21,9 +21,16 @@ pnpm dev
 ## How it works
 
 - The `extract_product` tool calls the ShopGraph REST API (`POST /api/enrich`) with the product URL.
-- ShopGraph authenticates through CDN security layers and returns structured product data with per-field confidence scores (0.0 to 1.0).
+- ShopGraph sends RFC 9421 signed requests to destination sites and returns structured product data with per-field confidence scores (0.0 to 1.0). Check [which sites extract successfully](https://shopgraph.dev/leaderboard) before using a new domain.
 - The assistant uses `streamText` with `stopWhen: isStepCount(3)` to allow tool calling and then summarize the results.
 - Fields with confidence below 0.85 are flagged in the UI with an amber indicator and a "verification recommended" note.
+
+## ShopGraph API features not shown in this example
+
+- **Server-side confidence filtering**: `?strict_confidence_threshold=0.85` scrubs low-confidence fields to `null` with an explanation — the server does the filtering instead of the client.
+- **AgentReady scoring**: `?include_score=true` returns a 0-100 agent-readiness score across 6 dimensions (completeness, semantic richness, UCP compatibility, pricing clarity, inventory signals, access readiness).
+- **UCP-compatible output**: `?format=ucp` returns data in Universal Commerce Protocol schema (Google + Shopify + 25 partners).
+- **Leaderboard**: See which sites extract successfully at [shopgraph.dev/leaderboard](https://shopgraph.dev/leaderboard).
 
 ## Learn More
 
