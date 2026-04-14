@@ -16,9 +16,6 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
-  "metadata": {
-    "customKey": "customValue",
-  },
   "modelId": "mock-model-id",
   "operationId": "ai.generateText",
   "output": undefined,
@@ -54,7 +51,6 @@ exports[`generateText > options.experimental_onToolCallStart > should be called 
       "role": "user",
     },
   ],
-  "metadata": undefined,
   "modelId": "mock-model-id",
   "provider": "mock-provider",
   "stepNumber": 0,
@@ -87,7 +83,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "files": [],
   "finishReason": "stop",
   "functionId": undefined,
-  "metadata": undefined,
   "model": {
     "modelId": "mock-model-id",
     "provider": "mock-provider",
@@ -180,7 +175,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "context": {},
       "finishReason": "tool-calls",
       "functionId": undefined,
-      "metadata": undefined,
       "model": {
         "modelId": "mock-model-id",
         "provider": "mock-provider",
@@ -257,7 +251,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "context": {},
       "finishReason": "stop",
       "functionId": undefined,
-      "metadata": undefined,
       "model": {
         "modelId": "mock-model-id",
         "provider": "mock-provider",
@@ -406,7 +399,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "context": {},
     "finishReason": "tool-calls",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -483,7 +475,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "context": {},
     "finishReason": "stop",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -638,7 +629,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     "context": {},
     "finishReason": "tool-calls",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -715,7 +705,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
     "context": {},
     "finishReason": "stop",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -828,7 +817,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     },
     "finishReason": "tool-calls",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -907,7 +895,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     },
     "finishReason": "stop",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -1064,7 +1051,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     },
     "finishReason": "tool-calls",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -1143,7 +1129,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
     },
     "finishReason": "stop",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -1676,7 +1661,6 @@ exports[`generateText > result.steps > should add the reasoning from the model r
     "context": {},
     "finishReason": "stop",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -1777,7 +1761,6 @@ exports[`generateText > result.steps > should contain files 1`] = `
     "context": {},
     "finishReason": "stop",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",
@@ -1876,7 +1859,6 @@ exports[`generateText > result.steps > should contain sources 1`] = `
     "context": {},
     "finishReason": "stop",
     "functionId": undefined,
-    "metadata": undefined,
     "model": {
       "modelId": "mock-model-id",
       "provider": "mock-provider",

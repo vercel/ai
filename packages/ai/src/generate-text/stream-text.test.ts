@@ -5014,7 +5014,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5157,7 +5156,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5245,7 +5243,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5355,7 +5352,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -7165,7 +7161,6 @@ describe('streamText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
-          "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -7284,7 +7279,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -7480,7 +7474,6 @@ describe('streamText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
-          "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -7574,7 +7567,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -7755,7 +7747,6 @@ describe('streamText', () => {
           ],
           "finishReason": "stop",
           "functionId": undefined,
-          "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -7830,7 +7821,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -8466,7 +8456,6 @@ describe('streamText', () => {
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -8568,7 +8557,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -8652,7 +8640,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -8812,7 +8799,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -8896,7 +8882,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9074,7 +9059,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9158,7 +9142,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9674,7 +9657,6 @@ describe('streamText', () => {
                   },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -9755,7 +9737,6 @@ describe('streamText', () => {
                   },
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -9906,7 +9887,6 @@ describe('streamText', () => {
                   },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -9987,7 +9967,6 @@ describe('streamText', () => {
                   },
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10361,7 +10340,6 @@ describe('streamText', () => {
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -10463,7 +10441,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10547,7 +10524,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10707,7 +10683,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -10791,7 +10766,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -10965,7 +10939,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11049,7 +11022,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11387,7 +11359,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -11497,7 +11468,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -13735,7 +13705,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -14240,7 +14209,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -14475,7 +14443,6 @@ describe('streamText', () => {
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -14594,7 +14561,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -14824,7 +14790,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -15278,7 +15243,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -15768,7 +15732,6 @@ describe('streamText', () => {
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -15813,7 +15776,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -16909,7 +16871,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -17300,7 +17261,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -18355,7 +18315,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",

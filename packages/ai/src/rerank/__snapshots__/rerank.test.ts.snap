@@ -10,9 +10,6 @@ exports[`rerank > options.experimental_onFinish > should send correct event info
   ],
   "functionId": "test-function",
   "isEnabled": undefined,
-  "metadata": {
-    "customKey": "customValue",
-  },
   "modelId": "mock-model-id",
   "operationId": "ai.rerank",
   "provider": "mock-provider",
@@ -74,9 +71,6 @@ exports[`rerank > options.experimental_onStart > should send correct event infor
   "headers": undefined,
   "isEnabled": undefined,
   "maxRetries": 2,
-  "metadata": {
-    "customKey": "customValue",
-  },
   "modelId": "mock-model-id",
   "operationId": "ai.rerank",
   "provider": "mock-provider",

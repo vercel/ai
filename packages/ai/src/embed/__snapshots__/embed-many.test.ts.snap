@@ -22,9 +22,6 @@ exports[`options.experimental_onFinish > should send correct event information (
   ],
   "functionId": "test-function",
   "isEnabled": undefined,
-  "metadata": {
-    "customKey": "customValue",
-  },
   "modelId": "mock-model-id",
   "operationId": "ai.embedMany",
   "provider": "mock-provider",
@@ -59,9 +56,6 @@ exports[`options.experimental_onStart > should send correct event information 1`
   },
   "isEnabled": undefined,
   "maxRetries": 2,
-  "metadata": {
-    "customKey": "customValue",
-  },
   "modelId": "mock-model-id",
   "operationId": "ai.embedMany",
   "provider": "mock-provider",
