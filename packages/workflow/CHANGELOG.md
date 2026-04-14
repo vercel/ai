@@ -1,5 +1,11 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- 0e462a7: Use `LanguageModel` type for model parameter, aligning with `ToolLoopAgent`. Remove async factory model form. Rename callback types to use `WorkflowAgentOn*` prefix.
+
 ## 1.0.0-beta.2
 
 ### Patch Changes
