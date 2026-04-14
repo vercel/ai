@@ -2082,6 +2082,8 @@ describe('convertToLanguageModelMessage', () => {
                 "type": "content",
                 "value": [
                   {
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
                     "type": "file-url",
                     "url": "https://example.com/image.png",
                   },
@@ -2099,17 +2101,21 @@ describe('convertToLanguageModelMessage', () => {
                   {
                     "data": "dGVzdA==",
                     "mediaType": "image/png",
-                    "type": "image-data",
+                    "providerOptions": undefined,
+                    "type": "file-data",
                   },
                   {
-                    "type": "image-url",
+                    "mediaType": "image/png",
+                    "providerOptions": undefined,
+                    "type": "file-url",
                     "url": "https://example.com/image.png",
                   },
                   {
+                    "providerOptions": undefined,
                     "providerReference": {
                       "test-provider": "fileId",
                     },
-                    "type": "image-file-reference",
+                    "type": "file-reference",
                   },
                   {
                     "providerOptions": {

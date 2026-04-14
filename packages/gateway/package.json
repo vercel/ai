@@ -1,11 +1,11 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "4.0.0-beta.47",
+  "version": "4.0.0-beta.50",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
@@ -39,8 +39,8 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "dependencies": {
