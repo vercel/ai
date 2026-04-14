@@ -122,9 +122,13 @@ The following optional provider options are available for Anthropic models:
   If you are experiencing issues with the model handling requests involving
   reasoning content, you can set this to `false` to omit them from the request.
 
-- `effort` _"high" | "medium" | "low"_
+- `effort` _"low" | "medium" | "high" | "xhigh" | "max"_
 
   Optional. See [Effort section](#effort) for more details.
+
+- `taskBudget` _object_
+
+  Optional. See [Task Budgets section](#task-budgets) for more details.
 
 - `speed` _"fast" | "standard"_
 
@@ -187,7 +191,7 @@ const result = streamText({
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT).
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7` additionally supports `xhigh` for maximum reasoning effort.
 
 ```ts highlight="8-10"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
@@ -227,6 +231,46 @@ const { text } = await generateText({
 ```
 
 The `speed` option accepts `'fast'` or `'standard'` (default behavior).
+
+### Task Budgets
+
+`claude-opus-4-7` supports a `taskBudget` option that informs the model of the total token budget available for an agentic turn. The model uses this information to prioritize work, plan ahead, and wind down gracefully as the budget is consumed.
+
+Task budgets are advisory — they do not enforce a hard token limit. The model will attempt to stay within budget, but actual usage may vary.
+
+```ts highlight="8-13"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-7'),
+  prompt: 'Research the pros and cons of Rust vs Go for building CLI tools.',
+  providerOptions: {
+    anthropic: {
+      taskBudget: {
+        type: 'tokens',
+        total: 400000,
+      },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+For long-running agents that compact and restart context, you can carry the remaining budget forward using the `remaining` field:
+
+```ts
+taskBudget: {
+  type: 'tokens',
+  total: 400000,
+  remaining: 215000, // budget left after prior compacted-away contexts
+}
+```
+
+The `taskBudget` object accepts:
+
+- `type` _"tokens"_ - Budget type. Currently only `"tokens"` is supported.
+- `total` _number_ - Total task budget for the agentic turn. Minimum 20,000.
+- `remaining` _number_ - Budget left after prior compacted-away contexts. Must be between 0 and `total`. Defaults to `total` if omitted.
 
 ### Data Residency
 
@@ -1376,6 +1420,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model               | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
 | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-7`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-6`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-6` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
 | `claude-opus-4-5`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
