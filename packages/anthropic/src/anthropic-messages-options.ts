@@ -17,6 +17,7 @@ export type AnthropicMessagesModelId =
   | 'claude-sonnet-4-5'
   | 'claude-sonnet-4-6'
   | 'claude-opus-4-6'
+  | 'claude-opus-4-7'
   | (string & {});
 
 /**
@@ -189,7 +190,22 @@ export const anthropicLanguageModelOptions = z.object({
   /**
    * @default 'high'
    */
-  effort: z.enum(['low', 'medium', 'high', 'max']).optional(),
+  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+
+  /**
+   * Task budget for agentic turns. Informs the model of the total token budget
+   * available for the current task, allowing it to prioritize work and wind down
+   * gracefully as the budget is consumed.
+   *
+   * Advisory only — does not enforce a hard token limit.
+   */
+  taskBudget: z
+    .object({
+      type: z.literal('tokens'),
+      total: z.number().int().min(20000),
+      remaining: z.number().int().min(0).optional(),
+    })
+    .optional(),
 
   /**
    * Enable fast mode for faster inference (2.5x faster output token speeds).
