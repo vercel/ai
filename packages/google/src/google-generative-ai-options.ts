@@ -201,6 +201,11 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
             .optional(),
         })
         .optional(),
+
+      /**
+       * Optional. The service tier to use for the request.
+       */
+      serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
     }),
   ),
 );
@@ -208,3 +213,10 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
 export type GoogleGenerativeAIProviderOptions = InferValidator<
   typeof googleGenerativeAIProviderOptions
 >;
+
+// Vertex API requires another service tier format.
+export const VertexServiceTierMap = {
+  standard: 'SERVICE_TIER_STANDARD',
+  flex: 'SERVICE_TIER_FLEX',
+  priority: 'SERVICE_TIER_PRIORITY',
+} as const;

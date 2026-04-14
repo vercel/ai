@@ -9,7 +9,9 @@ run(async () => {
       'Write a Python script to calculate fibonacci number' +
       ' and then execute it to find the 10th fibonacci number',
     tools: {
-      code_execution: anthropic.tools.codeExecution_20250825(),
+      // code_execution: anthropic.tools.codeExecution_20250522(),
+      // code_execution: anthropic.tools.codeExecution_20250825(),
+      code_execution: anthropic.tools.codeExecution_20260120(),
     },
   });
 

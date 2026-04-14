@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.23
+
+### Patch Changes
+
+- a27a978: fix: allow inline data URLs in download validation
+
 ## 3.0.22
 
 ### Patch Changes

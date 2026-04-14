@@ -439,7 +439,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         !tools?.some(
           tool =>
             tool.type === 'provider-defined' &&
-            tool.id === 'anthropic.code_execution_20250825',
+            (tool.id === 'anthropic.code_execution_20250825' ||
+              tool.id === 'anthropic.code_execution_20260120'),
         )
       ) {
         warnings.push({
@@ -1798,7 +1799,8 @@ function getModelCapabilities(modelId: string): {
     };
   } else if (
     modelId.includes('claude-sonnet-4-5') ||
-    modelId.includes('claude-opus-4-5')
+    modelId.includes('claude-opus-4-5') ||
+    modelId.includes('claude-haiku-4-5')
   ) {
     return {
       maxOutputTokens: 64000,
@@ -1813,8 +1815,7 @@ function getModelCapabilities(modelId: string): {
     };
   } else if (
     modelId.includes('claude-sonnet-4-') ||
-    modelId.includes('claude-3-7-sonnet') ||
-    modelId.includes('claude-haiku-4-5')
+    modelId.includes('claude-3-7-sonnet')
   ) {
     return {
       maxOutputTokens: 64000,

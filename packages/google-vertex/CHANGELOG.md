@@ -1,5 +1,63 @@
 # @ai-sdk/google-vertex
 
+## 3.0.128
+
+### Patch Changes
+
+- Updated dependencies [4c10694]
+  - @ai-sdk/google@2.0.68
+
+## 3.0.127
+
+### Patch Changes
+
+- Updated dependencies [84bbfee]
+  - @ai-sdk/google@2.0.67
+
+## 3.0.126
+
+### Patch Changes
+
+- Updated dependencies [d634323]
+  - @ai-sdk/google@2.0.66
+
+## 3.0.125
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/anthropic@2.0.74
+  - @ai-sdk/google@2.0.65
+  - @ai-sdk/openai-compatible@1.0.35
+
+## 3.0.124
+
+### Patch Changes
+
+- Updated dependencies [42bc840]
+  - @ai-sdk/anthropic@2.0.73
+
+## 3.0.123
+
+### Patch Changes
+
+- Updated dependencies [98bd0e2]
+  - @ai-sdk/anthropic@2.0.72
+
+## 3.0.122
+
+### Patch Changes
+
+- b0a2029: feat (provider/google-vertex): add support for maas models
+
+## 3.0.121
+
+### Patch Changes
+
+- Updated dependencies [fd3f1d3]
+  - @ai-sdk/google@2.0.64
+
 ## 3.0.120
 
 ### Patch Changes

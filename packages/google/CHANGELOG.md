@@ -1,5 +1,36 @@
 # @ai-sdk/google
 
+## 2.0.68
+
+### Patch Changes
+
+- 4c10694: fix(google): fix `serviceTier` to be correctly formatted for Vertex API
+
+## 2.0.67
+
+### Patch Changes
+
+- 84bbfee: feat(provider/google): preserve per-modality token details in usage data
+
+## 2.0.66
+
+### Patch Changes
+
+- d634323: fix(provider/google): fix Gemini service tier enum after upstream update
+
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
+## 2.0.64
+
+### Patch Changes
+
+- fd3f1d3: feat(provider/google): add support for service tier parameter
+
 ## 2.0.63
 
 ### Patch Changes

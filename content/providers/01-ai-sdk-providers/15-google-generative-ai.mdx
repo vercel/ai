@@ -189,16 +189,56 @@ The following optional provider options are available for Google Generative AI m
 
   Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
 
-  - 1:1
-  - 2:3
-  - 3:2
-  - 3:4
-  - 4:3
-  - 4:5
-  - 5:4
-  - 9:16
-  - 16:9
-  - 21:9
+    - 1:1
+    - 2:3
+    - 3:2
+    - 3:4
+    - 4:3
+    - 4:5
+    - 5:4
+    - 9:16
+    - 16:9
+    - 21:9
+
+  - **imageSize** _string_
+
+    Controls the output image resolution. Defaults to 1K. Can be one of the following:
+
+    - 1K
+    - 2K
+    - 4K
+
+- **audioTimestamp** _boolean_
+
+  Optional. Enables timestamp understanding for audio-only files.
+  See [Google Cloud audio understanding documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding).
+
+- **mediaResolution** _string_
+
+  Optional. If specified, the media resolution specified will be used. Can be one of the following:
+
+  - `MEDIA_RESOLUTION_UNSPECIFIED`
+  - `MEDIA_RESOLUTION_LOW`
+  - `MEDIA_RESOLUTION_MEDIUM`
+  - `MEDIA_RESOLUTION_HIGH`
+
+  See [Google API MediaResolution documentation](https://ai.google.dev/api/generate-content#MediaResolution).
+
+- **labels** _Record&lt;string, string&gt;_
+
+  Optional. Defines labels used in billing reports. Available on Vertex AI only.
+  See [Google Cloud labels documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls).
+
+- **serviceTier** _'standard' | 'flex' | 'priority'_
+
+  Optional. The service tier to use for the request.
+  Set to 'flex' for 50% cheaper processing at the cost of increased latency.
+  Set to 'priority' for ultra-low latency at a 75-100% price premium over 'standard'.
+
+- **threshold** _string_
+
+  Optional. Standalone threshold setting that can be used independently of `safetySettings`.
+  Uses the same values as the `safetySettings` threshold.
 
 ### Thinking
 

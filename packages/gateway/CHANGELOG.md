@@ -1,5 +1,78 @@
 # @ai-sdk/gateway
 
+## 2.0.77
+
+### Patch Changes
+
+- 6c0cde5: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.76
+
+### Patch Changes
+
+- a5317d0: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.75
+
+### Patch Changes
+
+- f03fec2: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.74
+
+### Patch Changes
+
+- 8180bff: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.73
+
+### Patch Changes
+
+- c6fcbfa: feat (provider/gateway): add quotaEntityId gateway provider option
+
+## 2.0.72
+
+### Patch Changes
+
+- a064eef: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.71
+
+### Patch Changes
+
+- 6b4ceaa: feat (provider/gateway): add hipaaCompliant gateway provider option
+
+## 2.0.70
+
+### Patch Changes
+
+- 5e2950a: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
+## 2.0.68
+
+### Patch Changes
+
+- bc392cb: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.67
+
+### Patch Changes
+
+- 5bc2cb8: feat (provider/gateway): add disallowPromptTraining gateway provider option
+
+## 2.0.66
+
+### Patch Changes
+
+- efc9006: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 2.0.65
 
 ### Patch Changes

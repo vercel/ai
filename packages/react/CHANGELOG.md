@@ -1,5 +1,79 @@
 # @ai-sdk/react
 
+## 2.0.175
+
+### Patch Changes
+
+- ai@5.0.173
+
+## 2.0.174
+
+### Patch Changes
+
+- ai@5.0.172
+
+## 2.0.173
+
+### Patch Changes
+
+- ai@5.0.171
+
+## 2.0.172
+
+### Patch Changes
+
+- ai@5.0.170
+
+## 2.0.171
+
+### Patch Changes
+
+- ai@5.0.169
+
+## 2.0.170
+
+### Patch Changes
+
+- ai@5.0.168
+
+## 2.0.169
+
+### Patch Changes
+
+- ai@5.0.167
+
+## 2.0.168
+
+### Patch Changes
+
+- ai@5.0.166
+
+## 2.0.167
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - ai@5.0.165
+
+## 2.0.166
+
+### Patch Changes
+
+- ai@5.0.164
+
+## 2.0.165
+
+### Patch Changes
+
+- ai@5.0.163
+
+## 2.0.164
+
+### Patch Changes
+
+- ai@5.0.162
+
 ## 2.0.163
 
 ### Patch Changes

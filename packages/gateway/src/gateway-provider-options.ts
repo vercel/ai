@@ -64,6 +64,24 @@ const gatewayProviderOptions = lazyValidator(() =>
        */
       zeroDataRetention: z.boolean().optional(),
       /**
+       * Whether to filter by only providers that do not train on prompt data.
+       * When enabled, only providers that have agreements with Vercel AI Gateway
+       * to not use prompts for model training will be used.
+       */
+      disallowPromptTraining: z.boolean().optional(),
+      /**
+       * Whether to filter by only providers that are HIPAA compliant with
+       * Vercel AI Gateway. When enabled, only providers that have agreements
+       * with Vercel AI Gateway for HIPAA compliance will be used.
+       */
+      hipaaCompliant: z.boolean().optional(),
+      /**
+       * The unique identifier for the entity against which quota is tracked.
+       *
+       * Used for quota management and enforcement purposes.
+       */
+      quotaEntityId: z.string().optional(),
+      /**
        * Per-provider timeouts for BYOK credentials in milliseconds.
        * Controls how long to wait for a provider to start responding
        * before falling back to the next available provider.

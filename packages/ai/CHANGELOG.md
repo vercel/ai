@@ -1,5 +1,91 @@
 # ai
 
+## 5.0.173
+
+### Patch Changes
+
+- Updated dependencies [6c0cde5]
+  - @ai-sdk/gateway@2.0.77
+
+## 5.0.172
+
+### Patch Changes
+
+- Updated dependencies [a5317d0]
+  - @ai-sdk/gateway@2.0.76
+
+## 5.0.171
+
+### Patch Changes
+
+- Updated dependencies [f03fec2]
+  - @ai-sdk/gateway@2.0.75
+
+## 5.0.170
+
+### Patch Changes
+
+- Updated dependencies [8180bff]
+  - @ai-sdk/gateway@2.0.74
+
+## 5.0.169
+
+### Patch Changes
+
+- Updated dependencies [c6fcbfa]
+  - @ai-sdk/gateway@2.0.73
+
+## 5.0.168
+
+### Patch Changes
+
+- Updated dependencies [a064eef]
+  - @ai-sdk/gateway@2.0.72
+
+## 5.0.167
+
+### Patch Changes
+
+- Updated dependencies [6b4ceaa]
+  - @ai-sdk/gateway@2.0.71
+
+## 5.0.166
+
+### Patch Changes
+
+- Updated dependencies [5e2950a]
+  - @ai-sdk/gateway@2.0.70
+
+## 5.0.165
+
+### Patch Changes
+
+- a27a978: fix: allow inline data URLs in download validation
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/gateway@2.0.69
+
+## 5.0.164
+
+### Patch Changes
+
+- Updated dependencies [bc392cb]
+  - @ai-sdk/gateway@2.0.68
+
+## 5.0.163
+
+### Patch Changes
+
+- Updated dependencies [5bc2cb8]
+  - @ai-sdk/gateway@2.0.67
+
+## 5.0.162
+
+### Patch Changes
+
+- Updated dependencies [efc9006]
+  - @ai-sdk/gateway@2.0.66
+
 ## 5.0.161
 
 ### Patch Changes
