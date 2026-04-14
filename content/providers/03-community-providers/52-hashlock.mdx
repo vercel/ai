@@ -5,7 +5,7 @@ description: Learn how to use the Hashlock tool provider for the AI SDK.
 
 # Hashlock Provider
 
-The [Hashlock](https://hashlock.ai) provider is a community-maintained tool provider for the AI SDK that enables AI agents to swap any asset — crypto, RWA, and stablecoins — using private sealed bids and verified counterparties.
+The [Hashlock](https://hashlock.markets) provider is a community-maintained tool provider for the AI SDK that enables AI agents to swap any asset — crypto, RWA, and stablecoins — using private sealed bids and verified counterparties.
 
 Unlike traditional DEX integrations that expose trades to front-running, Hashlock uses an intent-based architecture where counterparties submit sealed bids, ensuring best execution without MEV extraction.
 
@@ -36,7 +36,7 @@ To use Hashlock tools, import the `hashlockTools` function:
 import { hashlockTools } from 'hashlock-ai-sdk';
 
 const tools = hashlockTools({
-  baseUrl: 'https://api.hashlock.ai', // optional, defaults to https://api.hashlock.ai
+  baseUrl: 'https://api.hashlock.markets', // optional, defaults to https://api.hashlock.markets
 });
 ```
 
@@ -102,7 +102,7 @@ Hashlock is also available as an [MCP server](https://www.npmjs.com/package/hash
 
 ## References
 
-- [Hashlock Website](https://hashlock.ai)
+- [Hashlock Website](https://hashlock.markets)
 - [GitHub: hashlock-ai-sdk](https://github.com/Hashlock-Tech/hashlock-ai-sdk)
 - [npm: hashlock-ai-sdk](https://www.npmjs.com/package/hashlock-ai-sdk)
 - [MCP Registry](https://registry.modelcontextprotocol.io)
