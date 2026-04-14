@@ -70,7 +70,7 @@ const agent = new WorkflowAgent({
 
 ### Model Resolution
 
-The `model` parameter accepts three forms:
+The `model` parameter accepts two forms:
 
 ```ts
 // String — AI Gateway model ID
@@ -79,14 +79,6 @@ new WorkflowAgent({ model: "anthropic/claude-sonnet-4-6" });
 // Provider instance
 import { openai } from "@ai-sdk/openai";
 new WorkflowAgent({ model: openai("gpt-4o") });
-
-// Async function — resolved inside the workflow step
-new WorkflowAgent({
-  model: async () => {
-    const { openai } = await import("@ai-sdk/openai");
-    return openai("gpt-4o");
-  },
-});
 ```
 
 ## Using the Agent in a Workflow
