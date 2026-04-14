@@ -58,7 +58,7 @@ describe('WorkflowAgent', () => {
   describe('id property', () => {
     it('should expose id when provided in constructor', () => {
       const agent = new WorkflowAgent({
-        model: async () => createMockModel(),
+        model: createMockModel(),
         id: 'my-agent',
       });
       expect(agent.id).toBe('my-agent');
@@ -66,7 +66,7 @@ describe('WorkflowAgent', () => {
 
     it('should be undefined when not provided', () => {
       const agent = new WorkflowAgent({
-        model: async () => createMockModel(),
+        model: createMockModel(),
       });
       expect(agent.id).toBeUndefined();
     });
