@@ -412,7 +412,7 @@ async function downloadAssets(
       if (typeof data === 'string') {
         try {
           data = new URL(data);
-        } catch (ignored) {}
+        } catch {}
       }
 
       return { mediaType, data };
@@ -564,6 +564,41 @@ function mapToolResultOutput({
     type: 'content',
     value: output.value.map(item => {
       switch (item.type) {
+        // The "image-*" types are legacy and deprecated.
+        // TODO: remove migration in v8 in combination with the removal of these types from the provider utils.
+        case 'image-data': {
+          return {
+            type: 'file-data' as const,
+            data: item.data,
+            mediaType: item.mediaType,
+            providerOptions: item.providerOptions,
+          };
+        }
+        case 'image-url': {
+          return {
+            type: 'file-url' as const,
+            url: item.url,
+            mediaType: getMediaTypeFromUrl(item.url, 'image/*'),
+            providerOptions: item.providerOptions,
+          };
+        }
+        case 'image-file-id': {
+          return {
+            type: 'file-reference' as const,
+            providerReference: convertFileIdToProviderReference({
+              fileId: item.fileId,
+              provider,
+            }),
+            providerOptions: item.providerOptions,
+          };
+        }
+        case 'image-file-reference': {
+          return {
+            type: 'file-reference' as const,
+            providerReference: item.providerReference,
+            providerOptions: item.providerOptions,
+          };
+        }
         case 'file-id': {
           return {
             type: 'file-reference' as const,
@@ -574,13 +609,27 @@ function mapToolResultOutput({
             providerOptions: item.providerOptions,
           };
         }
-        case 'image-file-id': {
+        case 'file-url': {
+          const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
+          if (!item.mediaType) {
+            if (mediaType === 'application/octet-stream') {
+              console.warn(
+                `AI SDK: 'file-url' tool result content part is missing 'mediaType'. ` +
+                  `Unable to infer media type from URL. Defaulting to 'application/octet-stream'. ` +
+                  `Provide 'mediaType' on the 'file-url' part for correct provider behavior.`,
+              );
+            } else {
+              console.warn(
+                `AI SDK: 'file-url' tool result content part is missing 'mediaType'. ` +
+                  `Inferred '${mediaType}' from URL. ` +
+                  `Provide 'mediaType' on the 'file-url' part for correct provider behavior.`,
+              );
+            }
+          }
           return {
-            type: 'image-file-reference' as const,
-            providerReference: convertFileIdToProviderReference({
-              fileId: item.fileId,
-              provider,
-            }),
+            type: 'file-url' as const,
+            url: item.url,
+            mediaType,
             providerOptions: item.providerOptions,
           };
         }
@@ -610,4 +659,50 @@ function convertFileIdToProviderReference({
   }
 
   return { [provider]: fileId };
+}
+
+// Temporary private helper (see below).
+// TODO: remove in v8
+const URL_EXTENSION_TO_MEDIA_TYPE: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+  avif: 'image/avif',
+  heic: 'image/heic',
+  bmp: 'image/bmp',
+  tiff: 'image/tiff',
+  tif: 'image/tiff',
+  pdf: 'application/pdf',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  ogg: 'audio/ogg',
+};
+
+/*
+ * Attempts to infer an IANA media type from the file extension in a URL's
+ * pathname. Returns `fallbackMediaType` when the extension is absent,
+ * unrecognized, or the URL cannot be parsed.
+ *
+ * Temporary private helper as a best-effort solution for missing media types on "file-url" content parts.
+ * TODO: remove in v8 when "file-url" content parts are required to have media types, after a migration period.
+ */
+function getMediaTypeFromUrl(
+  url: string,
+  fallbackMediaType = 'application/octet-stream',
+): string {
+  try {
+    const pathname = new URL(url).pathname;
+    const ext = pathname.split('.').pop()?.toLowerCase();
+    if (ext && ext in URL_EXTENSION_TO_MEDIA_TYPE) {
+      return URL_EXTENSION_TO_MEDIA_TYPE[ext];
+    }
+  } catch {
+    // ignore URL parse errors
+  }
+  return fallbackMediaType;
 }

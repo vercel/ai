@@ -153,7 +153,7 @@ function useObject<
   const stop = useCallback(() => {
     try {
       abortControllerRef.current?.abort();
-    } catch (ignored) {
+    } catch {
     } finally {
       setIsLoading(false);
       abortControllerRef.current = null;

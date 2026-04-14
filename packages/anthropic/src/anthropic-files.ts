@@ -9,14 +9,11 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   lazySchema,
-  parseProviderOptions,
   postFormDataToApi,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { anthropicFailedResponseHandler } from './anthropic-error';
-
-const anthropicUploadFileProviderOptions = z.object({});
 
 const anthropicUploadFileResponseSchema = lazySchema(() =>
   zodSchema(
@@ -52,14 +49,7 @@ export class AnthropicFiles implements FilesV4 {
     data,
     mediaType,
     filename,
-    providerOptions,
   }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
-    const anthropicOptions = await parseProviderOptions({
-      provider: 'anthropic',
-      providerOptions,
-      schema: zodSchema(anthropicUploadFileProviderOptions),
-    });
-
     const fileBytes =
       data instanceof Uint8Array ? data : convertBase64ToUint8Array(data);
 

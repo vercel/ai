@@ -19,6 +19,9 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -41,7 +44,7 @@ import {
 type OpenAICompatibleCompletionConfig = {
   provider: string;
   includeUsage?: boolean;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
@@ -59,6 +62,23 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
   private readonly config: OpenAICompatibleCompletionConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleCompletionLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleCompletionConfig;
+  }) {
+    return new OpenAICompatibleCompletionLanguageModel(
+      options.modelId,
+      options.config,
+    );
+  }
 
   constructor(
     modelId: OpenAICompatibleCompletionModelId,
@@ -196,7 +216,7 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -251,7 +271,7 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

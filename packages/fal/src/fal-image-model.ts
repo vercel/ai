@@ -12,6 +12,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FalImageModelId, FalImageSize } from './fal-image-settings';
@@ -33,6 +36,20 @@ export class FalImageModel implements ImageModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: FalImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FalImageModelId;
+    config: FalImageModelConfig;
+  }) {
+    return new FalImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -157,7 +174,7 @@ export class FalImageModel implements ImageModelV4 {
     const { value, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
       headers: combineHeaders(
-        await resolve(this.config.headers),
+        this.config.headers ? await resolve(this.config.headers) : undefined,
         options.headers,
       ),
       body: requestBody,
@@ -199,7 +216,7 @@ export class FalImageModel implements ImageModelV4 {
         fal: {
           images: targetImages.map((image, index) => {
             const {
-              url,
+              url: _url,
               content_type: contentType,
               file_name: fileName,
               file_data: fileData,

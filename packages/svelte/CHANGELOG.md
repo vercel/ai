@@ -1,5 +1,54 @@
 # @ai-sdk/svelte
 
+## 5.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - ai@7.0.0-beta.89
+
+## 5.0.0-beta.88
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - ai@7.0.0-beta.88
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 5.0.0-beta.87
+
+### Patch Changes
+
+- ai@7.0.0-beta.87
+
+## 5.0.0-beta.86
+
+### Patch Changes
+
+- Updated dependencies [5a6f514]
+  - ai@7.0.0-beta.86
+
+## 5.0.0-beta.85
+
+### Patch Changes
+
+- Updated dependencies [57bf606]
+  - ai@7.0.0-beta.85
+
+## 5.0.0-beta.84
+
+### Patch Changes
+
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+  - ai@7.0.0-beta.84
+
 ## 5.0.0-beta.83
 
 ### Patch Changes

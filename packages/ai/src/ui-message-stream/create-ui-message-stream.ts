@@ -66,7 +66,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   function safeEnqueue(data: InferUIMessageChunk<UI_MESSAGE>) {
     try {
       controller.enqueue(data);
-    } catch (error) {
+    } catch {
       // suppress errors when the stream has been closed
     }
   }
@@ -129,7 +129,7 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   waitForStreams.finally(() => {
     try {
       controller.close();
-    } catch (error) {
+    } catch {
       // suppress errors when the stream has been closed
     }
   });

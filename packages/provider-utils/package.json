@@ -1,10 +1,10 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "5.0.0-beta.17",
+  "version": "5.0.0-beta.20",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "source": "./src/index.ts",
   "files": [
@@ -33,19 +33,19 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./test": {
       "types": "./dist/test/index.d.ts",
-      "import": "./dist/test/index.mjs",
-      "module": "./dist/test/index.mjs",
-      "require": "./dist/test/index.js"
+      "import": "./dist/test/index.js",
+      "default": "./dist/test/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
+    "@workflow/serde": "4.1.0",
     "eventsource-parser": "^3.0.6"
   },
   "devDependencies": {

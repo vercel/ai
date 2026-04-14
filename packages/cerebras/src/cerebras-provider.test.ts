@@ -37,7 +37,7 @@ describe('CerebrasProvider', () => {
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
-      config.headers();
+      config.headers!();
 
       expect(loadApiKey).toHaveBeenCalledWith({
         apiKey: undefined,
@@ -58,7 +58,7 @@ describe('CerebrasProvider', () => {
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
       const config = constructorCall[1];
-      config.headers();
+      config.headers!();
 
       expect(loadApiKey).toHaveBeenCalledWith({
         apiKey: 'custom-key',
@@ -78,7 +78,7 @@ describe('CerebrasProvider', () => {
       const constructorCall = vi.mocked(OpenAICompatibleChatLanguageModel).mock
         .calls[0];
       const config = constructorCall[1];
-      const headers = config.headers();
+      const headers = config.headers!();
 
       await fetchMock('https://api.cerebras.ai/v1/test', {
         method: 'POST',

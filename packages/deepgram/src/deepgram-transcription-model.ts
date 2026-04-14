@@ -4,6 +4,9 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
@@ -66,6 +69,20 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: DeepgramTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: DeepgramTranscriptionModelId;
+    config: DeepgramTranscriptionModelConfig;
+  }) {
+    return new DeepgramTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -143,7 +160,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
         '?' +
         queryParams.toString(),
       headers: {
-        ...combineHeaders(this.config.headers(), options.headers),
+        ...combineHeaders(this.config.headers?.(), options.headers),
         'Content-Type': options.mediaType,
       },
       body: {

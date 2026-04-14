@@ -181,7 +181,7 @@ export async function convertToBedrockChatMessages(
                       switch (contentPart.type) {
                         case 'text':
                           return { text: contentPart.text };
-                        case 'image-data':
+                        case 'file-data':
                           if (!contentPart.mediaType.startsWith('image/')) {
                             throw new UnsupportedFunctionalityError({
                               functionality: `media type: ${contentPart.mediaType}`,
@@ -368,12 +368,6 @@ export async function convertToBedrockChatMessages(
   }
 
   return { system, messages };
-}
-
-function isBedrockImageFormat(format: string): format is BedrockImageFormat {
-  return Object.values(BEDROCK_IMAGE_MIME_TYPES).includes(
-    format as BedrockImageFormat,
-  );
 }
 
 function getBedrockImageFormat(mimeType?: string): BedrockImageFormat {
