@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.90
+
+### Patch Changes
+
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+
 ## 7.0.0-beta.89
 
 ### Patch Changes
