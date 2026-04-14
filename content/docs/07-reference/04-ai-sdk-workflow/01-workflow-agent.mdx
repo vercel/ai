@@ -52,10 +52,10 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
   content={[
     {
       name: 'model',
-      type: 'string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>)',
+      type: 'LanguageModel',
       isRequired: true,
       description:
-        'The model to use. A string compatible with the Vercel AI Gateway (e.g., \'anthropic/claude-sonnet-4-6\'), a LanguageModelV4 instance, or an async function returning one.',
+        'The language model to use. A string compatible with the Vercel AI Gateway (e.g., \'anthropic/claude-sonnet-4-6\') or a provider instance (e.g., `openai(\'gpt-4o\')`).',
     },
     {
       name: 'instructions',
@@ -118,7 +118,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'model',
-              type: 'string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>)',
+              type: 'LanguageModel',
               description: 'The model being used for the generation.',
             },
             {
@@ -147,7 +147,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'model',
-              type: 'string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>)',
+              type: 'LanguageModel',
               description: 'The model being used for this step.',
             },
             {
@@ -209,14 +209,14 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'onStepFinish',
-      type: 'StreamTextOnStepFinishCallback',
+      type: 'WorkflowAgentOnStepFinishCallback',
       isOptional: true,
       description:
         'Callback invoked after each agent step completes. If also specified in `stream()`, both callbacks fire (constructor first).',
     },
     {
       name: 'onFinish',
-      type: 'StreamTextOnFinishCallback',
+      type: 'WorkflowAgentOnFinishCallback',
       isOptional: true,
       description:
         'Callback called when all agent steps are finished and the response is complete. Receives steps, messages, text, finish reason, total usage, and context. If also specified in `stream()`, both callbacks fire (constructor first).',
@@ -456,27 +456,27 @@ const result = await agent.stream({
     },
     {
       name: 'onStepFinish',
-      type: 'StreamTextOnStepFinishCallback',
+      type: 'WorkflowAgentOnStepFinishCallback',
       isOptional: true,
       description:
         'Per-call onStepFinish callback. If also specified in the constructor, both fire (constructor first).',
     },
     {
       name: 'onFinish',
-      type: 'StreamTextOnFinishCallback',
+      type: 'WorkflowAgentOnFinishCallback',
       isOptional: true,
       description:
         'Per-call onFinish callback. If also specified in the constructor, both fire (constructor first).',
     },
     {
       name: 'onError',
-      type: 'StreamTextOnErrorCallback',
+      type: 'WorkflowAgentOnErrorCallback',
       isOptional: true,
       description: 'Callback invoked when an error occurs during streaming.',
     },
     {
       name: 'onAbort',
-      type: 'StreamTextOnAbortCallback',
+      type: 'WorkflowAgentOnAbortCallback',
       isOptional: true,
       description: 'Callback invoked when the operation is aborted. Receives all previously finished steps.',
     },

@@ -21,7 +21,6 @@ import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
-import type { CompatibleLanguageModel } from './types.js';
 
 export type { Experimental_LanguageModelStreamPart as ModelCallStreamPart } from 'ai';
 
@@ -87,10 +86,7 @@ export interface StreamFinish {
 
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
-  modelInit:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>),
+  modelInit: LanguageModel,
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>,
   serializedTools?: Record<string, SerializableToolDef>,
   options?: DoStreamStepOptions,
@@ -98,22 +94,10 @@ export async function doStreamStep(
   'use step';
 
   // Resolve model inside step (must happen here for serialization boundary)
-  let model: CompatibleLanguageModel;
-  if (typeof modelInit === 'string') {
-    model = gateway.languageModel(modelInit) as CompatibleLanguageModel;
-  } else if (typeof modelInit === 'function') {
-    model = await modelInit();
-  } else if (
-    typeof modelInit === 'object' &&
-    modelInit !== null &&
-    'modelId' in modelInit
-  ) {
-    model = modelInit;
-  } else {
-    throw new Error(
-      'Invalid "model initialization" argument. Must be a string, a LanguageModel instance, or a function that returns a LanguageModel instance.',
-    );
-  }
+  const model: LanguageModel =
+    typeof modelInit === 'string'
+      ? gateway.languageModel(modelInit)
+      : modelInit;
 
   // Reconstruct tools from serializable definitions with Ajv validation.
   // Tools are serialized before crossing the step boundary because zod schemas
@@ -126,7 +110,7 @@ export async function doStreamStep(
   // model.doStream(), retry logic, and stream part transformation
   // (tool call parsing, finish reason mapping, file wrapping).
   const { stream: modelStream } = await streamModelCall({
-    model: model as LanguageModel,
+    model,
     // streamModelCall expects Prompt (ModelMessage[]) but we pass the
     // pre-converted LanguageModelV4Prompt. standardizePrompt inside
     // streamModelCall handles both formats.

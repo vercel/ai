@@ -8,7 +8,6 @@
  * DIVERGENCES from ToolLoopAgent (necessary for workflow runtime):
  * - WorkflowAgent.stream() requires `messages` (ModelMessage[]) + `writable` (WritableStream)
  *   instead of ToolLoopAgent's `prompt` string
- * - WorkflowAgent model is `string | () => Promise<CompatibleLanguageModel>` instead of direct LanguageModel
  * - WorkflowAgent returns WorkflowAgentStreamResult (not StreamTextResult with consumeStream())
  */
 import { tool } from 'ai';
@@ -40,15 +39,6 @@ function createMockWritable() {
     },
   });
   return { writable, chunks };
-}
-
-/**
- * Wraps a MockLanguageModelV4 in an async factory function.
- * DIVERGENCE: WorkflowAgent model is `() => Promise<CompatibleLanguageModel>`
- * while ToolLoopAgent takes `LanguageModel` directly.
- */
-function asModelFactory(model: MockLanguageModelV4) {
-  return async () => model;
 }
 
 // ============================================================================
@@ -269,7 +259,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
     it('should use prepareCall', async () => {
       const agent = new WorkflowAgent({
-        model: asModelFactory(mockModel),
+        model: mockModel,
         prepareCall: options => {
           return {
             ...options,
@@ -300,7 +290,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       const abortController = new AbortController();
 
       const agent = new WorkflowAgent({
-        model: asModelFactory(mockModel),
+        model: mockModel,
       });
 
       const { writable } = createMockWritable();
@@ -316,7 +306,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
     it('should pass timeout to streamText', async () => {
       const agent = new WorkflowAgent({
-        model: asModelFactory(mockModel),
+        model: mockModel,
       });
 
       const { writable } = createMockWritable();
@@ -335,7 +325,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       // GAP: WorkflowAgent uses `system` (string only) instead of `instructions`
       // (which can be string | SystemModelMessage | SystemModelMessage[])
       const agent = new WorkflowAgent({
-        model: asModelFactory(mockModel),
+        model: mockModel,
         instructions: 'INSTRUCTIONS',
       });
 
@@ -371,7 +361,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     it('should pass system message instructions', async () => {
       // GAP: WorkflowAgent only supports string system prompts, not SystemModelMessage objects
       const agent = new WorkflowAgent({
-        model: asModelFactory(mockModel),
+        model: mockModel,
         instructions: {
           role: 'system',
           content: 'INSTRUCTIONS',
@@ -415,7 +405,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     it('should pass array of system message instructions', async () => {
       // GAP: WorkflowAgent doesn't support array of SystemModelMessage
       const agent = new WorkflowAgent({
-        model: asModelFactory(mockModel),
+        model: mockModel,
         instructions: [
           {
             role: 'system',
@@ -487,7 +477,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const onStartCalls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
           experimental_onStart: async () => {
             onStartCalls.push('constructor');
           },
@@ -509,7 +499,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       it('should call experimental_onStart from stream method', async () => {
         const onStartCalls: string[] = [];
 
-        const agent = new WorkflowAgent({ model: asModelFactory(mockModel) });
+        const agent = new WorkflowAgent({ model: mockModel });
 
         const { writable } = createMockWritable();
         await agent.stream({
@@ -531,7 +521,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const onStartCalls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
           experimental_onStart: async () => {
             onStartCalls.push('constructor');
           },
@@ -561,7 +551,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         let startEvent!: any;
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
           maxOutputTokens: 500,
@@ -595,7 +585,54 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
                 "role": "user",
               },
             ],
-            "model": [Function],
+            "model": MockLanguageModelV4 {
+              "_supportedUrls": [Function],
+              "doGenerate": [Function],
+              "doGenerateCalls": [],
+              "doStream": [Function],
+              "doStreamCalls": [
+                {
+                  "abortSignal": undefined,
+                  "frequencyPenalty": undefined,
+                  "headers": undefined,
+                  "includeRawChunks": false,
+                  "maxOutputTokens": 500,
+                  "presencePenalty": undefined,
+                  "prompt": [
+                    {
+                      "content": "You are a helpful assistant",
+                      "providerOptions": undefined,
+                      "role": "system",
+                    },
+                    {
+                      "content": [
+                        {
+                          "providerOptions": undefined,
+                          "text": "Hello, world!",
+                          "type": "text",
+                        },
+                      ],
+                      "providerOptions": undefined,
+                      "role": "user",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "responseFormat": undefined,
+                  "seed": undefined,
+                  "stopSequences": undefined,
+                  "temperature": 0.7,
+                  "toolChoice": {
+                    "type": "auto",
+                  },
+                  "tools": undefined,
+                  "topK": undefined,
+                  "topP": undefined,
+                },
+              ],
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+              "specificationVersion": "v4",
+            },
             "prompt": undefined,
             "system": undefined,
             "temperature": undefined,
@@ -619,7 +656,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const onStepStartCalls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
           experimental_onStepStart: async () => {
             onStepStartCalls.push('constructor');
           },
@@ -641,7 +678,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       it('should call experimental_onStepStart from stream method', async () => {
         const onStepStartCalls: string[] = [];
 
-        const agent = new WorkflowAgent({ model: asModelFactory(mockModel) });
+        const agent = new WorkflowAgent({ model: mockModel });
 
         const { writable } = createMockWritable();
         await agent.stream({
@@ -663,7 +700,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const onStepStartCalls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
           experimental_onStepStart: async () => {
             onStepStartCalls.push('constructor');
           },
@@ -693,7 +730,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         let stepStartEvent!: any;
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
           instructions: 'You are a helpful assistant',
           experimental_context: { userId: 'test-user' },
         });
@@ -718,7 +755,54 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           {
             "experimental_context": undefined,
             "messagesLength": 3,
-            "model": [Function],
+            "model": MockLanguageModelV4 {
+              "_supportedUrls": [Function],
+              "doGenerate": [Function],
+              "doGenerateCalls": [],
+              "doStream": [Function],
+              "doStreamCalls": [
+                {
+                  "abortSignal": undefined,
+                  "frequencyPenalty": undefined,
+                  "headers": undefined,
+                  "includeRawChunks": false,
+                  "maxOutputTokens": undefined,
+                  "presencePenalty": undefined,
+                  "prompt": [
+                    {
+                      "content": "You are a helpful assistant",
+                      "providerOptions": undefined,
+                      "role": "system",
+                    },
+                    {
+                      "content": [
+                        {
+                          "providerOptions": undefined,
+                          "text": "Hello, world!",
+                          "type": "text",
+                        },
+                      ],
+                      "providerOptions": undefined,
+                      "role": "user",
+                    },
+                  ],
+                  "providerOptions": undefined,
+                  "responseFormat": undefined,
+                  "seed": undefined,
+                  "stopSequences": undefined,
+                  "temperature": undefined,
+                  "toolChoice": {
+                    "type": "auto",
+                  },
+                  "tools": undefined,
+                  "topK": undefined,
+                  "topP": undefined,
+                },
+              ],
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+              "specificationVersion": "v4",
+            },
             "stepNumber": 0,
             "steps": undefined,
             "system": undefined,
@@ -741,7 +825,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       it('should call onStepFinish from constructor', async () => {
         const onStepFinishCalls: string[] = [];
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
           onStepFinish: async () => {
             onStepFinishCalls.push('constructor');
           },
@@ -764,7 +848,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const onStepFinishCalls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
         });
 
         const { writable } = createMockWritable();
@@ -787,7 +871,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const onStepFinishCalls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
           onStepFinish: async () => {
             onStepFinishCalls.push('constructor');
           },
@@ -814,7 +898,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         let capturedStepResult: any;
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
         });
 
         const { writable } = createMockWritable();
@@ -857,7 +941,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(createToolCallStreamMockModel()),
+          model: createToolCallStreamMockModel(),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
@@ -887,7 +971,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(createToolCallStreamMockModel()),
+          model: createToolCallStreamMockModel(),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
@@ -917,7 +1001,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(createToolCallStreamMockModel()),
+          model: createToolCallStreamMockModel(),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
@@ -951,7 +1035,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         let event!: any;
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(createToolCallStreamMockModel()),
+          model: createToolCallStreamMockModel(),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
@@ -995,7 +1079,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(createToolCallStreamMockModel()),
+          model: createToolCallStreamMockModel(),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
@@ -1025,7 +1109,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(createToolCallStreamMockModel()),
+          model: createToolCallStreamMockModel(),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
@@ -1055,7 +1139,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(createToolCallStreamMockModel()),
+          model: createToolCallStreamMockModel(),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
@@ -1089,9 +1173,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         let event!: any;
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(
-            createToolCallStreamMockModelWithInput('{ "value": "hello" }'),
-          ),
+          model: createToolCallStreamMockModelWithInput('{ "value": "hello" }'),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
@@ -1147,7 +1229,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       it('should call onFinish from constructor', async () => {
         const calls: string[] = [];
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
           onFinish: async () => {
             calls.push('constructor');
           },
@@ -1170,7 +1252,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
         });
 
         const { writable } = createMockWritable();
@@ -1193,7 +1275,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const calls: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
           onFinish: async () => {
             calls.push('constructor');
           },
@@ -1220,7 +1302,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         let event!: any;
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(mockModel),
+          model: mockModel,
         });
 
         const { writable } = createMockWritable();
@@ -1262,7 +1344,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
         // GAP: WorkflowAgent does not support telemetry integration listeners
         const agent = new WorkflowAgent({
-          model: asModelFactory(createToolCallStreamMockModel()),
+          model: createToolCallStreamMockModel(),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
@@ -1331,25 +1413,23 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         ];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(
-            new MockLanguageModelV4({
-              doStream: async () => ({
-                stream: convertArrayToReadableStream([
-                  { type: 'stream-start' as const, warnings: [] },
-                  {
-                    type: 'response-metadata' as const,
-                    id: 'id-0',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(0),
-                  },
-                  { type: 'text-start' as const, id: '1' },
-                  { type: 'text-delta' as const, id: '1', delta: 'Hello!' },
-                  { type: 'text-end' as const, id: '1' },
-                  dummyStreamFinish,
-                ]),
-              }),
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start' as const, warnings: [] },
+                {
+                  type: 'response-metadata' as const,
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start' as const, id: '1' },
+                { type: 'text-delta' as const, id: '1', delta: 'Hello!' },
+                { type: 'text-end' as const, id: '1' },
+                dummyStreamFinish,
+              ]),
             }),
-          ),
+          }),
         });
 
         const { writable } = createMockWritable();
@@ -1369,25 +1449,23 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         const events: string[] = [];
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(
-            new MockLanguageModelV4({
-              doStream: async () => ({
-                stream: convertArrayToReadableStream([
-                  { type: 'stream-start' as const, warnings: [] },
-                  {
-                    type: 'response-metadata' as const,
-                    id: 'id-0',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(0),
-                  },
-                  { type: 'text-start' as const, id: '1' },
-                  { type: 'text-delta' as const, id: '1', delta: 'Hello!' },
-                  { type: 'text-end' as const, id: '1' },
-                  dummyStreamFinish,
-                ]),
-              }),
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start' as const, warnings: [] },
+                {
+                  type: 'response-metadata' as const,
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start' as const, id: '1' },
+                { type: 'text-delta' as const, id: '1', delta: 'Hello!' },
+                { type: 'text-end' as const, id: '1' },
+                dummyStreamFinish,
+              ]),
             }),
-          ),
+          }),
           experimental_onStart: async () => {
             events.push('agent-onStart');
           },
@@ -1431,25 +1509,23 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
 
       it('should not break streaming when an integration listener throws', async () => {
         const agent = new WorkflowAgent({
-          model: asModelFactory(
-            new MockLanguageModelV4({
-              doStream: async () => ({
-                stream: convertArrayToReadableStream([
-                  { type: 'stream-start' as const, warnings: [] },
-                  {
-                    type: 'response-metadata' as const,
-                    id: 'id-0',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(0),
-                  },
-                  { type: 'text-start' as const, id: '1' },
-                  { type: 'text-delta' as const, id: '1', delta: 'Hello!' },
-                  { type: 'text-end' as const, id: '1' },
-                  dummyStreamFinish,
-                ]),
-              }),
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start' as const, warnings: [] },
+                {
+                  type: 'response-metadata' as const,
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start' as const, id: '1' },
+                { type: 'text-delta' as const, id: '1', delta: 'Hello!' },
+                { type: 'text-end' as const, id: '1' },
+                dummyStreamFinish,
+              ]),
             }),
-          ),
+          }),
           experimental_telemetry: {
             // @ts-expect-error - not yet implemented on WorkflowAgent
             integrations: {
@@ -1480,7 +1556,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
     describe('stream', () => {
       it('should pause agent when tool has needsApproval: true', async () => {
         const agent = new WorkflowAgent({
-          model: asModelFactory(createToolCallStreamMockModel()),
+          model: createToolCallStreamMockModel(),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
@@ -1510,7 +1586,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         let approvalInput: any = null;
 
         const agent = new WorkflowAgent({
-          model: asModelFactory(createToolCallStreamMockModel()),
+          model: createToolCallStreamMockModel(),
           tools: {
             testTool: tool({
               inputSchema: z.object({ value: z.string() }),
