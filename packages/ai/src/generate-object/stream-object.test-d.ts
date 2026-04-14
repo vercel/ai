@@ -7,6 +7,16 @@ import { streamObject } from './stream-object';
 import { describe, it } from 'vitest';
 
 describe('streamObject', () => {
+  it('should not accept timeout option', () => {
+    streamObject({
+      schema: z.object({ number: z.number() }),
+      model: undefined!,
+      prompt: 'test',
+      // @ts-expect-error timeout is not supported for the deprecated streamObject API
+      timeout: 5000,
+    });
+  });
+
   it('should have finishReason property with correct type', () => {
     const result = streamObject({
       schema: z.object({ number: z.number() }),

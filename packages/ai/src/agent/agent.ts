@@ -4,7 +4,7 @@ import { Output } from '../generate-text/output';
 import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import { TimeoutConfiguration } from '../prompt/call-settings';
+import { TimeoutConfiguration } from '../prompt/request-options';
 import type {
   ToolLoopAgentOnFinishCallback,
   ToolLoopAgentOnStartCallback,

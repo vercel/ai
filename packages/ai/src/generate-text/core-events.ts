@@ -7,7 +7,7 @@ import type {
   SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { TimeoutConfiguration } from '../prompt/call-settings';
+import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
 import type { Output } from './output';

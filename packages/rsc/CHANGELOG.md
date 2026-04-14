@@ -1,5 +1,19 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- ai@7.0.0-beta.91
+
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+- Updated dependencies [1db29c8]
+  - ai@7.0.0-beta.90
+
 ## 3.0.0-beta.90
 
 ### Patch Changes

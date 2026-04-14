@@ -5,6 +5,16 @@ import { JSONValue } from '@ai-sdk/provider';
 import { describe, it } from 'vitest';
 
 describe('generateObject', () => {
+  it('should not accept timeout option', async () => {
+    generateObject({
+      schema: z.object({ number: z.number() }),
+      model: undefined!,
+      messages: [],
+      // @ts-expect-error timeout is not supported for the deprecated generateObject API
+      timeout: 5000,
+    });
+  });
+
   it('should support enum types', async () => {
     const result = await generateObject({
       output: 'enum',
