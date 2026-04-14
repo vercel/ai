@@ -21,6 +21,7 @@ import {
   type ToolChoice,
   type ToolSet,
   type UIMessage,
+  LanguageModel,
 } from 'ai';
 import {
   convertToLanguageModelPrompt,
@@ -33,6 +34,15 @@ import type { CompatibleLanguageModel } from './types.js';
 
 // Re-export for consumers
 export type { CompatibleLanguageModel } from './types.js';
+
+/**
+ * Callback function to be called after each step completes.
+ * Alias for the AI SDK's StreamTextOnStepFinishCallback, using
+ * WorkflowAgent-consistent naming.
+ */
+export type WorkflowAgentOnStepFinishCallback<
+  TTools extends ToolSet = ToolSet,
+> = StreamTextOnStepFinishCallback<TTools, any>;
 
 /**
  * Infer the type of the tools of a workflow agent.
@@ -248,10 +258,7 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
    * The current model configuration (string or function).
    * The function should return a LanguageModelV4 instance.
    */
-  model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model: LanguageModel;
 
   /**
    * The current step number (0-indexed).
@@ -282,12 +289,8 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
 export interface PrepareStepResult extends Partial<GenerationSettings> {
   /**
    * Override the model for this step.
-   * The function should return a LanguageModelV4 instance.
    */
-  model?:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model?: LanguageModel;
 
   /**
    * Override the system message for this step.
@@ -332,10 +335,7 @@ export type PrepareStepCallback<TTools extends ToolSet = ToolSet> = (
 export interface PrepareCallOptions<
   TTools extends ToolSet = ToolSet,
 > extends Partial<GenerationSettings> {
-  model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model: LanguageModel;
   tools: TTools;
   instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
   toolChoice?: ToolChoice<TTools>;
@@ -371,12 +371,9 @@ export interface WorkflowAgentOptions<
    * The model provider to use for the agent.
    *
    * This should be a string compatible with the Vercel AI Gateway (e.g., 'anthropic/claude-opus'),
-   * or a step function that returns a LanguageModelV4 instance.
+   * or a LanguageModelV4 instance from a provider.
    */
-  model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model: LanguageModel;
 
   /**
    * A set of tools available to the agent.
@@ -428,12 +425,12 @@ export interface WorkflowAgentOptions<
   /**
    * Callback function to be called after each step completes.
    */
-  onStepFinish?: StreamTextOnStepFinishCallback<ToolSet, any>;
+  onStepFinish?: WorkflowAgentOnStepFinishCallback<ToolSet>;
 
   /**
    * Callback that is called when the LLM response and all request tool executions are finished.
    */
-  onFinish?: StreamTextOnFinishCallback<ToolSet>;
+  onFinish?: WorkflowAgentOnFinishCallback<ToolSet>;
 
   /**
    * Callback called when the agent starts streaming, before any LLM calls.
@@ -466,7 +463,7 @@ export interface WorkflowAgentOptions<
 /**
  * Callback that is called when the LLM response and all request tool executions are finished.
  */
-export type StreamTextOnFinishCallback<
+export type WorkflowAgentOnFinishCallback<
   TTools extends ToolSet = ToolSet,
   OUTPUT = never,
 > = (event: {
@@ -510,14 +507,14 @@ export type StreamTextOnFinishCallback<
 /**
  * Callback that is invoked when an error occurs during streaming.
  */
-export type StreamTextOnErrorCallback = (event: {
+export type WorkflowAgentOnErrorCallback = (event: {
   error: unknown;
 }) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `onAbort` option.
  */
-export type StreamTextOnAbortCallback<TTools extends ToolSet = ToolSet> =
+export type WorkflowAgentOnAbortCallback<TTools extends ToolSet = ToolSet> =
   (event: {
     /**
      * Details for all previously finished steps.
@@ -530,10 +527,7 @@ export type StreamTextOnAbortCallback<TTools extends ToolSet = ToolSet> =
  */
 export type WorkflowAgentOnStartCallback = (event: {
   /** The model being used */
-  readonly model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  readonly model: LanguageModel;
   /** The messages being sent */
   readonly messages: ModelMessage[];
 }) => PromiseLike<void> | void;
@@ -545,10 +539,7 @@ export type WorkflowAgentOnStepStartCallback = (event: {
   /** The current step number (0-based) */
   readonly stepNumber: number;
   /** The model being used for this step */
-  readonly model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  readonly model: LanguageModel;
   /** The messages being sent for this step */
   readonly messages: ModelMessage[];
 }) => PromiseLike<void> | void;
@@ -710,24 +701,24 @@ export interface WorkflowAgentStreamOptions<
   /**
    * Callback function to be called after each step completes.
    */
-  onStepFinish?: StreamTextOnStepFinishCallback<TTools, any>;
+  onStepFinish?: WorkflowAgentOnStepFinishCallback<TTools>;
 
   /**
    * Callback that is invoked when an error occurs during streaming.
    * You can use it to log errors.
    */
-  onError?: StreamTextOnErrorCallback;
+  onError?: WorkflowAgentOnErrorCallback;
 
   /**
    * Callback that is called when the LLM response and all request tool executions
    * (for tools that have an `execute` function) are finished.
    */
-  onFinish?: StreamTextOnFinishCallback<TTools, OUTPUT>;
+  onFinish?: WorkflowAgentOnFinishCallback<TTools, OUTPUT>;
 
   /**
    * Callback that is called when the operation is aborted.
    */
-  onAbort?: StreamTextOnAbortCallback<TTools>;
+  onAbort?: WorkflowAgentOnAbortCallback<TTools>;
 
   /**
    * Callback called when the agent starts streaming, before any LLM calls.
@@ -898,10 +889,7 @@ export interface WorkflowAgentStreamResult<
  * ```
  */
 export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
-  private model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  private model: LanguageModel;
   /**
    * The tool set configured for this agent.
    */
@@ -915,11 +903,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private telemetry?: TelemetrySettings;
   private experimentalContext: unknown;
   private prepareStep?: PrepareStepCallback<TBaseTools>;
-  private constructorOnStepFinish?: StreamTextOnStepFinishCallback<
-    ToolSet,
-    any
-  >;
-  private constructorOnFinish?: StreamTextOnFinishCallback<ToolSet>;
+  private constructorOnStepFinish?: WorkflowAgentOnStepFinishCallback<ToolSet>;
+  private constructorOnFinish?: WorkflowAgentOnFinishCallback<ToolSet>;
   private constructorOnStart?: WorkflowAgentOnStartCallback;
   private constructorOnStepStart?: WorkflowAgentOnStepStartCallback;
   private constructorOnToolCallStart?: WorkflowAgentOnToolCallStartCallback;
@@ -972,10 +957,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     options: WorkflowAgentStreamOptions<TTools, OUTPUT, PARTIAL_OUTPUT>,
   ): Promise<WorkflowAgentStreamResult<TTools, OUTPUT>> {
     // Call prepareCall to transform parameters before the agent loop
-    let effectiveModel:
-      | string
-      | CompatibleLanguageModel
-      | (() => Promise<CompatibleLanguageModel>) = this.model;
+    let effectiveModel: LanguageModel = this.model;
     let effectiveInstructions = options.system ?? this.instructions;
     let effectiveMessages = options.messages;
     let effectiveGenerationSettings = { ...this.generationSettings };
@@ -1210,13 +1192,13 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // Merge constructor + stream callbacks (constructor first, then stream)
     const mergedOnStepFinish = mergeCallbacks(
       this.constructorOnStepFinish as
-        | StreamTextOnStepFinishCallback<TTools, any>
+        | WorkflowAgentOnStepFinishCallback<TTools>
         | undefined,
       options.onStepFinish,
     );
     const mergedOnFinish = mergeCallbacks(
       this.constructorOnFinish as
-        | StreamTextOnFinishCallback<TTools, OUTPUT>
+        | WorkflowAgentOnFinishCallback<TTools, OUTPUT>
         | undefined,
       options.onFinish,
     );
