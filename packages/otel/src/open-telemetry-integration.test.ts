@@ -210,7 +210,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     include: undefined,
     functionId: undefined,
-    context: undefined,
+    context: {},
     promptMessages: undefined,
     stepTools: undefined,
     stepToolChoice: undefined,
