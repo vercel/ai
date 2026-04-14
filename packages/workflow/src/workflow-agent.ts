@@ -535,18 +535,17 @@ export type WorkflowAgentOnStartCallback = (event: {
 /**
  * Callback that is called before each step (LLM call) begins.
  */
-export type WorkflowAgentOnStepStartCallback<
-  TTools extends ToolSet = ToolSet,
-> = (event: {
-  /** The current step number (0-based) */
-  readonly stepNumber: number;
-  /** The model being used for this step */
-  readonly model: LanguageModel;
-  /** The messages being sent for this step */
-  readonly messages: ModelMessage[];
-  /** Results from all previously finished steps */
-  readonly steps: ReadonlyArray<StepResult<TTools, any>>;
-}) => PromiseLike<void> | void;
+export type WorkflowAgentOnStepStartCallback<TTools extends ToolSet = ToolSet> =
+  (event: {
+    /** The current step number (0-based) */
+    readonly stepNumber: number;
+    /** The model being used for this step */
+    readonly model: LanguageModel;
+    /** The messages being sent for this step */
+    readonly messages: ModelMessage[];
+    /** Results from all previously finished steps */
+    readonly steps: ReadonlyArray<StepResult<TTools, any>>;
+  }) => PromiseLike<void> | void;
 
 /**
  * Callback that is called before a tool's execute function runs.
