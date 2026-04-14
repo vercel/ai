@@ -1080,6 +1080,40 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should default missing tool call input to an empty object', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                input: undefined,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": "{}",
+            "call_id": "call_123",
+            "id": undefined,
+            "name": "search",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+
     it('should convert messages with tool call parts that have ids', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
