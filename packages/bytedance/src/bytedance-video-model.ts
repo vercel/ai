@@ -31,7 +31,6 @@ export type ByteDanceVideoProviderOptions = {
   referenceImages?: string[] | null;
   referenceVideos?: string[] | null;
   referenceAudio?: string | null;
-  tools?: Array<{ type: string }> | null;
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
   [key: string]: unknown;
@@ -48,7 +47,6 @@ const HANDLED_PROVIDER_OPTIONS = new Set([
   'referenceImages',
   'referenceVideos',
   'referenceAudio',
-  'tools',
   'pollIntervalMs',
   'pollTimeoutMs',
 ]);
@@ -67,7 +65,6 @@ export const byteDanceVideoProviderOptionsSchema = lazySchema(() =>
         referenceImages: z.array(z.string()).nullish(),
         referenceVideos: z.array(z.string()).nullish(),
         referenceAudio: z.string().nullish(),
-        tools: z.array(z.object({ type: z.string() }).passthrough()).nullish(),
         pollIntervalMs: z.number().positive().nullish(),
         pollTimeoutMs: z.number().positive().nullish(),
       })
@@ -276,10 +273,6 @@ export class ByteDanceVideoModel implements Experimental_VideoModelV4 {
       if (byteDanceOptions.draft != null) {
         body.draft = byteDanceOptions.draft;
       }
-      if (byteDanceOptions.tools != null) {
-        body.tools = byteDanceOptions.tools;
-      }
-
       // Pass through any additional options not explicitly handled
       for (const [key, value] of Object.entries(byteDanceOptions)) {
         if (!HANDLED_PROVIDER_OPTIONS.has(key)) {

@@ -744,25 +744,7 @@ describe('ByteDanceVideoModel', () => {
       ]);
     });
 
-    it('should pass tools option in body', async () => {
-      const model = createBasicModel({
-        modelId: 'dreamina-seedance-2-0-260128',
-      });
-
-      await model.doGenerate({
-        ...defaultOptions,
-        providerOptions: {
-          bytedance: {
-            tools: [{ type: 'web_search' }],
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.tools).toStrictEqual([{ type: 'web_search' }]);
-    });
-
-    it('should support reference videos, audio, and tools together', async () => {
+    it('should support reference videos and audio together', async () => {
       const model = createBasicModel({
         modelId: 'dreamina-seedance-2-0-260128',
       });
@@ -773,7 +755,6 @@ describe('ByteDanceVideoModel', () => {
           bytedance: {
             referenceVideos: ['https://example.com/ref.mp4'],
             referenceAudio: 'https://example.com/audio.mp3',
-            tools: [{ type: 'web_search' }],
           },
         },
       });
@@ -795,7 +776,6 @@ describe('ByteDanceVideoModel', () => {
           role: 'reference_audio',
         },
       ]);
-      expect(requestBody.tools).toStrictEqual([{ type: 'web_search' }]);
     });
 
     it('should pass through additional options', async () => {
