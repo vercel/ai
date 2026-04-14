@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 0c4ac8a: fix(openai): default undefined tool-call input to empty object before serializing tool arguments
+
 ## 4.0.0-beta.31
 
 ### Patch Changes
