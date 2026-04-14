@@ -21,6 +21,7 @@ import {
   type ToolChoice,
   type ToolSet,
   type UIMessage,
+  LanguageModel,
 } from 'ai';
 import {
   convertToLanguageModelPrompt,
@@ -248,10 +249,7 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
    * The current model configuration (string or function).
    * The function should return a LanguageModelV4 instance.
    */
-  model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model: LanguageModel;
 
   /**
    * The current step number (0-indexed).
