@@ -826,7 +826,6 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateId: () => 'test-call-id',

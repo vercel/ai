@@ -142,7 +142,6 @@ export async function embed({
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
     },
     callbacks: [onStart, unifiedTelemetry.onStart],
   });
@@ -164,7 +163,6 @@ export async function embed({
             recordInputs: telemetry?.recordInputs,
             recordOutputs: telemetry?.recordOutputs,
             functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata,
           },
           callbacks: [unifiedTelemetry.onEmbedStart],
         });
@@ -220,7 +218,6 @@ export async function embed({
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata,
       },
       callbacks: [onFinish, unifiedTelemetry.onFinish],
     });

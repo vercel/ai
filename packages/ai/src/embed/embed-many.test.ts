@@ -557,7 +557,6 @@ describe('options.experimental_onStart', () => {
       values: testValues,
       experimental_telemetry: {
         functionId: 'test-function',
-        metadata: { customKey: 'customValue' },
       },
       _internal: {
         generateCallId: () => 'test-call-id',
@@ -584,7 +583,6 @@ describe('options.experimental_onStart', () => {
         recordInputs: false,
         recordOutputs: true,
         functionId: 'embed-many-fn',
-        metadata: { key: 'val' },
       },
       experimental_onStart: async event => {
         startEvent = event;
@@ -595,7 +593,6 @@ describe('options.experimental_onStart', () => {
     expect(startEvent.recordInputs).toBe(false);
     expect(startEvent.recordOutputs).toBe(true);
     expect(startEvent.functionId).toBe('embed-many-fn');
-    expect(startEvent.metadata).toEqual({ key: 'val' });
   });
 
   it('should include model information', async () => {
@@ -690,7 +687,6 @@ describe('options.experimental_onFinish', () => {
       values: testValues,
       experimental_telemetry: {
         functionId: 'test-function',
-        metadata: { customKey: 'customValue' },
       },
       _internal: {
         generateCallId: () => 'test-call-id',

@@ -26,11 +26,6 @@ run(async () => {
     experimental_telemetry: {
       isEnabled: true,
       functionId: 'custom-provider-demo',
-      metadata: {
-        environment: 'demo',
-        customer_id: 'demo-user',
-        request_source: 'example',
-      },
     },
   });
 

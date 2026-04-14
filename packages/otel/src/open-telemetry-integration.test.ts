@@ -151,7 +151,6 @@ function telemetryFields() {
     recordInputs: undefined,
     recordOutputs: undefined,
     functionId: undefined,
-    metadata: undefined,
   };
 }
 
@@ -186,7 +185,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     include: undefined,
     ...telemetryFields(),
-    context: undefined,
+    context: {},
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onStart']>>[0];
 }
@@ -211,7 +210,6 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     include: undefined,
     functionId: undefined,
-    metadata: undefined,
     context: undefined,
     promptMessages: undefined,
     stepTools: undefined,
@@ -226,7 +224,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     stepNumber: 0,
     model,
     functionId: undefined,
-    metadata: undefined,
     context: {},
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
@@ -310,7 +307,6 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     messages: [],
     abortSignal: undefined,
     functionId: undefined,
-    metadata: undefined,
     context: undefined,
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onToolCallStart']>>[0];
@@ -335,7 +331,6 @@ function makeToolCallFinishEvent(
     abortSignal: undefined,
     durationMs: 42,
     functionId: undefined,
-    metadata: undefined,
     context: undefined,
     ...overrides,
   };
@@ -1234,17 +1229,17 @@ describe('OpenTelemetryIntegration', () => {
     });
   });
 
-  describe('metadata in telemetry', () => {
-    it('includes metadata as telemetry attributes', () => {
+  describe('context in telemetry', () => {
+    it('includes context as telemetry attributes', () => {
       otelIntegration.onStart!(
         makeOnStartEvent({
-          metadata: { userId: 'user-123', sessionId: 'sess-456' },
+          context: { userId: 'user-123', sessionId: 'sess-456' },
         }),
       );
 
       const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['ai.telemetry.metadata.userId']).toBe('user-123');
-      expect(attrs['ai.telemetry.metadata.sessionId']).toBe('sess-456');
+      expect(attrs['ai.settings.context.userId']).toBe('user-123');
+      expect(attrs['ai.settings.context.sessionId']).toBe('sess-456');
     });
   });
 });
@@ -1344,6 +1339,10 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       frequencyPenalty: 0.3,
       presencePenalty: 0.4,
       temperature: 0.5,
+      context: {
+        test1: 'value1',
+        test2: false,
+      },
       stopSequences: ['stop'],
       headers: {
         header1: 'value1',
@@ -1352,10 +1351,6 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: new OpenTelemetryIntegration({ tracer }),
       },
     });
@@ -1849,6 +1844,10 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       presencePenalty: 0.4,
       temperature: 0.5,
       stopSequences: ['stop'],
+      context: {
+        test1: 'value1',
+        test2: false,
+      },
       headers: {
         header1: 'value1',
         header2: 'value2',
@@ -1856,10 +1855,6 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: new OpenTelemetryIntegration({ tracer }),
       },
       _internal: { now: mockValues(0, 100, 500) },
@@ -2260,10 +2255,6 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
@@ -2282,8 +2273,6 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
             "ai.operationId": "ai.rerank",
             "ai.settings.maxRetries": 2,
             "ai.telemetry.functionId": "test-function-id",
-            "ai.telemetry.metadata.test1": "value1",
-            "ai.telemetry.metadata.test2": false,
             "operation.name": "ai.rerank test-function-id",
             "resource.name": "test-function-id",
           },
@@ -2308,8 +2297,6 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
             "ai.ranking.type": "text",
             "ai.settings.maxRetries": 2,
             "ai.telemetry.functionId": "test-function-id",
-            "ai.telemetry.metadata.test1": "value1",
-            "ai.telemetry.metadata.test2": false,
             "operation.name": "ai.rerank.doRerank test-function-id",
             "resource.name": "test-function-id",
           },
@@ -2424,10 +2411,6 @@ describe('OpenTelemetryIntegration integration with embed', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
@@ -2540,10 +2523,6 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
@@ -2563,10 +2542,6 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
@@ -2722,10 +2697,6 @@ describe('OpenTelemetryIntegration integration with generateObject', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: new OpenTelemetryIntegration({ tracer }),
       },
     });
@@ -2906,10 +2877,6 @@ describe('OpenTelemetryIntegration integration with streamObject', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: new OpenTelemetryIntegration({ tracer }),
       },
       _internal: { now: () => 0 },

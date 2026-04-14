@@ -1,4 +1,4 @@
-import type { JSONObject, JSONValue } from '@ai-sdk/provider';
+import type { JSONObject } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { Warning } from '../types/warning';
@@ -52,9 +52,6 @@ export interface RerankOnStartEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -114,9 +111,6 @@ export interface RerankOnFinishEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -158,9 +152,6 @@ export interface RerankStartEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**

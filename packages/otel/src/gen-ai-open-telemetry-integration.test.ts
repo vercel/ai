@@ -135,7 +135,6 @@ function telemetryFields() {
     recordInputs: undefined,
     recordOutputs: undefined,
     functionId: undefined,
-    metadata: undefined,
   };
 }
 
@@ -170,7 +169,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     include: undefined,
     ...telemetryFields(),
-    context: undefined,
+    context: {},
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onStart']>>[0];
 }
@@ -195,7 +194,6 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     include: undefined,
     functionId: undefined,
-    metadata: undefined,
     context: undefined,
     promptMessages: undefined,
     stepTools: undefined,
@@ -210,7 +208,6 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     stepNumber: 0,
     model,
     functionId: undefined,
-    metadata: undefined,
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
     reasoning: [],
@@ -294,7 +291,6 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     messages: [],
     abortSignal: undefined,
     functionId: undefined,
-    metadata: undefined,
     context: undefined,
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onToolCallStart']>>[0];
@@ -319,7 +315,6 @@ function makeToolCallFinishEvent(
     abortSignal: undefined,
     durationMs: 42,
     functionId: undefined,
-    metadata: undefined,
     context: undefined,
     ...overrides,
   };

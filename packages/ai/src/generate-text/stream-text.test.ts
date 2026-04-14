@@ -5524,7 +5524,6 @@ describe('streamText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         experimental_onStart: async event => {
           startEvent = event;
@@ -6016,7 +6015,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should expose functionId and metadata from telemetry', async () => {
+    it('should expose functionId from telemetry', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];
@@ -6026,7 +6025,6 @@ describe('streamText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         experimental_onStepStart: async event => {
           stepStartEvent = event;
@@ -6037,7 +6035,6 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(stepStartEvent.functionId).toBe('test-function');
-      expect(stepStartEvent.metadata).toEqual({ customKey: 'customValue' });
     });
   });
 

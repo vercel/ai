@@ -1164,7 +1164,6 @@ class DefaultStreamTextResult<
               stepNumber: finalStep.stepNumber,
               model: finalStep.model,
               functionId: finalStep.functionId,
-              metadata: finalStep.metadata,
               context: finalStep.context,
               finishReason: finalStep.finishReason,
               rawFinishReason: finalStep.rawFinishReason,
@@ -1304,14 +1303,12 @@ class DefaultStreamTextResult<
     const callId = generateCallId();
     const callbackTelemetryProps = {
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     };
     const onStartTelemetryProps = {
       isEnabled: telemetry?.isEnabled,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
     };
 
     (async () => {

@@ -1,4 +1,3 @@
-import type { JSONValue } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { Embedding, ProviderMetadata } from '../types';
 import type { EmbeddingModelUsage } from '../types/usage';
@@ -48,9 +47,6 @@ export interface EmbedOnStartEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -103,9 +99,6 @@ export interface EmbedOnFinishEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -144,9 +137,6 @@ export interface EmbedStartEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**
