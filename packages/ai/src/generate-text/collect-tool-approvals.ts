@@ -5,14 +5,14 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidToolApprovalError } from '../error/invalid-tool-approval-error';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
-import { TypedToolCall } from './tool-call';
+import { TypedToolCall, ValidToolCall } from './tool-call';
 import { TypedToolResult } from './tool-result';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
 export type CollectedToolApprovals<TOOLS extends ToolSet> = {
   approvalRequest: ToolApprovalRequest;
   approvalResponse: ToolApprovalResponse;
-  toolCall: TypedToolCall<TOOLS>;
+  toolCall: ValidToolCall<TOOLS>;
 };
 
 /**
@@ -37,12 +37,12 @@ export function collectToolApprovals<TOOLS extends ToolSet>({
   }
 
   // gather tool calls and prepare lookup
-  const toolCallsByToolCallId: Record<string, TypedToolCall<TOOLS>> = {};
+  const toolCallsByToolCallId: Record<string, ValidToolCall<TOOLS>> = {};
   for (const message of messages) {
     if (message.role === 'assistant' && typeof message.content !== 'string') {
       const content = message.content;
       for (const part of content) {
-        if (part.type === 'tool-call') {
+        if (part.type === 'tool-call' && !part.invalid) {
           toolCallsByToolCallId[part.toolCallId] = part as TypedToolCall<TOOLS>;
         }
       }

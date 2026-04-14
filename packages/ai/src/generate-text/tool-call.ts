@@ -52,10 +52,17 @@ export type InvalidToolCall = BaseToolCall & {
 };
 
 /**
+ * A tool call that is valid, either statically typed from the
+ * declared tool set, or dynamically typed.
+ */
+export type ValidToolCall<TOOLS extends ToolSet> =
+  | StaticToolCall<TOOLS>
+  | DynamicToolCall;
+
+/**
  * A tool call returned by text generation, either statically typed from the
  * declared tool set, dynamically typed, or invalid.
  */
 export type TypedToolCall<TOOLS extends ToolSet> =
-  | StaticToolCall<TOOLS>
-  | DynamicToolCall
+  | ValidToolCall<TOOLS>
   | InvalidToolCall;

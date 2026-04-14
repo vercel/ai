@@ -15,7 +15,7 @@ import {
   GenerateTextOnToolCallFinishCallback,
   GenerateTextOnToolCallStartCallback,
 } from './generate-text';
-import { TypedToolCall } from './tool-call';
+import { ValidToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
@@ -51,7 +51,7 @@ export async function executeToolCall<
   onToolCallFinish,
   executeToolInTelemetryContext = async ({ execute }) => execute(),
 }: {
-  toolCall: TypedToolCall<TOOLS>;
+  toolCall: ValidToolCall<TOOLS>;
   tools: TOOLS | undefined;
   telemetry: TelemetrySettings | undefined;
   callId: string;
@@ -138,7 +138,7 @@ export async function executeToolCall<
               type: 'tool-result',
               output: part.output,
               preliminary: true,
-            } as TypedToolResult<TOOLS>);
+            });
           } else {
             output = part.output;
           }

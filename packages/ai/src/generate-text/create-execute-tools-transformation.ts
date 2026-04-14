@@ -14,7 +14,7 @@ import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { TypedToolCall } from './tool-call';
+import { DynamicToolCall, StaticToolCall } from './tool-call';
 
 export function createExecuteToolsTransformation<
   TOOLS extends ToolSet,
@@ -57,7 +57,7 @@ export function createExecuteToolsTransformation<
   LanguageModelStreamPart<TOOLS>,
   LanguageModelStreamPart<TOOLS>
 > {
-  const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
+  const toolCallsToExecute: Array<StaticToolCall<TOOLS> | DynamicToolCall> = [];
 
   // forward stream
   return new TransformStream<

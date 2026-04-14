@@ -107,6 +107,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         });
         break;
       }
+      // consider renaming to tool-execution-error (but breaking change)
       case 'tool-error': {
         const output = await createToolModelOutput({
           toolCallId: part.toolCallId,
