@@ -52,10 +52,10 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
   content={[
     {
       name: 'model',
-      type: 'string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>)',
+      type: 'string | CompatibleLanguageModel',
       isRequired: true,
       description:
-        'The model to use. A string compatible with the Vercel AI Gateway (e.g., \'anthropic/claude-sonnet-4-6\'), a LanguageModelV4 instance, or an async function returning one.',
+        'The model to use. A string compatible with the Vercel AI Gateway (e.g., \'anthropic/claude-sonnet-4-6\') or a LanguageModelV4 instance.',
     },
     {
       name: 'instructions',
@@ -118,7 +118,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'model',
-              type: 'string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>)',
+              type: 'string | CompatibleLanguageModel',
               description: 'The model being used for the generation.',
             },
             {
@@ -147,7 +147,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'model',
-              type: 'string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>)',
+              type: 'string | CompatibleLanguageModel',
               description: 'The model being used for this step.',
             },
             {
