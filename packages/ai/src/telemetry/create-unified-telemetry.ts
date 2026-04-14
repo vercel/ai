@@ -38,6 +38,7 @@ type TelemetryEvent<K extends TelemetryCallbackKey> =
 export function createUnifiedTelemetry({
   integrations: localIntegrations,
 }: {
+  // what if we had the telemetry options here instead?
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }): TelemetryIntegration {
   const integrations: Array<TelemetryIntegration> = [
@@ -45,6 +46,7 @@ export function createUnifiedTelemetry({
     ...asArray(localIntegrations),
   ];
 
+  // since we have the telemetry options here, we can inject them into the events
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
   ): Callback<TelemetryEvent<KEY>> | undefined =>

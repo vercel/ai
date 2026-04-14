@@ -1,4 +1,4 @@
-import type { JSONValue, LanguageModelV4ToolChoice } from '@ai-sdk/provider';
+import type { JSONValue } from '@ai-sdk/provider';
 import type {
   Context,
   InferToolSetContext,
@@ -15,6 +15,7 @@ import type { StepResult } from './step-result';
 import type { StopCondition } from './stop-condition';
 import { TextStreamPart } from './stream-text-result';
 import type { TypedToolCall } from './tool-call';
+import { TelemetrySettings } from '../telemetry/telemetry-settings';
 
 /**
  * Common model information used across callback events.
@@ -115,33 +116,44 @@ export interface OnStartEvent<
   readonly output: OUTPUT | undefined;
 
   /** Abort signal for cancelling the operation. */
+  // TODO remove
   readonly abortSignal: AbortSignal | undefined;
 
   /**
    * Settings for controlling what data is included in step results.
    */
+  // unclear what this
   readonly include: INCLUDE | undefined;
 
+  // problem: telemetry bleeds into the events
+  // alternative:
+  readonly telemetry: Omit<TelemetrySettings, 'integrations'>;
+
   /** Whether telemetry is enabled. */
+  // isTelemetryEnabled
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
+  // rename to recordTelemetryInputs -- or can we remove this?
   readonly recordInputs: boolean | undefined;
 
   /** Whether to record outputs in telemetry. Enabled by default. */
+  // rename to recordTelemetryOutputs -- or can we remove this?
   readonly recordOutputs: boolean | undefined;
 
   /** Identifier from telemetry settings for grouping related operations. */
+  // unsure about the name -- alternatives?
   readonly functionId: string | undefined;
 
   /** Additional metadata from telemetry settings. */
+  // remove (use context instead)
   readonly metadata: Record<string, JSONValue> | undefined;
 
   /**
    * User-defined context object that flows through the entire generation lifecycle.
    * Can be accessed and modified in `prepareStep` and tool `execute` functions.
    */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }
 
 /**
@@ -188,7 +200,7 @@ export interface OnStepStartEvent<
   readonly tools: TOOLS | undefined;
 
   /** The tool choice configuration for this step. */
-  readonly toolChoice: LanguageModelV4ToolChoice | undefined;
+  readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
 
   /** Limits which tools are available for this step. */
   readonly activeTools: Array<keyof TOOLS> | undefined;
@@ -253,9 +265,11 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   readonly stepNumber: number | undefined;
 
   /** The provider identifier (e.g., 'openai', 'anthropic'). */
+  // why do we need a provider id for a tool call?
   readonly provider: string | undefined;
 
   /** The specific model identifier (e.g., 'gpt-4o'). */
+  // why do we need a model id for a tool call?
   readonly modelId: string | undefined;
 
   /** The full tool call object. */
@@ -265,6 +279,7 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   readonly messages: Array<ModelMessage>;
 
   /** Signal for cancelling the operation. */
+  // TODO remove
   readonly abortSignal: AbortSignal | undefined;
 
   /** Identifier from telemetry settings for grouping related operations. */

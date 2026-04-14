@@ -6,6 +6,7 @@ import type { TelemetryIntegration } from './telemetry-integration';
  */
 // This is meant to be both flexible for custom app requirements (metadata)
 // and extensible for standardization (example: functionId, more to come).
+// TODO: rename to TelemetryOptions
 export type TelemetrySettings = {
   /**
    * Enable or disable telemetry. Disabled by default while experimental.
@@ -36,6 +37,7 @@ export type TelemetrySettings = {
   /**
    * Additional information to include in the telemetry data.
    */
+  // TODO remove
   metadata?: Record<string, JSONValue>;
 
   /**

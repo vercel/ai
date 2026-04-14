@@ -27,6 +27,7 @@ import type {
   RerankStartEvent,
 } from '../rerank/rerank-events';
 import type { Callback } from '../util/callback';
+import { TelemetrySettings } from './telemetry-settings';
 
 /**
  * Implement this interface to create custom telemetry integrations.
@@ -53,7 +54,9 @@ export interface TelemetryIntegration {
    * The event includes the step number, accumulated previous step results,
    * and the messages that will be sent to the model.
    */
-  onStepStart?: Callback<OnStepStartEvent>;
+  onStepStart?: Callback<
+    OnStepStartEvent & Omit<TelemetrySettings, 'integrations'>
+  >;
 
   /**
    * Called when a tool execution begins, before the tool's `execute` function
