@@ -5,7 +5,6 @@ import type {
 } from '@ai-sdk/provider';
 import type {
   Experimental_LanguageModelStreamPart as ModelCallStreamPart,
-  LanguageModel,
   ModelMessage,
   StepResult,
   ToolCallRepairFunction,
@@ -22,6 +21,7 @@ import { serializeToolSet } from './serializable-schema.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
+  WorkflowAgentModel,
   WorkflowAgentOnErrorCallback,
   WorkflowAgentOnStepFinishCallback,
   TelemetrySettings,
@@ -71,7 +71,7 @@ export async function* streamTextIterator({
   prompt: LanguageModelV4Prompt;
   tools: ToolSet;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
-  model: LanguageModel;
+  model: WorkflowAgentModel;
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
   onStepFinish?: WorkflowAgentOnStepFinishCallback<any>;
@@ -91,7 +91,7 @@ export async function* streamTextIterator({
   LanguageModelV4ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
-  let currentModel: LanguageModel = model;
+  let currentModel: WorkflowAgentModel = model;
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
   let currentContext = experimental_context;
