@@ -1,9 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import * as z4 from 'zod/v4';
 
 const API_URL = 'https://ai-gateway.vercel.sh/v1/models';
-const OUTPUT_DIR = path.join(__dirname, '..', 'src');
+const OUTPUT_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'src',
+);
 
 const modelSchema = z4.object({
   id: z4.string(),
