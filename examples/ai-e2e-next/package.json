@@ -10,7 +10,7 @@
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "4.0.93",
     "@ai-sdk/anthropic": "3.0.69",
-    "@ai-sdk/azure": "3.0.53",
+    "@ai-sdk/azure": "3.0.54",
     "@ai-sdk/cohere": "3.0.30",
     "@ai-sdk/deepseek": "2.0.29",
     "@ai-sdk/fireworks": "2.0.46",
@@ -19,7 +19,7 @@
     "@ai-sdk/groq": "3.0.35",
     "@ai-sdk/mcp": "1.0.36",
     "@ai-sdk/mistral": "3.0.30",
-    "@ai-sdk/openai": "3.0.52",
+    "@ai-sdk/openai": "3.0.53",
     "@ai-sdk/perplexity": "3.0.29",
     "@ai-sdk/provider-utils": "4.0.23",
     "@ai-sdk/react": "3.0.161",
