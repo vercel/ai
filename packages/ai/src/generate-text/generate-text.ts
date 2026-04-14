@@ -725,7 +725,7 @@ export async function generateText<
           system: stepSystem,
           messages: stepMessages,
           tools,
-          toolChoice: stepToolChoice,
+          toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           activeTools: prepareStepResult?.activeTools ?? activeTools,
           steps: [...steps],
           providerOptions: stepProviderOptions,

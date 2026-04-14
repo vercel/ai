@@ -1,4 +1,4 @@
-import type { JSONValue, LanguageModelV4ToolChoice } from '@ai-sdk/provider';
+import type { JSONValue } from '@ai-sdk/provider';
 import type {
   Context,
   InferToolSetContext,
@@ -188,7 +188,7 @@ export interface OnStepStartEvent<
   readonly tools: TOOLS | undefined;
 
   /** The tool choice configuration for this step. */
-  readonly toolChoice: LanguageModelV4ToolChoice | undefined;
+  readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
 
   /** Limits which tools are available for this step. */
   readonly activeTools: Array<keyof TOOLS> | undefined;

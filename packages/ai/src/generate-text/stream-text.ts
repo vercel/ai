@@ -1616,7 +1616,7 @@ class DefaultStreamTextResult<
                     system: stepSystem,
                     messages: stepMessages,
                     tools,
-                    toolChoice: stepToolChoice,
+                    toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                     activeTools: prepareStepResult?.activeTools ?? activeTools,
                     steps: [...recordedSteps],
                     providerOptions: stepProviderOptions,
