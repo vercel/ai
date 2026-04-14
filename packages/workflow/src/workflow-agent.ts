@@ -368,7 +368,7 @@ export interface WorkflowAgentOptions<
   TTools extends ToolSet = ToolSet,
 > extends GenerationSettings {
   /**
-   * The id of the agent. Used for telemetry identification.
+   * The id of the agent.
    */
   id?: string;
 
