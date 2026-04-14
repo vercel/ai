@@ -2022,6 +2022,67 @@ describe('WorkflowAgent', () => {
     });
   });
 
+  describe('prompt parameter', () => {
+    it('should accept a string prompt instead of messages', async () => {
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: async () => mockModel,
+        tools: {},
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        prompt: 'What is the weather?',
+        writable: mockWritable,
+      });
+
+      // Verify streamTextIterator was called (standardizePrompt converts string prompt to messages)
+      expect(streamTextIterator).toHaveBeenCalled();
+    });
+
+    it('should accept an array of messages as prompt', async () => {
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: async () => mockModel,
+        tools: {},
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        prompt: [{ role: 'user', content: 'What is the weather?' }],
+        writable: mockWritable,
+      });
+
+      expect(streamTextIterator).toHaveBeenCalled();
+    });
+  });
+
   describe('tool call repair', () => {
     it('should pass repairToolCall through to streamTextIterator', async () => {
       const repairFn: ToolCallRepairFunction<ToolSet> = vi.fn();
