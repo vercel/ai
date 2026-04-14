@@ -73,7 +73,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -149,7 +149,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -221,7 +221,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -293,7 +293,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -379,7 +379,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -475,7 +475,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -552,7 +552,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -637,7 +637,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -716,7 +716,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -817,7 +817,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -879,7 +879,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -942,7 +942,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -979,7 +979,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1025,7 +1025,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1070,7 +1070,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1140,7 +1140,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1229,7 +1229,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1318,7 +1318,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1429,7 +1429,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         temperature: 0.7,
         maxOutputTokens: 1000,
@@ -1471,7 +1471,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         temperature: 0.7,
       });
@@ -1512,7 +1512,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1548,7 +1548,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         toolChoice: 'required',
       });
@@ -1582,7 +1582,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         toolChoice: 'auto',
       });
@@ -1637,7 +1637,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1675,7 +1675,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1722,7 +1722,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1786,7 +1786,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1857,7 +1857,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1907,7 +1907,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1959,7 +1959,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2029,7 +2029,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2067,7 +2067,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2109,7 +2109,7 @@ describe('WorkflowAgent', () => {
       };
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         experimental_telemetry: telemetrySettings,
       });
@@ -2143,7 +2143,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         experimental_telemetry: { functionId: 'constructor-id' },
       });
@@ -2182,7 +2182,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2212,7 +2212,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2241,7 +2241,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2278,7 +2278,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2323,7 +2323,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2373,7 +2373,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -2451,7 +2451,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -2522,7 +2522,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
