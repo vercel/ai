@@ -508,7 +508,6 @@ class DefaultStreamObjectResult<
           maxRetries,
           headers,
           providerOptions,
-          abortSignal,
           output: outputStrategy.type as
             | 'object'
             | 'array'
@@ -560,7 +559,6 @@ class DefaultStreamObjectResult<
           modelId: model.modelId,
           providerOptions,
           headers,
-          abortSignal,
           functionId: telemetry?.functionId,
           metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           promptMessages: callOptions.prompt,

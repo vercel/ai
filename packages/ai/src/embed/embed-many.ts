@@ -151,7 +151,6 @@ export async function embedMany({
       modelId: model.modelId,
       value: values,
       maxRetries,
-      abortSignal,
       headers: headersWithUserAgent,
       providerOptions,
       isEnabled: telemetry?.isEnabled,

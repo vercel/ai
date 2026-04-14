@@ -114,9 +114,6 @@ export interface OnStartEvent<
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /**
    * Settings for controlling what data is included in step results.
    */
@@ -220,9 +217,6 @@ export interface OnStepStartEvent<
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /**
    * Settings for controlling what data is included in step results.
    */
@@ -264,9 +258,6 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** The conversation messages available at tool execution time. */
   readonly messages: Array<ModelMessage>;
 
-  /** Signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
@@ -301,9 +292,6 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
 
   /** The conversation messages available at tool execution time. */
   readonly messages: Array<ModelMessage>;
-
-  /** Signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
 
   /** Execution time of the tool call in milliseconds. */
   readonly durationMs: number;

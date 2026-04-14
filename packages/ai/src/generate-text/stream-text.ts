@@ -593,7 +593,6 @@ export function streamText<
     includeRawChunks,
     timeout,
     stopWhen,
-    originalAbortSignal: abortSignal,
     onChunk,
     onError,
     onFinish,
@@ -781,7 +780,6 @@ class DefaultStreamTextResult<
     generateCallId,
     timeout,
     stopWhen,
-    originalAbortSignal,
     onChunk,
     onError,
     onFinish,
@@ -828,7 +826,6 @@ class DefaultStreamTextResult<
       | StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>
       | Array<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>
       | undefined;
-    originalAbortSignal: AbortSignal | undefined;
     context: InferToolSetContext<TOOLS> & USER_CONTEXT;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
@@ -1354,7 +1351,6 @@ class DefaultStreamTextResult<
           providerOptions,
           stopWhen,
           output,
-          abortSignal: originalAbortSignal,
           include,
           ...onStartTelemetryProps,
           context,
@@ -1624,7 +1620,6 @@ class DefaultStreamTextResult<
                     headers,
                     stopWhen,
                     output,
-                    abortSignal: originalAbortSignal,
                     include,
                     ...callbackTelemetryProps,
                     context,

@@ -89,7 +89,6 @@ export async function executeToolCall<
     modelId,
     toolCall,
     messages,
-    abortSignal,
     functionId: telemetry?.functionId,
     metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     context,

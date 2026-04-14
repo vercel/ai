@@ -135,7 +135,6 @@ export async function embed({
       modelId: model.modelId,
       value,
       maxRetries,
-      abortSignal,
       headers: headersWithUserAgent,
       providerOptions,
       isEnabled: telemetry?.isEnabled,
