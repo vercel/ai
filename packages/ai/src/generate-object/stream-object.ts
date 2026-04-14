@@ -16,9 +16,10 @@ import {
 import { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt/call-settings';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
+import { RequestOptions } from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
@@ -182,7 +183,8 @@ export function streamObject<
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<CallSettings, 'stopSequences'> &
+  options: Omit<LanguageModelCallOptions, 'stopSequences'> &
+    Omit<RequestOptions, 'timeout'> &
     Prompt &
     (OUTPUT extends 'enum'
       ? {
@@ -430,7 +432,7 @@ class DefaultStreamObjectResult<
     model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
-    settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
+    settings: LanguageModelCallOptions;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
@@ -458,7 +460,7 @@ class DefaultStreamObjectResult<
       abortSignal,
     });
 
-    const callSettings = prepareCallSettings(settings);
+    const callSettings = prepareLanguageModelCallOptions(settings);
 
     const unifiedTelemetry = createUnifiedTelemetry({
       integrations: telemetry?.integrations,
@@ -539,7 +541,7 @@ class DefaultStreamObjectResult<
           name: schemaName,
           description: schemaDescription,
         },
-        ...prepareCallSettings(settings),
+        ...prepareLanguageModelCallOptions(settings),
         prompt: await convertToLanguageModelPrompt({
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,

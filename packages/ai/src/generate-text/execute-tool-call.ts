@@ -7,7 +7,7 @@ import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
 import {
   getToolTimeoutMs,
   TimeoutConfiguration,
-} from '../prompt/call-settings';
+} from '../prompt/request-options';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { notify } from '../util/notify';
 import { now } from '../util/now';

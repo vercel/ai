@@ -1,14 +1,14 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import { prepareCallSettings } from './prepare-call-settings';
+import { prepareLanguageModelCallOptions } from './prepare-language-model-call-options';
 import {
   getToolTimeoutMs,
   getTotalTimeoutMs,
   getStepTimeoutMs,
   getChunkTimeoutMs,
-} from './call-settings';
+} from './request-options';
 import { describe, it, expect } from 'vitest';
 
-describe('prepareCallSettings', () => {
+describe('prepareLanguageModelCallOptions', () => {
   describe('valid inputs', () => {
     it('should not throw an error for valid settings', () => {
       const validSettings = {
@@ -19,10 +19,11 @@ describe('prepareCallSettings', () => {
         presencePenalty: 0.5,
         frequencyPenalty: 0.3,
         seed: 42,
-        // stopSequences is not validated by validateCallSettings
       };
 
-      expect(() => prepareCallSettings(validSettings)).not.toThrow();
+      expect(() =>
+        prepareLanguageModelCallOptions(validSettings),
+      ).not.toThrow();
     });
 
     it('should allow undefined values for optional settings', () => {
@@ -36,14 +37,18 @@ describe('prepareCallSettings', () => {
         seed: undefined,
       };
 
-      expect(() => prepareCallSettings(validSettings)).not.toThrow();
+      expect(() =>
+        prepareLanguageModelCallOptions(validSettings),
+      ).not.toThrow();
     });
   });
 
   describe('invalid inputs', () => {
     describe('maxOutputTokens', () => {
       it('should throw InvalidArgumentError if maxOutputTokens is not an integer', () => {
-        expect(() => prepareCallSettings({ maxOutputTokens: 10.5 })).toThrow(
+        expect(() =>
+          prepareLanguageModelCallOptions({ maxOutputTokens: 10.5 }),
+        ).toThrow(
           new InvalidArgumentError({
             parameter: 'maxOutputTokens',
             value: 10.5,
@@ -53,7 +58,9 @@ describe('prepareCallSettings', () => {
       });
 
       it('should throw InvalidArgumentError if maxOutputTokens is less than 1', () => {
-        expect(() => prepareCallSettings({ maxOutputTokens: 0 })).toThrow(
+        expect(() =>
+          prepareLanguageModelCallOptions({ maxOutputTokens: 0 }),
+        ).toThrow(
           new InvalidArgumentError({
             parameter: 'maxOutputTokens',
             value: 0,
@@ -66,7 +73,7 @@ describe('prepareCallSettings', () => {
     describe('temperature', () => {
       it('should throw InvalidArgumentError if temperature is not a number', () => {
         expect(() =>
-          prepareCallSettings({ temperature: 'invalid' as any }),
+          prepareLanguageModelCallOptions({ temperature: 'invalid' as any }),
         ).toThrow(
           new InvalidArgumentError({
             parameter: 'temperature',
@@ -79,7 +86,9 @@ describe('prepareCallSettings', () => {
 
     describe('topP', () => {
       it('should throw InvalidArgumentError if topP is not a number', () => {
-        expect(() => prepareCallSettings({ topP: 'invalid' as any })).toThrow(
+        expect(() =>
+          prepareLanguageModelCallOptions({ topP: 'invalid' as any }),
+        ).toThrow(
           new InvalidArgumentError({
             parameter: 'topP',
             value: 'invalid',
@@ -91,7 +100,9 @@ describe('prepareCallSettings', () => {
 
     describe('topK', () => {
       it('should throw InvalidArgumentError if topK is not a number', () => {
-        expect(() => prepareCallSettings({ topK: 'invalid' as any })).toThrow(
+        expect(() =>
+          prepareLanguageModelCallOptions({ topK: 'invalid' as any }),
+        ).toThrow(
           new InvalidArgumentError({
             parameter: 'topK',
             value: 'invalid',
@@ -104,7 +115,9 @@ describe('prepareCallSettings', () => {
     describe('presencePenalty', () => {
       it('should throw InvalidArgumentError if presencePenalty is not a number', () => {
         expect(() =>
-          prepareCallSettings({ presencePenalty: 'invalid' as any }),
+          prepareLanguageModelCallOptions({
+            presencePenalty: 'invalid' as any,
+          }),
         ).toThrow(
           new InvalidArgumentError({
             parameter: 'presencePenalty',
@@ -118,7 +131,9 @@ describe('prepareCallSettings', () => {
     describe('frequencyPenalty', () => {
       it('should throw InvalidArgumentError if frequencyPenalty is not a number', () => {
         expect(() =>
-          prepareCallSettings({ frequencyPenalty: 'invalid' as any }),
+          prepareLanguageModelCallOptions({
+            frequencyPenalty: 'invalid' as any,
+          }),
         ).toThrow(
           new InvalidArgumentError({
             parameter: 'frequencyPenalty',
@@ -131,7 +146,7 @@ describe('prepareCallSettings', () => {
 
     describe('seed', () => {
       it('should throw InvalidArgumentError if seed is not an integer', () => {
-        expect(() => prepareCallSettings({ seed: 10.5 })).toThrow(
+        expect(() => prepareLanguageModelCallOptions({ seed: 10.5 })).toThrow(
           new InvalidArgumentError({
             parameter: 'seed',
             value: 10.5,
@@ -152,22 +167,48 @@ describe('prepareCallSettings', () => {
         'high',
         'xhigh',
       ] as const) {
-        const settings = prepareCallSettings({ reasoning: value });
-        expect(settings.reasoning).toBe(value);
+        const options = prepareLanguageModelCallOptions({ reasoning: value });
+        expect(options.reasoning).toBe(value);
       }
     });
 
     it('should pass through provider-default', () => {
-      const settings = prepareCallSettings({ reasoning: 'provider-default' });
-      expect(settings.reasoning).toBe('provider-default');
+      const options = prepareLanguageModelCallOptions({
+        reasoning: 'provider-default',
+      });
+      expect(options.reasoning).toBe('provider-default');
     });
 
     it('should pass through undefined', () => {
-      const settings = prepareCallSettings({});
-      expect(settings.reasoning).toBeUndefined();
+      const options = prepareLanguageModelCallOptions({});
+      expect(options.reasoning).toBeUndefined();
     });
   });
 
+  it('should return a new object with limited values', () => {
+    const options = prepareLanguageModelCallOptions({
+      maxOutputTokens: 100,
+      temperature: 0.7,
+      random: 'invalid',
+    } as any);
+
+    expect(options).toMatchInlineSnapshot(`
+      {
+        "frequencyPenalty": undefined,
+        "maxOutputTokens": 100,
+        "presencePenalty": undefined,
+        "reasoning": undefined,
+        "seed": undefined,
+        "stopSequences": undefined,
+        "temperature": 0.7,
+        "topK": undefined,
+        "topP": undefined,
+      }
+    `);
+  });
+});
+
+describe('timeout helpers (from request-options)', () => {
   describe('getToolTimeoutMs', () => {
     it('should return undefined when timeout is undefined', () => {
       expect(getToolTimeoutMs(undefined, 'testTool')).toBeUndefined();
@@ -195,25 +236,49 @@ describe('prepareCallSettings', () => {
     });
   });
 
-  it('should return a new object with limited values', () => {
-    const settings = prepareCallSettings({
-      maxOutputTokens: 100,
-      temperature: 0.7,
-      random: 'invalid',
-    } as any);
+  describe('getTotalTimeoutMs', () => {
+    it('should return undefined when timeout is undefined', () => {
+      expect(getTotalTimeoutMs(undefined)).toBeUndefined();
+    });
 
-    expect(settings).toMatchInlineSnapshot(`
-      {
-        "frequencyPenalty": undefined,
-        "maxOutputTokens": 100,
-        "presencePenalty": undefined,
-        "reasoning": undefined,
-        "seed": undefined,
-        "stopSequences": undefined,
-        "temperature": 0.7,
-        "topK": undefined,
-        "topP": undefined,
-      }
-    `);
+    it('should return the number directly when timeout is a number', () => {
+      expect(getTotalTimeoutMs(5000)).toBe(5000);
+    });
+
+    it('should return totalMs from an object', () => {
+      expect(getTotalTimeoutMs({ totalMs: 10000 })).toBe(10000);
+    });
+
+    it('should return undefined when totalMs is not set', () => {
+      expect(getTotalTimeoutMs({ stepMs: 5000 })).toBeUndefined();
+    });
+  });
+
+  describe('getStepTimeoutMs', () => {
+    it('should return undefined when timeout is undefined', () => {
+      expect(getStepTimeoutMs(undefined)).toBeUndefined();
+    });
+
+    it('should return undefined when timeout is a number', () => {
+      expect(getStepTimeoutMs(5000)).toBeUndefined();
+    });
+
+    it('should return stepMs from an object', () => {
+      expect(getStepTimeoutMs({ stepMs: 3000 })).toBe(3000);
+    });
+  });
+
+  describe('getChunkTimeoutMs', () => {
+    it('should return undefined when timeout is undefined', () => {
+      expect(getChunkTimeoutMs(undefined)).toBeUndefined();
+    });
+
+    it('should return undefined when timeout is a number', () => {
+      expect(getChunkTimeoutMs(5000)).toBeUndefined();
+    });
+
+    it('should return chunkMs from an object', () => {
+      expect(getChunkTimeoutMs({ chunkMs: 2000 })).toBe(2000);
+    });
   });
 });
