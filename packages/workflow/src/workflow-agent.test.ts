@@ -1676,7 +1676,7 @@ describe('WorkflowAgent', () => {
       const stopWhenFn = vi.fn(() => false);
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         stopWhen: stopWhenFn as any,
       });
@@ -1711,7 +1711,7 @@ describe('WorkflowAgent', () => {
       const streamStopWhen = vi.fn(() => true);
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         stopWhen: constructorStopWhen as any,
       });
@@ -1758,7 +1758,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
         activeTools: ['tool1'],
       });
@@ -1792,7 +1792,7 @@ describe('WorkflowAgent', () => {
       const repairFn: ToolCallRepairFunction<ToolSet> = vi.fn();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         experimental_repairToolCall: repairFn,
       });
