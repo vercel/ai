@@ -1,6 +1,5 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { prepareModelCallOptions } from './prepare-model-call-options';
-import { prepareCallSettings } from '../../internal';
 import {
   getToolTimeoutMs,
   getTotalTimeoutMs,
@@ -196,23 +195,6 @@ describe('prepareModelCallOptions', () => {
         "topP": undefined,
       }
     `);
-  });
-});
-
-describe('prepareCallSettings (deprecated alias)', () => {
-  it('should behave identically to prepareModelCallOptions', () => {
-    const input = { maxOutputTokens: 100, temperature: 0.7 };
-    expect(prepareCallSettings(input)).toEqual(prepareModelCallOptions(input));
-  });
-
-  it('should throw the same errors as prepareModelCallOptions', () => {
-    expect(() => prepareCallSettings({ maxOutputTokens: 10.5 })).toThrow(
-      new InvalidArgumentError({
-        parameter: 'maxOutputTokens',
-        value: 10.5,
-        message: 'maxOutputTokens must be an integer',
-      }),
-    );
   });
 });
 
