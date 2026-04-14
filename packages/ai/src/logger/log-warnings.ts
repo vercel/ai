@@ -100,8 +100,8 @@ let hasLoggedBefore = false;
  * @param options.model - The model id used for the call.
  */
 export const logWarnings: LogWarningsFunction = options => {
-  // if the warnings array is empty, do nothing
-  if (options.warnings.length === 0) {
+  // if the warnings array is empty or undefined, do nothing
+  if (!options.warnings || options.warnings.length === 0) {
     return;
   }
 
