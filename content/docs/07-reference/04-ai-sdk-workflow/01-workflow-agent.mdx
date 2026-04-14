@@ -52,7 +52,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
   content={[
     {
       name: 'model',
-      type: 'WorkflowAgentModel',
+      type: 'LanguageModel',
       isRequired: true,
       description:
         'The language model to use. A string compatible with the Vercel AI Gateway (e.g., \'anthropic/claude-sonnet-4-6\') or a provider instance (e.g., `openai(\'gpt-4o\')`).',
@@ -118,7 +118,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'model',
-              type: 'WorkflowAgentModel',
+              type: 'LanguageModel',
               description: 'The model being used for the generation.',
             },
             {
@@ -147,7 +147,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'model',
-              type: 'WorkflowAgentModel',
+              type: 'LanguageModel',
               description: 'The model being used for this step.',
             },
             {
