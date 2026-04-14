@@ -189,6 +189,27 @@ export interface ToolCallPart {
   providerExecuted?: boolean;
 }
 
+export interface InvalidToolCallPart {
+  type: 'invalid-tool-call';
+
+  /**
+   * ID of the tool call. This ID is used to match the tool call with the tool result.
+   */
+  toolCallId: string;
+
+  /**
+   * Name of the tool that is being called.
+   */
+  toolName: string;
+
+  /**
+   * Arguments of the tool call. This is a JSON-serializable object that matches the tool's input schema.
+   */
+  rawInput: unknown;
+
+  errorText: string;
+}
+
 /**
  * Tool result content part of a prompt. It contains the result of the tool call with the matching ID.
  */
