@@ -84,6 +84,12 @@ export const anthropicLanguageModelOptions = z.object({
       z.object({
         /** for Sonnet 4.6, Opus 4.6, and newer models */
         type: z.literal('adaptive'),
+        /**
+         * Controls whether thinking content is included in the response.
+         * - `"omitted"`: Thinking blocks are present but text is empty (default for Opus 4.7+).
+         * - `"summarized"`: Thinking content is returned. Required to see reasoning output.
+         */
+        display: z.enum(['omitted', 'summarized']).optional(),
       }),
       z.object({
         /** for models before Opus 4.6, except Sonnet 4.6 still supports it */

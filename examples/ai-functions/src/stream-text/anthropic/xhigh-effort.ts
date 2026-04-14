@@ -1,13 +1,20 @@
-import { anthropic } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
     model: anthropic('claude-opus-4-7'),
-    prompt: 'Invent a new holiday and describe its traditions.',
-    maxRetries: 0,
+    prompt: 'Calculate how many days are in three weeks.',
     reasoning: 'xhigh',
+    providerOptions: {
+      anthropic: {
+        thinking: { type: 'adaptive', display: 'summarized' },
+      } satisfies AnthropicLanguageModelOptions,
+    },
   });
 
   for await (const part of result.fullStream) {

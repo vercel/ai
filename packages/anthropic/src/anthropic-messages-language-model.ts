@@ -395,11 +395,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
      * Map top-level `reasoning` to Anthropic thinking/effort when provider
      * options don't already specify them. Provider options always take precedence.
      */
-    if (
-      isCustomReasoning(reasoning) &&
-      anthropicOptions?.thinking == null &&
-      anthropicOptions?.effort == null
-    ) {
+    if (isCustomReasoning(reasoning) && anthropicOptions?.effort == null) {
       const reasoningConfig = resolveAnthropicReasoningConfig({
         reasoning,
         supportsAdaptiveThinking,
@@ -408,8 +404,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
         warnings,
       });
       if (reasoningConfig != null) {
-        anthropicOptions.thinking = reasoningConfig.thinking;
-        if (reasoningConfig.effort != null) {
+        if (anthropicOptions.thinking == null) {
+          anthropicOptions.thinking = reasoningConfig.thinking;
+        }
+        if (
+          reasoningConfig.effort != null &&
+          anthropicOptions.thinking?.type !== 'disabled'
+        ) {
           anthropicOptions.effort = reasoningConfig.effort;
         }
       }
@@ -421,6 +422,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
     let thinkingBudget =
       thinkingType === 'enabled'
         ? anthropicOptions?.thinking?.budgetTokens
+        : undefined;
+    const thinkingDisplay =
+      thinkingType === 'adaptive'
+        ? anthropicOptions?.thinking?.display
         : undefined;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
@@ -441,6 +446,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
         thinking: {
           type: thinkingType,
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
+          ...(thinkingDisplay != null && { display: thinkingDisplay }),
         },
       }),
       ...((anthropicOptions?.effort ||

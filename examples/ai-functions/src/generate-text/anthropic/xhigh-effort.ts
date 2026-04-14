@@ -1,4 +1,7 @@
-import { anthropic } from '@ai-sdk/anthropic';
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
 import { print } from '../../lib/print';
@@ -6,12 +9,16 @@ import { print } from '../../lib/print';
 run(async () => {
   const result = await generateText({
     model: anthropic('claude-opus-4-7'),
-    prompt: 'Invent a new holiday and describe its traditions.',
-    maxRetries: 0,
+    prompt: 'Calculate how many days are in three weeks.',
     reasoning: 'xhigh',
+    providerOptions: {
+      anthropic: {
+        thinking: { type: 'adaptive', display: 'summarized' },
+      } satisfies AnthropicLanguageModelOptions,
+    },
   });
 
-  print('Content:', result.content);
+  print('Reasoning:', result.reasoningText);
+  print('Content:', result.text);
   print('Usage:', result.usage);
-  print('Finish reason:', result.finishReason);
 });

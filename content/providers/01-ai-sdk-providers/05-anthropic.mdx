@@ -336,6 +336,31 @@ const { text } = await generateText({
 });
 ```
 
+##### Thinking Display (Opus 4.7+)
+
+Starting with `claude-opus-4-7`, thinking content is omitted from the response by default — thinking blocks are present in the stream but their text is empty. To receive reasoning output, set `display: 'summarized'`:
+
+```ts highlight="5"
+const { text, reasoningText } = await generateText({
+  model: anthropic('claude-opus-4-7'),
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive', display: 'summarized' },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+  prompt: 'How many people will live in the world in 2040?',
+});
+
+console.log(reasoningText); // reasoning text (empty without display: 'summarized')
+console.log(text);
+```
+
+<Note>
+  If you stream reasoning to users with `claude-opus-4-7`, the default `"omitted"` display will
+  cause a long pause before output begins. Set `display: "summarized"` to restore visible
+  progress during thinking.
+</Note>
+
 #### Budget-Based Thinking
 
 For earlier models (`claude-opus-4-20250514`, `claude-sonnet-4-20250514`, `claude-sonnet-4-5-20250929`),
