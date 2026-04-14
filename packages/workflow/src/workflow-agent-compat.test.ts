@@ -8,7 +8,6 @@
  * DIVERGENCES from ToolLoopAgent (necessary for workflow runtime):
  * - WorkflowAgent.stream() requires `messages` (ModelMessage[]) + `writable` (WritableStream)
  *   instead of ToolLoopAgent's `prompt` string
- * - WorkflowAgent model is `string | () => Promise<CompatibleLanguageModel>` instead of direct LanguageModel
  * - WorkflowAgent returns WorkflowAgentStreamResult (not StreamTextResult with consumeStream())
  */
 import { tool } from 'ai';
@@ -44,8 +43,7 @@ function createMockWritable() {
 
 /**
  * Wraps a MockLanguageModelV4 in an async factory function.
- * DIVERGENCE: WorkflowAgent model is `() => Promise<CompatibleLanguageModel>`
- * while ToolLoopAgent takes `LanguageModel` directly.
+ * Both WorkflowAgent and ToolLoopAgent accept LanguageModel directly.
  */
 function asModelFactory(model: MockLanguageModelV4) {
   return async () => model;
