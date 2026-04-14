@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`doEmbed > should expose the raw response headers and body 2`] = `
+{
+  "body": {
+    "data": [
+      {
+        "embedding": [
+          0.03302002,
+          0.020904541,
+          -0.019744873,
+          -0.0625,
+          0.04437256,
+        ],
+        "index": 0,
+      },
+      {
+        "embedding": [
+          -0.04660034,
+          0.00037765503,
+          -0.061157227,
+          -0.08239746,
+          -0.010360718,
+        ],
+        "index": 1,
+      },
+    ],
+    "model": "voyage-3.5",
+    "object": "list",
+    "usage": {
+      "total_tokens": 10,
+    },
+  },
+  "headers": {
+    "content-length": "246",
+    "content-type": "application/json",
+    "test-header": "test-value",
+  },
+}
+`;
