@@ -1,5 +1,5 @@
 import { Attributes, AttributeValue } from '@opentelemetry/api';
-import type { ModelCallOptions, TelemetrySettings } from 'ai';
+import type { LanguageModelCallOptions, TelemetrySettings } from 'ai';
 
 export function getBaseTelemetryAttributes({
   model,
@@ -8,7 +8,7 @@ export function getBaseTelemetryAttributes({
   headers,
 }: {
   model: { modelId: string; provider: string };
-  settings: Omit<ModelCallOptions, 'temperature'>;
+  settings: Omit<LanguageModelCallOptions, 'temperature'>;
   telemetry: TelemetrySettings | undefined;
   headers: Record<string, string | undefined> | undefined;
 }): Attributes {

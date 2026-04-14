@@ -1,10 +1,11 @@
-export type { ModelCallOptions } from './model-call-options';
+export type { LanguageModelCallOptions } from './language-model-call-options';
 export type { RequestOptions, TimeoutConfiguration } from './request-options';
 
-import type { ModelCallOptions } from './model-call-options';
+import type { LanguageModelCallOptions } from './language-model-call-options';
 import type { RequestOptions } from './request-options';
-/** @deprecated Use `ModelCallOptions` combined with `RequestOptions` instead. */
-export type CallSettings = ModelCallOptions & Omit<RequestOptions, 'timeout'>;
+/** @deprecated Use `LanguageModelCallOptions` combined with `RequestOptions` instead. */
+export type CallSettings = LanguageModelCallOptions &
+  Omit<RequestOptions, 'timeout'>;
 export {
   getTotalTimeoutMs,
   getStepTimeoutMs,

@@ -251,12 +251,12 @@ When migrating to the top-level `reasoning` option, remove overlapping reasoning
 
 If both are present, provider-specific reasoning settings in `providerOptions` take precedence, which can silently bypass your new top-level `reasoning` configuration.
 
-### Settings: `CallSettings` Renamed to `ModelCallOptions` and `RequestOptions`
+### Settings: `CallSettings` Renamed to `LanguageModelCallOptions` and `RequestOptions`
 
-`CallSettings` has been split into `ModelCallOptions` (model-facing options) and `RequestOptions` (transport options). Replace usages in custom wrappers or helpers:
+`CallSettings` has been split into `LanguageModelCallOptions` (model-facing options) and `RequestOptions` (transport options). Replace usages in custom wrappers or helpers:
 
-- `CallSettings` → `ModelCallOptions & Omit<RequestOptions, 'timeout'>` (note: `CallSettings` never included `timeout`)
-- `prepareCallSettings` → `prepareModelCallOptions`
+- `CallSettings` → `LanguageModelCallOptions & Omit<RequestOptions, 'timeout'>` (note: `CallSettings` never included `timeout`)
+- `prepareCallSettings` → `prepareLanguageModelCallOptions`
 
 Both deprecated names remain available in AI SDK 7.
 

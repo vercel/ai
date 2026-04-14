@@ -5,7 +5,7 @@ import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
  * generates its response (token limits, sampling, penalties, stop sequences,
  * seed, reasoning).
  */
-export type ModelCallOptions = {
+export type LanguageModelCallOptions = {
   /**
    * Maximum number of tokens to generate.
    */

@@ -11,8 +11,8 @@ import { extractReasoningContent } from '../generate-text/extract-reasoning-cont
 import { extractTextContent } from '../generate-text/extract-text-content';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { ModelCallOptions } from '../prompt/model-call-options';
-import { prepareModelCallOptions } from '../prompt/prepare-model-call-options';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import { RequestOptions } from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { Prompt } from '../prompt/prompt';
@@ -122,7 +122,7 @@ export async function generateObject<
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<ModelCallOptions, 'stopSequences'> &
+  options: Omit<LanguageModelCallOptions, 'stopSequences'> &
     Omit<RequestOptions, 'timeout'> &
     Prompt &
     (OUTPUT extends 'enum'
@@ -272,7 +272,7 @@ export async function generateObject<
     enumValues,
   });
 
-  const callSettings = prepareModelCallOptions(settings);
+  const callSettings = prepareLanguageModelCallOptions(settings);
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -357,7 +357,7 @@ export async function generateObject<
           name: schemaName,
           description: schemaDescription,
         },
-        ...prepareModelCallOptions(settings),
+        ...prepareLanguageModelCallOptions(settings),
         prompt: promptMessages,
         providerOptions,
         abortSignal,

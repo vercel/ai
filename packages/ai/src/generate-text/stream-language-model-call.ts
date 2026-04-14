@@ -12,7 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { ModelCallOptions } from '../prompt/model-call-options';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
@@ -193,7 +193,7 @@ export async function streamLanguageModelCall<
     promptMessages: LanguageModelV4Prompt;
   }) => Promise<void> | void;
 } & Prompt &
-  ModelCallOptions): Promise<{
+  LanguageModelCallOptions): Promise<{
   stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
   request?: {
     /**

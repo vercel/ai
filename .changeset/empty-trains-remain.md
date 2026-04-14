@@ -4,4 +4,4 @@
 "ai": patch
 ---
 
-feat(ai): break `CallSettings` apart into `ModelCallOptions` and `RequestOptions`
+feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`

@@ -1,10 +1,10 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import { ModelCallOptions } from './model-call-options';
+import { LanguageModelCallOptions } from './language-model-call-options';
 
 /**
  * Validates model call options and returns a new object with normalized values.
  */
-export function prepareModelCallOptions({
+export function prepareLanguageModelCallOptions({
   maxOutputTokens,
   temperature,
   topP,
@@ -14,7 +14,7 @@ export function prepareModelCallOptions({
   seed,
   stopSequences,
   reasoning,
-}: ModelCallOptions): ModelCallOptions {
+}: LanguageModelCallOptions): LanguageModelCallOptions {
   if (maxOutputTokens != null) {
     if (!Number.isInteger(maxOutputTokens)) {
       throw new InvalidArgumentError({

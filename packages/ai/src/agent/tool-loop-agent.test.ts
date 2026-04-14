@@ -258,7 +258,7 @@ describe('ToolLoopAgent', () => {
       });
     });
 
-    describe('ModelCallOptions forwarding', () => {
+    describe('LanguageModelCallOptions forwarding', () => {
       it('should forward temperature to generateText', async () => {
         const agent = new ToolLoopAgent({
           model: mockModel,

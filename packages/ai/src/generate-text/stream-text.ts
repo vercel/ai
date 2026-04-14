@@ -21,8 +21,8 @@ import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { ModelCallOptions } from '../prompt/model-call-options';
-import { prepareModelCallOptions } from '../prompt/prepare-model-call-options';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import {
   getChunkTimeoutMs,
   getStepTimeoutMs,
@@ -352,7 +352,7 @@ export function streamText<
     generateCallId = originalGenerateCallId,
   } = {},
   ...settings
-}: ModelCallOptions &
+}: LanguageModelCallOptions &
   RequestOptions<TOOLS> &
   Prompt &
   ContextParameter<TOOLS, USER_CONTEXT> & {
@@ -792,7 +792,7 @@ class DefaultStreamTextResult<
     model: LanguageModelV4;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
-    settings: ModelCallOptions;
+    settings: LanguageModelCallOptions;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     stepTimeoutMs: number | undefined;
@@ -1297,7 +1297,7 @@ class DefaultStreamTextResult<
       abortSignal,
     });
 
-    const callSettings = prepareModelCallOptions(settings);
+    const callSettings = prepareLanguageModelCallOptions(settings);
 
     const self = this;
 

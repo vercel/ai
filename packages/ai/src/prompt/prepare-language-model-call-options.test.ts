@@ -1,5 +1,5 @@
 import { InvalidArgumentError } from '../error/invalid-argument-error';
-import { prepareModelCallOptions } from './prepare-model-call-options';
+import { prepareLanguageModelCallOptions } from './prepare-language-model-call-options';
 import {
   getToolTimeoutMs,
   getTotalTimeoutMs,
@@ -8,7 +8,7 @@ import {
 } from './request-options';
 import { describe, it, expect } from 'vitest';
 
-describe('prepareModelCallOptions', () => {
+describe('prepareLanguageModelCallOptions', () => {
   describe('valid inputs', () => {
     it('should not throw an error for valid settings', () => {
       const validSettings = {
@@ -21,7 +21,9 @@ describe('prepareModelCallOptions', () => {
         seed: 42,
       };
 
-      expect(() => prepareModelCallOptions(validSettings)).not.toThrow();
+      expect(() =>
+        prepareLanguageModelCallOptions(validSettings),
+      ).not.toThrow();
     });
 
     it('should allow undefined values for optional settings', () => {
@@ -35,7 +37,9 @@ describe('prepareModelCallOptions', () => {
         seed: undefined,
       };
 
-      expect(() => prepareModelCallOptions(validSettings)).not.toThrow();
+      expect(() =>
+        prepareLanguageModelCallOptions(validSettings),
+      ).not.toThrow();
     });
   });
 
@@ -43,7 +47,7 @@ describe('prepareModelCallOptions', () => {
     describe('maxOutputTokens', () => {
       it('should throw InvalidArgumentError if maxOutputTokens is not an integer', () => {
         expect(() =>
-          prepareModelCallOptions({ maxOutputTokens: 10.5 }),
+          prepareLanguageModelCallOptions({ maxOutputTokens: 10.5 }),
         ).toThrow(
           new InvalidArgumentError({
             parameter: 'maxOutputTokens',
@@ -54,7 +58,9 @@ describe('prepareModelCallOptions', () => {
       });
 
       it('should throw InvalidArgumentError if maxOutputTokens is less than 1', () => {
-        expect(() => prepareModelCallOptions({ maxOutputTokens: 0 })).toThrow(
+        expect(() =>
+          prepareLanguageModelCallOptions({ maxOutputTokens: 0 }),
+        ).toThrow(
           new InvalidArgumentError({
             parameter: 'maxOutputTokens',
             value: 0,
@@ -67,7 +73,7 @@ describe('prepareModelCallOptions', () => {
     describe('temperature', () => {
       it('should throw InvalidArgumentError if temperature is not a number', () => {
         expect(() =>
-          prepareModelCallOptions({ temperature: 'invalid' as any }),
+          prepareLanguageModelCallOptions({ temperature: 'invalid' as any }),
         ).toThrow(
           new InvalidArgumentError({
             parameter: 'temperature',
@@ -81,7 +87,7 @@ describe('prepareModelCallOptions', () => {
     describe('topP', () => {
       it('should throw InvalidArgumentError if topP is not a number', () => {
         expect(() =>
-          prepareModelCallOptions({ topP: 'invalid' as any }),
+          prepareLanguageModelCallOptions({ topP: 'invalid' as any }),
         ).toThrow(
           new InvalidArgumentError({
             parameter: 'topP',
@@ -95,7 +101,7 @@ describe('prepareModelCallOptions', () => {
     describe('topK', () => {
       it('should throw InvalidArgumentError if topK is not a number', () => {
         expect(() =>
-          prepareModelCallOptions({ topK: 'invalid' as any }),
+          prepareLanguageModelCallOptions({ topK: 'invalid' as any }),
         ).toThrow(
           new InvalidArgumentError({
             parameter: 'topK',
@@ -109,7 +115,9 @@ describe('prepareModelCallOptions', () => {
     describe('presencePenalty', () => {
       it('should throw InvalidArgumentError if presencePenalty is not a number', () => {
         expect(() =>
-          prepareModelCallOptions({ presencePenalty: 'invalid' as any }),
+          prepareLanguageModelCallOptions({
+            presencePenalty: 'invalid' as any,
+          }),
         ).toThrow(
           new InvalidArgumentError({
             parameter: 'presencePenalty',
@@ -123,7 +131,9 @@ describe('prepareModelCallOptions', () => {
     describe('frequencyPenalty', () => {
       it('should throw InvalidArgumentError if frequencyPenalty is not a number', () => {
         expect(() =>
-          prepareModelCallOptions({ frequencyPenalty: 'invalid' as any }),
+          prepareLanguageModelCallOptions({
+            frequencyPenalty: 'invalid' as any,
+          }),
         ).toThrow(
           new InvalidArgumentError({
             parameter: 'frequencyPenalty',
@@ -136,7 +146,7 @@ describe('prepareModelCallOptions', () => {
 
     describe('seed', () => {
       it('should throw InvalidArgumentError if seed is not an integer', () => {
-        expect(() => prepareModelCallOptions({ seed: 10.5 })).toThrow(
+        expect(() => prepareLanguageModelCallOptions({ seed: 10.5 })).toThrow(
           new InvalidArgumentError({
             parameter: 'seed',
             value: 10.5,
@@ -157,26 +167,26 @@ describe('prepareModelCallOptions', () => {
         'high',
         'xhigh',
       ] as const) {
-        const options = prepareModelCallOptions({ reasoning: value });
+        const options = prepareLanguageModelCallOptions({ reasoning: value });
         expect(options.reasoning).toBe(value);
       }
     });
 
     it('should pass through provider-default', () => {
-      const options = prepareModelCallOptions({
+      const options = prepareLanguageModelCallOptions({
         reasoning: 'provider-default',
       });
       expect(options.reasoning).toBe('provider-default');
     });
 
     it('should pass through undefined', () => {
-      const options = prepareModelCallOptions({});
+      const options = prepareLanguageModelCallOptions({});
       expect(options.reasoning).toBeUndefined();
     });
   });
 
   it('should return a new object with limited values', () => {
-    const options = prepareModelCallOptions({
+    const options = prepareLanguageModelCallOptions({
       maxOutputTokens: 100,
       temperature: 0.7,
       random: 'invalid',

@@ -16,8 +16,8 @@ import {
 import { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { ModelCallOptions } from '../prompt/model-call-options';
-import { prepareModelCallOptions } from '../prompt/prepare-model-call-options';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import { RequestOptions } from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { Prompt } from '../prompt/prompt';
@@ -183,7 +183,7 @@ export function streamObject<
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<ModelCallOptions, 'stopSequences'> &
+  options: Omit<LanguageModelCallOptions, 'stopSequences'> &
     Omit<RequestOptions, 'timeout'> &
     Prompt &
     (OUTPUT extends 'enum'
@@ -432,7 +432,7 @@ class DefaultStreamObjectResult<
     model: LanguageModel;
     telemetry: TelemetrySettings | undefined;
     headers: Record<string, string | undefined> | undefined;
-    settings: ModelCallOptions;
+    settings: LanguageModelCallOptions;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
@@ -460,7 +460,7 @@ class DefaultStreamObjectResult<
       abortSignal,
     });
 
-    const callSettings = prepareModelCallOptions(settings);
+    const callSettings = prepareLanguageModelCallOptions(settings);
 
     const unifiedTelemetry = createUnifiedTelemetry({
       integrations: telemetry?.integrations,
@@ -541,7 +541,7 @@ class DefaultStreamObjectResult<
           name: schemaName,
           description: schemaDescription,
         },
-        ...prepareModelCallOptions(settings),
+        ...prepareLanguageModelCallOptions(settings),
         prompt: await convertToLanguageModelPrompt({
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,

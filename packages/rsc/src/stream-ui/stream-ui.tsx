@@ -14,7 +14,7 @@ import {
   FinishReason,
   InvalidToolInputError,
   LanguageModelUsage,
-  ModelCallOptions,
+  LanguageModelCallOptions,
   NoSuchToolError,
   Prompt,
   RequestOptions,
@@ -24,7 +24,7 @@ import {
 import {
   asLanguageModelUsage,
   convertToLanguageModelPrompt,
-  prepareModelCallOptions,
+  prepareLanguageModelCallOptions,
   prepareRetries,
   prepareToolChoice,
   prepareTools,
@@ -112,7 +112,7 @@ export async function streamUI<
   providerOptions,
   onFinish,
   ...settings
-}: ModelCallOptions &
+}: LanguageModelCallOptions &
   Omit<RequestOptions, 'timeout'> &
   Prompt & {
     /**
@@ -282,7 +282,7 @@ export async function streamUI<
 
   const result = await retry(async () =>
     model.doStream({
-      ...prepareModelCallOptions(settings),
+      ...prepareLanguageModelCallOptions(settings),
       tools: languageModelTools,
       toolChoice: languageModelToolChoice,
       prompt: await convertToLanguageModelPrompt({

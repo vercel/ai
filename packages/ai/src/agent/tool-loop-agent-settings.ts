@@ -21,7 +21,7 @@ import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
-import { ModelCallOptions } from '../prompt/model-call-options';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { RequestOptions } from '../prompt/request-options';
 import { Prompt } from '../prompt/prompt';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
@@ -69,7 +69,7 @@ export type ToolLoopAgentSettings<
   TOOLS extends ToolSet = {},
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
-> = ModelCallOptions &
+> = LanguageModelCallOptions &
   Omit<RequestOptions<TOOLS>, 'abortSignal'> &
   ContextParameter<TOOLS, USER_CONTEXT> & {
     /**

@@ -20,8 +20,8 @@ import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-f
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
-import { ModelCallOptions } from '../prompt/model-call-options';
-import { prepareModelCallOptions } from '../prompt/prepare-model-call-options';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import {
   getStepTimeoutMs,
   getTotalTimeoutMs,
@@ -293,7 +293,7 @@ export async function generateText<
   onStepFinish,
   onFinish,
   ...settings
-}: ModelCallOptions &
+}: LanguageModelCallOptions &
   RequestOptions<TOOLS> &
   Prompt &
   ContextParameter<TOOLS, USER_CONTEXT> & {
@@ -479,7 +479,7 @@ export async function generateText<
     abortSignal: mergedAbortSignal,
   });
 
-  const callSettings = prepareModelCallOptions(settings);
+  const callSettings = prepareLanguageModelCallOptions(settings);
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -641,7 +641,7 @@ export async function generateText<
       });
     }
 
-    const callSettings = prepareModelCallOptions(settings);
+    const callSettings = prepareLanguageModelCallOptions(settings);
 
     let currentModelResponse: LanguageModelV4GenerateResult & {
       response: { id: string; timestamp: Date; modelId: string };
