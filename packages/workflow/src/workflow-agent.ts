@@ -1409,6 +1409,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           context,
           providerExecutedToolResults,
         } = result.value;
+        // Capture current step number before pushing (0-based)
+        const currentStepNumber = steps.length;
         if (step) {
           steps.push(step as unknown as StepResult<TTools, any>);
         }
@@ -1472,7 +1474,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                     effectiveTools as ToolSet,
                     iterMessages,
                     experimentalContext,
-                    steps.length,
+                    currentStepNumber,
                   ),
               ),
             );
