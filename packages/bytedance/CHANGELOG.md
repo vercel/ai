@@ -1,5 +1,11 @@
 # @ai-sdk/bytedance
 
+## 2.0.0-beta.22
+
+### Patch Changes
+
+- 12d239b: feat (provider/bytedance): add seedance 2.0 support
+
 ## 2.0.0-beta.21
 
 ### Patch Changes
