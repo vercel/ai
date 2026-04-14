@@ -231,7 +231,7 @@ export interface OnStepStartEvent<
   /**
    * User-defined context object. May be updated from `prepareStep` between steps.
    */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }
 
 /**
@@ -265,7 +265,7 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   readonly functionId: string | undefined;
 
   /** User-defined context object flowing through the generation. */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS>;
 }
 
 /**
@@ -303,7 +303,7 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   readonly functionId: string | undefined;
 
   /** User-defined context object flowing through the generation. */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS>;
 } & (
   | {
       /** Indicates the tool call succeeded. */
