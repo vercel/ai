@@ -4,7 +4,7 @@ import {
   InferToolSetContext,
   ModelMessage,
 } from '@ai-sdk/provider-utils';
-import { TimeoutConfiguration } from '../prompt/call-settings';
+import { TimeoutConfiguration } from '../prompt/request-options';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { executeToolCall } from './execute-tool-call';
