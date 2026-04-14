@@ -155,6 +155,11 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
               type: 'Array<ModelMessage>',
               description: 'The messages that will be sent to the model for this step.',
             },
+            {
+              name: 'steps',
+              type: 'ReadonlyArray<StepResult>',
+              description: 'Results from all previously finished steps.',
+            },
           ],
         },
       ],
@@ -174,6 +179,11 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
               type: '{ type: "tool-call"; toolCallId: string; toolName: string; input: unknown }',
               description: 'The tool call being executed.',
             },
+            {
+              name: 'stepNumber',
+              type: 'number',
+              description: 'Zero-based index of the current step.',
+            },
           ],
         },
       ],
@@ -183,7 +193,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'WorkflowAgentOnToolCallFinishCallback',
       isOptional: true,
       description:
-        "Callback called right after a tool's execute function completes or errors. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).",
+        "Callback called right after a tool's execute function completes or errors. Uses a discriminated union: check `success` to determine whether `output` or `error` is available. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).",
       properties: [
         {
           type: 'OnToolCallFinishEvent',
@@ -194,14 +204,29 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
               description: 'The tool call that was executed.',
             },
             {
-              name: 'result',
+              name: 'stepNumber',
+              type: 'number',
+              description: 'Zero-based index of the current step.',
+            },
+            {
+              name: 'durationMs',
+              type: 'number',
+              description: 'Tool execution time in milliseconds.',
+            },
+            {
+              name: 'success',
+              type: 'boolean',
+              description: 'Whether the tool call succeeded. When true, `output` is available. When false, `error` is available.',
+            },
+            {
+              name: 'output',
               type: 'unknown',
-              description: 'The tool result (undefined if execution failed).',
+              description: 'The tool result (only when success is true).',
             },
             {
               name: 'error',
               type: 'unknown',
-              description: 'The error if execution failed.',
+              description: 'The error that occurred (only when success is false).',
             },
           ],
         },

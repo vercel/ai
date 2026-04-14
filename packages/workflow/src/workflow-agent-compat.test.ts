@@ -723,7 +723,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         `);
       });
 
-      // GAP: WorkflowAgent's onStepStart event doesn't include system, steps,
+      // GAP: WorkflowAgent's onStepStart event doesn't include system,
       // experimental_context, or resolved model yet.
       // These fields need to be added to match ToolLoopAgent's OnStepStartEvent.
       it('should pass correct event information', async () => {
@@ -804,7 +804,7 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
               "specificationVersion": "v4",
             },
             "stepNumber": 0,
-            "steps": undefined,
+            "steps": [],
             "system": undefined,
           }
         `);

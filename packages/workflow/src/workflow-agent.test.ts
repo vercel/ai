@@ -1887,6 +1887,196 @@ describe('WorkflowAgent', () => {
 
       expect(onAbort).toHaveBeenCalledWith({ steps: [] });
     });
+
+    it('should pass stepNumber to onToolCallStart and use discriminated union in onToolCallFinish', async () => {
+      const tools: ToolSet = {
+        testTool: {
+          description: 'A test tool',
+          inputSchema: z.object({}),
+          execute: async () => ({ result: 'ok' }),
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const onToolCallStart = vi.fn();
+      const onToolCallFinish = vi.fn();
+
+      const agent = new WorkflowAgent({
+        model: async () => mockModel,
+        tools,
+        experimental_onToolCallStart: onToolCallStart,
+        experimental_onToolCallFinish: onToolCallFinish,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'call-1',
+                  toolName: 'testTool',
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      // Verify onToolCallStart includes stepNumber
+      expect(onToolCallStart).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          toolCall: expect.objectContaining({
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+          }),
+        }),
+      );
+
+      // Verify onToolCallFinish uses discriminated union with success: true
+      expect(onToolCallFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          success: true,
+          output: { result: 'ok' },
+          durationMs: expect.any(Number),
+          toolCall: expect.objectContaining({
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+          }),
+        }),
+      );
+    });
+
+    it('should pass success: false in onToolCallFinish when tool errors', async () => {
+      const tools: ToolSet = {
+        failTool: {
+          description: 'A tool that fails',
+          inputSchema: z.object({}),
+          execute: async () => {
+            throw new Error('tool failed');
+          },
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const onToolCallFinish = vi.fn();
+
+      const agent = new WorkflowAgent({
+        model: async () => mockModel,
+        tools,
+        experimental_onToolCallFinish: onToolCallFinish,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'call-1',
+                  toolName: 'failTool',
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      // Verify onToolCallFinish uses discriminated union with success: false
+      expect(onToolCallFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          success: false,
+          error: 'tool failed',
+          durationMs: expect.any(Number),
+        }),
+      );
+    });
+
+    it('should pass steps to onStepStart callback', async () => {
+      const mockModel = createMockModel();
+
+      const onStepStart = vi.fn();
+
+      const agent = new WorkflowAgent({
+        model: async () => mockModel,
+        tools: {},
+        experimental_onStepStart: onStepStart,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      // Verify onStepStart is passed to streamTextIterator (it will be called internally)
+      expect(streamTextIterator).toHaveBeenCalledWith(
+        expect.objectContaining({
+          onStepStart: expect.any(Function),
+        }),
+      );
+    });
   });
 
   describe('experimental_context', () => {

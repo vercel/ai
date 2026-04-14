@@ -535,13 +535,17 @@ export type WorkflowAgentOnStartCallback = (event: {
 /**
  * Callback that is called before each step (LLM call) begins.
  */
-export type WorkflowAgentOnStepStartCallback = (event: {
+export type WorkflowAgentOnStepStartCallback<
+  TTools extends ToolSet = ToolSet,
+> = (event: {
   /** The current step number (0-based) */
   readonly stepNumber: number;
   /** The model being used for this step */
   readonly model: LanguageModel;
   /** The messages being sent for this step */
   readonly messages: ModelMessage[];
+  /** Results from all previously finished steps */
+  readonly steps: ReadonlyArray<StepResult<TTools, any>>;
 }) => PromiseLike<void> | void;
 
 /**
@@ -550,19 +554,44 @@ export type WorkflowAgentOnStepStartCallback = (event: {
 export type WorkflowAgentOnToolCallStartCallback = (event: {
   /** The tool call being executed */
   readonly toolCall: ToolCall;
+  /** The current step number (0-based) */
+  readonly stepNumber: number;
 }) => PromiseLike<void> | void;
 
 /**
  * Callback that is called after a tool execution completes.
+ * Uses a discriminated union pattern: check `success` to determine
+ * whether `output` or `error` is available.
  */
-export type WorkflowAgentOnToolCallFinishCallback = (event: {
-  /** The tool call that was executed */
-  readonly toolCall: ToolCall;
-  /** The tool result (undefined if execution failed) */
-  readonly result?: unknown;
-  /** The error if execution failed */
-  readonly error?: unknown;
-}) => PromiseLike<void> | void;
+export type WorkflowAgentOnToolCallFinishCallback = (
+  event:
+    | {
+        /** The tool call that was executed */
+        readonly toolCall: ToolCall;
+        /** The current step number (0-based) */
+        readonly stepNumber: number;
+        /** Execution time in milliseconds */
+        readonly durationMs: number;
+        /** Whether the tool call succeeded */
+        readonly success: true;
+        /** The tool result */
+        readonly output: unknown;
+        readonly error?: never;
+      }
+    | {
+        /** The tool call that was executed */
+        readonly toolCall: ToolCall;
+        /** The current step number (0-based) */
+        readonly stepNumber: number;
+        /** Execution time in milliseconds */
+        readonly durationMs: number;
+        /** Whether the tool call succeeded */
+        readonly success: false;
+        /** The error that occurred */
+        readonly error: unknown;
+        readonly output?: never;
+      },
+) => PromiseLike<void> | void;
 
 /**
  * Options for the {@link WorkflowAgent.stream} method.
@@ -1254,59 +1283,67 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       tools: ToolSet,
       messages: LanguageModelV4Prompt,
       context?: unknown,
+      currentStepNumber: number = 0,
     ): Promise<LanguageModelV4ToolResultPart> => {
+      const toolCallEvent: ToolCall = {
+        type: 'tool-call',
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+      };
+
       if (mergedOnToolCallStart) {
         await mergedOnToolCallStart({
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: toolCall.toolCallId,
-            toolName: toolCall.toolName,
-            input: toolCall.input,
-          },
+          toolCall: toolCallEvent,
+          stepNumber: currentStepNumber,
         });
       }
+
+      const startTime = Date.now();
       let result: LanguageModelV4ToolResultPart;
       try {
         result = await executeTool(toolCall, tools, messages, context);
       } catch (err) {
+        const durationMs = Date.now() - startTime;
         if (mergedOnToolCallFinish) {
           await mergedOnToolCallFinish({
-            toolCall: {
-              type: 'tool-call',
-              toolCallId: toolCall.toolCallId,
-              toolName: toolCall.toolName,
-              input: toolCall.input,
-            },
+            toolCall: toolCallEvent,
+            stepNumber: currentStepNumber,
+            durationMs,
+            success: false,
             error: err,
           });
         }
         throw err;
       }
+
+      const durationMs = Date.now() - startTime;
       if (mergedOnToolCallFinish) {
         const isError =
           result.output &&
           'type' in result.output &&
           (result.output.type === 'error-text' ||
             result.output.type === 'error-json');
-        await mergedOnToolCallFinish({
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: toolCall.toolCallId,
-            toolName: toolCall.toolName,
-            input: toolCall.input,
-          },
-          ...(isError
-            ? {
-                error:
-                  'value' in result.output ? result.output.value : undefined,
-              }
-            : {
-                result:
-                  result.output && 'value' in result.output
-                    ? result.output.value
-                    : undefined,
-              }),
-        });
+        if (isError) {
+          await mergedOnToolCallFinish({
+            toolCall: toolCallEvent,
+            stepNumber: currentStepNumber,
+            durationMs,
+            success: false,
+            error: 'value' in result.output ? result.output.value : undefined,
+          });
+        } else {
+          await mergedOnToolCallFinish({
+            toolCall: toolCallEvent,
+            stepNumber: currentStepNumber,
+            durationMs,
+            success: true,
+            output:
+              result.output && 'value' in result.output
+                ? result.output.value
+                : undefined,
+          });
+        }
       }
       return result;
     };
@@ -1435,6 +1472,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                     effectiveTools as ToolSet,
                     iterMessages,
                     experimentalContext,
+                    steps.length,
                   ),
               ),
             );
@@ -1535,6 +1573,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                   effectiveTools as ToolSet,
                   iterMessages,
                   experimentalContext,
+                  steps.length,
                 ),
             ),
           );
