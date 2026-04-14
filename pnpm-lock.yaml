@@ -163,7 +163,7 @@ importers:
         version: 0.545.0(react@18.3.1)
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -206,10 +206,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.4.14
-        version: 10.4.27(postcss@8.5.6)
+        version: 10.4.27(postcss@8.5.9)
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -345,6 +345,9 @@ importers:
       '@ai-sdk/vercel':
         specifier: workspace:*
         version: link:../../packages/vercel
+      '@ai-sdk/voyage':
+        specifier: workspace:*
+        version: link:../../packages/voyage
       '@ai-sdk/xai':
         specifier: workspace:*
         version: link:../../packages/xai
@@ -687,7 +690,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -718,10 +721,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.4.14
-        version: 10.4.27(postcss@8.5.6)
+        version: 10.4.27(postcss@8.5.9)
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -745,7 +748,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -773,10 +776,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.4.14
-        version: 10.4.27(postcss@8.5.6)
+        version: 10.4.27(postcss@8.5.9)
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -794,10 +797,10 @@ importers:
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
-        version: 1.7.0(next@15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
+        version: 1.7.0(next@15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -816,13 +819,13 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.4.14
-        version: 10.4.27(postcss@8.5.6)
+        version: 10.4.27(postcss@8.5.9)
       concurrently:
         specifier: ^9.1.0
         version: 9.2.1
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -840,10 +843,10 @@ importers:
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
-        version: 1.7.0(next@15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
+        version: 1.7.0(next@15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -862,7 +865,7 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -901,7 +904,7 @@ importers:
         version: 0.561.0(react@18.3.1)
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -923,13 +926,13 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.4.14
-        version: 10.4.27(postcss@8.5.6)
+        version: 10.4.27(postcss@8.5.9)
       npm-run-all2:
         specifier: ^8.0.4
         version: 8.0.4
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -953,7 +956,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -975,10 +978,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.4.14
-        version: 10.4.27(postcss@8.5.6)
+        version: 10.4.27(postcss@8.5.9)
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -999,7 +1002,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -1021,10 +1024,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.4.14
-        version: 10.4.27(postcss@8.5.6)
+        version: 10.4.27(postcss@8.5.9)
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.4.5))
@@ -1057,7 +1060,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -1079,10 +1082,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.4.14
-        version: 10.4.27(postcss@8.5.6)
+        version: 10.4.27(postcss@8.5.9)
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.6.3))
@@ -1109,7 +1112,7 @@ importers:
         version: 0.55.0(@opentelemetry/api@1.9.0)
       '@sentry/nextjs':
         specifier: ^10.17.0
-        version: 10.40.0(@opentelemetry/context-async-hooks@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(encoding@0.1.13)(next@15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(@swc/core@1.15.3))
+        version: 10.40.0(@opentelemetry/context-async-hooks@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(encoding@0.1.13)(next@15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(@swc/core@1.15.3))
       '@sentry/opentelemetry':
         specifier: 8.22.0
         version: 8.22.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.37.0)
@@ -1121,7 +1124,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -1143,10 +1146,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.4.14
-        version: 10.4.27(postcss@8.5.6)
+        version: 10.4.27(postcss@8.5.9)
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -1173,7 +1176,7 @@ importers:
         version: link:../../packages/ai
       next:
         specifier: ^15.5.9
-        version: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+        version: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       react:
         specifier: ^18
         version: 18.3.1
@@ -1195,10 +1198,10 @@ importers:
         version: 18.3.7(@types/react@18.3.28)
       autoprefixer:
         specifier: ^10.4.14
-        version: 10.4.27(postcss@8.5.6)
+        version: 10.4.27(postcss@8.5.9)
       postcss:
         specifier: ^8.4.49
-        version: 8.5.6
+        version: 8.5.9
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.19(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
@@ -1300,13 +1303,13 @@ importers:
     devDependencies:
       '@nuxt/devtools':
         specifier: 1.6.3
-        version: 1.6.3(rollup@4.34.9)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))
+        version: 1.6.3(rollup@4.59.0)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))
       '@nuxt/ui-templates':
         specifier: 1.3.4
         version: 1.3.4
       '@nuxtjs/tailwindcss':
         specifier: 6.12.2
-        version: 6.12.2(magicast@0.3.5)(rollup@4.34.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.9.3))
+        version: 6.12.2(magicast@0.3.5)(rollup@4.59.0)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.9.3))
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -1324,7 +1327,7 @@ importers:
         version: 3.5.12
       nuxt:
         specifier: 3.14.159
-        version: 3.14.159(@parcel/watcher@2.4.1)(@types/node@20.17.24)(@upstash/redis@1.34.3)(encoding@0.1.13)(eslint@9.39.3(jiti@2.6.1))(ioredis@5.4.1)(less@4.4.0)(lightningcss@1.31.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.34.9)(sass@1.90.0)(terser@5.43.1)(typescript@5.9.3)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(webpack-sources@3.3.4)
+        version: 3.14.159(@parcel/watcher@2.4.1)(@types/node@20.17.24)(@upstash/redis@1.34.3)(encoding@0.1.13)(eslint@9.39.3(jiti@2.6.1))(ioredis@5.4.1)(less@4.4.0)(lightningcss@1.31.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.59.0)(sass@1.90.0)(terser@5.43.1)(typescript@5.9.3)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(webpack-sources@3.3.4)
       tailwindcss:
         specifier: 3.4.15
         version: 3.4.15(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.9.3))
@@ -1488,7 +1491,7 @@ importers:
         version: 4.2.10
       '@smithy/util-utf8':
         specifier: ^4.0.0
-        version: 4.2.1
+        version: 4.2.2
       aws4fetch:
         specifier: ^1.0.20
         version: 1.0.20
@@ -3108,6 +3111,34 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.5.1(@swc/core@1.15.3)(jiti@2.6.1)(postcss@8.5.9)(tsx@4.21.0)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/voyage:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
       '@types/node':
         specifier: 20.17.24
         version: 20.17.24
@@ -6878,9 +6909,6 @@ packages:
   '@jimp/utils@0.16.13':
     resolution: {integrity: sha512-VyCpkZzFTHXtKgVO35iKN0sYR10psGpV6SkcSeV4oF7eSYlR8Bl6aQLCzVeFjvESF7mxTmIiI3/XrMobVrtxDA==}
 
-  '@jridgewell/gen-mapping@0.3.12':
-    resolution: {integrity: sha512-OuLGC46TjB5BbN1dH8JULVVZY4WTdkF7tV9Ys6wLL1rubZnCMstOhNHueU5bLCrnRuDhKPDM4g6sw4Bel5Gzqg==}
-
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
 
@@ -9923,10 +9951,6 @@ packages:
     resolution: {integrity: sha512-GGP3O9QFD24uGeAXYUjwSTXARoqpZykHadOmA8G5vfJPK0/DC67qa//0qvqrJzL1xc8WQWX7/yc7fwudjPHPhA==}
     engines: {node: '>=14.0.0'}
 
-  '@smithy/is-array-buffer@4.2.1':
-    resolution: {integrity: sha512-Yfu664Qbf1B4IYIsYgKoABt010daZjkaCRvdU/sPnZG6TtHOB0md0RjNdLGzxe5UIdn9js4ftPICzmkRa9RJ4Q==}
-    engines: {node: '>=18.0.0'}
-
   '@smithy/is-array-buffer@4.2.2':
     resolution: {integrity: sha512-n6rQ4N8Jj4YTQO3YFrlgZuwKodf4zUFs7EJIWH86pSCWBaAtAGBFfCM7Wx6D2bBJ2xqFNxGBSrUWswT3M0VJow==}
     engines: {node: '>=18.0.0'}
@@ -10023,10 +10047,6 @@ packages:
     resolution: {integrity: sha512-IJdWBbTcMQ6DA0gdNhh/BwrLkDR+ADW5Kr1aZmd4k3DIF6ezMV4R2NIAmT08wQJ3yUK82thHWmC/TnK/wpMMIA==}
     engines: {node: '>=14.0.0'}
 
-  '@smithy/util-buffer-from@4.2.1':
-    resolution: {integrity: sha512-/swhmt1qTiVkaejlmMPPDgZhEaWb/HWMGRBheaxwuVkusp/z+ErJyQxO6kaXumOciZSWlmq6Z5mNylCd33X7Ig==}
-    engines: {node: '>=18.0.0'}
-
   '@smithy/util-buffer-from@4.2.2':
     resolution: {integrity: sha512-FDXD7cvUoFWwN6vtQfEta540Y/YBe5JneK3SoZg9bThSoOAC/eGeYEua6RkBgKjGa/sz6Y+DuBZj3+YEY21y4Q==}
     engines: {node: '>=18.0.0'}
@@ -10074,10 +10094,6 @@ packages:
   '@smithy/util-utf8@2.3.0':
     resolution: {integrity: sha512-R8Rdn8Hy72KKcebgLiv8jQcQkXoLMOGGv5uI1/k0l+snqkOzQ1R0ChUBCxWMlBsFMekWjq0wRudIweFs7sKT5A==}
     engines: {node: '>=14.0.0'}
-
-  '@smithy/util-utf8@4.2.1':
-    resolution: {integrity: sha512-DSIwNaWtmzrNQHv8g7DBGR9mulSit65KSj5ymGEIAknmIN8IpbZefEep10LaMG/P/xquwbmJ1h9ectz8z6mV6g==}
-    engines: {node: '>=18.0.0'}
 
   '@smithy/util-utf8@4.2.2':
     resolution: {integrity: sha512-75MeYpjdWRe8M5E3AW0O4Cx3UadweS+cwdXjwYGBW5h/gxxnbeZ877sLPX/ZJA9GVTlL/qG0dXP29JWFCD1Ayw==}
@@ -16178,9 +16194,6 @@ packages:
 
   mlly@1.7.3:
     resolution: {integrity: sha512-xUsx5n/mN0uQf4V548PKQ+YShA4/IW0KI1dZhrNrPCLG+xizETbHTkOa1f8/xut9JRPp8kQuMnz0oqwkTiLo/A==}
-
-  mlly@1.8.0:
-    resolution: {integrity: sha512-l8D9ODSRWLe2KHJSifWGwBqpTZXIXTeo8mlKjY+E2HAakaTeNpqAyBZ8GSqLzHgw4XmHmC8whvpjJNMbFZN7/g==}
 
   mlly@1.8.2:
     resolution: {integrity: sha512-d+ObxMQFmbt10sretNDytwt85VrbkhhUA/JBGm1MPaWJ65Cl4wOgLaB1NYvJSZ0Ef03MMEU/0xpPMXUIQ29UfA==}
@@ -23924,7 +23937,7 @@ snapshots:
       globals: 15.15.0
       kolorist: 1.8.0
       local-pkg: 1.1.2
-      mlly: 1.8.0
+      mlly: 1.8.2
     transitivePeerDependencies:
       - supports-color
 
@@ -24991,11 +25004,6 @@ snapshots:
       '@babel/runtime': 7.28.3
       regenerator-runtime: 0.13.11
 
-  '@jridgewell/gen-mapping@0.3.12':
-    dependencies:
-      '@jridgewell/sourcemap-codec': 1.5.5
-      '@jridgewell/trace-mapping': 0.3.31
-
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
@@ -25788,10 +25796,10 @@ snapshots:
 
   '@nuxt/devalue@2.0.2': {}
 
-  '@nuxt/devtools-kit@1.6.3(magicast@0.3.5)(rollup@4.34.9)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))':
+  '@nuxt/devtools-kit@1.6.3(magicast@0.3.5)(rollup@4.59.0)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))':
     dependencies:
-      '@nuxt/kit': 3.14.1592(magicast@0.3.5)(rollup@4.34.9)
-      '@nuxt/schema': 3.14.1592(magicast@0.3.5)(rollup@4.34.9)
+      '@nuxt/kit': 3.14.1592(magicast@0.3.5)(rollup@4.59.0)
+      '@nuxt/schema': 3.14.1592(magicast@0.3.5)(rollup@4.59.0)
       execa: 7.2.0
       vite: 5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)
     transitivePeerDependencies:
@@ -25801,7 +25809,7 @@ snapshots:
 
   '@nuxt/devtools-wizard@1.6.3':
     dependencies:
-      consola: 3.2.3
+      consola: 3.4.2
       diff: 7.0.0
       execa: 7.2.0
       global-directory: 4.0.1
@@ -25812,12 +25820,12 @@ snapshots:
       rc9: 2.1.2
       semver: 7.7.4
 
-  '@nuxt/devtools@1.6.3(rollup@4.34.9)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))':
+  '@nuxt/devtools@1.6.3(rollup@4.59.0)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))':
     dependencies:
       '@antfu/utils': 0.7.10
-      '@nuxt/devtools-kit': 1.6.3(magicast@0.3.5)(rollup@4.34.9)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))
+      '@nuxt/devtools-kit': 1.6.3(magicast@0.3.5)(rollup@4.59.0)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))
       '@nuxt/devtools-wizard': 1.6.3
-      '@nuxt/kit': 3.14.1592(magicast@0.3.5)(rollup@4.34.9)
+      '@nuxt/kit': 3.14.1592(magicast@0.3.5)(rollup@4.59.0)
       '@vue/devtools-core': 7.6.4(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))
       '@vue/devtools-kit': 7.6.4
       birpc: 0.2.19
@@ -25846,9 +25854,9 @@ snapshots:
       simple-git: 3.27.0
       sirv: 3.0.0
       tinyglobby: 0.2.10
-      unimport: 3.14.4(rollup@4.34.9)
+      unimport: 3.14.4(rollup@4.59.0)
       vite: 5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)
-      vite-plugin-inspect: 0.8.9(@nuxt/kit@3.14.1592(magicast@0.3.5)(rollup@4.34.9))(rollup@4.34.9)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))
+      vite-plugin-inspect: 0.8.9(@nuxt/kit@3.14.1592(magicast@0.3.5)(rollup@4.59.0))(rollup@4.59.0)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))
       vite-plugin-vue-inspector: 5.1.3(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))
       which: 3.0.1
       ws: 8.18.0
@@ -25859,11 +25867,11 @@ snapshots:
       - utf-8-validate
       - vue
 
-  '@nuxt/kit@3.14.159(magicast@0.3.5)(rollup@4.34.9)':
+  '@nuxt/kit@3.14.159(magicast@0.3.5)(rollup@4.59.0)':
     dependencies:
-      '@nuxt/schema': 3.14.159(magicast@0.3.5)(rollup@4.34.9)
+      '@nuxt/schema': 3.14.159(magicast@0.3.5)(rollup@4.59.0)
       c12: 2.0.1(magicast@0.3.5)
-      consola: 3.2.3
+      consola: 3.4.2
       defu: 6.1.4
       destr: 2.0.3
       globby: 14.0.2
@@ -25879,18 +25887,18 @@ snapshots:
       semver: 7.7.4
       ufo: 1.5.4
       unctx: 2.3.1
-      unimport: 3.14.4(rollup@4.34.9)
+      unimport: 3.14.4(rollup@4.59.0)
       untyped: 1.5.1
     transitivePeerDependencies:
       - magicast
       - rollup
       - supports-color
 
-  '@nuxt/kit@3.14.1592(magicast@0.3.5)(rollup@4.34.9)':
+  '@nuxt/kit@3.14.1592(magicast@0.3.5)(rollup@4.59.0)':
     dependencies:
-      '@nuxt/schema': 3.14.1592(magicast@0.3.5)(rollup@4.34.9)
+      '@nuxt/schema': 3.14.1592(magicast@0.3.5)(rollup@4.59.0)
       c12: 2.0.1(magicast@0.3.5)
-      consola: 3.2.3
+      consola: 3.4.2
       defu: 6.1.4
       destr: 2.0.3
       globby: 14.0.2
@@ -25906,7 +25914,7 @@ snapshots:
       semver: 7.7.4
       ufo: 1.5.4
       unctx: 2.3.1
-      unimport: 3.14.4(rollup@4.34.9)
+      unimport: 3.14.4(rollup@4.59.0)
       untyped: 1.5.1
     transitivePeerDependencies:
       - magicast
@@ -25938,11 +25946,11 @@ snapshots:
     transitivePeerDependencies:
       - magicast
 
-  '@nuxt/schema@3.14.159(magicast@0.3.5)(rollup@4.34.9)':
+  '@nuxt/schema@3.14.159(magicast@0.3.5)(rollup@4.59.0)':
     dependencies:
       c12: 2.0.1(magicast@0.3.5)
       compatx: 0.1.8
-      consola: 3.2.3
+      consola: 3.4.2
       defu: 6.1.4
       hookable: 5.5.3
       pathe: 1.1.2
@@ -25951,14 +25959,14 @@ snapshots:
       std-env: 3.8.0
       ufo: 1.5.4
       uncrypto: 0.1.3
-      unimport: 3.14.4(rollup@4.34.9)
+      unimport: 3.14.4(rollup@4.59.0)
       untyped: 1.5.1
     transitivePeerDependencies:
       - magicast
       - rollup
       - supports-color
 
-  '@nuxt/schema@3.14.1592(magicast@0.3.5)(rollup@4.34.9)':
+  '@nuxt/schema@3.14.1592(magicast@0.3.5)(rollup@4.59.0)':
     dependencies:
       c12: 2.0.1(magicast@0.3.5)
       compatx: 0.1.8
@@ -25971,18 +25979,18 @@ snapshots:
       std-env: 3.10.0
       ufo: 1.6.3
       uncrypto: 0.1.3
-      unimport: 3.14.4(rollup@4.34.9)
+      unimport: 3.14.4(rollup@4.59.0)
       untyped: 1.5.1
     transitivePeerDependencies:
       - magicast
       - rollup
       - supports-color
 
-  '@nuxt/telemetry@2.6.0(magicast@0.3.5)(rollup@4.34.9)':
+  '@nuxt/telemetry@2.6.0(magicast@0.3.5)(rollup@4.59.0)':
     dependencies:
-      '@nuxt/kit': 3.14.1592(magicast@0.3.5)(rollup@4.34.9)
+      '@nuxt/kit': 3.14.1592(magicast@0.3.5)(rollup@4.59.0)
       ci-info: 4.0.0
-      consola: 3.2.3
+      consola: 3.4.2
       create-require: 1.1.1
       defu: 6.1.4
       destr: 2.0.3
@@ -26005,15 +26013,15 @@ snapshots:
 
   '@nuxt/ui-templates@1.3.4': {}
 
-  '@nuxt/vite-builder@3.14.159(@types/node@20.17.24)(eslint@9.39.3(jiti@2.6.1))(less@4.4.0)(lightningcss@1.31.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.34.9)(sass@1.90.0)(terser@5.43.1)(typescript@5.9.3)(vue@3.5.13(typescript@5.9.3))(webpack-sources@3.3.4)':
+  '@nuxt/vite-builder@3.14.159(@types/node@20.17.24)(eslint@9.39.3(jiti@2.6.1))(less@4.4.0)(lightningcss@1.31.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.59.0)(sass@1.90.0)(terser@5.43.1)(typescript@5.9.3)(vue@3.5.13(typescript@5.9.3))(webpack-sources@3.3.4)':
     dependencies:
-      '@nuxt/kit': 3.14.159(magicast@0.3.5)(rollup@4.34.9)
-      '@rollup/plugin-replace': 6.0.1(rollup@4.34.9)
+      '@nuxt/kit': 3.14.159(magicast@0.3.5)(rollup@4.59.0)
+      '@rollup/plugin-replace': 6.0.1(rollup@4.59.0)
       '@vitejs/plugin-vue': 5.2.0(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))
       '@vitejs/plugin-vue-jsx': 4.1.0(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))
       autoprefixer: 10.4.27(postcss@8.5.9)
       clear: 0.1.0
-      consola: 3.2.3
+      consola: 3.4.2
       cssnano: 7.0.6(postcss@8.5.9)
       defu: 6.1.4
       esbuild: 0.24.2
@@ -26024,14 +26032,14 @@ snapshots:
       h3: 1.13.0
       jiti: 2.4.0
       knitwork: 1.1.0
-      magic-string: 0.30.17
-      mlly: 1.7.2
+      magic-string: 0.30.21
+      mlly: 1.8.2
       ohash: 1.1.4
       pathe: 1.1.2
       perfect-debounce: 1.0.0
       pkg-types: 1.2.1
       postcss: 8.5.9
-      rollup-plugin-visualizer: 5.12.0(rollup@4.34.9)
+      rollup-plugin-visualizer: 5.12.0(rollup@4.59.0)
       std-env: 3.8.0
       strip-literal: 2.1.0
       ufo: 1.5.4
@@ -26073,9 +26081,9 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@nuxtjs/tailwindcss@6.12.2(magicast@0.3.5)(rollup@4.34.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.9.3))':
+  '@nuxtjs/tailwindcss@6.12.2(magicast@0.3.5)(rollup@4.59.0)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.9.3))':
     dependencies:
-      '@nuxt/kit': 3.14.159(magicast@0.3.5)(rollup@4.34.9)
+      '@nuxt/kit': 3.14.159(magicast@0.3.5)(rollup@4.59.0)
       autoprefixer: 10.4.27(postcss@8.5.9)
       consola: 3.2.3
       defu: 6.1.4
@@ -27906,21 +27914,9 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
-  '@rollup/plugin-alias@5.1.1(rollup@4.34.9)':
+  '@rollup/plugin-alias@5.1.1(rollup@4.59.0)':
     optionalDependencies:
-      rollup: 4.34.9
-
-  '@rollup/plugin-commonjs@28.0.1(rollup@4.34.9)':
-    dependencies:
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
-      commondir: 1.0.1
-      estree-walker: 2.0.2
-      fdir: 6.5.0(picomatch@4.0.3)
-      is-reference: 1.2.1
-      magic-string: 0.30.17
-      picomatch: 4.0.3
-    optionalDependencies:
-      rollup: 4.34.9
+      rollup: 4.59.0
 
   '@rollup/plugin-commonjs@28.0.1(rollup@4.52.3)':
     dependencies:
@@ -27934,65 +27930,69 @@ snapshots:
     optionalDependencies:
       rollup: 4.52.3
 
-  '@rollup/plugin-inject@5.0.5(rollup@4.34.9)':
+  '@rollup/plugin-commonjs@28.0.1(rollup@4.59.0)':
     dependencies:
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
+      commondir: 1.0.1
+      estree-walker: 2.0.2
+      fdir: 6.5.0(picomatch@4.0.3)
+      is-reference: 1.2.1
+      magic-string: 0.30.17
+      picomatch: 4.0.3
+    optionalDependencies:
+      rollup: 4.59.0
+
+  '@rollup/plugin-inject@5.0.5(rollup@4.59.0)':
+    dependencies:
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
       estree-walker: 2.0.2
       magic-string: 0.30.21
     optionalDependencies:
-      rollup: 4.34.9
+      rollup: 4.59.0
 
-  '@rollup/plugin-json@6.1.0(rollup@4.34.9)':
+  '@rollup/plugin-json@6.1.0(rollup@4.59.0)':
     dependencies:
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
     optionalDependencies:
-      rollup: 4.34.9
+      rollup: 4.59.0
 
-  '@rollup/plugin-node-resolve@15.3.0(rollup@4.34.9)':
+  '@rollup/plugin-node-resolve@15.3.0(rollup@4.59.0)':
     dependencies:
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
       '@types/resolve': 1.20.2
       deepmerge: 4.3.1
       is-module: 1.0.0
       resolve: 1.22.10
     optionalDependencies:
-      rollup: 4.34.9
+      rollup: 4.59.0
 
-  '@rollup/plugin-replace@6.0.1(rollup@4.34.9)':
+  '@rollup/plugin-replace@6.0.1(rollup@4.59.0)':
     dependencies:
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
       magic-string: 0.30.21
     optionalDependencies:
-      rollup: 4.34.9
+      rollup: 4.59.0
 
-  '@rollup/plugin-terser@0.4.4(rollup@4.34.9)':
+  '@rollup/plugin-terser@0.4.4(rollup@4.59.0)':
     dependencies:
       serialize-javascript: 6.0.2
       smob: 1.4.1
       terser: 5.43.1
     optionalDependencies:
-      rollup: 4.34.9
+      rollup: 4.59.0
 
   '@rollup/pluginutils@4.2.1':
     dependencies:
       estree-walker: 2.0.2
       picomatch: 2.3.1
 
-  '@rollup/pluginutils@5.1.0(rollup@4.34.9)':
+  '@rollup/pluginutils@5.1.0(rollup@4.59.0)':
     dependencies:
       '@types/estree': 1.0.8
       estree-walker: 2.0.2
       picomatch: 2.3.1
     optionalDependencies:
-      rollup: 4.34.9
-
-  '@rollup/pluginutils@5.1.3(rollup@4.34.9)':
-    dependencies:
-      '@types/estree': 1.0.8
-      estree-walker: 2.0.2
-      picomatch: 4.0.3
-    optionalDependencies:
-      rollup: 4.34.9
+      rollup: 4.59.0
 
   '@rollup/pluginutils@5.1.3(rollup@4.52.3)':
     dependencies:
@@ -28001,6 +28001,14 @@ snapshots:
       picomatch: 4.0.3
     optionalDependencies:
       rollup: 4.52.3
+
+  '@rollup/pluginutils@5.1.3(rollup@4.59.0)':
+    dependencies:
+      '@types/estree': 1.0.8
+      estree-walker: 2.0.2
+      picomatch: 4.0.3
+    optionalDependencies:
+      rollup: 4.59.0
 
   '@rollup/pluginutils@5.3.0(rollup@4.59.0)':
     dependencies:
@@ -28310,7 +28318,7 @@ snapshots:
       '@sentry/types': 8.22.0
       '@sentry/utils': 8.22.0
 
-  '@sentry/nextjs@10.40.0(@opentelemetry/context-async-hooks@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(encoding@0.1.13)(next@15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(@swc/core@1.15.3))':
+  '@sentry/nextjs@10.40.0(@opentelemetry/context-async-hooks@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.5.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.5.1(@opentelemetry/api@1.9.0))(encoding@0.1.13)(next@15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(webpack@5.105.0(@swc/core@1.15.3))':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/semantic-conventions': 1.37.0
@@ -28323,7 +28331,7 @@ snapshots:
       '@sentry/react': 10.40.0(react@18.3.1)
       '@sentry/vercel-edge': 10.40.0
       '@sentry/webpack-plugin': 5.1.1(encoding@0.1.13)(webpack@5.105.0(@swc/core@1.15.3))
-      next: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+      next: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
       rollup: 4.52.3
       stacktrace-parser: 0.1.10
     transitivePeerDependencies:
@@ -28587,10 +28595,6 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@smithy/is-array-buffer@4.2.1':
-    dependencies:
-      tslib: 2.8.1
-
   '@smithy/is-array-buffer@4.2.2':
     dependencies:
       tslib: 2.8.1
@@ -28739,11 +28743,6 @@ snapshots:
       '@smithy/is-array-buffer': 2.2.0
       tslib: 2.8.1
 
-  '@smithy/util-buffer-from@4.2.1':
-    dependencies:
-      '@smithy/is-array-buffer': 4.2.1
-      tslib: 2.8.1
-
   '@smithy/util-buffer-from@4.2.2':
     dependencies:
       '@smithy/is-array-buffer': 4.2.2
@@ -28813,11 +28812,6 @@ snapshots:
   '@smithy/util-utf8@2.3.0':
     dependencies:
       '@smithy/util-buffer-from': 2.2.0
-      tslib: 2.8.1
-
-  '@smithy/util-utf8@4.2.1':
-    dependencies:
-      '@smithy/util-buffer-from': 4.2.1
       tslib: 2.8.1
 
   '@smithy/util-utf8@4.2.2':
@@ -29387,7 +29381,7 @@ snapshots:
 
   '@types/estree-jsx@1.0.5':
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
 
   '@types/estree@1.0.6': {}
 
@@ -29990,10 +29984,10 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
 
-  '@vue-macros/common@1.15.0(rollup@4.34.9)(vue@3.5.13(typescript@5.9.3))':
+  '@vue-macros/common@1.15.0(rollup@4.59.0)(vue@3.5.13(typescript@5.9.3))':
     dependencies:
       '@babel/types': 7.29.0
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
       '@vue/compiler-sfc': 3.5.13
       ast-kit: 1.3.1
       local-pkg: 0.5.1
@@ -30935,15 +30929,6 @@ snapshots:
       postcss: 8.5.6
       postcss-value-parser: 4.2.0
 
-  autoprefixer@10.4.27(postcss@8.5.6):
-    dependencies:
-      browserslist: 4.28.1
-      caniuse-lite: 1.0.30001775
-      fraction.js: 5.3.4
-      picocolors: 1.1.1
-      postcss: 8.5.6
-      postcss-value-parser: 4.2.0
-
   autoprefixer@10.4.27(postcss@8.5.9):
     dependencies:
       browserslist: 4.28.1
@@ -31335,7 +31320,7 @@ snapshots:
       dotenv: 16.6.1
       giget: 1.2.3
       jiti: 2.4.0
-      mlly: 1.7.2
+      mlly: 1.8.2
       ohash: 1.1.4
       pathe: 1.1.2
       perfect-debounce: 1.0.0
@@ -33006,7 +32991,7 @@ snapshots:
 
   estree-walker@3.0.3:
     dependencies:
-      '@types/estree': 1.0.6
+      '@types/estree': 1.0.8
 
   esutils@2.0.3: {}
 
@@ -33274,7 +33259,7 @@ snapshots:
   externality@1.0.2:
     dependencies:
       enhanced-resolve: 5.20.0
-      mlly: 1.8.0
+      mlly: 1.8.2
       pathe: 1.1.2
       ufo: 1.6.3
 
@@ -33558,8 +33543,8 @@ snapshots:
   fix-dts-default-cjs-exports@1.0.1:
     dependencies:
       magic-string: 0.30.21
-      mlly: 1.8.0
-      rollup: 4.52.3
+      mlly: 1.8.2
+      rollup: 4.59.0
 
   flat-cache@4.0.1:
     dependencies:
@@ -33755,9 +33740,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  geist@1.7.0(next@15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)):
+  geist@1.7.0(next@15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)):
     dependencies:
-      next: 15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
+      next: 15.5.15(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0)
 
   generic-names@4.0.0:
     dependencies:
@@ -34471,10 +34456,10 @@ snapshots:
       pkg-dir: 4.2.0
       resolve-cwd: 3.0.0
 
-  impound@0.2.0(rollup@4.34.9)(webpack-sources@3.3.4):
+  impound@0.2.0(rollup@4.59.0)(webpack-sources@3.3.4):
     dependencies:
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
-      mlly: 1.7.2
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
+      mlly: 1.8.2
       pathe: 1.1.2
       unenv: 1.10.0
       unplugin: 1.15.0(webpack-sources@3.3.4)
@@ -35680,7 +35665,7 @@ snapshots:
       h3: 1.13.0
       http-shutdown: 1.2.2
       jiti: 2.6.1
-      mlly: 1.8.0
+      mlly: 1.8.2
       node-forge: 1.3.1
       pathe: 1.1.2
       std-env: 3.10.0
@@ -35755,7 +35740,7 @@ snapshots:
 
   local-pkg@1.1.2:
     dependencies:
-      mlly: 1.8.0
+      mlly: 1.8.2
       pkg-types: 2.3.0
       quansync: 0.2.11
 
@@ -36806,13 +36791,6 @@ snapshots:
       pkg-types: 1.3.1
       ufo: 1.6.3
 
-  mlly@1.8.0:
-    dependencies:
-      acorn: 8.16.0
-      pathe: 2.0.3
-      pkg-types: 1.3.1
-      ufo: 1.6.3
-
   mlly@1.8.2:
     dependencies:
       acorn: 8.16.0
@@ -37040,7 +37018,7 @@ snapshots:
     dependencies:
       '@next/env': 15.5.15
       '@swc/helpers': 0.5.15
-      caniuse-lite: 1.0.30001775
+      caniuse-lite: 1.0.30001727
       postcss: 8.4.31
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
@@ -37066,7 +37044,7 @@ snapshots:
     dependencies:
       '@next/env': 15.5.15
       '@swc/helpers': 0.5.15
-      caniuse-lite: 1.0.30001775
+      caniuse-lite: 1.0.30001727
       postcss: 8.4.31
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
@@ -37088,32 +37066,6 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
     optional: true
-
-  next@15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0):
-    dependencies:
-      '@next/env': 15.5.9
-      '@swc/helpers': 0.5.15
-      caniuse-lite: 1.0.30001727
-      postcss: 8.4.31
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
-      styled-jsx: 5.1.6(react@18.3.1)
-    optionalDependencies:
-      '@next/swc-darwin-arm64': 15.5.7
-      '@next/swc-darwin-x64': 15.5.7
-      '@next/swc-linux-arm64-gnu': 15.5.7
-      '@next/swc-linux-arm64-musl': 15.5.7
-      '@next/swc-linux-x64-gnu': 15.5.7
-      '@next/swc-linux-x64-musl': 15.5.7
-      '@next/swc-win32-arm64-msvc': 15.5.7
-      '@next/swc-win32-x64-msvc': 15.5.7
-      '@opentelemetry/api': 1.9.0
-      '@playwright/test': 1.58.2
-      sass: 1.90.0
-      sharp: 0.34.4
-    transitivePeerDependencies:
-      - '@babel/core'
-      - babel-plugin-macros
 
   next@15.5.9(@opentelemetry/api@1.9.0)(@playwright/test@1.58.2)(react-dom@19.0.0-rc.1(react@19.0.0-rc.1))(react@19.0.0-rc.1)(sass@1.90.0):
     dependencies:
@@ -37145,14 +37097,14 @@ snapshots:
     dependencies:
       '@cloudflare/kv-asset-handler': 0.3.4
       '@netlify/functions': 2.8.2
-      '@rollup/plugin-alias': 5.1.1(rollup@4.34.9)
-      '@rollup/plugin-commonjs': 28.0.1(rollup@4.34.9)
-      '@rollup/plugin-inject': 5.0.5(rollup@4.34.9)
-      '@rollup/plugin-json': 6.1.0(rollup@4.34.9)
-      '@rollup/plugin-node-resolve': 15.3.0(rollup@4.34.9)
-      '@rollup/plugin-replace': 6.0.1(rollup@4.34.9)
-      '@rollup/plugin-terser': 0.4.4(rollup@4.34.9)
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
+      '@rollup/plugin-alias': 5.1.1(rollup@4.59.0)
+      '@rollup/plugin-commonjs': 28.0.1(rollup@4.59.0)
+      '@rollup/plugin-inject': 5.0.5(rollup@4.59.0)
+      '@rollup/plugin-json': 6.1.0(rollup@4.59.0)
+      '@rollup/plugin-node-resolve': 15.3.0(rollup@4.59.0)
+      '@rollup/plugin-replace': 6.0.1(rollup@4.59.0)
+      '@rollup/plugin-terser': 0.4.4(rollup@4.59.0)
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
       '@types/http-proxy': 1.17.15
       '@vercel/nft': 0.27.6(encoding@0.1.13)
       archiver: 7.0.1
@@ -37161,7 +37113,7 @@ snapshots:
       citty: 0.1.6
       compatx: 0.1.8
       confbox: 0.1.8
-      consola: 3.2.3
+      consola: 3.4.2
       cookie-es: 1.2.2
       croner: 9.0.0
       crossws: 0.3.1
@@ -37183,10 +37135,10 @@ snapshots:
       klona: 2.0.6
       knitwork: 1.1.0
       listhen: 1.9.0
-      magic-string: 0.30.17
+      magic-string: 0.30.21
       magicast: 0.3.5
       mime: 4.0.4
-      mlly: 1.7.2
+      mlly: 1.8.2
       node-fetch-native: 1.6.4
       ofetch: 1.4.1
       ohash: 1.1.4
@@ -37196,8 +37148,8 @@ snapshots:
       pkg-types: 1.2.1
       pretty-bytes: 6.1.1
       radix3: 1.1.2
-      rollup: 4.34.9
-      rollup-plugin-visualizer: 5.12.0(rollup@4.34.9)
+      rollup: 4.59.0
+      rollup-plugin-visualizer: 5.12.0(rollup@4.59.0)
       scule: 1.3.0
       semver: 7.7.4
       serve-placeholder: 2.0.2
@@ -37207,7 +37159,7 @@ snapshots:
       uncrypto: 0.1.3
       unctx: 2.3.1
       unenv: 1.10.0
-      unimport: 3.14.4(rollup@4.34.9)
+      unimport: 3.14.4(rollup@4.59.0)
       unstorage: 1.13.1(@upstash/redis@1.34.3)(ioredis@5.4.1)
       untyped: 1.5.1
       unwasm: 0.3.9
@@ -37425,14 +37377,14 @@ snapshots:
 
   nuxi@3.15.0: {}
 
-  nuxt@3.14.159(@parcel/watcher@2.4.1)(@types/node@20.17.24)(@upstash/redis@1.34.3)(encoding@0.1.13)(eslint@9.39.3(jiti@2.6.1))(ioredis@5.4.1)(less@4.4.0)(lightningcss@1.31.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.34.9)(sass@1.90.0)(terser@5.43.1)(typescript@5.9.3)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(webpack-sources@3.3.4):
+  nuxt@3.14.159(@parcel/watcher@2.4.1)(@types/node@20.17.24)(@upstash/redis@1.34.3)(encoding@0.1.13)(eslint@9.39.3(jiti@2.6.1))(ioredis@5.4.1)(less@4.4.0)(lightningcss@1.31.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.59.0)(sass@1.90.0)(terser@5.43.1)(typescript@5.9.3)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(webpack-sources@3.3.4):
     dependencies:
       '@nuxt/devalue': 2.0.2
-      '@nuxt/devtools': 1.6.3(rollup@4.34.9)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))
-      '@nuxt/kit': 3.14.159(magicast@0.3.5)(rollup@4.34.9)
-      '@nuxt/schema': 3.14.159(magicast@0.3.5)(rollup@4.34.9)
-      '@nuxt/telemetry': 2.6.0(magicast@0.3.5)(rollup@4.34.9)
-      '@nuxt/vite-builder': 3.14.159(@types/node@20.17.24)(eslint@9.39.3(jiti@2.6.1))(less@4.4.0)(lightningcss@1.31.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.34.9)(sass@1.90.0)(terser@5.43.1)(typescript@5.9.3)(vue@3.5.13(typescript@5.9.3))(webpack-sources@3.3.4)
+      '@nuxt/devtools': 1.6.3(rollup@4.59.0)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1))(vue@3.5.13(typescript@5.9.3))
+      '@nuxt/kit': 3.14.159(magicast@0.3.5)(rollup@4.59.0)
+      '@nuxt/schema': 3.14.159(magicast@0.3.5)(rollup@4.59.0)
+      '@nuxt/telemetry': 2.6.0(magicast@0.3.5)(rollup@4.59.0)
+      '@nuxt/vite-builder': 3.14.159(@types/node@20.17.24)(eslint@9.39.3(jiti@2.6.1))(less@4.4.0)(lightningcss@1.31.1)(magicast@0.3.5)(optionator@0.9.4)(rollup@4.59.0)(sass@1.90.0)(terser@5.43.1)(typescript@5.9.3)(vue@3.5.13(typescript@5.9.3))(webpack-sources@3.3.4)
       '@unhead/dom': 1.11.11
       '@unhead/shared': 1.11.11
       '@unhead/ssr': 1.11.11
@@ -37455,7 +37407,7 @@ snapshots:
       h3: 1.13.0
       hookable: 5.5.3
       ignore: 6.0.2
-      impound: 0.2.0(rollup@4.34.9)(webpack-sources@3.3.4)
+      impound: 0.2.0(rollup@4.59.0)(webpack-sources@3.3.4)
       jiti: 2.4.0
       klona: 2.0.6
       knitwork: 1.1.0
@@ -37482,9 +37434,9 @@ snapshots:
       unctx: 2.3.1
       unenv: 1.10.0
       unhead: 1.11.11
-      unimport: 3.13.1(rollup@4.34.9)(webpack-sources@3.3.4)
+      unimport: 3.13.1(rollup@4.59.0)(webpack-sources@3.3.4)
       unplugin: 1.15.0(webpack-sources@3.3.4)
-      unplugin-vue-router: 0.10.8(rollup@4.34.9)(vue-router@4.5.0(vue@3.5.13(typescript@5.9.3)))(vue@3.5.13(typescript@5.9.3))(webpack-sources@3.3.4)
+      unplugin-vue-router: 0.10.8(rollup@4.59.0)(vue-router@4.5.0(vue@3.5.13(typescript@5.9.3)))(vue@3.5.13(typescript@5.9.3))(webpack-sources@3.3.4)
       unstorage: 1.13.1(@upstash/redis@1.34.3)(ioredis@5.4.1)
       untyped: 1.5.1
       vue: 3.5.13(typescript@5.9.3)
@@ -37546,7 +37498,7 @@ snapshots:
   nypm@0.3.12:
     dependencies:
       citty: 0.1.6
-      consola: 3.2.3
+      consola: 3.4.2
       execa: 8.0.1
       pathe: 1.1.2
       pkg-types: 1.2.1
@@ -37555,7 +37507,7 @@ snapshots:
   nypm@0.4.1:
     dependencies:
       citty: 0.1.6
-      consola: 3.2.3
+      consola: 3.4.2
       pathe: 1.1.2
       pkg-types: 1.2.1
       tinyexec: 1.0.2
@@ -38226,13 +38178,6 @@ snapshots:
     dependencies:
       postcss: 8.5.9
 
-  postcss-import@15.1.0(postcss@8.5.6):
-    dependencies:
-      postcss: 8.5.6
-      postcss-value-parser: 4.2.0
-      read-cache: 1.0.0
-      resolve: 1.22.10
-
   postcss-import@15.1.0(postcss@8.5.9):
     dependencies:
       postcss: 8.5.9
@@ -38240,55 +38185,26 @@ snapshots:
       read-cache: 1.0.0
       resolve: 1.22.10
 
-  postcss-js@4.0.1(postcss@8.5.6):
-    dependencies:
-      camelcase-css: 2.0.1
-      postcss: 8.5.6
-
   postcss-js@4.0.1(postcss@8.5.9):
     dependencies:
       camelcase-css: 2.0.1
       postcss: 8.5.9
 
-  postcss-load-config@4.0.2(postcss@8.5.6)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.4.5)):
+  postcss-load-config@4.0.2(postcss@8.5.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.4.5)):
     dependencies:
       lilconfig: 3.1.3
       yaml: 2.7.0
     optionalDependencies:
-      postcss: 8.5.6
+      postcss: 8.5.9
       ts-node: 10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.4.5)
 
-  postcss-load-config@4.0.2(postcss@8.5.6)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.6.3)):
+  postcss-load-config@4.0.2(postcss@8.5.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.6.3)):
     dependencies:
       lilconfig: 3.1.3
       yaml: 2.7.0
     optionalDependencies:
-      postcss: 8.5.6
+      postcss: 8.5.9
       ts-node: 10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.6.3)
-
-  postcss-load-config@4.0.2(postcss@8.5.6)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3)):
-    dependencies:
-      lilconfig: 3.1.3
-      yaml: 2.7.0
-    optionalDependencies:
-      postcss: 8.5.6
-      ts-node: 10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3)
-
-  postcss-load-config@4.0.2(postcss@8.5.6)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.9.3)):
-    dependencies:
-      lilconfig: 3.1.3
-      yaml: 2.7.0
-    optionalDependencies:
-      postcss: 8.5.6
-      ts-node: 10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.9.3)
-
-  postcss-load-config@4.0.2(postcss@8.5.6)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@22.7.4)(typescript@5.8.3)):
-    dependencies:
-      lilconfig: 3.1.3
-      yaml: 2.7.0
-    optionalDependencies:
-      postcss: 8.5.6
-      ts-node: 10.9.2(@swc/core@1.15.3)(@types/node@22.7.4)(typescript@5.8.3)
 
   postcss-load-config@4.0.2(postcss@8.5.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3)):
     dependencies:
@@ -38305,6 +38221,14 @@ snapshots:
     optionalDependencies:
       postcss: 8.5.9
       ts-node: 10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.9.3)
+
+  postcss-load-config@4.0.2(postcss@8.5.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@22.7.4)(typescript@5.8.3)):
+    dependencies:
+      lilconfig: 3.1.3
+      yaml: 2.7.0
+    optionalDependencies:
+      postcss: 8.5.9
+      ts-node: 10.9.2(@swc/core@1.15.3)(@types/node@22.7.4)(typescript@5.8.3)
 
   postcss-load-config@6.0.1(jiti@2.6.1)(postcss@8.5.9)(tsx@4.19.2)(yaml@2.7.0):
     dependencies:
@@ -38408,11 +38332,6 @@ snapshots:
       postcss-modules-scope: 3.2.1(postcss@8.5.9)
       postcss-modules-values: 4.0.0(postcss@8.5.9)
       string-hash: 1.1.3
-
-  postcss-nested@6.2.0(postcss@8.5.6):
-    dependencies:
-      postcss: 8.5.6
-      postcss-selector-parser: 6.1.2
 
   postcss-nested@6.2.0(postcss@8.5.9):
     dependencies:
@@ -39205,14 +39124,14 @@ snapshots:
 
   robust-predicates@3.0.2: {}
 
-  rollup-plugin-visualizer@5.12.0(rollup@4.34.9):
+  rollup-plugin-visualizer@5.12.0(rollup@4.59.0):
     dependencies:
       open: 8.4.2
       picomatch: 2.3.1
       source-map: 0.7.6
       yargs: 17.7.2
     optionalDependencies:
-      rollup: 4.34.9
+      rollup: 4.59.0
 
   rollup@3.29.5:
     optionalDependencies:
@@ -40140,7 +40059,7 @@ snapshots:
 
   sucrase@3.35.0:
     dependencies:
-      '@jridgewell/gen-mapping': 0.3.12
+      '@jridgewell/gen-mapping': 0.3.13
       commander: 4.1.1
       glob: 10.5.0
       lines-and-columns: 1.2.4
@@ -40355,11 +40274,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.6
-      postcss-import: 15.1.0(postcss@8.5.6)
-      postcss-js: 4.0.1(postcss@8.5.6)
-      postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.4.5))
-      postcss-nested: 6.2.0(postcss@8.5.6)
+      postcss: 8.5.9
+      postcss-import: 15.1.0(postcss@8.5.9)
+      postcss-js: 4.0.1(postcss@8.5.9)
+      postcss-load-config: 4.0.2(postcss@8.5.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.4.5))
+      postcss-nested: 6.2.0(postcss@8.5.9)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.8
       sucrase: 3.35.0
@@ -40382,11 +40301,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.6
-      postcss-import: 15.1.0(postcss@8.5.6)
-      postcss-js: 4.0.1(postcss@8.5.6)
-      postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.6.3))
-      postcss-nested: 6.2.0(postcss@8.5.6)
+      postcss: 8.5.9
+      postcss-import: 15.1.0(postcss@8.5.9)
+      postcss-js: 4.0.1(postcss@8.5.9)
+      postcss-load-config: 4.0.2(postcss@8.5.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.6.3))
+      postcss-nested: 6.2.0(postcss@8.5.9)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.8
       sucrase: 3.35.0
@@ -40409,11 +40328,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.6
-      postcss-import: 15.1.0(postcss@8.5.6)
-      postcss-js: 4.0.1(postcss@8.5.6)
-      postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
-      postcss-nested: 6.2.0(postcss@8.5.6)
+      postcss: 8.5.9
+      postcss-import: 15.1.0(postcss@8.5.9)
+      postcss-js: 4.0.1(postcss@8.5.9)
+      postcss-load-config: 4.0.2(postcss@8.5.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.8.3))
+      postcss-nested: 6.2.0(postcss@8.5.9)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.8
       sucrase: 3.35.0
@@ -40436,11 +40355,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.6
-      postcss-import: 15.1.0(postcss@8.5.6)
-      postcss-js: 4.0.1(postcss@8.5.6)
-      postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.9.3))
-      postcss-nested: 6.2.0(postcss@8.5.6)
+      postcss: 8.5.9
+      postcss-import: 15.1.0(postcss@8.5.9)
+      postcss-js: 4.0.1(postcss@8.5.9)
+      postcss-load-config: 4.0.2(postcss@8.5.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@20.17.24)(typescript@5.9.3))
+      postcss-nested: 6.2.0(postcss@8.5.9)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.8
       sucrase: 3.35.0
@@ -40463,11 +40382,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.6
-      postcss-import: 15.1.0(postcss@8.5.6)
-      postcss-js: 4.0.1(postcss@8.5.6)
-      postcss-load-config: 4.0.2(postcss@8.5.6)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@22.7.4)(typescript@5.8.3))
-      postcss-nested: 6.2.0(postcss@8.5.6)
+      postcss: 8.5.9
+      postcss-import: 15.1.0(postcss@8.5.9)
+      postcss-js: 4.0.1(postcss@8.5.9)
+      postcss-load-config: 4.0.2(postcss@8.5.9)(ts-node@10.9.2(@swc/core@1.15.3)(@types/node@22.7.4)(typescript@5.8.3))
+      postcss-nested: 6.2.0(postcss@8.5.9)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.8
       sucrase: 3.35.0
@@ -40922,14 +40841,14 @@ snapshots:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.2
-      debug: 4.4.1
+      debug: 4.4.3(supports-color@9.4.0)
       esbuild: 0.27.3
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
       picocolors: 1.1.1
       postcss-load-config: 6.0.1(jiti@2.6.1)(postcss@8.5.9)(tsx@4.19.2)(yaml@2.7.0)
       resolve-from: 5.0.0
-      rollup: 4.52.3
+      rollup: 4.59.0
       source-map: 0.7.6
       sucrase: 3.35.0
       tinyexec: 1.0.2
@@ -40951,14 +40870,14 @@ snapshots:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.2
-      debug: 4.4.1
+      debug: 4.4.3(supports-color@9.4.0)
       esbuild: 0.27.3
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
       picocolors: 1.1.1
       postcss-load-config: 6.0.1(jiti@2.6.1)(postcss@8.5.9)(tsx@4.21.0)(yaml@2.7.0)
       resolve-from: 5.0.0
-      rollup: 4.52.3
+      rollup: 4.59.0
       source-map: 0.7.6
       sucrase: 3.35.0
       tinyexec: 1.0.2
@@ -40980,14 +40899,14 @@ snapshots:
       cac: 6.7.14
       chokidar: 4.0.3
       consola: 3.4.2
-      debug: 4.4.1
+      debug: 4.4.3(supports-color@9.4.0)
       esbuild: 0.27.3
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
       picocolors: 1.1.1
       postcss-load-config: 6.0.1(jiti@2.6.1)(postcss@8.5.9)(tsx@4.21.0)(yaml@2.7.0)
       resolve-from: 5.0.0
-      rollup: 4.52.3
+      rollup: 4.59.0
       source-map: 0.7.6
       sucrase: 3.35.0
       tinyexec: 1.0.2
@@ -41170,7 +41089,7 @@ snapshots:
 
   unenv@1.10.0:
     dependencies:
-      consola: 3.2.3
+      consola: 3.4.2
       defu: 6.1.4
       mime: 3.0.0
       node-fetch-native: 1.6.4
@@ -41208,16 +41127,16 @@ snapshots:
       trough: 2.2.0
       vfile: 6.0.3
 
-  unimport@3.13.1(rollup@4.34.9)(webpack-sources@3.3.4):
+  unimport@3.13.1(rollup@4.59.0)(webpack-sources@3.3.4):
     dependencies:
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
       acorn: 8.14.1
       escape-string-regexp: 5.0.0
       estree-walker: 3.0.3
       fast-glob: 3.3.3
       local-pkg: 0.5.1
-      magic-string: 0.30.17
-      mlly: 1.7.2
+      magic-string: 0.30.21
+      mlly: 1.8.2
       pathe: 1.1.2
       pkg-types: 1.2.1
       scule: 1.3.0
@@ -41227,9 +41146,9 @@ snapshots:
       - rollup
       - webpack-sources
 
-  unimport@3.14.4(rollup@4.34.9):
+  unimport@3.14.4(rollup@4.59.0):
     dependencies:
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
       acorn: 8.14.1
       escape-string-regexp: 5.0.0
       estree-walker: 3.0.3
@@ -41241,7 +41160,7 @@ snapshots:
       pkg-types: 1.2.1
       scule: 1.3.0
       strip-literal: 2.1.1
-      tinyglobby: 0.2.14
+      tinyglobby: 0.2.15
       unplugin: 1.16.0
     transitivePeerDependencies:
       - rollup
@@ -41310,18 +41229,18 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unplugin-vue-router@0.10.8(rollup@4.34.9)(vue-router@4.5.0(vue@3.5.13(typescript@5.9.3)))(vue@3.5.13(typescript@5.9.3))(webpack-sources@3.3.4):
+  unplugin-vue-router@0.10.8(rollup@4.59.0)(vue-router@4.5.0(vue@3.5.13(typescript@5.9.3)))(vue@3.5.13(typescript@5.9.3))(webpack-sources@3.3.4):
     dependencies:
       '@babel/types': 7.29.0
-      '@rollup/pluginutils': 5.1.0(rollup@4.34.9)
-      '@vue-macros/common': 1.15.0(rollup@4.34.9)(vue@3.5.13(typescript@5.9.3))
+      '@rollup/pluginutils': 5.1.0(rollup@4.59.0)
+      '@vue-macros/common': 1.15.0(rollup@4.59.0)(vue@3.5.13(typescript@5.9.3))
       ast-walker-scope: 0.6.2
       chokidar: 3.6.0
       fast-glob: 3.3.3
       json5: 2.2.3
       local-pkg: 0.5.1
-      magic-string: 0.30.17
-      mlly: 1.7.2
+      magic-string: 0.30.21
+      mlly: 1.8.2
       pathe: 1.1.2
       scule: 1.3.0
       unplugin: 1.15.0(webpack-sources@3.3.4)
@@ -41408,7 +41327,7 @@ snapshots:
     dependencies:
       knitwork: 1.1.0
       magic-string: 0.30.21
-      mlly: 1.8.0
+      mlly: 1.8.2
       pathe: 1.1.2
       pkg-types: 1.3.1
       unplugin: 1.16.0
@@ -41599,10 +41518,10 @@ snapshots:
       optionator: 0.9.4
       typescript: 5.9.3
 
-  vite-plugin-inspect@0.8.9(@nuxt/kit@3.14.1592(magicast@0.3.5)(rollup@4.34.9))(rollup@4.34.9)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)):
+  vite-plugin-inspect@0.8.9(@nuxt/kit@3.14.1592(magicast@0.3.5)(rollup@4.59.0))(rollup@4.59.0)(vite@5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)):
     dependencies:
       '@antfu/utils': 0.7.10
-      '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
+      '@rollup/pluginutils': 5.1.3(rollup@4.59.0)
       debug: 4.4.3(supports-color@9.4.0)
       error-stack-parser-es: 0.1.5
       fs-extra: 11.2.0
@@ -41612,7 +41531,7 @@ snapshots:
       sirv: 3.0.0
       vite: 5.4.21(@types/node@20.17.24)(less@4.4.0)(lightningcss@1.31.1)(sass@1.90.0)(terser@5.43.1)
     optionalDependencies:
-      '@nuxt/kit': 3.14.1592(magicast@0.3.5)(rollup@4.34.9)
+      '@nuxt/kit': 3.14.1592(magicast@0.3.5)(rollup@4.59.0)
     transitivePeerDependencies:
       - rollup
       - supports-color
