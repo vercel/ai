@@ -47,6 +47,7 @@ export class HttpMCPTransport implements MCPTransport {
   onclose?: () => void;
   onerror?: (error: unknown) => void;
   onmessage?: (message: JSONRPCMessage) => void;
+  protocolVersion: string | null = null;
 
   constructor({
     url,
@@ -74,7 +75,7 @@ export class HttpMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': this.protocolVersion ?? LATEST_PROTOCOL_VERSION,
     };
 
     if (this.sessionId) {
