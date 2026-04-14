@@ -326,6 +326,12 @@ export type ToolResultOutput =
             url: string;
 
             /**
+             * IANA media type.
+             * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+             */
+            mediaType?: string; // Temporarily optional. TODO: make required in v8, after migration period.
+
+            /**
              * Provider-specific options.
              */
             providerOptions?: ProviderOptions;
@@ -367,7 +373,7 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * Images that are referenced using base64 encoded data.
+             * @deprecated Use file-data instead.
              */
             type: 'image-data';
 
@@ -389,7 +395,7 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * Images that are referenced using a URL.
+             * @deprecated Use file-url instead.
              */
             type: 'image-url';
 
@@ -405,7 +411,7 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * @deprecated Use image-file-reference instead.
+             * @deprecated Use file-reference instead.
              */
             type: 'image-file-id';
 
@@ -426,7 +432,7 @@ export type ToolResultOutput =
           }
         | {
             /**
-             * Images that are referenced using a provider reference.
+             * @deprecated Use file-reference instead.
              */
             type: 'image-file-reference';
 

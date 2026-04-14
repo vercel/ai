@@ -175,6 +175,8 @@ export const outputSchema: z.ZodType<ToolResultOutput> = z.discriminatedUnion(
           z.object({
             type: z.literal('file-url'),
             url: z.string(),
+            // Temporarily optional. TODO: make required in v8, after migration period.
+            mediaType: z.string().optional(),
             providerOptions: providerMetadataSchema.optional(),
           }),
           z.object({

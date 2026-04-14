@@ -26,6 +26,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   type ParseResult,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
@@ -52,6 +55,20 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
   readonly modelId: AlibabaChatModelId;
 
   private readonly config: AlibabaConfig;
+
+  static [WORKFLOW_SERIALIZE](model: AlibabaLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: AlibabaChatModelId;
+    config: AlibabaConfig;
+  }) {
+    return new AlibabaLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: AlibabaChatModelId, config: AlibabaConfig) {
     this.modelId = modelId;
@@ -172,7 +189,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: alibabaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -243,7 +260,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: alibabaFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

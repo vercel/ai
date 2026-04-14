@@ -1,5 +1,30 @@
 # @ai-sdk/langchain
 
+## 3.0.0-beta.89
+
+### Patch Changes
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+- Updated dependencies [ff5eba1]
+  - ai@7.0.0-beta.89
+
+## 3.0.0-beta.88
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - ai@7.0.0-beta.88
+
+## 3.0.0-beta.87
+
+### Patch Changes
+
+- ai@7.0.0-beta.87
+
 ## 3.0.0-beta.86
 
 ### Patch Changes

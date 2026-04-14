@@ -10,6 +10,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -22,7 +25,7 @@ import {
 type GoogleGenerativeAIEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 };
 
@@ -33,6 +36,23 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
   readonly supportsParallelCalls = true;
 
   private readonly config: GoogleGenerativeAIEmbeddingConfig;
+
+  static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAIEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleGenerativeAIEmbeddingConfig;
+  }) {
+    return new GoogleGenerativeAIEmbeddingModel(
+      options.modelId,
+      options.config,
+    );
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -70,7 +90,7 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
     }
 
     const mergedHeaders = combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       headers,
     );
 

@@ -1,5 +1,31 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider@4.0.0-beta.12
+  - ai@7.0.0-beta.89
+
+## 1.0.0-beta.34
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - ai@7.0.0-beta.88
+  - @ai-sdk/provider@4.0.0-beta.11
+
+## 1.0.0-beta.33
+
+### Patch Changes
+
+- ai@7.0.0-beta.87
+
 ## 1.0.0-beta.32
 
 ### Patch Changes

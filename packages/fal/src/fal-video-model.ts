@@ -158,7 +158,7 @@ export class FalVideoModel implements Experimental_VideoModelV4 {
         path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler:
@@ -189,7 +189,7 @@ export class FalVideoModel implements Experimental_VideoModelV4 {
               path: responseUrl,
               modelId: this.modelId,
             }),
-            headers: combineHeaders(this.config.headers(), options.headers),
+            headers: combineHeaders(this.config.headers?.(), options.headers),
             failedResponseHandler: async ({
               response,
               url,

@@ -27,110 +27,92 @@ import { RerankingModel } from '../types/reranking-model';
 import { VideoModel } from '../types/video-model';
 
 export function resolveLanguageModel(model: LanguageModel): LanguageModelV4 {
-  if (typeof model !== 'string') {
-    if (
-      model.specificationVersion !== 'v4' &&
-      model.specificationVersion !== 'v3' &&
-      model.specificationVersion !== 'v2'
-    ) {
-      const unsupportedModel: any = model;
-      throw new UnsupportedModelVersionError({
-        version: unsupportedModel.specificationVersion,
-        provider: unsupportedModel.provider,
-        modelId: unsupportedModel.modelId,
-      });
-    }
-
-    return asLanguageModelV4(model);
+  if (typeof model === 'string') {
+    return getGlobalProvider().languageModel(model);
   }
 
-  return getGlobalProvider().languageModel(model);
+  if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asLanguageModelV4(model);
 }
 
 export function resolveEmbeddingModel(model: EmbeddingModel): EmbeddingModelV4 {
-  if (typeof model !== 'string') {
-    if (
-      model.specificationVersion !== 'v4' &&
-      model.specificationVersion !== 'v3' &&
-      model.specificationVersion !== 'v2'
-    ) {
-      const unsupportedModel: any = model;
-      throw new UnsupportedModelVersionError({
-        version: unsupportedModel.specificationVersion,
-        provider: unsupportedModel.provider,
-        modelId: unsupportedModel.modelId,
-      });
-    }
-
-    return asEmbeddingModelV4(model);
+  if (typeof model === 'string') {
+    return getGlobalProvider().embeddingModel(model);
   }
 
-  return getGlobalProvider().embeddingModel(model);
+  if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asEmbeddingModelV4(model);
 }
 
 export function resolveTranscriptionModel(
   model: TranscriptionModel,
 ): TranscriptionModelV4 | undefined {
-  if (typeof model !== 'string') {
-    if (
-      model.specificationVersion !== 'v4' &&
-      model.specificationVersion !== 'v3' &&
-      model.specificationVersion !== 'v2'
-    ) {
-      const unsupportedModel: any = model;
-      throw new UnsupportedModelVersionError({
-        version: unsupportedModel.specificationVersion,
-        provider: unsupportedModel.provider,
-        modelId: unsupportedModel.modelId,
-      });
-    }
-    return asTranscriptionModelV4(model);
+  if (typeof model === 'string') {
+    return getGlobalProvider().transcriptionModel?.(model);
   }
 
-  return getGlobalProvider().transcriptionModel?.(model);
+  if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asTranscriptionModelV4(model);
 }
 
 export function resolveSpeechModel(
   model: SpeechModel,
 ): SpeechModelV4 | undefined {
-  if (typeof model !== 'string') {
-    if (
-      model.specificationVersion !== 'v4' &&
-      model.specificationVersion !== 'v3' &&
-      model.specificationVersion !== 'v2'
-    ) {
-      const unsupportedModel: any = model;
-      throw new UnsupportedModelVersionError({
-        version: unsupportedModel.specificationVersion,
-        provider: unsupportedModel.provider,
-        modelId: unsupportedModel.modelId,
-      });
-    }
-    return asSpeechModelV4(model);
+  if (typeof model === 'string') {
+    return getGlobalProvider().speechModel?.(model);
   }
 
-  return getGlobalProvider().speechModel?.(model);
+  if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asSpeechModelV4(model);
 }
 
 export function resolveImageModel(model: ImageModel): ImageModelV4 {
-  if (typeof model !== 'string') {
-    if (
-      model.specificationVersion !== 'v4' &&
-      model.specificationVersion !== 'v3' &&
-      model.specificationVersion !== 'v2'
-    ) {
-      const unsupportedModel: any = model;
-      throw new UnsupportedModelVersionError({
-        version: unsupportedModel.specificationVersion,
-        provider: unsupportedModel.provider,
-        modelId: unsupportedModel.modelId,
-      });
-    }
-
-    return asImageModelV4(model);
+  if (typeof model === 'string') {
+    return getGlobalProvider().imageModel(model);
   }
 
-  return getGlobalProvider().imageModel(model);
+  if (!['v4', 'v3', 'v2'].includes(model.specificationVersion)) {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return asImageModelV4(model);
 }
 
 export function resolveVideoModel(
@@ -154,10 +136,7 @@ export function resolveVideoModel(
     return videoModel(model);
   }
 
-  if (
-    model.specificationVersion !== 'v4' &&
-    model.specificationVersion !== 'v3'
-  ) {
+  if (!['v4', 'v3'].includes(model.specificationVersion)) {
     const unsupportedModel: any = model;
     throw new UnsupportedModelVersionError({
       version: unsupportedModel.specificationVersion,

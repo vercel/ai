@@ -339,6 +339,13 @@ IANA media type.
             url: string;
 
             /**
+             * IANA media type of the file.
+             * Used by providers to determine how to handle the file (e.g. image vs document).
+             * Optional; if omitted, the SDK will attempt to infer it from the URL file extension.
+             */
+            mediaType?: string;
+
+            /**
              * Provider-specific options.
              */
             providerOptions?: ProviderOptions;
@@ -380,6 +387,7 @@ IANA media type.
           }
         | {
             /**
+             * @deprecated Use file-data instead.
              * Images that are referenced using base64 encoded data.
              */
             type: 'image-data';
@@ -402,6 +410,7 @@ IANA media type.
           }
         | {
             /**
+             * @deprecated Use file-url instead.
              * Images that are referenced using a URL.
              */
             type: 'image-url';
@@ -418,8 +427,8 @@ IANA media type.
           }
         | {
             /**
+             * @deprecated Use file-reference instead.
              * Images that are referenced using a provider file id.
-             * @deprecated Use image-file-reference instead.
              */
             type: 'image-file-id';
 
@@ -440,6 +449,7 @@ IANA media type.
           }
         | {
             /**
+             * @deprecated Use file-reference instead.
              * Images that are referenced using a provider reference.
              */
             type: 'image-file-reference';

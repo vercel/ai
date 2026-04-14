@@ -231,7 +231,7 @@ describe('MCPClient', () => {
           {
             "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
             "mediaType": "image/png",
-            "type": "image-data",
+            "type": "file-data",
           },
         ],
       }
@@ -381,7 +381,7 @@ describe('MCPClient', () => {
           {
             "data": "base64data",
             "mediaType": "image/png",
-            "type": "image-data",
+            "type": "file-data",
           },
         ],
       }

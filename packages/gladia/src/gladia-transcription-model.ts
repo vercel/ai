@@ -13,6 +13,9 @@ import {
   parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { GladiaConfig } from './gladia-config';
@@ -340,8 +343,22 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
     return this.config.provider;
   }
 
+  static [WORKFLOW_SERIALIZE](model: GladiaTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: 'default';
+    config: GladiaTranscriptionModelConfig;
+  }) {
+    return new GladiaTranscriptionModel(options.modelId, options.config);
+  }
+
   constructor(
-    readonly modelId: 'default',
+    readonly modelId: string,
     private readonly config: GladiaTranscriptionModelConfig,
   ) {}
 
@@ -510,7 +527,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         path: '/v2/upload',
         modelId: 'default',
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: gladiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -527,7 +544,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
         path: '/v2/pre-recorded',
         modelId: 'default',
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         audio_url: uploadResponse.audio_url,
@@ -560,7 +577,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
       const response = await getFromApi({
         url: resultUrl,
-        headers: combineHeaders(this.config.headers(), options.headers),
+        headers: combineHeaders(this.config.headers?.(), options.headers),
         failedResponseHandler: gladiaFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           gladiaTranscriptionResultResponseSchema,

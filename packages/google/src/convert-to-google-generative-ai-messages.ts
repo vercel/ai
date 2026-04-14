@@ -71,7 +71,6 @@ function appendToolResultParts(
         responseTextParts.push(contentPart.text as string);
         break;
       }
-      case 'image-data':
       case 'file-data': {
         functionResponseParts.push({
           inlineData: {
@@ -81,7 +80,6 @@ function appendToolResultParts(
         });
         break;
       }
-      case 'image-url':
       case 'file-url': {
         const functionResponsePart = convertUrlToolResultPart(
           contentPart.url as string,
@@ -144,18 +142,22 @@ function appendLegacyToolResultParts(
           },
         });
         break;
-      case 'image-data':
-        parts.push(
-          {
-            inlineData: {
-              mimeType: String(contentPart.mediaType),
-              data: String(contentPart.data),
+      case 'file-data':
+        if ((contentPart.mediaType as string).startsWith('image/')) {
+          parts.push(
+            {
+              inlineData: {
+                mimeType: contentPart.mediaType as string,
+                data: contentPart.data as string,
+              },
             },
-          },
-          {
-            text: 'Tool executed successfully and returned this image as a response',
-          },
-        );
+            {
+              text: 'Tool executed successfully and returned this image as a response',
+            },
+          );
+        } else {
+          parts.push({ text: JSON.stringify(contentPart) });
+        }
         break;
       default:
         parts.push({ text: JSON.stringify(contentPart) });

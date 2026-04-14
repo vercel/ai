@@ -1,5 +1,32 @@
 # @ai-sdk/vue
 
+## 4.0.0-beta.89
+
+### Patch Changes
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - ai@7.0.0-beta.89
+
+## 4.0.0-beta.88
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - ai@7.0.0-beta.88
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 4.0.0-beta.87
+
+### Patch Changes
+
+- ai@7.0.0-beta.87
+
 ## 4.0.0-beta.86
 
 ### Patch Changes

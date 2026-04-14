@@ -17,6 +17,9 @@ import {
   createJsonResponseHandler,
   isCustomReasoning,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertPerplexityUsage } from './convert-perplexity-usage';
@@ -26,7 +29,7 @@ import { PerplexityLanguageModelId } from './perplexity-language-model-options';
 
 type PerplexityChatConfig = {
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -38,6 +41,20 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
   readonly modelId: PerplexityLanguageModelId;
 
   private readonly config: PerplexityChatConfig;
+
+  static [WORKFLOW_SERIALIZE](model: PerplexityLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: PerplexityLanguageModelId;
+    config: PerplexityChatConfig;
+  }) {
+    return new PerplexityLanguageModel(options.modelId, options.config);
+  }
 
   constructor(
     modelId: PerplexityLanguageModelId,
@@ -130,7 +147,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
@@ -214,7 +231,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,

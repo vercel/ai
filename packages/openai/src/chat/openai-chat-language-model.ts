@@ -21,6 +21,9 @@ import {
   isParsableJson,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
@@ -44,7 +47,7 @@ import { prepareChatTools } from './openai-chat-prepare-tools';
 
 type OpenAIChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -59,6 +62,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
   };
 
   private readonly config: OpenAIChatConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIChatModelId;
+    config: OpenAIChatConfig;
+  }) {
+    return new OpenAIChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {
     this.modelId = modelId;
@@ -335,7 +352,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -426,7 +443,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

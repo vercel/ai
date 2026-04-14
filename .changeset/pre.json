@@ -81,7 +81,9 @@
     "eslint-config-vercel-ai": "0.0.0",
     "generate-llms-txt": "0.0.0",
     "@vercel/ai-tsconfig": "0.0.0",
-    "@ai-sdk/otel": "0.0.0"
+    "@ai-sdk/otel": "0.0.0",
+    "@example/next-workflow": "0.0.0",
+    "@ai-sdk/workflow": "0.0.0"
   },
   "changesets": [
     "angry-tigers-heal",
@@ -201,11 +203,13 @@
     "rare-maps-invent",
     "reasoning-summary",
     "red-colts-complain",
+    "remove-commonjs-exports",
     "remove-tool-call-options-v7",
     "remove-useragent-usechat",
     "rerank-string-model-resolution",
     "reranking-gateway-support",
     "rhipg-aypwr-etsuy",
+    "rich-garlics-push",
     "rotten-toys-collect",
     "rude-boats-reply",
     "rude-horses-end",
@@ -216,6 +220,7 @@
     "serious-houses-argue",
     "seven-garlics-jog",
     "seven-tomatoes-swim",
+    "sfkjd-wivtt-glarb",
     "sharp-cows-exist",
     "sharp-files-jump",
     "sharp-rocks-cheer",
@@ -234,6 +239,7 @@
     "small-buses-help",
     "split-prepare-tools-tool-choice",
     "stale-berries-push",
+    "stale-chairs-repeat",
     "stale-dolphins-pump",
     "stale-rats-stare",
     "start-v7-prerelease",
@@ -259,6 +265,8 @@
     "weak-windows-ring",
     "wicked-nails-prove",
     "wise-dodos-help",
+    "workflow-serde-support",
+    "yellow-lobsters-warn",
     "young-mice-learn",
     "yrrxh-yphmk-gxyfa"
   ]
