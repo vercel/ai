@@ -20,17 +20,16 @@ A standard `ToolLoopAgent` runs entirely in memory — if the process crashes, a
 
 ## When to Use WorkflowAgent vs ToolLoopAgent
 
-| | ToolLoopAgent | WorkflowAgent |
-|---|---|---|
-| **Package** | `ai` | `@ai-sdk/workflow` |
-| **Runtime** | In-memory | Vercel Workflow |
-| **Durability** | Lost on crash | Survives restarts |
-| **Tool retries** | Manual | Automatic (via workflow steps) |
-| **Human approval** | Built-in | Built-in + survives suspension |
-| **`generate()` method** | Available | Not available |
-| **`stream()` method** | Available | Primary API |
-| **Model as string** | Not supported | AI Gateway string IDs |
-| **Stream output** | `streamText` return value | `writable` parameter with `ModelCallStreamPart` |
+|                         | ToolLoopAgent             | WorkflowAgent                                   |
+| ----------------------- | ------------------------- | ----------------------------------------------- |
+| **Package**             | `ai`                      | `@ai-sdk/workflow`                              |
+| **Runtime**             | In-memory                 | Vercel Workflow                                 |
+| **Durability**          | Lost on crash             | Survives restarts                               |
+| **Tool retries**        | Manual                    | Automatic (via workflow steps)                  |
+| **Human approval**      | Built-in                  | Built-in + survives suspension                  |
+| **`generate()` method** | Available                 | Not available                                   |
+| **`stream()` method**   | Available                 | Primary API                                     |
+| **Stream output**       | `streamText` return value | `writable` parameter with `ModelCallStreamPart` |
 
 For simpler use cases that don't need durability, use [`ToolLoopAgent`](/docs/agents/building-agents) from the `ai` package.
 
@@ -47,16 +46,16 @@ npm install @ai-sdk/workflow workflow
 Define an agent by instantiating the `WorkflowAgent` class with a model, instructions, and tools:
 
 ```ts
-import { WorkflowAgent } from '@ai-sdk/workflow';
-import { tool } from 'ai';
-import { z } from 'zod';
+import { WorkflowAgent } from "@ai-sdk/workflow";
+import { tool } from "ai";
+import { z } from "zod";
 
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
-  instructions: 'You are a helpful assistant.',
+  model: "anthropic/claude-sonnet-4-6",
+  instructions: "You are a helpful assistant.",
   tools: {
     weather: tool({
-      description: 'Get weather for a location',
+      description: "Get weather for a location",
       inputSchema: z.object({
         location: z.string(),
       }),
@@ -75,17 +74,17 @@ The `model` parameter accepts three forms:
 
 ```ts
 // String — AI Gateway model ID
-new WorkflowAgent({ model: 'anthropic/claude-sonnet-4-6' });
+new WorkflowAgent({ model: "anthropic/claude-sonnet-4-6" });
 
 // Provider instance
-import { openai } from '@ai-sdk/openai';
-new WorkflowAgent({ model: openai('gpt-4o') });
+import { openai } from "@ai-sdk/openai";
+new WorkflowAgent({ model: openai("gpt-4o") });
 
 // Async function — resolved inside the workflow step
 new WorkflowAgent({
   model: async () => {
-    const { openai } = await import('@ai-sdk/openai');
-    return openai('gpt-4o');
+    const { openai } = await import("@ai-sdk/openai");
+    return openai("gpt-4o");
   },
 });
 ```
@@ -101,22 +100,22 @@ new WorkflowAgent({
 ### End-to-End Example
 
 ```ts filename="workflow/agent-chat.ts"
-import { WorkflowAgent, type ModelCallStreamPart } from '@ai-sdk/workflow';
-import { convertToModelMessages, tool, type UIMessage } from 'ai';
-import { getWritable } from 'workflow';
-import { z } from 'zod';
+import { WorkflowAgent, type ModelCallStreamPart } from "@ai-sdk/workflow";
+import { convertToModelMessages, tool, type UIMessage } from "ai";
+import { getWritable } from "workflow";
+import { z } from "zod";
 
 export async function chat(messages: UIMessage[]) {
-  'use workflow';
+  "use workflow";
 
   const modelMessages = await convertToModelMessages(messages);
 
   const agent = new WorkflowAgent({
-    model: 'anthropic/claude-sonnet-4-6',
-    instructions: 'You are a flight booking assistant.',
+    model: "anthropic/claude-sonnet-4-6",
+    instructions: "You are a flight booking assistant.",
     tools: {
       searchFlights: tool({
-        description: 'Search for available flights',
+        description: "Search for available flights",
         inputSchema: z.object({
           origin: z.string(),
           destination: z.string(),
@@ -125,7 +124,7 @@ export async function chat(messages: UIMessage[]) {
         execute: searchFlightsStep,
       }),
       bookFlight: tool({
-        description: 'Book a specific flight',
+        description: "Book a specific flight",
         inputSchema: z.object({
           flightId: z.string(),
           passengerName: z.string(),
@@ -145,10 +144,10 @@ export async function chat(messages: UIMessage[]) {
 ```
 
 ```ts filename="app/api/chat/route.ts"
-import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
-import { createUIMessageStreamResponse, type UIMessage } from 'ai';
-import { start } from 'workflow/api';
-import { chat } from '@/workflow/agent-chat';
+import { createModelCallToUIChunkTransform } from "@ai-sdk/workflow";
+import { createUIMessageStreamResponse, type UIMessage } from "ai";
+import { start } from "workflow/api";
+import { chat } from "@/workflow/agent-chat";
 
 export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
@@ -166,10 +165,10 @@ export async function POST(request: Request) {
 `WorkflowAgent.stream()` expects `ModelMessage[]`, not `UIMessage[]`. When receiving messages from the client (via `useChat`), convert them first:
 
 ```ts
-import { convertToModelMessages, type UIMessage } from 'ai';
+import { convertToModelMessages, type UIMessage } from "ai";
 
 export async function chat(messages: UIMessage[]) {
-  'use workflow';
+  "use workflow";
 
   const modelMessages = await convertToModelMessages(messages);
 
@@ -185,8 +184,8 @@ export async function chat(messages: UIMessage[]) {
 Unlike `ToolLoopAgent` where you consume the returned stream, `WorkflowAgent` writes raw `ModelCallStreamPart` chunks to a `writable` stream provided by the workflow runtime via `getWritable()`. At the response boundary, use `createModelCallToUIChunkTransform()` to convert these into `UIMessageChunk` objects for the client:
 
 ```ts
-import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
-import { createUIMessageStreamResponse } from 'ai';
+import { createModelCallToUIChunkTransform } from "@ai-sdk/workflow";
+import { createUIMessageStreamResponse } from "ai";
 
 // Convert raw model stream parts → UI message chunks
 return createUIMessageStreamResponse({
@@ -199,17 +198,17 @@ return createUIMessageStreamResponse({
 Workflow functions can time out or be interrupted by network failures. `WorkflowChatTransport` is a [`ChatTransport`](/docs/ai-sdk-ui/transport) implementation that handles these interruptions automatically — it detects when a stream ends without a `finish` event and reconnects to resume from where it left off.
 
 ```tsx filename="app/page.tsx"
-'use client';
+"use client";
 
-import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow';
-import { useMemo } from 'react';
+import { useChat } from "@ai-sdk/react";
+import { WorkflowChatTransport } from "@ai-sdk/workflow";
+import { useMemo } from "react";
 
 export default function Chat() {
   const transport = useMemo(
     () =>
       new WorkflowChatTransport({
-        api: '/api/chat',
+        api: "/api/chat",
         maxConsecutiveErrors: 5,
         initialStartIndex: -50, // On page refresh, fetch last 50 chunks
       }),
@@ -225,10 +224,10 @@ export default function Chat() {
 The transport requires your POST endpoint to return an `x-workflow-run-id` response header, and a GET endpoint at `{api}/{runId}/stream` for reconnection:
 
 ```ts filename="app/api/chat/route.ts"
-import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
-import { createUIMessageStreamResponse, type UIMessage } from 'ai';
-import { start } from 'workflow/api';
-import { chat } from '@/workflow/agent-chat';
+import { createModelCallToUIChunkTransform } from "@ai-sdk/workflow";
+import { createUIMessageStreamResponse, type UIMessage } from "ai";
+import { start } from "workflow/api";
+import { chat } from "@/workflow/agent-chat";
 
 export async function POST(request: Request) {
   const { messages }: { messages: UIMessage[] } = await request.json();
@@ -237,16 +236,16 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
     headers: {
-      'x-workflow-run-id': run.runId,
+      "x-workflow-run-id": run.runId,
     },
   });
 }
 ```
 
 ```ts filename="app/api/chat/[runId]/stream/route.ts"
-import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
-import type { NextRequest } from 'next/server';
-import { getRun } from 'workflow/api';
+import { createModelCallToUIChunkTransform } from "@ai-sdk/workflow";
+import type { NextRequest } from "next/server";
+import { getRun } from "workflow/api";
 
 export async function GET(
   request: NextRequest,
@@ -254,7 +253,7 @@ export async function GET(
 ) {
   const { runId } = await params;
   const startIndex = Number(
-    new URL(request.url).searchParams.get('startIndex') ?? '0',
+    new URL(request.url).searchParams.get("startIndex") ?? "0",
   );
 
   const run = await getRun(runId);
@@ -264,10 +263,10 @@ export async function GET(
 
   return new Response(readable, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-      'x-workflow-run-id': runId,
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "x-workflow-run-id": runId,
     },
   });
 }
@@ -289,7 +288,7 @@ async function searchFlightsStep(input: {
   destination: string;
   date: string;
 }) {
-  'use step';
+  "use step";
   const response = await fetch(`https://api.flights.example/search?...`);
   return response.json();
 }
@@ -298,9 +297,9 @@ async function bookFlightStep(input: {
   flightId: string;
   passengerName: string;
 }) {
-  'use step';
-  const response = await fetch('https://api.flights.example/book', {
-    method: 'POST',
+  "use step";
+  const response = await fetch("https://api.flights.example/book", {
+    method: "POST",
     body: JSON.stringify(input),
   });
   return response.json();
@@ -315,10 +314,10 @@ Tools can require human approval before execution. When a tool has `needsApprova
 
 ```ts
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: "anthropic/claude-sonnet-4-6",
   tools: {
     bookFlight: tool({
-      description: 'Book a flight',
+      description: "Book a flight",
       inputSchema: z.object({
         flightId: z.string(),
         passengerName: z.string(),
@@ -327,11 +326,11 @@ const agent = new WorkflowAgent({
       execute: bookFlightStep,
     }),
     cancelBooking: tool({
-      description: 'Cancel a booking',
+      description: "Cancel a booking",
       inputSchema: z.object({ bookingId: z.string() }),
       // Conditional approval based on input
       needsApproval: async (input) => {
-        return input.bookingId.startsWith('VIP-');
+        return input.bookingId.startsWith("VIP-");
       },
       execute: cancelBookingStep,
     }),
@@ -346,11 +345,11 @@ Because the workflow is durable, the approval request survives process restarts 
 Control how many steps the agent can take:
 
 ```ts
-import { isStepCount } from 'ai';
+import { isStepCount } from "ai";
 
 const result = await agent.stream({
   messages,
-  maxSteps: 10,             // Maximum number of LLM calls
+  maxSteps: 10, // Maximum number of LLM calls
   stopWhen: isStepCount(5), // Or use stop conditions from AI SDK
 });
 ```
@@ -362,14 +361,14 @@ By default, the agent loops until the model stops calling tools (no maximum).
 Parse agent responses into typed objects using `Output`:
 
 ```ts
-import { Output } from '@ai-sdk/workflow';
-import { z } from 'zod';
+import { Output } from "@ai-sdk/workflow";
+import { z } from "zod";
 
 const result = await agent.stream({
   messages,
   output: Output.object({
     schema: z.object({
-      sentiment: z.enum(['positive', 'neutral', 'negative']),
+      sentiment: z.enum(["positive", "neutral", "negative"]),
       summary: z.string(),
     }),
   }),
@@ -388,7 +387,7 @@ Called once before the agent loop starts. Use it to transform model, instruction
 
 ```ts
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: "anthropic/claude-sonnet-4-6",
   prepareCall: async ({ model, tools, messages }) => {
     return {
       instructions: `Current time: ${new Date().toISOString()}`,
@@ -403,10 +402,10 @@ Called before each step (LLM call). Use it to modify settings, manage context, o
 
 ```ts
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: "anthropic/claude-sonnet-4-6",
   prepareStep: async ({ stepNumber, messages }) => {
     if (stepNumber > 5) {
-      return { toolChoice: 'none' }; // Force text response after 5 steps
+      return { toolChoice: "none" }; // Force text response after 5 steps
     }
     return {};
   },
@@ -421,10 +420,10 @@ Agents provide lifecycle callbacks for logging, observability, and custom teleme
 
 ```ts
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: "anthropic/claude-sonnet-4-6",
 
   experimental_onStart({ model, messages }) {
-    console.log('Agent started');
+    console.log("Agent started");
   },
 
   experimental_onStepStart({ stepNumber }) {
@@ -440,7 +439,7 @@ const agent = new WorkflowAgent({
   },
 
   onStepFinish({ usage, finishReason }) {
-    console.log('Step done:', { finishReason });
+    console.log("Step done:", { finishReason });
   },
 
   onFinish({ steps, totalUsage }) {
@@ -454,7 +453,7 @@ const agent = new WorkflowAgent({
 Infer the UI message type for type-safe client components:
 
 ```ts
-import { WorkflowAgent, InferWorkflowAgentUIMessage } from '@ai-sdk/workflow';
+import { WorkflowAgent, InferWorkflowAgentUIMessage } from "@ai-sdk/workflow";
 
 const myAgent = new WorkflowAgent({
   // ... configuration
