@@ -6,7 +6,7 @@ import {
   GenerateTextOnToolCallFinishCallback,
   GenerateTextOnToolCallStartCallback,
 } from './generate-text';
-import { TypedToolCall } from './tool-call';
+import { DynamicToolCall, StaticToolCall } from './tool-call';
 import { TypedToolResult } from './tool-result';
 
 vi.mock('../util/now', () => ({
@@ -24,21 +24,26 @@ describe('executeToolCall', () => {
   });
 
   const createToolCall = (
-    overrides: Partial<TypedToolCall<any>> = {},
-  ): TypedToolCall<any> =>
-    ({
-      type: 'tool-call',
-      toolCallId: 'call-1',
-      toolName: 'testTool',
-      input: { value: 'test' },
-      dynamic: false,
-      ...overrides,
-    }) as TypedToolCall<any>;
+    overrides: Partial<StaticToolCall<any> | DynamicToolCall> = {},
+  ): StaticToolCall<any> | DynamicToolCall => ({
+    type: 'tool-call',
+    toolCallId: 'call-1',
+    toolName: 'testTool',
+    input: { value: 'test' },
+    dynamic: false,
+    ...overrides,
+  });
 
   describe('when tool has no execute function', () => {
     it('should return undefined', async () => {
       const result = await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -58,7 +63,13 @@ describe('executeToolCall', () => {
   describe('when tool executes successfully', () => {
     it('should return tool-result with correct data', async () => {
       const result = await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -84,9 +95,14 @@ describe('executeToolCall', () => {
 
     it('should preserve providerMetadata from toolCall', async () => {
       const result = await executeToolCall({
-        toolCall: createToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
           providerMetadata: { custom: { key: 'value' } },
-        }),
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -112,7 +128,13 @@ describe('executeToolCall', () => {
       const toolError = new Error('execution failed');
 
       const result = await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -173,7 +195,13 @@ describe('executeToolCall', () => {
       const executionOrder: string[] = [];
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -206,7 +234,13 @@ describe('executeToolCall', () => {
         stepNumber: 2,
         provider: 'test-provider',
         modelId: 'test-model',
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         messages: [{ role: 'user', content: 'test message' }],
         abortSignal: undefined,
         functionId: 'test-function',
@@ -218,7 +252,13 @@ describe('executeToolCall', () => {
 
     it('should not break execution when callback throws', async () => {
       const result = await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -251,7 +291,13 @@ describe('executeToolCall', () => {
       mockNow.mockReturnValueOnce(1000).mockReturnValueOnce(1050);
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -280,7 +326,13 @@ describe('executeToolCall', () => {
         stepNumber: 3,
         provider: 'test-provider',
         modelId: 'test-model',
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         messages: [{ role: 'user', content: 'test message' }],
         abortSignal: undefined,
         success: true,
@@ -301,7 +353,13 @@ describe('executeToolCall', () => {
       mockNow.mockReturnValueOnce(2000).mockReturnValueOnce(2100);
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -332,7 +390,13 @@ describe('executeToolCall', () => {
         stepNumber: 1,
         provider: 'provider-1',
         modelId: 'model-1',
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         messages: [],
         abortSignal: undefined,
         success: false,
@@ -346,7 +410,13 @@ describe('executeToolCall', () => {
 
     it('should not break execution when callback throws on success', async () => {
       const result = await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -373,7 +443,13 @@ describe('executeToolCall', () => {
       const toolError = new Error('tool error');
 
       const result = await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -408,7 +484,13 @@ describe('executeToolCall', () => {
       mockNow.mockReturnValueOnce(5000).mockReturnValueOnce(5250);
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -436,7 +518,13 @@ describe('executeToolCall', () => {
       mockNow.mockReturnValueOnce(1000).mockReturnValueOnce(1500);
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -464,7 +552,13 @@ describe('executeToolCall', () => {
       const preliminaryResults: TypedToolResult<any>[] = [];
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -502,7 +596,13 @@ describe('executeToolCall', () => {
       const preliminaryResults: TypedToolResult<any>[] = [];
 
       const result = await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -598,7 +698,13 @@ describe('executeToolCall', () => {
       const finishEvents: any[] = [];
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -682,7 +788,13 @@ describe('executeToolCall', () => {
   describe('timeout', () => {
     it('should return tool-result when tool completes before timeout', async () => {
       const result = await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -707,7 +819,13 @@ describe('executeToolCall', () => {
       let receivedSignal: AbortSignal | undefined;
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -733,7 +851,13 @@ describe('executeToolCall', () => {
       let receivedSignal: AbortSignal | undefined;
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -758,7 +882,13 @@ describe('executeToolCall', () => {
       let receivedSignal: AbortSignal | undefined;
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -785,7 +915,13 @@ describe('executeToolCall', () => {
       let receivedSignal: AbortSignal | undefined;
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -811,7 +947,13 @@ describe('executeToolCall', () => {
       let receivedSignal: AbortSignal | undefined;
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -837,7 +979,13 @@ describe('executeToolCall', () => {
       let receivedSignal: AbortSignal | undefined;
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -914,7 +1062,13 @@ describe('executeToolCall', () => {
   describe('when tools is undefined', () => {
     it('should return undefined', async () => {
       const result = await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: undefined,
         telemetry: undefined,
         callId: 'test-telemetry-call-id',
@@ -953,7 +1107,13 @@ describe('executeToolCall', () => {
       const calls: string[] = [];
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -982,7 +1142,13 @@ describe('executeToolCall', () => {
       const calls: string[] = [];
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -1011,7 +1177,13 @@ describe('executeToolCall', () => {
       const calls: string[] = [];
 
       await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
@@ -1046,7 +1218,13 @@ describe('executeToolCall', () => {
       const calls: string[] = [];
 
       const result = await executeToolCall({
-        toolCall: createToolCall(),
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          input: { value: 'test' },
+          dynamic: false,
+        },
         tools: {
           testTool: tool({
             inputSchema: z.object({ value: z.string() }),
