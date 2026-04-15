@@ -8,7 +8,7 @@ import { TimeoutConfiguration } from '../prompt/request-options';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { executeToolCall } from './execute-tool-call';
-import { isApprovalNeeded } from './is-approval-needed';
+import { isToolApprovalNeeded } from './is-tool-approval-needed';
 import { LanguageModelStreamPart } from './stream-language-model-call';
 import {
   StreamTextOnToolCallFinishCallback,
@@ -89,9 +89,10 @@ export function createExecuteToolsTransformation<
           }
 
           if (
-            await isApprovalNeeded({
-              tool,
+            await isToolApprovalNeeded({
+              tools,
               toolCall: chunk,
+              toolApproval: undefined,
               messages,
               context,
             })

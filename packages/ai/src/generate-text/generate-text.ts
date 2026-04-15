@@ -71,7 +71,7 @@ import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
-import { isApprovalNeeded } from './is-approval-needed';
+import { isToolApprovalNeeded } from './is-tool-approval-needed';
 import { Output, text } from './output';
 import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
@@ -826,7 +826,7 @@ export async function generateText<
           }
 
           if (
-            await isApprovalNeeded({
+            await isToolApprovalNeeded({
               tools,
               toolApproval,
               toolCall,

@@ -13,7 +13,7 @@ import { TypedToolCall } from './tool-call';
  * approval settings. User-defined approval settings take precedence over tool-defined settings.
  * If no approval settings are provided, the tool call does not require approval.
  */
-export async function isApprovalNeeded<
+export async function isToolApprovalNeeded<
   TOOLS extends ToolSet,
   USER_CONTEXT extends Context = Context,
 >({
