@@ -117,7 +117,7 @@ importers:
         specifier: 2.0.24
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 3.0.82
+        specifier: 3.0.83
         version: link:../../packages/xai
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0

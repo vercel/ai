@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 3.0.83
+
+### Patch Changes
+
+- b937f3e: fix(xai): support encrypted reasoning round-trip for ZDR
+
 ## 3.0.82
 
 ### Patch Changes
