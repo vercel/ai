@@ -106,7 +106,7 @@ const gatewayAvailableModelsResponseSchema = lazySchema(() =>
             modelId: z.string(),
           }),
           modelType: z
-            .enum(['embedding', 'image', 'language', 'video'])
+            .enum(['embedding', 'image', 'language', 'reranking', 'video'])
             .nullish(),
         }),
       ),
