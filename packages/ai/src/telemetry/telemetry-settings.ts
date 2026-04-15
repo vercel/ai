@@ -33,8 +33,8 @@ export type TelemetrySettings = {
   /**
    * Per-call telemetry integrations that receive lifecycle events during generation.
    *
-   * These integrations run after any globally registered integrations
-   * (see `registerTelemetryIntegration`).
+   * When provided, these integrations will take precedence over the globally registered
+   * integrations for this call.
    */
   integrations?: TelemetryIntegration | TelemetryIntegration[];
 };
