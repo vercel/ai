@@ -11,12 +11,8 @@ export const xaiWebSearchAgent = new ToolLoopAgent({
       enableImageUnderstanding: true,
     }),
   },
-  experimental_onStepStart: ({ messages }) => {
-    console.log('Messages:', JSON.stringify(messages, null, 2));
-  },
-  onStepFinish: ({ response }) => {
-    console.log('Response headers:', response.headers);
-    console.log('Response body:', JSON.stringify(response.messages, null, 2));
+  onStepFinish: ({ request }) => {
+    console.dir(request.body, { depth: Infinity });
   },
   providerOptions: {
     xai: {
