@@ -1958,6 +1958,87 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should handle multiple code execution results for the same executable code', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  executableCode: {
+                    language: 'PYTHON',
+                    code: "print('ok')\nprint(1/0)",
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_OK',
+                    output: 'ok\n',
+                  },
+                },
+                {
+                  codeExecutionResult: {
+                    outcome: 'OUTCOME_FAILED',
+                    output: 'ZeroDivisionError: division by zero\n',
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+          },
+        ],
+      },
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { content } = await model.doGenerate({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "ok
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_FAILED",
+            "output": "ZeroDivisionError: division by zero
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
   it('should handle code execution result with missing output field', async () => {
     server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
       type: 'json-value',
@@ -4601,6 +4682,94 @@ describe('doStream', () => {
           "result": {
             "outcome": "OUTCOME_OK",
             "output": "hello
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('should stream multiple code execution results for the same executable code', async () => {
+    server.urls[TEST_URL_GEMINI_2_0_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    executableCode: {
+                      language: 'PYTHON',
+                      code: "print('ok')\nprint(1/0)",
+                    },
+                  },
+                  {
+                    codeExecutionResult: {
+                      outcome: 'OUTCOME_OK',
+                      output: 'ok\n',
+                    },
+                  },
+                  {
+                    codeExecutionResult: {
+                      outcome: 'OUTCOME_FAILED',
+                      output: 'ZeroDivisionError: division by zero\n',
+                    },
+                  },
+                ],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+      ],
+    };
+
+    const model = provider.languageModel('gemini-2.0-pro');
+    const { stream } = await model.doStream({
+      tools: [
+        {
+          type: 'provider',
+          id: 'google.code_execution',
+          name: 'code_execution',
+          args: {},
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const toolEvents = events.filter(
+      e => e.type === 'tool-call' || e.type === 'tool-result',
+    );
+
+    expect(toolEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
+          "providerExecuted": true,
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-call",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_OK",
+            "output": "ok
+      ",
+          },
+          "toolCallId": "test-id",
+          "toolName": "code_execution",
+          "type": "tool-result",
+        },
+        {
+          "result": {
+            "outcome": "OUTCOME_FAILED",
+            "output": "ZeroDivisionError: division by zero
       ",
           },
           "toolCallId": "test-id",
