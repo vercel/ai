@@ -11,9 +11,10 @@ import { extractReasoningContent } from '../generate-text/extract-reasoning-cont
 import { extractTextContent } from '../generate-text/extract-text-content';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt/call-settings';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
+import { RequestOptions } from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
@@ -121,7 +122,8 @@ export async function generateObject<
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<CallSettings, 'stopSequences'> &
+  options: Omit<LanguageModelCallOptions, 'stopSequences'> &
+    Omit<RequestOptions, 'timeout'> &
     Prompt &
     (OUTPUT extends 'enum'
       ? {
@@ -270,7 +272,7 @@ export async function generateObject<
     enumValues,
   });
 
-  const callSettings = prepareCallSettings(settings);
+  const callSettings = prepareLanguageModelCallOptions(settings);
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -303,7 +305,6 @@ export async function generateObject<
       maxRetries,
       headers: headersWithUserAgent,
       providerOptions,
-      abortSignal,
       output: outputStrategy.type as 'object' | 'array' | 'enum' | 'no-schema',
       schema: jsonSchema as Record<string, unknown> | undefined,
       schemaName,
@@ -312,7 +313,6 @@ export async function generateObject<
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
     },
     callbacks: [onStart, unifiedTelemetry.onStart],
   });
@@ -339,9 +339,7 @@ export async function generateObject<
         modelId: model.modelId,
         providerOptions,
         headers: headersWithUserAgent,
-        abortSignal,
         functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata as Record<string, unknown> | undefined,
         promptMessages,
       },
       callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
@@ -355,7 +353,7 @@ export async function generateObject<
           name: schemaName,
           description: schemaDescription,
         },
-        ...prepareCallSettings(settings),
+        ...prepareLanguageModelCallOptions(settings),
         prompt: promptMessages,
         providerOptions,
         abortSignal,
@@ -411,7 +409,6 @@ export async function generateObject<
       response,
       providerMetadata: resultProviderMetadata,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     };
 
     await notify({
@@ -443,7 +440,6 @@ export async function generateObject<
         response,
         providerMetadata: resultProviderMetadata,
         functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata as Record<string, unknown> | undefined,
       },
       callbacks: [onFinish, unifiedTelemetry.onFinish],
     });

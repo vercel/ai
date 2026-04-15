@@ -689,7 +689,7 @@ describe('tool messages', () => {
                     text: 'Image generated successfully',
                   },
                   {
-                    type: 'image-data',
+                    type: 'file-data',
                     data: 'AAECAw==',
                     mediaType: 'image/png',
                   },
@@ -904,6 +904,7 @@ describe('tool messages', () => {
                   {
                     type: 'file-url',
                     url: 'https://example.com/document.pdf',
+                    mediaType: 'application/pdf',
                   },
                 ],
               },
@@ -962,8 +963,9 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'image-url',
+                    type: 'file-url',
                     url: 'https://example.com/image.png',
+                    mediaType: 'image/png',
                   },
                 ],
               },

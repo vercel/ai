@@ -649,7 +649,7 @@ describe('tool messages', () => {
                   text: 'Here is the generated image:',
                 },
                 {
-                  type: 'image-data',
+                  type: 'file-data',
                   data: 'base64encodedimagedata',
                   mediaType: 'image/jpeg',
                 },
@@ -746,8 +746,9 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'image-url',
+                  type: 'file-url',
                   url: 'data:image/png;base64,base64pngdata',
+                  mediaType: 'image/png',
                 },
               ],
             },
@@ -788,8 +789,9 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'image-url',
+                  type: 'file-url',
                   url: 'https://example.com/image.png',
+                  mediaType: 'image/png',
                 },
               ],
             },
@@ -803,7 +805,8 @@ describe('tool messages', () => {
         name: 'imageGenerator',
         response: {
           name: 'imageGenerator',
-          content: '{"type":"image-url","url":"https://example.com/image.png"}',
+          content:
+            '{"type":"file-url","url":"https://example.com/image.png","mediaType":"image/png"}',
         },
       },
     });
@@ -824,6 +827,7 @@ describe('tool messages', () => {
                 {
                   type: 'file-url',
                   url: 'https://example.com/report.pdf',
+                  mediaType: 'application/pdf',
                 },
               ],
             },
@@ -837,7 +841,8 @@ describe('tool messages', () => {
         name: 'documentReader',
         response: {
           name: 'documentReader',
-          content: '{"type":"file-url","url":"https://example.com/report.pdf"}',
+          content:
+            '{"type":"file-url","url":"https://example.com/report.pdf","mediaType":"application/pdf"}',
         },
       },
     });
@@ -861,7 +866,7 @@ describe('tool messages', () => {
                     text: 'Here is the generated image:',
                   },
                   {
-                    type: 'image-data',
+                    type: 'file-data',
                     data: 'base64encodedimagedata',
                     mediaType: 'image/jpeg',
                   },
@@ -919,12 +924,14 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'image-url',
+                    type: 'file-url',
                     url: 'https://example.com/image.png',
+                    mediaType: 'image/png',
                   },
                   {
                     type: 'file-url',
                     url: 'https://example.com/report.pdf',
+                    mediaType: 'application/pdf',
                   },
                 ],
               },
@@ -937,10 +944,10 @@ describe('tool messages', () => {
 
     expect(result.contents[0].parts).toEqual([
       {
-        text: '{"type":"image-url","url":"https://example.com/image.png"}',
+        text: '{"type":"file-url","url":"https://example.com/image.png","mediaType":"image/png"}',
       },
       {
-        text: '{"type":"file-url","url":"https://example.com/report.pdf"}',
+        text: '{"type":"file-url","url":"https://example.com/report.pdf","mediaType":"application/pdf"}',
       },
     ]);
   });

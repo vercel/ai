@@ -36,10 +36,6 @@ run(async () => {
     experimental_telemetry: {
       isEnabled: true,
       functionId: 'my-awesome-function',
-      metadata: {
-        something: 'custom',
-        someOtherThing: 'other-value',
-      },
     },
   });
 

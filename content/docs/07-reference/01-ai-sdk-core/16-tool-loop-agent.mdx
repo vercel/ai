@@ -240,11 +240,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata passed to the generation.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -351,11 +346,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -409,11 +399,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
             },
             {
               name: 'context',
@@ -477,11 +462,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -521,7 +501,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'ToolLoopAgentOnFinishCallback',
       isOptional: true,
       description:
-        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, context, functionId, and metadata. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, context, and functionId. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
       name: 'context',
@@ -632,6 +612,23 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'string',
       isOptional: true,
       description: 'Custom agent identifier.',
+    },
+  ]}
+/>
+
+## Properties
+
+<PropertiesTable
+  content={[
+    {
+      name: 'tools',
+      type: 'Record<string, Tool>',
+      description: 'The tool set configured for this agent. Read-only.',
+    },
+    {
+      name: 'id',
+      type: 'string | undefined',
+      description: 'The agent identifier, if one was provided in the constructor.',
     },
   ]}
 />

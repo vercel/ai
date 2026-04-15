@@ -1,4 +1,3 @@
-import type { JSONValue, LanguageModelV4ToolChoice } from '@ai-sdk/provider';
 import type {
   Context,
   InferToolSetContext,
@@ -7,7 +6,7 @@ import type {
   SystemModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { TimeoutConfiguration } from '../prompt/call-settings';
+import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
 import type { Output } from './output';
@@ -35,7 +34,6 @@ export interface OnStartEvent<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-  INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
@@ -114,14 +112,6 @@ export interface OnStartEvent<
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
-  /**
-   * Settings for controlling what data is included in step results.
-   */
-  readonly include: INCLUDE | undefined;
-
   /** Whether telemetry is enabled. */
   readonly isEnabled: boolean | undefined;
 
@@ -134,14 +124,11 @@ export interface OnStartEvent<
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
-
   /**
    * User-defined context object that flows through the entire generation lifecycle.
    * Can be accessed and modified in `prepareStep` and tool `execute` functions.
    */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }
 
 /**
@@ -154,7 +141,6 @@ export interface OnStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-  INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
@@ -188,7 +174,7 @@ export interface OnStepStartEvent<
   readonly tools: TOOLS | undefined;
 
   /** The tool choice configuration for this step. */
-  readonly toolChoice: LanguageModelV4ToolChoice | undefined;
+  readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
 
   /** Limits which tools are available for this step. */
   readonly activeTools: Array<keyof TOOLS> | undefined;
@@ -220,24 +206,13 @@ export interface OnStepStartEvent<
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
-  /**
-   * Settings for controlling what data is included in step results.
-   */
-  readonly include: INCLUDE | undefined;
-
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
 
   /**
    * User-defined context object. May be updated from `prepareStep` between steps.
    */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }
 
 /**
@@ -264,17 +239,11 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** The conversation messages available at tool execution time. */
   readonly messages: Array<ModelMessage>;
 
-  /** Signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
-
   /** User-defined context object flowing through the generation. */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS>;
 }
 
 /**
@@ -302,20 +271,14 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   /** The conversation messages available at tool execution time. */
   readonly messages: Array<ModelMessage>;
 
-  /** Signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** Execution time of the tool call in milliseconds. */
   readonly durationMs: number;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
-
   /** User-defined context object flowing through the generation. */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS>;
 } & (
   | {
       /** Indicates the tool call succeeded. */
@@ -389,7 +352,4 @@ export type OnFinishEvent<
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
 };

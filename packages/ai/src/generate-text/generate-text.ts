@@ -20,15 +20,16 @@ import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-f
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
 import {
-  CallSettings,
   getStepTimeoutMs,
   getTotalTimeoutMs,
+  RequestOptions,
   TimeoutConfiguration,
-} from '../prompt/call-settings';
+} from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
 import { Prompt } from '../prompt/prompt';
@@ -102,14 +103,6 @@ const originalGenerateCallId = createIdGenerator({
 });
 
 /**
- * Include settings for generateText (requestBody and responseBody).
- */
-type GenerateTextIncludeSettings = {
-  requestBody?: boolean;
-  responseBody?: boolean;
-};
-
-/**
  * Callback that is set using the `experimental_onStart` option.
  *
  * Called when the generateText operation begins, before any LLM calls.
@@ -122,9 +115,7 @@ export type GenerateTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<
-  OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT, GenerateTextIncludeSettings>
->;
+> = Callback<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onStepStart` option.
@@ -139,9 +130,7 @@ export type GenerateTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<
-  OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT, GenerateTextIncludeSettings>
->;
+> = Callback<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onToolCallStart` option.
@@ -273,8 +262,7 @@ export async function generateText<
   output = experimental_output,
   experimental_telemetry: telemetry,
   providerOptions,
-  experimental_activeTools,
-  activeTools = experimental_activeTools,
+  activeTools,
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
@@ -292,21 +280,14 @@ export async function generateText<
   onStepFinish,
   onFinish,
   ...settings
-}: CallSettings &
+}: LanguageModelCallOptions &
+  RequestOptions<TOOLS> &
   Prompt &
   ContextParameter<TOOLS, USER_CONTEXT> & {
     /**
      * The language model to use.
      */
     model: LanguageModel;
-
-    /**
-     * Timeout in milliseconds. The call will be aborted if it takes longer
-     * than the specified timeout. Can be used alongside abortSignal.
-     *
-     * Can be specified as a number (milliseconds) or as an object with `totalMs`.
-     */
-    timeout?: TimeoutConfiguration<TOOLS>;
 
     /**
      * The tool choice strategy. Default: 'auto'.
@@ -334,11 +315,6 @@ export async function generateText<
      * functionality that can be fully encapsulated in the provider.
      */
     providerOptions?: ProviderOptions;
-
-    /**
-     * @deprecated Use `activeTools` instead.
-     */
-    experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -485,7 +461,7 @@ export async function generateText<
     abortSignal: mergedAbortSignal,
   });
 
-  const callSettings = prepareCallSettings(settings);
+  const callSettings = prepareLanguageModelCallOptions(settings);
 
   const headersWithUserAgent = withUserAgentSuffix(
     headers ?? {},
@@ -531,13 +507,10 @@ export async function generateText<
       providerOptions,
       stopWhen,
       output,
-      abortSignal,
-      include,
       isEnabled: telemetry?.isEnabled,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
       context,
     },
     callbacks: [
@@ -647,7 +620,7 @@ export async function generateText<
       });
     }
 
-    const callSettings = prepareCallSettings(settings);
+    const callSettings = prepareLanguageModelCallOptions(settings);
 
     let currentModelResponse: LanguageModelV4GenerateResult & {
       response: { id: string; timestamp: Date; modelId: string };
@@ -725,7 +698,7 @@ export async function generateText<
           system: stepSystem,
           messages: stepMessages,
           tools,
-          toolChoice: stepToolChoice,
+          toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           activeTools: prepareStepResult?.activeTools ?? activeTools,
           steps: [...steps],
           providerOptions: stepProviderOptions,
@@ -733,10 +706,7 @@ export async function generateText<
           headers,
           stopWhen,
           output,
-          abortSignal,
-          include,
           functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           context,
           promptMessages,
           stepTools,
@@ -979,9 +949,6 @@ export async function generateText<
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata as
-              | Record<string, unknown>
-              | undefined,
             context,
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
@@ -1046,7 +1013,6 @@ export async function generateText<
       stepNumber: lastStep.stepNumber,
       model: lastStep.model,
       functionId: lastStep.functionId,
-      metadata: lastStep.metadata,
       context: lastStep.context,
       finishReason: lastStep.finishReason,
       rawFinishReason: lastStep.rawFinishReason,

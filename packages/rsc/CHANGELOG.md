@@ -1,5 +1,75 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.96
+
+### Patch Changes
+
+- Updated dependencies [c4f4b5f]
+  - ai@7.0.0-beta.95
+
+## 3.0.0-beta.95
+
+### Patch Changes
+
+- Updated dependencies [1582efa]
+  - ai@7.0.0-beta.94
+
+## 3.0.0-beta.94
+
+### Patch Changes
+
+- Updated dependencies [bc47739]
+  - ai@7.0.0-beta.93
+
+## 3.0.0-beta.93
+
+### Patch Changes
+
+- ai@7.0.0-beta.92
+
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- ai@7.0.0-beta.91
+
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+- Updated dependencies [1db29c8]
+  - ai@7.0.0-beta.90
+
+## 3.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/provider@4.0.0-beta.12
+  - ai@7.0.0-beta.89
+
+## 3.0.0-beta.89
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - ai@7.0.0-beta.88
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 3.0.0-beta.88
+
+### Patch Changes
+
+- ai@7.0.0-beta.87
+
 ## 3.0.0-beta.87
 
 ### Patch Changes

@@ -581,7 +581,7 @@ const result = await generateText({
                 text: 'Here is the nutrition data for the cheese:',
               },
               {
-                type: 'image-data',
+                type: 'file-data',
                 data: fs
                   .readFileSync('./data/roquefort-nutrition-data.png')
                   .toString('base64'),

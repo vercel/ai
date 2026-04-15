@@ -19,6 +19,26 @@ An example upgrade command would be:
 pnpm install ai@latest @ai-sdk/react@latest @ai-sdk/openai@latest @ai-sdk/otel@latest
 ```
 
+## All Packages
+
+### ESM Only — CommonJS Support Removed
+
+All AI SDK packages are now ESM-only. The `require()` function is no longer supported.
+
+If your project uses CommonJS (`require()`), switch to ESM `import` syntax:
+
+```tsx filename="Before (CommonJS)"
+const { generateText } = require('ai');
+const { openai } = require('@ai-sdk/openai');
+```
+
+```tsx filename="After (ESM)"
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+```
+
+If your `package.json` does not already include `"type": "module"`, add it or rename your files to use the `.mjs` extension.
+
 ## AI SDK Core
 
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
@@ -144,6 +164,28 @@ Potential breaking issues:
 - If you have helper types or wrappers that assumed `experimental_context` or `context` was `unknown`, update them to accept a generic `CONTEXT` type.
 - If you were relying on a tool callback seeing the entire runtime context object, that code may need to move to `prepareStep` or the tool's `contextSchema` may need to be expanded to include the required fields.
 
+### Tools: Remove Deprecated `experimental_activeTools` Option
+
+The deprecated `experimental_activeTools` option has been removed in AI SDK 7. Replace all remaining usages with `activeTools`.
+
+This option was deprecated in AI SDK 5, so if you already migrated to `activeTools`, no changes are needed. Otherwise, update both `generateText` and `streamText` calls:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  experimental_activeTools: ['weather'],
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  activeTools: ['weather'],
+});
+```
+
 ### Tools: Remove Deprecated `ToolCallOptions` Type
 
 The deprecated `ToolCallOptions` type has been removed in AI SDK 7. Replace all remaining usages with `ToolExecutionOptions`.
@@ -192,23 +234,28 @@ if (isToolUIPart(part)) {
 
 The deprecated tool result content part of `{ type: 'media' }` has been removed in AI SDK 7.
 
-Use `{ type: 'image-data' }` for images and `{ type: 'file-data' }` for all other files.
+Use `{ type: 'file-data' }` for all inline file content, including images.
 
-### Tool Result Content: Migrate to `file-reference` / `image-file-reference`
+### Tool Result Content: Migrate Away From `image-*` and `*-id` Variants
 
-`ProviderReference` is a provider-to-file-ID map (for example `{ openai: 'file_123', anthropic: 'file_abc' }`) that lets the same logical file be reused across providers. New types `file-reference` and `image-file-reference` carry this object in tool outputs, and `file` parts can now also pass a `ProviderReference` as `data` instead of bytes/URL. Where supported, upload files to the provider first and reference them for inference.
+The `image-*` content part types and the `file-id` / `image-file-id` types are deprecated in AI SDK 7. Auto-migration is applied at runtime, so existing tool outputs continue to work without code changes. However, updating to the new types is recommended.
 
-Update tool output handling for multipart content to support:
+Images are just files with an image media type, so the general `file-*` types cover all cases:
 
-- `file-reference`
-- `image-file-reference`
+- `{ type: 'image-data', data, mediaType }` → `{ type: 'file-data', data, mediaType }` (same fields)
+- `{ type: 'image-url', url }` → `{ type: 'file-url', url, mediaType: 'image/jpeg' }` (add the appropriate `mediaType`)
+- `{ type: 'image-file-reference', providerReference }` → `{ type: 'file-reference', providerReference }`
 
-If you persist tool-result content, migrate stored payloads:
+`ProviderReference` is a provider-to-file-ID map (for example `{ openai: 'file_123', anthropic: 'file_abc' }`) that lets the same logical file be reused across providers. Where supported, upload files to the provider first and reference them for inference. The `file-id` / `image-file-id` types, which held a single ID, are replaced by `file-reference`:
 
-- `file-id` -> `file-reference`
-- `image-file-id` -> `image-file-reference`
+- `{ type: 'file-id', fileId }` → `{ type: 'file-reference', providerReference }`
+- `{ type: 'image-file-id', fileId }` → `{ type: 'file-reference', providerReference }` (skip the intermediate step)
 
-Update parsing/validation and discriminated unions accordingly.
+Note that `file-url` now requires a `mediaType` field so providers can correctly determine how to handle the file. Update parsing/validation and discriminated unions to use the replacement types:
+
+- `file-data` (replaces `image-data`)
+- `file-url` (replaces `image-url`) — now requires `mediaType`
+- `file-reference` (replaces `image-file-reference`, `file-id`, `image-file-id`)
 
 ### Message Parts: Handle New `reasoning-file` Content Type
 
@@ -225,6 +272,15 @@ The new top-level `reasoning` option is the provider-agnostic way to control rea
 When migrating to the top-level `reasoning` option, remove overlapping reasoning settings from `providerOptions`.
 
 If both are present, provider-specific reasoning settings in `providerOptions` take precedence, which can silently bypass your new top-level `reasoning` configuration.
+
+### Settings: `CallSettings` Renamed to `LanguageModelCallOptions` and `RequestOptions`
+
+`CallSettings` has been split into `LanguageModelCallOptions` (model-facing options) and `RequestOptions` (transport options). Replace usages in custom wrappers or helpers:
+
+- `CallSettings` → `LanguageModelCallOptions & Omit<RequestOptions, 'timeout'>` (note: `CallSettings` never included `timeout`)
+- `prepareCallSettings` → `prepareLanguageModelCallOptions`
+
+Both deprecated names remain available in AI SDK 7.
 
 ### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
 
