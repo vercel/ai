@@ -419,6 +419,46 @@ export interface WorkflowAgentOptions<
   experimental_context?: unknown;
 
   /**
+   * Default stop condition for the agent loop. When the condition is an array,
+   * any of the conditions can be met to stop the generation.
+   *
+   * Per-stream `stopWhen` values passed to `stream()` override this default.
+   */
+  stopWhen?:
+    | StopCondition<NoInfer<ToolSet>, any>
+    | Array<StopCondition<NoInfer<ToolSet>, any>>;
+
+  /**
+   * Default set of active tools that limits which tools the model can call,
+   * without changing the tool call and result types in the result.
+   *
+   * Per-stream `activeTools` values passed to `stream()` override this default.
+   */
+  activeTools?: Array<keyof NoInfer<TTools>>;
+
+  /**
+   * Default output specification for structured outputs.
+   * Use `Output.object({ schema })` for structured output or `Output.text()` for text output.
+   *
+   * Per-stream `output` values passed to `stream()` override this default.
+   */
+  output?: OutputSpecification<any, any>;
+
+  /**
+   * Default function that attempts to repair a tool call that failed to parse.
+   *
+   * Per-stream `experimental_repairToolCall` values passed to `stream()` override this default.
+   */
+  experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
+
+  /**
+   * Default custom download function to use for URLs.
+   *
+   * Per-stream `experimental_download` values passed to `stream()` override this default.
+   */
+  experimental_download?: DownloadFunction;
+
+  /**
    * Default callback function called before each step in the agent loop.
    * Use this to modify settings, manage context, or inject messages dynamically
    * for every stream call on this agent instance.
@@ -939,6 +979,13 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private toolChoice?: ToolChoice<TBaseTools>;
   private telemetry?: TelemetrySettings;
   private experimentalContext: unknown;
+  private stopWhen?:
+    | StopCondition<ToolSet, any>
+    | Array<StopCondition<ToolSet, any>>;
+  private activeTools?: Array<keyof TBaseTools>;
+  private output?: OutputSpecification<any, any>;
+  private experimentalRepairToolCall?: ToolCallRepairFunction<TBaseTools>;
+  private experimentalDownload?: DownloadFunction;
   private prepareStep?: PrepareStepCallback<TBaseTools>;
   private constructorOnStepFinish?: WorkflowAgentOnStepFinishCallback<ToolSet>;
   private constructorOnFinish?: WorkflowAgentOnFinishCallback<ToolSet>;
@@ -957,6 +1004,11 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     this.toolChoice = options.toolChoice;
     this.telemetry = options.experimental_telemetry;
     this.experimentalContext = options.experimental_context;
+    this.stopWhen = options.stopWhen;
+    this.activeTools = options.activeTools;
+    this.output = options.output;
+    this.experimentalRepairToolCall = options.experimental_repairToolCall;
+    this.experimentalDownload = options.experimental_download;
     this.prepareStep = options.prepareStep;
     this.constructorOnStepFinish = options.onStepFinish;
     this.constructorOnFinish = options.onFinish;
@@ -1197,7 +1249,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     const modelPrompt = await convertToLanguageModelPrompt({
       prompt,
       supportedUrls: {},
-      download: options.experimental_download,
+      download: options.experimental_download ?? this.experimentalDownload,
     });
 
     const effectiveAbortSignal = mergeAbortSignals(
@@ -1276,10 +1328,11 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // Merge telemetry settings
     const effectiveTelemetry = effectiveTelemetryFromPrepare;
 
-    // Filter tools if activeTools is specified
+    // Filter tools if activeTools is specified (stream-level overrides constructor default)
+    const effectiveActiveTools = options.activeTools ?? this.activeTools;
     const effectiveTools =
-      options.activeTools && options.activeTools.length > 0
-        ? filterTools(this.tools, options.activeTools as string[])
+      effectiveActiveTools && effectiveActiveTools.length > 0
+        ? filterTools(this.tools, effectiveActiveTools as string[])
         : this.tools;
 
     // Initialize context
@@ -1381,7 +1434,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       tools: effectiveTools as ToolSet,
       writable: options.writable,
       prompt: modelPrompt,
-      stopConditions: options.stopWhen,
+      stopConditions: options.stopWhen ?? this.stopWhen,
       maxSteps: options.maxSteps,
       onStepFinish: mergedOnStepFinish,
       onStepStart: mergedOnStepStart,
@@ -1394,9 +1447,11 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       experimental_context: experimentalContext,
       experimental_telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
-      repairToolCall:
-        options.experimental_repairToolCall as ToolCallRepairFunction<ToolSet>,
-      responseFormat: await options.output?.responseFormat,
+      repairToolCall: (options.experimental_repairToolCall ??
+        this.experimentalRepairToolCall) as
+        | ToolCallRepairFunction<ToolSet>
+        | undefined,
+      responseFormat: await (options.output ?? this.output)?.responseFormat,
     });
 
     // Track the final conversation messages from the iterator
@@ -1678,14 +1733,15 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     const messages = (finalMessages ??
       prompt.messages) as unknown as ModelMessage[];
 
-    // Parse structured output if output is specified
+    // Parse structured output if output is specified (stream-level overrides constructor default)
+    const effectiveOutput = options.output ?? this.output;
     let experimentalOutput: OUTPUT = undefined as OUTPUT;
-    if (options.output && steps.length > 0) {
+    if (effectiveOutput && steps.length > 0) {
       const lastStep = steps[steps.length - 1];
       const text = lastStep.text;
       if (text) {
         try {
-          experimentalOutput = await options.output.parseCompleteOutput(
+          experimentalOutput = await effectiveOutput.parseCompleteOutput(
             { text },
             {
               response: lastStep.response,
