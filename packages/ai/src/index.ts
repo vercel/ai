@@ -20,8 +20,8 @@ export {
   type ToolApprovalResponse,
   type ToolExecuteFunction,
   type ToolExecutionOptions,
+  type ToolSet,
 } from '@ai-sdk/provider-utils';
-export type { ToolSet } from '@ai-sdk/provider-utils';
 
 // directory exports
 export * from './agent';
