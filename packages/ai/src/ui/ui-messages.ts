@@ -4,6 +4,7 @@ import {
   Tool,
   ToolSet,
   ToolCall,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { ProviderReference } from '../types/provider-reference';

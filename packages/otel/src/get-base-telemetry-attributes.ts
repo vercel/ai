@@ -8,7 +8,7 @@ export function getBaseTelemetryAttributes({
   headers,
 }: {
   model: { modelId: string; provider: string };
-  settings: Omit<LanguageModelCallOptions, 'temperature'>;
+  settings: LanguageModelCallOptions;
   telemetry: TelemetrySettings | undefined;
   headers: Record<string, string | undefined> | undefined;
 }): Attributes {
