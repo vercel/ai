@@ -274,8 +274,7 @@ export async function generateText<
   output = experimental_output,
   experimental_telemetry: telemetry,
   providerOptions,
-  experimental_activeTools,
-  activeTools = experimental_activeTools,
+  activeTools = activeToolsArg,
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
@@ -328,11 +327,6 @@ export async function generateText<
      * functionality that can be fully encapsulated in the provider.
      */
     providerOptions?: ProviderOptions;
-
-    /**
-     * @deprecated Use `activeTools` instead.
-     */
-    experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
      * Limits the tools that are available for the model to call without

@@ -327,8 +327,7 @@ export function streamText<
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
-  experimental_activeTools,
-  activeTools = experimental_activeTools,
+  activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   experimental_download: download,
@@ -387,11 +386,6 @@ export function streamText<
      * functionality that can be fully encapsulated in the provider.
      */
     providerOptions?: ProviderOptions;
-
-    /**
-     * @deprecated Use `activeTools` instead.
-     */
-    experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
      * Limits the tools that are available for the model to call without
