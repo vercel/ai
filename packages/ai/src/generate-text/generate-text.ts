@@ -273,7 +273,7 @@ export async function generateText<
   stopWhen = isStepCount(1),
   experimental_output,
   output = experimental_output,
-  toolApproval,
+  toolNeedsApproval,
   experimental_telemetry: telemetry,
   providerOptions,
   experimental_activeTools,
@@ -359,7 +359,7 @@ export async function generateText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
+    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
 
     /**
      * Custom download function to use for URLs.
@@ -828,7 +828,7 @@ export async function generateText<
           if (
             await isToolApprovalNeeded({
               tools,
-              toolApproval,
+              toolNeedsApproval,
               toolCall,
               messages: stepInputMessages,
               context,

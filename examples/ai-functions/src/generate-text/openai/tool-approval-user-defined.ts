@@ -47,7 +47,7 @@ run(async () => {
         'When a tool execution is not approved by the user, do not retry it.' +
         'Just say that the tool execution was not approved.',
       tools: { weather: weatherTool },
-      toolApproval: {
+      toolNeedsApproval: {
         weather: true,
       },
       messages,

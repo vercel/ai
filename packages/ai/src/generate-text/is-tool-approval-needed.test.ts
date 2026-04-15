@@ -14,7 +14,7 @@ describe('isToolApprovalNeeded', () => {
           inputSchema: z.object({ city: z.string() }),
         }),
       },
-      toolApproval: undefined,
+      toolNeedsApproval: undefined,
       toolCall: {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -40,7 +40,7 @@ describe('isToolApprovalNeeded', () => {
           needsApproval: toolNeedsApproval,
         }),
       },
-      toolApproval: {
+      toolNeedsApproval: {
         weather: userDefinedNeedsApproval,
       },
       toolCall: {
@@ -68,7 +68,7 @@ describe('isToolApprovalNeeded', () => {
           inputSchema: z.object({ city: z.string() }),
         }),
       },
-      toolApproval: {
+      toolNeedsApproval: {
         weather: userDefinedNeedsApproval,
       },
       toolCall: {
@@ -102,7 +102,7 @@ describe('isToolApprovalNeeded', () => {
           needsApproval: toolNeedsApproval,
         }),
       },
-      toolApproval: undefined,
+      toolNeedsApproval: undefined,
       toolCall: {
         type: 'tool-call',
         toolCallId: 'call-1',

@@ -28,7 +28,7 @@ export function createExecuteToolsTransformation<
   abortSignal,
   timeout,
   context,
-  toolApproval,
+  toolNeedsApproval,
   generateId,
   stepNumber,
   provider,
@@ -44,7 +44,7 @@ export function createExecuteToolsTransformation<
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   context: InferToolSetContext<TOOLS> & USER_CONTEXT;
-  toolApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
+  toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
@@ -95,7 +95,7 @@ export function createExecuteToolsTransformation<
             await isToolApprovalNeeded({
               tools,
               toolCall: chunk,
-              toolApproval,
+              toolNeedsApproval,
               messages,
               context,
             })

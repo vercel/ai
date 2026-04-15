@@ -325,7 +325,7 @@ export function streamText<
   stopWhen = isStepCount(1),
   experimental_output,
   output = experimental_output,
-  toolApproval,
+  toolNeedsApproval,
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
@@ -418,7 +418,7 @@ export function streamText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
+    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -591,7 +591,7 @@ export function streamText<
     repairToolCall,
     stopConditions: asArray(stopWhen),
     output,
-    toolApproval,
+    toolNeedsApproval,
     providerOptions,
     prepareStep,
     includeRawChunks,
@@ -777,7 +777,7 @@ class DefaultStreamTextResult<
     repairToolCall,
     stopConditions,
     output,
-    toolApproval,
+    toolNeedsApproval,
     providerOptions,
     prepareStep,
     includeRawChunks,
@@ -820,7 +820,7 @@ class DefaultStreamTextResult<
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     stopConditions: Array<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>;
     output: OUTPUT | undefined;
-    toolApproval:
+    toolNeedsApproval:
       | ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>
       | undefined;
     providerOptions: ProviderOptions | undefined;
@@ -1673,7 +1673,7 @@ class DefaultStreamTextResult<
               abortSignal,
               timeout,
               context,
-              toolApproval,
+              toolNeedsApproval,
               generateId,
               stepNumber: recordedSteps.length,
               provider: stepModel.provider,
