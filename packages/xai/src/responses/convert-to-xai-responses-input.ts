@@ -123,9 +123,6 @@ export async function convertToXaiResponsesInput({
               break;
             }
 
-<<<<<<< HEAD
-            case 'reasoning':
-=======
             case 'reasoning': {
               const itemId =
                 typeof part.providerOptions?.xai?.itemId === 'string'
@@ -167,10 +164,6 @@ export async function convertToXaiResponsesInput({
               }
               break;
             }
-
-            case 'reasoning-file':
-            case 'custom':
->>>>>>> 8d87577d3 (fix(xai): support encrypted reasoning round-trip for ZDR (#14418))
             case 'file': {
               inputWarnings.push({
                 type: 'other',

@@ -366,17 +366,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             .map(s => s.text)
             .filter(text => text && text.length > 0);
 
-<<<<<<< HEAD
-          if (summaryTexts.length > 0) {
-            const reasoningText = summaryTexts.join('');
-            if (part.encrypted_content || part.id) {
-              content.push({
-                type: 'reasoning',
-                text: reasoningText,
-=======
-          const reasoningText = texts
-            .filter(text => text && text.length > 0)
-            .join('');
+          const reasoningText = summaryTexts.join('');
 
           // condition changed here since encrypted content can now come with empty reasoning text
           if (reasoningText || part.encrypted_content) {
@@ -385,7 +375,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               type: 'reasoning',
               text: reasoningText,
               ...(hasMetadata && {
->>>>>>> 8d87577d3 (fix(xai): support encrypted reasoning round-trip for ZDR (#14418))
                 providerMetadata: {
                   xai: {
                     ...(part.encrypted_content && {
