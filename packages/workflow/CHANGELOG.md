@@ -1,5 +1,13 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- bf6c17b: Add `id` property to WorkflowAgent for telemetry identification, matching ToolLoopAgent's API surface.
+- 3ca592a: Add `prompt` as an alternative to `messages` in `WorkflowAgent.stream()`, matching the `AgentCallParameters` pattern from ToolLoopAgent.
+- eb49d29: Add constructor-level defaults for `stopWhen`, `activeTools`, `output`, `experimental_repairToolCall`, and `experimental_download` to WorkflowAgent, matching ToolLoopAgent's pattern. Stream-level values override constructor defaults.
+
 ## 1.0.0-beta.4
 
 ### Patch Changes
