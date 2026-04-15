@@ -7,6 +7,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { TypedToolCall } from './tool-call';
 
+/**
+ * Resolves whether a tool call requires approval by checking user-supplied
+ * approval settings first and then falling back to the tool definition.
+ */
 export async function isApprovalNeeded<
   TOOLS extends ToolSet,
   USER_CONTEXT extends Context = Context,
