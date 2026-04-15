@@ -820,17 +820,16 @@ export async function generateText<
             await isApprovalNeeded({
               tools,
               toolNeedsApproval: {},
-              toolCallId: toolCall.toolCallId,
-              input: toolCall.input,
+              toolCall,
               messages: stepInputMessages,
               context,
             })
           ) {
             toolApprovalRequests[toolCall.toolCallId] = {
-              type: 'tool-approval-request',
+              type: 'tool-approval-request' as const,
               approvalId: generateId(),
               toolCall,
-            };
+            } as ToolApprovalRequestOutput<TOOLS>;
           }
         }
 

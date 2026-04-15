@@ -8,36 +8,35 @@ import {
 import { TypedToolCall } from './tool-call';
 
 /**
- * Resolves whether a tool call requires approval by checking user-supplied
- * approval settings first and then falling back to the tool definition.
+ * Resolves whether a tool call requires approval by checking user-supplied and tool-defined
+ * approval settings. User-defined approval settings take precedence over tool-defined settings.
+ * If no approval settings are provided, the tool call does not require approval.
  */
 export async function isApprovalNeeded<
   TOOLS extends ToolSet,
   USER_CONTEXT extends Context = Context,
 >({
-  tool,
+  tools,
   toolCall,
   toolNeedsApproval,
   messages,
   context,
 }: {
-  /**
-   * Tool (which can have a tool-defined needsApproval function).
-   */
-  tool: TOOLS[keyof TOOLS];
+  tools: TOOLS | undefined;
 
   /**
    * Potentially user-defined tool needs approval function.
    */
-  toolNeedsApproval:
-    | undefined
-    | boolean
-    | ToolNeedsApprovalFunction<
-        NoInfer<TOOLS[keyof TOOLS]['inputSchema']>,
-        InferToolSetContext<TOOLS> & USER_CONTEXT
-      >;
+  toolNeedsApproval: {
+    [key in keyof TOOLS]?:
+      | boolean
+      | ToolNeedsApprovalFunction<
+          NoInfer<TOOLS[key]['inputSchema']>,
+          InferToolSetContext<TOOLS> & USER_CONTEXT
+        >;
+  };
 
-  toolCall: TypedToolCall<TOOLS>;
+  toolCall: TypedToolCall<TOOLS>; // assuming tool call is valid
   messages: ModelMessage[];
   context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }) {
@@ -45,14 +44,16 @@ export async function isApprovalNeeded<
   const options = { toolCallId: toolCall.toolCallId, messages, context };
 
   // user-defined tool needs approval function
-  if (toolNeedsApproval != null) {
-    return typeof toolNeedsApproval === 'boolean'
-      ? toolNeedsApproval
-      : await toolNeedsApproval(input, options);
+  const userDefinedToolNeedsApproval = toolNeedsApproval[toolCall.toolName];
+  if (userDefinedToolNeedsApproval != null) {
+    return typeof userDefinedToolNeedsApproval === 'boolean'
+      ? userDefinedToolNeedsApproval
+      : await userDefinedToolNeedsApproval(input, options);
   }
 
   // tool-defined needs approval function
-  return tool.needsApproval == null
+  const tool = tools?.[toolCall.toolName];
+  return tool?.needsApproval == null
     ? false
     : typeof tool.needsApproval === 'boolean'
       ? tool.needsApproval
