@@ -51,6 +51,12 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 <PropertiesTable
   content={[
     {
+      name: 'id',
+      type: 'string',
+      isOptional: true,
+      description: 'The id of the agent.',
+    },
+    {
       name: 'model',
       type: 'LanguageModel',
       isRequired: true,
@@ -77,6 +83,36 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         "Tool call selection strategy. Options: 'auto' | 'none' | 'required' | { type: 'tool', toolName: string }. Default: 'auto'.",
+    },
+    {
+      name: 'stopWhen',
+      type: 'StopCondition | StopCondition[]',
+      isOptional: true,
+      description: 'Default stop condition for the agent loop. Per-stream values override this default.',
+    },
+    {
+      name: 'activeTools',
+      type: 'Array<string>',
+      isOptional: true,
+      description: 'Default set of active tools. Limits which tools the model can call. Per-stream values override this default.',
+    },
+    {
+      name: 'output',
+      type: 'OutputSpecification',
+      isOptional: true,
+      description: 'Default structured output specification. Per-stream values override this default.',
+    },
+    {
+      name: 'experimental_repairToolCall',
+      type: 'ToolCallRepairFunction',
+      isOptional: true,
+      description: 'Default function to repair tool calls that fail to parse. Per-stream values override this default.',
+    },
+    {
+      name: 'experimental_download',
+      type: 'DownloadFunction',
+      isOptional: true,
+      description: 'Default custom download function for URLs. Per-stream values override this default.',
     },
     {
       name: 'prepareStep',
@@ -295,6 +331,11 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 <PropertiesTable
   content={[
     {
+      name: 'id',
+      type: 'string | undefined',
+      description: 'The id of the agent. Used for telemetry identification. Read-only.',
+    },
+    {
       name: 'tools',
       type: 'Record<string, Tool>',
       description: 'The tool set configured for this agent. Read-only.',
@@ -317,10 +358,14 @@ const result = await agent.stream({
 <PropertiesTable
   content={[
     {
+      name: 'prompt',
+      type: 'string | Array<ModelMessage>',
+      description: 'A prompt string or a list of messages. You can either use `prompt` or `messages` but not both.',
+    },
+    {
       name: 'messages',
       type: 'Array<ModelMessage>',
-      isRequired: true,
-      description: 'The conversation messages to process.',
+      description: 'The conversation messages to process. You can either use `prompt` or `messages` but not both.',
     },
     {
       name: 'writable',

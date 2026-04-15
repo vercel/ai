@@ -751,9 +751,7 @@ describe('ToolLoopAgent', () => {
       });
 
       it('should pass messages when using messages option', async () => {
-        let startEvent!: Parameters<
-          ToolLoopAgentOnStartCallback<{}, { userId: string }>
-        >[0];
+        let startEvent!: Parameters<ToolLoopAgentOnStartCallback<{}>>[0];
 
         const agent = new ToolLoopAgent({
           model: mockModel,
