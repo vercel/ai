@@ -417,6 +417,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             .filter(text => text && text.length > 0)
             .join('');
 
+          // condition changed here since encrypted content can now come with empty reasoning text
           if (reasoningText || part.encrypted_content) {
             const hasMetadata = part.encrypted_content || part.id;
             content.push({
