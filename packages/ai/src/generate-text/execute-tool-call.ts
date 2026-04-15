@@ -78,10 +78,6 @@ export async function executeToolCall<
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
 
-  if (tool?.execute == null) {
-    return undefined;
-  }
-
   const baseCallbackEvent = {
     callId,
     stepNumber,
@@ -92,6 +88,18 @@ export async function executeToolCall<
     functionId: telemetry?.functionId,
     context,
   };
+
+  if (tool?.execute == null) {
+    // Emit telemetry for the tool call even though there is no execute
+    // function. This ensures that client-side / UI tools still appear in
+    // traces alongside server-executed tools.
+    await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
+    await notify({
+      event: { ...baseCallbackEvent, result: undefined },
+      callbacks: onToolCallFinish,
+    });
+    return undefined;
+  }
 
   let output: unknown;
 
