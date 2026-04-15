@@ -33,7 +33,7 @@ import type {
   RerankOnStartEvent,
   RerankStartEvent,
   TelemetryIntegration,
-  TelemetrySettings,
+  TelemetryOptions,
   ToolSet,
 } from 'ai';
 import {
@@ -63,13 +63,13 @@ function recordSpanError(span: Span, error: unknown): void {
 }
 
 function shouldRecord(
-  telemetry: TelemetrySettings | undefined,
-): telemetry is TelemetrySettings {
+  telemetry: TelemetryOptions | undefined,
+): telemetry is TelemetryOptions {
   return telemetry?.isEnabled === true;
 }
 
 function selectAttributes(
-  telemetry: TelemetrySettings | undefined,
+  telemetry: TelemetryOptions | undefined,
   attributes: Record<
     string,
     | AttributeValue
@@ -127,7 +127,7 @@ interface OtelStepStartEvent<
 
 interface CallState {
   operationId: string;
-  telemetry: TelemetrySettings | undefined;
+  telemetry: TelemetryOptions | undefined;
   rootSpan: Span | undefined;
   rootContext: OpenTelemetryContext | undefined;
   stepSpan: Span | undefined;
@@ -213,7 +213,7 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
   }
 
   private onGenerateStart(event: OnStartEvent): void {
-    const telemetry: TelemetrySettings = {
+    const telemetry: TelemetryOptions = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
@@ -291,7 +291,7 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
   }
 
   private onObjectOperationStart(event: ObjectOnStartEvent): void {
-    const telemetry: TelemetrySettings = {
+    const telemetry: TelemetryOptions = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
@@ -449,7 +449,7 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
   }
 
   private onEmbedOperationStart(event: EmbedOnStartEvent): void {
-    const telemetry: TelemetrySettings = {
+    const telemetry: TelemetryOptions = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
@@ -802,7 +802,7 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
   }
 
   private onRerankOperationStart(event: RerankOnStartEvent): void {
-    const telemetry: TelemetrySettings = {
+    const telemetry: TelemetryOptions = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,

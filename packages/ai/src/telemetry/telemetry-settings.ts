@@ -3,7 +3,7 @@ import type { TelemetryIntegration } from './telemetry-integration';
 /**
  * Telemetry configuration.
  */
-export type TelemetrySettings = {
+export type TelemetryOptions = {
   /**
    * Enable or disable telemetry. Disabled by default while experimental.
    */

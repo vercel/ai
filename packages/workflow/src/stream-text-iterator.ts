@@ -24,7 +24,7 @@ import type {
   PrepareStepCallback,
   WorkflowAgentOnErrorCallback,
   WorkflowAgentOnStepFinishCallback,
-  TelemetrySettings,
+  TelemetryOptions,
   WorkflowAgentOnStepStartCallback,
 } from './workflow-agent.js';
 
@@ -81,7 +81,7 @@ export async function* streamTextIterator({
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
   experimental_context?: unknown;
-  experimental_telemetry?: TelemetrySettings;
+  experimental_telemetry?: TelemetryOptions;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
