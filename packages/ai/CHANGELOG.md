@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.95
+
+### Patch Changes
+
+- c4f4b5f: refactoring(ai): remove deprecated experimental_activeTools option
+
 ## 7.0.0-beta.94
 
 ### Patch Changes
