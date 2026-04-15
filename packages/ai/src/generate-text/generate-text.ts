@@ -274,7 +274,7 @@ export async function generateText<
   output = experimental_output,
   experimental_telemetry: telemetry,
   providerOptions,
-  activeTools = activeToolsArg,
+  activeTools,
   experimental_prepareStep,
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
