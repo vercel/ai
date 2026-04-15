@@ -368,6 +368,11 @@ export interface WorkflowAgentOptions<
   TTools extends ToolSet = ToolSet,
 > extends GenerationSettings {
   /**
+   * The id of the agent.
+   */
+  id?: string;
+
+  /**
    * The model provider to use for the agent.
    *
    * This should be a string compatible with the Vercel AI Gateway (e.g., 'anthropic/claude-opus'),
@@ -889,6 +894,11 @@ export interface WorkflowAgentStreamResult<
  * ```
  */
 export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
+  /**
+   * The id of the agent.
+   */
+  public readonly id: string | undefined;
+
   private model: LanguageModel;
   /**
    * The tool set configured for this agent.
@@ -912,6 +922,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private prepareCall?: PrepareCallCallback<TBaseTools>;
 
   constructor(options: WorkflowAgentOptions<TBaseTools>) {
+    this.id = options.id;
     this.model = options.model;
     this.tools = (options.tools ?? {}) as TBaseTools;
     // `instructions` takes precedence over deprecated `system`
