@@ -126,15 +126,23 @@ export const logWarnings: LogWarningsFunction = options => {
     console.info(FIRST_WARNING_INFO_MESSAGE);
   }
 
-  // default behavior: log warnings to the console
+  // default behavior: log warnings via process.emitWarning if available, otherwise console.warn
   for (const warning of options.warnings) {
-    console.warn(
-      formatWarning({
-        warning,
-        provider: options.provider,
-        model: options.model,
-      }),
-    );
+    const message = formatWarning({
+      warning,
+      provider: options.provider,
+      model: options.model,
+    });
+    if (
+      typeof process !== 'undefined' &&
+      typeof process.emitWarning === 'function'
+    ) {
+      process.emitWarning(message, {
+        type: warning.type === 'deprecated' ? 'DeprecationWarning' : 'Warning',
+      });
+    } else {
+      console.warn(message);
+    }
   }
 };
 
