@@ -4,6 +4,11 @@ export {
   type AgentStreamParameters,
 } from './agent';
 export {
+  type AgentOnToolCallStartEvent,
+  type AgentOnToolCallFinishEvent,
+  type AgentOnStepStartEvent,
+} from './agent-callback-events';
+export {
   type ToolLoopAgentOnFinishCallback,
   type ToolLoopAgentOnStartCallback,
   type ToolLoopAgentOnStepFinishCallback,

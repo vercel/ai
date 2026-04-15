@@ -1,11 +1,21 @@
 import { Context, tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
+import type {
+  OnStepStartEvent,
+  OnToolCallFinishEvent,
+  OnToolCallStartEvent,
+} from '../generate-text/core-events';
 import { Output, StreamTextOnFinishCallback } from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { DeepPartial } from '../util/deep-partial';
 import { AgentCallParameters, AgentStreamParameters } from './agent';
+import type {
+  AgentOnStepStartEvent,
+  AgentOnToolCallFinishEvent,
+  AgentOnToolCallStartEvent,
+} from './agent-callback-events';
 import { ToolLoopAgent } from './tool-loop-agent';
 import type { ToolLoopAgentOnFinishCallback } from './tool-loop-agent-settings';
 
@@ -482,6 +492,20 @@ describe('ToolLoopAgent', () => {
           },
         });
       });
+    });
+  });
+
+  describe('shared Agent callback type compatibility', () => {
+    it('OnToolCallStartEvent should be assignable to AgentOnToolCallStartEvent', () => {
+      expectTypeOf<OnToolCallStartEvent>().toMatchTypeOf<AgentOnToolCallStartEvent>();
+    });
+
+    it('OnToolCallFinishEvent should be assignable to AgentOnToolCallFinishEvent', () => {
+      expectTypeOf<OnToolCallFinishEvent>().toMatchTypeOf<AgentOnToolCallFinishEvent>();
+    });
+
+    it('OnStepStartEvent should be assignable to AgentOnStepStartEvent', () => {
+      expectTypeOf<OnStepStartEvent>().toMatchTypeOf<AgentOnStepStartEvent>();
     });
   });
 });
