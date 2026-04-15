@@ -826,10 +826,10 @@ export async function generateText<
             })
           ) {
             toolApprovalRequests[toolCall.toolCallId] = {
-              type: 'tool-approval-request' as const,
+              type: 'tool-approval-request',
               approvalId: generateId(),
               toolCall,
-            } as ToolApprovalRequestOutput<TOOLS>;
+            };
           }
         }
 
