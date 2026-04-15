@@ -18,16 +18,18 @@ export async function isApprovalNeeded<
 >({
   tools,
   toolCall,
-  toolNeedsApproval,
+  toolApproval,
   messages,
   context,
 }: {
   tools: TOOLS | undefined;
 
   /**
-   * user-defined approval configuration for tools
+   * User-defined approval configuration for tools.
+   *
+   * This configuration takes precedence over tool-defined approval settings.
    */
-  toolNeedsApproval: ToolApprovalConfiguration<TOOLS, USER_CONTEXT>;
+  toolApproval: ToolApprovalConfiguration<TOOLS, USER_CONTEXT> | undefined;
 
   toolCall: TypedToolCall<TOOLS>; // assuming tool call is valid
   messages: ModelMessage[];
@@ -38,7 +40,7 @@ export async function isApprovalNeeded<
   const options = { toolCallId: toolCall.toolCallId, messages, context };
 
   // user-defined tool approval
-  const userDefinedToolNeedsApproval = toolNeedsApproval[toolCall.toolName];
+  const userDefinedToolNeedsApproval = toolApproval?.[toolCall.toolName];
   if (userDefinedToolNeedsApproval != null) {
     return typeof userDefinedToolNeedsApproval === 'boolean'
       ? userDefinedToolNeedsApproval
