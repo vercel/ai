@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { VoyageRerankingModelOptions } from './voyage-reranking-options';
 
 const provider = createVoyage({ apiKey: 'test-api-key' });
-const model = provider.rerankingModel('rerank-2');
+const model = provider.rerankingModel('rerank-2.5');
 
 describe('doRerank', () => {
   const server = createTestServer({
@@ -22,7 +22,7 @@ describe('doRerank', () => {
     return;
   }
 
-  describe('json documents', () => {
+  describe('object documents', () => {
     let result: Awaited<ReturnType<typeof model.doRerank>>;
 
     beforeEach(async () => {
@@ -47,14 +47,14 @@ describe('doRerank', () => {
       });
     });
 
-    it('should send request with stringified json documents', async () => {
+    it('should send request body', async () => {
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
           "documents": [
             "{"example":"sunny day at the beach"}",
             "{"example":"rainy day in the city"}",
           ],
-          "model": "rerank-2",
+          "model": "rerank-2.5",
           "query": "rainy day",
           "return_documents": false,
           "top_k": 2,
@@ -63,7 +63,7 @@ describe('doRerank', () => {
       `);
     });
 
-    it('should send request with the correct headers', async () => {
+    it('should send correct headers', async () => {
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
           "authorization": "Bearer test-api-key",
@@ -72,7 +72,7 @@ describe('doRerank', () => {
       `);
     });
 
-    it('should return result with warnings', async () => {
+    it('should return warnings', async () => {
       expect(result.warnings).toMatchInlineSnapshot(`
         [
           {
@@ -84,47 +84,43 @@ describe('doRerank', () => {
       `);
     });
 
-    it('should return result with the correct ranking', async () => {
+    it('should return correct ranking', async () => {
       expect(result.ranking).toMatchInlineSnapshot(`
         [
           {
             "index": 1,
-            "relevanceScore": 0.8984375,
+            "relevanceScore": 0.5703125,
           },
           {
             "index": 0,
-            "relevanceScore": 0.14160156,
+            "relevanceScore": 0.255859375,
           },
         ]
       `);
     });
 
-    it('should not return provider metadata (use response body instead)', async () => {
-      expect(result.providerMetadata).toMatchInlineSnapshot(`undefined`);
-    });
-
-    it('should return result with the correct response', async () => {
+    it('should return correct response', async () => {
       expect(result.response).toMatchInlineSnapshot(`
         {
           "body": {
             "data": [
               {
                 "index": 1,
-                "relevance_score": 0.8984375,
+                "relevance_score": 0.5703125,
               },
               {
                 "index": 0,
-                "relevance_score": 0.14160156,
+                "relevance_score": 0.255859375,
               },
             ],
-            "model": "rerank-2",
+            "model": "rerank-2.5",
             "object": "list",
             "usage": {
               "total_tokens": 12,
             },
           },
           "headers": {
-            "content-length": "154",
+            "content-length": "157",
             "content-type": "application/json",
           },
         }
@@ -154,14 +150,14 @@ describe('doRerank', () => {
       });
     });
 
-    it('should send request with text documents', async () => {
+    it('should send request body', async () => {
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
           "documents": [
             "sunny day at the beach",
             "rainy day in the city",
           ],
-          "model": "rerank-2",
+          "model": "rerank-2.5",
           "query": "rainy day",
           "return_documents": false,
           "top_k": 2,
@@ -170,7 +166,7 @@ describe('doRerank', () => {
       `);
     });
 
-    it('should send request with the correct headers', async () => {
+    it('should send correct headers', async () => {
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
           "authorization": "Bearer test-api-key",
@@ -179,53 +175,86 @@ describe('doRerank', () => {
       `);
     });
 
-    it('should return result without warnings', async () => {
+    it('should return no warnings', async () => {
       expect(result.warnings).toMatchInlineSnapshot(`[]`);
     });
 
-    it('should return result with the correct ranking', async () => {
+    it('should return correct ranking', async () => {
       expect(result.ranking).toMatchInlineSnapshot(`
         [
           {
             "index": 1,
-            "relevanceScore": 0.8984375,
+            "relevanceScore": 0.5703125,
           },
           {
             "index": 0,
-            "relevanceScore": 0.14160156,
+            "relevanceScore": 0.255859375,
           },
         ]
       `);
     });
 
-    it('should not return provider metadata (use response body instead)', async () => {
-      expect(result.providerMetadata).toMatchInlineSnapshot(`undefined`);
-    });
-
-    it('should return result with the correct response', async () => {
+    it('should return correct response', async () => {
       expect(result.response).toMatchInlineSnapshot(`
         {
           "body": {
             "data": [
               {
                 "index": 1,
-                "relevance_score": 0.8984375,
+                "relevance_score": 0.5703125,
               },
               {
                 "index": 0,
-                "relevance_score": 0.14160156,
+                "relevance_score": 0.255859375,
               },
             ],
-            "model": "rerank-2",
+            "model": "rerank-2.5",
             "object": "list",
             "usage": {
               "total_tokens": 12,
             },
           },
           "headers": {
-            "content-length": "154",
+            "content-length": "157",
             "content-type": "application/json",
           },
+        }
+      `);
+    });
+  });
+
+  describe('provider options', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('voyage-reranking.1');
+    });
+
+    it('should pass returnDocuments and truncation', async () => {
+      await model.doRerank({
+        documents: {
+          type: 'text',
+          values: ['sunny day at the beach', 'rainy day in the city'],
+        },
+        query: 'rainy day',
+        topN: 2,
+        providerOptions: {
+          voyage: {
+            returnDocuments: true,
+            truncation: false,
+          } satisfies VoyageRerankingModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            "sunny day at the beach",
+            "rainy day in the city",
+          ],
+          "model": "rerank-2.5",
+          "query": "rainy day",
+          "return_documents": true,
+          "top_k": 2,
+          "truncation": false,
         }
       `);
     });

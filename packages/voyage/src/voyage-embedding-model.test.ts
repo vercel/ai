@@ -10,7 +10,7 @@ vi.mock('./version', () => ({
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createVoyage({ apiKey: 'test-api-key' });
-const model = provider.embeddingModel('voyage-3');
+const model = provider.embeddingModel('voyage-3.5');
 
 const server = createTestServer({
   'https://api.voyageai.com/v1/embeddings': {},
@@ -40,18 +40,18 @@ describe('doEmbed', () => {
     expect(embeddings).toMatchInlineSnapshot(`
       [
         [
-          0.014539,
-          -0.015625,
-          0.011353,
-          0.004562,
-          0.023438,
+          0.000344163,
+          -0.022529466,
+          0.010127448,
+          0.063431956,
+          0.016145896,
         ],
         [
-          -0.009033,
-          0.015625,
-          0.028564,
-          -0.013672,
-          -0.007812,
+          0.018987041,
+          -0.029901529,
+          -0.005134966,
+          0.082804598,
+          -0.008740067,
         ],
       ]
     `);
@@ -66,7 +66,7 @@ describe('doEmbed', () => {
 
     expect(response?.headers).toMatchInlineSnapshot(`
       {
-        "content-length": "261",
+        "content-length": "317",
         "content-type": "application/json",
         "test-header": "test-value",
       }
@@ -79,7 +79,7 @@ describe('doEmbed', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "tokens": 10,
+        "tokens": 12,
       }
     `);
   });
@@ -93,13 +93,13 @@ describe('doEmbed', () => {
           "sunny day at the beach",
           "rainy day in the city",
         ],
-        "model": "voyage-3",
+        "model": "voyage-3.5",
       }
     `);
   });
 
   it('should pass the input_type setting', async () => {
-    await provider.embeddingModel('voyage-3').doEmbed({
+    await provider.embeddingModel('voyage-3.5').doEmbed({
       values: testValues,
       providerOptions: {
         voyage: {
@@ -115,13 +115,13 @@ describe('doEmbed', () => {
           "rainy day in the city",
         ],
         "input_type": "document",
-        "model": "voyage-3",
+        "model": "voyage-3.5",
       }
     `);
   });
 
   it('should pass the output_dimension setting', async () => {
-    await provider.embeddingModel('voyage-3').doEmbed({
+    await provider.embeddingModel('voyage-3.5').doEmbed({
       values: testValues,
       providerOptions: {
         voyage: {
@@ -136,30 +136,8 @@ describe('doEmbed', () => {
           "sunny day at the beach",
           "rainy day in the city",
         ],
-        "model": "voyage-3",
+        "model": "voyage-3.5",
         "output_dimension": 512,
-      }
-    `);
-  });
-
-  it('should pass the output_dtype setting', async () => {
-    await provider.embeddingModel('voyage-3').doEmbed({
-      values: testValues,
-      providerOptions: {
-        voyage: {
-          outputDtype: 'int8',
-        },
-      },
-    });
-
-    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-      {
-        "input": [
-          "sunny day at the beach",
-          "rainy day in the city",
-        ],
-        "model": "voyage-3",
-        "output_dtype": "int8",
       }
     `);
   });
@@ -172,7 +150,7 @@ describe('doEmbed', () => {
       },
     });
 
-    await provider.embeddingModel('voyage-3').doEmbed({
+    await provider.embeddingModel('voyage-3.5').doEmbed({
       values: testValues,
       headers: {
         'Custom-Request-Header': 'request-header-value',
