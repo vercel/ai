@@ -141,6 +141,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hello, world.",
@@ -169,6 +170,7 @@ describe('Chat', () => {
                     "type": "step-start",
                   },
                   {
+                    "metadata": undefined,
                     "providerMetadata": undefined,
                     "state": "done",
                     "text": "Hello, world.",
@@ -208,36 +210,37 @@ describe('Chat', () => {
 
     it('should return the correct final messages', async () => {
       expect(chat.messages).toMatchInlineSnapshot(`
-      [
-        {
-          "id": "id-0",
-          "metadata": undefined,
-          "parts": [
-            {
-              "text": "Hello, world!",
-              "type": "text",
-            },
-          ],
-          "role": "user",
-        },
-        {
-          "id": "id-1",
-          "metadata": undefined,
-          "parts": [
-            {
-              "type": "step-start",
-            },
-            {
-              "providerMetadata": undefined,
-              "state": "done",
-              "text": "Hello, world.",
-              "type": "text",
-            },
-          ],
-          "role": "assistant",
-        },
-      ]
-    `);
+        [
+          {
+            "id": "id-0",
+            "metadata": undefined,
+            "parts": [
+              {
+                "text": "Hello, world!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "id": "id-1",
+            "metadata": undefined,
+            "parts": [
+              {
+                "type": "step-start",
+              },
+              {
+                "metadata": undefined,
+                "providerMetadata": undefined,
+                "state": "done",
+                "text": "Hello, world.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
     });
 
     it('should update the messages during the streaming', async () => {
@@ -277,6 +280,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -306,6 +310,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello",
@@ -335,6 +340,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello,",
@@ -364,6 +370,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world",
@@ -393,6 +400,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello, world.",
@@ -422,6 +430,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "done",
                   "text": "Hello, world.",
@@ -500,6 +509,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello",
@@ -528,6 +538,7 @@ describe('Chat', () => {
                     "type": "step-start",
                   },
                   {
+                    "metadata": undefined,
                     "providerMetadata": undefined,
                     "state": "streaming",
                     "text": "Hello",
@@ -564,6 +575,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "Hello",
@@ -613,6 +625,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -642,6 +655,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello",
@@ -736,6 +750,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello",
@@ -764,6 +779,7 @@ describe('Chat', () => {
                     "type": "step-start",
                   },
                   {
+                    "metadata": undefined,
                     "providerMetadata": undefined,
                     "state": "streaming",
                     "text": "Hello",
@@ -800,6 +816,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "Hello",
@@ -849,6 +866,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "",
@@ -878,6 +896,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "streaming",
                   "text": "Hello",
@@ -978,6 +997,7 @@ describe('Chat', () => {
               "type": "step-start",
             },
             {
+              "metadata": undefined,
               "providerMetadata": undefined,
               "state": "done",
               "text": "Hello, world.",
@@ -1029,6 +1049,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "",
@@ -1060,6 +1081,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "Hello, world.",
@@ -1091,6 +1113,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
@@ -1202,6 +1225,7 @@ describe('Chat', () => {
               "type": "step-start",
             },
             {
+              "metadata": undefined,
               "providerMetadata": undefined,
               "state": "done",
               "text": "Hello, world.",
@@ -1271,6 +1295,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "",
@@ -1300,6 +1325,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "Hello",
@@ -1329,6 +1355,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "Hello,",
@@ -1358,6 +1385,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "Hello, world",
@@ -1387,6 +1415,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "Hello, world.",
@@ -1416,6 +1445,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world.",
@@ -1542,6 +1572,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
+                "metadata": undefined,
                 "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
@@ -1699,6 +1730,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
+                "metadata": undefined,
                 "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
@@ -1843,6 +1875,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
+                "metadata": undefined,
                 "output": undefined,
                 "preliminary": undefined,
                 "providerExecuted": undefined,
@@ -1998,6 +2031,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
+                "metadata": undefined,
                 "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
@@ -2084,6 +2118,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
+                "metadata": undefined,
                 "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
@@ -2097,6 +2132,7 @@ describe('Chat', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "done",
                 "text": "test-delta",
@@ -2190,6 +2226,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
+                "metadata": undefined,
                 "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
@@ -2276,6 +2313,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
+                "metadata": undefined,
                 "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
@@ -2370,6 +2408,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
+                "metadata": undefined,
                 "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
@@ -2782,6 +2821,7 @@ describe('Chat', () => {
                   "type": "step-start",
                 },
                 {
+                  "metadata": undefined,
                   "providerMetadata": undefined,
                   "state": "done",
                   "text": "The weather in Tokyo is sunny.",
@@ -2880,6 +2920,7 @@ describe('Chat', () => {
                 "input": {
                   "testArg": "test-value",
                 },
+                "metadata": undefined,
                 "output": "test-output",
                 "preliminary": undefined,
                 "providerExecuted": undefined,

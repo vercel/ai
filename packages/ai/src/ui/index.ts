@@ -58,6 +58,7 @@ export {
   type StepStartUIPart,
   type TextUIPart,
   type ToolUIPart,
+  type InferUIMessagePartMetadata,
   type UIDataTypes,
   type UIMessage,
   type UIMessagePart,

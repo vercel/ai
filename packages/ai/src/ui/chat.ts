@@ -25,6 +25,7 @@ import {
   type FileUIPart,
   type InferUIMessageData,
   type InferUIMessageMetadata,
+  type InferUIMessagePartMetadata,
   type InferUIMessageTools,
   type UIDataTypes,
   type UIMessage,
@@ -188,6 +189,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
   id?: string;
 
   messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
+  partMetadataSchema?: FlexibleSchema<InferUIMessagePartMetadata<UI_MESSAGE>>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
 
   messages?: UI_MESSAGE[];
@@ -244,6 +246,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private messageMetadataSchema:
     | FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>
     | undefined;
+
+  private partMetadataSchema:
+    | FlexibleSchema<InferUIMessagePartMetadata<UI_MESSAGE>>
+    | undefined;
   private dataPartSchemas:
     | UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
     | undefined;
@@ -262,6 +268,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     id = generateId(),
     transport = new DefaultChatTransport(),
     messageMetadataSchema,
+    partMetadataSchema,
     dataPartSchemas,
     state,
     onError,
@@ -276,6 +283,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.transport = transport;
     this.generateId = generateId;
     this.messageMetadataSchema = messageMetadataSchema;
+    this.partMetadataSchema = partMetadataSchema;
     this.dataPartSchemas = dataPartSchemas;
     this.state = state;
     this.onError = onError;
@@ -719,6 +727,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           onToolCall: this.onToolCall,
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
+          partMetadataSchema: this.partMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
           onError: error => {
