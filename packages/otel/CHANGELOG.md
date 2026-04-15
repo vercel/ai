@@ -1,5 +1,13 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.40
+
+### Patch Changes
+
+- 1582efa: chore(ai): remove the metadata field from the telemetry settings
+- Updated dependencies [1582efa]
+  - ai@7.0.0-beta.94
+
 ## 1.0.0-beta.39
 
 ### Patch Changes

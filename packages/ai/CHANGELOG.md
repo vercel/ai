@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.94
+
+### Patch Changes
+
+- 1582efa: chore(ai): remove the metadata field from the telemetry settings
+
 ## 7.0.0-beta.93
 
 ### Patch Changes
