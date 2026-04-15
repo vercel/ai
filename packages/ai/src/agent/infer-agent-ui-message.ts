@@ -4,8 +4,13 @@ import { InferAgentTools } from './infer-agent-tools';
 /**
  * Infer the UI message type of an agent.
  */
-export type InferAgentUIMessage<AGENT, MESSAGE_METADATA = unknown> = UIMessage<
+export type InferAgentUIMessage<
+  AGENT,
+  MESSAGE_METADATA = unknown,
+  PART_METADATA = unknown,
+> = UIMessage<
   MESSAGE_METADATA,
   never,
-  InferUITools<InferAgentTools<AGENT>>
+  InferUITools<InferAgentTools<AGENT>>,
+  PART_METADATA
 >;

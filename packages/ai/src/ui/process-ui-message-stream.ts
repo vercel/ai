@@ -19,6 +19,7 @@ import {
   getStaticToolName,
   InferUIMessageData,
   InferUIMessageMetadata,
+  InferUIMessagePartMetadata,
   InferUIMessageToolCall,
   InferUIMessageTools,
   isStaticToolUIPart,
@@ -32,8 +33,14 @@ import {
 
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
-  activeTextParts: Record<string, TextUIPart>;
-  activeReasoningParts: Record<string, ReasoningUIPart>;
+  activeTextParts: Record<
+    string,
+    TextUIPart<InferUIMessagePartMetadata<UI_MESSAGE>>
+  >;
+  activeReasoningParts: Record<
+    string,
+    ReasoningUIPart<InferUIMessagePartMetadata<UI_MESSAGE>>
+  >;
   partialToolCalls: Record<
     string,
     {
@@ -64,7 +71,8 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
             role: 'assistant',
             parts: [] as UIMessagePart<
               InferUIMessageData<UI_MESSAGE>,
-              InferUIMessageTools<UI_MESSAGE>
+              InferUIMessageTools<UI_MESSAGE>,
+              InferUIMessagePartMetadata<UI_MESSAGE>
             >[],
           } as UI_MESSAGE),
     activeTextParts: {},
@@ -76,6 +84,7 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
 export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   stream,
   messageMetadataSchema,
+  partMetadataSchema,
   dataPartSchemas,
   runUpdateMessageJob,
   onError,
@@ -85,6 +94,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
   messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
+  partMetadataSchema?: FlexibleSchema<InferUIMessagePartMetadata<UI_MESSAGE>>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
@@ -120,7 +130,37 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             return toolInvocation;
           }
 
-          function updateToolPart(
+          async function validatePartMetadata({
+            metadata,
+            partIndex,
+            partType,
+            entityId,
+          }: {
+            metadata: unknown;
+            partIndex: number;
+            partType: string;
+            entityId?: string;
+          }): Promise<InferUIMessagePartMetadata<UI_MESSAGE> | undefined> {
+            if (metadata == null) {
+              return undefined;
+            }
+
+            if (partMetadataSchema == null) {
+              return metadata as InferUIMessagePartMetadata<UI_MESSAGE>;
+            }
+
+            return await validateTypes({
+              value: metadata,
+              schema: partMetadataSchema,
+              context: {
+                field: `message.parts[${partIndex}].metadata`,
+                entityName: partType,
+                ...(entityId != null ? { entityId } : {}),
+              },
+            });
+          }
+
+          async function updateToolPart(
             options: {
               toolName: keyof InferUIMessageTools<UI_MESSAGE> & string;
               toolCallId: string;
@@ -132,12 +172,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   input: unknown;
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
+                  metadata?: unknown;
                 }
               | {
                   state: 'input-available';
                   input: unknown;
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
+                  metadata?: unknown;
                 }
               | {
                   state: 'output-available';
@@ -146,6 +188,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted?: boolean;
                   preliminary?: boolean;
                   providerMetadata?: ProviderMetadata;
+                  metadata?: unknown;
                 }
               | {
                   state: 'output-error';
@@ -154,6 +197,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   errorText: string;
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
+                  metadata?: unknown;
                 }
             ),
           ) {
@@ -167,6 +211,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             const anyPart = part as any;
 
             if (part != null) {
+              const validatedMetadata = await validatePartMetadata({
+                metadata: anyOptions.metadata,
+                partIndex: state.message.parts.indexOf(part),
+                partType: part.type,
+                entityId: options.toolCallId,
+              });
+
               part.state = options.state;
               anyPart.input = anyOptions.input;
               anyPart.output = anyOptions.output;
@@ -197,7 +248,18 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   part.callProviderMetadata = providerMetadata;
                 }
               }
+
+              if (validatedMetadata != null) {
+                anyPart.metadata = validatedMetadata;
+              }
             } else {
+              const validatedMetadata = await validatePartMetadata({
+                metadata: anyOptions.metadata,
+                partIndex: state.message.parts.length,
+                partType: `tool-${options.toolName}`,
+                entityId: options.toolCallId,
+              });
+
               state.message.parts.push({
                 type: `tool-${options.toolName}`,
                 toolCallId: options.toolCallId,
@@ -221,11 +283,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 )
                   ? { callProviderMetadata: anyOptions.providerMetadata }
                   : {}),
+                metadata: validatedMetadata,
               } as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>);
             }
           }
 
-          function updateDynamicToolPart(
+          async function updateDynamicToolPart(
             options: {
               toolName: keyof InferUIMessageTools<UI_MESSAGE> & string;
               toolCallId: string;
@@ -236,11 +299,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   state: 'input-streaming';
                   input: unknown;
                   providerMetadata?: ProviderMetadata;
+                  metadata?: unknown;
                 }
               | {
                   state: 'input-available';
                   input: unknown;
                   providerMetadata?: ProviderMetadata;
+                  metadata?: unknown;
                 }
               | {
                   state: 'output-available';
@@ -248,12 +313,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   output: unknown;
                   preliminary: boolean | undefined;
                   providerMetadata?: ProviderMetadata;
+                  metadata?: unknown;
                 }
               | {
                   state: 'output-error';
                   input: unknown;
                   errorText: string;
                   providerMetadata?: ProviderMetadata;
+                  metadata?: unknown;
                 }
             ),
           ) {
@@ -267,6 +334,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             const anyPart = part as any;
 
             if (part != null) {
+              const validatedMetadata = await validatePartMetadata({
+                metadata: anyOptions.metadata,
+                partIndex: state.message.parts.indexOf(part),
+                partType: part.type,
+                entityId: options.toolCallId,
+              });
+
               part.state = options.state;
               anyPart.toolName = options.toolName;
               anyPart.input = anyOptions.input;
@@ -298,7 +372,18 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   part.callProviderMetadata = providerMetadata;
                 }
               }
+
+              if (validatedMetadata != null) {
+                anyPart.metadata = validatedMetadata;
+              }
             } else {
+              const validatedMetadata = await validatePartMetadata({
+                metadata: anyOptions.metadata,
+                partIndex: state.message.parts.length,
+                partType: 'dynamic-tool',
+                entityId: options.toolCallId,
+              });
+
               state.message.parts.push({
                 type: 'dynamic-tool',
                 toolName: options.toolName,
@@ -322,6 +407,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 )
                   ? { callProviderMetadata: anyOptions.providerMetadata }
                   : {}),
+                metadata: validatedMetadata,
               } as DynamicToolUIPart);
             }
           }
@@ -351,10 +437,20 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
           switch (chunk.type) {
             case 'text-start': {
-              const textPart: TextUIPart = {
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.length,
+                partType: 'text',
+                entityId: chunk.id,
+              });
+
+              const textPart: TextUIPart<
+                InferUIMessagePartMetadata<UI_MESSAGE>
+              > = {
                 type: 'text',
                 text: '',
                 providerMetadata: chunk.providerMetadata,
+                metadata: validatedMetadata,
                 state: 'streaming',
               };
               state.activeTextParts[chunk.id] = textPart;
@@ -374,9 +470,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "text-start" chunk is sent before any "text-delta" chunks.`,
                 });
               }
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.indexOf(textPart),
+                partType: textPart.type,
+                entityId: chunk.id,
+              });
               textPart.text += chunk.delta;
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
+              textPart.metadata = validatedMetadata ?? textPart.metadata;
               write();
               break;
             }
@@ -392,19 +495,35 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "text-start" chunk is sent before any "text-end" chunks.`,
                 });
               }
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.indexOf(textPart),
+                partType: textPart.type,
+                entityId: chunk.id,
+              });
               textPart.state = 'done';
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
+              textPart.metadata = validatedMetadata ?? textPart.metadata;
               delete state.activeTextParts[chunk.id];
               write();
               break;
             }
 
             case 'custom': {
-              const customPart: CustomContentUIPart = {
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.length,
+                partType: 'custom',
+              });
+
+              const customPart: CustomContentUIPart<
+                InferUIMessagePartMetadata<UI_MESSAGE>
+              > = {
                 type: 'custom',
                 kind: chunk.kind,
                 providerMetadata: chunk.providerMetadata,
+                metadata: validatedMetadata,
               };
               state.message.parts.push(customPart);
               write();
@@ -412,10 +531,20 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'reasoning-start': {
-              const reasoningPart: ReasoningUIPart = {
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.length,
+                partType: 'reasoning',
+                entityId: chunk.id,
+              });
+
+              const reasoningPart: ReasoningUIPart<
+                InferUIMessagePartMetadata<UI_MESSAGE>
+              > = {
                 type: 'reasoning',
                 text: '',
                 providerMetadata: chunk.providerMetadata,
+                metadata: validatedMetadata,
                 state: 'streaming',
               };
               state.activeReasoningParts[chunk.id] = reasoningPart;
@@ -435,9 +564,17 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`,
                 });
               }
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.indexOf(reasoningPart),
+                partType: reasoningPart.type,
+                entityId: chunk.id,
+              });
               reasoningPart.text += chunk.delta;
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
+              reasoningPart.metadata =
+                validatedMetadata ?? reasoningPart.metadata;
               write();
               break;
             }
@@ -453,8 +590,16 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     `Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.`,
                 });
               }
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.indexOf(reasoningPart),
+                partType: reasoningPart.type,
+                entityId: chunk.id,
+              });
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
+              reasoningPart.metadata =
+                validatedMetadata ?? reasoningPart.metadata;
               reasoningPart.state = 'done';
               delete state.activeReasoningParts[chunk.id];
 
@@ -464,12 +609,21 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'file':
             case 'reasoning-file': {
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.length,
+                partType: chunk.type,
+              });
+
               state.message.parts.push({
                 type: chunk.type,
                 mediaType: chunk.mediaType,
                 url: chunk.url,
                 ...(chunk.providerMetadata != null
                   ? { providerMetadata: chunk.providerMetadata }
+                  : {}),
+                ...(validatedMetadata != null
+                  ? { metadata: validatedMetadata }
                   : {}),
               });
 
@@ -478,12 +632,20 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'source-url': {
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.length,
+                partType: 'source-url',
+                entityId: chunk.sourceId,
+              });
+
               state.message.parts.push({
                 type: 'source-url',
                 sourceId: chunk.sourceId,
                 url: chunk.url,
                 title: chunk.title,
                 providerMetadata: chunk.providerMetadata,
+                metadata: validatedMetadata,
               });
 
               write();
@@ -491,6 +653,13 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'source-document': {
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.length,
+                partType: 'source-document',
+                entityId: chunk.sourceId,
+              });
+
               state.message.parts.push({
                 type: 'source-document',
                 sourceId: chunk.sourceId,
@@ -498,6 +667,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 title: chunk.title,
                 filename: chunk.filename,
                 providerMetadata: chunk.providerMetadata,
+                metadata: validatedMetadata,
               });
 
               write();
@@ -518,7 +688,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               };
 
               if (chunk.dynamic) {
-                updateDynamicToolPart({
+                await updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'input-streaming',
@@ -526,9 +696,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
                   providerMetadata: chunk.providerMetadata,
+                  metadata: chunk.metadata,
                 });
               } else {
-                updateToolPart({
+                await updateToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'input-streaming',
@@ -536,6 +707,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   title: chunk.title,
                   providerMetadata: chunk.providerMetadata,
+                  metadata: chunk.metadata,
                 });
               }
 
@@ -562,7 +734,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               );
 
               if (partialToolCall.dynamic) {
-                updateDynamicToolPart({
+                await updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
@@ -570,7 +742,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   title: partialToolCall.title,
                 });
               } else {
-                updateToolPart({
+                await updateToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
@@ -585,23 +757,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-input-available': {
               if (chunk.dynamic) {
-                updateDynamicToolPart({
+                await updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'input-available',
                   input: chunk.input,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
+                  metadata: chunk.metadata,
                   title: chunk.title,
                 });
               } else {
-                updateToolPart({
+                await updateToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'input-available',
                   input: chunk.input,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
+                  metadata: chunk.metadata,
                   title: chunk.title,
                 });
               }
@@ -633,7 +807,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   : !!chunk.dynamic;
 
               if (isDynamic) {
-                updateDynamicToolPart({
+                await updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'output-error',
@@ -641,9 +815,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
+                  metadata: chunk.metadata,
                 });
               } else {
-                updateToolPart({
+                await updateToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'output-error',
@@ -652,6 +827,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
+                  metadata: chunk.metadata,
                 });
               }
 
@@ -661,15 +837,31 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-approval-request': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.indexOf(toolInvocation),
+                partType: toolInvocation.type,
+                entityId: chunk.toolCallId,
+              });
               toolInvocation.state = 'approval-requested';
               toolInvocation.approval = { id: chunk.approvalId };
+              toolInvocation.metadata =
+                validatedMetadata ?? toolInvocation.metadata;
               write();
               break;
             }
 
             case 'tool-output-denied': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              const validatedMetadata = await validatePartMetadata({
+                metadata: chunk.metadata,
+                partIndex: state.message.parts.indexOf(toolInvocation),
+                partType: toolInvocation.type,
+                entityId: chunk.toolCallId,
+              });
               toolInvocation.state = 'output-denied';
+              toolInvocation.metadata =
+                validatedMetadata ?? toolInvocation.metadata;
               write();
               break;
             }
@@ -678,7 +870,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               const toolInvocation = getToolInvocation(chunk.toolCallId);
 
               if (toolInvocation.type === 'dynamic-tool') {
-                updateDynamicToolPart({
+                await updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: toolInvocation.toolName,
                   state: 'output-available',
@@ -687,10 +879,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   preliminary: chunk.preliminary,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
+                  metadata: chunk.metadata,
                   title: toolInvocation.title,
                 });
               } else {
-                updateToolPart({
+                await updateToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: getStaticToolName(toolInvocation),
                   state: 'output-available',
@@ -699,6 +892,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted: chunk.providerExecuted,
                   preliminary: chunk.preliminary,
                   providerMetadata: chunk.providerMetadata,
+                  metadata: chunk.metadata,
                   title: toolInvocation.title,
                 });
               }
@@ -711,7 +905,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               const toolInvocation = getToolInvocation(chunk.toolCallId);
 
               if (toolInvocation.type === 'dynamic-tool') {
-                updateDynamicToolPart({
+                await updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: toolInvocation.toolName,
                   state: 'output-error',
@@ -719,10 +913,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
+                  metadata: chunk.metadata,
                   title: toolInvocation.title,
                 });
               } else {
-                updateToolPart({
+                await updateToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: getStaticToolName(toolInvocation),
                   state: 'output-error',
@@ -731,6 +926,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
+                  metadata: chunk.metadata,
                   title: toolInvocation.title,
                 });
               }

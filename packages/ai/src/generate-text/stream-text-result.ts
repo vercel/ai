@@ -13,7 +13,11 @@ import { LanguageModelUsage } from '../types/usage';
 import { InferUIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { UIMessageStreamOnFinishCallback } from '../ui-message-stream/ui-message-stream-on-finish-callback';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import { InferUIMessageMetadata, UIMessage } from '../ui/ui-messages';
+import {
+  InferUIMessageMetadata,
+  InferUIMessagePartMetadata,
+  UIMessage,
+} from '../ui/ui-messages';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { ErrorHandler } from '../util/error-handler';
 import { ContentPart } from './content-part';
@@ -62,6 +66,15 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   messageMetadata?: (options: {
     part: TextStreamPart<ToolSet>;
   }) => InferUIMessageMetadata<UI_MESSAGE> | undefined;
+
+  /**
+   * Extracts part metadata that will be sent to the client alongside each part.
+   *
+   * Called for each stream part.
+   */
+  partMetadata?: (options: {
+    part: TextStreamPart<ToolSet>;
+  }) => InferUIMessagePartMetadata<UI_MESSAGE> | undefined;
 
   /**
    * Send reasoning parts to the client.

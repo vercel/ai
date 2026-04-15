@@ -1,11 +1,13 @@
 ---
 title: Message Metadata
-description: Learn how to attach and use metadata with messages in AI SDK UI
+description: Learn how to attach and use metadata with messages and message parts in AI SDK UI
 ---
 
 # Message Metadata
 
 Message metadata allows you to attach custom information to messages at the message level. This is useful for tracking timestamps, model information, token usage, user context, and other message-level data.
+
+When you need metadata on individual parts such as text, reasoning, tool calls, sources, or files, you can use part metadata. Part metadata is attached to `message.parts[i].metadata` and streams alongside the corresponding part.
 
 ## Overview
 
@@ -144,6 +146,82 @@ Message metadata is ideal for:
 - **User Context**: User IDs, session information
 - **Performance Metrics**: Generation time, time to first token
 - **Quality Indicators**: Finish reason, confidence scores
+
+## Part Metadata
+
+Use part metadata when the information belongs to an individual part instead of the whole message.
+
+```tsx filename="app/types.ts"
+import { UIMessage } from 'ai';
+import { z } from 'zod';
+
+export const messageMetadataSchema = z.object({
+  createdAt: z.number().optional(),
+});
+
+export const partMetadataSchema = z.object({
+  planId: z.string(),
+  phase: z.enum(['input', 'approval', 'output']).optional(),
+});
+
+type MessageMetadata = z.infer<typeof messageMetadataSchema>;
+type PartMetadata = z.infer<typeof partMetadataSchema>;
+
+export type MyUIMessage = UIMessage<
+  MessageMetadata,
+  never,
+  never,
+  PartMetadata
+>;
+```
+
+```ts filename="app/api/chat/route.ts" highlight="10-19"
+return result.toUIMessageStreamResponse({
+  originalMessages: messages,
+  partMetadata: ({ part }) => {
+    if (part.type === 'tool-call') {
+      return {
+        planId: 'plan_123',
+        phase: 'input',
+      };
+    }
+
+    if (part.type === 'tool-approval-request') {
+      return {
+        planId: 'plan_123',
+        phase: 'approval',
+      };
+    }
+  },
+});
+```
+
+On the client, access part metadata through `part.metadata`:
+
+```tsx filename="app/page.tsx"
+{message.parts.map((part, index) => {
+  if (part.type === 'text') {
+    return <div key={index}>{part.text}</div>;
+  }
+
+  if (part.type.startsWith('tool-')) {
+    return (
+      <div key={index}>
+        {part.toolCallId} ({part.metadata?.planId})
+      </div>
+    );
+  }
+
+  return null;
+})}
+```
+
+<Note>
+  Use message metadata for information about the whole message, and part metadata
+  for information that belongs to a specific content part. The wire protocol uses
+  `messageMetadata` for message-level chunks and `metadata` for individual part
+  chunks.
+</Note>
 
 ## See Also
 

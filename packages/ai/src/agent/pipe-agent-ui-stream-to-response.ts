@@ -32,6 +32,7 @@ export async function pipeAgentUIStreamToResponse<
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
+  PART_METADATA = unknown,
 >({
   response,
   headers,
@@ -52,7 +53,7 @@ export async function pipeAgentUIStreamToResponse<
   onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
-    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>, PART_METADATA>
   >): Promise<void> {
   pipeUIMessageStreamToResponse({
     response,

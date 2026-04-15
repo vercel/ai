@@ -113,6 +113,13 @@ The data stream protocol uses Server-Sent Events (SSE) format for improved stand
   `x-vercel-ai-ui-message-stream` header to `v1`.
 </Note>
 
+<Note>
+  The UI message stream parser is strict. Custom backends should only send the
+  documented chunk types and fields. Rolling out new optional fields, such as
+  part-level `metadata`, requires updated client bundles as well. Older clients
+  can reject chunks that contain fields they do not know about.
+</Note>
+
 The following stream parts are currently supported:
 
 ### Message Start Part
@@ -131,6 +138,8 @@ data: {"type":"start","messageId":"..."}
 ### Text Parts
 
 Text content is streamed using a start/delta/end pattern with unique IDs for each text block.
+Text, reasoning, tool, source, file, and custom chunks can also include an
+optional `metadata` field for application-defined part metadata.
 
 #### Text Start Part
 

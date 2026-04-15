@@ -9,11 +9,12 @@ description: API Reference for UIMessage
 
 ## Type Safety
 
-`UIMessage` is designed to be type-safe and accepts three generic parameters to ensure proper typing throughout your application:
+`UIMessage` is designed to be type-safe and accepts four generic parameters to ensure proper typing throughout your application:
 
 1. **`METADATA`** - Custom metadata type for additional message information
 2. **`DATA_PARTS`** - Custom data part types for structured data components
 3. **`TOOLS`** - Tool definitions for type-safe tool interactions
+4. **`PART_METADATA`** - Custom metadata type for content-bearing message parts
 
 ## Creating Your Own UIMessage Type
 
@@ -42,7 +43,16 @@ const tools = {
 
 type MyTools = InferUITools<typeof tools>;
 
-export type MyUIMessage = UIMessage<MyMetadata, MyDataPart, MyTools>;
+type PartMetadata = {
+  planId: string;
+};
+
+export type MyUIMessage = UIMessage<
+  MyMetadata,
+  MyDataPart,
+  MyTools,
+  PartMetadata
+>;
 ```
 
 ## `UIMessage` Interface
@@ -52,6 +62,7 @@ interface UIMessage<
   METADATA = unknown,
   DATA_PARTS extends UIDataTypes = UIDataTypes,
   TOOLS extends UITools = UITools,
+  PART_METADATA = unknown,
 > {
   /**
    * A unique identifier for the message.
@@ -71,9 +82,12 @@ interface UIMessage<
   /**
    * The parts of the message. Use this for rendering the message in the UI.
    */
-  parts: Array<UIMessagePart<DATA_PARTS, TOOLS>>;
+  parts: Array<UIMessagePart<DATA_PARTS, TOOLS, PART_METADATA>>;
 }
 ```
+
+Most content-bearing parts expose `metadata?: PART_METADATA`. Data parts and
+`step-start` parts do not carry part metadata.
 
 ## `UIMessagePart` Types
 

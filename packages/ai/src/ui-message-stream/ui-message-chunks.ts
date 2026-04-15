@@ -7,6 +7,7 @@ import { FinishReason } from '../types/language-model';
 import {
   InferUIMessageData,
   InferUIMessageMetadata,
+  InferUIMessagePartMetadata,
   UIDataTypes,
   UIMessage,
 } from '../ui/ui-messages';
@@ -20,17 +21,20 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('text-start'),
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('text-delta'),
         id: z.string(),
         delta: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('text-end'),
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('error'),
@@ -42,6 +46,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         toolName: z.string(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
       }),
@@ -57,6 +62,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         input: z.unknown(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
         dynamic: z.boolean().optional(),
         title: z.string().optional(),
       }),
@@ -67,6 +73,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         input: z.unknown(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
         dynamic: z.boolean().optional(),
         errorText: z.string(),
         title: z.string().optional(),
@@ -75,6 +82,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         type: z.literal('tool-approval-request'),
         approvalId: z.string(),
         toolCallId: z.string(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('tool-output-available'),
@@ -82,6 +90,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         output: z.unknown(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
         dynamic: z.boolean().optional(),
         preliminary: z.boolean().optional(),
       }),
@@ -91,32 +100,38 @@ export const uiMessageChunkSchema = lazySchema(() =>
         errorText: z.string(),
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
         dynamic: z.boolean().optional(),
       }),
       z.strictObject({
         type: z.literal('tool-output-denied'),
         toolCallId: z.string(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('reasoning-start'),
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('reasoning-delta'),
         id: z.string(),
         delta: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('reasoning-end'),
         id: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('custom'),
         kind: z.string().transform(value => value as `${string}.${string}`),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('source-url'),
@@ -124,6 +139,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         url: z.string(),
         title: z.string().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('source-document'),
@@ -132,18 +148,21 @@ export const uiMessageChunkSchema = lazySchema(() =>
         title: z.string(),
         filename: z.string().optional(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('file'),
         url: z.string(),
         mediaType: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.literal('reasoning-file'),
         url: z.string(),
         mediaType: z.string(),
         providerMetadata: providerMetadataSchema.optional(),
+        metadata: z.unknown().optional(),
       }),
       z.strictObject({
         type: z.custom<`data-${string}`>(
@@ -204,43 +223,51 @@ export type DataUIMessageChunk<DATA_TYPES extends UIDataTypes> = ValueOf<{
 export type UIMessageChunk<
   METADATA = unknown,
   DATA_TYPES extends UIDataTypes = UIDataTypes,
+  PART_METADATA = unknown,
 > =
   | {
       type: 'text-start';
       id: string;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'text-delta';
       delta: string;
       id: string;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'text-end';
       id: string;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'reasoning-start';
       id: string;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'reasoning-delta';
       id: string;
       delta: string;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'reasoning-end';
       id: string;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'custom';
       kind: `${string}.${string}`;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'error';
@@ -253,6 +280,7 @@ export type UIMessageChunk<
       input: unknown;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
       dynamic?: boolean;
       title?: string;
     }
@@ -263,6 +291,7 @@ export type UIMessageChunk<
       input: unknown;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
       dynamic?: boolean;
       errorText: string;
       title?: string;
@@ -271,6 +300,7 @@ export type UIMessageChunk<
       type: 'tool-approval-request';
       approvalId: string;
       toolCallId: string;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'tool-output-available';
@@ -278,6 +308,7 @@ export type UIMessageChunk<
       output: unknown;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
       dynamic?: boolean;
       preliminary?: boolean;
     }
@@ -287,11 +318,13 @@ export type UIMessageChunk<
       errorText: string;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
       dynamic?: boolean;
     }
   | {
       type: 'tool-output-denied';
       toolCallId: string;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'tool-input-start';
@@ -299,6 +332,7 @@ export type UIMessageChunk<
       toolName: string;
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
       dynamic?: boolean;
       title?: string;
     }
@@ -313,6 +347,7 @@ export type UIMessageChunk<
       url: string;
       title?: string;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'source-document';
@@ -321,18 +356,21 @@ export type UIMessageChunk<
       title: string;
       filename?: string;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'file';
       url: string;
       mediaType: string;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | {
       type: 'reasoning-file';
       url: string;
       mediaType: string;
       providerMetadata?: ProviderMetadata;
+      metadata?: PART_METADATA;
     }
   | DataUIMessageChunk<DATA_TYPES>
   | {
@@ -368,5 +406,6 @@ export function isDataUIMessageChunk(
 
 export type InferUIMessageChunk<T extends UIMessage> = UIMessageChunk<
   InferUIMessageMetadata<T>,
-  InferUIMessageData<T>
+  InferUIMessageData<T>,
+  InferUIMessagePartMetadata<T>
 >;

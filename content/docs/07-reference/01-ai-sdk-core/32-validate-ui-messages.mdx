@@ -5,7 +5,7 @@ description: API Reference for validateUIMessages
 
 # `validateUIMessages`
 
-`validateUIMessages` is an async function that validates UI messages against schemas for metadata, data parts, and tools. It ensures type safety and data integrity for your message arrays before processing or rendering.
+`validateUIMessages` is an async function that validates UI messages against schemas for message metadata, part metadata, data parts, and tools. It ensures type safety and data integrity for your message arrays before processing or rendering.
 
 ## Basic Usage
 
@@ -39,6 +39,10 @@ import { z } from 'zod';
 const metadataSchema = z.object({
   timestamp: z.string().datetime(),
   userId: z.string(),
+});
+
+const partMetadataSchema = z.object({
+  planId: z.string(),
 });
 
 const dataSchemas = {
@@ -86,6 +90,7 @@ const messages = [
         state: 'output-available',
         input: { location: 'San Francisco' },
         output: 'Weather in San Francisco: sunny',
+        metadata: { planId: 'plan_123' },
       },
     ],
   },
@@ -95,6 +100,7 @@ const messages = [
 const validatedMessages = await validateUIMessages({
   messages,
   metadataSchema,
+  partMetadataSchema,
   dataSchemas,
   tools,
 });

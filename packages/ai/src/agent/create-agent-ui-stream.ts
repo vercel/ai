@@ -29,6 +29,7 @@ export async function createAgentUIStream<
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
+  PART_METADATA = unknown,
 >({
   agent,
   uiMessages,
@@ -50,14 +51,16 @@ export async function createAgentUIStream<
   onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
   // TODO `originalMessages` is part of this for bc, omit in v7
 } & UIMessageStreamOptions<
-  UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+  UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>, PART_METADATA>
 >): Promise<
   AsyncIterableStream<
-    InferUIMessageChunk<UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>>
+    InferUIMessageChunk<
+      UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>, PART_METADATA>
+    >
   >
 > {
   const validatedMessages = await validateUIMessages<
-    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>, PART_METADATA>
   >({
     messages: uiMessages,
     tools: agent.tools,
