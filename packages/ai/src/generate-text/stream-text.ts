@@ -217,11 +217,6 @@ export type StreamTextOnAbortCallback<
 }>;
 
 /**
- * Include settings for streamText (requestBody only).
- */
-type StreamTextIncludeSettings = { requestBody?: boolean };
-
-/**
  * Callback that is set using the `experimental_onStart` option.
  *
  * Called when the streamText operation begins, before any LLM calls.
@@ -234,9 +229,7 @@ export type StreamTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<
-  OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT, StreamTextIncludeSettings>
->;
+> = Callback<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onStepStart` option.
@@ -251,9 +244,7 @@ export type StreamTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<
-  OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT, StreamTextIncludeSettings>
->;
+> = Callback<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 export type StreamTextOnToolCallStartCallback<TOOLS extends ToolSet = ToolSet> =
   Callback<OnToolCallStartEvent<TOOLS>>;
@@ -331,8 +322,7 @@ export function streamText<
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
-  experimental_activeTools,
-  activeTools = experimental_activeTools,
+  activeTools,
   experimental_repairToolCall: repairToolCall,
   experimental_transform: transform,
   experimental_download: download,
@@ -391,11 +381,6 @@ export function streamText<
      * functionality that can be fully encapsulated in the provider.
      */
     providerOptions?: ProviderOptions;
-
-    /**
-     * @deprecated Use `activeTools` instead.
-     */
-    experimental_activeTools?: Array<keyof NoInfer<TOOLS>>;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -591,7 +576,6 @@ export function streamText<
     includeRawChunks,
     timeout,
     stopWhen,
-    originalAbortSignal: abortSignal,
     onChunk,
     onError,
     onFinish,
@@ -779,7 +763,6 @@ class DefaultStreamTextResult<
     generateCallId,
     timeout,
     stopWhen,
-    originalAbortSignal,
     onChunk,
     onError,
     onFinish,
@@ -826,7 +809,6 @@ class DefaultStreamTextResult<
       | StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>
       | Array<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>
       | undefined;
-    originalAbortSignal: AbortSignal | undefined;
     context: InferToolSetContext<TOOLS> & USER_CONTEXT;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
@@ -1168,7 +1150,6 @@ class DefaultStreamTextResult<
               stepNumber: finalStep.stepNumber,
               model: finalStep.model,
               functionId: finalStep.functionId,
-              metadata: finalStep.metadata,
               context: finalStep.context,
               finishReason: finalStep.finishReason,
               rawFinishReason: finalStep.rawFinishReason,
@@ -1308,14 +1289,12 @@ class DefaultStreamTextResult<
     const callId = generateCallId();
     const callbackTelemetryProps = {
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     };
     const onStartTelemetryProps = {
       isEnabled: telemetry?.isEnabled,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
     };
 
     (async () => {
@@ -1352,8 +1331,6 @@ class DefaultStreamTextResult<
           providerOptions,
           stopWhen,
           output,
-          abortSignal: originalAbortSignal,
-          include,
           ...onStartTelemetryProps,
           context,
         },
@@ -1614,7 +1591,7 @@ class DefaultStreamTextResult<
                     system: stepSystem,
                     messages: stepMessages,
                     tools,
-                    toolChoice: stepToolChoice,
+                    toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
                     activeTools: prepareStepResult?.activeTools ?? activeTools,
                     steps: [...recordedSteps],
                     providerOptions: stepProviderOptions,
@@ -1622,8 +1599,6 @@ class DefaultStreamTextResult<
                     headers,
                     stopWhen,
                     output,
-                    abortSignal: originalAbortSignal,
-                    include,
                     ...callbackTelemetryProps,
                     context,
                     promptMessages,

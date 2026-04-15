@@ -62,11 +62,6 @@ export type StepResult<
   readonly functionId: string | undefined;
 
   /**
-   * Additional metadata from telemetry settings.
-   */
-  readonly metadata: Record<string, unknown> | undefined;
-
-  /**
    * User-defined context object flowing through the generation.
    *
    * Experimental (can break in patch releases).
@@ -191,7 +186,6 @@ export class DefaultStepResult<
   readonly stepNumber: StepResult<TOOLS, USER_CONTEXT>['stepNumber'];
   readonly model: StepResult<TOOLS, USER_CONTEXT>['model'];
   readonly functionId: StepResult<TOOLS, USER_CONTEXT>['functionId'];
-  readonly metadata: StepResult<TOOLS, USER_CONTEXT>['metadata'];
   readonly context: StepResult<TOOLS, USER_CONTEXT>['context'];
   readonly content: StepResult<TOOLS, USER_CONTEXT>['content'];
   readonly finishReason: StepResult<TOOLS, USER_CONTEXT>['finishReason'];
@@ -211,7 +205,6 @@ export class DefaultStepResult<
     provider,
     modelId,
     functionId,
-    metadata,
     context,
     content,
     finishReason,
@@ -227,7 +220,6 @@ export class DefaultStepResult<
     provider: StepResult<TOOLS, USER_CONTEXT>['model']['provider'];
     modelId: StepResult<TOOLS, USER_CONTEXT>['model']['modelId'];
     functionId: StepResult<TOOLS, USER_CONTEXT>['functionId'];
-    metadata: StepResult<TOOLS, USER_CONTEXT>['metadata'];
     context: StepResult<TOOLS, USER_CONTEXT>['context'];
     content: StepResult<TOOLS, USER_CONTEXT>['content'];
     finishReason: StepResult<TOOLS, USER_CONTEXT>['finishReason'];
@@ -242,7 +234,6 @@ export class DefaultStepResult<
     this.stepNumber = stepNumber;
     this.model = { provider, modelId };
     this.functionId = functionId;
-    this.metadata = metadata;
     this.context = context;
     this.content = content;
     this.finishReason = finishReason;

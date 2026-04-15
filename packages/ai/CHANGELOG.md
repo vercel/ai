@@ -1,5 +1,23 @@
 # ai
 
+## 7.0.0-beta.95
+
+### Patch Changes
+
+- c4f4b5f: refactoring(ai): remove deprecated experimental_activeTools option
+
+## 7.0.0-beta.94
+
+### Patch Changes
+
+- 1582efa: chore(ai): remove the metadata field from the telemetry settings
+
+## 7.0.0-beta.93
+
+### Patch Changes
+
+- bc47739: chore(ai): cleanup telemetry event data
+
 ## 7.0.0-beta.92
 
 ### Patch Changes
