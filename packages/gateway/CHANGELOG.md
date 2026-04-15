@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- ba2e254: fix (provider/gateway): add 'reranking' to modelType validation schema and type so getAvailableModels() accepts reranking models from the gateway API
+
 ## 4.0.0-beta.51
 
 ### Patch Changes
