@@ -112,7 +112,7 @@ export interface OnStartEvent<
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */

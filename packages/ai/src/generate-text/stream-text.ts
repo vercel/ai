@@ -1287,7 +1287,7 @@ class DefaultStreamTextResult<
       functionId: telemetry?.functionId,
     };
     const onStartTelemetryProps = {
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
