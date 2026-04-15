@@ -24,6 +24,8 @@ export const xaiLanguageModelResponsesOptions = z.object({
   topLogprobs: z.number().int().min(0).max(8).optional(),
   /**
    * Whether to store the input message(s) and model response for later retrieval.
+   * Must be set to `false` for teams with Zero Data Retention (ZDR) enabled,
+   * otherwise the API will return an error.
    * @default true
    */
   store: z.boolean().optional(),

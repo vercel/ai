@@ -110,7 +110,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
     const { input, inputWarnings } = await convertToXaiResponsesInput({
       prompt,
-      store: true,
+      store: options.store ?? true,
     });
     warnings.push(...inputWarnings);
 
@@ -366,12 +366,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             .map(s => s.text)
             .filter(text => text && text.length > 0);
 
-          if (summaryTexts.length > 0) {
-            const reasoningText = summaryTexts.join('');
-            if (part.encrypted_content || part.id) {
-              content.push({
-                type: 'reasoning',
-                text: reasoningText,
+          const reasoningText = summaryTexts.join('');
+
+          // condition changed here since encrypted content can now come with empty reasoning text
+          if (reasoningText || part.encrypted_content) {
+            const hasMetadata = part.encrypted_content || part.id;
+            content.push({
+              type: 'reasoning',
+              text: reasoningText,
+              ...(hasMetadata && {
                 providerMetadata: {
                   xai: {
                     ...(part.encrypted_content && {
@@ -380,13 +383,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     ...(part.id && { itemId: part.id }),
                   },
                 },
-              });
-            } else {
-              content.push({
-                type: 'reasoning',
-                text: reasoningText,
-              });
-            }
+              }),
+            });
           }
           break;
         }
