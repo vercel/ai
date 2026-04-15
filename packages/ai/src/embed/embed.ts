@@ -6,7 +6,7 @@ import {
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetryOptions } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { EmbeddingModel } from '../types';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';

@@ -4,7 +4,7 @@ import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetryOptions } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { RerankingModel } from '../types';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';

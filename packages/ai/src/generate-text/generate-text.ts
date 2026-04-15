@@ -37,7 +37,7 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
-import { TelemetryOptions } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import {
   LanguageModel,
   LanguageModelRequestMetadata,

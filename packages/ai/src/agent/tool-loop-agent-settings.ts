@@ -24,7 +24,7 @@ import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-functi
 import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { RequestOptions } from '../prompt/request-options';
 import { Prompt } from '../prompt/prompt';
-import { TelemetryOptions } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';

@@ -8,7 +8,7 @@ import {
   getToolTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/request-options';
-import { TelemetryOptions } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { notify } from '../util/notify';
 import { now } from '../util/now';
 import {
