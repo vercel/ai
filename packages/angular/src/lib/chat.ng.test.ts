@@ -187,6 +187,7 @@ describe('data protocol stream', () => {
         parts: [
           {
             providerMetadata: undefined,
+            metadata: undefined,
             text: 'Hello, world.',
             type: 'text',
             state: 'done',
@@ -214,6 +215,7 @@ describe('data protocol stream', () => {
           parts: [
             {
               providerMetadata: undefined,
+              metadata: undefined,
               text: 'Hello, world.',
               type: 'text',
               state: 'done',
@@ -305,6 +307,7 @@ describe('text stream', () => {
               "type": "step-start",
             },
             {
+              "metadata": undefined,
               "providerMetadata": undefined,
               "state": "done",
               "text": "Hello, world.",
@@ -389,6 +392,7 @@ describe('text stream', () => {
           { type: 'step-start' },
           {
             providerMetadata: undefined,
+            metadata: undefined,
             text: 'Hello, world.',
             type: 'text',
             state: 'done',
@@ -410,6 +414,7 @@ describe('text stream', () => {
             { type: 'step-start' },
             {
               providerMetadata: undefined,
+              metadata: undefined,
               text: 'Hello, world.',
               type: 'text',
               state: 'done',
@@ -482,6 +487,7 @@ describe('onToolCall', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          metadata: undefined,
           title: undefined,
         },
       ]);
@@ -502,6 +508,7 @@ describe('onToolCall', () => {
           'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
         providerExecuted: undefined,
         preliminary: undefined,
+        metadata: undefined,
         title: undefined,
       },
     ]);
@@ -553,6 +560,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          metadata: undefined,
           title: undefined,
         },
       ]);
@@ -578,6 +586,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          metadata: undefined,
           title: undefined,
         },
       ]);
@@ -603,6 +612,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          metadata: undefined,
           title: undefined,
         },
       ]);
@@ -629,6 +639,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          metadata: undefined,
           title: undefined,
         },
       ]);
@@ -655,6 +666,7 @@ describe('tool invocations', () => {
         output: 'test-result',
         providerExecuted: undefined,
         preliminary: undefined,
+        metadata: undefined,
         title: undefined,
       },
     ]);
@@ -690,6 +702,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          metadata: undefined,
           title: undefined,
         },
       ]);
@@ -717,6 +730,7 @@ describe('tool invocations', () => {
         output: 'test-result',
         providerExecuted: undefined,
         preliminary: undefined,
+        metadata: undefined,
         title: undefined,
       },
     ]);
@@ -751,6 +765,7 @@ describe('tool invocations', () => {
           output: undefined,
           providerExecuted: undefined,
           preliminary: undefined,
+          metadata: undefined,
           title: undefined,
         },
       ]);
@@ -774,6 +789,7 @@ describe('tool invocations', () => {
           output: 'test-result',
           providerExecuted: undefined,
           preliminary: undefined,
+          metadata: undefined,
           title: undefined,
         },
       ]);
@@ -828,6 +844,7 @@ describe('tool invocations', () => {
           type: 'tool-test-tool',
           providerExecuted: undefined,
           preliminary: undefined,
+          metadata: undefined,
           title: undefined,
         },
       ]);
@@ -853,6 +870,7 @@ describe('tool invocations', () => {
           output: 'test-result',
           providerExecuted: undefined,
           preliminary: undefined,
+          metadata: undefined,
           title: undefined,
         },
       ]);
@@ -957,6 +975,7 @@ describe('sendAutomaticallyWhen', () => {
                 "input": {
                   "testArg": "test-value",
                 },
+                "metadata": undefined,
                 "output": "test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}",
                 "preliminary": undefined,
                 "providerExecuted": undefined,
@@ -967,6 +986,7 @@ describe('sendAutomaticallyWhen', () => {
                 "type": "tool-test-tool",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "done",
                 "text": "final result",
@@ -1097,6 +1117,7 @@ describe('file attachments with data url', () => {
           "metadata": undefined,
           "parts": [
             {
+              "metadata": undefined,
               "providerMetadata": undefined,
               "state": "done",
               "text": "Response to message with text attachment",
@@ -1187,6 +1208,7 @@ describe('file attachments with data url', () => {
           "metadata": undefined,
           "parts": [
             {
+              "metadata": undefined,
               "providerMetadata": undefined,
               "state": "done",
               "text": "Response to message with image attachment",
@@ -1287,6 +1309,7 @@ describe('file attachments with url', () => {
           "metadata": undefined,
           "parts": [
             {
+              "metadata": undefined,
               "providerMetadata": undefined,
               "state": "done",
               "text": "Response to message with image attachment",
@@ -1382,6 +1405,7 @@ describe('file attachments with empty text content', () => {
           "metadata": undefined,
           "parts": [
             {
+              "metadata": undefined,
               "providerMetadata": undefined,
               "state": "done",
               "text": "Response to message with image attachment",
@@ -1604,6 +1628,7 @@ describe('generateId function', () => {
           "metadata": undefined,
           "parts": [
             {
+              "metadata": undefined,
               "providerMetadata": undefined,
               "state": "done",
               "text": "Hello, world.",
