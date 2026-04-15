@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.97
+
+### Patch Changes
+
+- 208d045: fix(ai): skip global telemetry registration when local integration defined
+
 ## 7.0.0-beta.96
 
 ### Patch Changes
