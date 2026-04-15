@@ -313,7 +313,6 @@ export async function generateObject<
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
     },
     callbacks: [onStart, unifiedTelemetry.onStart],
   });
@@ -341,7 +340,6 @@ export async function generateObject<
         providerOptions,
         headers: headersWithUserAgent,
         functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata as Record<string, unknown> | undefined,
         promptMessages,
       },
       callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
@@ -411,7 +409,6 @@ export async function generateObject<
       response,
       providerMetadata: resultProviderMetadata,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     };
 
     await notify({
@@ -443,7 +440,6 @@ export async function generateObject<
         response,
         providerMetadata: resultProviderMetadata,
         functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata as Record<string, unknown> | undefined,
       },
       callbacks: [onFinish, unifiedTelemetry.onFinish],
     });

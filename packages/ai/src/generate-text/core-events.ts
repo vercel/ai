@@ -1,4 +1,3 @@
-import type { JSONValue } from '@ai-sdk/provider';
 import type {
   Context,
   InferToolSetContext,
@@ -125,14 +124,11 @@ export interface OnStartEvent<
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
-
   /**
    * User-defined context object that flows through the entire generation lifecycle.
    * Can be accessed and modified in `prepareStep` and tool `execute` functions.
    */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }
 
 /**
@@ -213,13 +209,10 @@ export interface OnStepStartEvent<
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
-
   /**
    * User-defined context object. May be updated from `prepareStep` between steps.
    */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }
 
 /**
@@ -249,11 +242,8 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
-
   /** User-defined context object flowing through the generation. */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS>;
 }
 
 /**
@@ -287,11 +277,8 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
-
   /** User-defined context object flowing through the generation. */
-  readonly context: unknown;
+  readonly context: InferToolSetContext<TOOLS>;
 } & (
   | {
       /** Indicates the tool call succeeded. */
@@ -365,7 +352,4 @@ export type OnFinishEvent<
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
 };

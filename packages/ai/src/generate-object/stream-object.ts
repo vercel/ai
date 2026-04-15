@@ -522,7 +522,6 @@ class DefaultStreamObjectResult<
           recordInputs: telemetry?.recordInputs,
           recordOutputs: telemetry?.recordOutputs,
           functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata,
         },
         callbacks: [onStart, unifiedTelemetry.onStart],
       });
@@ -562,7 +561,6 @@ class DefaultStreamObjectResult<
           providerOptions,
           headers,
           functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           promptMessages: callOptions.prompt,
         },
         callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
@@ -780,9 +778,6 @@ class DefaultStreamObjectResult<
                     },
                     providerMetadata,
                     functionId: telemetry?.functionId,
-                    metadata: telemetry?.metadata as
-                      | Record<string, unknown>
-                      | undefined,
                   },
                   callbacks: [
                     onStepFinish,
@@ -806,9 +801,6 @@ class DefaultStreamObjectResult<
                     },
                     providerMetadata,
                     functionId: telemetry?.functionId,
-                    metadata: telemetry?.metadata as
-                      | Record<string, unknown>
-                      | undefined,
                   },
                   callbacks: [onFinish, unifiedTelemetry.onFinish],
                 });

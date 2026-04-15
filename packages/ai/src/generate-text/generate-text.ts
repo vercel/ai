@@ -517,7 +517,6 @@ export async function generateText<
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
       context,
     },
     callbacks: [
@@ -714,7 +713,6 @@ export async function generateText<
           stopWhen,
           output,
           functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           context,
           promptMessages,
           stepTools,
@@ -957,9 +955,6 @@ export async function generateText<
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata as
-              | Record<string, unknown>
-              | undefined,
             context,
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
@@ -1024,7 +1019,6 @@ export async function generateText<
       stepNumber: lastStep.stepNumber,
       model: lastStep.model,
       functionId: lastStep.functionId,
-      metadata: lastStep.metadata,
       context: lastStep.context,
       finishReason: lastStep.finishReason,
       rawFinishReason: lastStep.rawFinishReason,

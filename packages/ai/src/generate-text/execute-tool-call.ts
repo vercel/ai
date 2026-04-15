@@ -90,7 +90,6 @@ export async function executeToolCall<
     toolCall,
     messages,
     functionId: telemetry?.functionId,
-    metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     context,
   };
 

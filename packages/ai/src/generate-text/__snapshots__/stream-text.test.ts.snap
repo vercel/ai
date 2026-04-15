@@ -14,9 +14,6 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
-  "metadata": {
-    "customKey": "customValue",
-  },
   "modelId": "mock-model-id",
   "operationId": "ai.streamText",
   "output": undefined,
@@ -51,7 +48,6 @@ exports[`streamText > options.experimental_onToolCallStart > should be called wi
       "role": "user",
     },
   ],
-  "metadata": undefined,
   "modelId": "mock-model-id",
   "provider": "mock-provider",
   "stepNumber": 0,
