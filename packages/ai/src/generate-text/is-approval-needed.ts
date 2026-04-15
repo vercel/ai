@@ -1,5 +1,6 @@
 import {
   Context,
+  InferToolInput,
   InferToolSetContext,
   ModelMessage,
   ToolSet,
@@ -36,7 +37,7 @@ export async function isApprovalNeeded<
   context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }) {
   // assume that the input has been validated early and matches the tool's input schema
-  const input = toolCall.input as NoInfer<TOOLS[keyof TOOLS]['inputSchema']>;
+  const input = toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>;
   const options = { toolCallId: toolCall.toolCallId, messages, context };
 
   // user-defined tool approval

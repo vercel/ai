@@ -1,5 +1,6 @@
 import {
   Context,
+  InferToolInput,
   InferToolSetContext,
   ToolNeedsApprovalFunction,
   ToolSet,
@@ -18,7 +19,7 @@ export type ToolApprovalConfiguration<
   [key in keyof TOOLS]?:
     | boolean
     | ToolNeedsApprovalFunction<
-        NoInfer<TOOLS[key]['inputSchema']>,
+        InferToolInput<TOOLS[key]>,
         InferToolSetContext<TOOLS> & USER_CONTEXT
       >;
 };
