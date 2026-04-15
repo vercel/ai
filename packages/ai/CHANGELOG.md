@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.93
+
+### Patch Changes
+
+- bc47739: chore(ai): cleanup telemetry event data
+
 ## 7.0.0-beta.92
 
 ### Patch Changes
