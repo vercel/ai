@@ -120,7 +120,7 @@ importers:
         specifier: 3.0.0-beta.20
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 4.0.0-beta.36
+        specifier: 4.0.0-beta.37
         version: link:../../packages/xai
       '@langfuse/otel':
         specifier: ^4.6.1
