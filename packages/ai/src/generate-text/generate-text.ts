@@ -818,8 +818,10 @@ export async function generateText<
 
           if (
             await isApprovalNeeded({
-              tool,
-              toolCall,
+              tools,
+              toolNeedsApproval: {},
+              toolCallId: toolCall.toolCallId,
+              input: toolCall.input,
               messages: stepInputMessages,
               context,
             })

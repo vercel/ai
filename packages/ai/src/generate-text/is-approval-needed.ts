@@ -2,6 +2,7 @@ import {
   Context,
   InferToolSetContext,
   ModelMessage,
+  ToolNeedsApprovalFunction,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import { TypedToolCall } from './tool-call';
@@ -12,25 +13,44 @@ export async function isApprovalNeeded<
 >({
   tool,
   toolCall,
+  toolNeedsApproval,
   messages,
   context,
 }: {
+  /**
+   * Tool (which can have a tool-defined needsApproval function).
+   */
   tool: TOOLS[keyof TOOLS];
+
+  /**
+   * Potentially user-defined tool needs approval function.
+   */
+  toolNeedsApproval:
+    | undefined
+    | boolean
+    | ToolNeedsApprovalFunction<
+        NoInfer<TOOLS[keyof TOOLS]['inputSchema']>,
+        InferToolSetContext<TOOLS> & USER_CONTEXT
+      >;
+
   toolCall: TypedToolCall<TOOLS>;
   messages: ModelMessage[];
   context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 }) {
-  if (tool.needsApproval == null) {
-    return false;
+  const input = toolCall.input as NoInfer<TOOLS[keyof TOOLS]['inputSchema']>;
+  const options = { toolCallId: toolCall.toolCallId, messages, context };
+
+  // user-defined tool needs approval function
+  if (toolNeedsApproval != null) {
+    return typeof toolNeedsApproval === 'boolean'
+      ? toolNeedsApproval
+      : await toolNeedsApproval(input, options);
   }
 
-  if (typeof tool.needsApproval === 'boolean') {
-    return tool.needsApproval;
-  }
-
-  return await tool.needsApproval(toolCall.input, {
-    toolCallId: toolCall.toolCallId,
-    messages,
-    context,
-  });
+  // tool-defined needs approval function
+  return tool.needsApproval == null
+    ? false
+    : typeof tool.needsApproval === 'boolean'
+      ? tool.needsApproval
+      : await tool.needsApproval(input, options);
 }
