@@ -12,7 +12,7 @@ import {
  * Each tool can be assigned either a boolean or a function that decides at
  * runtime whether approval is needed.
  */
-export type ToolApprovalConfiguration<
+export type ToolNeedsApprovalConfiguration<
   TOOLS extends ToolSet,
   USER_CONTEXT extends Context = Context,
 > = {

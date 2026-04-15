@@ -121,7 +121,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolApprovalConfiguration } from './tool-approval-configuration';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 
@@ -418,7 +418,7 @@ export function streamText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolApproval?: ToolApprovalConfiguration<TOOLS, USER_CONTEXT>;
+    toolApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -820,7 +820,9 @@ class DefaultStreamTextResult<
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     stopConditions: Array<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>;
     output: OUTPUT | undefined;
-    toolApproval: ToolApprovalConfiguration<TOOLS, USER_CONTEXT> | undefined;
+    toolApproval:
+      | ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>
+      | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>

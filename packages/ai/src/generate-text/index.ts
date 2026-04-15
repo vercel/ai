@@ -67,7 +67,7 @@ export type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from './stream-text-result';
-export type { ToolApprovalConfiguration } from './tool-approval-configuration';
+export type { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type {
   DynamicToolCall,

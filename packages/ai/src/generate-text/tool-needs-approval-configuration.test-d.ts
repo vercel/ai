@@ -1,9 +1,9 @@
 import { Context, ModelMessage, tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
-import type { ToolApprovalConfiguration } from './tool-approval-configuration';
+import type { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 
-describe('ToolApprovalConfiguration', () => {
+describe('ToolNeedsApprovalConfiguration', () => {
   const tools = {
     weather: tool({
       inputSchema: z.object({
@@ -25,7 +25,7 @@ describe('ToolApprovalConfiguration', () => {
   };
 
   it('allows booleans and infers approval callback input and context types', () => {
-    const config: ToolApprovalConfiguration<typeof tools, UserContext> = {
+    const config: ToolNeedsApprovalConfiguration<typeof tools, UserContext> = {
       weather: (input, { context, toolCallId, messages }) => {
         expectTypeOf(input).toEqualTypeOf<{ location: string }>();
         expectTypeOf(context).toEqualTypeOf<
@@ -44,12 +44,12 @@ describe('ToolApprovalConfiguration', () => {
     };
 
     expectTypeOf(config).toEqualTypeOf<
-      ToolApprovalConfiguration<typeof tools, UserContext>
+      ToolNeedsApprovalConfiguration<typeof tools, UserContext>
     >();
   });
 
   it('keeps each tool approval callback specific to that tool', () => {
-    const config: ToolApprovalConfiguration<typeof tools, UserContext> = {
+    const config: ToolNeedsApprovalConfiguration<typeof tools, UserContext> = {
       calculator: (input, { context }) => {
         expectTypeOf(input).toEqualTypeOf<{ expression: string }>();
         expectTypeOf(context.weatherApiKey).toEqualTypeOf<string>();
@@ -60,41 +60,45 @@ describe('ToolApprovalConfiguration', () => {
     };
 
     expectTypeOf(config).toEqualTypeOf<
-      ToolApprovalConfiguration<typeof tools, UserContext>
+      ToolNeedsApprovalConfiguration<typeof tools, UserContext>
     >();
   });
 
   describe('negative cases', () => {
     it('rejects approval configuration for unknown tool keys', () => {
-      const config: ToolApprovalConfiguration<typeof tools, UserContext> = {
-        // @ts-expect-error tool approval only accepts keys from the provided tool set
-        search: true,
-      };
+      const config: ToolNeedsApprovalConfiguration<typeof tools, UserContext> =
+        {
+          // @ts-expect-error tool approval only accepts keys from the provided tool set
+          search: true,
+        };
 
       expectTypeOf(config).toEqualTypeOf<
-        ToolApprovalConfiguration<typeof tools, UserContext>
+        ToolNeedsApprovalConfiguration<typeof tools, UserContext>
       >();
     });
 
     it('rejects callbacks with the wrong input type for a tool', () => {
-      const config: ToolApprovalConfiguration<typeof tools, UserContext> = {
-        // @ts-expect-error weather approval callbacks must receive the weather tool input
-        weather: (input: { expression: string }) => input.expression.length > 0,
-      };
+      const config: ToolNeedsApprovalConfiguration<typeof tools, UserContext> =
+        {
+          // @ts-expect-error weather approval callbacks must receive the weather tool input
+          weather: (input: { expression: string }) =>
+            input.expression.length > 0,
+        };
 
       expectTypeOf(config).toEqualTypeOf<
-        ToolApprovalConfiguration<typeof tools, UserContext>
+        ToolNeedsApprovalConfiguration<typeof tools, UserContext>
       >();
     });
 
     it('rejects callbacks with the wrong return type', () => {
-      const config: ToolApprovalConfiguration<typeof tools, UserContext> = {
-        // @ts-expect-error approval callbacks must return a boolean or promise-like boolean
-        calculator: () => 'approved',
-      };
+      const config: ToolNeedsApprovalConfiguration<typeof tools, UserContext> =
+        {
+          // @ts-expect-error approval callbacks must return a boolean or promise-like boolean
+          calculator: () => 'approved',
+        };
 
       expectTypeOf(config).toEqualTypeOf<
-        ToolApprovalConfiguration<typeof tools, UserContext>
+        ToolNeedsApprovalConfiguration<typeof tools, UserContext>
       >();
     });
   });

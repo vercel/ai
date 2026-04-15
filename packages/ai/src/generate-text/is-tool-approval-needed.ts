@@ -5,7 +5,7 @@ import {
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { ToolApprovalConfiguration } from './tool-approval-configuration';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { TypedToolCall } from './tool-call';
 
 /**
@@ -30,7 +30,7 @@ export async function isToolApprovalNeeded<
    *
    * This configuration takes precedence over tool-defined approval settings.
    */
-  toolApproval: ToolApprovalConfiguration<TOOLS, USER_CONTEXT> | undefined;
+  toolApproval: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT> | undefined;
 
   toolCall: TypedToolCall<TOOLS>; // assuming tool call is valid
   messages: ModelMessage[];
