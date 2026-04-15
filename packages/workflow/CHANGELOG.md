@@ -1,5 +1,15 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- 0455f24: Enrich WorkflowAgent callback event shapes to align with ToolLoopAgent:
+  - Add `stepNumber` to `onToolCallStart` and `onToolCallFinish`
+  - Add `steps` (previous step results) to `onStepStart`
+  - Adopt discriminated union pattern (`success: true/false`) for `onToolCallFinish`
+  - Add `durationMs` to `onToolCallFinish`
+
 ## 1.0.0-beta.7
 
 ### Patch Changes

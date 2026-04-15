@@ -274,6 +274,7 @@
     "workflow-agent-add-id",
     "workflow-agent-add-prompt",
     "workflow-agent-constructor-defaults",
+    "workflow-agent-enrich-callbacks",
     "workflow-agent-model-type",
     "workflow-serde-support",
     "xsppb-nrpzc-sshwt",
