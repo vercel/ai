@@ -2,7 +2,6 @@ import {
   InferToolInput,
   InferToolOutput,
   Tool,
-  ToolSet,
   ToolCall,
   ToolSet,
 } from '@ai-sdk/provider-utils';
