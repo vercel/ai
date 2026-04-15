@@ -1,4 +1,4 @@
-import type { JSONValue, LanguageModelV4ToolChoice } from '@ai-sdk/provider';
+import type { JSONValue } from '@ai-sdk/provider';
 import type {
   Context,
   InferToolSetContext,
@@ -35,7 +35,6 @@ export interface OnStartEvent<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-  INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
@@ -114,14 +113,6 @@ export interface OnStartEvent<
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
-  /**
-   * Settings for controlling what data is included in step results.
-   */
-  readonly include: INCLUDE | undefined;
-
   /** Whether telemetry is enabled. */
   readonly isEnabled: boolean | undefined;
 
@@ -154,7 +145,6 @@ export interface OnStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-  INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
@@ -188,7 +178,7 @@ export interface OnStepStartEvent<
   readonly tools: TOOLS | undefined;
 
   /** The tool choice configuration for this step. */
-  readonly toolChoice: LanguageModelV4ToolChoice | undefined;
+  readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
 
   /** Limits which tools are available for this step. */
   readonly activeTools: Array<keyof TOOLS> | undefined;
@@ -219,14 +209,6 @@ export interface OnStepStartEvent<
 
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
-
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
-  /**
-   * Settings for controlling what data is included in step results.
-   */
-  readonly include: INCLUDE | undefined;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
@@ -264,9 +246,6 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** The conversation messages available at tool execution time. */
   readonly messages: Array<ModelMessage>;
 
-  /** Signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
@@ -301,9 +280,6 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
 
   /** The conversation messages available at tool execution time. */
   readonly messages: Array<ModelMessage>;
-
-  /** Signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
 
   /** Execution time of the tool call in milliseconds. */
   readonly durationMs: number;

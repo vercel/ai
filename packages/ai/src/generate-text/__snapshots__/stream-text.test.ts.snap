@@ -4,14 +4,12 @@ exports[`streamText > errors > should swallow error to prevent server crash 1`] 
 
 exports[`streamText > options.experimental_onStart > should send correct information with text prompt 1`] = `
 {
-  "abortSignal": undefined,
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",
   "context": {},
   "frequencyPenalty": undefined,
   "functionId": "test-function",
   "headers": undefined,
-  "include": undefined,
   "isEnabled": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
@@ -44,7 +42,6 @@ exports[`streamText > options.experimental_onStart > should send correct informa
 
 exports[`streamText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
 {
-  "abortSignal": undefined,
   "callId": "test-telemetry-call-id",
   "context": {},
   "functionId": undefined,

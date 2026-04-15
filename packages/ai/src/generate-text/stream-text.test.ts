@@ -5710,24 +5710,6 @@ describe('streamText', () => {
       expect(startEvent.timeout).toEqual({ totalMs: 5000, stepMs: 1000 });
       expect(startEvent.stopWhen).toBeDefined();
     });
-
-    it('should expose include settings', async () => {
-      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
-
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-        experimental_include: { requestBody: false },
-        experimental_onStart: async event => {
-          startEvent = event;
-        },
-        onError: () => {},
-      });
-
-      await result.consumeStream();
-
-      expect(startEvent.include).toEqual({ requestBody: false });
-    });
   });
 
   describe('options.experimental_onStepStart', () => {

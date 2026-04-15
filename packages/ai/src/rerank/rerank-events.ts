@@ -31,10 +31,6 @@ export interface RerankOnStartEvent {
 
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
-
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
 

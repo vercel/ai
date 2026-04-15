@@ -103,14 +103,6 @@ const originalGenerateCallId = createIdGenerator({
 });
 
 /**
- * Include settings for generateText (requestBody and responseBody).
- */
-type GenerateTextIncludeSettings = {
-  requestBody?: boolean;
-  responseBody?: boolean;
-};
-
-/**
  * Callback that is set using the `experimental_onStart` option.
  *
  * Called when the generateText operation begins, before any LLM calls.
@@ -123,9 +115,7 @@ export type GenerateTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<
-  OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT, GenerateTextIncludeSettings>
->;
+> = Callback<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onStepStart` option.
@@ -140,9 +130,7 @@ export type GenerateTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<
-  OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT, GenerateTextIncludeSettings>
->;
+> = Callback<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onToolCallStart` option.
@@ -519,8 +507,6 @@ export async function generateText<
       providerOptions,
       stopWhen,
       output,
-      abortSignal,
-      include,
       isEnabled: telemetry?.isEnabled,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
@@ -713,7 +699,7 @@ export async function generateText<
           system: stepSystem,
           messages: stepMessages,
           tools,
-          toolChoice: stepToolChoice,
+          toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           activeTools: prepareStepResult?.activeTools ?? activeTools,
           steps: [...steps],
           providerOptions: stepProviderOptions,
@@ -721,8 +707,6 @@ export async function generateText<
           headers,
           stopWhen,
           output,
-          abortSignal,
-          include,
           functionId: telemetry?.functionId,
           metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           context,
