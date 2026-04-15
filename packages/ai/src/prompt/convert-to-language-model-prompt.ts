@@ -75,7 +75,10 @@ export async function convertToLanguageModelPrompt({
   for (const message of prompt.messages) {
     if (message.role === 'tool') {
       for (const part of message.content) {
-        if (part.type === 'tool-approval-response') {
+        if (
+          part.type === 'tool-approval-response' &&
+          part.approved === true
+        ) {
           const toolCallId = approvalIdToToolCallId.get(part.approvalId);
           if (toolCallId) {
             approvedToolCallIds.add(toolCallId);
