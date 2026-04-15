@@ -547,6 +547,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default.',
     },
     {
+      name: 'toolNeedsApproval',
+      type: 'Record<TOOLNAME, boolean | ((input, options) => boolean | Promise<boolean>)>',
+      isOptional: true,
+      description:
+        "Per-tool approval configuration for this call. Each tool can be set to `true` / `false` or to a function that decides dynamically based on the tool input and options such as `toolCallId`, `messages`, and `context`. This setting takes precedence over a tool's `needsApproval` default.",
+    },
+    {
       name: 'stopWhen',
       type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>>',
       isOptional: true,
