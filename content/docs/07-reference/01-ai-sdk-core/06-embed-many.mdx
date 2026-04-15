@@ -121,7 +121,7 @@ const { embeddings } = await embedMany({
               isOptional: true,
               type: 'TelemetryIntegration | TelemetryIntegration[]',
               description:
-                'Per-call telemetry integrations that receive lifecycle events. These run after any globally registered integrations.',
+                'Per-call telemetry integrations that receive lifecycle events. When provided, these replace any globally registered integrations for this call.',
             },
           ],
         },
