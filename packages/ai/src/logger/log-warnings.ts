@@ -19,14 +19,14 @@ export type LogWarningsFunction = (options: {
   warnings: Warning[];
 
   /**
-   * The provider id used for the call.
+   * The provider id used for the call, if scoped to a specific provider.
    */
-  provider: string;
+  provider?: string;
 
   /**
-   * The model id used for the call.
+   * The model id used for the call, if scoped to a specific provider.
    */
-  model: string;
+  model?: string;
 }) => void;
 
 /**
@@ -34,8 +34,8 @@ export type LogWarningsFunction = (options: {
  *
  * @param options - The options for formatting the warning.
  * @param options.warning - The warning to format.
- * @param options.provider - The provider id used for the call.
- * @param options.model - The model id used for the call.
+ * @param options.provider - The provider id used for the call, if scoped to a specific provider.
+ * @param options.model - The model id used for the call, if scoped to a specific provider.
  * @returns A formatted warning message string.
  */
 function formatWarning({
@@ -44,10 +44,12 @@ function formatWarning({
   model,
 }: {
   warning: Warning;
-  provider: string;
-  model: string;
+  provider?: string;
+  model?: string;
 }): string {
-  const prefix = `AI SDK Warning (${provider} / ${model}):`;
+  const scope =
+    provider != null && model != null ? ` (${provider} / ${model})` : '';
+  const prefix = `AI SDK Warning${scope}:`;
 
   switch (warning.type) {
     case 'unsupported': {
@@ -96,8 +98,8 @@ let hasLoggedBefore = false;
  *
  * @param options - The options containing warnings and context.
  * @param options.warnings - The warnings to log.
- * @param options.provider - The provider id used for the call.
- * @param options.model - The model id used for the call.
+ * @param options.provider - The provider id used for the call, if scoped to a specific provider.
+ * @param options.model - The model id used for the call, if scoped to a specific provider.
  */
 export const logWarnings: LogWarningsFunction = options => {
   // if the warnings array is empty, do nothing
