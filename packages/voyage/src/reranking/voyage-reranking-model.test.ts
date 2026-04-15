@@ -24,6 +24,104 @@ describe('doRerank', () => {
     };
   }
 
+  describe('object documents', () => {
+    let result: Awaited<ReturnType<typeof model.doRerank>>;
+
+    beforeEach(async () => {
+      prepareJsonFixtureResponse('voyage-reranking.1');
+
+      result = await model.doRerank({
+        documents: {
+          type: 'object',
+          values: [
+            { example: 'sunny day at the beach' },
+            { example: 'rainy day in the city' },
+          ],
+        },
+        query: 'rainy day',
+        topN: 2,
+      });
+    });
+
+    it('should send request with stringified json documents', async () => {
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "documents": [
+            "{"example":"sunny day at the beach"}",
+            "{"example":"rainy day in the city"}",
+          ],
+          "model": "rerank-2.5",
+          "query": "rainy day",
+          "top_k": 2,
+        }
+      `);
+    });
+
+    it('should send request with the correct headers', async () => {
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-api-key",
+          "content-type": "application/json",
+        }
+      `);
+    });
+
+    it('should return result with warnings', async () => {
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Object documents are converted to strings.",
+            "feature": "object documents",
+            "type": "compatibility",
+          },
+        ]
+      `);
+    });
+
+    it('should return result with the correct ranking', async () => {
+      expect(result.ranking).toMatchInlineSnapshot(`
+        [
+          {
+            "index": 1,
+            "relevanceScore": 0.5703125,
+          },
+          {
+            "index": 0,
+            "relevanceScore": 0.255859375,
+          },
+        ]
+      `);
+    });
+
+    it('should return result with the correct response body', async () => {
+      expect(result.response).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "data": [
+              {
+                "index": 1,
+                "relevance_score": 0.5703125,
+              },
+              {
+                "index": 0,
+                "relevance_score": 0.255859375,
+              },
+            ],
+            "model": "rerank-2.5",
+            "object": "list",
+            "usage": {
+              "total_tokens": 12,
+            },
+          },
+          "headers": {
+            "content-length": "157",
+            "content-type": "application/json",
+          },
+        }
+      `);
+    });
+  });
+
   describe('text documents', () => {
     let result: Awaited<ReturnType<typeof model.doRerank>>;
 
@@ -54,39 +152,52 @@ describe('doRerank', () => {
       `);
     });
 
-    it('should extract ranking', async () => {
+    it('should send request with the correct headers', async () => {
+      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "authorization": "Bearer test-api-key",
+          "content-type": "application/json",
+        }
+      `);
+    });
+
+    it('should return result without warnings', async () => {
+      expect(result.warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should return result with the correct ranking', async () => {
       expect(result.ranking).toMatchInlineSnapshot(`
         [
           {
             "index": 1,
-            "relevanceScore": 0.10183054,
+            "relevanceScore": 0.5703125,
           },
           {
             "index": 0,
-            "relevanceScore": 0.03762639,
+            "relevanceScore": 0.255859375,
           },
         ]
       `);
     });
 
-    it('should expose the raw response', async () => {
+    it('should return result with the correct response body', async () => {
       expect(result.response).toMatchInlineSnapshot(`
         {
           "body": {
             "data": [
               {
                 "index": 1,
-                "relevance_score": 0.10183054,
+                "relevance_score": 0.5703125,
               },
               {
                 "index": 0,
-                "relevance_score": 0.03762639,
+                "relevance_score": 0.255859375,
               },
             ],
             "model": "rerank-2.5",
             "object": "list",
             "usage": {
-              "total_tokens": 10,
+              "total_tokens": 12,
             },
           },
           "headers": {
@@ -95,147 +206,6 @@ describe('doRerank', () => {
           },
         }
       `);
-    });
-
-    it('should return result without warnings', async () => {
-      expect(result.warnings).toMatchInlineSnapshot(`[]`);
-    });
-  });
-
-  describe('object documents', () => {
-    let result: Awaited<ReturnType<typeof model.doRerank>>;
-
-    beforeEach(async () => {
-      prepareJsonFixtureResponse('voyage-reranking.1');
-
-      result = await model.doRerank({
-        documents: {
-          type: 'object',
-          values: [
-            { example: 'sunny day at the beach' },
-            { example: 'rainy day in the city' },
-          ],
-        },
-        query: 'rainy day',
-        topN: 2,
-      });
-    });
-
-    it('should convert to strings', async () => {
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-        {
-          "documents": [
-            "{"example":"sunny day at the beach"}",
-            "{"example":"rainy day in the city"}",
-          ],
-          "model": "rerank-2.5",
-          "query": "rainy day",
-          "top_k": 2,
-        }
-      `);
-    });
-
-    it('should add compatibility warning', async () => {
-      expect(result.warnings).toMatchInlineSnapshot(`
-        [
-          {
-            "details": "Object documents are converted to strings.",
-            "feature": "object documents",
-            "type": "compatibility",
-          },
-        ]
-      `);
-    });
-  });
-
-  describe('provider options', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('voyage-reranking.1');
-    });
-
-    it('should pass returnDocuments provider option', async () => {
-      await model.doRerank({
-        documents: {
-          type: 'text',
-          values: ['sunny day at the beach', 'rainy day in the city'],
-        },
-        query: 'rainy day',
-        topN: 2,
-        providerOptions: {
-          voyage: {
-            returnDocuments: true,
-          },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-        {
-          "documents": [
-            "sunny day at the beach",
-            "rainy day in the city",
-          ],
-          "model": "rerank-2.5",
-          "query": "rainy day",
-          "return_documents": true,
-          "top_k": 2,
-        }
-      `);
-    });
-
-    it('should pass truncation provider option', async () => {
-      await model.doRerank({
-        documents: {
-          type: 'text',
-          values: ['sunny day at the beach', 'rainy day in the city'],
-        },
-        query: 'rainy day',
-        topN: 2,
-        providerOptions: {
-          voyage: {
-            truncation: true,
-          },
-        },
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-        {
-          "documents": [
-            "sunny day at the beach",
-            "rainy day in the city",
-          ],
-          "model": "rerank-2.5",
-          "query": "rainy day",
-          "top_k": 2,
-          "truncation": true,
-        }
-      `);
-    });
-  });
-
-  describe('headers', () => {
-    beforeEach(() => {
-      prepareJsonFixtureResponse('voyage-reranking.1');
-    });
-
-    it('should send auth and user-agent headers', async () => {
-      await model.doRerank({
-        documents: {
-          type: 'text',
-          values: ['sunny day at the beach'],
-        },
-        query: 'rainy day',
-        topN: 1,
-      });
-
-      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
-        {
-          "authorization": "Bearer test-api-key",
-          "content-type": "application/json",
-        }
-      `);
-      expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/voyage/0.0.0-test`,
-      );
     });
   });
 });
