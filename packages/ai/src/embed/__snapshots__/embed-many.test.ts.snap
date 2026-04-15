@@ -51,7 +51,6 @@ exports[`options.experimental_onFinish > should send correct event information (
 
 exports[`options.experimental_onStart > should send correct event information 1`] = `
 {
-  "abortSignal": undefined,
   "callId": "test-call-id",
   "functionId": "test-function",
   "headers": {
