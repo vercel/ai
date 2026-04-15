@@ -14,6 +14,7 @@ import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
+import { ToolApprovalConfiguration } from './tool-approval-configuration';
 import { TypedToolCall } from './tool-call';
 
 export function createExecuteToolsTransformation<
@@ -27,6 +28,7 @@ export function createExecuteToolsTransformation<
   abortSignal,
   timeout,
   context,
+  toolApproval,
   generateId,
   stepNumber,
   provider,
@@ -42,6 +44,7 @@ export function createExecuteToolsTransformation<
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  toolApproval?: ToolApprovalConfiguration<TOOLS, USER_CONTEXT>;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
@@ -92,7 +95,7 @@ export function createExecuteToolsTransformation<
             await isToolApprovalNeeded({
               tools,
               toolCall: chunk,
-              toolApproval: undefined,
+              toolApproval,
               messages,
               context,
             })
