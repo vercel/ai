@@ -70,9 +70,6 @@ export interface ObjectOnStartEvent {
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** The output strategy type. */
   readonly output: 'object' | 'array' | 'enum' | 'no-schema';
 
@@ -125,9 +122,6 @@ export interface ObjectOnStepStartEvent {
 
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
-
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;

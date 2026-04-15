@@ -2,7 +2,6 @@
 
 exports[`generateText > options.experimental_onStart > should send correct information with text prompt 1`] = `
 {
-  "abortSignal": undefined,
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",
   "context": {},
@@ -11,7 +10,6 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "headers": {
     "user-agent": "ai/0.0.0-test",
   },
-  "include": undefined,
   "isEnabled": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
@@ -41,7 +39,6 @@ exports[`generateText > options.experimental_onStart > should send correct infor
 
 exports[`generateText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
 {
-  "abortSignal": undefined,
   "callId": "test-telemetry-call-id",
   "context": {},
   "functionId": undefined,

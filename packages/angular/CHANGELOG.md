@@ -1,5 +1,11 @@
 # @ai-sdk/angular
 
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- ai@7.0.0-beta.92
+
 ## 3.0.0-beta.91
 
 ### Patch Changes

@@ -60,7 +60,6 @@ exports[`rerank > options.experimental_onFinish > should send correct event info
 
 exports[`rerank > options.experimental_onStart > should send correct event information 1`] = `
 {
-  "abortSignal": undefined,
   "callId": "test-call-id",
   "documents": [
     "sunny day at the beach",
