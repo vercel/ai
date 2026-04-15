@@ -1,7 +1,11 @@
 import { Context, tool } from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, it } from 'vitest';
 import { z } from 'zod';
-import { Output, StreamTextOnFinishCallback } from '../generate-text';
+import {
+  Output,
+  StreamTextOnFinishCallback,
+  ToolNeedsApprovalConfiguration,
+} from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { DeepPartial } from '../util/deep-partial';
@@ -85,6 +89,38 @@ describe('ToolLoopAgent', () => {
       const output = generateResult.output;
 
       expectTypeOf<typeof output>().toEqualTypeOf<{ value: string }>();
+    });
+
+    it('should type toolNeedsApproval in settings and prepareCall', () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+        }),
+      };
+
+      new ToolLoopAgent({
+        model: new MockLanguageModelV4(),
+        tools,
+        toolNeedsApproval: {
+          testTool: (input, options) => {
+            expectTypeOf(input).toEqualTypeOf<{ value: string }>();
+            expectTypeOf(options.toolCallId).toEqualTypeOf<string>();
+            expectTypeOf(options.messages).toMatchTypeOf<Array<any>>();
+
+            return true;
+          },
+        },
+        prepareCall: options => {
+          expectTypeOf(options.toolNeedsApproval).toEqualTypeOf<
+            ToolNeedsApprovalConfiguration<typeof tools> | undefined
+          >();
+
+          return {
+            ...options,
+            prompt: 'Hello, world!',
+          };
+        },
+      });
     });
   });
 
