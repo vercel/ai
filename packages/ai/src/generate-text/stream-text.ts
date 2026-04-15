@@ -1179,6 +1179,7 @@ class DefaultStreamTextResult<
               toolCalls: finalStep.toolCalls,
               staticToolCalls: finalStep.staticToolCalls,
               dynamicToolCalls: finalStep.dynamicToolCalls,
+              invalidToolCalls: finalStep.invalidToolCalls,
               toolResults: finalStep.toolResults,
               staticToolResults: finalStep.staticToolResults,
               dynamicToolResults: finalStep.dynamicToolResults,
@@ -1891,7 +1892,8 @@ class DefaultStreamTextResult<
                   await stepFinish.promise;
 
                   const clientToolCalls = stepToolCalls.filter(
-                    toolCall => toolCall.providerExecuted !== true,
+                    toolCall =>
+                      toolCall.providerExecuted !== true && !toolCall.invalid,
                   );
                   const clientToolOutputs = stepToolOutputs.filter(
                     toolOutput => toolOutput.providerExecuted !== true,
@@ -1937,13 +1939,20 @@ class DefaultStreamTextResult<
                   clearStepTimeout();
                   clearChunkTimeout();
 
+                  // filtered so that the step is not stopped by the condition `clientToolOutputs.length === clientToolCalls.length`
+                  const hasInvalidToolCalls = stepToolCalls.some(
+                    toolCall => toolCall.invalid,
+                  );
+
                   if (
                     // Continue if:
                     // 1. There are client tool calls that have all been executed, OR
-                    // 2. There are pending deferred results from provider-executed tools
+                    // 2. There are pending deferred results from provider-executed tools, OR
+                    // 3. There are invalid tool calls (error feedback is sent to the model via toResponseMessages)
                     ((clientToolCalls.length > 0 &&
                       clientToolOutputs.length === clientToolCalls.length) ||
-                      pendingDeferredToolCalls.size > 0) &&
+                      pendingDeferredToolCalls.size > 0 ||
+                      hasInvalidToolCalls) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
                       stopConditions,
@@ -2072,6 +2081,10 @@ class DefaultStreamTextResult<
 
   get dynamicToolCalls() {
     return this.finalStep.then(step => step.dynamicToolCalls);
+  }
+
+  get invalidToolCalls() {
+    return this.finalStep.then(step => step.invalidToolCalls);
   }
 
   get toolResults() {
@@ -2249,11 +2262,9 @@ class DefaultStreamTextResult<
           })
         : undefined;
 
-    // TODO simplify once dynamic is no longer needed for invalid tool inputs
     const isDynamic = (part: { toolName: string; dynamic?: boolean }) => {
       const tool = this.tools?.[part.toolName];
 
-      // provider-executed, dynamic tools are not listed in the tools object
       if (tool == null) {
         return part.dynamic;
       }
@@ -2427,8 +2438,6 @@ class DefaultStreamTextResult<
             }
 
             case 'tool-call': {
-              const dynamic = isDynamic(part);
-
               if (part.invalid) {
                 controller.enqueue({
                   type: 'tool-input-error',
@@ -2441,11 +2450,13 @@ class DefaultStreamTextResult<
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
-                  ...(dynamic != null ? { dynamic } : {}),
+                  invalid: true,
                   errorText: onError(part.error),
                   ...(part.title != null ? { title: part.title } : {}),
                 });
               } else {
+                const dynamic = isDynamic(part);
+
                 controller.enqueue({
                   type: 'tool-input-available',
                   toolCallId: part.toolCallId,

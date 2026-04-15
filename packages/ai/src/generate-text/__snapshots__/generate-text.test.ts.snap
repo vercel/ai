@@ -87,6 +87,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "files": [],
   "finishReason": "stop",
   "functionId": undefined,
+  "invalidToolCalls": [],
   "metadata": undefined,
   "model": {
     "modelId": "mock-model-id",

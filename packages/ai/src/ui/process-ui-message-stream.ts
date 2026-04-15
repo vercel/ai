@@ -21,6 +21,7 @@ import {
   InferUIMessageMetadata,
   InferUIMessageToolCall,
   InferUIMessageTools,
+  InvalidToolUIPart,
   isStaticToolUIPart,
   isToolUIPart,
   ReasoningUIPart,
@@ -326,6 +327,49 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
           }
 
+          function updateInvalidToolPart(options: {
+            toolName: string;
+            toolCallId: string;
+            input: unknown;
+            errorText: string;
+            providerExecuted?: boolean;
+            providerMetadata?: ProviderMetadata;
+            title?: string;
+          }) {
+            const part = state.message.parts.find(
+              part =>
+                part.type === 'invalid-tool' &&
+                part.toolCallId === options.toolCallId,
+            ) as InvalidToolUIPart | undefined;
+
+            if (part != null) {
+              part.input = options.input;
+              part.errorText = options.errorText;
+              if (options.title !== undefined) {
+                part.title = options.title;
+              }
+              part.providerExecuted =
+                options.providerExecuted ?? part.providerExecuted;
+              if (options.providerMetadata != null) {
+                part.callProviderMetadata = options.providerMetadata;
+              }
+            } else {
+              state.message.parts.push({
+                type: 'invalid-tool',
+                toolName: options.toolName,
+                toolCallId: options.toolCallId,
+                state: 'error',
+                input: options.input,
+                errorText: options.errorText,
+                providerExecuted: options.providerExecuted,
+                title: options.title,
+                ...(options.providerMetadata != null
+                  ? { callProviderMetadata: options.providerMetadata }
+                  : {}),
+              } as InvalidToolUIPart);
+            }
+          }
+
           async function updateMessageMetadata(metadata: unknown) {
             if (metadata != null) {
               const mergedMetadata =
@@ -621,38 +665,51 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'tool-input-error': {
-              // When a part already exists for this toolCallId (e.g. from
-              // tool-input-start), honour its type so we update in place
-              // instead of creating a duplicate with a mismatched type.
-              const existingPart = state.message.parts
-                .filter(isToolUIPart)
-                .find(p => p.toolCallId === chunk.toolCallId);
-              const isDynamic =
-                existingPart != null
-                  ? existingPart.type === 'dynamic-tool'
-                  : !!chunk.dynamic;
-
-              if (isDynamic) {
-                updateDynamicToolPart({
+              if (chunk.invalid) {
+                updateInvalidToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
-                  state: 'output-error',
                   input: chunk.input,
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
+                  title: chunk.title,
                 });
               } else {
-                updateToolPart({
-                  toolCallId: chunk.toolCallId,
-                  toolName: chunk.toolName,
-                  state: 'output-error',
-                  input: undefined,
-                  rawInput: chunk.input,
-                  errorText: chunk.errorText,
-                  providerExecuted: chunk.providerExecuted,
-                  providerMetadata: chunk.providerMetadata,
-                });
+                // Non-invalid tool-input-error: route to existing part type
+                // When a part already exists for this toolCallId (e.g. from
+                // tool-input-start), honour its type so we update in place
+                // instead of creating a duplicate with a mismatched type.
+                const existingPart = state.message.parts
+                  .filter(isToolUIPart)
+                  .find(p => p.toolCallId === chunk.toolCallId);
+                const isDynamic =
+                  existingPart != null
+                    ? existingPart.type === 'dynamic-tool'
+                    : !!chunk.dynamic;
+
+                if (isDynamic) {
+                  updateDynamicToolPart({
+                    toolCallId: chunk.toolCallId,
+                    toolName: chunk.toolName,
+                    state: 'output-error',
+                    input: chunk.input,
+                    errorText: chunk.errorText,
+                    providerExecuted: chunk.providerExecuted,
+                    providerMetadata: chunk.providerMetadata,
+                  });
+                } else {
+                  updateToolPart({
+                    toolCallId: chunk.toolCallId,
+                    toolName: chunk.toolName,
+                    state: 'output-error',
+                    input: undefined,
+                    rawInput: chunk.input,
+                    errorText: chunk.errorText,
+                    providerExecuted: chunk.providerExecuted,
+                    providerMetadata: chunk.providerMetadata,
+                  });
+                }
               }
 
               write();
@@ -661,6 +718,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-approval-request': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              if (toolInvocation.type === 'invalid-tool') break;
               toolInvocation.state = 'approval-requested';
               toolInvocation.approval = { id: chunk.approvalId };
               write();
@@ -669,6 +727,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-output-denied': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              if (toolInvocation.type === 'invalid-tool') break;
               toolInvocation.state = 'output-denied';
               write();
               break;
@@ -676,6 +735,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-output-available': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              if (toolInvocation.type === 'invalid-tool') break;
 
               if (toolInvocation.type === 'dynamic-tool') {
                 updateDynamicToolPart({
@@ -709,6 +769,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-output-error': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              if (toolInvocation.type === 'invalid-tool') break;
 
               if (toolInvocation.type === 'dynamic-tool') {
                 updateDynamicToolPart({

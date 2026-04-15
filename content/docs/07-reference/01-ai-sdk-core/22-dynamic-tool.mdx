@@ -181,6 +181,12 @@ const result = await generateText({
   },
   onStepFinish: ({ toolCalls, toolResults }) => {
     for (const toolCall of toolCalls) {
+      if (toolCall.invalid) {
+        // Invalid tool call: tool not found or bad input
+        console.log('Invalid:', toolCall.toolName, toolCall.error);
+        continue;
+      }
+
       if (toolCall.dynamic) {
         // Dynamic tool: input/output are 'unknown'
         console.log('Dynamic tool:', toolCall.toolName);

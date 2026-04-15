@@ -489,7 +489,7 @@ const customTool = dynamicTool({
 
 ### Type-Safe Handling
 
-When using both static and dynamic tools, use the `dynamic` flag for type narrowing:
+When using both static and dynamic tools, use the `dynamic` and `invalid` flags for type narrowing:
 
 ```ts
 const result = await generateText({
@@ -505,6 +505,12 @@ const result = await generateText({
   onStepFinish: ({ toolCalls, toolResults }) => {
     // Type-safe iteration
     for (const toolCall of toolCalls) {
+      if (toolCall.invalid) {
+        // Invalid tool call: tool not found or bad input
+        console.log('Invalid:', toolCall.toolName, toolCall.error);
+        continue;
+      }
+
       if (toolCall.dynamic) {
         // Dynamic tool: input is 'unknown'
         console.log('Dynamic:', toolCall.toolName, toolCall.input);
@@ -875,27 +881,34 @@ The AI SDK has three tool-call related errors:
 - [`InvalidToolInputError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-input-error): the model calls a tool with inputs that do not match the tool's input schema
 - [`ToolCallRepairError`](/docs/reference/ai-sdk-errors/ai-tool-call-repair-error): an error that occurred during tool call repair
 
-When tool execution fails (errors thrown by your tool's `execute` function), the AI SDK adds them as `tool-error` content parts to enable automated LLM roundtrips in multi-step scenarios.
+### Invalid Tool Calls
 
-### `generateText`
+When the model calls a tool that doesn't exist ([`NoSuchToolError`](/docs/reference/ai-sdk-errors/ai-no-such-tool-error)) or provides input that doesn't match the tool's schema ([`InvalidToolInputError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-input-error)), the AI SDK captures these as `InvalidToolCall` objects instead of throwing errors. In multi-step scenarios, error feedback is automatically sent back to the model, giving it a chance to self-correct.
 
-`generateText` throws errors for tool schema validation issues and other errors, and can be handled using a `try`/`catch` block. Tool execution errors appear as `tool-error` parts in the result steps:
+You can access invalid tool calls via the `invalidToolCalls` property on the result or on individual steps:
 
 ```ts
-try {
-  const result = await generateText({
-    //...
-  });
-} catch (error) {
-  if (NoSuchToolError.isInstance(error)) {
-    // handle the no such tool error
-  } else if (InvalidToolInputError.isInstance(error)) {
-    // handle the invalid tool inputs error
-  } else {
-    // handle other errors
-  }
+const result = await generateText({
+  // ...
+  stopWhen: isStepCount(5),
+});
+
+// check for invalid tool calls
+for (const invalidCall of result.invalidToolCalls) {
+  console.log('Invalid tool call:', invalidCall.toolName);
+  console.log('Error:', invalidCall.error);
+  console.log('Raw input:', invalidCall.rawInput);
 }
+
+// or check across all steps
+const allInvalidCalls = result.steps.flatMap(step => step.invalidToolCalls);
 ```
+
+If a [`ToolCallRepairError`](/docs/reference/ai-sdk-errors/ai-tool-call-repair-error) occurs during an attempt to repair an invalid tool call, it is also captured as an `InvalidToolCall`.
+
+### Tool Execution Errors
+
+When tool execution fails (errors thrown by your tool's `execute` function), the AI SDK adds them as `tool-error` content parts to enable automated LLM roundtrips in multi-step scenarios.
 
 Tool execution errors are available in the result steps:
 
@@ -929,13 +942,7 @@ const result = streamText({
 
 return result.toUIMessageStreamResponse({
   onError: error => {
-    if (NoSuchToolError.isInstance(error)) {
-      return 'The model tried to call a unknown tool.';
-    } else if (InvalidToolInputError.isInstance(error)) {
-      return 'The model called a tool with invalid inputs.';
-    } else {
-      return 'An unknown error occurred.';
-    }
+    return 'An error occurred.';
   },
 });
 ```

@@ -107,10 +107,11 @@ There are three things worth mentioning:
    You call `addToolOutput` to provide the result (without `await` to avoid potential deadlocks).
 
    <Note>
-     Always check `if (toolCall.dynamic)` first in your `onToolCall` handler.
-     Without this check, TypeScript will throw an error like: `Type 'string' is
-     not assignable to type '"toolName1" | "toolName2"'` when you try to use
-     `toolCall.toolName` in `addToolOutput`.
+     Always check `if (toolCall.dynamic || toolCall.invalid)` first in your
+     `onToolCall` handler. Without this check, TypeScript will throw an error
+     like: `Type 'string' is not assignable to type '"toolName1" |
+     "toolName2"'` when you try to use `toolCall.toolName` in
+     `addToolOutput`.
    </Note>
 
 2. The [`sendAutomaticallyWhen`](/docs/reference/ai-sdk-ui/use-chat#send-automatically-when) option with `lastAssistantMessageIsCompleteWithToolCalls` helper automatically submits when all tool results are available.
@@ -140,8 +141,8 @@ export default function Chat() {
 
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
-      // Check if it's a dynamic tool first for proper type narrowing
-      if (toolCall.dynamic) {
+      // Check for dynamic or invalid tools first for proper type narrowing
+      if (toolCall.dynamic || toolCall.invalid) {
         return;
       }
 
@@ -320,8 +321,8 @@ export default function Chat() {
 
     // run client-side tools that are automatically executed:
     async onToolCall({ toolCall }) {
-      // Check if it's a dynamic tool first for proper type narrowing
-      if (toolCall.dynamic) {
+      // Check for dynamic or invalid tools first for proper type narrowing
+      if (toolCall.dynamic || toolCall.invalid) {
         return;
       }
 
@@ -502,6 +503,14 @@ When using dynamic tools (tools with unknown types at compile time), the UI part
             {part.state === 'output-error' && (
               <div>Error: {part.errorText}</div>
             )}
+          </div>
+        );
+
+      // Invalid tool calls (tool not found or bad input)
+      case 'invalid-tool':
+        return (
+          <div key={index} className="text-red-500">
+            Invalid tool call: {part.toolName} — {part.errorText}
           </div>
         );
     }

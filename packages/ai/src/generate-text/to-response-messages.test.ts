@@ -1,5 +1,6 @@
 import { tool } from '@ai-sdk/provider-utils';
 import z from 'zod/v4';
+import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { DefaultGeneratedFile } from './generated-file';
 import { toResponseMessages } from './to-response-messages';
 import { describe, it, expect } from 'vitest';
@@ -978,18 +979,15 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: 'call-1',
           toolName: 'weather',
+          rawInput: '{ city: San Francisco, }',
           input: '{ city: San Francisco, }',
           dynamic: true,
           invalid: true,
-          error: new Error('JSON parsing failed'),
-        },
-        {
-          type: 'tool-error',
-          toolCallId: 'call-1',
-          toolName: 'weather',
-          input: '{ city: San Francisco, }',
-          error: 'Invalid input for tool weather: JSON parsing failed',
-          dynamic: true,
+          error: new InvalidToolInputError({
+            toolName: 'weather',
+            toolInput: '{ city: San Francisco, }',
+            cause: new Error('JSON parsing failed'),
+          }),
         },
       ],
       tools: {
@@ -1020,7 +1018,7 @@ describe('toResponseMessages', () => {
             {
               "output": {
                 "type": "error-text",
-                "value": "Invalid input for tool weather: JSON parsing failed",
+                "value": "AI_InvalidToolInputError: Invalid input for tool weather: Error: JSON parsing failed",
               },
               "toolCallId": "call-1",
               "toolName": "weather",
@@ -1040,18 +1038,15 @@ describe('toResponseMessages', () => {
           type: 'tool-call',
           toolCallId: 'call-1',
           toolName: 'weather',
+          rawInput: '{"cities": "San Francisco"}',
           input: { cities: 'San Francisco' },
           dynamic: true,
           invalid: true,
-          error: new Error('Type validation failed'),
-        },
-        {
-          type: 'tool-error',
-          toolCallId: 'call-1',
-          toolName: 'weather',
-          input: { cities: 'San Francisco' },
-          error: 'Invalid input for tool weather: Type validation failed',
-          dynamic: true,
+          error: new InvalidToolInputError({
+            toolName: 'weather',
+            toolInput: '{"cities": "San Francisco"}',
+            cause: new Error('Type validation failed'),
+          }),
         },
       ],
       tools: {
@@ -1084,7 +1079,7 @@ describe('toResponseMessages', () => {
             {
               "output": {
                 "type": "error-text",
-                "value": "Invalid input for tool weather: Type validation failed",
+                "value": "AI_InvalidToolInputError: Invalid input for tool weather: Error: Type validation failed",
               },
               "toolCallId": "call-1",
               "toolName": "weather",

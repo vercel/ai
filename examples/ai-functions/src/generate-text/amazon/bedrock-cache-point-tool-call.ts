@@ -140,7 +140,7 @@ run(async () => {
 
   // typed tool calls:
   for (const toolCall of result.toolCalls) {
-    if (toolCall.dynamic) {
+    if (toolCall.dynamic || toolCall.invalid) {
       continue;
     }
 

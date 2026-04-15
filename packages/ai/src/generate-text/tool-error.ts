@@ -29,6 +29,18 @@ export type DynamicToolError = {
   title?: string;
 };
 
+export type InvalidToolError = {
+  type: 'tool-error';
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  error: unknown;
+  providerExecuted?: boolean;
+  providerMetadata?: ProviderMetadata;
+  title?: string;
+};
+
 export type TypedToolError<TOOLS extends ToolSet> =
   | StaticToolError<TOOLS>
-  | DynamicToolError;
+  | DynamicToolError
+  | InvalidToolError;

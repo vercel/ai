@@ -276,6 +276,131 @@ import { isStepCount } from 'ai';
 stopWhen: isStepCount(3);
 ```
 
+### Invalid Tool Calls: New `InvalidToolCall` Type and Changed Error Handling
+
+In AI SDK 7, invalid tool calls (where the model calls a tool that doesn't exist or provides input that doesn't match the tool's schema) are no longer thrown as errors. Instead, they are captured as `InvalidToolCall` objects and returned in the result.
+
+This changes the `TypedToolCall<TOOLS>` union from a 2-way union (static + dynamic) to a 3-way union (static + dynamic + invalid):
+
+```tsx filename="AI SDK 6"
+// TypedToolCall was: StaticToolCall | DynamicToolCall
+for (const toolCall of result.toolCalls) {
+  if (toolCall.dynamic) {
+    // dynamic tool call
+    continue;
+  }
+  // static tool call with full type inference
+  console.log(toolCall.input);
+}
+```
+
+```tsx filename="AI SDK 7"
+// TypedToolCall is now: StaticToolCall | DynamicToolCall | InvalidToolCall
+for (const toolCall of result.toolCalls) {
+  if (toolCall.invalid) {
+    // invalid tool call: tool not found or bad input
+    console.log(toolCall.error);
+    continue;
+  }
+  if (toolCall.dynamic) {
+    // dynamic tool call
+    continue;
+  }
+  // static tool call with full type inference
+  console.log(toolCall.input);
+}
+```
+
+**What changed:**
+
+- `TypedToolCall<TOOLS>` now includes `InvalidToolCall` (with `invalid: true`, `error`, and `rawInput` properties).
+- `generateText` and `streamText` **no longer throw** `NoSuchToolError` or `InvalidToolInputError`. These are captured as `InvalidToolCall` objects instead.
+- In multi-step scenarios, error feedback for invalid tool calls is automatically sent back to the model, allowing it to self-correct in the next step.
+- A new `invalidToolCalls` property is available on `GenerateTextResult`, `StreamTextResult`, and `StepResult` to access only the invalid tool calls.
+
+**Required code changes:**
+
+- If you have `try/catch` blocks around `generateText` that catch `NoSuchToolError` or `InvalidToolInputError`, replace them with checks on `result.invalidToolCalls`:
+
+```tsx filename="AI SDK 6"
+import { generateText, NoSuchToolError, InvalidToolInputError } from 'ai';
+
+try {
+  const result = await generateText({ /* ... */ });
+} catch (error) {
+  if (NoSuchToolError.isInstance(error)) {
+    // handle no such tool
+  } else if (InvalidToolInputError.isInstance(error)) {
+    // handle invalid input
+  }
+}
+```
+
+```tsx filename="AI SDK 7"
+import { generateText } from 'ai';
+
+const result = await generateText({ /* ... */ });
+
+for (const invalidCall of result.invalidToolCalls) {
+  console.log('Invalid tool call:', invalidCall.toolName, invalidCall.error);
+}
+```
+
+- If you have exhaustive `switch` or `if` statements on `toolCall.dynamic`, add handling for `toolCall.invalid`:
+
+```tsx filename="AI SDK 6"
+if (toolCall.dynamic) {
+  continue;
+}
+// assumed static
+```
+
+```tsx filename="AI SDK 7"
+if (toolCall.invalid) {
+  continue;
+}
+if (toolCall.dynamic) {
+  continue;
+}
+// now safely static
+```
+
+### UI Messages: New `InvalidToolUIPart` (`type: 'invalid-tool'`)
+
+UI messages now include an `invalid-tool` part type for rendering invalid tool calls alongside `tool-*` (static) and `dynamic-tool` (dynamic) parts.
+
+If you have exhaustive `switch` statements on `part.type` in your UI rendering, add a `case 'invalid-tool'` branch:
+
+```tsx filename="AI SDK 6"
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'tool-weather':
+        return <WeatherDisplay part={part} />;
+      case 'dynamic-tool':
+        return <DynamicToolDisplay part={part} />;
+    }
+  });
+}
+```
+
+```tsx filename="AI SDK 7"
+{
+  message.parts.map((part, index) => {
+    switch (part.type) {
+      case 'tool-weather':
+        return <WeatherDisplay part={part} />;
+      case 'dynamic-tool':
+        return <DynamicToolDisplay part={part} />;
+      case 'invalid-tool':
+        return <div className="text-red-500">Error: {part.errorText}</div>;
+    }
+  });
+}
+```
+
+A new `isInvalidToolUIPart` type guard is also available. The existing `isToolUIPart` function now matches static, dynamic, and invalid tool parts.
+
 ## MCP Package
 
 ### MCP Transport: `redirect` Default Changed from `'follow'` to `'error'`

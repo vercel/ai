@@ -5,6 +5,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
 
 type BaseToolCall = {
   type: 'tool-call';
+  title?: string;
   toolCallId: string;
   providerExecuted?: boolean;
   providerMetadata?: ProviderMetadata;
@@ -21,39 +22,40 @@ export type StaticToolCall<TOOLS extends ToolSet> = ValueOf<{
     dynamic?: false | undefined;
     invalid?: false | undefined;
     error?: never;
-    title?: string;
   };
 }>;
 
 /**
- * A tool call whose `toolName` is only known at runtime, such as an invalid
- * or otherwise untyped call that cannot be matched to the declared tool set.
+ * A tool call whose `toolName` is only known at runtime,
+ * e.g. MCP tools or other dynamically defined tools.
  */
 export type DynamicToolCall = BaseToolCall & {
   toolName: string;
   input: unknown;
   dynamic: true;
-  title?: string;
+  invalid?: false | undefined;
+  error?: never;
+};
 
-  /**
-   * True if this is caused by an unparsable tool call or
-   * a tool that does not exist.
-   */
-  // Added into DynamicToolCall to avoid breaking changes.
-  // TODO AI SDK 6: separate into a new InvalidToolCall type
-  invalid?: boolean;
-
-  /**
-   * The error that caused the tool call to be invalid.
-   */
-  // TODO AI SDK 6: separate into a new InvalidToolCall type
-  error?: unknown;
+/**
+ * A tool call that failed validation: either the tool does not exist
+ * (`NoSuchToolError`) or the model produced input that does not match
+ * the tool's schema (`InvalidToolInputError`).
+ */
+export type InvalidToolCall = BaseToolCall & {
+  toolName: string;
+  rawInput: string;
+  input: unknown;
+  invalid: true;
+  dynamic?: boolean;
+  error: unknown;
 };
 
 /**
  * A tool call returned by text generation, either statically typed from the
- * declared tool set or dynamically typed when the tool cannot be inferred.
+ * declared tool set, dynamically typed, or invalid.
  */
 export type TypedToolCall<TOOLS extends ToolSet> =
   | StaticToolCall<TOOLS>
-  | DynamicToolCall;
+  | DynamicToolCall
+  | InvalidToolCall;

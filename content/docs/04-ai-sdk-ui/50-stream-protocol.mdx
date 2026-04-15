@@ -350,6 +350,19 @@ data: {"type":"tool-input-available","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar
 
 ```
 
+### Tool Input Error Part
+
+Indicates that a tool call failed validation — either the tool does not exist or the model produced input that does not match the tool's schema. When `invalid` is `true`, this represents an invalid tool call rather than a tool execution error.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"tool-input-error","toolCallId":"call_abc123","toolName":"unknownTool","input":{},"errorText":"Model tried to call unavailable tool 'unknownTool'.","invalid":true}
+
+```
+
 ### Tool Output Available Part
 
 Contains the result of tool execution.

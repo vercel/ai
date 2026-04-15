@@ -1394,6 +1394,12 @@ To see `generateText` in action, check out [these examples](#examples).
                 'The dynamic tool calls that were made in this step.',
             },
             {
+              name: 'invalidToolCalls',
+              type: 'Array<InvalidToolCall>',
+              description:
+                'The invalid tool calls from this step (tool not found or bad input).',
+            },
+            {
               name: 'toolResults',
               type: 'Array<TypedToolResult<TOOLS>>',
               description: 'The results of the tool calls.',
@@ -1903,6 +1909,12 @@ To see `generateText` in action, check out [these examples](#examples).
                 'The dynamic tool calls that were made in the final step.',
             },
             {
+              name: 'invalidToolCalls',
+              type: 'Array<InvalidToolCall>',
+              description:
+                'The invalid tool calls from the final step (tool not found or bad input).',
+            },
+            {
               name: 'toolResults',
               type: 'Array<TypedToolResult<TOOLS>>',
               description: 'The results of the tool calls.',
@@ -2152,6 +2164,12 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'Array<DynamicToolCall>',
       description:
         'The dynamic tool calls that have been executed in the last step.',
+    },
+    {
+      name: 'invalidToolCalls',
+      type: 'Array<InvalidToolCall>',
+      description:
+        'The invalid tool calls from the last step (tool not found or bad input).',
     },
     {
       name: 'staticToolResults',

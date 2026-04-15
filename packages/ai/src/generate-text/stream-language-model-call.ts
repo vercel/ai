@@ -1,5 +1,4 @@
 import {
-  getErrorMessage,
   LanguageModelV4Prompt,
   LanguageModelV4StreamPart,
   SharedV4Headers,
@@ -349,19 +348,6 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
             controller.enqueue(toolCall);
-
-            if (toolCall.invalid) {
-              controller.enqueue({
-                type: 'tool-error',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                input: toolCall.input,
-                error: getErrorMessage(toolCall.error!),
-                dynamic: true,
-                title: toolCall.title,
-              });
-              break;
-            }
           } catch (error) {
             controller.enqueue({ type: 'error', error });
           }

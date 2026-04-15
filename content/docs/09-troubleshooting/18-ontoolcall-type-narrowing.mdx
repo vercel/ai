@@ -27,19 +27,19 @@ const { messages, sendMessage, addToolOutput } = useChat({
 The error occurs because:
 
 - Static tools have specific literal types for their names (e.g., `"getWeatherInformation"`)
-- Dynamic tools have `toolName` as a generic `string`
+- Dynamic tools and invalid tool calls have `toolName` as a generic `string`
 - TypeScript can't guarantee that `toolCall.toolName` matches your specific tool names
 
 ## Solution
 
-Check if the tool is dynamic first to enable proper type narrowing:
+Check if the tool is dynamic or invalid first to enable proper type narrowing:
 
 ```tsx
 // ✅ Correct approach with type narrowing
 const { messages, sendMessage, addToolOutput } = useChat({
   async onToolCall({ toolCall }) {
-    // Check if it's a dynamic tool first
-    if (toolCall.dynamic) {
+    // Check for dynamic or invalid tools first
+    if (toolCall.dynamic || toolCall.invalid) {
       return;
     }
 

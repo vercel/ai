@@ -551,7 +551,8 @@ describe('generateText', () => {
       // test type inference
       if (
         result.toolCalls[0].toolName === 'tool1' &&
-        !result.toolCalls[0].dynamic
+        !result.toolCalls[0].dynamic &&
+        !result.toolCalls[0].invalid
       ) {
         assertType<string>(result.toolCalls[0].input.value);
       }
@@ -2264,6 +2265,7 @@ describe('generateText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
+          "invalidToolCalls": [],
           "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
@@ -4459,7 +4461,8 @@ describe('generateText', () => {
       // test type inference
       if (
         result.toolCalls[0].toolName === 'tool1' &&
-        !result.toolCalls[0].dynamic
+        !result.toolCalls[0].dynamic &&
+        !result.toolCalls[0].invalid
       ) {
         assertType<string>(result.toolCalls[0].input.value);
       }
@@ -6652,7 +6655,6 @@ describe('generateText', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "dynamic": true,
               "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
@@ -6670,14 +6672,40 @@ describe('generateText', () => {
               "invalid": true,
               "providerExecuted": undefined,
               "providerMetadata": undefined,
+              "rawInput": "{ "cities": "San Francisco" }",
               "title": undefined,
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-call",
             },
+          ]
+        `);
+      });
+
+      it('should include error result in response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
             {
-              "dynamic": true,
-              "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
+              "content": [
+                {
+                  "input": {
+                    "cities": "San Francisco",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-call",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "output": {
+                    "type": "error-text",
+                    "value": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -6688,19 +6716,234 @@ describe('generateText', () => {
               "message": "Invalid input: expected string, received undefined"
             }
           ]",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "cityAttractions",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('invalid tool call alongside valid tool call should not break the loop', () => {
+      let result: GenerateTextResult<any, any, any>;
+
+      beforeEach(async () => {
+        let responseCount = 0;
+        result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'weather',
+                        input: `{ "location": "San Francisco" }`,
+                      },
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-2',
+                        toolName: 'cityAttractions',
+                        input: `{ "cities": "San Francisco" }`,
+                      },
+                    ],
+                    finishReason: {
+                      unified: 'tool-calls',
+                      raw: undefined,
+                    },
+                  };
+                case 1:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      { type: 'text', text: 'Final answer from model.' },
+                    ],
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            weather: tool({
+              inputSchema: z.object({ location: z.string() }),
+              execute: async ({ location }) => ({
+                temperature: 72,
+                location,
+              }),
+            }),
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+            }),
+          },
+          prompt: 'What is the weather and attractions in San Francisco?',
+          stopWhen: isStepCount(3),
+        });
+      });
+
+      it('should complete 2 steps', () => {
+        expect(result.steps).toHaveLength(2);
+      });
+
+      it('should return text from the second step', () => {
+        expect(result.text).toBe('Final answer from model.');
+      });
+
+      it('should have the invalid tool call in the first step', () => {
+        expect(result.steps[0].invalidToolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
               "input": {
                 "cities": "San Francisco",
               },
-              "toolCallId": "call-1",
+              "invalid": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "rawInput": "{ "cities": "San Francisco" }",
+              "title": undefined,
+              "toolCallId": "call-2",
               "toolName": "cityAttractions",
-              "type": "tool-error",
+              "type": "tool-call",
             },
           ]
         `);
       });
 
-      it('should include error result in response messages', async () => {
-        expect(result.response.messages).toMatchInlineSnapshot(`
+      it('should have the valid tool result in the first step', () => {
+        expect(result.steps[0].toolResults).toMatchInlineSnapshot(`
+          [
+            {
+              "dynamic": false,
+              "input": {
+                "location": "San Francisco",
+              },
+              "output": {
+                "location": "San Francisco",
+                "temperature": 72,
+              },
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-result",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('single invalid tool call should continue the loop', () => {
+      let result: GenerateTextResult<any, any, any>;
+
+      beforeEach(async () => {
+        let responseCount = 0;
+        result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              switch (responseCount++) {
+                case 0:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'cityAttractions',
+                        input: `{ "cities": "San Francisco" }`,
+                      },
+                    ],
+                    finishReason: {
+                      unified: 'tool-calls',
+                      raw: undefined,
+                    },
+                  };
+                case 1:
+                  return {
+                    ...dummyResponseValues,
+                    content: [
+                      { type: 'text', text: 'Sorry, I made an error.' },
+                    ],
+                  };
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            cityAttractions: tool({
+              inputSchema: z.object({ city: z.string() }),
+            }),
+          },
+          prompt: 'What are the tourist attractions in San Francisco?',
+          stopWhen: isStepCount(3),
+        });
+      });
+
+      it('should complete 2 steps', () => {
+        expect(result.steps).toHaveLength(2);
+      });
+
+      it('should return text from the second step', () => {
+        expect(result.text).toBe('Sorry, I made an error.');
+      });
+
+      it('should have the invalid tool call in the first step', () => {
+        expect(result.steps[0].invalidToolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
+          Error message: [
+            {
+              "expected": "string",
+              "code": "invalid_type",
+              "path": [
+                "city"
+              ],
+              "message": "Invalid input: expected string, received undefined"
+            }
+          ]],
+              "input": {
+                "cities": "San Francisco",
+              },
+              "invalid": true,
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "rawInput": "{ "cities": "San Francisco" }",
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+          ]
+        `);
+      });
+
+      it('should include error result in response messages of the first step', () => {
+        expect(result.steps[0].response.messages).toMatchInlineSnapshot(`
           [
             {
               "content": [

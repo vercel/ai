@@ -138,7 +138,7 @@ export async function executeToolCall<
               type: 'tool-result',
               output: part.output,
               preliminary: true,
-            });
+            } as TypedToolResult<TOOLS>);
           } else {
             output = part.output;
           }

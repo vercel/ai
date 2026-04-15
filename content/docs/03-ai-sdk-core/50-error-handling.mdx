@@ -93,6 +93,31 @@ try {
 }
 ```
 
+## Handling invalid tool calls
+
+When the model calls a tool that doesn't exist or provides input that doesn't match the tool's schema, the AI SDK captures these as `InvalidToolCall` objects instead of throwing errors. In multi-step scenarios, error feedback is automatically sent back to the model.
+
+You can inspect invalid tool calls on the result or on individual steps:
+
+```ts
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { /* ... */ },
+  stopWhen: isStepCount(5),
+  prompt: 'What is the weather?',
+});
+
+for (const invalidCall of result.invalidToolCalls) {
+  console.log('Tool:', invalidCall.toolName);
+  console.log('Error:', invalidCall.error);
+}
+```
+
+See [Tool Calling — Handling Errors](/docs/ai-sdk-core/tools-and-tool-calling#handling-errors) for more details.
+
 ## Handling stream aborts
 
 When streams are aborted (e.g., via chat stop button), you may want to perform cleanup operations like updating stored messages in your UI. Use the `onAbort` callback to handle these cases.

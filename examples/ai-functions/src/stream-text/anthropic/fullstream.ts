@@ -24,7 +24,7 @@ run(async () => {
       }
 
       case 'tool-call': {
-        if (part.dynamic) {
+        if (part.dynamic || part.invalid) {
           continue;
         }
 

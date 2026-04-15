@@ -9,7 +9,7 @@ import {
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
-import { DynamicToolCall, TypedToolCall } from './tool-call';
+import { DynamicToolCall, InvalidToolCall, TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolSet } from '@ai-sdk/provider-utils';
 
@@ -78,23 +78,25 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       return await doParseToolCall({ toolCall: repairedToolCall, tools });
     }
   } catch (error) {
-    // use parsed input when possible
     const parsedInput = await safeParseJSON({ text: toolCall.input });
     const input = parsedInput.success ? parsedInput.value : toolCall.input;
 
-    // TODO AI SDK 6: special invalid tool call parts
+    const tool = tools?.[toolCall.toolName];
+    const isDynamic = tool?.type === 'dynamic' || toolCall.dynamic;
+
     return {
       type: 'tool-call',
       toolCallId: toolCall.toolCallId,
       toolName: toolCall.toolName,
+      rawInput: toolCall.input,
       input,
-      dynamic: true,
       invalid: true,
+      ...(isDynamic ? { dynamic: true } : {}),
       error,
-      title: tools?.[toolCall.toolName]?.title,
+      title: tool?.title,
       providerExecuted: toolCall.providerExecuted,
       providerMetadata: toolCall.providerMetadata,
-    };
+    } satisfies InvalidToolCall;
   }
 }
 

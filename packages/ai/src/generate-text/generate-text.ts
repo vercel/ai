@@ -10,7 +10,6 @@ import type {
 } from '@ai-sdk/provider-utils';
 import {
   createIdGenerator,
-  getErrorMessage,
   IdGenerator,
   ProviderOptions,
   withUserAgentSuffix,
@@ -648,6 +647,7 @@ export async function generateText<
     };
     let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
     let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
+    let hasInvalidToolCalls = false;
     const steps: GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>['steps'] = [];
 
     // Track provider-executed tool calls that support deferred results
@@ -832,37 +832,21 @@ export async function generateText<
           }
         }
 
-        // insert error tool outputs for invalid tool calls:
-        // TODO AI SDK 6: invalid inputs should not require output parts
-        const invalidToolCalls = stepToolCalls.filter(
-          toolCall => toolCall.invalid && toolCall.dynamic,
-        );
-
         clientToolOutputs = [];
-
-        for (const toolCall of invalidToolCalls) {
-          clientToolOutputs.push({
-            type: 'tool-error',
-            toolCallId: toolCall.toolCallId,
-            toolName: toolCall.toolName,
-            input: toolCall.input,
-            error: getErrorMessage(toolCall.error!),
-            dynamic: true,
-          });
-        }
 
         // execute client tool calls:
         clientToolCalls = stepToolCalls.filter(
-          toolCall => !toolCall.providerExecuted,
+          toolCall => !toolCall.providerExecuted && !toolCall.invalid,
         );
+
+        // filtered so that the step is not stopped by the condition `clientToolOutputs.length === clientToolCalls.length`
+        hasInvalidToolCalls = stepToolCalls.some(toolCall => toolCall.invalid);
 
         if (tools != null) {
           clientToolOutputs.push(
             ...(await executeTools({
               toolCalls: clientToolCalls.filter(
-                toolCall =>
-                  !toolCall.invalid &&
-                  toolApprovalRequests[toolCall.toolCallId] == null,
+                toolCall => toolApprovalRequests[toolCall.toolCallId] == null,
               ),
               tools,
               telemetry,
@@ -1012,10 +996,12 @@ export async function generateText<
     } while (
       // Continue if:
       // 1. There are client tool calls that have all been executed, OR
-      // 2. There are pending deferred results from provider-executed tools
+      // 2. There are pending deferred results from provider-executed tools, OR
+      // 3. There are invalid tool calls (error feedback is sent to the model via toResponseMessages)
       ((clientToolCalls.length > 0 &&
         clientToolOutputs.length === clientToolCalls.length) ||
-        pendingDeferredToolCalls.size > 0) &&
+        pendingDeferredToolCalls.size > 0 ||
+        hasInvalidToolCalls) &&
       // continue until a stop condition is met:
       !(await isStopConditionMet({ stopConditions, steps }))
     );
@@ -1054,6 +1040,7 @@ export async function generateText<
       toolCalls: lastStep.toolCalls,
       staticToolCalls: lastStep.staticToolCalls,
       dynamicToolCalls: lastStep.dynamicToolCalls,
+      invalidToolCalls: lastStep.invalidToolCalls,
       toolResults: lastStep.toolResults,
       staticToolResults: lastStep.staticToolResults,
       dynamicToolResults: lastStep.dynamicToolResults,
@@ -1213,6 +1200,10 @@ class DefaultGenerateTextResult<
 
   get dynamicToolCalls() {
     return this.finalStep.dynamicToolCalls;
+  }
+
+  get invalidToolCalls() {
+    return this.finalStep.invalidToolCalls;
   }
 
   get toolResults() {

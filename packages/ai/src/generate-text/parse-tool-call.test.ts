@@ -207,12 +207,12 @@ describe('parseToolCall', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "dynamic": true,
         "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'testTool'. No tools are available.],
         "input": {},
         "invalid": true,
         "providerExecuted": undefined,
         "providerMetadata": undefined,
+        "rawInput": "{}",
         "title": undefined,
         "toolCallId": "123",
         "toolName": "testTool",
@@ -244,12 +244,12 @@ describe('parseToolCall', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "dynamic": true,
         "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'nonExistentTool'. Available tools: testTool.],
         "input": {},
         "invalid": true,
         "providerExecuted": undefined,
         "providerMetadata": undefined,
+        "rawInput": "{}",
         "title": undefined,
         "toolCallId": "123",
         "toolName": "nonExistentTool",
@@ -281,7 +281,6 @@ describe('parseToolCall', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "dynamic": true,
         "error": [AI_InvalidToolInputError: Invalid input for tool testTool: AI_TypeValidationError: Type validation failed: Value: {"param1":"test"}.
       Error message: [
         {
@@ -299,6 +298,7 @@ describe('parseToolCall', () => {
         "invalid": true,
         "providerExecuted": undefined,
         "providerMetadata": undefined,
+        "rawInput": "{"param1": "test"}",
         "title": undefined,
         "toolCallId": "123",
         "toolName": "testTool",
@@ -392,13 +392,13 @@ describe('parseToolCall', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "dynamic": true,
           "error": [AI_InvalidToolInputError: Invalid input for tool testTool: AI_JSONParseError: JSON parsing failed: Text: invalid json.
         Error message: SyntaxError: Unexpected token 'i', "invalid json" is not valid JSON],
           "input": "invalid json",
           "invalid": true,
           "providerExecuted": undefined,
           "providerMetadata": undefined,
+          "rawInput": "invalid json",
           "title": undefined,
           "toolCallId": "123",
           "toolName": "testTool",
@@ -432,12 +432,12 @@ describe('parseToolCall', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "dynamic": true,
           "error": [AI_ToolCallRepairError: Error repairing tool call: Error: test error],
           "input": "invalid json",
           "invalid": true,
           "providerExecuted": undefined,
           "providerMetadata": undefined,
+          "rawInput": "invalid json",
           "title": undefined,
           "toolCallId": "123",
           "toolName": "testTool",

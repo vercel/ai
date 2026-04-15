@@ -68,6 +68,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerExecuted: z.boolean().optional(),
         providerMetadata: providerMetadataSchema.optional(),
         dynamic: z.boolean().optional(),
+        invalid: z.boolean().optional(),
         errorText: z.string(),
         title: z.string().optional(),
       }),
@@ -264,6 +265,7 @@ export type UIMessageChunk<
       providerExecuted?: boolean;
       providerMetadata?: ProviderMetadata;
       dynamic?: boolean;
+      invalid?: boolean;
       errorText: string;
       title?: string;
     }

@@ -31,7 +31,7 @@ run(async () => {
     onStepFinish: step => {
       // typed tool calls:
       for (const toolCall of step.toolCalls) {
-        if (toolCall.dynamic) {
+        if (toolCall.dynamic || toolCall.invalid) {
           console.log('DYNAMIC CALL', JSON.stringify(toolCall, null, 2));
           continue;
         }

@@ -59,7 +59,11 @@ run(async () => {
       }
 
       if (part.type === 'tool-approval-request') {
-        if (part.toolCall.toolName === 'weather' && !part.toolCall.dynamic) {
+        if (
+          part.toolCall.toolName === 'weather' &&
+          !part.toolCall.dynamic &&
+          !part.toolCall.invalid
+        ) {
           const answer = await terminal.question(
             `\nCan I retrieve the weather for ${part.toolCall.input.location} (y/n)?`,
           );
