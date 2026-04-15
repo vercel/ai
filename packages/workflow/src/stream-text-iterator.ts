@@ -242,6 +242,7 @@ export async function* streamTextIterator({
         stepNumber,
         model: currentModel,
         messages: conversationPrompt as unknown as ModelMessage[],
+        steps: [...steps],
       });
     }
 
