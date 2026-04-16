@@ -46,10 +46,7 @@ export async function prepareTools({
 
   /**
    * Default for `eager_input_streaming` on function tools that do not set
-   * it explicitly. Used to translate the model-level `toolStreaming` option
-   * (which previously enabled fine-grained tool streaming globally via the
-   * now-deprecated `fine-grained-tool-streaming-2025-05-14` beta) into the
-   * GA per-tool opt-in.
+   * it explicitly. Driven by the model-level `toolStreaming` option.
    */
   defaultEagerInputStreaming?: boolean;
 }): Promise<{

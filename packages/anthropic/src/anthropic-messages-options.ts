@@ -184,13 +184,14 @@ export const anthropicLanguageModelOptions = z.object({
     .optional(),
 
   /**
-   * Whether to enable fine-grained (eager) streaming of tool call inputs
-   * and structured outputs as a default for all tools in this request. When
-   * set to false, tool inputs arrive in larger buffered chunks after JSON
-   * validation. Individual tools can still override this default via
-   * `providerOptions.anthropic.eagerInputStreaming`.
+   * When set to `true` on a streaming request, enables fine-grained (eager)
+   * streaming of tool call inputs and structured outputs for every
+   * function tool in the request that does not set
+   * `providerOptions.anthropic.eagerInputStreaming` itself. Individual
+   * tools can override this via `providerOptions.anthropic.eagerInputStreaming`.
    *
-   * @default true
+   * Fine-grained streaming is a GA feature; see
+   * https://docs.claude.com/en/docs/build-with-claude/fine-grained-tool-streaming.
    */
   toolStreaming: z.boolean().optional(),
 
