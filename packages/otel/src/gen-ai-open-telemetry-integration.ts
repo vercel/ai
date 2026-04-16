@@ -117,9 +117,9 @@ function selectAttributes(
 
 interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends AISDKContext = AISDKContext,
+  RUNTIME_CONTEXT extends AISDKContext = AISDKContext,
   OUTPUT extends Output = Output,
-> extends OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT> {
+> extends OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
   readonly stepToolChoice?: unknown;

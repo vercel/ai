@@ -27,12 +27,8 @@ const agent = new ToolLoopAgent({
   toolsContext: {
     weather: { apiKey: 'weather-123' },
   },
-  context: {
-    somethingElse: 'other-context',
-  },
-  prepareStep: async ({ context, toolsContext }) => {
+  prepareStep: async ({ toolsContext }) => {
     console.log('prepareStep toolsContext:', toolsContext);
-    console.log('prepareStep context:', context);
     return {};
   },
   instructions: 'You are a helpful assistant.',

@@ -110,9 +110,9 @@ function selectAttributes(
 
 interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends AISDKContext = AISDKContext,
+  RUNTIME_CONTEXT extends AISDKContext = AISDKContext,
   OUTPUT extends Output = Output,
-> extends OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT> {
+> extends OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
   readonly stepToolChoice?: unknown;
@@ -231,7 +231,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       model: { provider: event.provider, modelId: event.modelId },
       headers: event.headers,
       settings,
-      context: event.context as Record<string, unknown> | undefined,
+      context: event.runtimeContext as Record<string, unknown> | undefined,
     });
 
     const attributes = selectAttributes(telemetry, {

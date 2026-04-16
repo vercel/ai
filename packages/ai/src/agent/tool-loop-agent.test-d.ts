@@ -20,8 +20,8 @@ describe('ToolLoopAgent', () => {
         {},
         {}
       > = async event => {
-        const context: unknown = event.context;
-        context;
+        const runtimeContext: unknown = event.runtimeContext;
+        runtimeContext;
       };
 
       expectTypeOf(streamTextCallback).toMatchTypeOf<
@@ -31,8 +31,8 @@ describe('ToolLoopAgent', () => {
 
     it('should allow ToolLoopAgentOnFinishCallback where StreamTextOnFinishCallback is expected', () => {
       const agentCallback: ToolLoopAgentOnFinishCallback<{}> = async event => {
-        const context: unknown = event.context;
-        context;
+        const runtimeContext: unknown = event.runtimeContext;
+        runtimeContext;
       };
 
       expectTypeOf(agentCallback).toMatchTypeOf<
@@ -215,33 +215,33 @@ describe('ToolLoopAgent', () => {
     }),
   };
 
-  describe('context', () => {
-    it('should accept no context', async () => {
+  describe('runtimeContext', () => {
+    it('should accept no runtimeContext', async () => {
       new ToolLoopAgent({
         model: new MockLanguageModelV4(),
       });
     });
 
-    it('should allow empty context', async () => {
+    it('should allow empty runtimeContext', async () => {
       new ToolLoopAgent({
         model: new MockLanguageModelV4(),
-        context: {},
+        runtimeContext: {},
       });
     });
 
-    it('should accept user context', async () => {
+    it('should accept user runtimeContext', async () => {
       new ToolLoopAgent<never, {}, { telemetryId: string }>({
         model: new MockLanguageModelV4(),
-        context: { telemetryId: '123' },
+        runtimeContext: { telemetryId: '123' },
       });
     });
 
     describe('prepareStep', () => {
-      it('should expose default context type', async () => {
+      it('should expose default runtimeContext type', async () => {
         new ToolLoopAgent({
           model: new MockLanguageModelV4(),
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
 
             return {};
@@ -249,12 +249,12 @@ describe('ToolLoopAgent', () => {
         });
       });
 
-      it('should accept empty context', async () => {
+      it('should accept empty runtimeContext', async () => {
         new ToolLoopAgent({
           model: new MockLanguageModelV4(),
-          context: {},
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<{}>();
+          runtimeContext: {},
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<{}>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
 
             return {};
@@ -262,12 +262,12 @@ describe('ToolLoopAgent', () => {
         });
       });
 
-      it('should accept arbitrary context', async () => {
+      it('should accept arbitrary runtimeContext', async () => {
         new ToolLoopAgent<never, {}, { someValue: string }>({
           model: new MockLanguageModelV4(),
-          context: { someValue: 'value' },
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toMatchObjectType<{
+          runtimeContext: { someValue: 'value' },
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toMatchObjectType<{
               someValue: string;
             }>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
@@ -277,12 +277,12 @@ describe('ToolLoopAgent', () => {
         });
       });
 
-      it('should accept user context', async () => {
+      it('should accept user runtimeContext', async () => {
         const agent = new ToolLoopAgent<never, {}, { telemetryId: string }>({
           model: new MockLanguageModelV4(),
-          context: { telemetryId: '123' },
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toMatchObjectType<{
+          runtimeContext: { telemetryId: '123' },
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toMatchObjectType<{
               telemetryId: string;
             }>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
@@ -293,8 +293,8 @@ describe('ToolLoopAgent', () => {
 
         await agent.stream({
           prompt: 'Hello',
-          onFinish: ({ context, toolsContext }) => {
-            expectTypeOf(context).toMatchObjectType<{
+          onFinish: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toMatchObjectType<{
               telemetryId: string;
             }>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
@@ -407,8 +407,8 @@ describe('ToolLoopAgent', () => {
           model: new MockLanguageModelV4(),
           tools: mixedTools,
           toolsContext: { weather: { weatherApiKey: 'key' } },
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{
               weather: {
                 weatherApiKey: string;
@@ -421,8 +421,8 @@ describe('ToolLoopAgent', () => {
 
         await agent.generate({
           prompt: 'Hello',
-          onFinish: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          onFinish: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{
               weather: {
                 weatherApiKey: string;
@@ -438,8 +438,8 @@ describe('ToolLoopAgent', () => {
           tools: mixedTools,
           // @ts-expect-error missing required weather tool context
           toolsContext: {},
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{
               weather: {
                 weatherApiKey: string;
@@ -457,8 +457,8 @@ describe('ToolLoopAgent', () => {
           tools: mixedTools,
           // @ts-expect-error missing required weather.weatherApiKey
           toolsContext: { weather: { wrong: 'value' } },
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{
               weather: {
                 weatherApiKey: string;
@@ -477,8 +477,8 @@ describe('ToolLoopAgent', () => {
           model: new MockLanguageModelV4(),
           // @ts-expect-error toolsContext is not accepted when no tools are provided
           toolsContext: {},
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
 
             return {};

@@ -850,7 +850,7 @@ describe('generateText', () => {
       expect(startEvent).toMatchSnapshot();
     });
 
-    it('should pass context', async () => {
+    it('should pass runtimeContext', async () => {
       let startEvent!: Parameters<
         GenerateTextOnStartCallback<any, any, any>
       >[0];
@@ -863,13 +863,13 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        context: { userId: 'test-user', sessionId: '123' },
+        runtimeContext: { userId: 'test-user', sessionId: '123' },
         experimental_onStart: async event => {
           startEvent = event;
         },
       });
 
-      expect(startEvent.context).toEqual({
+      expect(startEvent.runtimeContext).toEqual({
         userId: 'test-user',
         sessionId: '123',
       });
@@ -1287,7 +1287,7 @@ describe('generateText', () => {
       expect(stepStartEvents[1].steps[0].text).toBe('Thinking...');
     });
 
-    it('should pass context', async () => {
+    it('should pass runtimeContext', async () => {
       let stepStartEvent!: Parameters<
         GenerateTextOnStepStartCallback<any, any>
       >[0];
@@ -1300,19 +1300,19 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        context: { userId: 'test-user', requestId: 'req-123' },
+        runtimeContext: { userId: 'test-user', requestId: 'req-123' },
         experimental_onStepStart: async event => {
           stepStartEvent = event;
         },
       });
 
-      expect(stepStartEvent.context).toEqual({
+      expect(stepStartEvent.runtimeContext).toEqual({
         userId: 'test-user',
         requestId: 'req-123',
       });
     });
 
-    it('should pass updated context from prepareStep', async () => {
+    it('should pass updated runtimeContext from prepareStep', async () => {
       const stepStartEvents: Parameters<
         GenerateTextOnStepStartCallback<any, any>
       >[0][] = [];
@@ -1352,12 +1352,12 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        context: { counter: 0 },
+        runtimeContext: { counter: 0 },
         stopWhen: isStepCount(3),
-        prepareStep: async ({ context, stepNumber }) => {
+        prepareStep: async ({ runtimeContext, stepNumber }) => {
           return {
-            context: {
-              counter: (context as any).counter + 1,
+            runtimeContext: {
+              counter: (runtimeContext as any).counter + 1,
               stepNumber,
             },
           };
@@ -1367,11 +1367,11 @@ describe('generateText', () => {
         },
       });
 
-      expect(stepStartEvents[0].context).toEqual({
+      expect(stepStartEvents[0].runtimeContext).toEqual({
         counter: 1,
         stepNumber: 0,
       });
-      expect(stepStartEvents[1].context).toEqual({
+      expect(stepStartEvents[1].runtimeContext).toEqual({
         counter: 2,
         stepNumber: 1,
       });
@@ -2432,7 +2432,6 @@ describe('generateText', () => {
               "type": "tool-result",
             },
           ],
-          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
           "files": [],
@@ -2492,6 +2491,7 @@ describe('generateText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [
             {
@@ -2549,7 +2549,6 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -2604,6 +2603,7 @@ describe('generateText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
@@ -2899,7 +2899,7 @@ describe('generateText', () => {
         stepNumber: number;
         steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
-        context: unknown;
+        runtimeContext: unknown;
       }>;
 
       beforeEach(async () => {
@@ -2979,7 +2979,7 @@ describe('generateText', () => {
               },
             }),
           },
-          context: { context: 'state1' },
+          runtimeContext: { context: 'state1' },
           prompt: 'test-input',
           _internal: {
             generateId: () => 'test-call-id',
@@ -2994,14 +2994,14 @@ describe('generateText', () => {
             stepNumber,
             steps,
             messages,
-            context,
+            runtimeContext,
           }) => {
             prepareStepCalls.push({
               modelId: typeof model === 'string' ? model : model.modelId,
               stepNumber,
               steps,
               messages,
-              context,
+              runtimeContext,
             });
 
             if (stepNumber === 0) {
@@ -3020,7 +3020,7 @@ describe('generateText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
-                context: { context: 'state2' },
+                runtimeContext: { context: 'state2' },
               };
             }
 
@@ -3030,7 +3030,7 @@ describe('generateText', () => {
                 model: trueModel,
                 activeTools: [],
                 system: 'system-message-1',
-                context: { context: 'state3' },
+                runtimeContext: { context: 'state3' },
               };
             }
           },
@@ -3041,9 +3041,6 @@ describe('generateText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
-              "context": {
-                "context": "state1",
-              },
               "messages": [
                 {
                   "content": "test-input",
@@ -3051,6 +3048,9 @@ describe('generateText', () => {
                 },
               ],
               "modelId": "mock-model-id",
+              "runtimeContext": {
+                "context": "state1",
+              },
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
@@ -3078,9 +3078,6 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {
-                    "context": "state2",
-                  },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -3128,6 +3125,9 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state2",
+                  },
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -3157,9 +3157,6 @@ describe('generateText', () => {
                       "type": "text",
                     },
                   ],
-                  "context": {
-                    "context": "state3",
-                  },
                   "finishReason": "stop",
                   "functionId": undefined,
                   "model": {
@@ -3219,6 +3216,9 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:10.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state3",
+                  },
                   "stepNumber": 1,
                   "toolsContext": {},
                   "usage": {
@@ -3243,9 +3243,6 @@ describe('generateText', () => {
               ],
             },
             {
-              "context": {
-                "context": "state2",
-              },
               "messages": [
                 {
                   "content": "test-input",
@@ -3282,6 +3279,9 @@ describe('generateText', () => {
                 },
               ],
               "modelId": "mock-model-id",
+              "runtimeContext": {
+                "context": "state2",
+              },
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
@@ -3309,9 +3309,6 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {
-                    "context": "state2",
-                  },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -3359,6 +3356,9 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state2",
+                  },
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -3388,9 +3388,6 @@ describe('generateText', () => {
                       "type": "text",
                     },
                   ],
-                  "context": {
-                    "context": "state3",
-                  },
                   "finishReason": "stop",
                   "functionId": undefined,
                   "model": {
@@ -3449,6 +3446,9 @@ describe('generateText', () => {
                     ],
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:10.000Z,
+                  },
+                  "runtimeContext": {
+                    "context": "state3",
                   },
                   "stepNumber": 1,
                   "toolsContext": {},
@@ -3779,7 +3779,6 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -3827,6 +3826,7 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -3878,7 +3878,6 @@ describe('generateText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -3926,6 +3925,7 @@ describe('generateText', () => {
                     "modelId": "test-response-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -6732,7 +6732,7 @@ describe('generateText', () => {
       `);
     });
 
-    it('should pass context to prepareStep', async () => {
+    it('should pass runtimeContext to prepareStep', async () => {
       let capturedContext: unknown;
 
       await generateText({
@@ -6742,9 +6742,9 @@ describe('generateText', () => {
             content: [{ type: 'text', text: 'Hello, world!' }],
           }),
         }),
-        context: { myData: 'test-value' },
-        prepareStep: async ({ context }) => {
-          capturedContext = context;
+        runtimeContext: { myData: 'test-value' },
+        prepareStep: async ({ runtimeContext }) => {
+          capturedContext = runtimeContext;
           return undefined;
         },
         prompt: 'test',
@@ -6753,7 +6753,7 @@ describe('generateText', () => {
       expect(capturedContext).toEqual({ myData: 'test-value' });
     });
 
-    it('should send context in onFinish callback', async () => {
+    it('should send runtimeContext in onFinish callback', async () => {
       let recordedContext: unknown | undefined;
 
       await generateText({
@@ -6764,12 +6764,12 @@ describe('generateText', () => {
             finishReason: { unified: 'stop', raw: 'stop' },
           }),
         }),
-        context: {
+        runtimeContext: {
           context: 'test',
         },
         prompt: 'test-input',
-        onFinish: ({ context }) => {
-          recordedContext = context;
+        onFinish: ({ runtimeContext }) => {
+          recordedContext = runtimeContext;
         },
       });
 
@@ -7045,7 +7045,6 @@ describe('generateText', () => {
                   "type": "tool-result",
                 },
               ],
-              "context": {},
               "finishReason": "tool-calls",
               "functionId": undefined,
               "model": {
@@ -7097,6 +7096,7 @@ describe('generateText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {

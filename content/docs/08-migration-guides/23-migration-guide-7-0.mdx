@@ -174,11 +174,16 @@ This applies to all AI SDK functions that accept `experimental_telemetry`, inclu
 
 If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetryIntegration` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
 
-### Tools: `experimental_context` Was Renamed to Stable `context`, and Tool Context Is Now Passed via `toolsContext`
+### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 
 In AI SDK 7, the tool callback option previously exposed as `experimental_context` has been renamed to `context` and is now stable.
 
-The bigger behavioral change is where that value comes from. In AI SDK 6, tools effectively read from one generic runtime context object. In AI SDK 7, each tool gets its own scoped `context`, and you provide those values through `toolsContext`, keyed by tool name.
+The bigger behavioral change is that AI SDK now separates:
+
+- tool-specific `context`, which is passed to tool callbacks from `toolsContext`
+- shared generation/agent runtime data, which flows through `runtimeContext`
+
+In AI SDK 6, tools often read from one generic runtime context object. In AI SDK 7, each tool gets its own scoped `context`, and you provide those values through `toolsContext`, keyed by tool name.
 
 `tool()` infers the type of a tool's `context` from its `contextSchema`, so each tool only sees the fields declared for that specific tool.
 
@@ -223,24 +228,36 @@ const weather = tool({
 const result = await generateText({
   model: yourModel,
   tools: { weather },
+  runtimeContext: {
+    requestId: 'req-123',
+  },
   toolsContext: {
     weather: {
       apiKey: process.env.WEATHER_API_KEY!,
     },
   },
+  prepareStep: async ({ runtimeContext, toolsContext }) => {
+    console.log(runtimeContext.requestId);
+    console.log(toolsContext.weather.apiKey);
+
+    return {};
+  },
 });
 ```
 
-`prepareStep` can still receive general step-level `context`, but tool callbacks no longer read from that shared object. A tool's `context` now comes from its own entry in `toolsContext`, so it is limited to the fields that tool declared in `contextSchema`.
+Use `runtimeContext` for shared generation or agent state that should be visible in `prepareStep`, events, and step results. Tool callbacks no longer read from that shared object. A tool's `context` now comes from its own entry in `toolsContext`, so it is limited to the fields that tool declared in `contextSchema`.
 
 Potential breaking issues:
 
 - If you still destructure `experimental_context` in tool callbacks, rename it to `context`.
-- If you were previously passing one shared runtime context object for tools, move tool-specific values into `toolsContext` under the matching tool name.
+- If you were previously passing one shared runtime object for both orchestration and tools, split it into `runtimeContext` and `toolsContext`.
+- Move tool-specific values into `toolsContext` under the matching tool name.
+- Rename shared top-level `context` usage to `runtimeContext` in `generateText`, `streamText`, and `ToolLoopAgent`.
+- Rename `prepareStep` usage from `context` to `runtimeContext`.
 - If a tool callback accesses fields that are not declared in its `contextSchema`, TypeScript will now report errors. Add those fields to that tool's schema.
 - If you have helper types or wrappers that assumed `experimental_context` or `context` was `unknown`, update them to accept a generic `CONTEXT` type.
 - If at least one tool declares `contextSchema`, `toolsContext` becomes required and only includes the tools that actually declare contextual data.
-- If you were relying on every tool callback seeing the same full runtime object, move shared step data to `prepareStep`/`context`, or explicitly provide the needed per-tool data in each tool's `toolsContext` entry.
+- If you were relying on every tool callback seeing the same full runtime object, move shared step data to `runtimeContext`, or explicitly provide the needed per-tool data in each tool's `toolsContext` entry.
 
 ### Tools: Remove Deprecated `experimental_activeTools` Option
 
