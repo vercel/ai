@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.54
+
+### Major Changes
+
+- 832f86f: fix(anthropic): remove cacheCreationInputTokens from providerMetadata
+
+### Patch Changes
+
+- Updated dependencies [832f86f]
+  - @ai-sdk/anthropic@4.0.0-beta.33
+
 ## 5.0.0-beta.53
 
 ### Patch Changes
