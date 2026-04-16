@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.50
+
+### Patch Changes
+
+- 55f0938: chore(provider/google): update available models
+- Updated dependencies [55f0938]
+  - @ai-sdk/google@4.0.0-beta.40
+
 ## 5.0.0-beta.49
 
 ### Patch Changes
