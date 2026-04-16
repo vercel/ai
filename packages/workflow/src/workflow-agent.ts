@@ -22,6 +22,7 @@ import {
   type ToolSet,
   type UIMessage,
   LanguageModel,
+  experimental_filterActiveTools as filterActiveTools,
 } from 'ai';
 import {
   convertToLanguageModelPrompt,
@@ -1353,7 +1354,10 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     const effectiveActiveTools = options.activeTools ?? this.activeTools;
     const effectiveTools =
       effectiveActiveTools && effectiveActiveTools.length > 0
-        ? filterTools(this.tools, effectiveActiveTools as string[])
+        ? (filterActiveTools({
+            tools: this.tools,
+            activeTools: effectiveActiveTools as string[],
+          }) ?? this.tools)
         : this.tools;
 
     // Initialize context
@@ -1970,19 +1974,6 @@ function aggregateUsage(steps: StepResult<any, any>[]): LanguageModelUsage {
     outputTokens,
     totalTokens: inputTokens + outputTokens,
   } as LanguageModelUsage;
-}
-
-function filterTools<TTools extends ToolSet>(
-  tools: TTools,
-  activeTools: string[],
-): ToolSet {
-  const filtered: ToolSet = {};
-  for (const toolName of activeTools) {
-    if (toolName in tools) {
-      filtered[toolName] = tools[toolName];
-    }
-  }
-  return filtered;
 }
 
 // Matches AI SDK's getErrorMessage from @ai-sdk/provider-utils
