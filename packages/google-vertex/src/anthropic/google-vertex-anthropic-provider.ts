@@ -204,6 +204,8 @@ export function createVertexAnthropic(
       supportsNativeStructuredOutput: false,
       // Vertex Anthropic doesn't support strict mode on tool definitions.
       supportsStrictTools: false,
+      // Google Vertex doesn't support fine-grained tool streaming beta header
+      supportsFineGrainedToolStreaming: false,
     });
 
   const provider = function (modelId: GoogleVertexAnthropicMessagesModelId) {
