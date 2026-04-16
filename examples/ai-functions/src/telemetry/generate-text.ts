@@ -23,7 +23,7 @@ run(async () => {
       isEnabled: true,
       functionId: 'my-awesome-function',
     },
-    context: {
+    runtimeContext: {
       something: 'custom',
       someOtherThing: 'other-value',
     },

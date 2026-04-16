@@ -37,6 +37,7 @@ run(async () => {
         }),
         execute: async ({ expression }, { context: { apiKey } }) => {
           console.log('calculator tool api key:', apiKey);
+
           return {
             expression,
             result: eval(expression),
@@ -48,12 +49,8 @@ run(async () => {
       weather: { apiKey: 'weather-123' },
       calculator: { apiKey: 'calculator-456' },
     },
-    context: {
-      somethingElse: 'other-context',
-    },
-    prepareStep: async ({ context, toolsContext }) => {
+    prepareStep: async ({ toolsContext }) => {
       console.log('prepareStep toolsContext:', toolsContext);
-      console.log('prepareStep context:', context);
       return {};
     },
     prompt: 'What is the weather in San Francisco?',

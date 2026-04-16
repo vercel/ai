@@ -36,7 +36,7 @@ run(async () => {
         },
       }),
     },
-    context: {
+    runtimeContext: {
       agentType: 'child',
       agentLevel: 'L2',
     },
@@ -66,7 +66,7 @@ run(async () => {
         },
       }),
     },
-    context: {
+    runtimeContext: {
       agentType: 'parent',
       agentLevel: 'L1',
     },

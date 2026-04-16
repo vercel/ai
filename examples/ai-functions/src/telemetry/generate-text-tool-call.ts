@@ -30,7 +30,7 @@ run(async () => {
         inputSchema: z.object({ city: z.string() }),
       }),
     },
-    context: {
+    runtimeContext: {
       something: 'custom',
       someOtherThing: 'other-value',
     },
