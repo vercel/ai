@@ -140,7 +140,7 @@ interface CallState {
   modelId: string;
 }
 
-export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
+export class GenAIOpenTelemetry implements TelemetryIntegration {
   private readonly callStates = new Map<string, CallState>();
 
   private readonly tracer: Tracer;

@@ -106,13 +106,13 @@ registerTelemetryIntegration(
 );
 ```
 
-The `GenAIOpenTelemetryIntegration` also accepts a custom `Tracer` in the same way.
+The `GenAIOpenTelemetry` also accepts a custom `Tracer` in the same way.
 
 ## Telemetry Integrations
 
 Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and register it globally or pass it via `experimental_telemetry.integrations`.
 
-The `GenAIOpenTelemetryIntegration` and `OpenTelemetry` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
+The `GenAIOpenTelemetry` and `OpenTelemetry` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
 
 ### Registering integrations globally
 
@@ -237,12 +237,12 @@ The event types for each method are the same as the corresponding [event callbac
 ## Collected Data
 
 The `@ai-sdk/otel` package provides two integrations that emit different span formats.
-The `GenAIOpenTelemetryIntegration` follows the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and is the recommended integration.
+The `GenAIOpenTelemetry` follows the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and is the recommended integration.
 The `OpenTelemetry` integration emits legacy AI SDK-specific spans.
 
 ### GenAI Semantic Conventions
 
-The `GenAIOpenTelemetryIntegration` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
+The `GenAIOpenTelemetry` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
 All attributes use the `gen_ai.*` prefix. Provider names are mapped to well-known values (e.g. `openai`, `anthropic`, `gcp.vertex_ai`).
 
 #### generateText / streamText
@@ -384,7 +384,7 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 ### Legacy AI SDK Spans (`OpenTelemetry`)
 
 The `OpenTelemetry` integration emits spans using AI SDK-specific `ai.*` prefixed attributes.
-This is the legacy format. Consider migrating to the `GenAIOpenTelemetryIntegration` for better compatibility with observability platforms.
+This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for better compatibility with observability platforms.
 
 #### generateText function
 
