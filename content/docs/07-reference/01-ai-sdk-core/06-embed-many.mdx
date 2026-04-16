@@ -81,12 +81,12 @@ const { embeddings } = await embedMany({
     },
     {
       name: 'experimental_telemetry',
-      type: 'TelemetrySettings',
+      type: 'TelemetryOptions',
       isOptional: true,
       description: 'Telemetry configuration. Experimental feature.',
       properties: [
         {
-          type: 'TelemetrySettings',
+          type: 'TelemetryOptions',
           parameters: [
             {
               name: 'isEnabled',
