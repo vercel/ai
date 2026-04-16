@@ -370,8 +370,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         type: 'source',
         sourceType: 'url',
         id: generateId(),
-        url: annotation.url,
-        title: annotation.title,
+        url: annotation.url_citation.url,
+        title: annotation.url_citation.title,
       });
     }
 
@@ -567,7 +567,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
                 // Tool call start. OpenAI returns all information except the arguments in the first chunk.
                 if (toolCalls[index] == null) {
-                  if (toolCallDelta.type !== 'function') {
+                  if (
+                    toolCallDelta.type != null &&
+                    toolCallDelta.type !== 'function'
+                  ) {
                     throw new InvalidResponseDataError({
                       data: toolCallDelta,
                       message: `Expected 'function' type.`,
@@ -688,8 +691,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                   type: 'source',
                   sourceType: 'url',
                   id: generateId(),
-                  url: annotation.url,
-                  title: annotation.title,
+                  url: annotation.url_citation.url,
+                  title: annotation.url_citation.title,
                 });
               }
             }

@@ -1,5 +1,437 @@
 # @ai-sdk/langchain
 
+## 1.0.178
+
+### Patch Changes
+
+- ai@5.0.178
+
+## 1.0.177
+
+### Patch Changes
+
+- ai@5.0.177
+
+## 1.0.176
+
+### Patch Changes
+
+- ai@5.0.176
+
+## 1.0.175
+
+### Patch Changes
+
+- ai@5.0.175
+
+## 1.0.174
+
+### Patch Changes
+
+- ai@5.0.174
+
+## 1.0.173
+
+### Patch Changes
+
+- ai@5.0.173
+
+## 1.0.172
+
+### Patch Changes
+
+- ai@5.0.172
+
+## 1.0.171
+
+### Patch Changes
+
+- ai@5.0.171
+
+## 1.0.170
+
+### Patch Changes
+
+- ai@5.0.170
+
+## 1.0.169
+
+### Patch Changes
+
+- ai@5.0.169
+
+## 1.0.168
+
+### Patch Changes
+
+- ai@5.0.168
+
+## 1.0.167
+
+### Patch Changes
+
+- ai@5.0.167
+
+## 1.0.166
+
+### Patch Changes
+
+- ai@5.0.166
+
+## 1.0.165
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - ai@5.0.165
+
+## 1.0.164
+
+### Patch Changes
+
+- ai@5.0.164
+
+## 1.0.163
+
+### Patch Changes
+
+- ai@5.0.163
+
+## 1.0.162
+
+### Patch Changes
+
+- ai@5.0.162
+
+## 1.0.161
+
+### Patch Changes
+
+- ai@5.0.161
+
+## 1.0.160
+
+### Patch Changes
+
+- ai@5.0.160
+
+## 1.0.159
+
+### Patch Changes
+
+- ai@5.0.159
+
+## 1.0.158
+
+### Patch Changes
+
+- ai@5.0.158
+
+## 1.0.157
+
+### Patch Changes
+
+- Updated dependencies [9379c51]
+  - ai@5.0.157
+
+## 1.0.156
+
+### Patch Changes
+
+- ai@5.0.156
+
+## 1.0.155
+
+### Patch Changes
+
+- ai@5.0.155
+
+## 1.0.154
+
+### Patch Changes
+
+- ai@5.0.154
+
+## 1.0.153
+
+### Patch Changes
+
+- Updated dependencies [c59a31c]
+  - ai@5.0.153
+
+## 1.0.152
+
+### Patch Changes
+
+- ai@5.0.152
+
+## 1.0.151
+
+### Patch Changes
+
+- ai@5.0.151
+
+## 1.0.150
+
+### Patch Changes
+
+- ai@5.0.150
+
+## 1.0.149
+
+### Patch Changes
+
+- Updated dependencies [c66afc5]
+  - ai@5.0.149
+
+## 1.0.148
+
+### Patch Changes
+
+- ai@5.0.148
+
+## 1.0.147
+
+### Patch Changes
+
+- ai@5.0.147
+
+## 1.0.146
+
+### Patch Changes
+
+- Updated dependencies [6a2f01b]
+  - ai@5.0.146
+
+## 1.0.145
+
+### Patch Changes
+
+- ai@5.0.145
+
+## 1.0.144
+
+### Patch Changes
+
+- ai@5.0.144
+
+## 1.0.143
+
+### Patch Changes
+
+- ai@5.0.143
+
+## 1.0.142
+
+### Patch Changes
+
+- ai@5.0.142
+
+## 1.0.141
+
+### Patch Changes
+
+- ai@5.0.141
+
+## 1.0.140
+
+### Patch Changes
+
+- ai@5.0.140
+
+## 1.0.139
+
+### Patch Changes
+
+- ai@5.0.139
+
+## 1.0.138
+
+### Patch Changes
+
+- ai@5.0.138
+
+## 1.0.137
+
+### Patch Changes
+
+- ai@5.0.137
+
+## 1.0.136
+
+### Patch Changes
+
+- ai@5.0.136
+
+## 1.0.135
+
+### Patch Changes
+
+- ai@5.0.135
+
+## 1.0.134
+
+### Patch Changes
+
+- ai@5.0.134
+
+## 1.0.133
+
+### Patch Changes
+
+- ai@5.0.133
+
+## 1.0.132
+
+### Patch Changes
+
+- ai@5.0.132
+
+## 1.0.131
+
+### Patch Changes
+
+- ai@5.0.131
+
+## 1.0.130
+
+### Patch Changes
+
+- Updated dependencies [20565b8]
+  - ai@5.0.130
+
+## 1.0.129
+
+### Patch Changes
+
+- ai@5.0.129
+
+## 1.0.128
+
+### Patch Changes
+
+- ai@5.0.128
+
+## 1.0.127
+
+### Patch Changes
+
+- ai@5.0.127
+
+## 1.0.126
+
+### Patch Changes
+
+- ai@5.0.126
+
+## 1.0.125
+
+### Patch Changes
+
+- ai@5.0.125
+
+## 1.0.124
+
+### Patch Changes
+
+- ai@5.0.124
+
+## 1.0.123
+
+### Patch Changes
+
+- ai@5.0.123
+
+## 1.0.122
+
+### Patch Changes
+
+- ai@5.0.122
+
+## 1.0.121
+
+### Patch Changes
+
+- ai@5.0.121
+
+## 1.0.120
+
+### Patch Changes
+
+- ai@5.0.120
+
+## 1.0.119
+
+### Patch Changes
+
+- ai@5.0.119
+
+## 1.0.118
+
+### Patch Changes
+
+- Updated dependencies [42bad72]
+  - ai@5.0.118
+
+## 1.0.117
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - ai@5.0.117
+
+## 1.0.116
+
+### Patch Changes
+
+- ai@5.0.116
+
+## 1.0.115
+
+### Patch Changes
+
+- ai@5.0.115
+
+## 1.0.114
+
+### Patch Changes
+
+- Updated dependencies [fc633bd]
+  - ai@5.0.114
+
+## 1.0.113
+
+### Patch Changes
+
+- Updated dependencies [7e6fb4d]
+  - ai@5.0.113
+
+## 1.0.112
+
+### Patch Changes
+
+- ai@5.0.112
+
+## 1.0.111
+
+### Patch Changes
+
+- ai@5.0.111
+
+## 1.0.110
+
+### Patch Changes
+
+- ai@5.0.110
+
+## 1.0.109
+
+### Patch Changes
+
+- Updated dependencies [427547a]
+  - ai@5.0.109
+
 ## 1.0.108
 
 ### Patch Changes

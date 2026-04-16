@@ -13,11 +13,9 @@
     "rootDir": "./src",
     "outDir": "./build",
     "skipLibCheck": true,
-    "composite": true,
+    "composite": true
   },
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../../packages/ai"
@@ -92,6 +90,9 @@
       "path": "../../packages/mistral"
     },
     {
+      "path": "../../packages/moonshotai"
+    },
+    {
       "path": "../../packages/openai"
     },
     {
@@ -99,6 +100,9 @@
     },
     {
       "path": "../../packages/perplexity"
+    },
+    {
+      "path": "../../packages/prodia"
     },
     {
       "path": "../../packages/provider"

@@ -1,5 +1,63 @@
 # @ai-sdk/vercel
 
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/openai-compatible@1.0.35
+
+## 1.0.35
+
+### Patch Changes
+
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+  - @ai-sdk/openai-compatible@1.0.34
+
+## 1.0.34
+
+### Patch Changes
+
+- Updated dependencies [20565b8]
+  - @ai-sdk/provider-utils@3.0.21
+  - @ai-sdk/openai-compatible@1.0.33
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [8479fe8]
+- Updated dependencies [7aadb9b]
+  - @ai-sdk/openai-compatible@1.0.32
+
+## 1.0.32
+
+### Patch Changes
+
+- Updated dependencies [fcb9d27]
+  - @ai-sdk/openai-compatible@1.0.31
+
+## 1.0.31
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/openai-compatible@1.0.30
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 1.0.30
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+  - @ai-sdk/openai-compatible@1.0.29
+
 ## 1.0.29
 
 ### Patch Changes

@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
+    "@ai-sdk/alibaba": "workspace:*",
     "@ai-sdk/black-forest-labs": "workspace:*",
     "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
@@ -27,9 +28,11 @@
     "@ai-sdk/luma": "workspace:*",
     "@ai-sdk/hume": "workspace:*",
     "@ai-sdk/mistral": "workspace:*",
+    "@ai-sdk/moonshotai": "workspace:*",
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/openai-compatible": "workspace:*",
     "@ai-sdk/perplexity": "workspace:*",
+    "@ai-sdk/prodia": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/replicate": "workspace:*",
     "@ai-sdk/revai": "workspace:*",
@@ -47,6 +50,7 @@
     "mathjs": "14.0.0",
     "sharp": "^0.33.5",
     "terminal-image": "^2.0.0",
+    "undici": "^7.21.0",
     "zod": "3.25.76",
     "valibot": "^1.0.0-rc.0 || ^1.0.0"
   },

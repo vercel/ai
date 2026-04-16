@@ -37,7 +37,14 @@ export interface AnthropicAssistantMessage {
     | AnthropicWebSearchToolResultContent
     | AnthropicBashCodeExecutionToolResultContent
     | AnthropicTextEditorCodeExecutionToolResultContent
+    | AnthropicCompactionContent
   >;
+}
+
+export interface AnthropicCompactionContent {
+  type: 'compaction';
+  content: string;
+  cache_control?: AnthropicCacheControl;
 }
 
 export interface AnthropicTextContent {
@@ -159,7 +166,7 @@ export interface AnthropicWebSearchToolResultContent {
   tool_use_id: string;
   content: Array<{
     url: string;
-    title: string;
+    title: string | null;
     page_age: string | null;
     encrypted_content: string;
     type: string;
@@ -259,6 +266,7 @@ export type AnthropicTool =
       description: string | undefined;
       input_schema: JSONSchema7;
       cache_control: AnthropicCacheControl | undefined;
+      eager_input_streaming?: boolean;
     }
   | {
       type: 'code_execution_20250522';
@@ -267,6 +275,10 @@ export type AnthropicTool =
     }
   | {
       type: 'code_execution_20250825';
+      name: string;
+    }
+  | {
+      type: 'code_execution_20260120';
       name: string;
     }
   | {
@@ -326,6 +338,8 @@ export type AnthropicTool =
       cache_control: AnthropicCacheControl | undefined;
     };
 
+export type AnthropicSpeed = 'fast' | 'standard';
+
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any'; disable_parallel_tool_use?: boolean }
   | { type: 'tool'; name: string; disable_parallel_tool_use?: boolean };
@@ -337,6 +351,83 @@ export type AnthropicContainer = {
     skill_id: string;
     version?: string;
   }> | null;
+};
+
+// Context Management Types
+export type AnthropicInputTokensTrigger = {
+  type: 'input_tokens';
+  value: number;
+};
+
+export type AnthropicToolUsesTrigger = {
+  type: 'tool_uses';
+  value: number;
+};
+
+export type AnthropicContextManagementTrigger =
+  | AnthropicInputTokensTrigger
+  | AnthropicToolUsesTrigger;
+
+export type AnthropicClearToolUsesEdit = {
+  type: 'clear_tool_uses_20250919';
+  trigger?: AnthropicContextManagementTrigger;
+  keep?: {
+    type: 'tool_uses';
+    value: number;
+  };
+  clear_at_least?: {
+    type: 'input_tokens';
+    value: number;
+  };
+  clear_tool_inputs?: boolean;
+  exclude_tools?: string[];
+};
+
+export type AnthropicClearThinkingBlockEdit = {
+  type: 'clear_thinking_20251015';
+  keep?: 'all' | { type: 'thinking_turns'; value: number };
+};
+
+export type AnthropicCompactEdit = {
+  type: 'compact_20260112';
+  trigger?: AnthropicInputTokensTrigger;
+  pause_after_compaction?: boolean;
+  instructions?: string;
+};
+
+export type AnthropicContextManagementEdit =
+  | AnthropicClearToolUsesEdit
+  | AnthropicClearThinkingBlockEdit
+  | AnthropicCompactEdit;
+
+export type AnthropicContextManagementConfig = {
+  edits: AnthropicContextManagementEdit[];
+};
+
+// Response Context Management Types
+export type AnthropicResponseClearToolUsesEdit = {
+  type: 'clear_tool_uses_20250919';
+  cleared_tool_uses: number;
+  cleared_input_tokens: number;
+};
+
+export type AnthropicResponseClearThinkingBlockEdit = {
+  type: 'clear_thinking_20251015';
+  cleared_thinking_turns: number;
+  cleared_input_tokens: number;
+};
+
+export type AnthropicResponseCompactEdit = {
+  type: 'compact_20260112';
+};
+
+export type AnthropicResponseContextManagementEdit =
+  | AnthropicResponseClearToolUsesEdit
+  | AnthropicResponseClearThinkingBlockEdit
+  | AnthropicResponseCompactEdit;
+
+export type AnthropicResponseContextManagement = {
+  applied_edits: AnthropicResponseContextManagementEdit[];
 };
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -392,6 +483,10 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             data: z.string(),
           }),
           z.object({
+            type: z.literal('compaction'),
+            content: z.string(),
+          }),
+          z.object({
             type: z.literal('tool_use'),
             id: z.string(),
             name: z.string(),
@@ -415,11 +510,18 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
                   type: z.literal('document'),
                   title: z.string().nullable(),
                   citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.object({
-                    type: z.literal('text'),
-                    media_type: z.string(),
-                    data: z.string(),
-                  }),
+                  source: z.union([
+                    z.object({
+                      type: z.literal('base64'),
+                      media_type: z.literal('application/pdf'),
+                      data: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('text'),
+                      media_type: z.literal('text/plain'),
+                      data: z.string(),
+                    }),
+                  ]),
                 }),
               }),
               z.object({
@@ -529,7 +631,37 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
         output_tokens: z.number(),
         cache_creation_input_tokens: z.number().nullish(),
         cache_read_input_tokens: z.number().nullish(),
+        iterations: z
+          .array(
+            z.object({
+              type: z.union([z.literal('compaction'), z.literal('message')]),
+              input_tokens: z.number(),
+              output_tokens: z.number(),
+            }),
+          )
+          .nullish(),
       }),
+      context_management: z
+        .object({
+          applied_edits: z.array(
+            z.union([
+              z.object({
+                type: z.literal('clear_tool_uses_20250919'),
+                cleared_tool_uses: z.number(),
+                cleared_input_tokens: z.number(),
+              }),
+              z.object({
+                type: z.literal('clear_thinking_20251015'),
+                cleared_thinking_turns: z.number(),
+                cleared_input_tokens: z.number(),
+              }),
+              z.object({
+                type: z.literal('compact_20260112'),
+              }),
+            ]),
+          ),
+        })
+        .nullish(),
       container: z
         .object({
           expires_at: z.string(),
@@ -588,6 +720,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             data: z.string(),
           }),
           z.object({
+            type: z.literal('compaction'),
+            content: z.string().nullish(),
+          }),
+          z.object({
             type: z.literal('server_tool_use'),
             id: z.string(),
             name: z.string(),
@@ -605,11 +741,18 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
                   type: z.literal('document'),
                   title: z.string().nullable(),
                   citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.object({
-                    type: z.literal('text'),
-                    media_type: z.string(),
-                    data: z.string(),
-                  }),
+                  source: z.union([
+                    z.object({
+                      type: z.literal('base64'),
+                      media_type: z.literal('application/pdf'),
+                      data: z.string(),
+                    }),
+                    z.object({
+                      type: z.literal('text'),
+                      media_type: z.literal('text/plain'),
+                      data: z.string(),
+                    }),
+                  ]),
                 }),
               }),
               z.object({
@@ -733,6 +876,10 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             signature: z.string(),
           }),
           z.object({
+            type: z.literal('compaction_delta'),
+            content: z.string().nullish(),
+          }),
+          z.object({
             type: z.literal('citations_delta'),
             citation: z.discriminatedUnion('type', [
               z.object({
@@ -798,9 +945,41 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             .nullish(),
         }),
         usage: z.looseObject({
+          input_tokens: z.number().nullish(),
           output_tokens: z.number(),
           cache_creation_input_tokens: z.number().nullish(),
+          cache_read_input_tokens: z.number().nullish(),
+          iterations: z
+            .array(
+              z.object({
+                type: z.union([z.literal('compaction'), z.literal('message')]),
+                input_tokens: z.number(),
+                output_tokens: z.number(),
+              }),
+            )
+            .nullish(),
         }),
+        context_management: z
+          .object({
+            applied_edits: z.array(
+              z.union([
+                z.object({
+                  type: z.literal('clear_tool_uses_20250919'),
+                  cleared_tool_uses: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('clear_thinking_20251015'),
+                  cleared_thinking_turns: z.number(),
+                  cleared_input_tokens: z.number(),
+                }),
+                z.object({
+                  type: z.literal('compact_20260112'),
+                }),
+              ]),
+            ),
+          })
+          .nullish(),
       }),
       z.object({
         type: z.literal('message_stop'),

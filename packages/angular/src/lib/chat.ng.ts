@@ -18,9 +18,9 @@ export class Chat<
   }
 }
 
-class AngularChatState<UI_MESSAGE extends UIMessage = UIMessage>
-  implements ChatState<UI_MESSAGE>
-{
+class AngularChatState<
+  UI_MESSAGE extends UIMessage = UIMessage,
+> implements ChatState<UI_MESSAGE> {
   readonly #messages = signal<UI_MESSAGE[]>([]);
   readonly #status = signal<ChatStatus>('ready');
   readonly #error = signal<Error | undefined>(undefined);

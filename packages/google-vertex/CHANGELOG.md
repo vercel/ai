@@ -1,5 +1,335 @@
 # @ai-sdk/google-vertex
 
+## 3.0.131
+
+### Patch Changes
+
+- Updated dependencies [2fe3997]
+  - @ai-sdk/anthropic@2.0.76
+
+## 3.0.130
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [4b40033]
+  - @ai-sdk/anthropic@2.0.75
+
+## 3.0.129
+
+### Patch Changes
+
+- bfaafad: chore(provider/google): update available models
+- Updated dependencies [bfaafad]
+  - @ai-sdk/google@2.0.69
+
+## 3.0.128
+
+### Patch Changes
+
+- Updated dependencies [4c10694]
+  - @ai-sdk/google@2.0.68
+
+## 3.0.127
+
+### Patch Changes
+
+- Updated dependencies [84bbfee]
+  - @ai-sdk/google@2.0.67
+
+## 3.0.126
+
+### Patch Changes
+
+- Updated dependencies [d634323]
+  - @ai-sdk/google@2.0.66
+
+## 3.0.125
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/anthropic@2.0.74
+  - @ai-sdk/google@2.0.65
+  - @ai-sdk/openai-compatible@1.0.35
+
+## 3.0.124
+
+### Patch Changes
+
+- Updated dependencies [42bc840]
+  - @ai-sdk/anthropic@2.0.73
+
+## 3.0.123
+
+### Patch Changes
+
+- Updated dependencies [98bd0e2]
+  - @ai-sdk/anthropic@2.0.72
+
+## 3.0.122
+
+### Patch Changes
+
+- b0a2029: feat (provider/google-vertex): add support for maas models
+
+## 3.0.121
+
+### Patch Changes
+
+- Updated dependencies [fd3f1d3]
+  - @ai-sdk/google@2.0.64
+
+## 3.0.120
+
+### Patch Changes
+
+- Updated dependencies [b0a0821]
+  - @ai-sdk/anthropic@2.0.71
+
+## 3.0.119
+
+### Patch Changes
+
+- Updated dependencies [7655bcf]
+  - @ai-sdk/google@2.0.63
+
+## 3.0.118
+
+### Patch Changes
+
+- a608d48: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+- Updated dependencies [a608d48]
+  - @ai-sdk/google@2.0.62
+
+## 3.0.117
+
+### Patch Changes
+
+- Updated dependencies [3399b61]
+  - @ai-sdk/google@2.0.61
+
+## 3.0.116
+
+### Patch Changes
+
+- Updated dependencies [3f0102b]
+  - @ai-sdk/google@2.0.60
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [8cf6b86]
+  - @ai-sdk/google@2.0.59
+
+## 3.0.114
+
+### Patch Changes
+
+- Updated dependencies [a9a7f73]
+  - @ai-sdk/anthropic@2.0.70
+
+## 3.0.113
+
+### Patch Changes
+
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+  - @ai-sdk/anthropic@2.0.69
+  - @ai-sdk/google@2.0.58
+
+## 3.0.112
+
+### Patch Changes
+
+- Updated dependencies [4dda2a3]
+  - @ai-sdk/google@2.0.57
+
+## 3.0.111
+
+### Patch Changes
+
+- Updated dependencies [63bf188]
+  - @ai-sdk/anthropic@2.0.68
+
+## 3.0.110
+
+### Patch Changes
+
+- Updated dependencies [a1c0208]
+  - @ai-sdk/google@2.0.56
+
+## 3.0.109
+
+### Patch Changes
+
+- 3749ed6: feat(provider/google): add support for gemini-3.1-flash-image-preview
+- Updated dependencies [3749ed6]
+  - @ai-sdk/google@2.0.55
+
+## 3.0.108
+
+### Patch Changes
+
+- Updated dependencies [e1b08a6]
+  - @ai-sdk/anthropic@2.0.67
+
+## 3.0.107
+
+### Patch Changes
+
+- Updated dependencies [b153525]
+  - @ai-sdk/anthropic@2.0.66
+
+## 3.0.106
+
+### Patch Changes
+
+- 5e921ed: feat(provider/google): add support for `gemini-3.1-pro-preview`
+- Updated dependencies [5e921ed]
+  - @ai-sdk/google@2.0.54
+
+## 3.0.105
+
+### Patch Changes
+
+- fe42fd3: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+- Updated dependencies [fe42fd3]
+  - @ai-sdk/anthropic@2.0.65
+
+## 3.0.104
+
+### Patch Changes
+
+- Updated dependencies [9d5c1b1]
+  - @ai-sdk/anthropic@2.0.64
+
+## 3.0.103
+
+### Patch Changes
+
+- Updated dependencies [e551c84]
+  - @ai-sdk/anthropic@2.0.63
+
+## 3.0.102
+
+### Patch Changes
+
+- Updated dependencies [20565b8]
+  - @ai-sdk/provider-utils@3.0.21
+  - @ai-sdk/anthropic@2.0.62
+  - @ai-sdk/google@2.0.53
+
+## 3.0.101
+
+### Patch Changes
+
+- Updated dependencies [af58c05]
+  - @ai-sdk/anthropic@2.0.61
+
+## 3.0.100
+
+### Patch Changes
+
+- Updated dependencies [368f270]
+  - @ai-sdk/anthropic@2.0.60
+
+## 3.0.99
+
+### Patch Changes
+
+- Updated dependencies [ca1f53a]
+  - @ai-sdk/anthropic@2.0.59
+
+## 3.0.98
+
+### Patch Changes
+
+- Updated dependencies [8479fe8]
+- Updated dependencies [008ce2f]
+  - @ai-sdk/anthropic@2.0.58
+
+## 3.0.97
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/anthropic@2.0.57
+  - @ai-sdk/google@2.0.52
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 3.0.96
+
+### Patch Changes
+
+- Updated dependencies [cbc2dba]
+  - @ai-sdk/google@2.0.51
+
+## 3.0.95
+
+### Patch Changes
+
+- Updated dependencies [7c30c1d]
+  - @ai-sdk/google@2.0.50
+
+## 3.0.94
+
+### Patch Changes
+
+- 3ea80e7: feat(provider/google): add enterpriseWebSearch tool
+- Updated dependencies [3ea80e7]
+  - @ai-sdk/google@2.0.49
+
+## 3.0.93
+
+### Patch Changes
+
+- 1bcc2d7: feat(google): gemini-3-flash
+- Updated dependencies [1bcc2d7]
+  - @ai-sdk/google@2.0.48
+
+## 3.0.92
+
+### Patch Changes
+
+- 0e182c5: Add Google Maps grounding tool support for location-aware Gemini responses
+- Updated dependencies [0e182c5]
+  - @ai-sdk/google@2.0.47
+
+## 3.0.91
+
+### Patch Changes
+
+- 97c861d: Remove duplicate gemini-1.0-pro-001 model ID
+
+## 3.0.90
+
+### Patch Changes
+
+- Updated dependencies [3716d34]
+  - @ai-sdk/anthropic@2.0.56
+
+## 3.0.89
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+  - @ai-sdk/anthropic@2.0.55
+  - @ai-sdk/google@2.0.46
+
+## 3.0.88
+
+### Patch Changes
+
+- Updated dependencies [ccf34f3]
+  - @ai-sdk/anthropic@2.0.54
+
 ## 3.0.87
 
 ### Patch Changes
@@ -694,7 +1024,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -707,7 +1037,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1299,7 +1629,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1312,7 +1642,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "2.0.109",
+  "version": "2.0.180",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -10,9 +10,7 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
     "clean": "del-cli dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.js --run",
     "test:update": "vitest --config vitest.config.js --run -u",
     "test:watch": "vitest --config vitest.config.js"
@@ -40,20 +38,18 @@
     "@testing-library/user-event": "^14.5.2",
     "@testing-library/react": "^16.0.1",
     "@types/node": "20.17.24",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "eslint": "8.57.1",
-    "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^24.0.0",
     "msw": "2.6.4",
-    "react-dom": "^18",
+    "react-dom": "^19",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {
-    "react": "^18 || ^19 || ^19.0.0-rc",
+    "react": "^18 || ~19.0.1 || ~19.1.2 || ^19.2.1",
     "zod": "^3.25.76 || ^4.1.8"
   },
   "peerDependenciesMeta": {

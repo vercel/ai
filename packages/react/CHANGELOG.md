@@ -1,5 +1,450 @@
 # @ai-sdk/react
 
+## 2.0.180
+
+### Patch Changes
+
+- ai@5.0.178
+
+## 2.0.179
+
+### Patch Changes
+
+- ai@5.0.177
+
+## 2.0.178
+
+### Patch Changes
+
+- ai@5.0.176
+
+## 2.0.177
+
+### Patch Changes
+
+- ai@5.0.175
+
+## 2.0.176
+
+### Patch Changes
+
+- ai@5.0.174
+
+## 2.0.175
+
+### Patch Changes
+
+- ai@5.0.173
+
+## 2.0.174
+
+### Patch Changes
+
+- ai@5.0.172
+
+## 2.0.173
+
+### Patch Changes
+
+- ai@5.0.171
+
+## 2.0.172
+
+### Patch Changes
+
+- ai@5.0.170
+
+## 2.0.171
+
+### Patch Changes
+
+- ai@5.0.169
+
+## 2.0.170
+
+### Patch Changes
+
+- ai@5.0.168
+
+## 2.0.169
+
+### Patch Changes
+
+- ai@5.0.167
+
+## 2.0.168
+
+### Patch Changes
+
+- ai@5.0.166
+
+## 2.0.167
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - ai@5.0.165
+
+## 2.0.166
+
+### Patch Changes
+
+- ai@5.0.164
+
+## 2.0.165
+
+### Patch Changes
+
+- ai@5.0.163
+
+## 2.0.164
+
+### Patch Changes
+
+- ai@5.0.162
+
+## 2.0.163
+
+### Patch Changes
+
+- ai@5.0.161
+
+## 2.0.162
+
+### Patch Changes
+
+- ai@5.0.160
+
+## 2.0.161
+
+### Patch Changes
+
+- ai@5.0.159
+
+## 2.0.160
+
+### Patch Changes
+
+- ai@5.0.158
+
+## 2.0.159
+
+### Patch Changes
+
+- Updated dependencies [9379c51]
+  - ai@5.0.157
+
+## 2.0.158
+
+### Patch Changes
+
+- ai@5.0.156
+
+## 2.0.157
+
+### Patch Changes
+
+- ai@5.0.155
+
+## 2.0.156
+
+### Patch Changes
+
+- ai@5.0.154
+
+## 2.0.155
+
+### Patch Changes
+
+- Updated dependencies [c59a31c]
+  - ai@5.0.153
+
+## 2.0.154
+
+### Patch Changes
+
+- ai@5.0.152
+
+## 2.0.153
+
+### Patch Changes
+
+- ai@5.0.151
+
+## 2.0.152
+
+### Patch Changes
+
+- ai@5.0.150
+
+## 2.0.151
+
+### Patch Changes
+
+- Updated dependencies [c66afc5]
+  - ai@5.0.149
+
+## 2.0.150
+
+### Patch Changes
+
+- ai@5.0.148
+
+## 2.0.149
+
+### Patch Changes
+
+- ai@5.0.147
+
+## 2.0.148
+
+### Patch Changes
+
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+  - ai@5.0.146
+
+## 2.0.147
+
+### Patch Changes
+
+- ai@5.0.145
+
+## 2.0.146
+
+### Patch Changes
+
+- ai@5.0.144
+
+## 2.0.145
+
+### Patch Changes
+
+- ai@5.0.143
+
+## 2.0.144
+
+### Patch Changes
+
+- ai@5.0.142
+
+## 2.0.143
+
+### Patch Changes
+
+- ai@5.0.141
+
+## 2.0.142
+
+### Patch Changes
+
+- ai@5.0.140
+
+## 2.0.141
+
+### Patch Changes
+
+- ai@5.0.139
+
+## 2.0.140
+
+### Patch Changes
+
+- ai@5.0.138
+
+## 2.0.139
+
+### Patch Changes
+
+- ai@5.0.137
+
+## 2.0.138
+
+### Patch Changes
+
+- ai@5.0.136
+
+## 2.0.137
+
+### Patch Changes
+
+- ai@5.0.135
+
+## 2.0.136
+
+### Patch Changes
+
+- ai@5.0.134
+
+## 2.0.135
+
+### Patch Changes
+
+- ai@5.0.133
+
+## 2.0.134
+
+### Patch Changes
+
+- ai@5.0.132
+
+## 2.0.133
+
+### Patch Changes
+
+- ai@5.0.131
+
+## 2.0.132
+
+### Patch Changes
+
+- Updated dependencies [20565b8]
+  - ai@5.0.130
+  - @ai-sdk/provider-utils@3.0.21
+
+## 2.0.131
+
+### Patch Changes
+
+- ai@5.0.129
+
+## 2.0.130
+
+### Patch Changes
+
+- ai@5.0.128
+
+## 2.0.129
+
+### Patch Changes
+
+- ai@5.0.127
+
+## 2.0.128
+
+### Patch Changes
+
+- ai@5.0.126
+
+## 2.0.127
+
+### Patch Changes
+
+- ai@5.0.125
+
+## 2.0.126
+
+### Patch Changes
+
+- ai@5.0.124
+
+## 2.0.125
+
+### Patch Changes
+
+- ai@5.0.123
+
+## 2.0.124
+
+### Patch Changes
+
+- ai@5.0.122
+
+## 2.0.123
+
+### Patch Changes
+
+- ai@5.0.121
+
+## 2.0.122
+
+### Patch Changes
+
+- ai@5.0.120
+
+## 2.0.121
+
+### Patch Changes
+
+- ai@5.0.119
+
+## 2.0.120
+
+### Patch Changes
+
+- Updated dependencies [42bad72]
+  - ai@5.0.118
+
+## 2.0.119
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - ai@5.0.117
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.118
+
+### Patch Changes
+
+- ai@5.0.116
+
+## 2.0.117
+
+### Patch Changes
+
+- ai@5.0.115
+
+## 2.0.116
+
+### Patch Changes
+
+- Updated dependencies [fc633bd]
+  - ai@5.0.114
+
+## 2.0.115
+
+### Patch Changes
+
+- Updated dependencies [7e6fb4d]
+  - ai@5.0.113
+
+## 2.0.114
+
+### Patch Changes
+
+- ai@5.0.112
+
+## 2.0.113
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+  - ai@5.0.111
+
+## 2.0.112
+
+### Patch Changes
+
+- ai@5.0.110
+
+## 2.0.111
+
+### Patch Changes
+
+- Updated dependencies [427547a]
+  - ai@5.0.109
+
+## 2.0.110
+
+### Patch Changes
+
+- 52e8efe: Require minimal versions for RSC to address CVE-2025-55182
+
 ## 2.0.109
 
 ### Patch Changes

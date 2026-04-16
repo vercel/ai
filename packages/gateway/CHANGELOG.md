@@ -1,5 +1,404 @@
 # @ai-sdk/gateway
 
+## 2.0.82
+
+### Patch Changes
+
+- eacfb5e: feat (provider/gateway): add get-generation support
+
+## 2.0.81
+
+### Patch Changes
+
+- dc91bcc: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.80
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 2.0.79
+
+### Patch Changes
+
+- d4fbea5: feat (provider/gateway): add sort options
+
+## 2.0.78
+
+### Patch Changes
+
+- 140640d: feat (provider/gateway): make model list resilient to unknown model types
+
+## 2.0.77
+
+### Patch Changes
+
+- 6c0cde5: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.76
+
+### Patch Changes
+
+- a5317d0: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.75
+
+### Patch Changes
+
+- f03fec2: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.74
+
+### Patch Changes
+
+- 8180bff: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.73
+
+### Patch Changes
+
+- c6fcbfa: feat (provider/gateway): add quotaEntityId gateway provider option
+
+## 2.0.72
+
+### Patch Changes
+
+- a064eef: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.71
+
+### Patch Changes
+
+- 6b4ceaa: feat (provider/gateway): add hipaaCompliant gateway provider option
+
+## 2.0.70
+
+### Patch Changes
+
+- 5e2950a: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
+## 2.0.68
+
+### Patch Changes
+
+- bc392cb: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.67
+
+### Patch Changes
+
+- 5bc2cb8: feat (provider/gateway): add disallowPromptTraining gateway provider option
+
+## 2.0.66
+
+### Patch Changes
+
+- efc9006: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.65
+
+### Patch Changes
+
+- 4e8bdc7: feat (provider/gateway): add spend reporting support
+
+## 2.0.64
+
+### Patch Changes
+
+- 2f94884: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.63
+
+### Patch Changes
+
+- 5e55f43: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
+## 2.0.62
+
+### Patch Changes
+
+- 946ef88: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.61
+
+### Patch Changes
+
+- 2e35d03: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.60
+
+### Patch Changes
+
+- 205f9d8: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.59
+
+### Patch Changes
+
+- 6f40c1a: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.58
+
+### Patch Changes
+
+- f29cec3: Backport: chore(provider/gateway): update gateway model settings files
+- 51c7d28: Backport: chore(provider/gateway): update gateway model settings files
+- dacdf4b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.57
+
+### Patch Changes
+
+- a608d48: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+- c5790b1: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.56
+
+### Patch Changes
+
+- f54cb63: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.55
+
+### Patch Changes
+
+- ee7582f: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.54
+
+### Patch Changes
+
+- 392dc94: feat(provider/openai): add GPT-5.4 model support
+
+## 2.0.53
+
+### Patch Changes
+
+- 7a57a71: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.52
+
+### Patch Changes
+
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+
+## 2.0.51
+
+### Patch Changes
+
+- 201bb12: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.50
+
+### Patch Changes
+
+- c4a324b: feat(gateway): add providerTimeouts to provider options
+
+## 2.0.49
+
+### Patch Changes
+
+- 4fa740a: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.48
+
+### Patch Changes
+
+- 8ea21c1: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.47
+
+### Patch Changes
+
+- 4db4318: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.46
+
+### Patch Changes
+
+- 3749ed6: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
+## 2.0.45
+
+### Patch Changes
+
+- 9212b2d: feat (provider/gateway): pass through project id when available for o11y
+
+## 2.0.44
+
+### Patch Changes
+
+- 42815ac: feat(provider/openai): add `gpt-5.3-codex`
+
+## 2.0.43
+
+### Patch Changes
+
+- 5e921ed: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
+## 2.0.42
+
+### Patch Changes
+
+- 9baf5ea: chore(provider/gateway): update gateway model settings files
+
+## 2.0.41
+
+### Patch Changes
+
+- fe42fd3: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+- 8b5473c: chore(provider/gateway): update gateway model settings files
+
+## 2.0.40
+
+### Patch Changes
+
+- 9545c46: chore(provider/gateway): update gateway model settings files
+
+## 2.0.39
+
+### Patch Changes
+
+- b4ac032: chore(provider/gateway): update gateway model settings files
+
+## 2.0.38
+
+### Patch Changes
+
+- 8aac221: chore(provider/gateway): update gateway model settings files
+
+## 2.0.37
+
+### Patch Changes
+
+- 3f04ffe: fix (provider/gateway): added custom error class and message for client side timeouts
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [20565b8]
+  - @ai-sdk/provider-utils@3.0.21
+
+## 2.0.35
+
+### Patch Changes
+
+- a207442: feat: report image generation usage info in Gateway
+
+## 2.0.34
+
+### Patch Changes
+
+- 7e6c81a: chore(provider/gateway): update gateway model settings files
+
+## 2.0.33
+
+### Patch Changes
+
+- db2e810: feat(anthropic): add support for Opus 4.6
+
+## 2.0.32
+
+### Patch Changes
+
+- beba89c: feat (provider/gateway): add parallel search tool
+
+## 2.0.31
+
+### Patch Changes
+
+- 8d8fdd2: chore(provider/gateway): update gateway model settings files
+
+## 2.0.30
+
+### Patch Changes
+
+- fad90dd: chore(provider/gateway): update gateway model settings files
+- 8479fe8: trigger for backport release
+- 0d3fc21: chore(provider/gateway): update gateway model settings files
+- 53e891c: chore(provider/gateway): update gateway model settings files
+
+## 2.0.29
+
+### Patch Changes
+
+- 5253b83: chore(provider/gateway): update gateway model settings files
+
+## 2.0.28
+
+### Patch Changes
+
+- 9158228: chore(provider/gateway): update gateway model settings files
+
+## 2.0.27
+
+### Patch Changes
+
+- 74676fa: feat (provider/gateway): add'l perplexity search tool params
+
+## 2.0.26
+
+### Patch Changes
+
+- 655377e: fix(gateway): bump `@vercel/oidc` to 3.1.0
+
+## 2.0.25
+
+### Patch Changes
+
+- f6b46d2: feat (provider/gateway): add provider-defined perplexity search
+
+## 2.0.24
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.23
+
+### Patch Changes
+
+- e3de981: feat (provider/gateway): add zero data retention provider option
+
+## 2.0.22
+
+### Patch Changes
+
+- 1bcc2d7: feat(google): gemini-3-flash
+
+## 2.0.21
+
+### Patch Changes
+
+- 041a4fc: feat(openai): add gpt-5.2 models
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+
+## 2.0.19
+
+### Patch Changes
+
+- 51bbaa1: feat (provider/gateway): add support for request-scoped byok
+
 ## 2.0.18
 
 ### Patch Changes

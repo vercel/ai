@@ -482,6 +482,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               providerMetadata: {
                 [providerKey]: {
                   itemId: part.id,
+                  ...(part.phase != null && { phase: part.phase }),
                 },
               },
             });
@@ -773,6 +774,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       >['annotation']
     > = [];
 
+    // track the phase of the current message being streamed
+    let activeMessagePhase: 'commentary' | 'final_answer' | undefined;
+
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
 
@@ -899,12 +903,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               } else if (value.item.type === 'message') {
                 ongoingAnnotations.splice(0, ongoingAnnotations.length);
+                activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',
                   id: value.item.id,
                   providerMetadata: {
                     [providerKey]: {
                       itemId: value.item.id,
+                      ...(value.item.phase != null && {
+                        phase: value.item.phase,
+                      }),
                     },
                   },
                 });
@@ -931,12 +939,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }
             } else if (isResponseOutputItemDoneChunk(value)) {
               if (value.item.type === 'message') {
+                const phase = value.item.phase ?? activeMessagePhase;
+                activeMessagePhase = undefined;
                 controller.enqueue({
                   type: 'text-end',
                   id: value.item.id,
                   providerMetadata: {
                     [providerKey]: {
                       itemId: value.item.id,
+                      ...(phase != null && { phase }),
                       ...(ongoingAnnotations.length > 0 && {
                         annotations: ongoingAnnotations,
                       }),
@@ -1400,8 +1411,12 @@ function isErrorChunk(
 }
 
 function mapWebSearchOutput(
-  action: OpenAIResponsesWebSearchAction,
+  action: OpenAIResponsesWebSearchAction | null | undefined,
 ): InferValidator<typeof webSearchOutputSchema> {
+  if (action == null) {
+    return {};
+  }
+
   switch (action.type) {
     case 'search':
       return {
@@ -1411,9 +1426,13 @@ function mapWebSearchOutput(
       };
     case 'open_page':
       return { action: { type: 'openPage', url: action.url } };
-    case 'find':
+    case 'find_in_page':
       return {
-        action: { type: 'find', url: action.url, pattern: action.pattern },
+        action: {
+          type: 'findInPage',
+          url: action.url,
+          pattern: action.pattern,
+        },
       };
   }
 }

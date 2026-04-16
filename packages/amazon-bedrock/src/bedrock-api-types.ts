@@ -12,6 +12,7 @@ export interface BedrockConverseInput {
     stopSequences?: string[];
   };
   additionalModelRequestFields?: Record<string, unknown>;
+  additionalModelResponseFieldPaths?: string[];
   guardrailConfig?:
     | BedrockGuardrailConfiguration
     | BedrockGuardrailStreamConfiguration

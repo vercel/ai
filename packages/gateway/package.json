@@ -1,7 +1,7 @@
 {
   "name": "@ai-sdk/gateway",
   "private": false,
-  "version": "2.0.18",
+  "version": "2.0.82",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -15,14 +15,13 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run"
+    "test:node": "vitest --config vitest.node.config.js --run",
+    "generate-model-settings": "tsx scripts/generate-model-settings.ts"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -35,7 +34,7 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "@vercel/oidc": "3.0.5"
+    "@vercel/oidc": "3.1.0"
   },
   "devDependencies": {
     "@ai-sdk/test-server": "workspace:*",
@@ -43,6 +42,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.8.3",
+    "tsx": "^4.19.2",
     "zod": "3.25.76"
   },
   "peerDependencies": {

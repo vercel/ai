@@ -1,5 +1,218 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.95
+
+### Patch Changes
+
+- Updated dependencies [2fe3997]
+  - @ai-sdk/anthropic@2.0.76
+
+## 3.0.94
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [4b40033]
+  - @ai-sdk/anthropic@2.0.75
+
+## 3.0.93
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/anthropic@2.0.74
+
+## 3.0.92
+
+### Patch Changes
+
+- Updated dependencies [42bc840]
+  - @ai-sdk/anthropic@2.0.73
+
+## 3.0.91
+
+### Patch Changes
+
+- Updated dependencies [98bd0e2]
+  - @ai-sdk/anthropic@2.0.72
+
+## 3.0.90
+
+### Patch Changes
+
+- 0967b6c: fix(provider/amazon-bedrock): transform bedrock/anthropic error responses to anthropic format
+
+## 3.0.89
+
+### Patch Changes
+
+- Updated dependencies [b0a0821]
+  - @ai-sdk/anthropic@2.0.71
+
+## 3.0.88
+
+### Patch Changes
+
+- af256b7: fix(provider/amazon-bedrock): fix base64 decoding
+
+## 3.0.87
+
+### Patch Changes
+
+- Updated dependencies [a9a7f73]
+  - @ai-sdk/anthropic@2.0.70
+
+## 3.0.86
+
+### Patch Changes
+
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+  - @ai-sdk/anthropic@2.0.69
+
+## 3.0.85
+
+### Patch Changes
+
+- 63bf188: feat(anthropic): expose anthropic.anthropicBeta to downstream providers
+- Updated dependencies [63bf188]
+  - @ai-sdk/anthropic@2.0.68
+
+## 3.0.84
+
+### Patch Changes
+
+- Updated dependencies [e1b08a6]
+  - @ai-sdk/anthropic@2.0.67
+
+## 3.0.83
+
+### Patch Changes
+
+- Updated dependencies [b153525]
+  - @ai-sdk/anthropic@2.0.66
+
+## 3.0.82
+
+### Patch Changes
+
+- fe42fd3: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+- Updated dependencies [fe42fd3]
+  - @ai-sdk/anthropic@2.0.65
+
+## 3.0.81
+
+### Patch Changes
+
+- Updated dependencies [9d5c1b1]
+  - @ai-sdk/anthropic@2.0.64
+
+## 3.0.80
+
+### Patch Changes
+
+- Updated dependencies [e551c84]
+  - @ai-sdk/anthropic@2.0.63
+
+## 3.0.79
+
+### Patch Changes
+
+- Updated dependencies [20565b8]
+  - @ai-sdk/provider-utils@3.0.21
+  - @ai-sdk/anthropic@2.0.62
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [af58c05]
+  - @ai-sdk/anthropic@2.0.61
+
+## 3.0.77
+
+### Patch Changes
+
+- Updated dependencies [368f270]
+  - @ai-sdk/anthropic@2.0.60
+
+## 3.0.76
+
+### Patch Changes
+
+- 18a97b2: feat(amazon-bedrock): add support for new Anthropic adaptive thinking and reasoning effort including max
+
+## 3.0.75
+
+### Patch Changes
+
+- Updated dependencies [ca1f53a]
+  - @ai-sdk/anthropic@2.0.59
+
+## 3.0.74
+
+### Patch Changes
+
+- 8479fe8: trigger for backport release
+- 3ffa24e: feat(provider/amazon-bedrock): add anthropic sub-provider using native invokemodel api
+- Updated dependencies [8479fe8]
+- Updated dependencies [008ce2f]
+  - @ai-sdk/anthropic@2.0.58
+
+## 3.0.73
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/anthropic@2.0.57
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 3.0.72
+
+### Patch Changes
+
+- 4f0e5af: Fix bedrock ConverseStream using /delta/stop_sequence
+
+## 3.0.71
+
+### Patch Changes
+
+- 11cb33e: feat(provider/amazon-bedrock): expose stop_sequence in provider metadata
+
+  The Bedrock provider now exposes the specific stop sequence that triggered generation to halt via `providerMetadata.bedrock.stopSequence`. This is implemented by:
+
+  - Requesting `/stop_sequence` via `additionalModelResponseFieldPaths` in the API call
+  - Parsing the value from `additionalModelResponseFields.stop_sequence` in both generate and stream responses
+  - Exposing it as `stopSequence` in the provider metadata (returns `null` when no stop sequence was matched)
+
+- 11cb33e: Add stop sequence support for amazon bedrock provider
+
+## 3.0.70
+
+### Patch Changes
+
+- Updated dependencies [3716d34]
+  - @ai-sdk/anthropic@2.0.56
+
+## 3.0.69
+
+### Patch Changes
+
+- Updated dependencies [ef6d784]
+  - @ai-sdk/provider-utils@3.0.19
+  - @ai-sdk/anthropic@2.0.55
+
+## 3.0.68
+
+### Patch Changes
+
+- Updated dependencies [ccf34f3]
+  - @ai-sdk/anthropic@2.0.54
+
 ## 3.0.67
 
 ### Patch Changes

@@ -11,7 +11,7 @@ import {
   audioMediaTypeSignatures,
   detectMediaType,
 } from '../util/detect-media-type';
-import { download } from '../util/download/download';
+import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
 import { TranscriptionResult } from './transcribe-result';
 import { VERSION } from '../version';
@@ -28,6 +28,8 @@ as body parameters.
 
 @returns A result object that contains the generated transcript.
  */
+const defaultDownload = createDownload();
+
 export async function transcribe({
   model,
   audio,
@@ -35,6 +37,7 @@ export async function transcribe({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  download: downloadFn = defaultDownload,
 }: {
   /**
 The transcription model to use.
@@ -79,6 +82,17 @@ Additional headers to include in the request.
 Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
+
+  /**
+   * Custom download function for fetching audio from URLs.
+   * Use `createDownload()` from `ai` to create a download function with custom size limits.
+   *
+   * @default createDownload() (2 GiB limit)
+   */
+  download?: (options: {
+    url: URL;
+    abortSignal?: AbortSignal;
+  }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>;
 }): Promise<TranscriptionResult> {
   if (model.specificationVersion !== 'v2') {
     throw new UnsupportedModelVersionError({
@@ -100,7 +114,7 @@ Only applicable for HTTP-based providers.
 
   const audioData =
     audio instanceof URL
-      ? (await download({ url: audio })).data
+      ? (await downloadFn({ url: audio, abortSignal })).data
       : convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>

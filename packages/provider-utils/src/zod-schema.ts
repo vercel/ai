@@ -1,8 +1,9 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import * as z3 from 'zod/v3';
 import * as z4 from 'zod/v4';
-import zodToJsonSchema from './zod-to-json-schema';
+import { addAdditionalPropertiesToJsonSchema } from './add-additional-properties-to-json-schema';
 import { jsonSchema, Schema } from './schema';
+import zodToJsonSchema from './zod-to-json-schema';
 
 export function zod3Schema<OBJECT>(
   zodSchema: z3.Schema<OBJECT, z3.ZodTypeDef, any>,
@@ -54,11 +55,13 @@ export function zod4Schema<OBJECT>(
   return jsonSchema(
     // defer json schema creation to avoid unnecessary computation when only validation is needed
     () =>
-      z4.toJSONSchema(zodSchema, {
-        target: 'draft-7',
-        io: 'output',
-        reused: useReferences ? 'ref' : 'inline',
-      }) as JSONSchema7,
+      addAdditionalPropertiesToJsonSchema(
+        z4.toJSONSchema(zodSchema, {
+          target: 'draft-7',
+          io: 'input',
+          reused: useReferences ? 'ref' : 'inline',
+        }) as JSONSchema7,
+      ),
     {
       validate: async value => {
         const result = await z4.safeParseAsync(zodSchema, value);

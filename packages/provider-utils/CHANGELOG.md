@@ -1,5 +1,42 @@
 # @ai-sdk/provider-utils
 
+## 3.0.23
+
+### Patch Changes
+
+- a27a978: fix: allow inline data URLs in download validation
+
+## 3.0.22
+
+### Patch Changes
+
+- 6a2f01b: Add URL validation to `download` to prevent blind SSRF attacks. Private/internal IP addresses, localhost, and non-HTTP protocols are now rejected before fetching.
+- 17d64e3: fix(provider-utils): prevent unicode escape bypass in secureJsonParse
+
+## 3.0.21
+
+### Patch Changes
+
+- 20565b8: security: prevent unbounded memory growth in download functions
+
+  The `download()` function now enforces a default 2 GiB size limit when downloading from user-provided URLs. Downloads that exceed this limit are aborted with a `DownloadError` instead of consuming unbounded memory and crashing the process. The `abortSignal` parameter is now passed through to `fetch()` in all download call sites.
+
+  Added `download` option to `transcribe()` and `experimental_generateVideo()` for providing a custom download function. Use the new `createDownload({ maxBytes })` factory to configure download size limits.
+
+## 3.0.20
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+
+## 3.0.19
+
+### Patch Changes
+
+- ef6d784: fix: generate zod4 json schema from input schema
+
 ## 3.0.18
 
 ### Patch Changes

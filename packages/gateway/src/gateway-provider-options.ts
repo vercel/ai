@@ -22,6 +22,14 @@ const gatewayProviderOptions = lazyValidator(() =>
        */
       order: z.array(z.string()).optional(),
       /**
+       * Sort providers by a performance or cost metric before routing.
+       *
+       * - `'cost'`: lowest cost first
+       * - `'ttft'`: lowest time-to-first-token first
+       * - `'tps'`: highest tokens-per-second first
+       */
+      sort: z.enum(['cost', 'ttft', 'tps']).optional(),
+      /**
        * The unique identifier for the end user on behalf of whom the request was made.
        *
        * Used for spend tracking and attribution purposes.
@@ -41,6 +49,58 @@ const gatewayProviderOptions = lazyValidator(() =>
        * Example: `['openai/gpt-5-nano', 'zai/glm-4.6']` will try `openai/gpt-5-nano` first, then `zai/glm-4.6` as fallback.
        */
       models: z.array(z.string()).optional(),
+      /**
+       * Request-scoped BYOK credentials to use instead of cached credentials.
+       *
+       * When provided, cached BYOK credentials are ignored entirely.
+       *
+       * Each provider can have multiple credentials (tried in order).
+       *
+       * Examples:
+       * - Simple: `{ 'anthropic': [{ apiKey: 'sk-ant-...' }] }`
+       * - Multiple: `{ 'vertex': [{ projectId: 'proj-1', privateKey: '...' }, { projectId: 'proj-2', privateKey: '...' }] }`
+       * - Multi-provider: `{ 'anthropic': [{ apiKey: '...' }], 'bedrock': [{ accessKeyId: '...', secretAccessKey: '...' }] }`
+       */
+      byok: z
+        .record(z.string(), z.array(z.record(z.string(), z.unknown())))
+        .optional(),
+      /**
+       * Whether to filter by only providers that state they have zero data
+       * retention with Vercel AI Gateway. When enabled, only providers that
+       * have agreements with Vercel AI Gateway for zero data retention will be
+       * used.
+       */
+      zeroDataRetention: z.boolean().optional(),
+      /**
+       * Whether to filter by only providers that do not train on prompt data.
+       * When enabled, only providers that have agreements with Vercel AI Gateway
+       * to not use prompts for model training will be used.
+       */
+      disallowPromptTraining: z.boolean().optional(),
+      /**
+       * Whether to filter by only providers that are HIPAA compliant with
+       * Vercel AI Gateway. When enabled, only providers that have agreements
+       * with Vercel AI Gateway for HIPAA compliance will be used.
+       */
+      hipaaCompliant: z.boolean().optional(),
+      /**
+       * The unique identifier for the entity against which quota is tracked.
+       *
+       * Used for quota management and enforcement purposes.
+       */
+      quotaEntityId: z.string().optional(),
+      /**
+       * Per-provider timeouts for BYOK credentials in milliseconds.
+       * Controls how long to wait for a provider to start responding
+       * before falling back to the next available provider.
+       *
+       * Example: `{ byok: { openai: 5000, anthropic: 2000 } }`
+       */
+      providerTimeouts: z
+        .object({
+          byok: z.record(z.string(), z.number().int().min(1000)).optional(),
+        })
+        .optional(),
     }),
   ),
 );

@@ -182,6 +182,41 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingChunks[].image', () => {
+    const metadata = {
+      imageSearchQueries: ['Super Bowl halftime show in space'],
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/article',
+            imageUri: 'https://example.com/image.jpg',
+            title: 'Image Title',
+            domain: 'example.com',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].image with missing optional fields', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/article',
+            imageUri: 'https://example.com/image.jpg',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates partial grounding metadata', () => {
     const metadata = {
       webSearchQueries: ['sample query'],
@@ -199,10 +234,70 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates grounding metadata with maps chunks', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          maps: {
+            uri: 'https://maps.google.com/maps?cid=12345',
+            title: 'Best Italian Restaurant',
+            text: 'A great Italian restaurant',
+            placeId: 'ChIJ12345',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingChunks[].maps with missing optional fields', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          maps: {
+            uri: 'https://maps.google.com/maps?cid=12345',
+          },
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('validates metadata with empty retrievalMetadata', () => {
     const metadata = {
       webSearchQueries: ['sample query'],
       retrievalMetadata: {},
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
+  it('validates groundingSupports without segment (image search)', () => {
+    const metadata = {
+      imageSearchQueries: [
+        'Aurora Borealis Iceland landscape',
+        'Northern Lights over Iceland',
+      ],
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/source',
+            imageUri: 'https://example.com/image.jpg',
+            title: 'Northern Lights in Iceland',
+            domain: 'example.com',
+          },
+        },
+      ],
+      groundingSupports: [
+        {
+          groundingChunkIndices: [0],
+        },
+      ],
     };
 
     const result = groundingMetadataSchema.safeParse(metadata);
@@ -392,6 +487,142 @@ describe('doGenerate', () => {
 
     expect(content).toMatchInlineSnapshot(`[]`);
     expect(finishReason).toStrictEqual('error');
+  });
+
+  it('should extract tool calls', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    name: 'test-tool',
+                    args: { value: 'example value' },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+      },
+    };
+  });
+
+  it('should send serviceTier in request body when specified', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      serviceTier: 'flex',
+    });
+  });
+
+  it('should not send serviceTier in request body when not specified', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('serviceTier');
+  });
+
+  it('should sanitize serviceTier to Vertex format when using Vertex provider', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      serviceTier: 'SERVICE_TIER_FLEX',
+    });
+  });
+
+  it('should not sanitize serviceTier when using non-Vertex provider', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          serviceTier: 'standard',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      serviceTier: 'standard',
+    });
+  });
+
+  it('should expose serviceTier in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'test response' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
+        serviceTier: 'flex',
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.serviceTier).toBe('flex');
+  });
+
+  it('should expose null serviceTier in provider metadata when not present', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.serviceTier).toBeNull();
   });
 
   it('should extract tool calls', async () => {
@@ -1003,6 +1234,108 @@ describe('doGenerate', () => {
         `);
   });
 
+  it('should extract sources from maps grounding metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response with Maps',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            maps: {
+              uri: 'https://maps.google.com/maps?cid=12345',
+              title: 'Best Italian Restaurant',
+              placeId: 'ChIJ12345',
+            },
+          },
+          {
+            maps: {
+              uri: 'https://maps.google.com/maps?cid=67890',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with Maps",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Best Italian Restaurant",
+          "type": "source",
+          "url": "https://maps.google.com/maps?cid=12345",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://maps.google.com/maps?cid=67890",
+        },
+      ]
+    `);
+  });
+
+  it('should extract sources from image grounding metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response with image search',
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            image: {
+              sourceUri: 'https://example.com/article',
+              imageUri: 'https://example.com/image.jpg',
+              title: 'Image Result',
+              domain: 'example.com',
+            },
+          },
+          {
+            image: {
+              sourceUri: 'https://other.example.com/page',
+              imageUri: 'https://other.example.com/photo.png',
+            },
+          },
+        ],
+      },
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": undefined,
+          "text": "test response with image search",
+          "type": "text",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Image Result",
+          "type": "source",
+          "url": "https://example.com/article",
+        },
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": undefined,
+          "type": "source",
+          "url": "https://other.example.com/page",
+        },
+      ]
+    `);
+  });
+
   it('should handle mixed source types with correct title defaults', async () => {
     prepareJsonResponse({
       content: 'test response with mixed sources',
@@ -1238,35 +1571,6 @@ describe('doGenerate', () => {
     ]);
   });
 
-  it('should expose PromptFeedback in provider metadata', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'json-value',
-      body: {
-        candidates: [
-          {
-            content: { parts: [{ text: 'No' }], role: 'model' },
-            finishReason: 'SAFETY',
-            index: 0,
-            safetyRatings: SAFETY_RATINGS,
-          },
-        ],
-        promptFeedback: {
-          blockReason: 'SAFETY',
-          safetyRatings: SAFETY_RATINGS,
-        },
-      },
-    };
-
-    const { providerMetadata } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(providerMetadata?.google.promptFeedback).toStrictEqual({
-      blockReason: 'SAFETY',
-      safetyRatings: SAFETY_RATINGS,
-    });
-  });
-
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
       content: 'test response',
@@ -1447,13 +1751,13 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
+    it('should warn for google search on non-gemini-2 models', async () => {
       prepareJsonResponse({
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
       const geminiPro = provider.languageModel('gemini-1.0-pro');
-      await geminiPro.doGenerate({
+      const result = await geminiPro.doGenerate({
         prompt: TEST_PROMPT,
         tools: [
           {
@@ -1465,46 +1769,22 @@ describe('doGenerate', () => {
         ],
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearchRetrieval: {} }],
-      });
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "Google Search requires Gemini 2.0 or newer.",
+            "tool": {
+              "args": {},
+              "id": "google.google_search",
+              "name": "google_search",
+              "type": "provider-defined",
+            },
+            "type": "unsupported-tool",
+          },
+        ]
+      `);
     });
 
-    it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareJsonResponse({
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.5-flash');
-
-      await geminiPro.doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
-            },
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [
-          {
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: 'MODE_DYNAMIC',
-                dynamicThreshold: 1,
-              },
-            },
-          },
-        ],
-      });
-    });
     it('should use urlContextTool for gemini-2.0-pro', async () => {
       prepareJsonResponse({
         url: TEST_URL_GEMINI_2_0_PRO,
@@ -1749,6 +2029,46 @@ describe('doGenerate', () => {
       generationConfig: {
         imageConfig: {
           aspectRatio: '16:9',
+        },
+      },
+    });
+  });
+
+  it('should pass retrievalConfig in provider options', async () => {
+    prepareJsonResponse({ url: TEST_URL_GEMINI_2_0_FLASH_EXP });
+
+    const gemini2Model = provider.chat('gemini-2.0-flash-exp');
+
+    await gemini2Model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'provider-defined',
+          id: 'google.google_maps',
+          name: 'google_maps',
+          args: {},
+        },
+      ],
+      providerOptions: {
+        google: {
+          retrievalConfig: {
+            latLng: {
+              latitude: 34.090199,
+              longitude: -117.881081,
+            },
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      tools: [{ googleMaps: {} }],
+      toolConfig: {
+        retrievalConfig: {
+          latLng: {
+            latitude: 34.090199,
+            longitude: -117.881081,
+          },
         },
       },
     });
@@ -2230,6 +2550,130 @@ describe('doStream', () => {
     });
   });
 
+  it('should preserve grounding metadata when it arrives before the finishReason chunk', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'hello' }], role: 'model' },
+              index: 0,
+              groundingMetadata: {
+                webSearchQueries: ['super bowl 2026 halftime show'],
+                groundingChunks: [
+                  {
+                    web: {
+                      uri: 'https://example.com/superbowl',
+                      title: 'Super Bowl 2026',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: ' world' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 38,
+            candidatesTokenCount: 1335,
+            totalTokenCount: 1890,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.groundingMetadata,
+    ).toEqual({
+      webSearchQueries: ['super bowl 2026 halftime show'],
+      groundingChunks: [
+        {
+          web: {
+            uri: 'https://example.com/superbowl',
+            title: 'Super Bowl 2026',
+          },
+        },
+      ],
+    });
+
+    expect(events.filter(e => e.type === 'source')).toHaveLength(1);
+  });
+
+  it('should preserve url context metadata when it arrives before the finishReason chunk', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'hello' }], role: 'model' },
+              index: 0,
+              urlContextMetadata: {
+                urlMetadata: [
+                  {
+                    retrievedUrl: 'https://example.com/page',
+                    urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: ' world' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 5,
+            totalTokenCount: 15,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.urlContextMetadata,
+    ).toEqual({
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/page',
+          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+        },
+      ],
+    });
+  });
+
   it('should expose url context metadata in provider metadata on finish', async () => {
     prepareStreamResponse({
       content: ['test'],
@@ -2329,6 +2773,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "serviceTier": null,
               "urlContextMetadata": null,
               "usageMetadata": {
                 "candidatesTokenCount": 233,
@@ -2384,17 +2829,28 @@ describe('doStream', () => {
     ]);
   });
 
-  it('should expose PromptFeedback in provider metadata on finish', async () => {
+  it('should expose serviceTier in provider metadata on finish', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"candidates": [{"content": {"parts": [{"text": "No"}],"role": "model"},` +
-          `"finishReason": "PROHIBITED_CONTENT","index": 0}],` +
-          `"promptFeedback": {"blockReason": "PROHIBITED_CONTENT","safetyRatings": [` +
-          `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'test response' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+          serviceTier: 'flex',
+        })}\n\n`,
       ],
     };
 
@@ -2407,11 +2863,24 @@ describe('doStream', () => {
 
     expect(
       finishEvent?.type === 'finish' &&
-        finishEvent.providerMetadata?.google.promptFeedback,
-    ).toStrictEqual({
-      blockReason: 'PROHIBITED_CONTENT',
-      safetyRatings: SAFETY_RATINGS,
+        finishEvent.providerMetadata?.google.serviceTier,
+    ).toBe('flex');
+  });
+
+  it('should expose null serviceTier in provider metadata on finish when not present', async () => {
+    prepareStreamResponse({ content: ['test'] });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
     });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.serviceTier,
+    ).toBeNull();
   });
 
   it('should stream code execution tool calls and results', async () => {
@@ -2546,14 +3015,14 @@ describe('doStream', () => {
       });
     });
 
-    it('should use googleSearchRetrieval for non-gemini-2 models', async () => {
+    it('should warn for google search on non-gemini-2 models', async () => {
       prepareStreamResponse({
         content: [''],
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
       const geminiPro = provider.languageModel('gemini-1.0-pro');
-      await geminiPro.doStream({
+      const { stream } = await geminiPro.doStream({
         prompt: TEST_PROMPT,
         includeRawChunks: false,
         tools: [
@@ -2566,47 +3035,25 @@ describe('doStream', () => {
         ],
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [{ googleSearchRetrieval: {} }],
-      });
-    });
+      const events = await convertReadableStreamToArray(stream);
 
-    it('should use dynamic retrieval for gemini-1-5', async () => {
-      prepareStreamResponse({
-        content: [''],
-        url: TEST_URL_GEMINI_1_5_FLASH,
-      });
-
-      const geminiPro = provider.languageModel('gemini-1.5-flash');
-
-      await geminiPro.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        tools: [
-          {
-            type: 'provider-defined',
-            id: 'google.google_search',
-            name: 'google_search',
-            args: {
-              mode: 'MODE_DYNAMIC',
-              dynamicThreshold: 1,
-            },
-          },
-        ],
-      });
-
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
-        tools: [
-          {
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: 'MODE_DYNAMIC',
-                dynamicThreshold: 1,
+      expect(events[0]).toMatchInlineSnapshot(`
+        {
+          "type": "stream-start",
+          "warnings": [
+            {
+              "details": "Google Search requires Gemini 2.0 or newer.",
+              "tool": {
+                "args": {},
+                "id": "google.google_search",
+                "name": "google_search",
+                "type": "provider-defined",
               },
+              "type": "unsupported-tool",
             },
-          },
-        ],
-      });
+          ],
+        }
+      `);
     });
   });
 
@@ -2641,6 +3088,44 @@ describe('doStream', () => {
           "title": "Source Title",
           "type": "source",
           "url": "https://source.example.com",
+        },
+      ]
+    `);
+  });
+
+  it('should stream source events from image grounding metadata', async () => {
+    prepareStreamResponse({
+      content: ['image search response'],
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            image: {
+              sourceUri: 'https://example.com/article',
+              imageUri: 'https://example.com/image.jpg',
+              title: 'Image Source',
+              domain: 'example.com',
+            },
+          },
+        ],
+      },
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "sourceType": "url",
+          "title": "Image Source",
+          "type": "source",
+          "url": "https://example.com/article",
         },
       ]
     `);
@@ -2849,6 +3334,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "serviceTier": null,
               "urlContextMetadata": null,
             },
           },
@@ -3203,6 +3689,7 @@ describe('doStream', () => {
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": null,
+              "serviceTier": null,
               "urlContextMetadata": null,
               "usageMetadata": {
                 "candidatesTokenCount": 18,
@@ -3349,6 +3836,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "serviceTier": null,
               "urlContextMetadata": null,
             },
           },

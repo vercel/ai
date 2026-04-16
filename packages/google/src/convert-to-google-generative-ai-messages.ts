@@ -5,18 +5,21 @@ import {
 import {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
+  GoogleGenerativeAIFunctionResponsePart,
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV2Prompt,
-  options?: { isGemmaModel?: boolean },
+  options?: { isGemmaModel?: boolean; supportsFunctionResponseParts?: boolean },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleGenerativeAIContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
+  const supportsFunctionResponseParts =
+    options?.supportsFunctionResponseParts ?? true;
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -154,36 +157,10 @@ export function convertToGoogleGenerativeAIMessages(
           const output = part.output;
 
           if (output.type === 'content') {
-            for (const contentPart of output.value) {
-              switch (contentPart.type) {
-                case 'text':
-                  parts.push({
-                    functionResponse: {
-                      name: part.toolName,
-                      response: {
-                        name: part.toolName,
-                        content: contentPart.text,
-                      },
-                    },
-                  });
-                  break;
-                case 'media':
-                  parts.push(
-                    {
-                      inlineData: {
-                        mimeType: contentPart.mediaType,
-                        data: contentPart.data,
-                      },
-                    },
-                    {
-                      text: 'Tool executed successfully and returned this image as a response',
-                    },
-                  );
-                  break;
-                default:
-                  parts.push({ text: JSON.stringify(contentPart) });
-                  break;
-              }
+            if (supportsFunctionResponseParts) {
+              appendToolResultParts({ parts, part, output });
+            } else {
+              appendLegacyToolResultParts({ parts, part, output });
             }
           } else {
             parts.push({
@@ -227,4 +204,105 @@ export function convertToGoogleGenerativeAIMessages(
         : undefined,
     contents,
   };
+}
+
+function appendToolResultParts({
+  parts,
+  part,
+  output,
+}: {
+  parts: GoogleGenerativeAIContentPart[];
+  part: { toolName: string };
+  output: {
+    type: 'content';
+    value: Array<
+      | { type: 'text'; text: string }
+      | { type: 'media'; data: string; mediaType: string }
+    >;
+  };
+}) {
+  const responseTextParts: string[] = [];
+  const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
+
+  for (const contentPart of output.value) {
+    switch (contentPart.type) {
+      case 'text':
+        responseTextParts.push(contentPart.text);
+        break;
+      case 'media':
+        functionResponseParts.push({
+          inlineData: {
+            mimeType: contentPart.mediaType,
+            data: contentPart.data,
+          },
+        });
+        break;
+    }
+  }
+
+  const responseText =
+    responseTextParts.length > 0
+      ? responseTextParts.join('\n')
+      : 'Tool executed successfully.';
+
+  parts.push({
+    functionResponse: {
+      name: part.toolName,
+      response: {
+        name: part.toolName,
+        content: responseText,
+      },
+      ...(functionResponseParts.length > 0
+        ? { parts: functionResponseParts }
+        : {}),
+    },
+  });
+}
+
+function appendLegacyToolResultParts({
+  parts,
+  part,
+  output,
+}: {
+  parts: GoogleGenerativeAIContentPart[];
+  part: { toolName: string };
+  output: {
+    type: 'content';
+    value: Array<
+      | { type: 'text'; text: string }
+      | { type: 'media'; data: string; mediaType: string }
+    >;
+  };
+}) {
+  for (const contentPart of output.value) {
+    switch (contentPart.type) {
+      case 'text':
+        parts.push({
+          functionResponse: {
+            name: part.toolName,
+            response: {
+              name: part.toolName,
+              content: contentPart.text,
+            },
+          },
+        });
+        break;
+      case 'media':
+        parts.push(
+          {
+            inlineData: {
+              mimeType: contentPart.mediaType,
+              data: contentPart.data,
+            },
+          },
+          {
+            text: 'Tool executed successfully and returned this image as a response',
+          },
+        );
+        break;
+      default:
+        parts.push({ text: JSON.stringify(contentPart) });
+        break;
+    }
+  }
 }
