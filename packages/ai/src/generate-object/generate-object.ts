@@ -98,7 +98,7 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * @param experimental_repairText - A function that attempts to repair the raw output of the model
  * to enable JSON parsing.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -168,9 +168,15 @@ export async function generateObject<
       experimental_repairText?: RepairTextFunction;
 
       /**
-       * Optional telemetry configuration (experimental).
+       * Optional telemetry configuration.
        */
+      telemetry?: TelemetryOptions;
 
+      /**
+       * Optional telemetry configuration.
+       *
+       * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+       */
       experimental_telemetry?: TelemetryOptions;
 
       /**
@@ -230,7 +236,8 @@ export async function generateObject<
     abortSignal,
     headers,
     experimental_repairText: repairText,
-    experimental_telemetry: telemetry,
+    experimental_telemetry,
+    telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
     experimental_onStart: onStart,

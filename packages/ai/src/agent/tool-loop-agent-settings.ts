@@ -106,7 +106,14 @@ export type ToolLoopAgentSettings<
       | Array<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
-     * Optional telemetry configuration (experimental).
+     * Optional telemetry configuration.
+     */
+    telemetry?: TelemetryOptions;
+
+    /**
+     * Optional telemetry configuration.
+     *
+     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
     experimental_telemetry?: TelemetryOptions;
 
@@ -245,6 +252,7 @@ export type ToolLoopAgentSettings<
           | 'headers'
           | 'instructions'
           | 'stopWhen'
+          | 'telemetry'
           | 'experimental_telemetry'
           | 'activeTools'
           | 'toolNeedsApproval'
@@ -273,6 +281,7 @@ export type ToolLoopAgentSettings<
         | 'headers'
         | 'instructions'
         | 'stopWhen'
+        | 'telemetry'
         | 'experimental_telemetry'
         | 'activeTools'
         | 'toolNeedsApproval'

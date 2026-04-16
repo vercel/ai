@@ -40,13 +40,13 @@ For Node.js applications (without Next.js), register the integration at the top 
 ### Step 2: Enabling Telemetry
 
 Once a telemetry integration is registered, all AI SDK calls emit telemetry events by default.
-You can still pass `experimental_telemetry` to attach metadata (like `functionId`) or to opt out of a specific call:
+You can still pass `telemetry` to attach metadata (like `functionId`) or to opt out of a specific call:
 
 ```ts highlight="4-6"
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: {
+  telemetry: {
     functionId: `story-agent`,
   },
 });
@@ -65,7 +65,7 @@ Telemetry is opt-out. To disable telemetry for a specific call, set `isEnabled: 
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: { isEnabled: false },
+  telemetry: { isEnabled: false },
 });
 ```
 
@@ -84,7 +84,7 @@ const result = await generateText({
     something: 'custom',
     someOtherThing: 'other-value',
   },
-  experimental_telemetry: {
+  telemetry: {
     functionId: 'my-awesome-function',
   },
 });
@@ -110,7 +110,7 @@ The `GenAIOpenTelemetryIntegration` also accepts a custom `Tracer` in the same w
 
 ## Telemetry Integrations
 
-Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and register it globally or pass it via `experimental_telemetry.integrations`.
+Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and register it globally or pass it via `telemetry.integrations`.
 
 The `GenAIOpenTelemetryIntegration` and `OpenTelemetryIntegration` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
 
@@ -136,7 +136,7 @@ import { DevToolsTelemetry } from '@ai-sdk/devtools';
 const result = streamText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  experimental_telemetry: {
+  telemetry: {
     integrations: [DevToolsTelemetry()],
   },
 });
@@ -145,7 +145,7 @@ const result = streamText({
 You can combine multiple integrations — they all receive the same lifecycle events:
 
 ```ts
-experimental_telemetry: {
+telemetry: {
   integrations: [DevToolsTelemetry(), customLogger()],
 },
 ```

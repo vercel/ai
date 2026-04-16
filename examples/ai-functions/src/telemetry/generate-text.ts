@@ -19,7 +19,7 @@ run(async () => {
     model: openai('gpt-4o'),
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'my-awesome-function',
     },
     runtimeContext: {

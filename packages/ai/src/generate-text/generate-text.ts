@@ -262,7 +262,8 @@ export async function generateText<
   experimental_output,
   output = experimental_output,
   toolNeedsApproval,
-  experimental_telemetry: telemetry,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
   providerOptions,
   activeTools,
   prepareStep,
@@ -307,7 +308,14 @@ export async function generateText<
       | Array<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
-     * Optional telemetry configuration (experimental).
+     * Optional telemetry configuration.
+     */
+    telemetry?: TelemetryOptions;
+
+    /**
+     * Optional telemetry configuration.
+     *
+     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
     experimental_telemetry?: TelemetryOptions;
 

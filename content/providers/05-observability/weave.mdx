@@ -51,7 +51,7 @@ import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 registerTelemetryIntegration(new OpenTelemetryIntegration());
 ```
 
-You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
+You can then use the `telemetry` option to enable telemetry on supported AI SDK function calls:
 
 ```typescript
 import { generateText } from 'ai';
@@ -60,7 +60,7 @@ import { openai } from '@ai-sdk/openai';
 const result = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'What is 2 + 2?',
-  experimental_telemetry: {
+  telemetry: {
     metadata: {
       query: 'math',
       difficulty: 'easy',

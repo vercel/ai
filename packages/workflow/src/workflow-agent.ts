@@ -339,6 +339,10 @@ export interface PrepareCallOptions<
   tools: TTools;
   instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
   toolChoice?: ToolChoice<TTools>;
+  telemetry?: TelemetryOptions;
+  /**
+   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+   */
   experimental_telemetry?: TelemetryOptions;
   experimental_context?: unknown;
   messages: ModelMessage[];
@@ -405,7 +409,14 @@ export interface WorkflowAgentOptions<
   toolChoice?: ToolChoice<TTools>;
 
   /**
-   * Optional telemetry configuration (experimental).
+   * Optional telemetry configuration.
+   */
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Optional telemetry configuration.
+   *
+   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
   experimental_telemetry?: TelemetryOptions;
 
@@ -727,7 +738,14 @@ export type WorkflowAgentStreamOptions<
     activeTools?: Array<keyof NoInfer<TTools>>;
 
     /**
-     * Optional telemetry configuration (experimental).
+     * Optional telemetry configuration.
+     */
+    telemetry?: TelemetryOptions;
+
+    /**
+     * Optional telemetry configuration.
+     *
+     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
     experimental_telemetry?: TelemetryOptions;
 
@@ -1023,7 +1041,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // `instructions` takes precedence over deprecated `system`
     this.instructions = options.instructions ?? options.system;
     this.toolChoice = options.toolChoice;
-    this.telemetry = options.experimental_telemetry;
+    this.telemetry = options.telemetry ?? options.experimental_telemetry;
     this.experimentalContext = options.experimental_context;
     this.stopWhen = options.stopWhen;
     this.activeTools = options.activeTools;
@@ -1078,7 +1096,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       options.experimental_context ?? this.experimentalContext;
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
     let effectiveTelemetryFromPrepare =
-      options.experimental_telemetry ?? this.telemetry;
+      options.telemetry ?? options.experimental_telemetry ?? this.telemetry;
 
     // Resolve messages for prepareCall: use messages directly, or convert prompt
     const resolvedMessagesForPrepareCall: ModelMessage[] =
@@ -1094,6 +1112,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         tools: this.tools,
         instructions: effectiveInstructions,
         toolChoice: effectiveToolChoiceFromPrepare as ToolChoice<TBaseTools>,
+        telemetry: effectiveTelemetryFromPrepare,
         experimental_telemetry: effectiveTelemetryFromPrepare,
         experimental_context: effectiveExperimentalContext,
         messages: resolvedMessagesForPrepareCall,
@@ -1112,7 +1131,9 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       if (prepared.toolChoice !== undefined)
         effectiveToolChoiceFromPrepare =
           prepared.toolChoice as ToolChoice<TBaseTools>;
-      if (prepared.experimental_telemetry !== undefined)
+      if (prepared.telemetry !== undefined)
+        effectiveTelemetryFromPrepare = prepared.telemetry;
+      else if (prepared.experimental_telemetry !== undefined)
         effectiveTelemetryFromPrepare = prepared.experimental_telemetry;
       if (prepared.maxOutputTokens !== undefined)
         effectiveGenerationSettings.maxOutputTokens = prepared.maxOutputTokens;
@@ -1474,7 +1495,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       generationSettings: mergedGenerationSettings,
       toolChoice: effectiveToolChoice as ToolChoice<ToolSet>,
       experimental_context: experimentalContext,
-      experimental_telemetry: effectiveTelemetry,
+      telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
       repairToolCall: (options.experimental_repairToolCall ??
         this.experimentalRepairToolCall) as

@@ -58,7 +58,7 @@ registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 ### 2. Register the integration and enable telemetry
 
-Once you've installed `@ai-sdk/otel` and added `registerTelemetryIntegration` to your `instrumentation.ts`, telemetry is captured automatically. Pass `experimental_telemetry` to attach metadata:
+Once you've installed `@ai-sdk/otel` and added `registerTelemetryIntegration` to your `instrumentation.ts`, telemetry is captured automatically. Pass `telemetry` to attach metadata:
 
 ```ts
 import { generateText } from 'ai';
@@ -67,7 +67,7 @@ import { openai } from '@ai-sdk/openai';
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a haiku about spring.',
-  experimental_telemetry: {
+  telemetry: {
     functionId: 'spring-haiku', // span name
     metadata: {
       userId: 'user-123', // custom attrs surface in Patronus UI
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
       const answer = await generateText({
         model: openai('gpt-4o'),
         prompt: body.prompt,
-        experimental_telemetry: { functionId: 'chat' },
+        telemetry: { functionId: 'chat' },
       });
 
       /* 2️⃣ run Patronus evaluation inside the same trace */

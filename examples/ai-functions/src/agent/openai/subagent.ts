@@ -41,7 +41,7 @@ run(async () => {
       agentLevel: 'L2',
     },
     stopWhen: isStepCount(3),
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'child-agent',
     },
   });
@@ -70,7 +70,7 @@ run(async () => {
       agentLevel: 'L1',
     },
     stopWhen: isStepCount(3),
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'parent-agent',
     },
   });

@@ -5522,7 +5522,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
         },
         experimental_onStart: async event => {
@@ -5538,6 +5538,28 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(startEvent).toMatchSnapshot();
+    });
+
+    it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'deprecated-fn',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(startEvent.isEnabled).toBe(true);
+      expect(startEvent.functionId).toBe('deprecated-fn');
     });
 
     it('should pass runtimeContext', async () => {
@@ -6005,7 +6027,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
         },
         experimental_onStepStart: async event => {
@@ -23197,7 +23219,7 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
         onError: () => {},
-        experimental_telemetry: {
+        telemetry: {
           integrations: {
             onStart: async () => {
               events.push('onStart');
@@ -23280,7 +23302,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         onError: () => {},
-        experimental_telemetry: {
+        telemetry: {
           integrations: {
             onStart: async () => {
               events.push('per-call');
@@ -23310,7 +23332,7 @@ describe('streamText', () => {
         onFinish: async () => {
           events.push('user-onFinish');
         },
-        experimental_telemetry: {
+        telemetry: {
           integrations: {
             onStart: async () => {
               events.push('integration-onStart');
@@ -23342,7 +23364,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         onError: () => {},
-        experimental_telemetry: {
+        telemetry: {
           integrations: {
             onStart: async () => {
               throw new Error('integration error');
@@ -23401,7 +23423,7 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
         onError: () => {},
-        experimental_telemetry: {
+        telemetry: {
           integrations: {
             onChunk: async event => {
               chunks.push(event.chunk as Record<string, unknown>);
@@ -23506,7 +23528,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         includeRawChunks: true,
         onError: () => {},
-        experimental_telemetry: {
+        telemetry: {
           integrations: {
             onChunk: async event => {
               chunks.push(event.chunk as Record<string, unknown>);
@@ -23550,7 +23572,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         onError: () => {},
-        experimental_telemetry: {
+        telemetry: {
           integrations: [
             {
               onStart: async () => {
