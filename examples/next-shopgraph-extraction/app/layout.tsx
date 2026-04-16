@@ -1,9 +1,9 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'ShopGraph Authenticated Extraction',
+  title: 'Product Extraction with Confidence Scoring',
   description:
-    'Authenticated product data extraction with per-field confidence scoring.',
+    'Extract product data from any URL with per-field confidence scores.',
 };
 
 export default function RootLayout({
