@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 const bedrock = createAmazonBedrock({
   // example fetch wrapper that logs the input to the API call:
-  fetch: async (url, options) => {
+  fetch: async (url: RequestInfo | URL, options?: RequestInit) => {
     console.log('URL', url);
     console.log('Headers', JSON.stringify(options!.headers, null, 2));
     console.log(

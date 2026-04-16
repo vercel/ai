@@ -10,6 +10,8 @@ export type GoogleVertexEmbeddingModelId =
   | 'text-multilingual-embedding-002'
   | 'text-embedding-004'
   | 'text-embedding-005'
+  | 'gemini-embedding-001'
+  | 'gemini-embedding-2-preview'
   | (string & {});
 
 export const googleVertexEmbeddingProviderOptions = z.object({

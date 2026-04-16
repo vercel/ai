@@ -1,5 +1,124 @@
 # @ai-sdk/azure
 
+## 2.0.104
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/openai@2.0.102
+
+## 2.0.103
+
+### Patch Changes
+
+- Updated dependencies [316517c]
+  - @ai-sdk/openai@2.0.101
+
+## 2.0.102
+
+### Patch Changes
+
+- Updated dependencies [216151a]
+  - @ai-sdk/openai@2.0.100
+
+## 2.0.101
+
+### Patch Changes
+
+- Updated dependencies [0aab803]
+  - @ai-sdk/openai@2.0.99
+
+## 2.0.100
+
+### Patch Changes
+
+- Updated dependencies [392dc94]
+  - @ai-sdk/openai@2.0.98
+
+## 2.0.99
+
+### Patch Changes
+
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+  - @ai-sdk/openai@2.0.97
+
+## 2.0.98
+
+### Patch Changes
+
+- Updated dependencies [e867b5c]
+  - @ai-sdk/openai@2.0.96
+
+## 2.0.97
+
+### Patch Changes
+
+- Updated dependencies [b08351e]
+  - @ai-sdk/openai@2.0.95
+
+## 2.0.96
+
+### Patch Changes
+
+- Updated dependencies [42815ac]
+  - @ai-sdk/openai@2.0.94
+
+## 2.0.95
+
+### Patch Changes
+
+- Updated dependencies [fa64d70]
+  - @ai-sdk/openai@2.0.93
+
+## 2.0.94
+
+### Patch Changes
+
+- Updated dependencies [c680a01]
+  - @ai-sdk/openai@2.0.92
+
+## 2.0.93
+
+### Patch Changes
+
+- Updated dependencies [6a0adb7]
+  - @ai-sdk/openai@2.0.91
+
+## 2.0.92
+
+### Patch Changes
+
+- Updated dependencies [20565b8]
+  - @ai-sdk/provider-utils@3.0.21
+  - @ai-sdk/openai@2.0.90
+
+## 2.0.91
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/openai@2.0.89
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [2352cdf]
+  - @ai-sdk/openai@2.0.88
+
+## 2.0.89
+
+### Patch Changes
+
+- Updated dependencies [72d76cc]
+  - @ai-sdk/openai@2.0.87
+
 ## 2.0.88
 
 ### Patch Changes
@@ -689,7 +808,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -702,7 +821,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1201,7 +1320,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1214,7 +1333,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

@@ -1,5 +1,115 @@
 # @ai-sdk/openai
 
+## 2.0.102
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
+## 2.0.101
+
+### Patch Changes
+
+- 316517c: Add `gpt-5.4-mini`, `gpt-5.4-mini-2026-03-17`, `gpt-5.4-nano`, and `gpt-5.4-nano-2026-03-17` models.
+
+## 2.0.100
+
+### Patch Changes
+
+- 216151a: fix(provider/openai): drop reasoning parts without encrypted content when store: false
+
+## 2.0.99
+
+### Patch Changes
+
+- 0aab803: feat(provider/openai): add `gpt-5.3-chat-latest`
+
+## 2.0.98
+
+### Patch Changes
+
+- 392dc94: feat(provider/openai): add GPT-5.4 model support
+
+## 2.0.97
+
+### Patch Changes
+
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+
+## 2.0.96
+
+### Patch Changes
+
+- e867b5c: Support `phase` parameter on Responses API message items. The `phase` field (`'commentary'` or `'final_answer'`) is returned by models like `gpt-5.3-codex` on assistant message output items and must be preserved when sending follow-up requests. The phase value is available in `providerMetadata.openai.phase` on text parts and is automatically included on assistant messages sent back to the API.
+
+## 2.0.95
+
+### Patch Changes
+
+- b08351e: fix(openai): allow null/undefined type in streaming tool call deltas
+
+  Azure AI Foundry and Mistral deployed on Azure omit the `type` field in
+  streaming tool_calls deltas. The chat stream parser now accepts a missing
+  `type` field (treating it as `"function"`) instead of throwing
+  `InvalidResponseDataError: Expected 'function' type.`
+
+  Fixes #12770
+
+## 2.0.94
+
+### Patch Changes
+
+- 42815ac: feat(provider/openai): add `gpt-5.3-codex`
+
+## 2.0.93
+
+### Patch Changes
+
+- fa64d70: fix(openai): change web search tool action to be optional
+
+## 2.0.92
+
+### Patch Changes
+
+- c680a01: fix(openai): add changeset and tests for per-image usage metadata
+
+## 2.0.91
+
+### Patch Changes
+
+- 6a0adb7: feat: differentiate text vs image input tokens
+
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [20565b8]
+  - @ai-sdk/provider-utils@3.0.21
+
+## 2.0.89
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.88
+
+### Patch Changes
+
+- 2352cdf: feat (provider/openai): add gpt-image-1.5 model support
+
+## 2.0.87
+
+### Patch Changes
+
+- 72d76cc: Add GPT-5.2 support for non-reasoning parameters (temperature, topP, logProbs) when reasoningEffort is none.
+
 ## 2.0.86
 
 ### Patch Changes
@@ -329,15 +439,15 @@
 - 1cfc209: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
 
   ```ts
-  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
-  import { generateText } from 'ai';
+  import { openai, type OpenAIChatLanguageModelOptions } from "@ai-sdk/openai";
+  import { generateText } from "ai";
 
   await generateText({
-    model: openai.chat('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: openai.chat("gpt-4o"),
+    prompt: "Invent a new holiday and describe its traditions.",
     providerOptions: {
       openai: {
-        user: 'user-123',
+        user: "user-123",
       } satisfies OpenAIChatLanguageModelOptions,
     },
   });
@@ -615,7 +725,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -628,7 +738,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -690,10 +800,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -1116,7 +1226,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1129,7 +1239,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1177,10 +1287,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

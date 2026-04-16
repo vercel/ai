@@ -293,6 +293,7 @@ describe('PerplexityLanguageModel', () => {
 
       expect(result.providerMetadata).toStrictEqual({
         perplexity: {
+          cost: null,
           images: [
             {
               imageUrl: 'https://example.com/image.jpg',
@@ -332,6 +333,7 @@ describe('PerplexityLanguageModel', () => {
 
       expect(result.providerMetadata).toEqual({
         perplexity: {
+          cost: null,
           images: null,
           usage: {
             citationTokens: 30,
@@ -497,6 +499,7 @@ describe('PerplexityLanguageModel', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "perplexity": {
+                "cost": null,
                 "images": null,
                 "usage": {
                   "citationTokens": null,
@@ -580,6 +583,7 @@ describe('PerplexityLanguageModel', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "perplexity": {
+                "cost": null,
                 "images": null,
                 "usage": {
                   "citationTokens": null,
@@ -672,6 +676,7 @@ describe('PerplexityLanguageModel', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "perplexity": {
+                "cost": null,
                 "images": [
                   {
                     "height": 100,
@@ -756,6 +761,7 @@ describe('PerplexityLanguageModel', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "perplexity": {
+                "cost": null,
                 "images": null,
                 "usage": {
                   "citationTokens": 30,
@@ -932,6 +938,7 @@ describe('PerplexityLanguageModel', () => {
             "finishReason": "unknown",
             "providerMetadata": {
               "perplexity": {
+                "cost": null,
                 "images": null,
                 "usage": {
                   "citationTokens": null,

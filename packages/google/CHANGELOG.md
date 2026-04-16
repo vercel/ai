@@ -1,5 +1,157 @@
 # @ai-sdk/google
 
+## 2.0.69
+
+### Patch Changes
+
+- bfaafad: chore(provider/google): update available models
+
+## 2.0.68
+
+### Patch Changes
+
+- 4c10694: fix(google): fix `serviceTier` to be correctly formatted for Vertex API
+
+## 2.0.67
+
+### Patch Changes
+
+- 84bbfee: feat(provider/google): preserve per-modality token details in usage data
+
+## 2.0.66
+
+### Patch Changes
+
+- d634323: fix(provider/google): fix Gemini service tier enum after upstream update
+
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
+## 2.0.64
+
+### Patch Changes
+
+- fd3f1d3: feat(provider/google): add support for service tier parameter
+
+## 2.0.63
+
+### Patch Changes
+
+- 7655bcf: feat(provider/google): Add multimodal tool-result support for Google function responses.
+
+  Tool results with `output.type = 'content'` now map media parts into
+  `functionResponse.parts` for Google models, including `image-data`,
+  `file-data`, and base64 `data:` URLs in URL-style content parts.
+  Remote HTTP(S) URLs in URL-style tool-result parts are not supported.
+
+## 2.0.62
+
+### Patch Changes
+
+- a608d48: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+
+## 2.0.61
+
+### Patch Changes
+
+- 3399b61: feat(provider/google): support multimodal content parts in embedding provider options
+
+## 2.0.60
+
+### Patch Changes
+
+- 3f0102b: fix(provider/google): make `segment` optional in `groundingSupports` schema
+
+  Backport of #12002. When using image search grounding, the Google API returns `groundingSupports` entries without a `segment` field, causing schema validation to fail with "Invalid JSON response".
+
+## 2.0.59
+
+### Patch Changes
+
+- 8cf6b86: fix(provider/google): preserve groundingMetadata and urlContextMetadata when they arrive in a stream chunk before the finishReason chunk
+
+## 2.0.58
+
+### Patch Changes
+
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+
+## 2.0.57
+
+### Patch Changes
+
+- 4dda2a3: feat(google): add support for image search, replace obsolete google_search_retrieval implementation
+
+## 2.0.56
+
+### Patch Changes
+
+- a1c0208: feat(provider/google): add support for new Google image model aspect ratios and sizes
+
+## 2.0.55
+
+### Patch Changes
+
+- 3749ed6: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
+## 2.0.54
+
+### Patch Changes
+
+- 5e921ed: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
+## 2.0.53
+
+### Patch Changes
+
+- Updated dependencies [20565b8]
+  - @ai-sdk/provider-utils@3.0.21
+
+## 2.0.52
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
+## 2.0.51
+
+### Patch Changes
+
+- cbc2dba: fix(provider/google): preserve nested empty object schemas and descriptions in tool parameters
+
+## 2.0.50
+
+### Patch Changes
+
+- 7c30c1d: fix(provider/google): preserve nested empty object schemas in tool parameters to fix "property is not defined" validation errors when using required properties with empty object types
+
+## 2.0.49
+
+### Patch Changes
+
+- 3ea80e7: feat(provider/google): add enterpriseWebSearch tool
+
+## 2.0.48
+
+### Patch Changes
+
+- 1bcc2d7: feat(google): gemini-3-flash
+
+## 2.0.47
+
+### Patch Changes
+
+- 0e182c5: Add Google Maps grounding tool support for location-aware Gemini responses
+
 ## 2.0.46
 
 ### Patch Changes
