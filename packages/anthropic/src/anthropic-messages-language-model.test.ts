@@ -201,21 +201,35 @@ describe('AnthropicMessagesLanguageModel', () => {
         `);
       });
 
-      it('should throw error when thinking type is enabled without budgetTokens', async () => {
+      it('should use default budget when thinking type is enabled without budgetTokens', async () => {
         prepareJsonResponse({
           content: [{ type: 'text', text: 'Hello, World!' }],
         });
 
-        await expect(
-          provider('claude-sonnet-4-5').doGenerate({
-            prompt: TEST_PROMPT,
-            providerOptions: {
-              anthropic: {
-                thinking: { type: 'enabled' },
-              } satisfies AnthropicProviderOptions,
-            },
-          }),
-        ).rejects.toThrow('thinking requires a budget');
+        const result = await provider('claude-sonnet-4-5').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              thinking: { type: 'enabled' },
+            } satisfies AnthropicProviderOptions,
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: {
+            type: 'enabled',
+            budget_tokens: 1024,
+          },
+        });
+
+        expect(result.warnings).toEqual([
+          {
+            type: 'other',
+            message:
+              'thinking budget is required when thinking is enabled. using default budget of 1024 tokens.',
+          },
+        ]);
       });
     });
 
@@ -1032,6 +1046,50 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
 
       expect(warnings).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should use default thinking budget when it is not set', async () => {
+      prepareJsonResponse({});
+
+      const { warnings } = await provider('claude-haiku-4-5').doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'enabled' },
+          } satisfies AnthropicProviderOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 64000,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-haiku-4-5",
+          "thinking": {
+            "budget_tokens": 1024,
+            "type": "enabled",
+          },
+        }
+      `);
+
+      expect(warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "message": "thinking budget is required when thinking is enabled. using default budget of 1024 tokens.",
+            "type": "other",
+          },
+        ]
+      `);
     });
 
     it('should pass tools and toolChoice', async () => {

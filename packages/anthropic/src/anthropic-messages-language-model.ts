@@ -11,7 +11,6 @@ import {
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -438,9 +437,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     if (isThinking) {
       if (thinkingType === 'enabled' && thinkingBudget == null) {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'thinking requires a budget',
+        warnings.push({
+          type: 'other',
+          message:
+            'thinking budget is required when thinking is enabled. using default budget of 1024 tokens.',
         });
+
+        baseArgs.thinking = {
+          type: 'enabled',
+          budget_tokens: 1024,
+        };
+
+        thinkingBudget = 1024;
       }
 
       if (baseArgs.temperature != null) {
