@@ -1,9 +1,6 @@
-import {
-  anthropic,
-  type AnthropicLanguageModelOptions,
-} from '@ai-sdk/anthropic';
+import { anthropic, type AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
@@ -13,7 +10,7 @@ run(async () => {
       anthropic: {
         thinking: { type: 'adaptive', display: 'summarized' },
         effort: 'xhigh',
-      } satisfies AnthropicLanguageModelOptions,
+      } satisfies AnthropicProviderOptions,
     },
   });
 
