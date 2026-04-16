@@ -260,7 +260,7 @@ The `speed` option accepts `'fast'` or `'standard'` (default behavior).
 Task budgets are advisory — they do not enforce a hard token limit. The model will attempt to stay within budget, but actual usage may vary.
 
 ```ts highlight="8-13"
-import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -272,7 +272,7 @@ const { text } = await generateText({
         type: 'tokens',
         total: 400000,
       },
-    } satisfies AnthropicLanguageModelOptions,
+    } satisfies AnthropicProviderOptions,
   },
 });
 ```
@@ -310,7 +310,7 @@ const { text, reasoningText, reasoning } = await generateText({
   providerOptions: {
     anthropic: {
       thinking: { type: 'adaptive' },
-    } satisfies AnthropicLanguageModelOptions,
+    } satisfies AnthropicProviderOptions,
   },
 });
 
@@ -329,7 +329,7 @@ const { text } = await generateText({
     anthropic: {
       thinking: { type: 'adaptive' },
       effort: 'max', // 'low' | 'medium' | 'high' | 'xhigh' | 'max'
-    } satisfies AnthropicLanguageModelOptions,
+    } satisfies AnthropicProviderOptions,
   },
 });
 ```
@@ -344,7 +344,7 @@ const { text, reasoningText } = await generateText({
   providerOptions: {
     anthropic: {
       thinking: { type: 'adaptive', display: 'summarized' },
-    } satisfies AnthropicLanguageModelOptions,
+    } satisfies AnthropicProviderOptions,
   },
   prompt: 'How many people will live in the world in 2040?',
 });
@@ -365,7 +365,7 @@ For earlier models (`claude-opus-4-20250514`, `claude-sonnet-4-20250514`, `claud
 use `type: 'enabled'` with an explicit token budget:
 
 ```ts highlight="4,8-10"
-import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoningText, reasoning } = await generateText({
