@@ -1,5 +1,63 @@
 # ai
 
+## 7.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [5df9b6f]
+  - @ai-sdk/gateway@4.0.0-beta.54
+
+## 7.0.0-beta.97
+
+### Patch Changes
+
+- 208d045: fix(ai): skip global telemetry registration when local integration defined
+
+## 7.0.0-beta.96
+
+### Patch Changes
+
+- Updated dependencies [0457e45]
+  - @ai-sdk/gateway@4.0.0-beta.53
+
+## 7.0.0-beta.95
+
+### Patch Changes
+
+- c4f4b5f: refactoring(ai): remove deprecated experimental_activeTools option
+
+## 7.0.0-beta.94
+
+### Patch Changes
+
+- 1582efa: chore(ai): remove the metadata field from the telemetry settings
+
+## 7.0.0-beta.93
+
+### Patch Changes
+
+- bc47739: chore(ai): cleanup telemetry event data
+
+## 7.0.0-beta.92
+
+### Patch Changes
+
+- Updated dependencies [ba2e254]
+  - @ai-sdk/gateway@4.0.0-beta.52
+
+## 7.0.0-beta.91
+
+### Patch Changes
+
+- Updated dependencies [cdcdec2]
+  - @ai-sdk/gateway@4.0.0-beta.51
+
+## 7.0.0-beta.90
+
+### Patch Changes
+
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+
 ## 7.0.0-beta.89
 
 ### Patch Changes

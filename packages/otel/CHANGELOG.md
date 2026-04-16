@@ -1,5 +1,66 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.44
+
+### Patch Changes
+
+- ai@7.0.0-beta.98
+
+## 1.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [208d045]
+  - ai@7.0.0-beta.97
+
+## 1.0.0-beta.42
+
+### Patch Changes
+
+- ai@7.0.0-beta.96
+
+## 1.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [c4f4b5f]
+  - ai@7.0.0-beta.95
+
+## 1.0.0-beta.40
+
+### Patch Changes
+
+- 1582efa: chore(ai): remove the metadata field from the telemetry settings
+- Updated dependencies [1582efa]
+  - ai@7.0.0-beta.94
+
+## 1.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [bc47739]
+  - ai@7.0.0-beta.93
+
+## 1.0.0-beta.38
+
+### Patch Changes
+
+- ai@7.0.0-beta.92
+
+## 1.0.0-beta.37
+
+### Patch Changes
+
+- ai@7.0.0-beta.91
+
+## 1.0.0-beta.36
+
+### Patch Changes
+
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+- Updated dependencies [1db29c8]
+  - ai@7.0.0-beta.90
+
 ## 1.0.0-beta.35
 
 ### Patch Changes

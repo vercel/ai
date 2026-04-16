@@ -164,6 +164,28 @@ Potential breaking issues:
 - If you have helper types or wrappers that assumed `experimental_context` or `context` was `unknown`, update them to accept a generic `CONTEXT` type.
 - If you were relying on a tool callback seeing the entire runtime context object, that code may need to move to `prepareStep` or the tool's `contextSchema` may need to be expanded to include the required fields.
 
+### Tools: Remove Deprecated `experimental_activeTools` Option
+
+The deprecated `experimental_activeTools` option has been removed in AI SDK 7. Replace all remaining usages with `activeTools`.
+
+This option was deprecated in AI SDK 5, so if you already migrated to `activeTools`, no changes are needed. Otherwise, update both `generateText` and `streamText` calls:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  experimental_activeTools: ['weather'],
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  activeTools: ['weather'],
+});
+```
+
 ### Tools: Remove Deprecated `ToolCallOptions` Type
 
 The deprecated `ToolCallOptions` type has been removed in AI SDK 7. Replace all remaining usages with `ToolExecutionOptions`.
@@ -250,6 +272,15 @@ The new top-level `reasoning` option is the provider-agnostic way to control rea
 When migrating to the top-level `reasoning` option, remove overlapping reasoning settings from `providerOptions`.
 
 If both are present, provider-specific reasoning settings in `providerOptions` take precedence, which can silently bypass your new top-level `reasoning` configuration.
+
+### Settings: `CallSettings` Renamed to `LanguageModelCallOptions` and `RequestOptions`
+
+`CallSettings` has been split into `LanguageModelCallOptions` (model-facing options) and `RequestOptions` (transport options). Replace usages in custom wrappers or helpers:
+
+- `CallSettings` → `LanguageModelCallOptions & Omit<RequestOptions, 'timeout'>` (note: `CallSettings` never included `timeout`)
+- `prepareCallSettings` → `prepareLanguageModelCallOptions`
+
+Both deprecated names remain available in AI SDK 7.
 
 ### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
 

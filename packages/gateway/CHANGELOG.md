@@ -1,5 +1,29 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- 5df9b6f: feat (provider/gateway): make model list resilient to unknown model types
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- 0457e45: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- ba2e254: fix (provider/gateway): add 'reranking' to modelType validation schema and type so getAvailableModels() accepts reranking models from the gateway API
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- cdcdec2: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.0-beta.50
 
 ### Patch Changes

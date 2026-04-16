@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- 8d87577: fix(xai): support encrypted reasoning round-trip for ZDR
+
 ## 4.0.0-beta.36
 
 ### Patch Changes

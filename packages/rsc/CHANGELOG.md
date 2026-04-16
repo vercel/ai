@@ -1,5 +1,65 @@
 # @ai-sdk/rsc
 
+## 3.0.0-beta.99
+
+### Patch Changes
+
+- ai@7.0.0-beta.98
+
+## 3.0.0-beta.98
+
+### Patch Changes
+
+- Updated dependencies [208d045]
+  - ai@7.0.0-beta.97
+
+## 3.0.0-beta.97
+
+### Patch Changes
+
+- ai@7.0.0-beta.96
+
+## 3.0.0-beta.96
+
+### Patch Changes
+
+- Updated dependencies [c4f4b5f]
+  - ai@7.0.0-beta.95
+
+## 3.0.0-beta.95
+
+### Patch Changes
+
+- Updated dependencies [1582efa]
+  - ai@7.0.0-beta.94
+
+## 3.0.0-beta.94
+
+### Patch Changes
+
+- Updated dependencies [bc47739]
+  - ai@7.0.0-beta.93
+
+## 3.0.0-beta.93
+
+### Patch Changes
+
+- ai@7.0.0-beta.92
+
+## 3.0.0-beta.92
+
+### Patch Changes
+
+- ai@7.0.0-beta.91
+
+## 3.0.0-beta.91
+
+### Patch Changes
+
+- 1db29c8: feat(ai): break `CallSettings` apart into `LanguageModelCallOptions` and `RequestOptions`
+- Updated dependencies [1db29c8]
+  - ai@7.0.0-beta.90
+
 ## 3.0.0-beta.90
 
 ### Patch Changes

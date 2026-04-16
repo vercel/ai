@@ -45,9 +45,6 @@ const weatherAgent = new ToolLoopAgent({
   experimental_telemetry: {
     isEnabled: true,
     functionId: 'weather-comparison-agent',
-    metadata: {
-      environment: 'demo',
-    },
   },
 });
 

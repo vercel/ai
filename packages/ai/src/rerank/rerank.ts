@@ -133,14 +133,12 @@ export async function rerank<VALUE extends JSONObject | string>({
         query,
         topN,
         maxRetries: maxRetriesArg ?? 2,
-        abortSignal,
         headers,
         providerOptions,
         isEnabled: telemetry?.isEnabled,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata,
       },
       callbacks: [onStart, unifiedTelemetry.onStart],
     });
@@ -164,7 +162,6 @@ export async function rerank<VALUE extends JSONObject | string>({
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata,
       },
       callbacks: [onFinish, unifiedTelemetry.onFinish],
     });
@@ -200,14 +197,12 @@ export async function rerank<VALUE extends JSONObject | string>({
       query,
       topN,
       maxRetries,
-      abortSignal,
       headers,
       providerOptions,
       isEnabled: telemetry?.isEnabled,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
     },
     callbacks: [onStart, unifiedTelemetry.onStart],
   });
@@ -229,7 +224,6 @@ export async function rerank<VALUE extends JSONObject | string>({
             recordInputs: telemetry?.recordInputs,
             recordOutputs: telemetry?.recordOutputs,
             functionId: telemetry?.functionId,
-            metadata: telemetry?.metadata,
           },
           callbacks: [unifiedTelemetry.onRerankStart],
         });
@@ -298,7 +292,6 @@ export async function rerank<VALUE extends JSONObject | string>({
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata,
       },
       callbacks: [onFinish, unifiedTelemetry.onFinish],
     });

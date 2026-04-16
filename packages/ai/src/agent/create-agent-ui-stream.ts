@@ -1,7 +1,7 @@
 import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import { TimeoutConfiguration } from '../prompt/call-settings';
+import { TimeoutConfiguration } from '../prompt/request-options';
 import { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import { InferUITools, UIMessage } from '../ui/ui-messages';

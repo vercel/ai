@@ -1,4 +1,3 @@
-import type { JSONValue } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { Embedding, ProviderMetadata } from '../types';
 import type { EmbeddingModelUsage } from '../types/usage';
@@ -28,9 +27,6 @@ export interface EmbedOnStartEvent {
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
 
@@ -48,9 +44,6 @@ export interface EmbedOnStartEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -103,9 +96,6 @@ export interface EmbedOnFinishEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -144,9 +134,6 @@ export interface EmbedStartEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**

@@ -1,11 +1,8 @@
-import type { JSONValue } from '@ai-sdk/provider';
 import type { TelemetryIntegration } from './telemetry-integration';
 
 /**
  * Telemetry configuration.
  */
-// This is meant to be both flexible for custom app requirements (metadata)
-// and extensible for standardization (example: functionId, more to come).
 export type TelemetrySettings = {
   /**
    * Enable or disable telemetry. Disabled by default while experimental.
@@ -34,15 +31,10 @@ export type TelemetrySettings = {
   functionId?: string;
 
   /**
-   * Additional information to include in the telemetry data.
-   */
-  metadata?: Record<string, JSONValue>;
-
-  /**
    * Per-call telemetry integrations that receive lifecycle events during generation.
    *
-   * These integrations run after any globally registered integrations
-   * (see `registerTelemetryIntegration`).
+   * When provided, these integrations will take precedence over the globally registered
+   * integrations for this call.
    */
   integrations?: TelemetryIntegration | TelemetryIntegration[];
 };

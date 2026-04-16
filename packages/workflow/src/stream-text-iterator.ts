@@ -5,9 +5,9 @@ import type {
 } from '@ai-sdk/provider';
 import type {
   Experimental_LanguageModelStreamPart as ModelCallStreamPart,
+  LanguageModel,
   ModelMessage,
   StepResult,
-  StreamTextOnStepFinishCallback,
   ToolCallRepairFunction,
   ToolChoice,
   ToolSet,
@@ -22,11 +22,11 @@ import { serializeToolSet } from './serializable-schema.js';
 import type {
   GenerationSettings,
   PrepareStepCallback,
-  StreamTextOnErrorCallback,
+  WorkflowAgentOnErrorCallback,
+  WorkflowAgentOnStepFinishCallback,
   TelemetrySettings,
   WorkflowAgentOnStepStartCallback,
 } from './workflow-agent.js';
-import type { CompatibleLanguageModel } from './types.js';
 
 // Re-export for consumers
 export type { ProviderExecutedToolResult } from './do-stream-step.js';
@@ -71,15 +71,12 @@ export async function* streamTextIterator({
   prompt: LanguageModelV4Prompt;
   tools: ToolSet;
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
-  model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model: LanguageModel;
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
   maxSteps?: number;
-  onStepFinish?: StreamTextOnStepFinishCallback<any, any>;
+  onStepFinish?: WorkflowAgentOnStepFinishCallback<any>;
   onStepStart?: WorkflowAgentOnStepStartCallback;
-  onError?: StreamTextOnErrorCallback;
+  onError?: WorkflowAgentOnErrorCallback;
   prepareStep?: PrepareStepCallback<any>;
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
@@ -94,10 +91,7 @@ export async function* streamTextIterator({
   LanguageModelV4ToolResultPart[]
 > {
   let conversationPrompt = [...prompt]; // Create a mutable copy
-  let currentModel:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>) = model;
+  let currentModel: LanguageModel = model;
   let currentGenerationSettings = generationSettings ?? {};
   let currentToolChoice = toolChoice;
   let currentContext = experimental_context;
@@ -248,6 +242,7 @@ export async function* streamTextIterator({
         stepNumber,
         model: currentModel,
         messages: conversationPrompt as unknown as ModelMessage[],
+        steps: [...steps],
       });
     }
 

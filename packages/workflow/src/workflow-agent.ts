@@ -21,6 +21,7 @@ import {
   type ToolChoice,
   type ToolSet,
   type UIMessage,
+  LanguageModel,
 } from 'ai';
 import {
   convertToLanguageModelPrompt,
@@ -33,6 +34,15 @@ import type { CompatibleLanguageModel } from './types.js';
 
 // Re-export for consumers
 export type { CompatibleLanguageModel } from './types.js';
+
+/**
+ * Callback function to be called after each step completes.
+ * Alias for the AI SDK's StreamTextOnStepFinishCallback, using
+ * WorkflowAgent-consistent naming.
+ */
+export type WorkflowAgentOnStepFinishCallback<
+  TTools extends ToolSet = ToolSet,
+> = StreamTextOnStepFinishCallback<TTools, any>;
 
 /**
  * Infer the type of the tools of a workflow agent.
@@ -248,10 +258,7 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
    * The current model configuration (string or function).
    * The function should return a LanguageModelV4 instance.
    */
-  model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model: LanguageModel;
 
   /**
    * The current step number (0-indexed).
@@ -282,12 +289,8 @@ export interface PrepareStepInfo<TTools extends ToolSet = ToolSet> {
 export interface PrepareStepResult extends Partial<GenerationSettings> {
   /**
    * Override the model for this step.
-   * The function should return a LanguageModelV4 instance.
    */
-  model?:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model?: LanguageModel;
 
   /**
    * Override the system message for this step.
@@ -332,10 +335,7 @@ export type PrepareStepCallback<TTools extends ToolSet = ToolSet> = (
 export interface PrepareCallOptions<
   TTools extends ToolSet = ToolSet,
 > extends Partial<GenerationSettings> {
-  model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model: LanguageModel;
   tools: TTools;
   instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
   toolChoice?: ToolChoice<TTools>;
@@ -368,15 +368,17 @@ export interface WorkflowAgentOptions<
   TTools extends ToolSet = ToolSet,
 > extends GenerationSettings {
   /**
+   * The id of the agent.
+   */
+  id?: string;
+
+  /**
    * The model provider to use for the agent.
    *
    * This should be a string compatible with the Vercel AI Gateway (e.g., 'anthropic/claude-opus'),
-   * or a step function that returns a LanguageModelV4 instance.
+   * or a LanguageModelV4 instance from a provider.
    */
-  model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  model: LanguageModel;
 
   /**
    * A set of tools available to the agent.
@@ -417,6 +419,46 @@ export interface WorkflowAgentOptions<
   experimental_context?: unknown;
 
   /**
+   * Default stop condition for the agent loop. When the condition is an array,
+   * any of the conditions can be met to stop the generation.
+   *
+   * Per-stream `stopWhen` values passed to `stream()` override this default.
+   */
+  stopWhen?:
+    | StopCondition<NoInfer<ToolSet>, any>
+    | Array<StopCondition<NoInfer<ToolSet>, any>>;
+
+  /**
+   * Default set of active tools that limits which tools the model can call,
+   * without changing the tool call and result types in the result.
+   *
+   * Per-stream `activeTools` values passed to `stream()` override this default.
+   */
+  activeTools?: Array<keyof NoInfer<TTools>>;
+
+  /**
+   * Default output specification for structured outputs.
+   * Use `Output.object({ schema })` for structured output or `Output.text()` for text output.
+   *
+   * Per-stream `output` values passed to `stream()` override this default.
+   */
+  output?: OutputSpecification<any, any>;
+
+  /**
+   * Default function that attempts to repair a tool call that failed to parse.
+   *
+   * Per-stream `experimental_repairToolCall` values passed to `stream()` override this default.
+   */
+  experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
+
+  /**
+   * Default custom download function to use for URLs.
+   *
+   * Per-stream `experimental_download` values passed to `stream()` override this default.
+   */
+  experimental_download?: DownloadFunction;
+
+  /**
    * Default callback function called before each step in the agent loop.
    * Use this to modify settings, manage context, or inject messages dynamically
    * for every stream call on this agent instance.
@@ -428,12 +470,12 @@ export interface WorkflowAgentOptions<
   /**
    * Callback function to be called after each step completes.
    */
-  onStepFinish?: StreamTextOnStepFinishCallback<ToolSet, any>;
+  onStepFinish?: WorkflowAgentOnStepFinishCallback<ToolSet>;
 
   /**
    * Callback that is called when the LLM response and all request tool executions are finished.
    */
-  onFinish?: StreamTextOnFinishCallback<ToolSet>;
+  onFinish?: WorkflowAgentOnFinishCallback<ToolSet>;
 
   /**
    * Callback called when the agent starts streaming, before any LLM calls.
@@ -466,7 +508,7 @@ export interface WorkflowAgentOptions<
 /**
  * Callback that is called when the LLM response and all request tool executions are finished.
  */
-export type StreamTextOnFinishCallback<
+export type WorkflowAgentOnFinishCallback<
   TTools extends ToolSet = ToolSet,
   OUTPUT = never,
 > = (event: {
@@ -510,14 +552,14 @@ export type StreamTextOnFinishCallback<
 /**
  * Callback that is invoked when an error occurs during streaming.
  */
-export type StreamTextOnErrorCallback = (event: {
+export type WorkflowAgentOnErrorCallback = (event: {
   error: unknown;
 }) => PromiseLike<void> | void;
 
 /**
  * Callback that is set using the `onAbort` option.
  */
-export type StreamTextOnAbortCallback<TTools extends ToolSet = ToolSet> =
+export type WorkflowAgentOnAbortCallback<TTools extends ToolSet = ToolSet> =
   (event: {
     /**
      * Details for all previously finished steps.
@@ -530,10 +572,7 @@ export type StreamTextOnAbortCallback<TTools extends ToolSet = ToolSet> =
  */
 export type WorkflowAgentOnStartCallback = (event: {
   /** The model being used */
-  readonly model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  readonly model: LanguageModel;
   /** The messages being sent */
   readonly messages: ModelMessage[];
 }) => PromiseLike<void> | void;
@@ -541,17 +580,17 @@ export type WorkflowAgentOnStartCallback = (event: {
 /**
  * Callback that is called before each step (LLM call) begins.
  */
-export type WorkflowAgentOnStepStartCallback = (event: {
-  /** The current step number (0-based) */
-  readonly stepNumber: number;
-  /** The model being used for this step */
-  readonly model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
-  /** The messages being sent for this step */
-  readonly messages: ModelMessage[];
-}) => PromiseLike<void> | void;
+export type WorkflowAgentOnStepStartCallback<TTools extends ToolSet = ToolSet> =
+  (event: {
+    /** The current step number (0-based) */
+    readonly stepNumber: number;
+    /** The model being used for this step */
+    readonly model: LanguageModel;
+    /** The messages being sent for this step */
+    readonly messages: ModelMessage[];
+    /** Results from all previously finished steps */
+    readonly steps: ReadonlyArray<StepResult<TTools, any>>;
+  }) => PromiseLike<void> | void;
 
 /**
  * Callback that is called before a tool's execute function runs.
@@ -559,235 +598,287 @@ export type WorkflowAgentOnStepStartCallback = (event: {
 export type WorkflowAgentOnToolCallStartCallback = (event: {
   /** The tool call being executed */
   readonly toolCall: ToolCall;
+  /** The current step number (0-based) */
+  readonly stepNumber: number;
 }) => PromiseLike<void> | void;
 
 /**
  * Callback that is called after a tool execution completes.
+ * Uses a discriminated union pattern: check `success` to determine
+ * whether `output` or `error` is available.
  */
-export type WorkflowAgentOnToolCallFinishCallback = (event: {
-  /** The tool call that was executed */
-  readonly toolCall: ToolCall;
-  /** The tool result (undefined if execution failed) */
-  readonly result?: unknown;
-  /** The error if execution failed */
-  readonly error?: unknown;
-}) => PromiseLike<void> | void;
+export type WorkflowAgentOnToolCallFinishCallback = (
+  event:
+    | {
+        /** The tool call that was executed */
+        readonly toolCall: ToolCall;
+        /** The current step number (0-based) */
+        readonly stepNumber: number;
+        /** Execution time in milliseconds */
+        readonly durationMs: number;
+        /** Whether the tool call succeeded */
+        readonly success: true;
+        /** The tool result */
+        readonly output: unknown;
+        readonly error?: never;
+      }
+    | {
+        /** The tool call that was executed */
+        readonly toolCall: ToolCall;
+        /** The current step number (0-based) */
+        readonly stepNumber: number;
+        /** Execution time in milliseconds */
+        readonly durationMs: number;
+        /** Whether the tool call succeeded */
+        readonly success: false;
+        /** The error that occurred */
+        readonly error: unknown;
+        readonly output?: never;
+      },
+) => PromiseLike<void> | void;
 
 /**
  * Options for the {@link WorkflowAgent.stream} method.
  */
-export interface WorkflowAgentStreamOptions<
+export type WorkflowAgentStreamOptions<
   TTools extends ToolSet = ToolSet,
   OUTPUT = never,
   PARTIAL_OUTPUT = never,
-> extends Partial<GenerationSettings> {
-  /**
-   * The conversation messages to process. Should follow the AI SDK's ModelMessage format.
-   */
-  messages: ModelMessage[];
+> = Partial<GenerationSettings> &
+  (
+    | {
+        /**
+         * A prompt. It can be either a text prompt or a list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        prompt: string | Array<ModelMessage>;
 
-  /**
-   * Optional system prompt override. If provided, overrides the system prompt from the constructor.
-   */
-  system?: string;
+        /**
+         * A list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        messages?: never;
+      }
+    | {
+        /**
+         * The conversation messages to process. Should follow the AI SDK's ModelMessage format.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        messages: Array<ModelMessage>;
 
-  /**
-   * A WritableStream that receives raw LanguageModelV4StreamPart chunks in real-time
-   * as the model generates them. This enables streaming to the client without
-   * coupling WorkflowAgent to UIMessageChunk format.
-   *
-   * Convert to UIMessageChunks at the response boundary using
-   * `createUIMessageChunkTransform()` from `@ai-sdk/workflow`.
-   *
-   * @example
-   * ```typescript
-   * // In the workflow:
-   * await agent.stream({
-   *   messages,
-   *   writable: getWritable<ModelCallStreamPart>(),
-   * });
-   *
-   * // In the route handler:
-   * return createUIMessageStreamResponse({
-   *   stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
-   * });
-   * ```
-   */
-  writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
+        /**
+         * A prompt. It can be either a text prompt or a list of messages.
+         *
+         * You can either use `prompt` or `messages` but not both.
+         */
+        prompt?: never;
+      }
+  ) & {
+    /**
+     * Optional system prompt override. If provided, overrides the system prompt from the constructor.
+     */
+    system?: string;
 
-  /**
-   * Condition for stopping the generation when there are tool results in the last step.
-   * When the condition is an array, any of the conditions can be met to stop the generation.
-   */
-  stopWhen?:
-    | StopCondition<NoInfer<ToolSet>, any>
-    | Array<StopCondition<NoInfer<ToolSet>, any>>;
+    /**
+     * A WritableStream that receives raw LanguageModelV4StreamPart chunks in real-time
+     * as the model generates them. This enables streaming to the client without
+     * coupling WorkflowAgent to UIMessageChunk format.
+     *
+     * Convert to UIMessageChunks at the response boundary using
+     * `createUIMessageChunkTransform()` from `@ai-sdk/workflow`.
+     *
+     * @example
+     * ```typescript
+     * // In the workflow:
+     * await agent.stream({
+     *   messages,
+     *   writable: getWritable<ModelCallStreamPart>(),
+     * });
+     *
+     * // In the route handler:
+     * return createUIMessageStreamResponse({
+     *   stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
+     * });
+     * ```
+     */
+    writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
 
-  /**
-   * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-   * A maximum number can be set to prevent infinite loops in the case of misconfigured tools.
-   * By default, it's unlimited (the agent loops until completion).
-   */
-  maxSteps?: number;
+    /**
+     * Condition for stopping the generation when there are tool results in the last step.
+     * When the condition is an array, any of the conditions can be met to stop the generation.
+     */
+    stopWhen?:
+      | StopCondition<NoInfer<ToolSet>, any>
+      | Array<StopCondition<NoInfer<ToolSet>, any>>;
 
-  /**
-   * The tool choice strategy. Default: 'auto'.
-   * Overrides the toolChoice from the constructor if provided.
-   */
-  toolChoice?: ToolChoice<TTools>;
+    /**
+     * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
+     * A maximum number can be set to prevent infinite loops in the case of misconfigured tools.
+     * By default, it's unlimited (the agent loops until completion).
+     */
+    maxSteps?: number;
 
-  /**
-   * Limits the tools that are available for the model to call without
-   * changing the tool call and result types in the result.
-   */
-  activeTools?: Array<keyof NoInfer<TTools>>;
+    /**
+     * The tool choice strategy. Default: 'auto'.
+     * Overrides the toolChoice from the constructor if provided.
+     */
+    toolChoice?: ToolChoice<TTools>;
 
-  /**
-   * Optional telemetry configuration (experimental).
-   */
-  experimental_telemetry?: TelemetrySettings;
+    /**
+     * Limits the tools that are available for the model to call without
+     * changing the tool call and result types in the result.
+     */
+    activeTools?: Array<keyof NoInfer<TTools>>;
 
-  /**
-   * Context that is passed into tool execution.
-   * Experimental (can break in patch releases).
-   * @default undefined
-   */
-  experimental_context?: unknown;
+    /**
+     * Optional telemetry configuration (experimental).
+     */
+    experimental_telemetry?: TelemetrySettings;
 
-  /**
-   * Optional specification for parsing structured outputs from the LLM response.
-   * Use `Output.object({ schema })` for structured output or `Output.text()` for text output.
-   *
-   * @example
-   * ```typescript
-   * import { Output } from '@workflow/ai';
-   * import { z } from 'zod';
-   *
-   * const result = await agent.stream({
-   *   messages: [...],
-   *   writable: getWritable(),
-   *   output: Output.object({
-   *     schema: z.object({
-   *       sentiment: z.enum(['positive', 'negative', 'neutral']),
-   *       confidence: z.number(),
-   *     }),
-   *   }),
-   * });
-   *
-   * console.log(result.output); // { sentiment: 'positive', confidence: 0.95 }
-   * ```
-   */
-  output?: OutputSpecification<OUTPUT, PARTIAL_OUTPUT>;
+    /**
+     * Context that is passed into tool execution.
+     * Experimental (can break in patch releases).
+     * @default undefined
+     */
+    experimental_context?: unknown;
 
-  /**
-   * Whether to include raw chunks from the provider in the stream.
-   * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
-   * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
-   * Defaults to false.
-   */
-  includeRawChunks?: boolean;
+    /**
+     * Optional specification for parsing structured outputs from the LLM response.
+     * Use `Output.object({ schema })` for structured output or `Output.text()` for text output.
+     *
+     * @example
+     * ```typescript
+     * import { Output } from '@workflow/ai';
+     * import { z } from 'zod';
+     *
+     * const result = await agent.stream({
+     *   messages: [...],
+     *   writable: getWritable(),
+     *   output: Output.object({
+     *     schema: z.object({
+     *       sentiment: z.enum(['positive', 'negative', 'neutral']),
+     *       confidence: z.number(),
+     *     }),
+     *   }),
+     * });
+     *
+     * console.log(result.output); // { sentiment: 'positive', confidence: 0.95 }
+     * ```
+     */
+    output?: OutputSpecification<OUTPUT, PARTIAL_OUTPUT>;
 
-  /**
-   * A function that attempts to repair a tool call that failed to parse.
-   */
-  experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
+    /**
+     * Whether to include raw chunks from the provider in the stream.
+     * When enabled, you will receive raw chunks with type 'raw' that contain the unprocessed data from the provider.
+     * This allows access to cutting-edge provider features not yet wrapped by the AI SDK.
+     * Defaults to false.
+     */
+    includeRawChunks?: boolean;
 
-  /**
-   * Optional stream transformations.
-   * They are applied in the order they are provided.
-   * The stream transformations must maintain the stream structure for streamText to work correctly.
-   */
-  experimental_transform?:
-    | StreamTextTransform<TTools>
-    | Array<StreamTextTransform<TTools>>;
+    /**
+     * A function that attempts to repair a tool call that failed to parse.
+     */
+    experimental_repairToolCall?: ToolCallRepairFunction<TTools>;
 
-  /**
-   * Custom download function to use for URLs.
-   * By default, files are downloaded if the model does not support the URL for the given media type.
-   */
-  experimental_download?: DownloadFunction;
+    /**
+     * Optional stream transformations.
+     * They are applied in the order they are provided.
+     * The stream transformations must maintain the stream structure for streamText to work correctly.
+     */
+    experimental_transform?:
+      | StreamTextTransform<TTools>
+      | Array<StreamTextTransform<TTools>>;
 
-  /**
-   * Callback function to be called after each step completes.
-   */
-  onStepFinish?: StreamTextOnStepFinishCallback<TTools, any>;
+    /**
+     * Custom download function to use for URLs.
+     * By default, files are downloaded if the model does not support the URL for the given media type.
+     */
+    experimental_download?: DownloadFunction;
 
-  /**
-   * Callback that is invoked when an error occurs during streaming.
-   * You can use it to log errors.
-   */
-  onError?: StreamTextOnErrorCallback;
+    /**
+     * Callback function to be called after each step completes.
+     */
+    onStepFinish?: WorkflowAgentOnStepFinishCallback<TTools>;
 
-  /**
-   * Callback that is called when the LLM response and all request tool executions
-   * (for tools that have an `execute` function) are finished.
-   */
-  onFinish?: StreamTextOnFinishCallback<TTools, OUTPUT>;
+    /**
+     * Callback that is invoked when an error occurs during streaming.
+     * You can use it to log errors.
+     */
+    onError?: WorkflowAgentOnErrorCallback;
 
-  /**
-   * Callback that is called when the operation is aborted.
-   */
-  onAbort?: StreamTextOnAbortCallback<TTools>;
+    /**
+     * Callback that is called when the LLM response and all request tool executions
+     * (for tools that have an `execute` function) are finished.
+     */
+    onFinish?: WorkflowAgentOnFinishCallback<TTools, OUTPUT>;
 
-  /**
-   * Callback called when the agent starts streaming, before any LLM calls.
-   */
-  experimental_onStart?: WorkflowAgentOnStartCallback;
+    /**
+     * Callback that is called when the operation is aborted.
+     */
+    onAbort?: WorkflowAgentOnAbortCallback<TTools>;
 
-  /**
-   * Callback called before each step (LLM call) begins.
-   */
-  experimental_onStepStart?: WorkflowAgentOnStepStartCallback;
+    /**
+     * Callback called when the agent starts streaming, before any LLM calls.
+     */
+    experimental_onStart?: WorkflowAgentOnStartCallback;
 
-  /**
-   * Callback called before a tool's execute function runs.
-   */
-  experimental_onToolCallStart?: WorkflowAgentOnToolCallStartCallback;
+    /**
+     * Callback called before each step (LLM call) begins.
+     */
+    experimental_onStepStart?: WorkflowAgentOnStepStartCallback;
 
-  /**
-   * Callback called after a tool execution completes.
-   */
-  experimental_onToolCallFinish?: WorkflowAgentOnToolCallFinishCallback;
+    /**
+     * Callback called before a tool's execute function runs.
+     */
+    experimental_onToolCallStart?: WorkflowAgentOnToolCallStartCallback;
 
-  /**
-   * Callback function called before each step in the agent loop.
-   * Use this to modify settings, manage context, or inject messages dynamically.
-   *
-   * @example
-   * ```typescript
-   * prepareStep: async ({ messages, stepNumber }) => {
-   *   // Inject messages from a queue
-   *   const queuedMessages = await getQueuedMessages();
-   *   if (queuedMessages.length > 0) {
-   *     return {
-   *       messages: [...messages, ...queuedMessages],
-   *     };
-   *   }
-   *   return {};
-   * }
-   * ```
-   */
-  prepareStep?: PrepareStepCallback<TTools>;
+    /**
+     * Callback called after a tool execution completes.
+     */
+    experimental_onToolCallFinish?: WorkflowAgentOnToolCallFinishCallback;
 
-  /**
-   * Timeout in milliseconds for the stream operation.
-   * When specified, creates an AbortSignal that will abort the operation after the given time.
-   * If both `timeout` and `abortSignal` are provided, whichever triggers first will abort.
-   */
-  timeout?: number;
+    /**
+     * Callback function called before each step in the agent loop.
+     * Use this to modify settings, manage context, or inject messages dynamically.
+     *
+     * @example
+     * ```typescript
+     * prepareStep: async ({ messages, stepNumber }) => {
+     *   // Inject messages from a queue
+     *   const queuedMessages = await getQueuedMessages();
+     *   if (queuedMessages.length > 0) {
+     *     return {
+     *       messages: [...messages, ...queuedMessages],
+     *     };
+     *   }
+     *   return {};
+     * }
+     * ```
+     */
+    prepareStep?: PrepareStepCallback<TTools>;
 
-  /**
-   * Whether to send a 'finish' chunk to the writable stream when streaming completes.
-   * @default true
-   */
-  sendFinish?: boolean;
+    /**
+     * Timeout in milliseconds for the stream operation.
+     * When specified, creates an AbortSignal that will abort the operation after the given time.
+     * If both `timeout` and `abortSignal` are provided, whichever triggers first will abort.
+     */
+    timeout?: number;
 
-  /**
-   * Whether to prevent the writable stream from being closed after streaming completes.
-   * @default false
-   */
-  preventClose?: boolean;
-}
+    /**
+     * Whether to send a 'finish' chunk to the writable stream when streaming completes.
+     * @default true
+     */
+    sendFinish?: boolean;
+
+    /**
+     * Whether to prevent the writable stream from being closed after streaming completes.
+     * @default false
+     */
+    preventClose?: boolean;
+  };
 
 /**
  * A tool call made by the model. Matches the AI SDK's tool call shape.
@@ -898,10 +989,12 @@ export interface WorkflowAgentStreamResult<
  * ```
  */
 export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
-  private model:
-    | string
-    | CompatibleLanguageModel
-    | (() => Promise<CompatibleLanguageModel>);
+  /**
+   * The id of the agent.
+   */
+  public readonly id: string | undefined;
+
+  private model: LanguageModel;
   /**
    * The tool set configured for this agent.
    */
@@ -914,12 +1007,16 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private toolChoice?: ToolChoice<TBaseTools>;
   private telemetry?: TelemetrySettings;
   private experimentalContext: unknown;
+  private stopWhen?:
+    | StopCondition<ToolSet, any>
+    | Array<StopCondition<ToolSet, any>>;
+  private activeTools?: Array<keyof TBaseTools>;
+  private output?: OutputSpecification<any, any>;
+  private experimentalRepairToolCall?: ToolCallRepairFunction<TBaseTools>;
+  private experimentalDownload?: DownloadFunction;
   private prepareStep?: PrepareStepCallback<TBaseTools>;
-  private constructorOnStepFinish?: StreamTextOnStepFinishCallback<
-    ToolSet,
-    any
-  >;
-  private constructorOnFinish?: StreamTextOnFinishCallback<ToolSet>;
+  private constructorOnStepFinish?: WorkflowAgentOnStepFinishCallback<ToolSet>;
+  private constructorOnFinish?: WorkflowAgentOnFinishCallback<ToolSet>;
   private constructorOnStart?: WorkflowAgentOnStartCallback;
   private constructorOnStepStart?: WorkflowAgentOnStepStartCallback;
   private constructorOnToolCallStart?: WorkflowAgentOnToolCallStartCallback;
@@ -927,6 +1024,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
   private prepareCall?: PrepareCallCallback<TBaseTools>;
 
   constructor(options: WorkflowAgentOptions<TBaseTools>) {
+    this.id = options.id;
     this.model = options.model;
     this.tools = (options.tools ?? {}) as TBaseTools;
     // `instructions` takes precedence over deprecated `system`
@@ -934,6 +1032,11 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     this.toolChoice = options.toolChoice;
     this.telemetry = options.experimental_telemetry;
     this.experimentalContext = options.experimental_context;
+    this.stopWhen = options.stopWhen;
+    this.activeTools = options.activeTools;
+    this.output = options.output;
+    this.experimentalRepairToolCall = options.experimental_repairToolCall;
+    this.experimentalDownload = options.experimental_download;
     this.prepareStep = options.prepareStep;
     this.constructorOnStepFinish = options.onStepFinish;
     this.constructorOnFinish = options.onFinish;
@@ -972,18 +1075,25 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     options: WorkflowAgentStreamOptions<TTools, OUTPUT, PARTIAL_OUTPUT>,
   ): Promise<WorkflowAgentStreamResult<TTools, OUTPUT>> {
     // Call prepareCall to transform parameters before the agent loop
-    let effectiveModel:
-      | string
-      | CompatibleLanguageModel
-      | (() => Promise<CompatibleLanguageModel>) = this.model;
+    let effectiveModel: LanguageModel = this.model;
     let effectiveInstructions = options.system ?? this.instructions;
-    let effectiveMessages = options.messages;
+    let effectivePrompt: string | Array<ModelMessage> | undefined =
+      options.prompt;
+    let effectiveMessages: Array<ModelMessage> | undefined = options.messages;
     let effectiveGenerationSettings = { ...this.generationSettings };
     let effectiveExperimentalContext =
       options.experimental_context ?? this.experimentalContext;
     let effectiveToolChoiceFromPrepare = options.toolChoice ?? this.toolChoice;
     let effectiveTelemetryFromPrepare =
       options.experimental_telemetry ?? this.telemetry;
+
+    // Resolve messages for prepareCall: use messages directly, or convert prompt
+    const resolvedMessagesForPrepareCall: ModelMessage[] =
+      effectiveMessages ??
+      (typeof effectivePrompt === 'string'
+        ? [{ role: 'user' as const, content: effectivePrompt }]
+        : (effectivePrompt as ModelMessage[])) ??
+      [];
 
     if (this.prepareCall) {
       const prepared = await this.prepareCall({
@@ -993,16 +1103,17 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         toolChoice: effectiveToolChoiceFromPrepare as ToolChoice<TBaseTools>,
         experimental_telemetry: effectiveTelemetryFromPrepare,
         experimental_context: effectiveExperimentalContext,
-        messages: effectiveMessages as ModelMessage[],
+        messages: resolvedMessagesForPrepareCall,
         ...effectiveGenerationSettings,
       } as PrepareCallOptions<TBaseTools>);
 
       if (prepared.model !== undefined) effectiveModel = prepared.model;
       if (prepared.instructions !== undefined)
         effectiveInstructions = prepared.instructions;
-      if (prepared.messages !== undefined)
-        effectiveMessages =
-          prepared.messages as WorkflowAgentStreamOptions<TTools>['messages'];
+      if (prepared.messages !== undefined) {
+        effectiveMessages = prepared.messages as Array<ModelMessage>;
+        effectivePrompt = undefined; // messages from prepareCall take precedence
+      }
       if (prepared.experimental_context !== undefined)
         effectiveExperimentalContext = prepared.experimental_context;
       if (prepared.toolChoice !== undefined)
@@ -1035,7 +1146,9 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
     const prompt = await standardizePrompt({
       system: effectiveInstructions,
-      messages: effectiveMessages,
+      ...(effectivePrompt != null
+        ? { prompt: effectivePrompt }
+        : { messages: effectiveMessages! }),
     });
 
     // Process tool approval responses before starting the agent loop.
@@ -1164,7 +1277,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     const modelPrompt = await convertToLanguageModelPrompt({
       prompt,
       supportedUrls: {},
-      download: options.experimental_download,
+      download: options.experimental_download ?? this.experimentalDownload,
     });
 
     const effectiveAbortSignal = mergeAbortSignals(
@@ -1210,13 +1323,13 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // Merge constructor + stream callbacks (constructor first, then stream)
     const mergedOnStepFinish = mergeCallbacks(
       this.constructorOnStepFinish as
-        | StreamTextOnStepFinishCallback<TTools, any>
+        | WorkflowAgentOnStepFinishCallback<TTools>
         | undefined,
       options.onStepFinish,
     );
     const mergedOnFinish = mergeCallbacks(
       this.constructorOnFinish as
-        | StreamTextOnFinishCallback<TTools, OUTPUT>
+        | WorkflowAgentOnFinishCallback<TTools, OUTPUT>
         | undefined,
       options.onFinish,
     );
@@ -1243,10 +1356,11 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     // Merge telemetry settings
     const effectiveTelemetry = effectiveTelemetryFromPrepare;
 
-    // Filter tools if activeTools is specified
+    // Filter tools if activeTools is specified (stream-level overrides constructor default)
+    const effectiveActiveTools = options.activeTools ?? this.activeTools;
     const effectiveTools =
-      options.activeTools && options.activeTools.length > 0
-        ? filterTools(this.tools, options.activeTools as string[])
+      effectiveActiveTools && effectiveActiveTools.length > 0
+        ? filterTools(this.tools, effectiveActiveTools as string[])
         : this.tools;
 
     // Initialize context
@@ -1262,7 +1376,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     if (mergedOnStart) {
       await mergedOnStart({
         model: effectiveModel,
-        messages: effectiveMessages as ModelMessage[],
+        messages: prompt.messages,
       });
     }
 
@@ -1272,59 +1386,67 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       tools: ToolSet,
       messages: LanguageModelV4Prompt,
       context?: unknown,
+      currentStepNumber: number = 0,
     ): Promise<LanguageModelV4ToolResultPart> => {
+      const toolCallEvent: ToolCall = {
+        type: 'tool-call',
+        toolCallId: toolCall.toolCallId,
+        toolName: toolCall.toolName,
+        input: toolCall.input,
+      };
+
       if (mergedOnToolCallStart) {
         await mergedOnToolCallStart({
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: toolCall.toolCallId,
-            toolName: toolCall.toolName,
-            input: toolCall.input,
-          },
+          toolCall: toolCallEvent,
+          stepNumber: currentStepNumber,
         });
       }
+
+      const startTime = Date.now();
       let result: LanguageModelV4ToolResultPart;
       try {
         result = await executeTool(toolCall, tools, messages, context);
       } catch (err) {
+        const durationMs = Date.now() - startTime;
         if (mergedOnToolCallFinish) {
           await mergedOnToolCallFinish({
-            toolCall: {
-              type: 'tool-call',
-              toolCallId: toolCall.toolCallId,
-              toolName: toolCall.toolName,
-              input: toolCall.input,
-            },
+            toolCall: toolCallEvent,
+            stepNumber: currentStepNumber,
+            durationMs,
+            success: false,
             error: err,
           });
         }
         throw err;
       }
+
+      const durationMs = Date.now() - startTime;
       if (mergedOnToolCallFinish) {
         const isError =
           result.output &&
           'type' in result.output &&
           (result.output.type === 'error-text' ||
             result.output.type === 'error-json');
-        await mergedOnToolCallFinish({
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: toolCall.toolCallId,
-            toolName: toolCall.toolName,
-            input: toolCall.input,
-          },
-          ...(isError
-            ? {
-                error:
-                  'value' in result.output ? result.output.value : undefined,
-              }
-            : {
-                result:
-                  result.output && 'value' in result.output
-                    ? result.output.value
-                    : undefined,
-              }),
-        });
+        if (isError) {
+          await mergedOnToolCallFinish({
+            toolCall: toolCallEvent,
+            stepNumber: currentStepNumber,
+            durationMs,
+            success: false,
+            error: 'value' in result.output ? result.output.value : undefined,
+          });
+        } else {
+          await mergedOnToolCallFinish({
+            toolCall: toolCallEvent,
+            stepNumber: currentStepNumber,
+            durationMs,
+            success: true,
+            output:
+              result.output && 'value' in result.output
+                ? result.output.value
+                : undefined,
+          });
+        }
       }
       return result;
     };
@@ -1335,7 +1457,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
         await options.onAbort({ steps });
       }
       return {
-        messages: options.messages as unknown as ModelMessage[],
+        messages: prompt.messages,
         steps,
         toolCalls: [],
         toolResults: [],
@@ -1348,7 +1470,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       tools: effectiveTools as ToolSet,
       writable: options.writable,
       prompt: modelPrompt,
-      stopConditions: options.stopWhen,
+      stopConditions: options.stopWhen ?? this.stopWhen,
       maxSteps: options.maxSteps,
       onStepFinish: mergedOnStepFinish,
       onStepStart: mergedOnStepStart,
@@ -1361,9 +1483,11 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       experimental_context: experimentalContext,
       experimental_telemetry: effectiveTelemetry,
       includeRawChunks: options.includeRawChunks ?? false,
-      repairToolCall:
-        options.experimental_repairToolCall as ToolCallRepairFunction<ToolSet>,
-      responseFormat: await options.output?.responseFormat,
+      repairToolCall: (options.experimental_repairToolCall ??
+        this.experimentalRepairToolCall) as
+        | ToolCallRepairFunction<ToolSet>
+        | undefined,
+      responseFormat: await (options.output ?? this.output)?.responseFormat,
     });
 
     // Track the final conversation messages from the iterator
@@ -1390,6 +1514,8 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
           context,
           providerExecutedToolResults,
         } = result.value;
+        // Capture current step number before pushing (0-based)
+        const currentStepNumber = steps.length;
         if (step) {
           steps.push(step as unknown as StepResult<TTools, any>);
         }
@@ -1453,6 +1579,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                     effectiveTools as ToolSet,
                     iterMessages,
                     experimentalContext,
+                    currentStepNumber,
                   ),
               ),
             );
@@ -1553,6 +1680,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
                   effectiveTools as ToolSet,
                   iterMessages,
                   experimentalContext,
+                  currentStepNumber,
                 ),
             ),
           );
@@ -1641,18 +1769,19 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       // Don't throw yet - we want to call onFinish first
     }
 
-    // Use the final messages from the iterator, or fall back to original messages
+    // Use the final messages from the iterator, or fall back to standardized messages
     const messages = (finalMessages ??
-      options.messages) as unknown as ModelMessage[];
+      prompt.messages) as unknown as ModelMessage[];
 
-    // Parse structured output if output is specified
+    // Parse structured output if output is specified (stream-level overrides constructor default)
+    const effectiveOutput = options.output ?? this.output;
     let experimentalOutput: OUTPUT = undefined as OUTPUT;
-    if (options.output && steps.length > 0) {
+    if (effectiveOutput && steps.length > 0) {
       const lastStep = steps[steps.length - 1];
       const text = lastStep.text;
       if (text) {
         try {
-          experimentalOutput = await options.output.parseCompleteOutput(
+          experimentalOutput = await effectiveOutput.parseCompleteOutput(
             { text },
             {
               response: lastStep.response,

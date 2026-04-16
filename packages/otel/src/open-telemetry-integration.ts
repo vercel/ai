@@ -213,7 +213,6 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {
@@ -230,9 +229,9 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model: { provider: event.provider, modelId: event.modelId },
-      telemetry,
       headers: event.headers,
       settings,
+      context: event.context as Record<string, unknown> | undefined,
     });
 
     const attributes = selectAttributes(telemetry, {
@@ -277,7 +276,6 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {
@@ -293,9 +291,9 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model: { provider: event.provider, modelId: event.modelId },
-      telemetry,
       headers: event.headers,
       settings,
+      context: undefined,
     });
 
     const attributes = selectAttributes(telemetry, {
@@ -449,7 +447,6 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {
@@ -458,9 +455,9 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model: { provider: event.provider, modelId: event.modelId },
-      telemetry,
       headers: event.headers,
       settings,
+      context: undefined,
     });
 
     const value = event.value;
@@ -934,7 +931,6 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {
@@ -943,9 +939,9 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
 
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model: { provider: event.provider, modelId: event.modelId },
-      telemetry,
       headers: event.headers,
       settings,
+      context: undefined,
     });
 
     const attributes = selectAttributes(telemetry, {

@@ -376,7 +376,6 @@ describe('rerank', () => {
         topN: 3,
         experimental_telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateCallId: () => 'test-call-id',
@@ -405,7 +404,6 @@ describe('rerank', () => {
           recordInputs: false,
           recordOutputs: true,
           functionId: 'rerank-fn',
-          metadata: { key: 'val' },
         },
         experimental_onStart: async event => {
           startEvent = event;
@@ -416,7 +414,6 @@ describe('rerank', () => {
       expect(startEvent.recordInputs).toBe(false);
       expect(startEvent.recordOutputs).toBe(true);
       expect(startEvent.functionId).toBe('rerank-fn');
-      expect(startEvent.metadata).toEqual({ key: 'val' });
     });
 
     it('should include model information', async () => {
@@ -549,7 +546,6 @@ describe('rerank', () => {
         topN: 3,
         experimental_telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateCallId: () => 'test-call-id',

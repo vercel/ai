@@ -185,7 +185,6 @@ describe('executeToolCall', () => {
         },
         telemetry: {
           functionId: 'test-function',
-          metadata: { userId: 'user-123' },
         },
         callId: 'test-telemetry-call-id',
         messages: [{ role: 'user', content: 'test message' }],
@@ -210,7 +209,6 @@ describe('executeToolCall', () => {
         messages: [{ role: 'user', content: 'test message' }],
         abortSignal: undefined,
         functionId: 'test-function',
-        metadata: { userId: 'user-123' },
         context: { traceId: 'trace-1' },
       });
       expect(executionOrder).toEqual(['onToolCallStart', 'execute']);
@@ -260,7 +258,6 @@ describe('executeToolCall', () => {
         },
         telemetry: {
           functionId: 'test-function',
-          metadata: { userId: 'user-123' },
         },
         callId: 'test-telemetry-call-id',
         messages: [{ role: 'user', content: 'test message' }],
@@ -287,7 +284,6 @@ describe('executeToolCall', () => {
         output: 'test-result',
         durationMs: 50,
         functionId: 'test-function',
-        metadata: { userId: 'user-123' },
         context: { traceId: 'trace-1' },
       });
     });
@@ -312,7 +308,6 @@ describe('executeToolCall', () => {
         },
         telemetry: {
           functionId: 'test-function',
-          metadata: { userId: 'user-123' },
         },
         callId: 'test-telemetry-call-id',
         messages: [],
@@ -339,7 +334,6 @@ describe('executeToolCall', () => {
         error: toolError,
         durationMs: 100,
         functionId: 'test-function',
-        metadata: { userId: 'user-123' },
         context: { spanId: 'span-1' },
       });
     });
@@ -548,7 +542,6 @@ describe('executeToolCall', () => {
         telemetry: {
           isEnabled: true,
           functionId: 'test-function',
-          metadata: { userId: 'user-1' },
         },
         callId: 'test-telemetry-call-id',
         messages: [{ role: 'user', content: 'hello' }],
@@ -577,7 +570,6 @@ describe('executeToolCall', () => {
           input: { value: 'test' },
         }),
         functionId: 'test-function',
-        metadata: { userId: 'user-1' },
         context: { traceId: 'trace-1' },
       });
 
@@ -588,7 +580,6 @@ describe('executeToolCall', () => {
         success: true,
         output: 'test-result',
         functionId: 'test-function',
-        metadata: { userId: 'user-1' },
       });
       expect(finishEvents[0].durationMs).toEqual(expect.any(Number));
     });
