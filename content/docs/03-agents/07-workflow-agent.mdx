@@ -345,6 +345,20 @@ const result = await agent.stream({
 });
 ```
 
+If you want the agent to keep running until it has finished calling tools, you can also use `isLoopFinished()`:
+
+```ts
+import { isLoopFinished } from "ai";
+
+const result = await agent.stream({
+  messages,
+  maxSteps: 10,
+  stopWhen: isLoopFinished(),
+});
+```
+
+`isLoopFinished()` lets the agent run until all tool calls have completed, but you should still pair it with `maxSteps` to avoid runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.
+
 By default, the agent loops until the model stops calling tools (no maximum).
 
 ## Structured Output

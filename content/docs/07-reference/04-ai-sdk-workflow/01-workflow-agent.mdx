@@ -88,7 +88,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       name: 'stopWhen',
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
-      description: 'Default stop condition for the agent loop. Per-stream values override this default.',
+      description: 'Default stop condition for the agent loop. Per-stream values override this default. Use `isLoopFinished()` to let the agent run until all tool calls have completed, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
     },
     {
       name: 'activeTools',
@@ -409,7 +409,7 @@ const result = await agent.stream({
       name: 'stopWhen',
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
-      description: 'Condition(s) for ending the agent loop.',
+      description: 'Condition(s) for ending the agent loop. Use `isLoopFinished()` to let the agent run until all tool calls have completed, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
     },
 
     {
