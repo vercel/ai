@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.100
+
+### Patch Changes
+
+- a27a631: feat (provider/gateway): make model list resilient to unknown model types
+
 ## 3.0.99
 
 ### Patch Changes
