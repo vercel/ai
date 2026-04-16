@@ -3,7 +3,7 @@ import type { TelemetryIntegration } from './telemetry-integration';
 import {
   registerTelemetry,
   getGlobalTelemetryIntegrations,
-} from './telemetry-integration-registry';
+} from './telemetry-registry';
 
 beforeEach(() => {
   globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;

@@ -2,7 +2,7 @@ import { asArray } from '../util/as-array';
 import { Callback } from '../util/callback';
 import { mergeCallbacks } from '../util/merge-callbacks';
 import type { TelemetryIntegration } from './telemetry-integration';
-import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
+import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 
 /**
  * The subset of `TelemetryIntegration` keys whose values are Callback callbacks.
