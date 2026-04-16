@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.0-beta.107
+
+### Patch Changes
+
+- 350ea38: refactoring: introduce Arrayable type
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/gateway@4.0.0-beta.59
+
 ## 7.0.0-beta.106
 
 ### Patch Changes
