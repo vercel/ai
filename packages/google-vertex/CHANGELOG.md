@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 4.0.110
+
+### Patch Changes
+
+- 71c52e0: chore(provider/google): update available models
+- Updated dependencies [71c52e0]
+  - @ai-sdk/google@3.0.64
+
 ## 4.0.109
 
 ### Patch Changes

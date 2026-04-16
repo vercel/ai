@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 3.0.64
+
+### Patch Changes
+
+- 71c52e0: chore(provider/google): update available models
+
 ## 3.0.63
 
 ### Patch Changes
