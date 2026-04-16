@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.105
+
+### Patch Changes
+
+- 33d099c: fix(ai): omit reasoning-start/end when sendReasoning is false
+
 ## 7.0.0-beta.104
 
 ### Patch Changes
