@@ -5,16 +5,16 @@ import {
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
-  GoogleGenerativeAILanguageModel,
+  GoogleLanguageModel,
   getGroundingMetadataSchema,
   getUrlContextMetadataSchema,
-} from './google-generative-ai-language-model';
+} from './google-language-model';
 
 import {
-  GoogleGenerativeAIGroundingMetadata,
-  GoogleGenerativeAIUrlContextMetadata,
-} from './google-generative-ai-prompt';
-import { createGoogleGenerativeAI } from './google-provider';
+  GoogleGroundingMetadata,
+  GoogleUrlContextMetadata,
+} from './google-prompt';
+import { createGoogle } from './google-provider';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as fs from 'fs';
 
@@ -45,7 +45,7 @@ const SAFETY_RATINGS = [
   },
 ];
 
-const provider = createGoogleGenerativeAI({
+const provider = createGoogle({
   apiKey: 'test-api-key',
   generateId: () => 'test-id',
 });
@@ -425,7 +425,7 @@ describe('doGenerate', () => {
       totalTokenCount: number;
     };
     headers?: Record<string, string>;
-    groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
+    groundingMetadata?: GoogleGroundingMetadata;
     url?:
       | typeof TEST_URL_GEMINI_PRO
       | typeof TEST_URL_GEMINI_2_0_PRO
@@ -606,7 +606,7 @@ describe('doGenerate', () => {
   it('should sanitize serviceTier to Vertex format when using Vertex provider', async () => {
     prepareJsonResponse({ content: 'test response' });
 
-    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -1122,7 +1122,7 @@ describe('doGenerate', () => {
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('google-text');
 
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
@@ -1622,7 +1622,7 @@ describe('doGenerate', () => {
         },
       };
 
-      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const model = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: async () => ({
@@ -1677,7 +1677,7 @@ describe('doGenerate', () => {
         },
       };
 
-      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const model = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: async () => ({
@@ -1700,7 +1700,7 @@ describe('doGenerate', () => {
 
     it('handles async function headers from config', async () => {
       prepareJsonFixtureResponse('google-text');
-      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const model = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: async () => ({
@@ -2373,7 +2373,7 @@ describe('doGenerate', () => {
   });
 
   describe('search tool selection', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
     });
@@ -3612,7 +3612,7 @@ describe('doGenerate', () => {
         },
       };
 
-      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const model = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.vertex.chat',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
@@ -3655,7 +3655,7 @@ describe('doGenerate', () => {
         },
       };
 
-      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const model = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
@@ -3706,7 +3706,7 @@ describe('doGenerate', () => {
         },
       };
 
-      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const model = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.vertex.chat',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
@@ -3756,7 +3756,7 @@ describe('doGenerate', () => {
         },
       };
 
-      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const model = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.vertex.chat',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
@@ -3842,8 +3842,8 @@ describe('doStream', () => {
   }: {
     content: string[];
     headers?: Record<string, string>;
-    groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
-    urlContextMetadata?: GoogleGenerativeAIUrlContextMetadata;
+    groundingMetadata?: GoogleGroundingMetadata;
+    urlContextMetadata?: GoogleUrlContextMetadata;
     url?:
       | typeof TEST_URL_GEMINI_PRO
       | typeof TEST_URL_GEMINI_2_0_PRO
@@ -4016,7 +4016,7 @@ describe('doStream', () => {
     });
 
     it('should stream partial function call arguments with parallel tool calls', async () => {
-      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.vertex.chat',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
@@ -4053,7 +4053,7 @@ describe('doStream', () => {
     });
 
     it('should stream nested partial function call arguments into proper nested JSON', async () => {
-      const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const vertexModel = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.vertex.chat',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
@@ -4899,7 +4899,7 @@ describe('doStream', () => {
   });
 
   describe('search tool selection', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
       generateId: () => 'test-id',
     });
@@ -5576,7 +5576,7 @@ describe('doStream', () => {
       ],
     };
 
-    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -5775,7 +5775,7 @@ describe('doStream', () => {
       ],
     };
 
-    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -5827,7 +5827,7 @@ describe('doStream', () => {
       ],
     };
 
-    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -5882,7 +5882,7 @@ describe('doStream', () => {
       },
     };
 
-    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -5963,7 +5963,7 @@ describe('doStream', () => {
       },
     };
 
-    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+    const vertexModel = new GoogleLanguageModel('gemini-pro', {
       provider: 'google.vertex.chat',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -6398,7 +6398,7 @@ describe('doStream', () => {
         ],
       };
 
-      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const model = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.vertex.chat',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
@@ -6454,7 +6454,7 @@ describe('doStream', () => {
         ],
       };
 
-      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const model = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
@@ -6517,7 +6517,7 @@ describe('doStream', () => {
         ],
       };
 
-      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      const model = new GoogleLanguageModel('gemini-pro', {
         provider: 'google.vertex.chat',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: { 'x-goog-api-key': 'test-api-key' },
@@ -6593,7 +6593,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       },
     };
 
-    const model = new GoogleGenerativeAILanguageModel('gemma-3-12b-it', {
+    const model = new GoogleLanguageModel('gemma-3-12b-it', {
       provider: 'google.generative-ai',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -6625,7 +6625,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       },
     };
 
-    const model = new GoogleGenerativeAILanguageModel('gemma-3-27b-it', {
+    const model = new GoogleLanguageModel('gemma-3-27b-it', {
       provider: 'google.generative-ai',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -6656,7 +6656,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       },
     };
 
-    const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+    const model = new GoogleLanguageModel('gemini-pro', {
       provider: 'google.generative-ai',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -6690,7 +6690,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       },
     };
 
-    const model = new GoogleGenerativeAILanguageModel('gemma-3-12b-it', {
+    const model = new GoogleLanguageModel('gemma-3-12b-it', {
       provider: 'google.generative-ai',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -6722,7 +6722,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       },
     };
 
-    const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+    const model = new GoogleLanguageModel('gemini-pro', {
       provider: 'google.generative-ai',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },
@@ -6750,7 +6750,7 @@ describe('GEMMA Model System Instruction Fix', () => {
       },
     };
 
-    const model = new GoogleGenerativeAILanguageModel('gemma-3-12b-it', {
+    const model = new GoogleLanguageModel('gemma-3-12b-it', {
       provider: 'google.generative-ai',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: { 'x-goog-api-key': 'test-api-key' },

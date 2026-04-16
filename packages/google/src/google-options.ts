@@ -1,7 +1,7 @@
 import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export type GoogleGenerativeAIModelId =
+export type GoogleModelId =
   // Stable models
   // https://ai.google.dev/gemini-api/docs/models/gemini
   | 'gemini-2.0-flash'

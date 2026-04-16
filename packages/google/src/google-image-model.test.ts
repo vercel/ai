@@ -1,10 +1,10 @@
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
+import { GoogleImageModel } from './google-image-model';
 import { describe, it, expect } from 'vitest';
 
 const prompt = 'A cute baby sea otter';
 
-const model = new GoogleGenerativeAIImageModel(
+const model = new GoogleImageModel(
   'imagen-3.0-generate-002',
   {},
   {
@@ -27,7 +27,7 @@ const server = createTestServer({
     },
   },
 });
-describe('GoogleGenerativeAIImageModel', () => {
+describe('GoogleImageModel', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse({
       headers,
@@ -51,7 +51,7 @@ describe('GoogleGenerativeAIImageModel', () => {
     it('should pass headers', async () => {
       prepareJsonResponse();
 
-      const modelWithHeaders = new GoogleGenerativeAIImageModel(
+      const modelWithHeaders = new GoogleImageModel(
         'imagen-3.0-generate-002',
         {},
         {
@@ -85,7 +85,7 @@ describe('GoogleGenerativeAIImageModel', () => {
     });
 
     it('should respect maxImagesPerCall setting', () => {
-      const customModel = new GoogleGenerativeAIImageModel(
+      const customModel = new GoogleImageModel(
         'imagen-3.0-generate-002',
         { maxImagesPerCall: 2 },
         {
@@ -99,7 +99,7 @@ describe('GoogleGenerativeAIImageModel', () => {
     });
 
     it('should use default maxImagesPerCall when not specified', () => {
-      const defaultModel = new GoogleGenerativeAIImageModel(
+      const defaultModel = new GoogleImageModel(
         'imagen-3.0-generate-002',
         {},
         {
@@ -261,7 +261,7 @@ describe('GoogleGenerativeAIImageModel', () => {
 
       const testDate = new Date('2024-03-15T12:00:00Z');
 
-      const customModel = new GoogleGenerativeAIImageModel(
+      const customModel = new GoogleImageModel(
         'imagen-3.0-generate-002',
         {},
         {
@@ -410,8 +410,8 @@ describe('GoogleGenerativeAIImageModel', () => {
   });
 });
 
-describe('GoogleGenerativeAIImageModel (Gemini)', () => {
-  const geminiModel = new GoogleGenerativeAIImageModel(
+describe('GoogleImageModel (Gemini)', () => {
+  const geminiModel = new GoogleImageModel(
     'gemini-2.5-flash-image',
     {},
     {
@@ -501,7 +501,7 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     });
 
     it('should respect custom maxImagesPerCall setting', () => {
-      const customModel = new GoogleGenerativeAIImageModel(
+      const customModel = new GoogleImageModel(
         'gemini-2.5-flash-image',
         { maxImagesPerCall: 5 },
         {
@@ -720,7 +720,7 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
       });
 
       const requestBody = await geminiServer.calls[0].requestBodyJson;
-      // image/* gets converted to image/jpeg as default in convertToGoogleGenerativeAIMessages
+      // image/* gets converted to image/jpeg as default in convertToGoogleMessages
       expect(requestBody.contents[0].parts[1]).toStrictEqual({
         fileData: {
           mimeType: 'image/jpeg',

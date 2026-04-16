@@ -1,4 +1,4 @@
-export type GoogleGenerativeAIImageModelId =
+export type GoogleImageModelId =
   // Imagen models (use :predict API)
   | 'imagen-4.0-generate-001'
   | 'imagen-4.0-ultra-generate-001'
@@ -9,7 +9,7 @@ export type GoogleGenerativeAIImageModelId =
   | 'gemini-3.1-flash-image-preview'
   | (string & {});
 
-export interface GoogleGenerativeAIImageSettings {
+export interface GoogleImageSettings {
   /**
    * Override the maximum number of images per call (default 4)
    */

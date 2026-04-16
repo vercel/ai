@@ -1,23 +1,23 @@
 import { LanguageModelV4Usage } from '@ai-sdk/provider';
 
-export type GoogleGenerativeAITokenDetail = {
+export type GoogleTokenDetail = {
   modality: string;
   tokenCount: number;
 };
 
-export type GoogleGenerativeAIUsageMetadata = {
+export type GoogleUsageMetadata = {
   promptTokenCount?: number | null;
   candidatesTokenCount?: number | null;
   totalTokenCount?: number | null;
   cachedContentTokenCount?: number | null;
   thoughtsTokenCount?: number | null;
   trafficType?: string | null;
-  promptTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
-  candidatesTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
+  promptTokensDetails?: GoogleTokenDetail[] | null;
+  candidatesTokensDetails?: GoogleTokenDetail[] | null;
 };
 
-export function convertGoogleGenerativeAIUsage(
-  usage: GoogleGenerativeAIUsageMetadata | undefined | null,
+export function convertGoogleUsage(
+  usage: GoogleUsageMetadata | undefined | null,
 ): LanguageModelV4Usage {
   if (usage == null) {
     return {

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
+import { convertToGoogleMessages } from './convert-to-google-messages';
 
 describe('system messages', () => {
   it('should store system message in system instruction', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       { role: 'system', content: 'Test' },
     ]);
 
@@ -15,7 +15,7 @@ describe('system messages', () => {
 
   it('should throw error when there was already a user message', async () => {
     expect(() =>
-      convertToGoogleGenerativeAIMessages([
+      convertToGoogleMessages([
         { role: 'user', content: [{ type: 'text', text: 'Test' }] },
         { role: 'system', content: 'Test' },
       ]),
@@ -27,7 +27,7 @@ describe('system messages', () => {
 
 describe('thought signatures', () => {
   it('should preserve thought signatures in assistant messages', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -87,7 +87,7 @@ describe('thought signatures', () => {
 
 describe('thought signatures with vertex providerOptionsName', () => {
   it('should resolve thoughtSignature from google namespace when using vertex providerOptionsName', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [
         {
           role: 'assistant',
@@ -148,7 +148,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
   });
 
   it('should prefer vertex namespace over google namespace when both are present', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [
         {
           role: 'assistant',
@@ -179,7 +179,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
   });
 
   it('should resolve thoughtSignature from vertex namespace directly', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [
         {
           role: 'assistant',
@@ -211,7 +211,7 @@ describe('thought signatures with vertex providerOptionsName', () => {
 
 describe('thought signatures with google providerOptionsName (gateway failover)', () => {
   it('should resolve thoughtSignature from vertex namespace when using google providerOptionsName', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [
         {
           role: 'assistant',
@@ -272,7 +272,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
   });
 
   it('should prefer google namespace over vertex namespace when both are present', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [
         {
           role: 'assistant',
@@ -303,7 +303,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
   });
 
   it('should resolve thoughtSignature from vertex namespace when google namespace is absent (default providerOptionsName)', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -332,7 +332,7 @@ describe('thought signatures with google providerOptionsName (gateway failover)'
 
 describe('Gemma model system instructions', () => {
   it('should prepend system instruction to first user message for Gemma models', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -363,7 +363,7 @@ describe('Gemma model system instructions', () => {
   });
 
   it('should handle multiple system messages for Gemma models', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [
         { role: 'system', content: 'You are helpful.' },
         { role: 'system', content: 'Be concise.' },
@@ -397,7 +397,7 @@ describe('Gemma model system instructions', () => {
   });
 
   it('should not affect non-Gemma models', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [
         { role: 'system', content: 'You are helpful.' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -429,7 +429,7 @@ describe('Gemma model system instructions', () => {
   });
 
   it('should handle Gemma model with system instruction but no user messages', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [{ role: 'system', content: 'You are helpful.' }],
       { isGemmaModel: true },
     );
@@ -445,7 +445,7 @@ describe('Gemma model system instructions', () => {
 
 describe('user messages', () => {
   it('should add image parts', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'user',
         content: [
@@ -477,7 +477,7 @@ describe('user messages', () => {
   });
 
   it('should add file parts for base64 encoded files', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'user',
         content: [{ type: 'file', data: 'AAECAw==', mediaType: 'image/png' }],
@@ -503,7 +503,7 @@ describe('user messages', () => {
   });
 
   it('should convert file parts with provider reference to fileData', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'user',
         content: [
@@ -540,7 +540,7 @@ describe('user messages', () => {
   });
 
   it('should convert image file parts with provider reference to fileData', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'user',
         content: [
@@ -577,7 +577,7 @@ describe('user messages', () => {
 
   it('should throw when provider reference is missing google key in user file part', async () => {
     expect(() =>
-      convertToGoogleGenerativeAIMessages([
+      convertToGoogleMessages([
         {
           role: 'user',
           content: [
@@ -597,7 +597,7 @@ describe('user messages', () => {
 
 describe('tool messages', () => {
   it('should convert tool result messages to function responses', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'tool',
         content: [
@@ -633,7 +633,7 @@ describe('tool messages', () => {
   });
 
   it('should convert tool result content with image-data into functionResponse parts', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'tool',
         content: [
@@ -690,7 +690,7 @@ describe('tool messages', () => {
   });
 
   it('should convert tool result content with file-data into functionResponse parts', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'tool',
         content: [
@@ -734,7 +734,7 @@ describe('tool messages', () => {
   });
 
   it('should convert tool result content with image-url data URL into functionResponse parts', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'tool',
         content: [
@@ -777,7 +777,7 @@ describe('tool messages', () => {
   });
 
   it('should forward non-data image-url tool result parts as text content', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'tool',
         content: [
@@ -813,7 +813,7 @@ describe('tool messages', () => {
   });
 
   it('should forward non-data file-url tool result parts as text content', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'tool',
         content: [
@@ -849,7 +849,7 @@ describe('tool messages', () => {
   });
 
   it('should use legacy tool-result conversion when functionResponse parts are unsupported', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [
         {
           role: 'tool',
@@ -911,7 +911,7 @@ describe('tool messages', () => {
   });
 
   it('should keep URL tool result parts on the legacy path', async () => {
-    const result = convertToGoogleGenerativeAIMessages(
+    const result = convertToGoogleMessages(
       [
         {
           role: 'tool',
@@ -955,7 +955,7 @@ describe('tool messages', () => {
 
 describe('assistant messages', () => {
   it('should add PNG image parts for base64 encoded files', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [{ type: 'file', data: 'AAECAw==', mediaType: 'image/png' }],
@@ -981,7 +981,7 @@ describe('assistant messages', () => {
   });
 
   it('should include thought flag on file parts when set in providerOptions', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1030,7 +1030,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert reasoning-file parts with thought flag and signature', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1069,7 +1069,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert reasoning-file parts without thoughtSignature', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1106,7 +1106,7 @@ describe('assistant messages', () => {
 
   it('should throw error for URL file data in reasoning-file assistant messages', async () => {
     expect(() =>
-      convertToGoogleGenerativeAIMessages([
+      convertToGoogleMessages([
         {
           role: 'assistant',
           content: [
@@ -1122,7 +1122,7 @@ describe('assistant messages', () => {
   });
 
   it('should handle mixed reasoning, reasoning-file, text, and tool-call parts', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1179,7 +1179,7 @@ describe('assistant messages', () => {
 
   it('should throw error for URL file data in assistant messages', async () => {
     expect(() =>
-      convertToGoogleGenerativeAIMessages([
+      convertToGoogleMessages([
         {
           role: 'assistant',
           content: [
@@ -1195,7 +1195,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant file parts with provider reference to fileData', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1232,7 +1232,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant file parts with provider reference and thought flag', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1274,7 +1274,7 @@ describe('assistant messages', () => {
 
   it('should throw when provider reference is missing google key in assistant file part', async () => {
     expect(() =>
-      convertToGoogleGenerativeAIMessages([
+      convertToGoogleMessages([
         {
           role: 'assistant',
           content: [
@@ -1294,7 +1294,7 @@ describe('assistant messages', () => {
 
 describe('parallel tool calls', () => {
   it('should include thought signature on functionCall when provided', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1335,7 +1335,7 @@ describe('parallel tool calls', () => {
 
 describe('tool results with thought signatures', () => {
   it('should include thought signature on functionCall but not on functionResponse', async () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1389,7 +1389,7 @@ describe('tool results with thought signatures', () => {
 
 describe('server tool combination round-trip', () => {
   it('should convert assistant tool-call with serverToolCallId to toolCall wire format', () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1421,7 +1421,7 @@ describe('server tool combination round-trip', () => {
   });
 
   it('should convert assistant tool-call without serverToolCallId to functionCall wire format', () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1445,7 +1445,7 @@ describe('server tool combination round-trip', () => {
   });
 
   it('should convert tool result with serverToolCallId to toolResponse on last model content', () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1506,7 +1506,7 @@ describe('server tool combination round-trip', () => {
   });
 
   it('should parse string input for server tool call args', () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
@@ -1537,7 +1537,7 @@ describe('server tool combination round-trip', () => {
   });
 
   it('should pass object input directly for server tool call args', () => {
-    const result = convertToGoogleGenerativeAIMessages([
+    const result = convertToGoogleMessages([
       {
         role: 'assistant',
         content: [
