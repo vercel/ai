@@ -108,9 +108,13 @@ The following optional provider options are available for Anthropic models:
   If you are experiencing issues with the model handling requests involving
   reasoning content, you can set this to `false` to omit them from the request.
 
-- `effort` _"high" | "medium" | "low"_
+- `effort` _"low" | "medium" | "high" | "xhigh" | "max"_
 
   Optional. See [Effort section](#effort) for more details.
+
+- `taskBudget` _object_
+
+  Optional. See [Task Budgets section](#task-budgets) for more details.
 
 - `speed` _"fast" | "standard"_
 
@@ -208,7 +212,7 @@ Without this header, tool inputs and structured outputs may arrive all at once a
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT).
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7` additionally supports `xhigh` for maximum reasoning effort.
 
 ```ts highlight="8-10"
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
@@ -249,6 +253,70 @@ const { text } = await generateText({
 
 The `speed` option accepts `'fast'` or `'standard'` (default behavior).
 
+<<<<<<< HEAD
+=======
+### Task Budgets
+
+`claude-opus-4-7` supports a `taskBudget` option that informs the model of the total token budget available for an agentic turn. The model uses this information to prioritize work, plan ahead, and wind down gracefully as the budget is consumed.
+
+Task budgets are advisory — they do not enforce a hard token limit. The model will attempt to stay within budget, but actual usage may vary.
+
+```ts highlight="8-13"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-7'),
+  prompt: 'Research the pros and cons of Rust vs Go for building CLI tools.',
+  providerOptions: {
+    anthropic: {
+      taskBudget: {
+        type: 'tokens',
+        total: 400000,
+      },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+For long-running agents that compact and restart context, you can carry the remaining budget forward using the `remaining` field:
+
+```ts
+taskBudget: {
+  type: 'tokens',
+  total: 400000,
+  remaining: 215000, // budget left after prior compacted-away contexts
+}
+```
+
+The `taskBudget` object accepts:
+
+- `type` _"tokens"_ - Budget type. Currently only `"tokens"` is supported.
+- `total` _number_ - Total task budget for the agentic turn. Minimum 20,000.
+- `remaining` _number_ - Budget left after prior compacted-away contexts. Must be between 0 and `total`. Defaults to `total` if omitted.
+
+### Data Residency
+
+Anthropic supports an [`inferenceGeo` option](https://platform.claude.com/docs/en/build-with-claude/data-residency) that controls where model inference runs for a request.
+
+```ts highlight="8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'Summarize the key points of this document.',
+  providerOptions: {
+    anthropic: {
+      inferenceGeo: 'us',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` (default, any available geography).
+
+>>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
 ### Reasoning
 
 Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, and `claude-3-7-sonnet-20250219` models.
@@ -260,8 +328,77 @@ and specifying a thinking budget in tokens.
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
+<<<<<<< HEAD
 const { text, reasoning, reasoningDetails } = await generateText({
   model: anthropic('claude-opus-4-20250514'),
+=======
+const { text, reasoningText, reasoning } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive' },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+
+console.log(reasoningText); // reasoning text
+console.log(reasoning); // reasoning details including redacted reasoning
+console.log(text); // text response
+```
+
+You can combine adaptive thinking with the `effort` option to control how much reasoning Claude uses:
+
+```ts highlight="6-8"
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive' },
+      effort: 'max', // 'low' | 'medium' | 'high' | 'max'
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+##### Thinking Display (Opus 4.7+)
+
+Starting with `claude-opus-4-7`, thinking content is omitted from the response by default — thinking blocks are present in the stream but their text is empty. To receive reasoning output, set `display: 'summarized'`:
+
+```ts highlight="5"
+const { text, reasoningText } = await generateText({
+  model: anthropic('claude-opus-4-7'),
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive', display: 'summarized' },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+  prompt: 'How many people will live in the world in 2040?',
+});
+
+console.log(reasoningText); // reasoning text (empty without display: 'summarized')
+console.log(text);
+```
+
+<Note>
+  If you stream reasoning to users with `claude-opus-4-7`, the default `"omitted"` display will
+  cause a long pause before output begins. Set `display: "summarized"` to restore visible
+  progress during thinking.
+</Note>
+
+#### Budget-Based Thinking
+
+For earlier models (`claude-opus-4-20250514`, `claude-sonnet-4-20250514`, `claude-sonnet-4-5-20250929`),
+use `type: 'enabled'` with an explicit token budget:
+
+```ts highlight="4,8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text, reasoningText, reasoning } = await generateText({
+  model: anthropic('claude-sonnet-4-5-20250929'),
+>>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     anthropic: {
@@ -1006,6 +1143,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
+<<<<<<< HEAD
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -1018,6 +1156,19 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
 | `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
 | `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+=======
+| Model               | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
+| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-7`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-opus-4-6`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-4-6` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-5`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-haiku-4-5`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-5` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
+| `claude-opus-4-1`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-opus-4-0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+| `claude-sonnet-4-0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
+>>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

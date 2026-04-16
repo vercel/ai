@@ -215,10 +215,55 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     const {
       maxOutputTokens: maxOutputTokensForModel,
+<<<<<<< HEAD
       supportsStructuredOutput,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
+=======
+      supportsStructuredOutput: modelSupportsStructuredOutput,
+      rejectsSamplingParameters,
+      isKnownModel,
+    } = getModelCapabilities(this.modelId);
+
+    if (rejectsSamplingParameters) {
+      if (temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${this.modelId} and will be ignored`,
+        });
+        temperature = undefined;
+      }
+      if (topK != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${this.modelId} and will be ignored`,
+        });
+        topK = undefined;
+      }
+      if (topP != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${this.modelId} and will be ignored`,
+        });
+        topP = undefined;
+      }
+    }
+
+    const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
+
+    const supportsStructuredOutput =
+      (this.config.supportsNativeStructuredOutput ?? true) &&
+      modelSupportsStructuredOutput;
+
+    const supportsStrictTools =
+      (this.config.supportsStrictTools ?? true) &&
+      modelSupportsStructuredOutput;
+
+>>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'jsonTool';
     const useStructuredOutput =
@@ -255,6 +300,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       thinkingType === 'enabled'
         ? anthropicOptions?.thinking?.budgetTokens
         : undefined;
+    const thinkingDisplay =
+      thinkingType === 'adaptive'
+        ? anthropicOptions?.thinking?.display
+        : undefined;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -274,10 +323,41 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         thinking: {
           type: thinkingType,
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
+          ...(thinkingDisplay != null && { display: thinkingDisplay }),
         },
       }),
+<<<<<<< HEAD
       ...(anthropicOptions?.effort && {
         output_config: { effort: anthropicOptions.effort },
+=======
+      ...((anthropicOptions?.effort ||
+        anthropicOptions?.taskBudget ||
+        (useStructuredOutput &&
+          responseFormat?.type === 'json' &&
+          responseFormat.schema != null)) && {
+        output_config: {
+          ...(anthropicOptions?.effort && {
+            effort: anthropicOptions.effort,
+          }),
+          ...(anthropicOptions?.taskBudget && {
+            task_budget: {
+              type: anthropicOptions.taskBudget.type,
+              total: anthropicOptions.taskBudget.total,
+              ...(anthropicOptions.taskBudget.remaining != null && {
+                remaining: anthropicOptions.taskBudget.remaining,
+              }),
+            },
+          }),
+          ...(useStructuredOutput &&
+            responseFormat?.type === 'json' &&
+            responseFormat.schema != null && {
+              format: {
+                type: 'json_schema',
+                schema: responseFormat.schema,
+              },
+            }),
+        },
+>>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
       }),
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
@@ -452,6 +532,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     if (anthropicOptions?.effort) {
       betas.add('effort-2025-11-24');
+    }
+
+    if (anthropicOptions?.taskBudget) {
+      betas.add('task-budgets-2026-03-13');
     }
 
     if (anthropicOptions?.speed === 'fast') {
@@ -1786,15 +1870,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
   supportsStructuredOutput: boolean;
+  rejectsSamplingParameters: boolean;
   isKnownModel: boolean;
 } {
-  if (
+  if (modelId.includes('claude-opus-4-7')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      isKnownModel: true,
+    };
+  } else if (
     modelId.includes('claude-sonnet-4-6') ||
     modelId.includes('claude-opus-4-6')
   ) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (
@@ -1805,12 +1898,14 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: true,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (
@@ -1820,12 +1915,14 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: false,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-5-haiku')) {
@@ -1838,12 +1935,14 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
+      rejectsSamplingParameters: false,
       isKnownModel: false,
     };
   }
