@@ -1,4 +1,5 @@
 import { isAsyncIterable } from '../is-async-iterable';
+import { ExecutableTool } from './executable-tool';
 import { InferToolContext } from './infer-tool-context';
 import { InferToolInput } from './infer-tool-input';
 import { InferToolOutput } from './infer-tool-output';
@@ -18,14 +19,12 @@ import { Tool, ToolExecutionOptions } from './tool';
  * @yields A preliminary output for each streamed value, followed by a final output, or a single final
  * output for non-streaming tools.
  */
-export async function* executeTool<
-  TOOL extends Tool & { execute: NonNullable<Tool['execute']> },
->({
+export async function* executeTool<TOOL extends Tool>({
   tool,
   input,
   options,
 }: {
-  tool: TOOL;
+  tool: ExecutableTool<TOOL>;
   input: InferToolInput<TOOL>;
   options: ToolExecutionOptions<InferToolContext<TOOL>>;
 }): AsyncGenerator<
