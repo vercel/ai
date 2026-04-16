@@ -1,102 +1,27 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-interface ShopGraphPrice {
-  amount: number;
-  currency: string;
-  sale_price?: number;
-}
-
-interface ShopGraphFieldFreshness {
-  volatility_class: string;
-  age_seconds: number;
-  decayed: boolean;
-  original_confidence?: number;
-}
-
-interface ShopGraphMetadata {
-  source_url: string;
-  extraction_timestamp: string;
-  response_timestamp: string;
-  extraction_method: string;
-  data_source: 'live' | 'cache';
-  field_confidence: Record<string, number>;
-  field_freshness: Record<string, ShopGraphFieldFreshness>;
-  confidence_method: string;
-}
-
-interface ShopGraphProduct {
-  url: string;
-  extracted_at: string;
-  extraction_method: 'schema_org' | 'llm' | 'hybrid';
-  product_name: string | null;
-  brand: string | null;
-  description: string | null;
-  price: ShopGraphPrice | null;
-  availability: 'in_stock' | 'out_of_stock' | 'preorder' | 'unknown';
-  categories: string[];
-  image_urls: string[];
-  primary_image_url: string | null;
-  color: string[];
-  material: string[];
-  dimensions: Record<string, string> | null;
-  confidence: {
-    overall: number;
-    per_field: Record<string, number>;
-  };
-  _shopgraph: ShopGraphMetadata;
-}
-
-interface ShopGraphResponse {
-  product: ShopGraphProduct;
-  cached: boolean;
-  credit_mode: string;
-}
-
 /**
- * Maps product fields to their confidence scores from the _shopgraph metadata,
- * returning a combined view of data and confidence for each field.
+ * ShopGraph product extraction tool.
+ *
+ * Calls the ShopGraph REST API to extract structured product data from a
+ * commerce URL. Returns per-field confidence scores (0.0 to 1.0) so the
+ * calling agent or UI can decide which fields to trust.
+ *
+ * Confidence scores reflect extraction method and source quality:
+ * - 0.90+ : extracted from structured markup (Schema.org, JSON-LD)
+ * - 0.70-0.89 : extracted via LLM from page content
+ * - below 0.70 : inferred or partially matched, verify before using
+ *
+ * ShopGraph runs a three-tier pipeline (structured markup, LLM, headless
+ * browser) and reconciles across tiers. The confidence score reflects
+ * cross-tier agreement, not just one method's output probability.
  */
-function mapFieldsWithConfidence(product: ShopGraphProduct) {
-  const meta = product._shopgraph;
-  const fieldConfidence = meta.field_confidence;
-
-  const fields: Record<
-    string,
-    { value: unknown; confidence: number; decayed: boolean }
-  > = {};
-
-  const fieldMap: Record<string, unknown> = {
-    product_name: product.product_name,
-    brand: product.brand,
-    description: product.description,
-    price: product.price
-      ? `${product.price.amount} ${product.price.currency}`
-      : null,
-    availability: product.availability,
-    categories: product.categories,
-    primary_image_url: product.primary_image_url,
-    material: product.material,
-    dimensions: product.dimensions,
-  };
-
-  for (const [key, value] of Object.entries(fieldMap)) {
-    const confidenceKey = key === 'price' ? 'price' : key;
-    const confidence = fieldConfidence[confidenceKey] ?? 0;
-    const freshness = meta.field_freshness?.[confidenceKey];
-    const decayed = freshness?.decayed ?? false;
-
-    fields[key] = { value, confidence, decayed };
-  }
-
-  return fields;
-}
-
 export const extractProduct = tool({
   description:
-    'Extracts authenticated product data from a commerce URL. Returns product details and per-field confidence scores (0.0 to 1.0). You must check the confidence score for every field. If a field\'s confidence is below 0.85, you must explicitly flag to the user that the data requires verification.',
+    'Extract structured product data with per-field confidence scores from a commerce URL. Returns product name, price, availability, brand, specifications, and more. Each field includes a confidence score (0.0 to 1.0) indicating extraction reliability.',
   parameters: z.object({
-    url: z.string().url().describe('The product URL to extract data from'),
+    url: z.string().url().describe('Product page URL to extract data from'),
   }),
   execute: async ({ url }) => {
     const response = await fetch('https://shopgraph.dev/api/enrich', {
@@ -105,35 +30,18 @@ export const extractProduct = tool({
         'Content-Type': 'application/json',
         Authorization: `Bearer ${process.env.SHOPGRAPH_API_KEY}`,
       },
-      body: JSON.stringify({ url, format: 'json' }),
+      body: JSON.stringify({ url }),
     });
 
     if (!response.ok) {
-      const text = await response.text();
+      const error = await response.text();
       return {
-        error: `ShopGraph API returned ${response.status}: ${text}`,
+        error: true,
+        message: `Extraction failed (${response.status}): ${error}`,
+        url,
       };
     }
 
-    const data: ShopGraphResponse = await response.json();
-    const product = data.product;
-    const fields = mapFieldsWithConfidence(product);
-
-    return {
-      product_name: product.product_name,
-      brand: product.brand,
-      description: product.description,
-      price: product.price,
-      availability: product.availability,
-      categories: product.categories,
-      primary_image_url: product.primary_image_url,
-      material: product.material,
-      dimensions: product.dimensions,
-      extraction_method: product._shopgraph.extraction_method,
-      data_source: product._shopgraph.data_source,
-      overall_confidence: product.confidence.overall,
-      fields_with_confidence: fields,
-      cached: data.cached,
-    };
+    return response.json();
   },
 });
