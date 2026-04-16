@@ -10,9 +10,8 @@ export async function notify<EVENT>(options: {
   callbacks?: Arrayable<Callback<EVENT> | undefined | null>;
 }): Promise<void> {
   for (const callback of asArray(options.callbacks)) {
-    if (callback == null) continue;
     try {
-      await callback(options.event);
+      await callback?.(options.event);
     } catch {}
   }
 }
