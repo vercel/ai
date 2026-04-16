@@ -4,8 +4,6 @@ export const KNOWN_MODEL_TYPES = [
   'embedding',
   'image',
   'language',
-  'reranking',
-  'video',
 ] as const;
 
 export type KnownModelType = (typeof KNOWN_MODEL_TYPES)[number];
