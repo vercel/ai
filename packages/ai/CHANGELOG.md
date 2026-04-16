@@ -1,5 +1,13 @@
 # ai
 
+## 7.0.0-beta.104
+
+### Patch Changes
+
+- 2a74d43: Remove the deprecated `experimental_prepareStep` option from `generateText`.
+
+  Use `prepareStep` instead.
+
 ## 7.0.0-beta.103
 
 ### Patch Changes

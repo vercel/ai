@@ -1,5 +1,13 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- eba685c: Remove `maxSteps` option from `WorkflowAgent`. Use `stopWhen` with stop conditions like `isStepCount()` instead.
+- Updated dependencies [2a74d43]
+  - ai@7.0.0-beta.104
+
 ## 1.0.0-beta.17
 
 ### Patch Changes
