@@ -67,16 +67,6 @@ Returns credit information for the authenticated user.
   ): Promise<GatewaySpendReportResponse>;
 
   /**
-<<<<<<< HEAD
-<<<<<<< HEAD
-Creates a model for generating text embeddings.
-*/
-  textEmbeddingModel(
-    modelId: GatewayEmbeddingModelId,
-  ): EmbeddingModelV2<string>;
-=======
-=======
->>>>>>> 768a9d684 (Backport: feat (provider/gateway): add get-generation support (#13870))
    * Returns detailed information about a specific generation by its ID,
    * including cost, token usage, latency, and provider details.
    */
@@ -85,10 +75,11 @@ Creates a model for generating text embeddings.
   ): Promise<GatewayGenerationInfo>;
 
   /**
-   * Creates a model for generating text embeddings.
-   */
-  embedding(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
->>>>>>> 768a9d684 (Backport: feat (provider/gateway): add get-generation support (#13870))
+Creates a model for generating text embeddings.
+*/
+  textEmbeddingModel(
+    modelId: GatewayEmbeddingModelId,
+  ): EmbeddingModelV2<string>;
 
   /**
 Creates a model for generating images.
