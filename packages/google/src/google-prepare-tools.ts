@@ -36,7 +36,7 @@ export function prepareTools(
     | undefined
     | {
         functionCallingConfig: {
-          mode: 'AUTO' | 'NONE' | 'ANY';
+          mode: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
           allowedFunctionNames?: string[];
         };
       };
@@ -69,7 +69,9 @@ export function prepareTools(
   }
 
   const functionDeclarations = [];
+  let hasStrictTools = false;
   for (const tool of tools) {
+<<<<<<< HEAD
     if (tool.type === 'provider-defined') {
       toolWarnings.push({ type: 'unsupported-tool', tool });
     } else {
@@ -78,6 +80,22 @@ export function prepareTools(
         description: tool.description ?? '',
         parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
       });
+=======
+    switch (tool.type) {
+      case 'function':
+        functionDeclarations.push({
+          name: tool.name,
+          description: tool.description ?? '',
+          parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
+        });
+        if ((tool as any).strict === true) {
+          hasStrictTools = true;
+        }
+        break;
+      default:
+        toolWarnings.push({ type: 'unsupported-tool', tool });
+        break;
+>>>>>>> 6eeeb6fba (Backport: Backport: fix(google): use VALIDATED function calling mode when any tool has strict:true (#13100))
     }
   }
 
@@ -85,8 +103,15 @@ export function prepareTools(
 
   if (toolChoice == null) {
     return {
+<<<<<<< HEAD
       tools: { functionDeclarations },
       toolConfig: undefined,
+=======
+      tools: [{ functionDeclarations }],
+      toolConfig: hasStrictTools
+        ? { functionCallingConfig: { mode: 'VALIDATED' } }
+        : undefined,
+>>>>>>> 6eeeb6fba (Backport: Backport: fix(google): use VALIDATED function calling mode when any tool has strict:true (#13100))
       toolWarnings,
     };
   }
@@ -96,8 +121,17 @@ export function prepareTools(
   switch (type) {
     case 'auto':
       return {
+<<<<<<< HEAD
         tools: { functionDeclarations },
         toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
+=======
+        tools: [{ functionDeclarations }],
+        toolConfig: {
+          functionCallingConfig: {
+            mode: hasStrictTools ? 'VALIDATED' : 'AUTO',
+          },
+        },
+>>>>>>> 6eeeb6fba (Backport: Backport: fix(google): use VALIDATED function calling mode when any tool has strict:true (#13100))
         toolWarnings,
       };
     case 'none':
@@ -108,8 +142,17 @@ export function prepareTools(
       };
     case 'required':
       return {
+<<<<<<< HEAD
         tools: { functionDeclarations },
         toolConfig: { functionCallingConfig: { mode: 'ANY' } },
+=======
+        tools: [{ functionDeclarations }],
+        toolConfig: {
+          functionCallingConfig: {
+            mode: hasStrictTools ? 'VALIDATED' : 'ANY',
+          },
+        },
+>>>>>>> 6eeeb6fba (Backport: Backport: fix(google): use VALIDATED function calling mode when any tool has strict:true (#13100))
         toolWarnings,
       };
     case 'tool':
@@ -117,7 +160,7 @@ export function prepareTools(
         tools: { functionDeclarations },
         toolConfig: {
           functionCallingConfig: {
-            mode: 'ANY',
+            mode: hasStrictTools ? 'VALIDATED' : 'ANY',
             allowedFunctionNames: [toolChoice.toolName],
           },
         },
