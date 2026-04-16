@@ -337,14 +337,18 @@ Because the workflow is durable, the approval request survives process restarts 
 Control how many steps the agent can take:
 
 ```ts
-import { isStepCount } from "ai";
+import { isLoopFinished, isStepCount } from "ai";
 
 const result = await agent.stream({
   messages,
   maxSteps: 10, // Maximum number of LLM calls
-  stopWhen: isStepCount(5), // Or use stop conditions from AI SDK
+  stopWhen: isLoopFinished(), // Let the agent run until all tool calls have completed
 });
 ```
+
+`isLoopFinished()` is useful when you want the agent to keep running until it has finished calling tools, but you should still pair it with `maxSteps` to avoid runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.
+
+You can also use other stop conditions from AI SDK helpers such as `isStepCount(5)`.
 
 By default, the agent loops until the model stops calling tools (no maximum).
 
