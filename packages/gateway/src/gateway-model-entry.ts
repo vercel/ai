@@ -1,10 +1,6 @@
 import type { LanguageModelV2 } from '@ai-sdk/provider';
 
-export const KNOWN_MODEL_TYPES = [
-  'embedding',
-  'image',
-  'language',
-] as const;
+export const KNOWN_MODEL_TYPES = ['embedding', 'image', 'language'] as const;
 
 export type KnownModelType = (typeof KNOWN_MODEL_TYPES)[number];
 

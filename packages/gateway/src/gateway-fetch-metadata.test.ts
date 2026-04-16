@@ -223,11 +223,7 @@ describe('GatewayFetchMetadata', () => {
     });
 
     it('should preserve all known modelType values', async () => {
-      const knownTypes = [
-        'embedding',
-        'image',
-        'language',
-      ];
+      const knownTypes = ['embedding', 'image', 'language'];
       server.urls['https://api.example.com/*'].response = {
         type: 'json-value',
         body: {
