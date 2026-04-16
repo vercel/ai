@@ -1,0 +1,215 @@
+---
+title: Announcing AI SDK 7 Beta
+description: AI SDK 7 Beta is now available with durable agents, top-level reasoning, provider-independent uploads, typed tool context, and granular timeout controls.
+---
+
+# Announcing AI SDK 7 Beta
+
+<Note type="warning">
+  AI SDK 7 is in beta — while more stable than alpha, AI SDK 7 is still in
+  active development and APIs may still change. Pin to specific versions as
+  breaking changes may occur in patch releases.
+</Note>
+
+## Why AI SDK 7?
+
+AI SDK 7 is a **major version** because the provider specification continues to evolve quickly. Like AI SDK 6, most application-level code should continue to work with limited changes, but there are a few important upgrades and breaking changes — most notably **ESM-only packages**, a new **telemetry architecture**, and several API cleanups across tools and providers.
+
+If you're building with `generateText`, `streamText`, `ToolLoopAgent`, and `useChat`, the upgrade should generally be straightforward. For the full list of changes, see the [AI SDK 6.x to 7.0 migration guide](/docs/migration-guides/migration-guide-7-0).
+
+## Beta Version Guidance
+
+The AI SDK 7 Beta is intended for:
+
+- **Trying new features** like durable agents, top-level reasoning, and provider-independent uploads
+- **Validating existing AI SDK 6 apps** against the migration guide before stable release
+- **Giving us feedback** on the APIs, docs, and migration experience
+
+Your feedback during the beta helps shape the final stable release. Share it through [GitHub issues](https://github.com/vercel/ai/issues/new/choose).
+
+## Installation
+
+To install the AI SDK 7 Beta, run:
+
+```bash
+npm install ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta
+```
+
+If you want to use telemetry or durable agents, install the optional packages as well:
+
+```bash
+npm install @ai-sdk/otel@beta @ai-sdk/workflow@beta workflow
+```
+
+## What's New in AI SDK 7?
+
+AI SDK 7 Beta introduces several new capabilities (with more to come soon):
+
+### WorkflowAgent
+
+AI SDK 7 introduces `WorkflowAgent`, a durable agent implementation built for Vercel Workflows. It gives you the same multi-step loop as `ToolLoopAgent`, but with persisted workflow state, resumability, retries, and approval flows that can pause and resume safely.
+
+```ts
+import { WorkflowAgent } from '@ai-sdk/workflow';
+import { tool } from 'ai';
+import { z } from 'zod';
+
+export const supportAgent = new WorkflowAgent({
+  model: 'anthropic/claude-sonnet-4-6',
+  instructions: 'You are a helpful support agent.',
+  tools: {
+    lookupOrder: tool({
+      description: 'Look up an order by ID',
+      inputSchema: z.object({
+        orderId: z.string(),
+      }),
+      execute: async ({ orderId }) => ({
+        orderId,
+        status: 'shipped',
+      }),
+    }),
+  },
+});
+```
+
+On the UI side, `WorkflowChatTransport` lets `useChat` reconnect and resume interrupted streams automatically. Learn more in the [WorkflowAgent documentation](/docs/agents/workflow-agent).
+
+### Top-level Reasoning
+
+Reasoning is now a top-level setting on `generateText` and `streamText`, so you can control thinking across providers with one portable API instead of reaching for provider-specific options first.
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text, reasoning } = await generateText({
+  model: openai.responses('gpt-5.2'),
+  reasoning: 'high',
+  prompt: 'Explain quantum entanglement in simple terms.',
+});
+```
+
+Learn more in the [Reasoning documentation](/docs/ai-sdk-core/reasoning).
+
+### File and Skill Uploads
+
+AI SDK 7 adds provider-independent upload APIs for files and skills. Both return provider references that you can reuse in later model calls and even merge across providers when needed.
+
+#### File Uploads
+
+```ts
+import { uploadFile, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import fs from 'node:fs';
+
+const { providerReference } = await uploadFile({
+  api: openai.files(),
+  data: fs.readFileSync('./photo.png'),
+  filename: 'photo.png',
+});
+
+const { text } = await generateText({
+  model: openai.responses('gpt-4o-mini'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe what you see in this image.' },
+        { type: 'image', image: providerReference },
+      ],
+    },
+  ],
+});
+```
+
+#### Skill Uploads
+
+```ts
+import { uploadSkill } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { readFileSync } from 'node:fs';
+
+const { providerReference } = await uploadSkill({
+  api: anthropic.skills(),
+  files: [
+    {
+      path: 'my-skill/SKILL.md',
+      content: readFileSync('./SKILL.md'),
+    },
+  ],
+  displayTitle: 'My Skill',
+});
+```
+
+Learn more in the [File Uploads documentation](/docs/ai-sdk-core/file-uploads) and [Skill Uploads documentation](/docs/ai-sdk-core/skill-uploads).
+
+### Stable Typed Tool Context
+
+AI SDK 7 promotes `experimental_context` to stable `context` and lets tools declare a `contextSchema` for end-to-end type inference.
+
+```ts
+import { tool } from 'ai';
+import { z } from 'zod';
+
+const weather = tool({
+  inputSchema: z.object({
+    location: z.string(),
+  }),
+  contextSchema: z.object({
+    weatherApiKey: z.string(),
+  }),
+  execute: async ({ location }, { context: { weatherApiKey } }) => {
+    return getWeather(location, weatherApiKey);
+  },
+});
+```
+
+This typed context also flows into approval callbacks and other tool lifecycle hooks. See the [migration guide](/docs/migration-guides/migration-guide-7-0) for upgrade details.
+
+### Granular Timeout Controls
+
+Timeouts now work at multiple levels: total call, individual step, stalled stream chunk, default tool execution, and per-tool overrides.
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.2'),
+  tools: {
+    weather: weatherTool,
+    slowApi: slowApiTool,
+  },
+  timeout: {
+    totalMs: 60_000,
+    stepMs: 10_000,
+    toolMs: 5_000,
+    tools: {
+      slowApiMs: 15_000,
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+Learn more in the [Settings documentation](/docs/ai-sdk-core/settings#timeout).
+
+## Migration from AI SDK 6.x
+
+AI SDK 7 should be a relatively small migration for most applications, but there are a few high-impact changes to review:
+
+- **All packages are now ESM-only** — `require()` is no longer supported
+- **Telemetry moved out of `ai`** into the new `@ai-sdk/otel` package
+- **`experimental_context` was renamed to `context`** and is now typed
+- **Common call settings were clarified** across language model and request options
+
+If you use telemetry, register the new OpenTelemetry integration once at startup:
+
+```ts
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+```
+
+Start with the [AI SDK 6.x to 7.0 migration guide](/docs/migration-guides/migration-guide-7-0) and test against pinned beta versions while APIs continue to settle.
