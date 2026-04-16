@@ -5,7 +5,7 @@ import {
   ModelMessage,
 } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/request-options';
-import type { Telemetry } from '../telemetry/telemetry-integration';
+import type { Telemetry } from '../telemetry/telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { executeToolCall } from './execute-tool-call';
 import { isToolApprovalNeeded } from './is-tool-approval-needed';

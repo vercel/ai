@@ -1,6 +1,6 @@
 import { ProviderV2, ProviderV3, ProviderV4 } from '@ai-sdk/provider';
 import { LogWarningsFunction } from './logger/log-warnings';
-import type { Telemetry } from './telemetry/telemetry-integration';
+import type { Telemetry } from './telemetry/telemetry';
 
 // add AI SDK default provider to the globalThis object
 declare global {

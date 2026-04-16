@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Telemetry } from './telemetry-integration';
+import type { Telemetry } from './telemetry';
 import {
   registerTelemetry,
   getGlobalTelemetryIntegrations,

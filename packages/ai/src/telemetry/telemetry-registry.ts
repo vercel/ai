@@ -1,4 +1,4 @@
-import type { Telemetry } from './telemetry-integration';
+import type { Telemetry } from './telemetry';
 
 /**
  * Registers a telemetry integration globally.

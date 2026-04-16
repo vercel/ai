@@ -1,7 +1,7 @@
 import { asArray } from '../util/as-array';
 import { Callback } from '../util/callback';
 import { mergeCallbacks } from '../util/merge-callbacks';
-import type { Telemetry } from './telemetry-integration';
+import type { Telemetry } from './telemetry';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 
 /**

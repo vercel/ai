@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createUnifiedTelemetry } from './create-unified-telemetry';
-import type { Telemetry } from './telemetry-integration';
+import type { Telemetry } from './telemetry';
 import { registerTelemetry } from './telemetry-registry';
 
 const dummyEvent = {} as any;
