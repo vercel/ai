@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.69
+
+### Patch Changes
+
+- bfaafad: chore(provider/google): update available models
+
 ## 2.0.68
 
 ### Patch Changes

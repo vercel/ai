@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.129
+
+### Patch Changes
+
+- bfaafad: chore(provider/google): update available models
+- Updated dependencies [bfaafad]
+  - @ai-sdk/google@2.0.69
+
 ## 3.0.128
 
 ### Patch Changes
