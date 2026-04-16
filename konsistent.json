@@ -40,7 +40,7 @@
         {
           "must": {
             "export": [
-              "${providerId.toCamelCase()}",
+              "${providerId.toFlatCase()}",
               "create${providerId.toPascalCase()}",
               "VERSION"
             ],
@@ -110,7 +110,7 @@
             "returnValueOfType": "${providerId.toPascalCase()}Provider"
           }
         ],
-        "exportConstants": ["${providerId.toCamelCase()}"]
+        "exportConstants": ["${providerId.toFlatCase()}"]
       }
     }
   ],
