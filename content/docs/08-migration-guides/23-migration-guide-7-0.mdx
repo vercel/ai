@@ -482,7 +482,6 @@ const result = await generateText({
 });
 
 console.log(result.usage.inputTokenDetails.cacheWriteTokens);
-console.log(result.usage.inputTokenDetails.cacheReadTokens);
 ```
 
 If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.providerMetadata?.anthropic?.usage`.
