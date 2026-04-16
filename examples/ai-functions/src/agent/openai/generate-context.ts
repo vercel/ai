@@ -12,10 +12,10 @@ const agent = new ToolLoopAgent({
         location: z.string().describe('The location to get the weather for'),
       }),
       contextSchema: z.object({
-        weatherApiKey: z.string().describe('The API key for the weather API'),
+        apiKey: z.string().describe('The API key for the weather API'),
       }),
-      execute: async ({ location }, { context: { weatherApiKey } }) => {
-        console.log('weather tool api key:', weatherApiKey);
+      execute: async ({ location }, { context: { apiKey } }) => {
+        console.log('weather tool api key:', apiKey);
 
         return {
           location,
@@ -24,11 +24,14 @@ const agent = new ToolLoopAgent({
       },
     }),
   },
+  toolsContext: {
+    weather: { apiKey: 'weather-123' },
+  },
   context: {
-    weatherApiKey: 'weather-123',
     somethingElse: 'other-context',
   },
-  prepareStep: async ({ context }) => {
+  prepareStep: async ({ context, toolsContext }) => {
+    console.log('prepareStep toolsContext:', toolsContext);
     console.log('prepareStep context:', context);
     return {};
   },
@@ -40,5 +43,5 @@ run(async () => {
     prompt: 'What is the weather in San Francisco?',
   });
 
-  console.log(JSON.stringify(result.toolResults, null, 2));
+  console.log(result.text);
 });

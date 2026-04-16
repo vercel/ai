@@ -125,10 +125,14 @@ export interface OnStartEvent<
   readonly functionId: string | undefined;
 
   /**
-   * User-defined context object that flows through the entire generation lifecycle.
-   * Can be accessed and modified in `prepareStep` and tool `execute` functions.
+   * Tool context.
    */
-  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  readonly toolsContext: InferToolSetContext<TOOLS>;
+
+  /**
+   * User-defined runtime context.
+   */
+  readonly context: USER_CONTEXT;
 }
 
 /**
@@ -210,9 +214,14 @@ export interface OnStepStartEvent<
   readonly functionId: string | undefined;
 
   /**
-   * User-defined context object. May be updated from `prepareStep` between steps.
+   * Runtime context. May be updated from `prepareStep` between steps.
    */
-  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  readonly context: USER_CONTEXT;
+
+  /**
+   * Tool context. May be updated from `prepareStep` between steps.
+   */
+  readonly toolsContext: InferToolSetContext<TOOLS>;
 }
 
 /**
@@ -340,15 +349,6 @@ export type OnFinishEvent<
 
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;
-
-  /**
-   * The final state of the user-defined context object.
-   *
-   * Experimental (can break in patch releases).
-   *
-   * @default undefined
-   */
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;

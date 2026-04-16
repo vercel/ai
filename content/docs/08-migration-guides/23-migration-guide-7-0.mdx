@@ -110,11 +110,13 @@ This applies to all AI SDK functions that accept `experimental_telemetry`, inclu
 
 If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetryIntegration` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
 
-### Tools: `experimental_context` Was Renamed to Stable `context`, and `context` Is Now Typed
+### Tools: `experimental_context` Was Renamed to Stable `context`, and Tool Context Is Now Passed via `toolsContext`
 
 In AI SDK 7, the tool callback option previously exposed as `experimental_context` has been renamed to `context` and is now stable.
 
-At the same time, tool callbacks are now generic over a `CONTEXT` type instead of treating `context` as an untyped value. In practice, this means `tool()` can infer the type of `context` from a tool's `contextSchema`.
+The bigger behavioral change is where that value comes from. In AI SDK 6, tools effectively read from one generic runtime context object. In AI SDK 7, each tool gets its own scoped `context`, and you provide those values through `toolsContext`, keyed by tool name.
+
+`tool()` infers the type of a tool's `context` from its `contextSchema`, so each tool only sees the fields declared for that specific tool.
 
 In AI SDK 6, tool code often accessed `experimental_context` and had to cast it manually:
 
@@ -136,7 +138,7 @@ const weather = tool({
 });
 ```
 
-In AI SDK 7, rename `experimental_context` to `context` and declare the runtime context the tool expects with `contextSchema`. The `execute` callback, approval callback, and tool input lifecycle hooks then receive a typed `context` automatically:
+In AI SDK 7, rename `experimental_context` to `context`, declare the tool-specific context with `contextSchema`, and pass the per-tool values through `toolsContext`. The `execute` callback, approval callback, and tool input lifecycle hooks then receive a typed `context` automatically:
 
 ```tsx filename="AI SDK 7"
 const weather = tool({
@@ -144,25 +146,37 @@ const weather = tool({
     location: z.string(),
   }),
   contextSchema: z.object({
-    weatherApiKey: z.string(),
+    apiKey: z.string(),
   }),
   execute: async (
     { location },
-    { context: { weatherApiKey } },
+    { context: { apiKey } },
   ) => {
-    return getWeather(location, weatherApiKey);
+    return getWeather(location, apiKey);
+  },
+});
+
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  toolsContext: {
+    weather: {
+      apiKey: process.env.WEATHER_API_KEY!,
+    },
   },
 });
 ```
 
-`prepareStep` still receives the full runtime context object that you pass via `context`. `contextSchema` only narrows the view that an individual tool receives.
+`prepareStep` can still receive general step-level `context`, but tool callbacks no longer read from that shared object. A tool's `context` now comes from its own entry in `toolsContext`, so it is limited to the fields that tool declared in `contextSchema`.
 
 Potential breaking issues:
 
 - If you still destructure `experimental_context` in tool callbacks, rename it to `context`.
-- If a tool callback accesses fields that are not declared in its `contextSchema`, TypeScript will now report errors. Add those fields to the schema, or read the broader context in `prepareStep` instead.
+- If you were previously passing one shared runtime context object for tools, move tool-specific values into `toolsContext` under the matching tool name.
+- If a tool callback accesses fields that are not declared in its `contextSchema`, TypeScript will now report errors. Add those fields to that tool's schema.
 - If you have helper types or wrappers that assumed `experimental_context` or `context` was `unknown`, update them to accept a generic `CONTEXT` type.
-- If you were relying on a tool callback seeing the entire runtime context object, that code may need to move to `prepareStep` or the tool's `contextSchema` may need to be expanded to include the required fields.
+- If at least one tool declares `contextSchema`, `toolsContext` becomes required and only includes the tools that actually declare contextual data.
+- If you were relying on every tool callback seeing the same full runtime object, move shared step data to `prepareStep`/`context`, or explicitly provide the needed per-tool data in each tool's `toolsContext` entry.
 
 ### Tools: Remove Deprecated `experimental_activeTools` Option
 

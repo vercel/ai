@@ -62,11 +62,14 @@ export type StepResult<
   readonly functionId: string | undefined;
 
   /**
-   * User-defined context object flowing through the generation.
-   *
-   * Experimental (can break in patch releases).
+   * Tool context.
    */
-  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  readonly toolsContext: InferToolSetContext<TOOLS>;
+
+  /**
+   * Runtime context.
+   */
+  readonly context: USER_CONTEXT;
 
   /**
    * The content that was generated in the last step.
@@ -186,6 +189,7 @@ export class DefaultStepResult<
   readonly stepNumber: StepResult<TOOLS, USER_CONTEXT>['stepNumber'];
   readonly model: StepResult<TOOLS, USER_CONTEXT>['model'];
   readonly functionId: StepResult<TOOLS, USER_CONTEXT>['functionId'];
+  readonly toolsContext: StepResult<TOOLS, USER_CONTEXT>['toolsContext'];
   readonly context: StepResult<TOOLS, USER_CONTEXT>['context'];
   readonly content: StepResult<TOOLS, USER_CONTEXT>['content'];
   readonly finishReason: StepResult<TOOLS, USER_CONTEXT>['finishReason'];
@@ -206,6 +210,7 @@ export class DefaultStepResult<
     modelId,
     functionId,
     context,
+    toolsContext,
     content,
     finishReason,
     rawFinishReason,
@@ -221,6 +226,7 @@ export class DefaultStepResult<
     modelId: StepResult<TOOLS, USER_CONTEXT>['model']['modelId'];
     functionId: StepResult<TOOLS, USER_CONTEXT>['functionId'];
     context: StepResult<TOOLS, USER_CONTEXT>['context'];
+    toolsContext: StepResult<TOOLS, USER_CONTEXT>['toolsContext'];
     content: StepResult<TOOLS, USER_CONTEXT>['content'];
     finishReason: StepResult<TOOLS, USER_CONTEXT>['finishReason'];
     rawFinishReason: StepResult<TOOLS, USER_CONTEXT>['rawFinishReason'];
@@ -235,6 +241,7 @@ export class DefaultStepResult<
     this.model = { provider, modelId };
     this.functionId = functionId;
     this.context = context;
+    this.toolsContext = toolsContext;
     this.content = content;
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;

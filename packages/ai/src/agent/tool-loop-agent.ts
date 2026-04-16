@@ -1,4 +1,4 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
@@ -61,8 +61,8 @@ export class ToolLoopAgent<
   }
 
   private async prepareCall(options: {
-    prompt?: string | Array<import('@ai-sdk/provider-utils').ModelMessage>;
-    messages?: Array<import('@ai-sdk/provider-utils').ModelMessage>;
+    prompt?: string | Array<ModelMessage>;
+    messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
   }): Promise<
     Omit<
@@ -110,6 +110,7 @@ export class ToolLoopAgent<
 
     const { instructions, messages, prompt, context, ...callArgs } =
       preparedCallArgs;
+
     const promptArgs = { system: instructions, messages, prompt } as Prompt;
 
     if (context === undefined) {

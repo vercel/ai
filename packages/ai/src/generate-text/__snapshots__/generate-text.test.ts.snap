@@ -32,6 +32,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "timeout": undefined,
   "toolChoice": undefined,
   "tools": undefined,
+  "toolsContext": {},
   "topK": undefined,
   "topP": undefined,
 }
@@ -40,7 +41,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
 exports[`generateText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
 {
   "callId": "test-telemetry-call-id",
-  "context": {},
+  "context": undefined,
   "functionId": undefined,
   "messages": [
     {
@@ -218,6 +219,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
       "stepNumber": 0,
+      "toolsContext": {},
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokenDetails": {
@@ -306,6 +308,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "timestamp": 1970-01-01T00:00:10.000Z,
       },
       "stepNumber": 1,
+      "toolsContext": {},
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokenDetails": {
@@ -329,6 +332,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "text": "Hello, world!",
   "toolCalls": [],
   "toolResults": [],
+  "toolsContext": {},
   "totalUsage": {
     "cachedInputTokens": undefined,
     "inputTokenDetails": {
@@ -442,6 +446,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -530,6 +535,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -672,6 +678,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -760,6 +767,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -860,6 +868,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -950,6 +959,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1094,6 +1104,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1184,6 +1195,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1703,6 +1715,7 @@ exports[`generateText > result.steps > should add the reasoning from the model r
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1797,6 +1810,7 @@ exports[`generateText > result.steps > should contain files 1`] = `
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1883,6 +1897,7 @@ exports[`generateText > result.steps > should contain sources 1`] = `
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {

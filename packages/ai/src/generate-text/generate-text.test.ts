@@ -138,6 +138,17 @@ const modelWithReasoning = new MockLanguageModelV4({
   },
 });
 
+const defaultSettings = () =>
+  ({
+    prompt: 'prompt',
+    experimental_generateMessageId: mockId({ prefix: 'msg' }),
+    _internal: {
+      generateId: mockId({ prefix: 'id' }),
+      generateCallId: () => 'test-telemetry-call-id',
+    },
+    onError: () => {},
+  }) as const;
+
 describe('generateText', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
@@ -1365,6 +1376,85 @@ describe('generateText', () => {
         stepNumber: 1,
       });
     });
+
+    it('should pass updated toolsContext from prepareStep', async () => {
+      const prepareStepToolsContexts: Array<unknown> = [];
+      const stepStartEvents: Parameters<
+        GenerateTextOnStepStartCallback<any, any>
+      >[0][] = [];
+      let responseCount = 0;
+      let recordedToolContext: unknown;
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  ...dummyResponseValues,
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallType: 'function',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: { unified: 'tool-calls', raw: undefined },
+                };
+              case 1:
+              default:
+                return {
+                  ...dummyResponseValues,
+                  content: [{ type: 'text', text: 'Done.' }],
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ label: z.string() }),
+            execute: async (_, { context }) => {
+              recordedToolContext = context;
+              return 'test-result';
+            },
+          }),
+        },
+        prompt: 'test-input',
+        toolsContext: { tool1: { label: 'initial' } },
+        stopWhen: isStepCount(3),
+        prepareStep: async ({ stepNumber, toolsContext }) => {
+          prepareStepToolsContexts.push(toolsContext);
+
+          if (stepNumber === 0) {
+            return {
+              toolsContext: {
+                tool1: { label: 'updated' },
+              },
+            };
+          }
+
+          return undefined;
+        },
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+      });
+
+      expect(prepareStepToolsContexts).toEqual([
+        { tool1: { label: 'initial' } },
+        { tool1: { label: 'updated' } },
+      ]);
+      expect(stepStartEvents[0].toolsContext).toEqual({
+        tool1: { label: 'updated' },
+      });
+      expect(stepStartEvents[1].toolsContext).toEqual({
+        tool1: { label: 'updated' },
+      });
+      expect(recordedToolContext).toEqual({ label: 'updated' });
+    });
   });
 
   describe('options.onStepFinish stepNumber', () => {
@@ -1720,21 +1810,48 @@ describe('generateText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
-        context: { traceId: 'trace-abc', spanId: 'span-123' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
+        ...defaultSettings(),
       });
 
-      expect(toolCallStartEvents.length).toBe(1);
-      expect(toolCallStartEvents[0].context).toEqual({
-        traceId: 'trace-abc',
-        spanId: 'span-123',
-      });
+      expect(toolCallStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -1956,22 +2073,51 @@ describe('generateText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
-        context: { traceId: 'trace-xyz', operation: 'test-op' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
+        ...defaultSettings(),
       });
 
-      expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].success).toBe(true);
-      expect(toolCallFinishEvents[0].context).toEqual({
-        traceId: 'trace-xyz',
-        operation: 'test-op',
-      });
+      expect(toolCallFinishEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "durationMs": 0,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "output": "test-result",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should pass context on error', async () => {
@@ -1999,24 +2145,53 @@ describe('generateText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async (): Promise<string> => {
               throw toolError;
             },
           }),
         },
-        prompt: 'test-input',
-        context: { errorTraceId: 'err-trace' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
+        ...defaultSettings(),
       });
 
-      expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].success).toBe(false);
-      expect(toolCallFinishEvents[0].error).toBe(toolError);
-      expect(toolCallFinishEvents[0].context).toEqual({
-        errorTraceId: 'err-trace',
-      });
+      expect(toolCallFinishEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "durationMs": 0,
+            "error": [Error: Tool execution failed],
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": false,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -2430,6 +2605,7 @@ describe('generateText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -2476,6 +2652,7 @@ describe('generateText', () => {
               "type": "tool-result",
             },
           ],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -2952,6 +3129,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3042,6 +3220,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:10.000Z,
                   },
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3181,6 +3360,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3271,6 +3451,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:10.000Z,
                   },
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3647,6 +3828,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3745,6 +3927,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3942,7 +4125,7 @@ describe('generateText', () => {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
           messages: expect.any(Array),
-          context: {},
+          context: undefined,
         },
       );
     });
@@ -4046,7 +4229,7 @@ describe('generateText', () => {
           abortSignal: expect.any(AbortSignal),
           toolCallId: 'call-1',
           messages: expect.any(Array),
-          context: {},
+          context: undefined,
         },
       );
     });
@@ -6530,22 +6713,23 @@ describe('generateText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { context }) => {
+            contextSchema: z.object({ context: z.string() }),
+            execute: async (input, { context }) => {
               recordedContext = context;
               return { value: 'test-result' };
             },
           }),
         },
-        context: {
-          context: 'test',
-        },
+        toolsContext: { t1: { context: 'test' } },
         prompt: 'test-input',
       });
 
       // tool should be executed by client
-      expect(recordedContext).toStrictEqual({
-        context: 'test',
-      });
+      expect(recordedContext).toMatchInlineSnapshot(`
+        {
+          "context": "test",
+        }
+      `);
     });
 
     it('should pass context to prepareStep', async () => {
@@ -6914,6 +7098,7 @@ describe('generateText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -7442,7 +7627,7 @@ describe('generateText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "context": {},
+                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -7457,7 +7642,7 @@ describe('generateText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "context": {},
+                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
