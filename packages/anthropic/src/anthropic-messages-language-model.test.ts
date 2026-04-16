@@ -5786,8 +5786,8 @@ describe('claude-opus-4-7 specific behavior', () => {
     expect(requestBody.temperature).toBeUndefined();
     expect(warnings).toContainEqual(
       expect.objectContaining({
-        type: 'unsupported',
-        feature: 'temperature',
+        type: 'unsupported-setting',
+        setting: 'temperature',
       }),
     );
   });
@@ -5804,8 +5804,8 @@ describe('claude-opus-4-7 specific behavior', () => {
     expect(requestBody.top_k).toBeUndefined();
     expect(warnings).toContainEqual(
       expect.objectContaining({
-        type: 'unsupported',
-        feature: 'topK',
+        type: 'unsupported-setting',
+        setting: 'topK',
       }),
     );
   });
@@ -5822,8 +5822,8 @@ describe('claude-opus-4-7 specific behavior', () => {
     expect(requestBody.top_p).toBeUndefined();
     expect(warnings).toContainEqual(
       expect.objectContaining({
-        type: 'unsupported',
-        feature: 'topP',
+        type: 'unsupported-setting',
+        setting: 'topP',
       }),
     );
   });
