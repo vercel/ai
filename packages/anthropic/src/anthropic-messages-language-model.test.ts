@@ -1378,7 +1378,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(result.providerMetadata).toMatchInlineSnapshot(`
         {
           "anthropic": {
-            "cacheCreationInputTokens": null,
             "container": null,
             "contextManagement": null,
             "iterations": null,
@@ -1839,7 +1838,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           "providerMetadata": {
             "anthropic": {
-              "cacheCreationInputTokens": 10,
               "container": null,
               "contextManagement": null,
               "iterations": null,
@@ -2003,7 +2001,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           "providerMetadata": {
             "anthropic": {
-              "cacheCreationInputTokens": 10,
               "container": null,
               "contextManagement": null,
               "iterations": null,
@@ -5699,7 +5696,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": 0,
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
@@ -5855,7 +5851,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": 0,
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
@@ -6057,7 +6052,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "providerMetadata": {
                   "anthropic": {
-                    "cacheCreationInputTokens": 0,
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
@@ -6267,7 +6261,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -6407,7 +6400,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -6504,7 +6496,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -6587,7 +6578,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -7083,7 +7073,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -7458,7 +7447,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": 10,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -7550,7 +7538,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": 10,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -7648,7 +7635,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": 10,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -7766,7 +7752,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": null,
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
@@ -7830,7 +7815,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": null,
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
@@ -8081,7 +8065,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": null,
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
@@ -8289,7 +8272,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "providerMetadata": {
                   "anthropic": {
-                    "cacheCreationInputTokens": null,
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
@@ -8396,7 +8378,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "providerMetadata": {
                   "anthropic": {
-                    "cacheCreationInputTokens": 0,
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
