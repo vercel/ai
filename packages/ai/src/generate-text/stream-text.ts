@@ -21,8 +21,12 @@ import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
+import { prepareToolChoice } from '../prompt/prepare-tool-choice';
+import { prepareTools } from '../prompt/prepare-tools';
+import { Prompt } from '../prompt/prompt';
 import {
   getChunkTimeoutMs,
   getStepTimeoutMs,
@@ -30,10 +34,6 @@ import {
   RequestOptions,
   TimeoutConfiguration,
 } from '../prompt/request-options';
-import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { prepareToolChoice } from '../prompt/prepare-tool-choice';
-import { prepareTools } from '../prompt/prepare-tools';
-import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
@@ -80,7 +80,6 @@ import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
-import { ContextParameter } from './context-parameter';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -124,6 +123,7 @@ import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
+import { ToolsContextParameter } from './tools-context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -336,7 +336,8 @@ export function streamText<
   experimental_onStepStart: onStepStart,
   experimental_onToolCallStart: onToolCallStart,
   experimental_onToolCallFinish: onToolCallFinish,
-  context: contextArg,
+  context = {} as USER_CONTEXT,
+  toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
     now = originalNow,
@@ -347,7 +348,7 @@ export function streamText<
 }: LanguageModelCallOptions &
   RequestOptions<TOOLS> &
   Prompt &
-  ContextParameter<TOOLS, USER_CONTEXT> & {
+  ToolsContextParameter<TOOLS> & {
     /**
      * The language model to use.
      */
@@ -379,6 +380,12 @@ export function streamText<
      * functionality that can be fully encapsulated in the provider.
      */
     providerOptions?: ProviderOptions;
+
+    /**
+     * Runtime context. Treat runtime context as immutable.
+     * If you need to mutate runtime context, update it in `prepareStep`.
+     */
+    context?: USER_CONTEXT;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -540,9 +547,6 @@ export function streamText<
       generateCallId?: IdGenerator;
     };
   }): StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT> {
-  let context: InferToolSetContext<TOOLS> & USER_CONTEXT = (contextArg ??
-    {}) as InferToolSetContext<TOOLS> & USER_CONTEXT;
-
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
@@ -570,6 +574,8 @@ export function streamText<
     prompt,
     messages,
     tools,
+    toolsContext,
+    context,
     toolChoice,
     transforms: asArray(transform),
     activeTools,
@@ -594,7 +600,6 @@ export function streamText<
     now,
     generateId,
     generateCallId,
-    context,
     download,
     include,
   });
@@ -780,6 +785,7 @@ class DefaultStreamTextResult<
     onToolCallStart,
     onToolCallFinish,
     context,
+    toolsContext,
     download,
     include,
   }: {
@@ -793,6 +799,8 @@ class DefaultStreamTextResult<
     stepAbortController: AbortController | undefined;
     chunkTimeoutMs: number | undefined;
     chunkAbortController: AbortController | undefined;
+    toolsContext: InferToolSetContext<TOOLS>;
+    context: USER_CONTEXT;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -819,7 +827,6 @@ class DefaultStreamTextResult<
       | StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>
       | Array<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>
       | undefined;
-    context: InferToolSetContext<TOOLS> & USER_CONTEXT;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
 
@@ -1081,6 +1088,7 @@ class DefaultStreamTextResult<
               modelId: model.modelId,
               ...callbackTelemetryProps,
               context,
+              toolsContext,
               content: recordedContent,
               finishReason: part.finishReason,
               rawFinishReason: part.rawFinishReason,
@@ -1157,6 +1165,7 @@ class DefaultStreamTextResult<
           await notify({
             event: {
               callId,
+              toolsContext: finalStep.toolsContext,
               stepNumber: finalStep.stepNumber,
               model: finalStep.model,
               functionId: finalStep.functionId,
@@ -1343,6 +1352,7 @@ class DefaultStreamTextResult<
           output,
           ...onStartTelemetryProps,
           context,
+          toolsContext,
         },
         callbacks: [
           onStart,
@@ -1408,7 +1418,7 @@ class DefaultStreamTextResult<
                 messages: initialMessages,
                 abortSignal,
                 timeout,
-                context,
+                toolsContext,
                 stepNumber: recordedSteps.length,
                 provider: model.provider,
                 modelId: model.modelId,
@@ -1539,6 +1549,7 @@ class DefaultStreamTextResult<
             steps: recordedSteps,
             stepNumber: recordedSteps.length,
             messages: stepInputMessages,
+            toolsContext,
             context,
           });
 
@@ -1647,6 +1658,7 @@ class DefaultStreamTextResult<
               messages: stepInputMessages,
               abortSignal,
               timeout,
+              toolsContext,
               context,
               toolNeedsApproval,
               generateId,

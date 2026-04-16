@@ -28,6 +28,7 @@ export function createExecuteToolsTransformation<
   abortSignal,
   timeout,
   context,
+  toolsContext,
   toolNeedsApproval,
   generateId,
   stepNumber,
@@ -43,8 +44,9 @@ export function createExecuteToolsTransformation<
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
-  toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
+  context: USER_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
+  toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
@@ -97,7 +99,7 @@ export function createExecuteToolsTransformation<
               toolCall: chunk,
               toolNeedsApproval,
               messages,
-              context,
+              toolsContext,
             })
           ) {
             controller.enqueue({
