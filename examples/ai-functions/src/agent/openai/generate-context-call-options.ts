@@ -24,10 +24,6 @@ const agent = new ToolLoopAgent({
       },
     }),
   },
-  context: {
-    weatherApiKey: 'not-set',
-    somethingElse: 'other-context',
-  },
   callOptionsSchema: z.object({
     weatherApiKey: z.string(),
   }),
