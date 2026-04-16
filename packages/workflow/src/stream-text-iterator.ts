@@ -55,7 +55,6 @@ export async function* streamTextIterator({
   writable,
   model,
   stopConditions,
-  maxSteps,
   onStepFinish,
   onStepStart,
   onError,
@@ -73,7 +72,6 @@ export async function* streamTextIterator({
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
   model: LanguageModel;
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
-  maxSteps?: number;
   onStepFinish?: WorkflowAgentOnStepFinishCallback<any>;
   onStepStart?: WorkflowAgentOnStepStartCallback;
   onError?: WorkflowAgentOnErrorCallback;
@@ -104,16 +102,7 @@ export async function* streamTextIterator({
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
 
-  // Default maxSteps to Infinity to preserve backwards compatibility
-  // (agent loops until completion unless explicitly limited)
-  const effectiveMaxSteps = maxSteps ?? Infinity;
-
   while (!done) {
-    // Check if we've exceeded the maximum number of steps
-    if (stepNumber >= effectiveMaxSteps) {
-      break;
-    }
-
     // Check for abort signal
     if (currentGenerationSettings.abortSignal?.aborted) {
       break;
