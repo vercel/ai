@@ -1,0 +1,143 @@
+{
+    "$schema": "node_modules/konsistent/konsistent.schema.json",
+    "version": "v1",
+    "kebabToPascalMap": {
+        "assemblyai": "AssemblyAI",
+        "bytedance": "ByteDance",
+        "deepinfra": "DeepInfra",
+        "deepseek": "DeepSeek",
+        "elevenlabs": "ElevenLabs",
+        "huggingface": "HuggingFace",
+        "klingai": "KlingAI",
+        "lmnt": "LMNT",
+        "moonshotai": "MoonshotAI",
+        "openai": "OpenAI",
+        "openai-compatible": "OpenAICompatible",
+        "togetherai": "TogetherAI"
+    },
+    "kebabToCamelMap": {
+        "lmnt": "lmnt"
+    },
+    "conventions": [
+        {
+            "paths": [
+                "packages/*",
+                "!packages/test-server"
+            ],
+            "must": {
+                "haveType": "directory",
+                "haveFiles": [
+                    "CHANGELOG.md",
+                    "README.md",
+                    "package.json",
+                    "src/index.ts",
+                    "tsconfig.json",
+                    "tsup.config.ts"
+                ]
+            }
+        },
+        {
+            "paths": [
+                "packages/{providerId}/src/index.ts",
+                "!packages/ai",
+                "!packages/angular",
+                "!packages/codemod",
+                "!packages/langchain",
+                "!packages/llamaindex",
+                "!packages/mcp",
+                "!packages/otel",
+                "!packages/provider",
+                "!packages/provider-utils",
+                "!packages/react",
+                "!packages/rsc",
+                "!packages/svelte",
+                "!packages/test-server",
+                "!packages/valibot",
+                "!packages/vue",
+                "!packages/workflow"
+            ],
+            "must": [
+                {
+                    "must": {
+                        "export": [
+                            "${providerId.toCamelCase()}",
+                            "create${providerId.toPascalCase()}",
+                            "VERSION"
+                        ],
+                        "exportTypes": [
+                            {
+                                "name": "${providerId.toPascalCase()}Provider",
+                                "from": "./${providerId}-provider"
+                            },
+                            {
+                                "name": "${providerId.toPascalCase()}ProviderSettings",
+                                "from": "./${providerId}-provider"
+                            }
+                        ],
+                        "haveFiles": [
+                            "${providerId}-provider.ts"
+                        ]
+                    }
+                },
+                {
+                    "if": {
+                        "hasFile": "${providerId}-language-model.ts"
+                    },
+                    "must": {
+                        "exportTypes": [
+                            "${providerId.toPascalCase()}LanguageModelOptions"
+                        ]
+                    }
+                },
+                {
+                    "for": {
+                        "files": "${providerId}-{modelKind}-model.ts"
+                    },
+                    "must": {
+                        "exportTypes": [
+                            "${providerId.toPascalCase()}${modelKind.toPascalCase()}ModelOptions"
+                        ]
+                    }
+                },
+                {
+                    "for": {
+                        "files": "*/${providerId}-{modelKind}-model.ts"
+                    },
+                    "must": {
+                        "exportTypes": [
+                            "${providerId.toPascalCase()}${modelKind.toPascalCase()}ModelOptions"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "paths": ["packages/{providerId}/src/{providerId}-provider.ts"],
+            "must": {
+                "import": [
+                    {
+                        "name": "ProviderV4",
+                        "from": "@ai-sdk/provider"
+                    }
+                ],
+                "exportInterfaces": [
+                    {
+                        "name": "${providerId.toPascalCase()}Provider",
+                        "extend": "ProviderV4"
+                    },
+                    "${providerId.toPascalCase()}ProviderSettings"
+                ],
+                "exportFunctions": [
+                    {
+                        "name": "create${providerId.toPascalCase()}",
+                        "receiveParamOfType": "${providerId.toPascalCase()}ProviderSettings",
+                        "returnValueOfType": "${providerId.toPascalCase()}Provider"
+                    }
+                ],
+                "exportConstants": [
+                    "${providerId.toCamelCase()}"
+                ]
+            }
+        }
+    ]
+}
