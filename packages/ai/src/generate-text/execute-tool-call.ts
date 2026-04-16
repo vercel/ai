@@ -1,9 +1,15 @@
 import type {
   Context,
+  InferToolContext,
+  InferToolInput,
   InferToolSetContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  executeTool,
+  isExecutableTool,
+  ModelMessage,
+} from '@ai-sdk/provider-utils';
 import {
   getToolTimeoutMs,
   TimeoutConfiguration,
@@ -78,7 +84,7 @@ export async function executeToolCall<
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
 
-  if (tool?.execute == null) {
+  if (!isExecutableTool(tool)) {
     return undefined;
   }
 
@@ -119,13 +125,13 @@ export async function executeToolCall<
       toolCallId,
       execute: async () => {
         const stream = executeTool({
-          execute: tool.execute!.bind(tool),
-          input,
+          tool,
+          input: input as InferToolInput<typeof tool>,
           options: {
             toolCallId,
             messages,
             abortSignal: toolAbortSignal,
-            context,
+            context: context as InferToolContext<typeof tool>,
           },
         });
 
