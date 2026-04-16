@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+
 ## 1.0.0-beta.14
 
 ### Patch Changes
