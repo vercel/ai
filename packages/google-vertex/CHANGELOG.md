@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 3.0.130
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [4b40033]
+  - @ai-sdk/anthropic@2.0.75
+
 ## 3.0.129
 
 ### Patch Changes

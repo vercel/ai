@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.75
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
 ## 2.0.74
 
 ### Patch Changes
