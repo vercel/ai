@@ -411,12 +411,7 @@ const result = await agent.stream({
       isOptional: true,
       description: 'Condition(s) for ending the agent loop.',
     },
-    {
-      name: 'maxSteps',
-      type: 'number',
-      isOptional: true,
-      description: 'Maximum number of sequential LLM calls (steps). By default, the agent loops until completion.',
-    },
+
     {
       name: 'toolChoice',
       type: 'ToolChoice',

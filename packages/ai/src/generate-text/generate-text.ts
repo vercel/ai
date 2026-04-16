@@ -265,8 +265,7 @@ export async function generateText<
   experimental_telemetry: telemetry,
   providerOptions,
   activeTools,
-  experimental_prepareStep,
-  prepareStep = experimental_prepareStep,
+  prepareStep,
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   runtimeContext = {} as RUNTIME_CONTEXT,
@@ -356,14 +355,6 @@ export async function generateText<
      * By default, files are downloaded if the model does not support the URL for the given media type.
      */
     experimental_download?: DownloadFunction | undefined;
-
-    /**
-     * @deprecated Use `prepareStep` instead.
-     */
-    experimental_prepareStep?: PrepareStepFunction<
-      NoInfer<TOOLS>,
-      RUNTIME_CONTEXT
-    >;
 
     /**
      * Optional function that you can use to provide different settings for a step.

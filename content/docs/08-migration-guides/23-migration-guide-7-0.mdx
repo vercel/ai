@@ -281,6 +281,38 @@ const result = await generateText({
 });
 ```
 
+### Core: Remove Deprecated `experimental_prepareStep` Option
+
+The deprecated `experimental_prepareStep` option has been removed in AI SDK 7. Replace all remaining usages with `prepareStep`.
+
+This option was deprecated in AI SDK 5, so if you already migrated to `prepareStep`, no changes are needed. Otherwise, update `generateText` calls:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  experimental_prepareStep: ({ stepNumber }) => {
+    console.log('Preparing step', stepNumber);
+    return {
+      activeTools: ['weather'],
+    };
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  prepareStep: ({ stepNumber }) => {
+    console.log('Preparing step', stepNumber);
+    return {
+      activeTools: ['weather'],
+    };
+  },
+});
+```
+
 ### Tools: Remove Deprecated `ToolCallOptions` Type
 
 The deprecated `ToolCallOptions` type has been removed in AI SDK 7. Replace all remaining usages with `ToolExecutionOptions`.
