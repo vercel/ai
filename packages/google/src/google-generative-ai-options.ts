@@ -30,12 +30,6 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash'
   | 'gemini-2.5-flash-image-preview'
   | 'gemini-2.5-flash-lite'
-<<<<<<< HEAD
-  | 'gemini-2.5-flash-lite-preview-09-2025'
-  | 'gemini-2.5-flash-preview-04-17'
-  | 'gemini-2.5-flash-preview-09-2025'
-=======
->>>>>>> 71c52e0c0 (Backport: chore(provider/google): update available models (#14524))
   | 'gemini-2.5-flash-preview-tts'
   | 'gemini-2.5-pro-preview-tts'
   | 'gemini-2.5-flash-native-audio-latest'
@@ -48,11 +42,8 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-3.1-pro-preview'
   | 'gemini-3.1-pro-preview-customtools'
   | 'gemini-3.1-flash-image-preview'
-<<<<<<< HEAD
-=======
   | 'gemini-3.1-flash-lite-preview'
   | 'gemini-3.1-flash-tts-preview'
->>>>>>> 71c52e0c0 (Backport: chore(provider/google): update available models (#14524))
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
