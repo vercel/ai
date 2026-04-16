@@ -136,7 +136,6 @@ async function main() {
 
   console.log(result.text);
   console.log(result.providerMetadata?.anthropic);
-  // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
 }
 
 main().catch(console.error);
