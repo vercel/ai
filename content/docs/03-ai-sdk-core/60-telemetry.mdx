@@ -112,7 +112,7 @@ registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 ### Per-call integrations
 
-You can also pass one or more integrations to individual `generateText` or `streamText` calls. Per-call integrations run after any globally registered integrations:
+You can also pass one or more integrations to individual `generateText` or `streamText` calls. When per-call integrations are provided, they replace the globally registered integrations for that call:
 
 ```ts highlight="6-8"
 import { streamText } from 'ai';

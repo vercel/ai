@@ -179,8 +179,8 @@ describe('createUnifiedTelemetry', () => {
     await expect(telemetry.onStart!(dummyEvent)).resolves.toBeUndefined();
   });
 
-  describe('global integration merging', () => {
-    it('includes globally registered integrations when no local integrations are provided', async () => {
+  describe('global vs local integration resolution', () => {
+    it('uses globally registered integrations when no local integrations are provided', async () => {
       const onStart = vi.fn();
       registerTelemetryIntegration({ onStart });
 
@@ -190,7 +190,7 @@ describe('createUnifiedTelemetry', () => {
       expect(onStart).toHaveBeenCalledWith(dummyEvent);
     });
 
-    it('merges global and local integrations', async () => {
+    it('uses only local integrations when provided, ignoring global', async () => {
       const globalOnStart = vi.fn();
       const localOnStart = vi.fn();
 
@@ -201,32 +201,11 @@ describe('createUnifiedTelemetry', () => {
       });
       await telemetry.onStart!(dummyEvent);
 
-      expect(globalOnStart).toHaveBeenCalledWith(dummyEvent);
+      expect(globalOnStart).not.toHaveBeenCalled();
       expect(localOnStart).toHaveBeenCalledWith(dummyEvent);
     });
 
-    it('invokes global integrations before local integrations', async () => {
-      const callOrder: string[] = [];
-
-      registerTelemetryIntegration({
-        onFinish: () => {
-          callOrder.push('global');
-        },
-      });
-
-      const telemetry = createUnifiedTelemetry({
-        integrations: {
-          onFinish: () => {
-            callOrder.push('local');
-          },
-        },
-      });
-      await telemetry.onFinish!(dummyEvent);
-
-      expect(callOrder).toEqual(['global', 'local']);
-    });
-
-    it('works with local integration arrays', async () => {
+    it('uses only local integration array when provided, ignoring global', async () => {
       const globalOnStart = vi.fn();
       const localOnStart1 = vi.fn();
       const localOnStart2 = vi.fn();
@@ -238,25 +217,27 @@ describe('createUnifiedTelemetry', () => {
       });
       await telemetry.onStart!(dummyEvent);
 
-      expect(globalOnStart).toHaveBeenCalledWith(dummyEvent);
+      expect(globalOnStart).not.toHaveBeenCalled();
       expect(localOnStart1).toHaveBeenCalledWith(dummyEvent);
       expect(localOnStart2).toHaveBeenCalledWith(dummyEvent);
     });
 
-    it('errors in global integrations do not affect local integrations', async () => {
-      registerTelemetryIntegration({
-        onStart: () => {
-          throw new Error('global boom');
-        },
-      });
-
+    it('global integrations still work for calls without local integrations', async () => {
+      const globalOnStart = vi.fn();
       const localOnStart = vi.fn();
-      const telemetry = createUnifiedTelemetry({
+
+      registerTelemetryIntegration({ onStart: globalOnStart });
+
+      const withLocal = createUnifiedTelemetry({
         integrations: { onStart: localOnStart },
       });
-      await telemetry.onStart!(dummyEvent);
+      const withoutLocal = createUnifiedTelemetry({});
 
-      expect(localOnStart).toHaveBeenCalledWith(dummyEvent);
+      await withLocal.onStart!(dummyEvent);
+      await withoutLocal.onStart!(dummyEvent);
+
+      expect(localOnStart).toHaveBeenCalledOnce();
+      expect(globalOnStart).toHaveBeenCalledOnce();
     });
 
     it('auto-binds class-based global integrations', async () => {
@@ -354,7 +335,7 @@ describe('createUnifiedTelemetry', () => {
       expect(execute).toHaveBeenCalledOnce();
     });
 
-    it('composes global and local executeTool wrappers', async () => {
+    it('uses only local executeTool when provided, ignoring global', async () => {
       const callOrder: string[] = [];
 
       registerTelemetryIntegration({
@@ -387,13 +368,34 @@ describe('createUnifiedTelemetry', () => {
       });
 
       expect(result).toBe('done');
-      expect(callOrder).toEqual([
-        'local-before',
-        'global-before',
-        'execute',
-        'global-after',
-        'local-after',
-      ]);
+      expect(callOrder).toEqual(['local-before', 'execute', 'local-after']);
+    });
+
+    it('uses global executeTool when no local integrations are provided', async () => {
+      const callOrder: string[] = [];
+
+      registerTelemetryIntegration({
+        executeTool: async ({ execute }) => {
+          callOrder.push('global-before');
+          const result = await execute();
+          callOrder.push('global-after');
+          return result;
+        },
+      });
+
+      const telemetry = createUnifiedTelemetry({});
+
+      const result = await telemetry.executeTool!({
+        callId: 'call-1',
+        toolCallId: 'tool-1',
+        execute: async () => {
+          callOrder.push('execute');
+          return 'done';
+        },
+      });
+
+      expect(result).toBe('done');
+      expect(callOrder).toEqual(['global-before', 'execute', 'global-after']);
     });
 
     it('auto-binds class-based executeTool integrations', async () => {
