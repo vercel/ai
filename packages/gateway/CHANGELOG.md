@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.101
+
+### Patch Changes
+
+- 83434a9: feat (provider/gateway): add sort options
+
 ## 3.0.100
 
 ### Patch Changes
