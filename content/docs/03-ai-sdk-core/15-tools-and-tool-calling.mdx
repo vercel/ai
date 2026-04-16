@@ -409,6 +409,7 @@ It is called with the following parameters:
 - `steps`: The steps that have been executed so far.
 - `messages`: The messages that will be sent to the model for the current step.
 - `context`: The runtime context passed via the `context` setting.
+- `toolsContext`: The per-tool context map passed via the `toolsContext` setting.
 
 You can use it to provide different settings for a step, including modifying the input messages.
 
@@ -729,18 +730,21 @@ const result = await generateText({
 ### Runtime Context
 
 You can pass in arbitrary runtime context from `generateText` or `streamText` via the `context` setting.
-This runtime context is available in `prepareStep` and in the `context` tool execution option.
+This runtime context is available in `prepareStep`.
 
 To avoid confusion with prompt context or retrieved context, the docs refer to this feature as runtime context.
 
-This is useful for values like API keys, tenant information, feature flags, session data, or other server-side state that should influence tool execution without being embedded into the prompt.
+This is useful for values like tenant information, feature flags, session data, or other server-side state that should influence step preparation without being embedded into the prompt.
+
+Tool execution context is now separate. If a tool needs server-side values such as API keys, pass them via `toolsContext`, keyed by tool name. Each tool then receives only its own typed `context` value based on its `contextSchema`.
 
 At a high level:
 
-- Pass the full runtime context object through `context`
+- Pass shared step-level state through `context`
 - Read or update it in `prepareStep`
-- Declare each tool's expected runtime context with `contextSchema`
-- Access the tool's typed runtime context in `execute` together with other execution metadata such as `toolCallId`, `messages`, and `abortSignal`
+- Pass per-tool values through `toolsContext`
+- Declare each tool's expected tool context with `contextSchema`
+- Access the tool's typed context in `execute` together with other execution metadata such as `toolCallId`, `messages`, and `abortSignal`
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -777,11 +781,16 @@ const result = streamText({
     }),
   },
   context: {
-    weatherApiKey: 'weather-123',
     somethingElse: 'other-context',
   },
-  prepareStep: async ({ context }) => {
+  toolsContext: {
+    weather: {
+      weatherApiKey: 'weather-123',
+    },
+  },
+  prepareStep: async ({ context, toolsContext }) => {
     console.log('prepareStep context:', context);
+    console.log('prepareStep toolsContext:', toolsContext);
 
     return {
       // You can keep the context unchanged or return a new one
@@ -797,12 +806,21 @@ In this example, `prepareStep` receives the full runtime context object:
 
 ```ts
 {
-  weatherApiKey: string;
   somethingElse: string;
 }
 ```
 
-The `weather` tool then receives a typed view of the runtime context based on its `contextSchema`. In this case, `execute` can access `weatherApiKey`, while `prepareStep` still sees the full runtime context object.
+`prepareStep` also receives the per-tool `toolsContext` map:
+
+```ts
+{
+  weather: {
+    weatherApiKey: string;
+  };
+}
+```
+
+The `weather` tool then receives only its own typed `context` based on its `contextSchema`. In this case, `execute` can access `weatherApiKey`, while the shared step-level `context` remains separate.
 
 
 ## Tool Input Lifecycle Hooks
