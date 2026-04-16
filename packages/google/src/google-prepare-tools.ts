@@ -198,7 +198,7 @@ export function prepareTools({
           description: tool.description ?? '',
           parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
         });
-        if (tool.strict === true) {
+        if ((tool as any).strict === true) {
           hasStrictTools = true;
         }
         break;
