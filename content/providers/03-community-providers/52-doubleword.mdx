@@ -1,0 +1,147 @@
+---
+title: Doubleword
+description: Learn how to use the Doubleword provider for the AI SDK.
+---
+
+# Doubleword Provider
+
+[Doubleword](https://doubleword.ai) is an AI model gateway providing unified routing, management, and security for inference across multiple model providers. The Doubleword provider for the AI SDK lets you access all models configured in your Doubleword control layer through a single integration.
+
+## Setup
+
+The Doubleword provider is available in the `@doubleword/vercel-ai` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @doubleword/vercel-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @doubleword/vercel-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @doubleword/vercel-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @doubleword/vercel-ai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `doubleword` from `@doubleword/vercel-ai`:
+
+```ts
+import { doubleword } from '@doubleword/vercel-ai';
+```
+
+If you need a customized setup, you can import `createDoubleword` and create a provider instance with your settings:
+
+```ts
+import { createDoubleword } from '@doubleword/vercel-ai';
+
+const doubleword = createDoubleword({
+  apiKey: process.env.DOUBLEWORD_API_KEY,
+});
+```
+
+The provider uses the `DOUBLEWORD_API_KEY` environment variable by default. You can also authenticate via `~/.dw/credentials.toml`.
+
+## Language Models
+
+You can create language models using any model ID configured in your Doubleword control layer:
+
+```ts
+import { doubleword } from '@doubleword/vercel-ai';
+
+const model = doubleword('gpt-4o');
+```
+
+Doubleword routes requests to the appropriate inference provider based on your configured routing rules.
+
+## Embedding Models
+
+You can create embedding models using the `.textEmbeddingModel()` factory method:
+
+```ts
+import { doubleword } from '@doubleword/vercel-ai';
+
+const embeddingModel = doubleword.textEmbeddingModel('text-embedding-3-small');
+```
+
+## Examples
+
+### `generateText`
+
+```ts
+import { generateText } from 'ai';
+import { doubleword } from '@doubleword/vercel-ai';
+
+const { text } = await generateText({
+  model: doubleword('gpt-4o'),
+  prompt: 'What is Doubleword?',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```ts
+import { streamText } from 'ai';
+import { doubleword } from '@doubleword/vercel-ai';
+
+const result = streamText({
+  model: doubleword('claude-sonnet-4-20250514'),
+  prompt: 'Explain the benefits of an AI gateway.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Tool Calling
+
+Doubleword supports tool calling with AI SDK 6:
+
+```ts
+import { generateText, tool } from 'ai';
+import { doubleword } from '@doubleword/vercel-ai';
+import { jsonSchema } from 'ai/schema';
+
+const { text } = await generateText({
+  model: doubleword('gpt-4o'),
+  prompt: 'What is the weather in London?',
+  tools: {
+    getWeather: tool({
+      description: 'Get the weather for a location',
+      inputSchema: jsonSchema({
+        type: 'object',
+        properties: {
+          location: { type: 'string', description: 'The city name' },
+        },
+        required: ['location'],
+      }),
+      execute: async ({ location }) => `Sunny, 22°C in ${location}`,
+    }),
+  },
+});
+```
+
+### Embeddings
+
+```ts
+import { embed } from 'ai';
+import { doubleword } from '@doubleword/vercel-ai';
+
+const { embedding } = await embed({
+  model: doubleword.textEmbeddingModel('text-embedding-3-small'),
+  value: 'sunny day at the beach',
+});
+```
+
+## Additional Resources
+
+- [Doubleword Provider on GitHub](https://github.com/doublewordai/vercel-doubleword)
+- [Doubleword Documentation](https://docs.doubleword.ai)
+- [Doubleword Website](https://doubleword.ai)
