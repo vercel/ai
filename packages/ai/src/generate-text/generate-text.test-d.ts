@@ -183,7 +183,7 @@ describe('generateText types', () => {
           prompt: 'Hello',
           tools: twoToolsWithContext,
           // @ts-expect-error missing required weatherApiKey and dbUrl
-          context: {},
+          toolsContext: {},
         });
       });
 

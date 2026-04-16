@@ -58,7 +58,6 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
-import { ContextParameter } from './context-parameter';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -85,13 +84,14 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
+import { ToolsContextParameter } from './tools-context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -270,7 +270,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   context: contextArg,
-  // toolsContext: toolsContextArg,
+  toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
     generateId = originalGenerateId,
@@ -286,7 +286,7 @@ export async function generateText<
 }: LanguageModelCallOptions &
   RequestOptions<TOOLS> &
   Prompt &
-  ContextParameter<TOOLS, USER_CONTEXT> & {
+  ToolsContextParameter<TOOLS> & {
     /**
      * The language model to use.
      */
@@ -318,6 +318,18 @@ export async function generateText<
      * functionality that can be fully encapsulated in the provider.
      */
     providerOptions?: ProviderOptions;
+
+    /**
+     * User-defined runtime context.
+     *
+     * Treat the context object as immutable inside tools.
+     * Mutating the context object can lead to race conditions and unexpected results
+     * when tools are called in parallel.
+     *
+     * If you need to mutate the context, analyze the tool calls and results
+     * in `prepareStep` and update it there.
+     */
+    context?: USER_CONTEXT;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -556,7 +568,7 @@ export async function generateText<
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
         timeout,
-        context,
+        toolsContext,
         stepNumber: 0,
         provider: model.provider,
         modelId: model.modelId,
@@ -857,7 +869,7 @@ export async function generateText<
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
               timeout,
-              context,
+              toolsContext,
               stepNumber: steps.length,
               provider: stepModel.provider,
               modelId: stepModel.modelId,
@@ -1083,10 +1095,7 @@ export async function generateText<
   }
 }
 
-async function executeTools<
-  TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
->({
+async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
   tools,
   telemetry,
@@ -1094,7 +1103,7 @@ async function executeTools<
   messages,
   abortSignal,
   timeout,
-  context,
+  toolsContext,
   stepNumber,
   provider,
   modelId,
@@ -1109,7 +1118,7 @@ async function executeTools<
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
   stepNumber: number;
   provider: string;
   modelId: string;
@@ -1127,7 +1136,7 @@ async function executeTools<
         messages,
         abortSignal,
         timeout,
-        context,
+        toolsContext,
         stepNumber,
         provider,
         modelId,
