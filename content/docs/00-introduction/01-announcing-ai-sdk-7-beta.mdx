@@ -191,7 +191,7 @@ Learn more in the [File Uploads documentation](/docs/ai-sdk-core/file-uploads) a
 
 ### Stable Typed Tool Context
 
-AI SDK 7 promotes `experimental_context` to stable `context` and lets tools declare a `contextSchema` for end-to-end type inference.
+AI SDK 7 promotes `experimental_context` to stable `context` and lets each tool declare its own `contextSchema` for end-to-end type inference. Context is separated by tool — each tool only receives the context it declares, and the call-site `context` is type-checked against the combined requirements of all tools.
 
 ```ts
 import { tool } from 'ai';
@@ -239,6 +239,10 @@ const result = await generateText({
 ```
 
 Learn more in the [Settings documentation](/docs/ai-sdk-core/settings#timeout).
+
+### `reasoning-file` Content Part
+
+Models that return files as part of their reasoning trace (separate from regular output files) now use a distinct `reasoning-file` content part type. Previously these were grouped under the generic `file` type. If you have exhaustive part handling (`switch` statements, renderers, serializers), you will need to add a case for `type: 'reasoning-file'`.
 
 ## Migration from AI SDK 6.x
 
