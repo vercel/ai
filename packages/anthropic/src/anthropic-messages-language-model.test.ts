@@ -7241,7 +7241,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
-          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "custom-provider-header": "provider-header-value",
@@ -7251,7 +7250,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
-    it('should merge custom anthropic-beta header with fine-grained-tool-streaming beta', async () => {
+    it('should merge custom anthropic-beta headers without legacy fine-grained-tool-streaming beta', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -7277,27 +7276,64 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(
         server.calls[0].requestHeaders['anthropic-beta'],
       ).toMatchInlineSnapshot(
-        `"fine-grained-tool-streaming-2025-05-14,config-beta1,config-beta2,request-beta1,request-beta2"`,
+        `"config-beta1,config-beta2,request-beta1,request-beta2"`,
       );
     });
 
-    it('should not add fine-grained-tool-streaming beta for claude-opus-4-7 (GA)', async () => {
+    it('should not add eager_input_streaming by default (per-tool opt-in required)', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-opus-4-7","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
-          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
-          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
-          `data: {"type":"content_block_stop","index":0}\n\n`,
-          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":5}}\n\n`,
+          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}\n\n`,
           `data: {"type":"message_stop"}\n\n`,
         ],
       };
 
       const provider = createAnthropic({ apiKey: 'test-api-key' });
-      await provider('claude-opus-4-7').doStream({ prompt: TEST_PROMPT });
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
 
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.tools[0].eager_input_streaming).toBeUndefined();
       expect(server.calls[0].requestHeaders['anthropic-beta']).toBeUndefined();
+    });
+
+    it('should add eager_input_streaming when opted in per-tool via providerOptions', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({ apiKey: 'test-api-key' });
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+            providerOptions: { anthropic: { eagerInputStreaming: true } },
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.tools[0].eager_input_streaming).toBe(true);
     });
 
     it('should include providerOptions.anthropic.anthropicBeta in anthropic-beta header', async () => {

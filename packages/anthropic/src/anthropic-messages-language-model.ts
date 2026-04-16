@@ -719,14 +719,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       betas.add('fast-mode-2026-02-01');
     }
 
-    // only when streaming: enable fine-grained tool streaming.
-    if (
-      stream &&
-      (anthropicOptions?.toolStreaming ?? true) &&
-      !this.modelId.includes('claude-opus-4-7')
-    ) {
-      betas.add('fine-grained-tool-streaming-2025-05-14');
-    }
+    // Fine-grained tool streaming is GA on all models and platforms. It is
+    // now opted-in per-tool via `eager_input_streaming: true` on the tool
+    // definition (set via `providerOptions.anthropic.eagerInputStreaming` on
+    // the tool), rather than via a global `anthropic-beta` header. The
+    // legacy beta flag is unnecessary on Anthropic direct and is rejected by
+    // Bedrock's passthrough validation on newer models (e.g. Opus 4.7). The
+    // model-level `toolStreaming` option is now a no-op.
+    // https://docs.claude.com/en/docs/build-with-claude/fine-grained-tool-streaming
 
     const {
       tools: anthropicTools,

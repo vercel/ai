@@ -184,12 +184,10 @@ export const anthropicLanguageModelOptions = z.object({
     .optional(),
 
   /**
-   * Whether to enable tool streaming (and structured output streaming).
-   *
-   * When set to false, the model will return all tool calls and results
-   * at once after a delay.
-   *
-   * @default true
+   * @deprecated No longer has any effect. Fine-grained tool streaming is GA
+   * and is opted-in per-tool via
+   * `providerOptions.anthropic.eagerInputStreaming: true` on the tool
+   * definition.
    */
   toolStreaming: z.boolean().optional(),
 
