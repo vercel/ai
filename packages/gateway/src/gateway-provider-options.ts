@@ -20,7 +20,7 @@ const gatewayProviderOptions = lazySchema(() =>
       /**
        * Sort providers by a performance or cost metric before routing.
        *
-       * - `'cost'`: lowest input cost first
+       * - `'cost'`: lowest cost first
        * - `'ttft'`: lowest time-to-first-token first
        * - `'tps'`: highest tokens-per-second first
        */
