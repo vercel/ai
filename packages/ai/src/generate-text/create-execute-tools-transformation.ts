@@ -8,12 +8,13 @@ import { TimeoutConfiguration } from '../prompt/request-options';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { executeToolCall } from './execute-tool-call';
-import { isApprovalNeeded } from './is-approval-needed';
+import { isToolApprovalNeeded } from './is-tool-approval-needed';
 import { LanguageModelStreamPart } from './stream-language-model-call';
 import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { TypedToolCall } from './tool-call';
 
 export function createExecuteToolsTransformation<
@@ -27,6 +28,7 @@ export function createExecuteToolsTransformation<
   abortSignal,
   timeout,
   context,
+  toolNeedsApproval,
   generateId,
   stepNumber,
   provider,
@@ -42,6 +44,7 @@ export function createExecuteToolsTransformation<
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
@@ -89,9 +92,10 @@ export function createExecuteToolsTransformation<
           }
 
           if (
-            await isApprovalNeeded({
-              tool,
+            await isToolApprovalNeeded({
+              tools,
               toolCall: chunk,
+              toolNeedsApproval,
               messages,
               context,
             })

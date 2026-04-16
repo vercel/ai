@@ -515,18 +515,11 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
-              name: 'metadata',
-              isOptional: true,
-              type: 'Record<string, string | number | boolean | Array<null | undefined | string> | Array<null | undefined | number> | Array<null | undefined | boolean>>',
-              description:
-                'Additional information to include in the telemetry data.',
-            },
-            {
               name: 'integrations',
               isOptional: true,
               type: 'TelemetryIntegration | TelemetryIntegration[]',
               description:
-                'Per-call telemetry integrations that receive lifecycle events. These run after any globally registered integrations.',
+                'Per-call telemetry integrations that receive lifecycle events. When provided, these replace any globally registered integrations for this call.',
             },
           ],
         },
@@ -545,6 +538,13 @@ To see `generateText` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default.',
+    },
+    {
+      name: 'toolNeedsApproval',
+      type: 'Record<TOOLNAME, boolean | ((input, options) => boolean | Promise<boolean>)>',
+      isOptional: true,
+      description:
+        "Per-tool approval configuration for this call. Each tool can be set to `true` / `false` or to a function that decides dynamically based on the tool input and options such as `toolCallId`, `messages`, and `context`. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
       name: 'stopWhen',
@@ -1034,11 +1034,6 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata passed to the generation.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -1147,11 +1142,6 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -1205,11 +1195,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
             },
             {
               name: 'context',
@@ -1273,11 +1258,6 @@ To see `generateText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -1331,11 +1311,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
             },
             {
               name: 'context',
@@ -1608,11 +1583,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
             },
             {
               name: 'finishReason',
@@ -2417,11 +2387,6 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
             },
             {
               name: 'context',

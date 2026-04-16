@@ -84,6 +84,13 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Limits the subset of tools that are available in a specific call.',
     },
     {
+      name: 'toolNeedsApproval',
+      type: 'Record<string, boolean | ((input, options) => boolean | Promise<boolean>)>',
+      isOptional: true,
+      description:
+        "Per-tool approval configuration for the agent. Each tool can be set to `true` / `false` or to a function that decides dynamically based on the tool input and options such as `toolCallId`, `messages`, and `context`. This setting takes precedence over a tool's `needsApproval` default.",
+    },
+    {
       name: 'output',
       type: 'Output',
       isOptional: true,
@@ -240,11 +247,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata passed to the generation.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -351,11 +353,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -409,11 +406,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
             },
             {
               name: 'context',
@@ -477,11 +469,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -521,7 +508,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'ToolLoopAgentOnFinishCallback',
       isOptional: true,
       description:
-        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, context, functionId, and metadata. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, context, and functionId. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
       name: 'context',
@@ -632,6 +619,23 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'string',
       isOptional: true,
       description: 'Custom agent identifier.',
+    },
+  ]}
+/>
+
+## Properties
+
+<PropertiesTable
+  content={[
+    {
+      name: 'tools',
+      type: 'Record<string, Tool>',
+      description: 'The tool set configured for this agent. Read-only.',
+    },
+    {
+      name: 'id',
+      type: 'string | undefined',
+      description: 'The agent identifier, if one was provided in the constructor.',
     },
   ]}
 />
@@ -952,22 +956,49 @@ console.log(result.output);
 ### Example: Approved Tool Execution
 
 ```ts
-import { openai } from '@ai-sdk/openai';
-import { ToolLoopAgent } from 'ai';
+import { ToolLoopAgent, ModelMessage, ToolApprovalResponse, tool } from 'ai';
+import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
   model: __MODEL__,
   instructions: 'You are an agent with access to a weather API.',
   tools: {
-    weather: openai.tools.weather({
-      /* ... */
+    weather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({
+        location: z.string(),
+      }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 72,
+      }),
     }),
   },
-  // Optionally require approval, etc.
+  toolNeedsApproval: {
+    weather: true,
+  },
 });
 
-const result = await agent.generate({
-  prompt: 'Is it raining in Paris today?',
-});
-console.log(result.text);
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'Is it raining in Paris today?' },
+];
+
+const result = await agent.generate({ messages });
+const approvals: ToolApprovalResponse[] = [];
+
+for (const part of result.content) {
+  if (part.type === 'tool-approval-request') {
+    approvals.push({
+      type: 'tool-approval-response',
+      approvalId: part.approvalId,
+      approved: true,
+    });
+  }
+}
+
+messages.push(...result.response.messages);
+messages.push({ role: 'tool', content: approvals });
+
+const approvedResult = await agent.generate({ messages });
+console.log(approvedResult.text);
 ```

@@ -51,11 +51,17 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 <PropertiesTable
   content={[
     {
+      name: 'id',
+      type: 'string',
+      isOptional: true,
+      description: 'The id of the agent.',
+    },
+    {
       name: 'model',
-      type: 'string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>)',
+      type: 'LanguageModel',
       isRequired: true,
       description:
-        'The model to use. A string compatible with the Vercel AI Gateway (e.g., \'anthropic/claude-sonnet-4-6\'), a LanguageModelV4 instance, or an async function returning one.',
+        'The language model to use. A string compatible with the Vercel AI Gateway (e.g., \'anthropic/claude-sonnet-4-6\') or a provider instance (e.g., `openai(\'gpt-4o\')`).',
     },
     {
       name: 'instructions',
@@ -77,6 +83,36 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       isOptional: true,
       description:
         "Tool call selection strategy. Options: 'auto' | 'none' | 'required' | { type: 'tool', toolName: string }. Default: 'auto'.",
+    },
+    {
+      name: 'stopWhen',
+      type: 'StopCondition | StopCondition[]',
+      isOptional: true,
+      description: 'Default stop condition for the agent loop. Per-stream values override this default.',
+    },
+    {
+      name: 'activeTools',
+      type: 'Array<string>',
+      isOptional: true,
+      description: 'Default set of active tools. Limits which tools the model can call. Per-stream values override this default.',
+    },
+    {
+      name: 'output',
+      type: 'OutputSpecification',
+      isOptional: true,
+      description: 'Default structured output specification. Per-stream values override this default.',
+    },
+    {
+      name: 'experimental_repairToolCall',
+      type: 'ToolCallRepairFunction',
+      isOptional: true,
+      description: 'Default function to repair tool calls that fail to parse. Per-stream values override this default.',
+    },
+    {
+      name: 'experimental_download',
+      type: 'DownloadFunction',
+      isOptional: true,
+      description: 'Default custom download function for URLs. Per-stream values override this default.',
     },
     {
       name: 'prepareStep',
@@ -118,7 +154,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
           parameters: [
             {
               name: 'model',
-              type: 'string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>)',
+              type: 'LanguageModel',
               description: 'The model being used for the generation.',
             },
             {
@@ -147,13 +183,18 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
             },
             {
               name: 'model',
-              type: 'string | CompatibleLanguageModel | (() => Promise<CompatibleLanguageModel>)',
+              type: 'LanguageModel',
               description: 'The model being used for this step.',
             },
             {
               name: 'messages',
               type: 'Array<ModelMessage>',
               description: 'The messages that will be sent to the model for this step.',
+            },
+            {
+              name: 'steps',
+              type: 'ReadonlyArray<StepResult>',
+              description: 'Results from all previously finished steps.',
             },
           ],
         },
@@ -174,6 +215,11 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
               type: '{ type: "tool-call"; toolCallId: string; toolName: string; input: unknown }',
               description: 'The tool call being executed.',
             },
+            {
+              name: 'stepNumber',
+              type: 'number',
+              description: 'Zero-based index of the current step.',
+            },
           ],
         },
       ],
@@ -183,7 +229,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'WorkflowAgentOnToolCallFinishCallback',
       isOptional: true,
       description:
-        "Callback called right after a tool's execute function completes or errors. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).",
+        "Callback called right after a tool's execute function completes or errors. Uses a discriminated union: check `success` to determine whether `output` or `error` is available. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).",
       properties: [
         {
           type: 'OnToolCallFinishEvent',
@@ -194,14 +240,29 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
               description: 'The tool call that was executed.',
             },
             {
-              name: 'result',
+              name: 'stepNumber',
+              type: 'number',
+              description: 'Zero-based index of the current step.',
+            },
+            {
+              name: 'durationMs',
+              type: 'number',
+              description: 'Tool execution time in milliseconds.',
+            },
+            {
+              name: 'success',
+              type: 'boolean',
+              description: 'Whether the tool call succeeded. When true, `output` is available. When false, `error` is available.',
+            },
+            {
+              name: 'output',
               type: 'unknown',
-              description: 'The tool result (undefined if execution failed).',
+              description: 'The tool result (only when success is true).',
             },
             {
               name: 'error',
               type: 'unknown',
-              description: 'The error if execution failed.',
+              description: 'The error that occurred (only when success is false).',
             },
           ],
         },
@@ -209,14 +270,14 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'onStepFinish',
-      type: 'StreamTextOnStepFinishCallback',
+      type: 'WorkflowAgentOnStepFinishCallback',
       isOptional: true,
       description:
         'Callback invoked after each agent step completes. If also specified in `stream()`, both callbacks fire (constructor first).',
     },
     {
       name: 'onFinish',
-      type: 'StreamTextOnFinishCallback',
+      type: 'WorkflowAgentOnFinishCallback',
       isOptional: true,
       description:
         'Callback called when all agent steps are finished and the response is complete. Receives steps, messages, text, finish reason, total usage, and context. If also specified in `stream()`, both callbacks fire (constructor first).',
@@ -295,6 +356,11 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
 <PropertiesTable
   content={[
     {
+      name: 'id',
+      type: 'string | undefined',
+      description: 'The id of the agent. Used for telemetry identification. Read-only.',
+    },
+    {
       name: 'tools',
       type: 'Record<string, Tool>',
       description: 'The tool set configured for this agent. Read-only.',
@@ -317,10 +383,14 @@ const result = await agent.stream({
 <PropertiesTable
   content={[
     {
+      name: 'prompt',
+      type: 'string | Array<ModelMessage>',
+      description: 'A prompt string or a list of messages. You can either use `prompt` or `messages` but not both.',
+    },
+    {
       name: 'messages',
       type: 'Array<ModelMessage>',
-      isRequired: true,
-      description: 'The conversation messages to process.',
+      description: 'The conversation messages to process. You can either use `prompt` or `messages` but not both.',
     },
     {
       name: 'writable',
@@ -456,27 +526,27 @@ const result = await agent.stream({
     },
     {
       name: 'onStepFinish',
-      type: 'StreamTextOnStepFinishCallback',
+      type: 'WorkflowAgentOnStepFinishCallback',
       isOptional: true,
       description:
         'Per-call onStepFinish callback. If also specified in the constructor, both fire (constructor first).',
     },
     {
       name: 'onFinish',
-      type: 'StreamTextOnFinishCallback',
+      type: 'WorkflowAgentOnFinishCallback',
       isOptional: true,
       description:
         'Per-call onFinish callback. If also specified in the constructor, both fire (constructor first).',
     },
     {
       name: 'onError',
-      type: 'StreamTextOnErrorCallback',
+      type: 'WorkflowAgentOnErrorCallback',
       isOptional: true,
       description: 'Callback invoked when an error occurs during streaming.',
     },
     {
       name: 'onAbort',
-      type: 'StreamTextOnAbortCallback',
+      type: 'WorkflowAgentOnAbortCallback',
       isOptional: true,
       description: 'Callback invoked when the operation is aborted. Receives all previously finished steps.',
     },

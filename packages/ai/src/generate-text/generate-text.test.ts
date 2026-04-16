@@ -826,7 +826,6 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateId: () => 'test-call-id',
@@ -2264,7 +2263,6 @@ describe('generateText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
-          "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -2379,7 +2377,6 @@ describe('generateText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -2909,7 +2906,6 @@ describe('generateText', () => {
                   },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -2988,7 +2984,6 @@ describe('generateText', () => {
                   },
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3140,7 +3135,6 @@ describe('generateText', () => {
                   },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3219,7 +3213,6 @@ describe('generateText', () => {
                   },
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3608,7 +3601,6 @@ describe('generateText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3707,7 +3699,6 @@ describe('generateText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -6873,7 +6864,6 @@ describe('generateText', () => {
               "context": {},
               "finishReason": "tool-calls",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -7069,7 +7059,114 @@ describe('generateText', () => {
   });
 
   describe('tool execution approval', () => {
-    describe('when a single tool needs approval', () => {
+    describe('when a single tool needs approval (user-defined)', () => {
+      let result: GenerateTextResult<any, any, any>;
+
+      beforeEach(async () => {
+        result = await generateText({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+              finishReason: { unified: 'tool-calls', raw: undefined },
+            }),
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async () => 'result1',
+            }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
+          },
+          stopWhen: isStepCount(3),
+          prompt: 'test-input',
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
+          },
+        });
+      });
+
+      it('should only execute 1 step when the tool needs approval', async () => {
+        expect(result.steps.length).toBe(1);
+      });
+
+      it('should have tool-calls finish reason', async () => {
+        expect(result.finishReason).toBe('tool-calls');
+      });
+
+      it('should add a tool approval request to the content', async () => {
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "approvalId": "id-1",
+              "toolCall": {
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              "type": "tool-approval-request",
+            },
+          ]
+        `);
+      });
+
+      it('should include tool approval request in response messages', async () => {
+        expect(result.response.messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "id-1",
+                  "toolCallId": "call-1",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('when a single tool needs approval (tool-defined)', () => {
       let result: GenerateTextResult<any, any, any>;
 
       beforeEach(async () => {
@@ -7207,11 +7304,13 @@ describe('generateText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: input => `result for ${input.value}`,
-              needsApproval: (input, options) => {
-                needsApprovalCalls.push({ input, options });
-                return input.value === 'value-needs-approval';
-              },
             }),
+          },
+          toolNeedsApproval: {
+            tool1: (input, options) => {
+              needsApprovalCalls.push({ input, options });
+              return input.value === 'value-needs-approval';
+            },
           },
           stopWhen: isStepCount(3),
           prompt: 'test-input',
@@ -7401,8 +7500,10 @@ describe('generateText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: executeFunction,
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -7567,8 +7668,10 @@ describe('generateText', () => {
               execute: async (): Promise<string> => {
                 throw new Error('No valid token for plugin');
               },
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -7681,8 +7784,10 @@ describe('generateText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: executeFunction,
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -7840,8 +7945,10 @@ describe('generateText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: executeFunction,
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -8690,7 +8797,7 @@ describe('generateText', () => {
       ]);
     });
 
-    it('should call global integrations before per-call integrations', async () => {
+    it('should only call per-call integrations when both global and per-call integrations are provided', async () => {
       const events: string[] = [];
 
       globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
@@ -8718,7 +8825,7 @@ describe('generateText', () => {
         },
       });
 
-      expect(events).toEqual(['global', 'per-call']);
+      expect(events).toEqual(['per-call']);
     });
 
     it('should call integration listeners alongside user callbacks', async () => {

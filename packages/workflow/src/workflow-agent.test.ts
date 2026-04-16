@@ -55,6 +55,23 @@ type MockIterator = AsyncGenerator<
 >;
 
 describe('WorkflowAgent', () => {
+  describe('id property', () => {
+    it('should expose id when provided in constructor', () => {
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+        id: 'my-agent',
+      });
+      expect(agent.id).toBe('my-agent');
+    });
+
+    it('should be undefined when not provided', () => {
+      const agent = new WorkflowAgent({
+        model: createMockModel(),
+      });
+      expect(agent.id).toBeUndefined();
+    });
+  });
+
   describe('tool execution error handling', () => {
     it('should convert FatalError to tool error result', async () => {
       const errorMessage = 'This is a fatal error';
@@ -73,7 +90,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -149,7 +166,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -221,7 +238,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -293,7 +310,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -379,7 +396,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -475,7 +492,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -552,7 +569,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -637,7 +654,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -716,7 +733,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -817,7 +834,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -879,7 +896,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -942,7 +959,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -979,7 +996,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1025,7 +1042,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1070,7 +1087,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1140,7 +1157,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1229,7 +1246,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1318,7 +1335,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1429,7 +1446,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         temperature: 0.7,
         maxOutputTokens: 1000,
@@ -1471,7 +1488,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         temperature: 0.7,
       });
@@ -1512,7 +1529,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1548,7 +1565,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         toolChoice: 'required',
       });
@@ -1582,7 +1599,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         toolChoice: 'auto',
       });
@@ -1637,7 +1654,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1670,12 +1687,164 @@ describe('WorkflowAgent', () => {
     });
   });
 
+  describe('constructor-level defaults for stream-only parameters', () => {
+    it('should use constructor stopWhen when not specified in stream()', async () => {
+      const mockModel = createMockModel();
+      const stopWhenFn = vi.fn(() => false);
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools: {},
+        stopWhen: stopWhenFn as any,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const lastCall = calls[calls.length - 1][0];
+      expect(lastCall.stopConditions).toBe(stopWhenFn);
+    });
+
+    it('should allow stream options to override constructor stopWhen', async () => {
+      const mockModel = createMockModel();
+      const constructorStopWhen = vi.fn(() => false);
+      const streamStopWhen = vi.fn(() => true);
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools: {},
+        stopWhen: constructorStopWhen as any,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+        stopWhen: streamStopWhen as any,
+      });
+
+      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const lastCall = calls[calls.length - 1][0];
+      expect(lastCall.stopConditions).toBe(streamStopWhen);
+    });
+
+    it('should use constructor activeTools when not specified in stream()', async () => {
+      const tools: ToolSet = {
+        tool1: {
+          description: 'Tool 1',
+          inputSchema: z.object({}),
+          execute: async () => ({}),
+        },
+        tool2: {
+          description: 'Tool 2',
+          inputSchema: z.object({}),
+          execute: async () => ({}),
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools,
+        activeTools: ['tool1'],
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const lastCall = calls[calls.length - 1][0];
+      expect(Object.keys(lastCall.tools)).toEqual(['tool1']);
+    });
+
+    it('should use constructor experimental_repairToolCall when not specified in stream()', async () => {
+      const mockModel = createMockModel();
+      const repairFn: ToolCallRepairFunction<ToolSet> = vi.fn();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools: {},
+        experimental_repairToolCall: repairFn,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      vi.mocked(streamTextIterator).mockClear();
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      const calls = vi.mocked(streamTextIterator).mock.calls;
+      const lastCall = calls[calls.length - 1][0];
+      expect(lastCall.repairToolCall).toBe(repairFn);
+    });
+  });
+
   describe('callbacks', () => {
     it('should pass onError callback to streamTextIterator', async () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1722,7 +1891,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1786,7 +1955,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1857,7 +2026,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -1887,6 +2056,196 @@ describe('WorkflowAgent', () => {
 
       expect(onAbort).toHaveBeenCalledWith({ steps: [] });
     });
+
+    it('should pass stepNumber to onToolCallStart and use discriminated union in onToolCallFinish', async () => {
+      const tools: ToolSet = {
+        testTool: {
+          description: 'A test tool',
+          inputSchema: z.object({}),
+          execute: async () => ({ result: 'ok' }),
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const onToolCallStart = vi.fn();
+      const onToolCallFinish = vi.fn();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools,
+        experimental_onToolCallStart: onToolCallStart,
+        experimental_onToolCallFinish: onToolCallFinish,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'call-1',
+                  toolName: 'testTool',
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      // Verify onToolCallStart includes stepNumber
+      expect(onToolCallStart).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          toolCall: expect.objectContaining({
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+          }),
+        }),
+      );
+
+      // Verify onToolCallFinish uses discriminated union with success: true
+      expect(onToolCallFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          success: true,
+          output: { result: 'ok' },
+          durationMs: expect.any(Number),
+          toolCall: expect.objectContaining({
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+          }),
+        }),
+      );
+    });
+
+    it('should pass success: false in onToolCallFinish when tool errors', async () => {
+      const tools: ToolSet = {
+        failTool: {
+          description: 'A tool that fails',
+          inputSchema: z.object({}),
+          execute: async () => {
+            throw new Error('tool failed');
+          },
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const onToolCallFinish = vi.fn();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools,
+        experimental_onToolCallFinish: onToolCallFinish,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'call-1',
+                  toolName: 'failTool',
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      // Verify onToolCallFinish uses discriminated union with success: false
+      expect(onToolCallFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          success: false,
+          error: 'tool failed',
+          durationMs: expect.any(Number),
+        }),
+      );
+    });
+
+    it('should pass steps to onStepStart callback', async () => {
+      const mockModel = createMockModel();
+
+      const onStepStart = vi.fn();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools: {},
+        experimental_onStepStart: onStepStart,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      // Verify onStepStart is passed to streamTextIterator (it will be called internally)
+      expect(streamTextIterator).toHaveBeenCalledWith(
+        expect.objectContaining({
+          onStepStart: expect.any(Function),
+        }),
+      );
+    });
   });
 
   describe('experimental_context', () => {
@@ -1907,7 +2266,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -1959,7 +2318,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2022,6 +2381,67 @@ describe('WorkflowAgent', () => {
     });
   });
 
+  describe('prompt parameter', () => {
+    it('should accept a string prompt instead of messages', async () => {
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools: {},
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        prompt: 'What is the weather?',
+        writable: mockWritable,
+      });
+
+      // Verify streamTextIterator was called (standardizePrompt converts string prompt to messages)
+      expect(streamTextIterator).toHaveBeenCalled();
+    });
+
+    it('should accept an array of messages as prompt', async () => {
+      const mockModel = createMockModel();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools: {},
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        prompt: [{ role: 'user', content: 'What is the weather?' }],
+        writable: mockWritable,
+      });
+
+      expect(streamTextIterator).toHaveBeenCalled();
+    });
+  });
+
   describe('tool call repair', () => {
     it('should pass repairToolCall through to streamTextIterator', async () => {
       const repairFn: ToolCallRepairFunction<ToolSet> = vi.fn();
@@ -2029,7 +2449,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2067,7 +2487,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2109,7 +2529,7 @@ describe('WorkflowAgent', () => {
       };
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         experimental_telemetry: telemetrySettings,
       });
@@ -2143,7 +2563,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
         experimental_telemetry: { functionId: 'constructor-id' },
       });
@@ -2182,7 +2602,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2212,7 +2632,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2241,7 +2661,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2278,7 +2698,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2323,7 +2743,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools: {},
       });
 
@@ -2373,7 +2793,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -2451,7 +2871,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 
@@ -2522,7 +2942,7 @@ describe('WorkflowAgent', () => {
       const mockModel = createMockModel();
 
       const agent = new WorkflowAgent({
-        model: async () => mockModel,
+        model: mockModel,
         tools,
       });
 

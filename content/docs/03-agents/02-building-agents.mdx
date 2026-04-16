@@ -77,6 +77,28 @@ const codeAgent = new ToolLoopAgent({
 });
 ```
 
+You can also require approval before a tool executes. Use `needsApproval` on the
+tool itself for the default behavior, or set `toolNeedsApproval` on the
+`ToolLoopAgent` when approval should be configured per agent:
+
+```ts
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    runCode: tool({
+      description: 'Execute Python code',
+      inputSchema: z.object({
+        code: z.string(),
+      }),
+      execute: async ({ code }) => ({ output: code }),
+    }),
+  },
+  toolNeedsApproval: {
+    runCode: true,
+  },
+});
+```
+
 ### Loop Control
 
 By default, agents run for 20 steps (`stopWhen: isStepCount(20)`). In each step, the model either generates text or calls a tool. If it generates text, the agent completes. If it calls a tool, the AI SDK executes that tool.
@@ -380,12 +402,12 @@ const result = await myAgent.generate({
 
 The available lifecycle callbacks are:
 
-- **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, prompt, settings, and telemetry metadata.
+- **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, prompt, settings, and context.
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
 - **`experimental_onToolCallStart`**: Called right before a tool's `execute` function runs. Receives the tool call object with tool name, call ID, and input.
 - **`experimental_onToolCallFinish`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `durationMs`, and a `success` discriminator (`output` when successful, `error` when failed).
 - **`onStepFinish`**: Called after each step finishes. Receives step results including usage, finish reason, and tool calls.
-- **`onFinish`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and telemetry metadata.
+- **`onFinish`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and context.
 
 #### Constructor vs. Method Callbacks
 

@@ -5014,7 +5014,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5157,7 +5156,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5245,7 +5243,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5355,7 +5352,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5524,7 +5520,6 @@ describe('streamText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         experimental_onStart: async event => {
           startEvent = event;
@@ -5709,24 +5704,6 @@ describe('streamText', () => {
 
       expect(startEvent.timeout).toEqual({ totalMs: 5000, stepMs: 1000 });
       expect(startEvent.stopWhen).toBeDefined();
-    });
-
-    it('should expose include settings', async () => {
-      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
-
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-        experimental_include: { requestBody: false },
-        experimental_onStart: async event => {
-          startEvent = event;
-        },
-        onError: () => {},
-      });
-
-      await result.consumeStream();
-
-      expect(startEvent.include).toEqual({ requestBody: false });
     });
   });
 
@@ -6016,7 +5993,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should expose functionId and metadata from telemetry', async () => {
+    it('should expose functionId from telemetry', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];
@@ -6026,7 +6003,6 @@ describe('streamText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         experimental_onStepStart: async event => {
           stepStartEvent = event;
@@ -6037,7 +6013,6 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(stepStartEvent.functionId).toBe('test-function');
-      expect(stepStartEvent.metadata).toEqual({ customKey: 'customValue' });
     });
   });
 
@@ -7168,7 +7143,6 @@ describe('streamText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
-          "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -7287,7 +7261,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -7483,7 +7456,6 @@ describe('streamText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
-          "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -7577,7 +7549,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -7758,7 +7729,6 @@ describe('streamText', () => {
           ],
           "finishReason": "stop",
           "functionId": undefined,
-          "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -7833,7 +7803,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -8469,7 +8438,6 @@ describe('streamText', () => {
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -8571,7 +8539,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -8655,7 +8622,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -8815,7 +8781,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -8899,7 +8864,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9077,7 +9041,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9161,7 +9124,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9677,7 +9639,6 @@ describe('streamText', () => {
                   },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -9758,7 +9719,6 @@ describe('streamText', () => {
                   },
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -9909,7 +9869,6 @@ describe('streamText', () => {
                   },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -9990,7 +9949,6 @@ describe('streamText', () => {
                   },
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10364,7 +10322,6 @@ describe('streamText', () => {
               "files": [],
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -10466,7 +10423,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10550,7 +10506,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10710,7 +10665,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -10794,7 +10748,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -10968,7 +10921,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11052,7 +11004,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11390,7 +11341,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -11500,7 +11450,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -13738,7 +13687,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -14243,7 +14191,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -14478,7 +14425,6 @@ describe('streamText', () => {
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -14597,7 +14543,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -14827,7 +14772,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -15281,7 +15225,6 @@ describe('streamText', () => {
             "context": {},
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -15771,7 +15714,6 @@ describe('streamText', () => {
             "files": [],
             "finishReason": "stop",
             "functionId": undefined,
-            "metadata": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -15816,7 +15758,6 @@ describe('streamText', () => {
                 "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
-                "metadata": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -16912,7 +16853,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -17303,7 +17243,6 @@ describe('streamText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -18358,7 +18297,6 @@ describe('streamText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -20648,7 +20586,7 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
-    describe('when a single tool needs approval', () => {
+    describe('when a single tool needs approval (user-defined)', () => {
       let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
@@ -20679,8 +20617,10 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
         });
       });
@@ -20872,7 +20812,7 @@ describe('streamText', () => {
       });
     });
 
-    describe('when a single tool has a needsApproval function', () => {
+    describe('when a single tool has a user-defined approval function', () => {
       let result: StreamTextResult<any, any, any>;
       let needsApprovalCalls: Array<{ input: any; options: any }> = [];
 
@@ -20907,11 +20847,13 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: input => `result for ${input.value}`,
-              needsApproval: (input, options) => {
-                needsApprovalCalls.push({ input, options });
-                return input.value === 'value-needs-approval';
-              },
             }),
+          },
+          toolNeedsApproval: {
+            tool1: (input, options) => {
+              needsApprovalCalls.push({ input, options });
+              return input.value === 'value-needs-approval';
+            },
           },
           stopWhen: isStepCount(3),
           prompt: 'test-input',
@@ -21195,8 +21137,43 @@ describe('streamText', () => {
         `);
       });
 
-      it('should call the needsApproval function with the correct input and options', async () => {
-        expect(needsApprovalCalls).toMatchInlineSnapshot(`[]`);
+      it('should call the approval function with the correct input and options', async () => {
+        await result.consumeStream();
+
+        expect(needsApprovalCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value-needs-approval",
+              },
+              "options": {
+                "context": {},
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+                "toolCallId": "call-1",
+              },
+            },
+            {
+              "input": {
+                "value": "value-no-approval",
+              },
+              "options": {
+                "context": {},
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+                "toolCallId": "call-2",
+              },
+            },
+          ]
+        `);
       });
     });
 
@@ -21235,8 +21212,10 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: executeFunction,
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -21539,8 +21518,10 @@ describe('streamText', () => {
               execute: async (): Promise<string> => {
                 throw new Error('No valid token for plugin');
               },
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -21663,8 +21644,10 @@ describe('streamText', () => {
                 yield 'preliminary-result';
                 yield 'final-result';
               },
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -21992,8 +21975,10 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: executeFunction,
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -23073,7 +23058,7 @@ describe('streamText', () => {
       ]);
     });
 
-    it('should call global integrations before per-call integrations', async () => {
+    it('should only call per-call integrations when both global and per-call integrations are provided', async () => {
       const events: string[] = [];
 
       globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
@@ -23099,7 +23084,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(events).toEqual(['global', 'per-call']);
+      expect(events).toEqual(['per-call']);
     });
 
     it('should call integration listeners alongside user callbacks', async () => {

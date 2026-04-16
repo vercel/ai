@@ -459,5 +459,76 @@ describe('convertToXaiResponsesInput', () => {
         ]
       `);
     });
+
+    it('should round-trip reasoning with encrypted content in multi-turn', async () => {
+      const result = await convertToXaiResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'What is the capital of France?' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'The user is asking about geography.',
+                providerOptions: {
+                  xai: {
+                    itemId: 'rs_789',
+                    reasoningEncryptedContent: 'encrypted_xyz',
+                  },
+                },
+              },
+              { type: 'text', text: 'The capital of France is Paris.' },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'And what about Germany?' }],
+          },
+        ],
+      });
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the capital of France?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "encrypted_content": "encrypted_xyz",
+            "id": "rs_789",
+            "status": "completed",
+            "summary": [
+              {
+                "text": "The user is asking about geography.",
+                "type": "summary_text",
+              },
+            ],
+            "type": "reasoning",
+          },
+          {
+            "content": "The capital of France is Paris.",
+            "id": undefined,
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "text": "And what about Germany?",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+      expect(result.inputWarnings).toEqual([]);
+    });
   });
 });
