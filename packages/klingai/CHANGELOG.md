@@ -1,5 +1,11 @@
 # @ai-sdk/klingai
 
+## 3.0.14
+
+### Patch Changes
+
+- f4a9c74: feat (provider/klingai): add kling v3.0 motion control support
+
 ## 3.0.13
 
 ### Patch Changes
