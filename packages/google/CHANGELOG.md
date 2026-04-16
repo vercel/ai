@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 2.0.69
+
+### Patch Changes
+
+- bfaafad: chore(provider/google): update available models
+
+## 2.0.68
+
+### Patch Changes
+
+- 4c10694: fix(google): fix `serviceTier` to be correctly formatted for Vertex API
+
 ## 2.0.67
 
 ### Patch Changes

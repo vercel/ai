@@ -32,6 +32,7 @@ import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
   googleGenerativeAIProviderOptions,
+  VertexServiceTierMap,
 } from './google-generative-ai-options';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -97,6 +98,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       schema: googleGenerativeAIProviderOptions,
     });
 
+    const isVertexProvider = this.config.provider.startsWith('google.vertex.');
+
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     if (
       tools?.some(
@@ -104,7 +107,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           tool.type === 'provider-defined' &&
           tool.id === 'google.vertex_rag_store',
       ) &&
-      !this.config.provider.startsWith('google.vertex.')
+      !isVertexProvider
     ) {
       warnings.push({
         type: 'other',
@@ -113,6 +116,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           'and might not be supported or could behave unexpectedly with the current Google provider ' +
           `(${this.config.provider}).`,
       });
+    }
+
+    // Vertex API requires another service tier format.
+    let sanitizedServiceTier: string | undefined = googleOptions?.serviceTier;
+    if (googleOptions?.serviceTier && isVertexProvider) {
+      sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
     }
 
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
@@ -184,7 +193,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           : googleToolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
-        serviceTier: googleOptions?.serviceTier,
+        serviceTier: sanitizedServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
     };

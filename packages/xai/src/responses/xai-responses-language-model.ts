@@ -560,7 +560,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
 
             if (
               event.type === 'response.done' ||
-              event.type === 'response.completed'
+              event.type === 'response.completed' ||
+              event.type === 'response.incomplete'
             ) {
               const response = event.response;
 
@@ -573,7 +574,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                 usage.cachedInputTokens = converted.cachedInputTokens;
               }
 
-              if (response.status) {
+              if (event.type === 'response.incomplete') {
+                const reason =
+                  'incomplete_details' in response
+                    ? response.incomplete_details?.reason
+                    : undefined;
+                finishReason = reason
+                  ? mapXaiResponsesFinishReason(reason)
+                  : 'other';
+              } else if ('status' in response && response.status) {
                 finishReason = hasFunctionCall
                   ? 'tool-calls'
                   : mapXaiResponsesFinishReason(response.status);
@@ -581,6 +590,32 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
 
               return;
             }
+
+            if (event.type === 'response.failed') {
+              const reason = event.response.incomplete_details?.reason;
+              finishReason = reason
+                ? mapXaiResponsesFinishReason(reason)
+                : 'error';
+
+              if (event.response.usage) {
+                const converted = convertXaiResponsesUsage(
+                  event.response.usage,
+                );
+                usage.inputTokens = converted.inputTokens;
+                usage.outputTokens = converted.outputTokens;
+                usage.totalTokens = converted.totalTokens;
+                usage.reasoningTokens = converted.reasoningTokens;
+                usage.cachedInputTokens = converted.cachedInputTokens;
+              }
+
+              return;
+            }
+
+            if (event.type === 'error') {
+              controller.enqueue({ type: 'error', error: event });
+              return;
+            }
+
             // Function call arguments streaming (standard function tools)
             if (event.type === 'response.function_call_arguments.delta') {
               const toolCall = ongoingToolCalls[event.output_index];
