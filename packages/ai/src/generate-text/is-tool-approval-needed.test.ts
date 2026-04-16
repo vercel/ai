@@ -5,13 +5,11 @@ import { isToolApprovalNeeded } from './is-tool-approval-needed';
 
 describe('isToolApprovalNeeded', () => {
   const messages = [{ role: 'user', content: 'hello' }] as const;
-  const toolsContext = { weather: { requestId: 'req-1' } } as const;
 
   it('returns false when neither user-defined nor tool-defined approval is configured', async () => {
     const result = await isToolApprovalNeeded({
       tools: {
         weather: tool({
-          contextSchema: z.object({ requestId: z.string() }),
           inputSchema: z.object({ city: z.string() }),
         }),
       },
@@ -24,7 +22,7 @@ describe('isToolApprovalNeeded', () => {
         dynamic: false,
       },
       messages: [...messages],
-      toolsContext,
+      toolsContext: {},
     });
 
     expect(result).toBe(false);
@@ -52,7 +50,7 @@ describe('isToolApprovalNeeded', () => {
         dynamic: false,
       },
       messages: [...messages],
-      toolsContext,
+      toolsContext: {},
     });
 
     expect(result).toBe(true);
@@ -80,7 +78,7 @@ describe('isToolApprovalNeeded', () => {
         dynamic: false,
       },
       messages: [...messages],
-      toolsContext,
+      toolsContext: {},
     });
 
     expect(userDefinedNeedsApproval).toHaveBeenCalledWith(
@@ -88,7 +86,6 @@ describe('isToolApprovalNeeded', () => {
       {
         toolCallId: 'call-1',
         messages: [...messages],
-        toolsContext,
       },
     );
   });
@@ -112,7 +109,7 @@ describe('isToolApprovalNeeded', () => {
         dynamic: false,
       },
       messages: [...messages],
-      toolsContext,
+      toolsContext: {},
     });
 
     expect(result).toBe(true);
@@ -121,7 +118,6 @@ describe('isToolApprovalNeeded', () => {
       {
         toolCallId: 'call-1',
         messages: [...messages],
-        toolsContext,
       },
     );
   });

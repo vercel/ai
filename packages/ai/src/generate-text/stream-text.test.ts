@@ -5089,6 +5089,7 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -5182,6 +5183,7 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -5281,6 +5283,7 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -5399,6 +5402,7 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -7317,6 +7321,7 @@ describe('streamText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -7363,6 +7368,7 @@ describe('streamText', () => {
               "type": "tool-result",
             },
           ],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -7575,6 +7581,7 @@ describe('streamText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -7598,6 +7605,7 @@ describe('streamText', () => {
           "text": "Hello!",
           "toolCalls": [],
           "toolResults": [],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -7841,6 +7849,7 @@ describe('streamText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -7864,6 +7873,7 @@ describe('streamText', () => {
           "text": "Hello!",
           "toolCalls": [],
           "toolResults": [],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -8591,6 +8601,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -8684,6 +8695,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -8707,6 +8719,7 @@ describe('streamText', () => {
               "text": "Hello, world!",
               "toolCalls": [],
               "toolResults": [],
+              "toolsContext": {},
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -8833,6 +8846,7 @@ describe('streamText', () => {
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -8926,6 +8940,7 @@ describe('streamText', () => {
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
                 "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -9093,6 +9108,7 @@ describe('streamText', () => {
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -9186,6 +9202,7 @@ describe('streamText', () => {
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
                 "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -9686,6 +9703,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -9776,6 +9794,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -9916,6 +9935,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -10006,6 +10026,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -10475,6 +10496,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -10568,6 +10590,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -10591,6 +10614,7 @@ describe('streamText', () => {
               "text": "Hello, world!",
               "toolCalls": [],
               "toolResults": [],
+              "toolsContext": {},
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -10717,6 +10741,7 @@ describe('streamText', () => {
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -10810,6 +10835,7 @@ describe('streamText', () => {
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
                 "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -10973,6 +10999,7 @@ describe('streamText', () => {
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -11066,6 +11093,7 @@ describe('streamText', () => {
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
                 "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -11393,6 +11421,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -11502,6 +11531,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -12642,7 +12672,7 @@ describe('streamText', () => {
         {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
-          context: {},
+          context: undefined,
           messages: expect.any(Array),
         },
       );
@@ -13732,6 +13762,7 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -14241,6 +14272,7 @@ describe('streamText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -14599,6 +14631,7 @@ describe('streamText', () => {
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -14645,6 +14678,7 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
+            "toolsContext": {},
             "totalUsage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -14828,6 +14862,7 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -15250,6 +15285,7 @@ describe('streamText', () => {
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
@@ -15784,6 +15820,7 @@ describe('streamText', () => {
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -15807,6 +15844,7 @@ describe('streamText', () => {
             "text": "{ "value": "Hello, world!" }",
             "toolCalls": [],
             "toolResults": [],
+            "toolsContext": {},
             "totalUsage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -16894,6 +16932,7 @@ describe('streamText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -17288,6 +17327,7 @@ describe('streamText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -17617,14 +17657,17 @@ describe('streamText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async ({ value }, { context }) => {
               recordedContext = context;
               return { value: 'test-result' };
             },
           }),
         },
-        context: {
-          context: 'test',
+        toolsContext: {
+          t1: {
+            context: 'test',
+          },
         },
         prompt: 'test-input',
       });
@@ -18346,6 +18389,7 @@ describe('streamText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -21147,7 +21191,7 @@ describe('streamText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "context": {},
+                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -21162,7 +21206,7 @@ describe('streamText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "context": {},
+                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",

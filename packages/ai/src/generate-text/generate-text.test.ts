@@ -2430,6 +2430,7 @@ describe('generateText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -2476,6 +2477,7 @@ describe('generateText', () => {
               "type": "tool-result",
             },
           ],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -2952,6 +2954,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3042,6 +3045,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:10.000Z,
                   },
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3181,6 +3185,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3271,6 +3276,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:10.000Z,
                   },
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3647,6 +3653,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3745,6 +3752,7 @@ describe('generateText', () => {
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -3942,7 +3950,7 @@ describe('generateText', () => {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
           messages: expect.any(Array),
-          context: {},
+          context: undefined,
         },
       );
     });
@@ -4046,7 +4054,7 @@ describe('generateText', () => {
           abortSignal: expect.any(AbortSignal),
           toolCallId: 'call-1',
           messages: expect.any(Array),
-          context: {},
+          context: undefined,
         },
       );
     });
@@ -6914,6 +6922,7 @@ describe('generateText', () => {
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -7442,7 +7451,7 @@ describe('generateText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "context": {},
+                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -7457,7 +7466,7 @@ describe('generateText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "context": {},
+                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
