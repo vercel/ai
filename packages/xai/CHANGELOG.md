@@ -1,5 +1,37 @@
 # @ai-sdk/xai
 
+## 2.0.67
+
+### Patch Changes
+
+- 21ff967: fix (provider/xai): handle mid-stream error chunks
+
+## 2.0.66
+
+### Patch Changes
+
+- 92e25ae: fix (provider/xai): add response.incomplete and response.failed streaming event handling
+
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/openai-compatible@1.0.35
+
+## 2.0.64
+
+### Patch Changes
+
+- 2418bd8: fix(provider/xai): correct finish reason for tool calls
+
+## 2.0.63
+
+### Patch Changes
+
+- 5e55f43: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
 ## 2.0.62
 
 ### Patch Changes
@@ -458,7 +490,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -471,7 +503,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -924,7 +956,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -937,7 +969,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

@@ -4,8 +4,16 @@ import { Chat } from './chat.vue';
 import { ref } from 'vue';
 
 const messages = ref<UIMessage[]>([
-  { id: 'message-0', role: 'user', parts: [{ type: 'text', text: 'Greetings.' }] },
-  { id: 'message-1', role: 'assistant', parts: [{ type: 'text', text: 'Hello.' }] },
+  {
+    id: 'message-0',
+    role: 'user',
+    parts: [{ type: 'text', text: 'Greetings.' }],
+  },
+  {
+    id: 'message-1',
+    role: 'assistant',
+    parts: [{ type: 'text', text: 'Hello.' }],
+  },
 ]);
 
 const chat = new Chat({
@@ -28,6 +36,9 @@ const chat = new Chat({
       }}
     </div>
 
-    <button data-testid="do-append" @click="chat.sendMessage({ text: 'Hi.' })" />
+    <button
+      data-testid="do-append"
+      @click="chat.sendMessage({ text: 'Hi.' })"
+    />
   </div>
 </template>

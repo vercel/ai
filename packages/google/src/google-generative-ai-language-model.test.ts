@@ -277,6 +277,33 @@ describe('groundingMetadataSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('validates groundingSupports without segment (image search)', () => {
+    const metadata = {
+      imageSearchQueries: [
+        'Aurora Borealis Iceland landscape',
+        'Northern Lights over Iceland',
+      ],
+      groundingChunks: [
+        {
+          image: {
+            sourceUri: 'https://example.com/source',
+            imageUri: 'https://example.com/image.jpg',
+            title: 'Northern Lights in Iceland',
+            domain: 'example.com',
+          },
+        },
+      ],
+      groundingSupports: [
+        {
+          groundingChunkIndices: [0],
+        },
+      ],
+    };
+
+    const result = groundingMetadataSchema.safeParse(metadata);
+    expect(result.success).toBe(true);
+  });
+
   it('rejects invalid data types', () => {
     const metadata = {
       webSearchQueries: 'not an array', // Should be an array
@@ -460,6 +487,142 @@ describe('doGenerate', () => {
 
     expect(content).toMatchInlineSnapshot(`[]`);
     expect(finishReason).toStrictEqual('error');
+  });
+
+  it('should extract tool calls', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  functionCall: {
+                    name: 'test-tool',
+                    args: { value: 'example value' },
+                  },
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        promptFeedback: { safetyRatings: SAFETY_RATINGS },
+      },
+    };
+  });
+
+  it('should send serviceTier in request body when specified', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      serviceTier: 'flex',
+    });
+  });
+
+  it('should not send serviceTier in request body when not specified', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBodyJson;
+    expect(body).not.toHaveProperty('serviceTier');
+  });
+
+  it('should sanitize serviceTier to Vertex format when using Vertex provider', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const vertexModel = new GoogleGenerativeAILanguageModel('gemini-pro', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    await vertexModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          serviceTier: 'flex',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      serviceTier: 'SERVICE_TIER_FLEX',
+    });
+  });
+
+  it('should not sanitize serviceTier when using non-Vertex provider', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          serviceTier: 'standard',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      serviceTier: 'standard',
+    });
+  });
+
+  it('should expose serviceTier in provider metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'test response' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 1,
+          candidatesTokenCount: 2,
+          totalTokenCount: 3,
+        },
+        serviceTier: 'flex',
+      },
+    };
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.serviceTier).toBe('flex');
+  });
+
+  it('should expose null serviceTier in provider metadata when not present', async () => {
+    prepareJsonResponse({ content: 'test response' });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.serviceTier).toBeNull();
   });
 
   it('should extract tool calls', async () => {
@@ -1406,35 +1569,6 @@ describe('doGenerate', () => {
         blocked: false,
       },
     ]);
-  });
-
-  it('should expose PromptFeedback in provider metadata', async () => {
-    server.urls[TEST_URL_GEMINI_PRO].response = {
-      type: 'json-value',
-      body: {
-        candidates: [
-          {
-            content: { parts: [{ text: 'No' }], role: 'model' },
-            finishReason: 'SAFETY',
-            index: 0,
-            safetyRatings: SAFETY_RATINGS,
-          },
-        ],
-        promptFeedback: {
-          blockReason: 'SAFETY',
-          safetyRatings: SAFETY_RATINGS,
-        },
-      },
-    };
-
-    const { providerMetadata } = await model.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(providerMetadata?.google.promptFeedback).toStrictEqual({
-      blockReason: 'SAFETY',
-      safetyRatings: SAFETY_RATINGS,
-    });
   });
 
   it('should expose grounding metadata in provider metadata', async () => {
@@ -2416,6 +2550,130 @@ describe('doStream', () => {
     });
   });
 
+  it('should preserve grounding metadata when it arrives before the finishReason chunk', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'hello' }], role: 'model' },
+              index: 0,
+              groundingMetadata: {
+                webSearchQueries: ['super bowl 2026 halftime show'],
+                groundingChunks: [
+                  {
+                    web: {
+                      uri: 'https://example.com/superbowl',
+                      title: 'Super Bowl 2026',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: ' world' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 38,
+            candidatesTokenCount: 1335,
+            totalTokenCount: 1890,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.groundingMetadata,
+    ).toEqual({
+      webSearchQueries: ['super bowl 2026 halftime show'],
+      groundingChunks: [
+        {
+          web: {
+            uri: 'https://example.com/superbowl',
+            title: 'Super Bowl 2026',
+          },
+        },
+      ],
+    });
+
+    expect(events.filter(e => e.type === 'source')).toHaveLength(1);
+  });
+
+  it('should preserve url context metadata when it arrives before the finishReason chunk', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'hello' }], role: 'model' },
+              index: 0,
+              urlContextMetadata: {
+                urlMetadata: [
+                  {
+                    retrievedUrl: 'https://example.com/page',
+                    urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+                  },
+                ],
+              },
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: ' world' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 5,
+            totalTokenCount: 15,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.urlContextMetadata,
+    ).toEqual({
+      urlMetadata: [
+        {
+          retrievedUrl: 'https://example.com/page',
+          urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS',
+        },
+      ],
+    });
+  });
+
   it('should expose url context metadata in provider metadata on finish', async () => {
     prepareStreamResponse({
       content: ['test'],
@@ -2515,6 +2773,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "serviceTier": null,
               "urlContextMetadata": null,
               "usageMetadata": {
                 "candidatesTokenCount": 233,
@@ -2570,17 +2829,28 @@ describe('doStream', () => {
     ]);
   });
 
-  it('should expose PromptFeedback in provider metadata on finish', async () => {
+  it('should expose serviceTier in provider metadata on finish', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"candidates": [{"content": {"parts": [{"text": "No"}],"role": "model"},` +
-          `"finishReason": "PROHIBITED_CONTENT","index": 0}],` +
-          `"promptFeedback": {"blockReason": "PROHIBITED_CONTENT","safetyRatings": [` +
-          `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
-          `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'test response' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 2,
+            totalTokenCount: 3,
+          },
+          serviceTier: 'flex',
+        })}\n\n`,
       ],
     };
 
@@ -2593,11 +2863,24 @@ describe('doStream', () => {
 
     expect(
       finishEvent?.type === 'finish' &&
-        finishEvent.providerMetadata?.google.promptFeedback,
-    ).toStrictEqual({
-      blockReason: 'PROHIBITED_CONTENT',
-      safetyRatings: SAFETY_RATINGS,
+        finishEvent.providerMetadata?.google.serviceTier,
+    ).toBe('flex');
+  });
+
+  it('should expose null serviceTier in provider metadata on finish when not present', async () => {
+    prepareStreamResponse({ content: ['test'] });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
     });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(
+      finishEvent?.type === 'finish' &&
+        finishEvent.providerMetadata?.google.serviceTier,
+    ).toBeNull();
   });
 
   it('should stream code execution tool calls and results', async () => {
@@ -3051,6 +3334,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "serviceTier": null,
               "urlContextMetadata": null,
             },
           },
@@ -3405,6 +3689,7 @@ describe('doStream', () => {
               "groundingMetadata": null,
               "promptFeedback": null,
               "safetyRatings": null,
+              "serviceTier": null,
               "urlContextMetadata": null,
               "usageMetadata": {
                 "candidatesTokenCount": 18,
@@ -3551,6 +3836,7 @@ describe('doStream', () => {
                   "probability": "NEGLIGIBLE",
                 },
               ],
+              "serviceTier": null,
               "urlContextMetadata": null,
             },
           },

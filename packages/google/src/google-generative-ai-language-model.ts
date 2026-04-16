@@ -32,6 +32,7 @@ import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
   googleGenerativeAIProviderOptions,
+  VertexServiceTierMap,
 } from './google-generative-ai-options';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
@@ -97,6 +98,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       schema: googleGenerativeAIProviderOptions,
     });
 
+    const isVertexProvider = this.config.provider.startsWith('google.vertex.');
+
     // Add warning if Vertex rag tools are used with a non-Vertex Google provider
     if (
       tools?.some(
@@ -104,7 +107,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           tool.type === 'provider-defined' &&
           tool.id === 'google.vertex_rag_store',
       ) &&
-      !this.config.provider.startsWith('google.vertex.')
+      !isVertexProvider
     ) {
       warnings.push({
         type: 'other',
@@ -115,11 +118,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       });
     }
 
+    // Vertex API requires another service tier format.
+    let sanitizedServiceTier: string | undefined = googleOptions?.serviceTier;
+    if (googleOptions?.serviceTier && isVertexProvider) {
+      sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
+    }
+
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
+    const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
-      { isGemmaModel },
+      { isGemmaModel, supportsFunctionResponseParts },
     );
 
     const {
@@ -183,6 +193,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           : googleToolConfig,
         cachedContent: googleOptions?.cachedContent,
         labels: googleOptions?.labels,
+        serviceTier: sanitizedServiceTier,
       },
       warnings: [...warnings, ...toolWarnings],
     };
@@ -320,7 +331,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           groundingMetadata: candidate.groundingMetadata ?? null,
           urlContextMetadata: candidate.urlContextMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
-          usageMetadata: usageMetadata ?? null,
+          serviceTier: response.serviceTier ?? null,
         },
       },
       request: { body },
@@ -362,6 +373,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       totalTokens: undefined,
     };
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
+    let lastGroundingMetadata: GroundingMetadataSchema | null = null;
+    let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
+    let serviceTier: string | null = null;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -411,6 +425,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 usageMetadata.cachedContentTokenCount ?? undefined;
             }
 
+            if (value.serviceTier != null) {
+              serviceTier = value.serviceTier;
+            }
+
             const candidate = value.candidates?.[0];
 
             // sometimes the API returns an empty candidates array
@@ -419,6 +437,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             }
 
             const content = candidate.content;
+
+            if (candidate.groundingMetadata != null) {
+              lastGroundingMetadata = candidate.groundingMetadata;
+            }
+            if (candidate.urlContextMetadata != null) {
+              lastUrlContextMetadata = candidate.urlContextMetadata;
+            }
 
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
@@ -608,9 +633,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               providerMetadata = {
                 google: {
                   promptFeedback: value.promptFeedback ?? null,
-                  groundingMetadata: candidate.groundingMetadata ?? null,
-                  urlContextMetadata: candidate.urlContextMetadata ?? null,
+                  groundingMetadata: lastGroundingMetadata,
+                  urlContextMetadata: lastUrlContextMetadata,
                   safetyRatings: candidate.safetyRatings ?? null,
+                  serviceTier,
                 },
               };
               if (usageMetadata != null) {
@@ -830,11 +856,13 @@ export const getGroundingMetadataSchema = () =>
     groundingSupports: z
       .array(
         z.object({
-          segment: z.object({
-            startIndex: z.number().nullish(),
-            endIndex: z.number().nullish(),
-            text: z.string().nullish(),
-          }),
+          segment: z
+            .object({
+              startIndex: z.number().nullish(),
+              endIndex: z.number().nullish(),
+              text: z.string().nullish(),
+            })
+            .nullish(),
           segment_text: z.string().nullish(),
           groundingChunkIndices: z.array(z.number()).nullish(),
           supportChunkIndices: z.array(z.number()).nullish(),
@@ -905,6 +933,15 @@ const getSafetyRatingSchema = () =>
     blocked: z.boolean().nullish(),
   });
 
+const tokenDetailsSchema = z
+  .array(
+    z.object({
+      modality: z.string(),
+      tokenCount: z.number(),
+    }),
+  )
+  .nullish();
+
 const usageSchema = z.object({
   cachedContentTokenCount: z.number().nullish(),
   thoughtsTokenCount: z.number().nullish(),
@@ -913,6 +950,9 @@ const usageSchema = z.object({
   totalTokenCount: z.number().nullish(),
   // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
   trafficType: z.string().nullish(),
+  // https://ai.google.dev/api/generate-content#Modality
+  promptTokensDetails: tokenDetailsSchema,
+  candidatesTokensDetails: tokenDetailsSchema,
 });
 
 // https://ai.google.dev/api/generate-content#UrlRetrievalMetadata
@@ -945,6 +985,7 @@ const responseSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
+      serviceTier: z.string().nullish(),
     }),
   ),
 );
@@ -995,6 +1036,7 @@ const chunkSchema = lazySchema(() =>
           safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
         })
         .nullish(),
+      serviceTier: z.string().nullish(),
     }),
   ),
 );

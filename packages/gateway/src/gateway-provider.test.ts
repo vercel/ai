@@ -5,7 +5,7 @@ import {
   getGatewayAuthToken,
 } from './gateway-provider';
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
-import { NoSuchModelError } from '@ai-sdk/provider';
+import { GatewaySpendReport } from './gateway-spend-report';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
@@ -21,28 +21,41 @@ vi.mock('./gateway-language-model', () => ({
   GatewayLanguageModel: vi.fn(),
 }));
 
+const mockGetSpendReport = vi.fn();
+vi.mock('./gateway-spend-report', () => ({
+  GatewaySpendReport: vi.fn(function (config: any) {
+    return {
+      getSpendReport: async (params: any) => {
+        if (config.headers && typeof config.headers === 'function') {
+          await config.headers();
+        }
+        return mockGetSpendReport(params);
+      },
+    };
+  }),
+}));
+
 // Mock the gateway fetch metadata to prevent actual network calls
 // We'll create a more flexible mock that can simulate auth failures
 const mockGetAvailableModels = vi.fn();
 const mockGetCredits = vi.fn();
-vi.mock('./gateway-fetch-metadata', () => ({
-  GatewayFetchMetadata: vi.fn().mockImplementation((config: any) => ({
-    getAvailableModels: async () => {
-      // Call the headers function to trigger authentication logic
+vi.mock('./gateway-fetch-metadata', () => {
+  const MockGatewayFetchMetadata = vi.fn(function (this: any, config: any) {
+    this.getAvailableModels = async () => {
       if (config.headers && typeof config.headers === 'function') {
         await config.headers();
       }
       return mockGetAvailableModels();
-    },
-    getCredits: async () => {
-      // Call the headers function to trigger authentication logic
+    };
+    this.getCredits = async () => {
       if (config.headers && typeof config.headers === 'function') {
         await config.headers();
       }
       return mockGetCredits();
-    },
-  })),
-}));
+    };
+  });
+  return { GatewayFetchMetadata: MockGatewayFetchMetadata };
+});
 
 vi.mock('./vercel-environment', () => ({
   getVercelOidcToken: vi.fn(),
@@ -92,6 +105,7 @@ describe('GatewayProvider', () => {
     // Set up default mock behavior for getAvailableModels and getCredits
     mockGetAvailableModels.mockReturnValue({ models: [] });
     mockGetCredits.mockReturnValue({ balance: '100.00', total_used: '50.00' });
+    mockGetSpendReport.mockReturnValue({ results: [] });
     if ('AI_GATEWAY_API_KEY' in process.env) {
       Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
     }
@@ -1013,6 +1027,122 @@ describe('GatewayProvider', () => {
     it('should be available on the provider interface', () => {
       const provider = createGatewayProvider({ apiKey: 'test-key' });
       expect(typeof provider.getCredits).toBe('function');
+    });
+  });
+
+  describe('getSpendReport method', () => {
+    it('should fetch spend report successfully', async () => {
+      const mockResults = {
+        results: [{ day: '2026-03-01', totalCost: 10.5, requestCount: 25 }],
+      };
+      mockGetSpendReport.mockReturnValue(mockResults);
+
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+      });
+
+      const report = await provider.getSpendReport({
+        startDate: '2026-03-01',
+        endDate: '2026-03-25',
+      });
+
+      expect(report).toEqual(mockResults);
+      expect(GatewaySpendReport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: 'https://ai-gateway.vercel.sh/v1/ai',
+          headers: expect.any(Function),
+          fetch: undefined,
+        }),
+      );
+    });
+
+    it('should pass params through to GatewaySpendReport', async () => {
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+      });
+
+      await provider.getSpendReport({
+        startDate: '2026-03-01',
+        endDate: '2026-03-25',
+        groupBy: 'model',
+        datePart: 'day',
+        userId: 'user-123',
+        model: 'anthropic/claude-sonnet-4.6',
+        tags: ['production', 'api'],
+      });
+
+      expect(mockGetSpendReport).toHaveBeenCalledWith({
+        startDate: '2026-03-01',
+        endDate: '2026-03-25',
+        groupBy: 'model',
+        datePart: 'day',
+        userId: 'user-123',
+        model: 'anthropic/claude-sonnet-4.6',
+        tags: ['production', 'api'],
+      });
+    });
+
+    it('should work with custom baseURL', async () => {
+      const customBaseURL = 'https://custom-gateway.example.com/v3/ai';
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+        baseURL: customBaseURL,
+      });
+
+      await provider.getSpendReport({
+        startDate: '2026-03-01',
+        endDate: '2026-03-25',
+      });
+
+      expect(GatewaySpendReport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: customBaseURL,
+        }),
+      );
+    });
+
+    it('should work with custom fetch function', async () => {
+      const customFetch = vi.fn();
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+        fetch: customFetch,
+      });
+
+      await provider.getSpendReport({
+        startDate: '2026-03-01',
+        endDate: '2026-03-25',
+      });
+
+      expect(GatewaySpendReport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fetch: customFetch,
+        }),
+      );
+    });
+
+    it('should handle errors from the spend report endpoint', async () => {
+      const testError = new Error('Reporting service unavailable');
+      mockGetSpendReport.mockRejectedValue(testError);
+
+      const provider = createGatewayProvider({
+        apiKey: 'test-key',
+      });
+
+      await expect(
+        provider.getSpendReport({
+          startDate: '2026-03-01',
+          endDate: '2026-03-25',
+        }),
+      ).rejects.toThrow('Reporting service unavailable');
+    });
+
+    it('should be available on the provider interface', () => {
+      const provider = createGatewayProvider({ apiKey: 'test-key' });
+      expect(typeof provider.getSpendReport).toBe('function');
+    });
+
+    it('should be available on the default gateway export', () => {
+      expect(typeof gateway.getSpendReport).toBe('function');
     });
   });
 

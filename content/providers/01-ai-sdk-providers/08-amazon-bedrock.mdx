@@ -1030,6 +1030,16 @@ const { text } = await generateText({
 });
 ```
 
+### Provider Options
+
+The following optional provider options are available for Bedrock Anthropic models:
+
+- `metadata` _object_
+
+  Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
+
+  - `userId` _string_ - An external identifier for the end-user.
+
 ### Cache Control
 
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
@@ -1168,6 +1178,7 @@ const result = await generateText({
 
 Anthropic has reasoning support for Claude 3.7 and Claude 4 models on Bedrock, including:
 
+- `us.anthropic.claude-opus-4-7`
 - `us.anthropic.claude-opus-4-6-v1`
 - `us.anthropic.claude-opus-4-5-20251101-v1:0`
 - `us.anthropic.claude-sonnet-4-5-20250929-v1:0`
@@ -1205,6 +1216,7 @@ on how to integrate reasoning into your chatbot.
 
 | Model                                          | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Reasoning           |
 | ---------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `us.anthropic.claude-opus-4-7`                 | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-6-v1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-opus-4-5-20251101-v1:0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

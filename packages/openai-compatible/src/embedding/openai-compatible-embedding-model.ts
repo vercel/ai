@@ -38,9 +38,7 @@ Override the parallelism of embedding calls.
   errorStructure?: ProviderErrorStructure<any>;
 };
 
-export class OpenAICompatibleEmbeddingModel
-  implements EmbeddingModelV2<string>
-{
+export class OpenAICompatibleEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = 'v2';
   readonly modelId: OpenAICompatibleEmbeddingModelId;
 

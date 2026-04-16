@@ -198,7 +198,8 @@ describe('MCPClient', () => {
         "messages": [
           {
             "content": {
-              "text": "Please review this code:\nfunction add(a, b) { return a + b; }",
+              "text": "Please review this code:
+      function add(a, b) { return a + b; }",
               "type": "text",
             },
             "role": "user",

@@ -1,5 +1,21 @@
 # @ai-sdk/prodia
 
+## 0.0.6
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
+## 0.0.5
+
+### Patch Changes
+
+- a644ffd: feat(provider/prodia): Add LanguageModel support to the Prodia provider.
+
+  - **LanguageModel**: Supports Nano Banana (`inference.nano-banana.img2img.v2`) for img2img generation with text+image output via multipart form-data requests. Implements both `doGenerate` and `doStream`.
+  - Extract shared multipart parsing and error handling infrastructure into `prodia-api.ts`.
+
 ## 0.0.4
 
 ### Patch Changes

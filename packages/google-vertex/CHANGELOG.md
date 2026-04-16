@@ -1,5 +1,136 @@
 # @ai-sdk/google-vertex
 
+## 3.0.131
+
+### Patch Changes
+
+- Updated dependencies [2fe3997]
+  - @ai-sdk/anthropic@2.0.76
+
+## 3.0.130
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [4b40033]
+  - @ai-sdk/anthropic@2.0.75
+
+## 3.0.129
+
+### Patch Changes
+
+- bfaafad: chore(provider/google): update available models
+- Updated dependencies [bfaafad]
+  - @ai-sdk/google@2.0.69
+
+## 3.0.128
+
+### Patch Changes
+
+- Updated dependencies [4c10694]
+  - @ai-sdk/google@2.0.68
+
+## 3.0.127
+
+### Patch Changes
+
+- Updated dependencies [84bbfee]
+  - @ai-sdk/google@2.0.67
+
+## 3.0.126
+
+### Patch Changes
+
+- Updated dependencies [d634323]
+  - @ai-sdk/google@2.0.66
+
+## 3.0.125
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/anthropic@2.0.74
+  - @ai-sdk/google@2.0.65
+  - @ai-sdk/openai-compatible@1.0.35
+
+## 3.0.124
+
+### Patch Changes
+
+- Updated dependencies [42bc840]
+  - @ai-sdk/anthropic@2.0.73
+
+## 3.0.123
+
+### Patch Changes
+
+- Updated dependencies [98bd0e2]
+  - @ai-sdk/anthropic@2.0.72
+
+## 3.0.122
+
+### Patch Changes
+
+- b0a2029: feat (provider/google-vertex): add support for maas models
+
+## 3.0.121
+
+### Patch Changes
+
+- Updated dependencies [fd3f1d3]
+  - @ai-sdk/google@2.0.64
+
+## 3.0.120
+
+### Patch Changes
+
+- Updated dependencies [b0a0821]
+  - @ai-sdk/anthropic@2.0.71
+
+## 3.0.119
+
+### Patch Changes
+
+- Updated dependencies [7655bcf]
+  - @ai-sdk/google@2.0.63
+
+## 3.0.118
+
+### Patch Changes
+
+- a608d48: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+- Updated dependencies [a608d48]
+  - @ai-sdk/google@2.0.62
+
+## 3.0.117
+
+### Patch Changes
+
+- Updated dependencies [3399b61]
+  - @ai-sdk/google@2.0.61
+
+## 3.0.116
+
+### Patch Changes
+
+- Updated dependencies [3f0102b]
+  - @ai-sdk/google@2.0.60
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [8cf6b86]
+  - @ai-sdk/google@2.0.59
+
+## 3.0.114
+
+### Patch Changes
+
+- Updated dependencies [a9a7f73]
+  - @ai-sdk/anthropic@2.0.70
+
 ## 3.0.113
 
 ### Patch Changes
@@ -893,7 +1024,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -906,7 +1037,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1498,7 +1629,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1511,7 +1642,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

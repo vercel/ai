@@ -1,5 +1,235 @@
 # ai
 
+## 5.0.178
+
+### Patch Changes
+
+- Updated dependencies [eacfb5e]
+  - @ai-sdk/gateway@2.0.82
+
+## 5.0.177
+
+### Patch Changes
+
+- Updated dependencies [dc91bcc]
+  - @ai-sdk/gateway@2.0.81
+
+## 5.0.176
+
+### Patch Changes
+
+- Updated dependencies [4b40033]
+  - @ai-sdk/gateway@2.0.80
+
+## 5.0.175
+
+### Patch Changes
+
+- Updated dependencies [d4fbea5]
+  - @ai-sdk/gateway@2.0.79
+
+## 5.0.174
+
+### Patch Changes
+
+- Updated dependencies [140640d]
+  - @ai-sdk/gateway@2.0.78
+
+## 5.0.173
+
+### Patch Changes
+
+- Updated dependencies [6c0cde5]
+  - @ai-sdk/gateway@2.0.77
+
+## 5.0.172
+
+### Patch Changes
+
+- Updated dependencies [a5317d0]
+  - @ai-sdk/gateway@2.0.76
+
+## 5.0.171
+
+### Patch Changes
+
+- Updated dependencies [f03fec2]
+  - @ai-sdk/gateway@2.0.75
+
+## 5.0.170
+
+### Patch Changes
+
+- Updated dependencies [8180bff]
+  - @ai-sdk/gateway@2.0.74
+
+## 5.0.169
+
+### Patch Changes
+
+- Updated dependencies [c6fcbfa]
+  - @ai-sdk/gateway@2.0.73
+
+## 5.0.168
+
+### Patch Changes
+
+- Updated dependencies [a064eef]
+  - @ai-sdk/gateway@2.0.72
+
+## 5.0.167
+
+### Patch Changes
+
+- Updated dependencies [6b4ceaa]
+  - @ai-sdk/gateway@2.0.71
+
+## 5.0.166
+
+### Patch Changes
+
+- Updated dependencies [5e2950a]
+  - @ai-sdk/gateway@2.0.70
+
+## 5.0.165
+
+### Patch Changes
+
+- a27a978: fix: allow inline data URLs in download validation
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/gateway@2.0.69
+
+## 5.0.164
+
+### Patch Changes
+
+- Updated dependencies [bc392cb]
+  - @ai-sdk/gateway@2.0.68
+
+## 5.0.163
+
+### Patch Changes
+
+- Updated dependencies [5bc2cb8]
+  - @ai-sdk/gateway@2.0.67
+
+## 5.0.162
+
+### Patch Changes
+
+- Updated dependencies [efc9006]
+  - @ai-sdk/gateway@2.0.66
+
+## 5.0.161
+
+### Patch Changes
+
+- Updated dependencies [4e8bdc7]
+  - @ai-sdk/gateway@2.0.65
+
+## 5.0.160
+
+### Patch Changes
+
+- Updated dependencies [2f94884]
+  - @ai-sdk/gateway@2.0.64
+
+## 5.0.159
+
+### Patch Changes
+
+- Updated dependencies [5e55f43]
+  - @ai-sdk/gateway@2.0.63
+
+## 5.0.158
+
+### Patch Changes
+
+- Updated dependencies [946ef88]
+  - @ai-sdk/gateway@2.0.62
+
+## 5.0.157
+
+### Patch Changes
+
+- 9379c51: README updates
+- Updated dependencies [2e35d03]
+  - @ai-sdk/gateway@2.0.61
+
+## 5.0.156
+
+### Patch Changes
+
+- Updated dependencies [205f9d8]
+  - @ai-sdk/gateway@2.0.60
+
+## 5.0.155
+
+### Patch Changes
+
+- Updated dependencies [6f40c1a]
+  - @ai-sdk/gateway@2.0.59
+
+## 5.0.154
+
+### Patch Changes
+
+- Updated dependencies [f29cec3]
+- Updated dependencies [51c7d28]
+- Updated dependencies [dacdf4b]
+  - @ai-sdk/gateway@2.0.58
+
+## 5.0.153
+
+### Patch Changes
+
+- c59a31c: Remove custom User-Agent header from HttpChatTransport to fix CORS preflight failures in Safari and Firefox
+
+## 5.0.152
+
+### Patch Changes
+
+- Updated dependencies [a608d48]
+- Updated dependencies [c5790b1]
+  - @ai-sdk/gateway@2.0.57
+
+## 5.0.151
+
+### Patch Changes
+
+- Updated dependencies [f54cb63]
+  - @ai-sdk/gateway@2.0.56
+
+## 5.0.150
+
+### Patch Changes
+
+- Updated dependencies [ee7582f]
+  - @ai-sdk/gateway@2.0.55
+
+## 5.0.149
+
+### Patch Changes
+
+- c66afc5: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  `download` now validates the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
+## 5.0.148
+
+### Patch Changes
+
+- Updated dependencies [392dc94]
+  - @ai-sdk/gateway@2.0.54
+
+## 5.0.147
+
+### Patch Changes
+
+- Updated dependencies [7a57a71]
+  - @ai-sdk/gateway@2.0.53
+
 ## 5.0.146
 
 ### Patch Changes
@@ -122,7 +352,7 @@
 
 - 20565b8: security: prevent unbounded memory growth in download functions
 
-  The `download()` and `downloadBlob()` functions now enforce a default 2 GiB size limit when downloading from user-provided URLs. Downloads that exceed this limit are aborted with a `DownloadError` instead of consuming unbounded memory and crashing the process. The `abortSignal` parameter is now passed through to `fetch()` in all download call sites.
+  The `download()` function now enforces a default 2 GiB size limit when downloading from user-provided URLs. Downloads that exceed this limit are aborted with a `DownloadError` instead of consuming unbounded memory and crashing the process. The `abortSignal` parameter is now passed through to `fetch()` in all download call sites.
 
   Added `download` option to `transcribe()` and `experimental_generateVideo()` for providing a custom download function. Use the new `createDownload({ maxBytes })` factory to configure download size limits.
 
@@ -492,15 +722,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ## 5.0.78
@@ -1123,7 +1353,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1136,7 +1366,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1336,10 +1566,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -2161,7 +2391,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2174,7 +2404,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2275,10 +2505,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

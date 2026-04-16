@@ -10,6 +10,10 @@ import { webSearch_20250305ArgsSchema } from './tool/web-search_20250305';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
 
+export interface AnthropicToolOptions {
+  eagerInputStreaming?: boolean;
+}
+
 export async function prepareTools({
   tools,
   toolChoice,
@@ -47,11 +51,19 @@ export async function prepareTools({
           canCache: true,
         });
 
+        // Read Anthropic-specific provider options
+        const anthropicOptions = tool.providerOptions?.anthropic as
+          | AnthropicToolOptions
+          | undefined;
+        // eager_input_streaming is only supported on custom (function) tools
+        const eagerInputStreaming = anthropicOptions?.eagerInputStreaming;
+
         anthropicTools.push({
           name: tool.name,
           description: tool.description,
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
+          ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
         });
         break;
       }
@@ -74,6 +86,13 @@ export async function prepareTools({
             betas.add('code-execution-2025-08-25');
             anthropicTools.push({
               type: 'code_execution_20250825',
+              name: 'code_execution',
+            });
+            break;
+          }
+          case 'anthropic.code_execution_20260120': {
+            anthropicTools.push({
+              type: 'code_execution_20260120',
               name: 'code_execution',
             });
             break;

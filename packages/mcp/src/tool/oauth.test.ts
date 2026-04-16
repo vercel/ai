@@ -927,16 +927,11 @@ describe('exchangeAuthorization', () => {
     });
 
     expect(tokens).toEqual(validTokens);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        href: 'https://auth.example.com/token',
-      }),
-      expect.objectContaining({
-        method: 'POST',
-        headers: new Headers({
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-      }),
+    const [fetchUrl, fetchOptions] = mockFetch.mock.calls[0];
+    expect(fetchUrl.href).toBe('https://auth.example.com/token');
+    expect(fetchOptions.method).toBe('POST');
+    expect(fetchOptions.headers.get('Content-Type')).toBe(
+      'application/x-www-form-urlencoded',
     );
 
     const body = mockFetch.mock.calls[0][1].body as URLSearchParams;

@@ -164,7 +164,7 @@ const toolTests = (model: LanguageModelV2) => {
       expect(result.text.toLowerCase()).toMatch(/color theme|dark mode/);
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
@@ -197,7 +197,7 @@ README.md     build         data          node_modules  package.json  src       
       expect(result.text).toContain('node_modules'); // Check for directory
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it.skipIf(!['claude-3-5-sonnet-v2@20241022'].includes(model.modelId))(
@@ -237,6 +237,6 @@ README.md     build         data          node_modules  package.json  src       
       expect(editorContent).not.toBe('## README\nThis is a test file.');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 };
