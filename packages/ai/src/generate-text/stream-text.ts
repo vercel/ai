@@ -2317,14 +2317,17 @@ class DefaultStreamTextResult<
               break;
             }
 
-            case 'reasoning-start': {
-              controller.enqueue({
-                type: 'reasoning-start',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
+            case 'reasoning-start':
+            case 'reasoning-end': {
+              if (sendReasoning) {
+                controller.enqueue({
+                  type: partType,
+                  id: part.id,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 
@@ -2339,17 +2342,6 @@ class DefaultStreamTextResult<
                     : {}),
                 });
               }
-              break;
-            }
-
-            case 'reasoning-end': {
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
               break;
             }
 

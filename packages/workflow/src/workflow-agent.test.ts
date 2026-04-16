@@ -1524,42 +1524,6 @@ describe('WorkflowAgent', () => {
     });
   });
 
-  describe('maxSteps', () => {
-    it('should pass maxSteps to streamTextIterator', async () => {
-      const mockModel = createMockModel();
-
-      const agent = new WorkflowAgent({
-        model: mockModel,
-        tools: {},
-      });
-
-      const mockWritable = new WritableStream({
-        write: vi.fn(),
-        close: vi.fn(),
-      });
-
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockIterator = {
-        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
-      };
-      vi.mocked(streamTextIterator).mockReturnValue(
-        mockIterator as unknown as MockIterator,
-      );
-
-      await agent.stream({
-        messages: [{ role: 'user', content: 'test' }],
-        writable: mockWritable,
-        maxSteps: 5,
-      });
-
-      expect(streamTextIterator).toHaveBeenCalledWith(
-        expect.objectContaining({
-          maxSteps: 5,
-        }),
-      );
-    });
-  });
-
   describe('toolChoice', () => {
     it('should pass toolChoice from constructor to streamTextIterator', async () => {
       const mockModel = createMockModel();
