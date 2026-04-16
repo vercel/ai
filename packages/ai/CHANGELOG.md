@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.101
+
+### Patch Changes
+
+- 4873966: chore(ai): allow general usage of `logWarnings` and emit them via Node API when available
+
 ## 7.0.0-beta.100
 
 ### Patch Changes
