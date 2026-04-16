@@ -9,10 +9,10 @@ run(async () => {
   const result = streamText({
     model: anthropic('claude-opus-4-7'),
     prompt: 'Calculate how many days are in three weeks.',
-    reasoning: 'xhigh',
     providerOptions: {
       anthropic: {
         thinking: { type: 'adaptive', display: 'summarized' },
+        effort: 'xhigh',
       } satisfies AnthropicLanguageModelOptions,
     },
   });
