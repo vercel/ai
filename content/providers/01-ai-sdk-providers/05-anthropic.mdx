@@ -253,8 +253,6 @@ const { text } = await generateText({
 
 The `speed` option accepts `'fast'` or `'standard'` (default behavior).
 
-<<<<<<< HEAD
-=======
 ### Task Budgets
 
 `claude-opus-4-7` supports a `taskBudget` option that informs the model of the total token budget available for an agentic turn. The model uses this information to prioritize work, plan ahead, and wind down gracefully as the budget is consumed.
@@ -295,28 +293,6 @@ The `taskBudget` object accepts:
 - `total` _number_ - Total task budget for the agentic turn. Minimum 20,000.
 - `remaining` _number_ - Budget left after prior compacted-away contexts. Must be between 0 and `total`. Defaults to `total` if omitted.
 
-### Data Residency
-
-Anthropic supports an [`inferenceGeo` option](https://platform.claude.com/docs/en/build-with-claude/data-residency) that controls where model inference runs for a request.
-
-```ts highlight="8-10"
-import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: anthropic('claude-opus-4-6'),
-  prompt: 'Summarize the key points of this document.',
-  providerOptions: {
-    anthropic: {
-      inferenceGeo: 'us',
-    } satisfies AnthropicLanguageModelOptions,
-  },
-});
-```
-
-The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` (default, any available geography).
-
->>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
 ### Reasoning
 
 Anthropic has reasoning support for `claude-opus-4-20250514`, `claude-sonnet-4-20250514`, and `claude-3-7-sonnet-20250219` models.
@@ -328,10 +304,6 @@ and specifying a thinking budget in tokens.
 import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
-<<<<<<< HEAD
-const { text, reasoning, reasoningDetails } = await generateText({
-  model: anthropic('claude-opus-4-20250514'),
-=======
 const { text, reasoningText, reasoning } = await generateText({
   model: anthropic('claude-opus-4-6'),
   prompt: 'How many people will live in the world in 2040?',
@@ -356,7 +328,7 @@ const { text } = await generateText({
   providerOptions: {
     anthropic: {
       thinking: { type: 'adaptive' },
-      effort: 'max', // 'low' | 'medium' | 'high' | 'max'
+      effort: 'max', // 'low' | 'medium' | 'high' | 'xhigh' | 'max'
     } satisfies AnthropicLanguageModelOptions,
   },
 });
@@ -398,7 +370,6 @@ import { generateText } from 'ai';
 
 const { text, reasoningText, reasoning } = await generateText({
   model: anthropic('claude-sonnet-4-5-20250929'),
->>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     anthropic: {
@@ -1143,9 +1114,9 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-<<<<<<< HEAD
 | Model                      | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
 | -------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-7`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-6`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-6`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
 | `claude-opus-4-5`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
@@ -1156,19 +1127,6 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-sonnet-4-0`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
 | `claude-3-7-sonnet-latest` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
 | `claude-3-5-haiku-latest`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-=======
-| Model               | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
-| ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-opus-4-7`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-opus-4-6`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-sonnet-4-6` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-5`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-haiku-4-5`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-sonnet-4-5` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
-| `claude-opus-4-1`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-opus-4-0`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
-| `claude-sonnet-4-0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |                     |
->>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
 
 <Note>
   The table above lists popular models. Please see the [Anthropic

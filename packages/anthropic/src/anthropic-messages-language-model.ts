@@ -215,13 +215,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     const {
       maxOutputTokens: maxOutputTokensForModel,
-<<<<<<< HEAD
       supportsStructuredOutput,
-      isKnownModel,
-    } = getModelCapabilities(this.modelId);
-
-=======
-      supportsStructuredOutput: modelSupportsStructuredOutput,
       rejectsSamplingParameters,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
@@ -255,15 +249,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
 
-    const supportsStructuredOutput =
-      (this.config.supportsNativeStructuredOutput ?? true) &&
-      modelSupportsStructuredOutput;
-
-    const supportsStrictTools =
-      (this.config.supportsStrictTools ?? true) &&
-      modelSupportsStructuredOutput;
-
->>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'jsonTool';
     const useStructuredOutput =
@@ -326,10 +311,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           ...(thinkingDisplay != null && { display: thinkingDisplay }),
         },
       }),
-<<<<<<< HEAD
-      ...(anthropicOptions?.effort && {
-        output_config: { effort: anthropicOptions.effort },
-=======
       ...((anthropicOptions?.effort ||
         anthropicOptions?.taskBudget ||
         (useStructuredOutput &&
@@ -357,7 +338,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               },
             }),
         },
->>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
       }),
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,

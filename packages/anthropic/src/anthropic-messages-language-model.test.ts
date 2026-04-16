@@ -12,14 +12,9 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-<<<<<<< HEAD
 import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 import { Citation } from './anthropic-messages-api';
-=======
-import { AnthropicLanguageModelOptions } from './anthropic-messages-options';
-import { createAnthropic } from './anthropic-provider';
->>>>>>> 2ff8d57e2 (Backport: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14530))
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -581,6 +576,24 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-sonnet-4-5",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "type": "json_schema",
+              },
+            },
             "output_format": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -661,6 +674,24 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-unknown",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "name",
+                  ],
+                  "type": "object",
+                },
+                "type": "json_schema",
+              },
+            },
             "output_format": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -3893,6 +3924,44 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
             ],
             "model": "claude-sonnet-4-5",
+            "output_config": {
+              "format": {
+                "schema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
+                  "properties": {
+                    "characters": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "class": {
+                            "type": "string",
+                          },
+                          "description": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "name",
+                          "class",
+                          "description",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "characters",
+                  ],
+                  "type": "object",
+                },
+                "type": "json_schema",
+              },
+            },
             "output_format": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5767,7 +5836,7 @@ describe('claude-opus-4-7 specific behavior', () => {
       providerOptions: {
         anthropic: {
           taskBudget: { type: 'tokens', total: 400000 },
-        } satisfies AnthropicLanguageModelOptions,
+        } satisfies AnthropicProviderOptions,
       },
     });
 
@@ -5789,7 +5858,7 @@ describe('claude-opus-4-7 specific behavior', () => {
       providerOptions: {
         anthropic: {
           taskBudget: { type: 'tokens', total: 400000, remaining: 215000 },
-        } satisfies AnthropicLanguageModelOptions,
+        } satisfies AnthropicProviderOptions,
       },
     });
 
@@ -5809,7 +5878,7 @@ describe('claude-opus-4-7 specific behavior', () => {
       providerOptions: {
         anthropic: {
           thinking: { type: 'adaptive', display: 'summarized' },
-        } satisfies AnthropicLanguageModelOptions,
+        } satisfies AnthropicProviderOptions,
       },
     });
 
