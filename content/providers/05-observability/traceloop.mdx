@@ -33,7 +33,7 @@ registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
 
-```typescript highlight="7-13"
+```typescript highlight="7-12"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -41,7 +41,6 @@ const result = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'What is 2 + 2?',
   experimental_telemetry: {
-    isEnabled: true,
     metadata: {
       query: 'weather',
       location: 'San Francisco',

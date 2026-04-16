@@ -37,7 +37,6 @@ run(async () => {
     prompt:
       'What is the weather in San Francisco and what attractions should I visit?',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
     },
   });

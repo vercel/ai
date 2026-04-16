@@ -36,7 +36,7 @@ export function register() {
 
 Traced LLM calls will appear under the Braintrust project or experiment provided in the `parent` field.
 
-When you call the AI SDK, set `experimental_telemetry`:
+Once the integration is registered, telemetry is captured automatically. You can pass additional metadata via the `context` option:
 
 ```typescript
 import { generateText } from 'ai';
@@ -45,12 +45,9 @@ import { openai } from '@ai-sdk/openai';
 const result = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'What is 2 + 2?',
-  experimental_telemetry: {
-    isEnabled: true,
-    metadata: {
-      query: 'weather',
-      location: 'San Francisco',
-    },
+  context: {
+    query: 'weather',
+    location: 'San Francisco',
   },
 });
 ```
@@ -68,7 +65,6 @@ export async function POST(req: Request) {
   const result = await streamText({
     model: openai('gpt-4o-mini'),
     prompt,
-    experimental_telemetry: { isEnabled: true },
   });
 
   return result.toDataStreamResponse();
@@ -132,13 +128,12 @@ async function main() {
           `Here is the tracking information for ${orderId}`,
       }),
     },
+    context: {
+      something: 'custom',
+      someOtherThing: 'other-value',
+    },
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
-      metadata: {
-        something: 'custom',
-        someOtherThing: 'other-value',
-      },
     },
     maxSteps: 10,
   });

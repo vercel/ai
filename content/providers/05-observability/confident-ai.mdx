@@ -60,7 +60,6 @@ const { text } = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What are LLMs?',
   experimental_telemetry: {
-    isEnabled: true,
     integrations: new OpenTelemetryIntegration({ tracer }),
   },
 });
@@ -80,9 +79,7 @@ const result = streamText({
   model: openai('gpt-4o'),
   prompt: 'Invent a new holiday and describe its traditions.',
   experimental_telemetry: {
-    isEnabled: true,
     integrations: new OpenTelemetryIntegration({ tracer }),
-
   },
 });
 
@@ -119,7 +116,6 @@ const result = await generateText({
   stopWhen: isStepCount(5),
   prompt: 'What is the weather in San Francisco?',
   experimental_telemetry: {
-    isEnabled: true,
     integrations: new OpenTelemetryIntegration({ tracer }),
   },
 });
@@ -147,7 +143,6 @@ const { object } = await generateObject({
   }),
   prompt: 'Generate a lasagna recipe.',
   experimental_telemetry: {
-    isEnabled: true,
     integrations: new OpenTelemetryIntegration({ tracer }),
   },
 });
@@ -190,9 +185,6 @@ registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer }));
 const { text } = await generateText({
   model: openai('gpt-4o'),
   prompt: 'How do you make the best coffee?',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
@@ -217,9 +209,6 @@ registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer }));
 const { text } = await generateText({
   model: openai('gpt-4o'),
   prompt: 'How do you make the best coffee?',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
@@ -259,9 +248,6 @@ registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer }));
 const { text } = await generateText({
   model: openai('gpt-4o'),
   prompt: 'How do you make the best coffee?',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 

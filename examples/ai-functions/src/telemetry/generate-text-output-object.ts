@@ -34,7 +34,6 @@ run(async () => {
     }),
     prompt: 'Generate a lasagna recipe.',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
     },
   });
