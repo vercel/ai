@@ -5,7 +5,6 @@ import {
   ImageModelV2,
 } from '@ai-sdk/provider';
 import {
-  OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
@@ -20,6 +19,7 @@ import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';
 import { DeepInfraCompletionModelId } from './deepinfra-completion-options';
 import { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { DeepInfraImageModel } from './deepinfra-image-model';
+import { DeepInfraChatLanguageModel } from './deepinfra-chat-language-model';
 import { VERSION } from './version';
 
 export interface DeepInfraProviderSettings {
@@ -115,7 +115,7 @@ export function createDeepInfra(
   });
 
   const createChatModel = (modelId: DeepInfraChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(
+    return new DeepInfraChatLanguageModel(
       modelId,
       getCommonModelConfig('chat'),
     );

@@ -50,10 +50,12 @@ export function prepareTools({
     ] as const satisfies GoogleGenerativeAIModelId[]
   ).some(id => id === modelId);
   const isGemini2orNewer =
-    modelId.includes('gemini-2') || modelId.includes('gemini-3') || isLatest;
-  const supportsDynamicRetrieval =
-    modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
-  const supportsFileSearch = modelId.includes('gemini-2.5');
+    modelId.includes('gemini-2') ||
+    modelId.includes('gemini-3') ||
+    modelId.includes('nano-banana') ||
+    isLatest;
+  const supportsFileSearch =
+    modelId.includes('gemini-2.5') || modelId.includes('gemini-3');
 
   if (tools == null) {
     return { tools: undefined, toolConfig: undefined, toolWarnings };
@@ -84,24 +86,24 @@ export function prepareTools({
       switch (tool.id) {
         case 'google.google_search':
           if (isGemini2orNewer) {
-            googleTools.push({ googleSearch: {} });
-          } else if (supportsDynamicRetrieval) {
-            // For non-Gemini-2 models that don't support dynamic retrieval, use basic googleSearchRetrieval
-            googleTools.push({
-              googleSearchRetrieval: {
-                dynamicRetrievalConfig: {
-                  mode: tool.args.mode as
-                    | 'MODE_DYNAMIC'
-                    | 'MODE_UNSPECIFIED'
-                    | undefined,
-                  dynamicThreshold: tool.args.dynamicThreshold as
-                    | number
-                    | undefined,
-                },
-              },
-            });
+            googleTools.push({ googleSearch: { ...tool.args } });
           } else {
-            googleTools.push({ googleSearchRetrieval: {} });
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details: 'Google Search requires Gemini 2.0 or newer.',
+            });
+          }
+          break;
+        case 'google.enterprise_web_search':
+          if (isGemini2orNewer) {
+            googleTools.push({ enterpriseWebSearch: {} });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details: 'Enterprise Web Search requires Gemini 2.0 or newer.',
+            });
           }
           break;
         case 'google.url_context':
@@ -158,6 +160,18 @@ export function prepareTools({
               tool,
               details:
                 'The RAG store tool is not supported with other Gemini models than Gemini 2.',
+            });
+          }
+          break;
+        case 'google.google_maps':
+          if (isGemini2orNewer) {
+            googleTools.push({ googleMaps: {} });
+          } else {
+            toolWarnings.push({
+              type: 'unsupported-tool',
+              tool,
+              details:
+                'The Google Maps grounding tool is not supported with Gemini models other than Gemini 2 or newer.',
             });
           }
           break;

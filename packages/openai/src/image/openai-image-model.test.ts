@@ -483,4 +483,130 @@ describe('doGenerate', () => {
       },
     });
   });
+
+  it('should include input token details in provider metadata', async () => {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            b64_json: 'base64-image-1',
+          },
+        ],
+        usage: {
+          input_tokens: 12,
+          output_tokens: 0,
+          total_tokens: 12,
+          input_tokens_details: {
+            image_tokens: 7,
+            text_tokens: 5,
+          },
+        },
+      },
+    };
+
+    const result = await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.providerMetadata?.openai).toMatchObject({
+      images: [
+        {
+          imageTokens: 7,
+          textTokens: 5,
+          inputTokens: 12,
+          outputTokens: 0,
+        },
+      ],
+    });
+  });
+
+  it('should distribute input token details evenly across images', async () => {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          { b64_json: 'base64-image-1' },
+          { b64_json: 'base64-image-2' },
+          { b64_json: 'base64-image-3' },
+        ],
+        usage: {
+          input_tokens: 30,
+          output_tokens: 900,
+          total_tokens: 930,
+          input_tokens_details: {
+            image_tokens: 194,
+            text_tokens: 28,
+          },
+        },
+      },
+    };
+
+    const result = await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      n: 3,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.providerMetadata?.openai).toMatchObject({
+      images: [
+        { imageTokens: 64, textTokens: 9, inputTokens: 10, outputTokens: 300 },
+        { imageTokens: 64, textTokens: 9, inputTokens: 10, outputTokens: 300 },
+        { imageTokens: 66, textTokens: 10, inputTokens: 10, outputTokens: 300 },
+      ],
+    });
+  });
+
+  it('should include inputTokens and outputTokens in per-image provider metadata', async () => {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            b64_json: 'base64-image-1',
+          },
+        ],
+        usage: {
+          input_tokens: 27,
+          output_tokens: 1056,
+          total_tokens: 1083,
+          input_tokens_details: {
+            image_tokens: 0,
+            text_tokens: 27,
+          },
+        },
+      },
+    };
+
+    const result = await provider.image('gpt-image-1').doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.providerMetadata?.openai).toMatchObject({
+      images: [
+        {
+          imageTokens: 0,
+          textTokens: 27,
+          inputTokens: 27,
+          outputTokens: 1056,
+        },
+      ],
+    });
+  });
 });

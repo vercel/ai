@@ -19,6 +19,9 @@ export type AnthropicMessagesModelId =
   | 'claude-sonnet-4-20250514'
   | 'claude-sonnet-4-5-20250929'
   | 'claude-sonnet-4-5'
+  | 'claude-sonnet-4-6'
+  | 'claude-opus-4-6'
+  | 'claude-opus-4-7'
   | (string & {});
 
 /**
@@ -76,10 +79,26 @@ export const anthropicProviderOptions = z.object({
    * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
    */
   thinking: z
-    .object({
-      type: z.union([z.literal('enabled'), z.literal('disabled')]),
-      budgetTokens: z.number().optional(),
-    })
+    .discriminatedUnion('type', [
+      z.object({
+        /** for Sonnet 4.6, Opus 4.6, and newer models */
+        type: z.literal('adaptive'),
+        /**
+         * Controls whether thinking content is included in the response.
+         * - `"omitted"`: Thinking blocks are present but text is empty (default for Opus 4.7+).
+         * - `"summarized"`: Thinking content is returned. Required to see reasoning output.
+         */
+        display: z.enum(['omitted', 'summarized']).optional(),
+      }),
+      z.object({
+        /** for models before Opus 4.6, except Sonnet 4.6 still supports it */
+        type: z.literal('enabled'),
+        budgetTokens: z.number().optional(),
+      }),
+      z.object({
+        type: z.literal('disabled'),
+      }),
+    ])
     .optional(),
 
   /**
@@ -96,6 +115,23 @@ export const anthropicProviderOptions = z.object({
     .object({
       type: z.literal('ephemeral'),
       ttl: z.union([z.literal('5m'), z.literal('1h')]).optional(),
+    })
+    .optional(),
+
+  /**
+   * Metadata to include with the request.
+   *
+   * See https://platform.claude.com/docs/en/api/messages/create for details.
+   */
+  metadata: z
+    .object({
+      /**
+       * An external identifier for the user associated with the request.
+       *
+       * Should be a UUID, hash value, or other opaque identifier.
+       * Must not contain PII (name, email, phone number, etc.).
+       */
+      userId: z.string().optional(),
     })
     .optional(),
 
@@ -122,7 +158,99 @@ export const anthropicProviderOptions = z.object({
   /**
    * @default 'high'
    */
-  effort: z.enum(['low', 'medium', 'high']).optional(),
+  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+
+  /**
+   * Task budget for agentic turns. Informs the model of the total token budget
+   * available for the current task, allowing it to prioritize work and wind down
+   * gracefully as the budget is consumed.
+   *
+   * Advisory only — does not enforce a hard token limit.
+   */
+  taskBudget: z
+    .object({
+      type: z.literal('tokens'),
+      total: z.number().int().min(20000),
+      remaining: z.number().int().min(0).optional(),
+    })
+    .optional(),
+
+  /**
+   * Enable fast mode for faster inference (2.5x faster output token speeds).
+   * Only supported with claude-opus-4-6.
+   */
+  speed: z.enum(['fast', 'standard']).optional(),
+
+  /**
+   * Context management configuration for automatic context window management.
+   * Enables features like automatic compaction and clearing of tool uses/thinking blocks.
+   */
+  contextManagement: z
+    .object({
+      edits: z.array(
+        z.discriminatedUnion('type', [
+          z.object({
+            type: z.literal('clear_tool_uses_20250919'),
+            trigger: z
+              .discriminatedUnion('type', [
+                z.object({
+                  type: z.literal('input_tokens'),
+                  value: z.number(),
+                }),
+                z.object({
+                  type: z.literal('tool_uses'),
+                  value: z.number(),
+                }),
+              ])
+              .optional(),
+            keep: z
+              .object({
+                type: z.literal('tool_uses'),
+                value: z.number(),
+              })
+              .optional(),
+            clearAtLeast: z
+              .object({
+                type: z.literal('input_tokens'),
+                value: z.number(),
+              })
+              .optional(),
+            clearToolInputs: z.boolean().optional(),
+            excludeTools: z.array(z.string()).optional(),
+          }),
+          z.object({
+            type: z.literal('clear_thinking_20251015'),
+            keep: z
+              .union([
+                z.literal('all'),
+                z.object({
+                  type: z.literal('thinking_turns'),
+                  value: z.number(),
+                }),
+              ])
+              .optional(),
+          }),
+          z.object({
+            type: z.literal('compact_20260112'),
+            trigger: z
+              .object({
+                type: z.literal('input_tokens'),
+                value: z.number(),
+              })
+              .optional(),
+            pauseAfterCompaction: z.boolean().optional(),
+            instructions: z.string().optional(),
+          }),
+        ]),
+      ),
+    })
+    .optional(),
+
+  /**
+   * A set of beta features to enable.
+   * Allow a provider to receive the full `betas` set if it needs it.
+   */
+  anthropicBeta: z.array(z.string()).optional(),
 });
 
 export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;

@@ -165,7 +165,7 @@ The following optional provider options are available for Google Generative AI m
 
   - **thinkingLevel** _'low' | 'high'_
 
-    Optional. Controls the thinking depth for Gemini 3 models. Use 'low' for faster responses or 'high' for deeper reasoning. Only supported by Gemini 3 models (`gemini-3-pro-preview` and later).
+    Optional. Controls the thinking depth for Gemini 3 models. Use 'low' for faster responses or 'high' for deeper reasoning. Gemini 3.1 Pro supports 'low', 'medium', and 'high', Gemini 3 Pro supports 'low' and 'high', while Gemini 3 Flash supports all four levels: 'minimal', 'low', 'medium', and 'high'. Only supported by Gemini 3 models.
 
   - **thinkingBudget** _number_
 
@@ -189,16 +189,56 @@ The following optional provider options are available for Google Generative AI m
 
   Model defaults to generate 1:1 squares, or to matching the output image size to that of your input image. Can be one of the following:
 
-  - 1:1
-  - 2:3
-  - 3:2
-  - 3:4
-  - 4:3
-  - 4:5
-  - 5:4
-  - 9:16
-  - 16:9
-  - 21:9
+    - 1:1
+    - 2:3
+    - 3:2
+    - 3:4
+    - 4:3
+    - 4:5
+    - 5:4
+    - 9:16
+    - 16:9
+    - 21:9
+
+  - **imageSize** _string_
+
+    Controls the output image resolution. Defaults to 1K. Can be one of the following:
+
+    - 1K
+    - 2K
+    - 4K
+
+- **audioTimestamp** _boolean_
+
+  Optional. Enables timestamp understanding for audio-only files.
+  See [Google Cloud audio understanding documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding).
+
+- **mediaResolution** _string_
+
+  Optional. If specified, the media resolution specified will be used. Can be one of the following:
+
+  - `MEDIA_RESOLUTION_UNSPECIFIED`
+  - `MEDIA_RESOLUTION_LOW`
+  - `MEDIA_RESOLUTION_MEDIUM`
+  - `MEDIA_RESOLUTION_HIGH`
+
+  See [Google API MediaResolution documentation](https://ai.google.dev/api/generate-content#MediaResolution).
+
+- **labels** _Record&lt;string, string&gt;_
+
+  Optional. Defines labels used in billing reports. Available on Vertex AI only.
+  See [Google Cloud labels documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls).
+
+- **serviceTier** _'standard' | 'flex' | 'priority'_
+
+  Optional. The service tier to use for the request.
+  Set to 'flex' for 50% cheaper processing at the cost of increased latency.
+  Set to 'priority' for ultra-low latency at a 75-100% price premium over 'standard'.
+
+- **threshold** _string_
+
+  Optional. Standalone threshold setting that can be used independently of `safetySettings`.
+  Uses the same values as the `safetySettings` threshold.
 
 ### Thinking
 
@@ -212,7 +252,7 @@ For Gemini 3 models, use the `thinkingLevel` parameter to control the depth of r
 import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const model = google('gemini-3-pro-preview');
+const model = google('gemini-3.1-pro-preview');
 
 const { text, reasoning } = await generateText({
   model: model,
@@ -452,9 +492,8 @@ The response will contain the tool calls and results from the code execution.
 
 ### Google Search
 
-With [search grounding](https://ai.google.dev/gemini-api/docs/google-search),
-the model has access to the latest information using Google search.
-Google search can be used to provide answers around current events:
+With [Google Search grounding](https://ai.google.dev/gemini-api/docs/google-search),
+the model has access to the latest information using Google Search.
 
 ```ts highlight="8,17-20"
 import { google } from '@ai-sdk/google';
@@ -480,7 +519,33 @@ const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
 ```
 
-When Search Grounding is enabled, the model will include sources in the response.
+The `googleSearch` tool accepts the following optional configuration options:
+
+- **searchTypes** _object_
+
+  Enables specific search types. Both can be combined.
+
+  - `webSearch`: Enable web search grounding (pass `{}` to enable). This is the default.
+  - `imageSearch`: Enable [image search grounding](https://ai.google.dev/gemini-api/docs/image-generation#image-search) (pass `{}` to enable).
+
+- **timeRangeFilter** _object_
+
+  Restricts search results to a specific time range. Both `startTime` and `endTime` are required.
+
+  - `startTime`: Start time in ISO 8601 format (e.g. `'2025-01-01T00:00:00Z'`).
+  - `endTime`: End time in ISO 8601 format (e.g. `'2025-12-31T23:59:59Z'`).
+
+```ts
+google.tools.googleSearch({
+  searchTypes: { webSearch: {} },
+  timeRangeFilter: {
+    startTime: '2025-01-01T00:00:00Z',
+    endTime: '2025-12-31T23:59:59Z',
+  },
+});
+```
+
+When Google Search grounding is enabled, the model will include sources in the response.
 
 Additionally, the grounding metadata includes detailed information about how search results were used to ground the model's response. Here are the available fields:
 
@@ -557,7 +622,7 @@ File Search responses include citations via the normal `sources` field and expos
 
 Google provides a provider-defined URL context tool.
 
-The URL context tool allows the you to provide specific URLs that you want the model to analyze directly in from the prompt.
+The URL context tool allows you to provide specific URLs that you want the model to analyze directly in from the prompt.
 
 ```ts highlight="9,13-17"
 import { google } from '@ai-sdk/google';
@@ -660,6 +725,60 @@ const metadata = providerMetadata?.google as
 const groundingMetadata = metadata?.groundingMetadata;
 const urlContextMetadata = metadata?.urlContextMetadata;
 ```
+
+### Google Maps Grounding
+
+With [Google Maps grounding](https://ai.google.dev/gemini-api/docs/maps-grounding),
+the model has access to Google Maps data for location-aware responses. This enables providing local data and geospatial context, such as finding nearby restaurants.
+
+```ts highlight="7-16"
+import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text, sources, providerMetadata } = await generateText({
+  model: google('gemini-2.5-flash'),
+  tools: {
+    google_maps: google.tools.googleMaps({}),
+  },
+  providerOptions: {
+    google: {
+      retrievalConfig: {
+        latLng: { latitude: 34.090199, longitude: -117.881081 },
+      },
+    },
+  },
+  prompt:
+    'What are the best Italian restaurants within a 15-minute walk from here?',
+});
+
+const metadata = providerMetadata?.google as
+  | GoogleGenerativeAIProviderMetadata
+  | undefined;
+const groundingMetadata = metadata?.groundingMetadata;
+```
+
+The optional `retrievalConfig.latLng` provider option provides location context for queries about nearby places. This configuration applies to any grounding tools that support location context, including Google Maps and Google Search.
+
+When Google Maps grounding is enabled, the model's response will include sources pointing to Google Maps URLs. The grounding metadata includes `maps` chunks with place information:
+
+```json
+{
+  "groundingMetadata": {
+    "groundingChunks": [
+      {
+        "maps": {
+          "uri": "https://maps.google.com/?cid=12345",
+          "title": "Restaurant Name",
+          "placeId": "places/ChIJ..."
+        }
+      }
+    ]
+  }
+}
+```
+
+<Note>Google Maps grounding is supported on Gemini 2.0 and newer models.</Note>
 
 ### RAG Engine Grounding
 
@@ -884,6 +1003,8 @@ The following Zod features are known to not work with Google Generative AI:
 
 | Model                                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Google Search       | URL Context         |
 | ------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-3.1-pro-preview`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gemini-3.1-flash-image-preview`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3-pro-preview`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-pro`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.5-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -929,7 +1050,7 @@ You can create models that call the [Google Generative AI embeddings API](https:
 using the `.textEmbedding()` factory method.
 
 ```ts
-const model = google.textEmbedding('gemini-embedding-001');
+const model = google.textEmbedding('gemini-embedding-2-preview');
 ```
 
 The Google Generative AI provider sends API calls to the right endpoint based on the type of embedding:
@@ -937,13 +1058,13 @@ The Google Generative AI provider sends API calls to the right endpoint based on
 - **Single embeddings**: When embedding a single value with `embed()`, the provider uses the single `:embedContent` endpoint, which typically has higher rate limits compared to the batch endpoint.
 - **Batch embeddings**: When embedding multiple values with `embedMany()` or multiple values in `embed()`, the provider uses the `:batchEmbedContents` endpoint.
 
-Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
+Google Generative AI embedding models support additional settings, including multimodal embeddings. You can pass them as an options argument:
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { embed } from 'ai';
 
-const model = google.textEmbedding('gemini-embedding-001');
+const model = google.textEmbedding('gemini-embedding-2-preview');
 
 const { embedding } = await embed({
   model,
@@ -952,7 +1073,29 @@ const { embedding } = await embed({
     google: {
       outputDimensionality: 512, // optional, number of dimensions for the embedding
       taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
-    },
+      content: [[{ text: 'additional context' }]], // optional, per-value multimodal content (only 1 here, since `value` is only a single one)
+    } satisfies GoogleEmbeddingModelOptions,
+  },
+});
+```
+
+When using `embedMany`, provide per-value multimodal content via the `content` option. Each entry corresponds to a value at the same index; use `null` for text-only entries:
+
+```ts
+import { google, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
+import { embedMany } from 'ai';
+
+const { embeddings } = await embedMany({
+  model: google.embedding('gemini-embedding-2-preview'),
+  values: ['sunny day at the beach', 'rainy afternoon in the city'],
+  providerOptions: {
+    google: {
+      // content array must have the same length as values
+      content: [
+        [{ inlineData: { mimeType: 'image/png', data: '<base64>' } }], // pairs with values[0]
+        null, // text-only, pairs with values[1]
+      ],
+    } satisfies GoogleEmbeddingModelOptions,
   },
 });
 ```
@@ -976,12 +1119,16 @@ The following optional provider options are available for Google Generative AI e
   - `FACT_VERIFICATION`: Optimized for verifying factual information.
   - `CODE_RETRIEVAL_QUERY`: Optimized for retrieving code blocks based on natural language queries.
 
+- **content**: _array_
+
+  Optional. Per-value multimodal content parts for embedding non-text content (images, video, PDF, audio). Each entry corresponds to the embedding value at the same index — its parts are merged with the text value in the request. Use `null` for entries that are text-only. The array length must match the number of values being embedded. Each non-null entry is an array of parts, where each part can be either `{ text: string }` or `{ inlineData: { mimeType: string, data: string } }`. Supported by `gemini-embedding-2-preview`.
+
 ### Model Capabilities
 
-| Model                  | Default Dimensions | Custom Dimensions   |
-| ---------------------- | ------------------ | ------------------- |
-| `gemini-embedding-001` | 3072               | <Check size={18} /> |
-| `text-embedding-004`   | 768                | <Check size={18} /> |
+| Model                        | Default Dimensions | Custom Dimensions   | Multimodal          |
+| ---------------------------- | ------------------ | ------------------- | ------------------- |
+| `gemini-embedding-001`       | 3072               | <Check size={18} /> | <Cross size={18} /> |
+| `gemini-embedding-2-preview` | 3072               | <Check size={18} /> | <Check size={18} /> |
 
 ## Image Models
 
@@ -993,7 +1140,7 @@ import { google } from '@ai-sdk/google';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: google.image('imagen-3.0-generate-002'),
+  model: google.image('imagen-4.0-generate-001'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -1007,7 +1154,7 @@ import { GoogleGenerativeAIImageProviderOptions } from '@ai-sdk/google';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: google.image('imagen-3.0-generate-002'),
+  model: google.image('imagen-4.0-generate-001'),
   providerOptions: {
     google: {
       personGeneration: 'dont_allow',
@@ -1031,4 +1178,4 @@ The following provider options are available:
 
 | Model                     | Aspect Ratios             |
 | ------------------------- | ------------------------- |
-| `imagen-3.0-generate-002` | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-4.0-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |

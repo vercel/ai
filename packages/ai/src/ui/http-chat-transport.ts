@@ -3,13 +3,10 @@ import {
   Resolvable,
   normalizeHeaders,
   resolve,
-  withUserAgentSuffix,
-  getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { ChatTransport } from './chat-transport';
 import { UIMessage } from './ui-messages';
-import { VERSION } from '../version';
 
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
@@ -124,9 +121,9 @@ export type HttpChatTransportInitOptions<UI_MESSAGE extends UIMessage> = {
   prepareReconnectToStreamRequest?: PrepareReconnectToStreamRequest;
 };
 
-export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
-  implements ChatTransport<UI_MESSAGE>
-{
+export abstract class HttpChatTransport<
+  UI_MESSAGE extends UIMessage,
+> implements ChatTransport<UI_MESSAGE> {
   protected api: string;
   protected credentials: HttpChatTransportInitOptions<UI_MESSAGE>['credentials'];
   protected headers: HttpChatTransportInitOptions<UI_MESSAGE>['headers'];
@@ -201,14 +198,10 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
     const response = await fetch(api, {
       method: 'POST',
-      headers: withUserAgentSuffix(
-        {
-          'Content-Type': 'application/json',
-          ...headers,
-        },
-        `ai-sdk/${VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      ),
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
       body: JSON.stringify(body),
       credentials,
       signal: abortSignal,
@@ -260,11 +253,7 @@ export abstract class HttpChatTransport<UI_MESSAGE extends UIMessage>
 
     const response = await fetch(api, {
       method: 'GET',
-      headers: withUserAgentSuffix(
-        headers,
-        `ai-sdk/${VERSION}`,
-        getRuntimeEnvironmentUserAgent(),
-      ),
+      headers,
       credentials,
     });
 

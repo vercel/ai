@@ -54,21 +54,75 @@ const transcript = await transcribe({
 });
 ```
 
+### Download Size Limits
+
+When `audio` is a URL, the SDK downloads the file with a default **2 GiB** size limit.
+You can customize this using `createDownload`:
+
+```ts highlight="1,8"
+import { experimental_transcribe as transcribe, createDownload } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const transcript = await transcribe({
+  model: openai.transcription('whisper-1'),
+  audio: new URL('https://example.com/audio.mp3'),
+  download: createDownload({ maxBytes: 50 * 1024 * 1024 }), // 50 MB limit
+});
+```
+
+You can also provide a fully custom download function:
+
+```ts highlight="6-12"
+import { experimental_transcribe as transcribe } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const transcript = await transcribe({
+  model: openai.transcription('whisper-1'),
+  audio: new URL('https://example.com/audio.mp3'),
+  download: async ({ url }) => {
+    const res = await myAuthenticatedFetch(url);
+    return {
+      data: new Uint8Array(await res.arrayBuffer()),
+      mediaType: res.headers.get('content-type') ?? undefined,
+    };
+  },
+});
+```
+
+If a download exceeds the size limit, a `DownloadError` is thrown:
+
+```ts
+import { experimental_transcribe as transcribe, DownloadError } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+try {
+  await transcribe({
+    model: openai.transcription('whisper-1'),
+    audio: new URL('https://example.com/audio.mp3'),
+  });
+} catch (error) {
+  if (DownloadError.isInstance(error)) {
+    console.log('Download failed:', error.message);
+  }
+}
+```
+
 ### Abort Signals and Timeouts
 
 `transcribe` accepts an optional `abortSignal` parameter of
 type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
 that you can use to abort the transcription process or set a timeout.
 
+This is particularly useful when combined with URL downloads to prevent long-running requests:
+
 ```ts highlight="8"
 import { openai } from '@ai-sdk/openai';
 import { experimental_transcribe as transcribe } from 'ai';
-import { readFile } from 'fs/promises';
 
 const transcript = await transcribe({
   model: openai.transcription('whisper-1'),
-  audio: await readFile('audio.mp3'),
-  abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
+  audio: new URL('https://example.com/audio.mp3'),
+  abortSignal: AbortSignal.timeout(5000), // Abort after 5 seconds
 });
 ```
 

@@ -215,7 +215,6 @@ exports[`zodSchema > json schema conversion > should use recursive references wi
   "additionalProperties": false,
   "definitions": {
     "__schema0": {
-      "additionalProperties": false,
       "properties": {
         "name": {
           "type": "string",
@@ -252,7 +251,6 @@ exports[`zodSchema > json schema conversion > should use references when useRefe
   "additionalProperties": false,
   "definitions": {
     "__schema0": {
-      "additionalProperties": false,
       "properties": {
         "number": {
           "type": "number",

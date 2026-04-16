@@ -7,6 +7,9 @@ export type XaiChatModelId =
   | 'grok-4-1-fast-non-reasoning'
   | 'grok-4-fast-non-reasoning'
   | 'grok-4-fast-reasoning'
+  | 'grok-4.20-0309-non-reasoning'
+  | 'grok-4.20-0309-reasoning'
+  | 'grok-4.20-multi-agent-0309'
   | 'grok-code-fast-1'
   | 'grok-4'
   | 'grok-4-0709'
@@ -117,8 +120,11 @@ export const xaiProviderOptions = z.object({
       maxSearchResults: z.number().min(1).max(50).optional(),
 
       /**
-       * data sources to search from
-       * defaults to ["web", "x"] if not specified
+       * data sources to search from.
+       * defaults to [{ type: 'web' }, { type: 'x' }] if not specified.
+       *
+       * @example
+       * sources: [{ type: 'web', country: 'US' }, { type: 'x' }]
        */
       sources: z.array(searchSourceSchema).optional(),
     })

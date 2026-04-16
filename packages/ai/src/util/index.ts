@@ -1,6 +1,7 @@
 export type { AsyncIterableStream } from './async-iterable-stream';
 export { consumeStream } from './consume-stream';
 export { cosineSimilarity } from './cosine-similarity';
+export { createDownload } from './download/create-download';
 export { getTextFromDataUrl } from './data-url';
 export type { DeepPartial } from './deep-partial';
 export type { DownloadFunction as Experimental_DownloadFunction } from './download/download-function';

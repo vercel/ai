@@ -144,6 +144,28 @@ The Responses API provides server-side tools that the model can autonomously exe
 - **x_search**: Search X (Twitter) posts, users, and threads
 - **code_execution**: Execute Python code for calculations and data analysis
 
+### Vision
+
+The Responses API supports image input with vision models:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: xai.responses('grok-2-vision-1212'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What do you see in this image?' },
+        { type: 'image', image: fs.readFileSync('./image.png') },
+      ],
+    },
+  ],
+});
+```
+
 ### Web Search Tool
 
 The web search tool enables autonomous web research with optional domain filtering and image understanding:
@@ -241,6 +263,37 @@ const { text } = await generateText({
   },
 });
 ```
+
+### File Search Tool
+
+xAI supports file search through OpenAI compatibility. You can use the OpenAI provider with xAI's base URL to search vector stores:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const openai = createOpenAI({
+  baseURL: 'https://api.x.ai/v1',
+  apiKey: process.env.XAI_API_KEY,
+});
+
+const result = streamText({
+  model: openai('grok-4'),
+  prompt: 'What documents do you have access to?',
+  tools: {
+    file_search: openai.tools.fileSearch({
+      vectorStoreIds: ['your-vector-store-id'],
+      maxNumResults: 5,
+    }),
+  },
+});
+```
+
+<Note>
+  File search requires grok-4 family models. See the [OpenAI
+  provider](/providers/ai-sdk-providers/openai) documentation for additional
+  file search options like filters and ranking.
+</Note>
 
 ### Multiple Tools
 

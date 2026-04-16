@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/hume",
-  "version": "1.0.19",
+  "version": "1.0.24",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -14,9 +14,7 @@
     "build": "tsup --tsconfig tsconfig.build.json",
     "build:watch": "tsup --tsconfig tsconfig.build.json --watch",
     "clean": "del-cli dist",
-    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:watch": "vitest --config vitest.node.config.js --watch",
     "test:edge": "vitest --config vitest.edge.config.js --run",

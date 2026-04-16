@@ -7,7 +7,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import { XaiResponsesLanguageModel } from './xai-responses-language-model';
-import { XaiResponsesProviderOptions } from './xai-responses-options';
+import type { XaiResponsesProviderOptions } from './xai-responses-options';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'hello' }] },
@@ -119,11 +119,14 @@ describe('XaiResponsesLanguageModel', () => {
           output: [],
           usage: {
             input_tokens: 345,
+            input_tokens_details: {
+              cached_tokens: 50,
+            },
             output_tokens: 538,
-            total_tokens: 883,
             output_tokens_details: {
               reasoning_tokens: 123,
             },
+            total_tokens: 883,
           },
         });
 
@@ -133,6 +136,7 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(result.usage).toMatchInlineSnapshot(`
           {
+            "cachedInputTokens": 50,
             "inputTokens": 345,
             "outputTokens": 538,
             "reasoningTokens": 123,
@@ -156,6 +160,171 @@ describe('XaiResponsesLanguageModel', () => {
         });
 
         expect(result.finishReason).toBe('stop');
+      });
+
+      it('should return tool-calls finish reason when function_call is present', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'function_call',
+              id: 'fc_123',
+              name: 'weather',
+              arguments: '{"location":"sf"}',
+              call_id: 'call_123',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'get weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+              },
+            },
+          ],
+        });
+
+        expect(result.finishReason).toMatchInlineSnapshot(`"tool-calls"`);
+      });
+    });
+
+    describe('reasoning content', () => {
+      it('should extract reasoning with encrypted content when store=false', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [
+                {
+                  type: 'summary_text',
+                  text: 'First, analyze the question carefully.',
+                },
+              ],
+              encrypted_content: 'abc123encryptedcontent',
+            },
+            {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'The answer is 42.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 20,
+            output_tokens_details: {
+              reasoning_tokens: 15,
+            },
+          },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "xai": {
+                  "itemId": "rs_456",
+                  "reasoningEncryptedContent": "abc123encryptedcontent",
+                },
+              },
+              "text": "First, analyze the question carefully.",
+              "type": "reasoning",
+            },
+            {
+              "text": "The answer is 42.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should handle reasoning without encrypted content', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [
+                {
+                  type: 'summary_text',
+                  text: 'Thinking through the problem.',
+                },
+              ],
+            },
+            {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Solution found.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 15,
+          },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "xai": {
+                  "itemId": "rs_456",
+                },
+              },
+              "text": "Thinking through the problem.",
+              "type": "reasoning",
+            },
+            {
+              "text": "Solution found.",
+              "type": "text",
+            },
+          ]
+        `);
       });
     });
 
@@ -188,11 +357,16 @@ describe('XaiResponsesLanguageModel', () => {
                 "role": "system",
               },
               {
-                "content": "hello",
+                "content": [
+                  {
+                    "text": "hello",
+                    "type": "input_text",
+                  },
+                ],
                 "role": "user",
               },
             ],
-            "max_tokens": 100,
+            "max_output_tokens": 100,
             "model": "grok-4-fast",
             "temperature": 0.5,
             "top_p": 0.9,
@@ -322,6 +496,146 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
+
+      describe('responseFormat', () => {
+        it('should send response format json schema', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+              name: 'recipe',
+              description: 'A recipe object',
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  ingredients: { type: 'array', items: { type: 'string' } },
+                },
+                required: ['name', 'ingredients'],
+                additionalProperties: false,
+              },
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "grok-4-fast",
+              "text": {
+                "format": {
+                  "description": "A recipe object",
+                  "name": "recipe",
+                  "schema": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "ingredients": {
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
+                      "name": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "name",
+                      "ingredients",
+                    ],
+                    "type": "object",
+                  },
+                  "strict": true,
+                  "type": "json_schema",
+                },
+              },
+            }
+          `);
+        });
+
+        it('should send response format json object when no schema provided', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+            },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+            {
+              "input": [
+                {
+                  "content": [
+                    {
+                      "text": "hello",
+                      "type": "input_text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "grok-4-fast",
+              "text": {
+                "format": {
+                  "type": "json_object",
+                },
+              },
+            }
+          `);
+        });
+
+        it('should use default name when responseFormat.name is not provided', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            responseFormat: {
+              type: 'json',
+              schema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+              },
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.text.format.name).toBe('response');
+        });
+      });
     });
 
     describe('web_search tool', () => {
@@ -378,7 +692,12 @@ describe('XaiResponsesLanguageModel', () => {
           {
             "input": [
               {
-                "content": "hello",
+                "content": [
+                  {
+                    "text": "hello",
+                    "type": "input_text",
+                  },
+                ],
                 "role": "user",
               },
             ],
@@ -595,6 +914,218 @@ describe('XaiResponsesLanguageModel', () => {
         expect(result.content[1].type).toBe('tool-call');
       });
     });
+
+    describe('tool name mapping by type', () => {
+      it('should map web_search_call type to web_search tool name when name is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: '',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'ws_123',
+            toolName: 'web_search',
+            input: '{"query":"test"}',
+            providerExecuted: true,
+          },
+        ]);
+      });
+
+      it('should map x_search_call type to x_search tool name when name is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'x_search_call',
+              id: 'xs_123',
+              name: '',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'xs_123',
+            toolName: 'x_search',
+            input: '{"query":"test"}',
+            providerExecuted: true,
+          },
+        ]);
+      });
+
+      it('should map code_interpreter_call type to code_execution tool name when name is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'code_interpreter_call',
+              id: 'ci_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.code_execution',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'ci_123',
+            toolName: 'code_execution',
+            input: '{}',
+            providerExecuted: true,
+          },
+        ]);
+      });
+
+      it('should map code_execution_call type to code_execution tool name when name is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'code_execution_call',
+              id: 'ce_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.code_execution',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'ce_123',
+            toolName: 'code_execution',
+            input: '{}',
+            providerExecuted: true,
+          },
+        ]);
+      });
+
+      it('should use custom tool name from provider tool when type matches', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast',
+          output: [
+            {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.web_search',
+              name: 'my_custom_search',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'ws_123',
+            toolName: 'my_custom_search',
+            input: '{}',
+            providerExecuted: true,
+          },
+        ]);
+      });
+    });
   });
 
   describe('doStream', () => {
@@ -655,6 +1186,482 @@ describe('XaiResponsesLanguageModel', () => {
         const parts = await convertReadableStreamToArray(stream);
 
         expect(parts).toMatchSnapshot();
+      });
+
+      it('should include encrypted content in reasoning-end providerMetadata', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'in_progress',
+              summary: [],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_summary_part.added',
+            item_id: 'rs_456',
+            output_index: 0,
+            summary_index: 0,
+            part: { type: 'summary_text', text: '' },
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_summary_text.delta',
+            item_id: 'rs_456',
+            output_index: 0,
+            summary_index: 0,
+            delta: 'Analyzing...',
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_summary_text.done',
+            item_id: 'rs_456',
+            output_index: 0,
+            summary_index: 0,
+            text: 'Analyzing...',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [{ type: 'summary_text', text: 'Analyzing...' }],
+              encrypted_content: 'encrypted_data_abc123',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_789',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_789',
+            output_index: 1,
+            content_index: 0,
+            delta: 'Result.',
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 20 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const reasoningEnd = parts.find(part => part.type === 'reasoning-end');
+        expect(reasoningEnd).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+                "reasoningEncryptedContent": "encrypted_data_abc123",
+              },
+            },
+            "type": "reasoning-end",
+          }
+        `);
+      });
+
+      it('should emit reasoning-start before reasoning-end when reasoning_summary_part.added is not sent', async () => {
+        // This test covers the case where xAI sends encrypted reasoning without
+        // streaming the reasoning summary text (no reasoning_summary_part.added events)
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'in_progress',
+              summary: [],
+            },
+            output_index: 0,
+          }),
+          // Note: No response.reasoning_summary_part.added event
+          // This happens with encrypted reasoning when store=false
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [],
+              encrypted_content: 'encrypted_reasoning_content_xyz',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_789',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_789',
+            output_index: 1,
+            content_index: 0,
+            delta: 'The answer is 42.',
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 20 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        // Verify reasoning-start is emitted before reasoning-end
+        const reasoningStart = parts.find(
+          part => part.type === 'reasoning-start',
+        );
+        const reasoningEnd = parts.find(part => part.type === 'reasoning-end');
+
+        expect(reasoningStart).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+              },
+            },
+            "type": "reasoning-start",
+          }
+        `);
+
+        expect(reasoningEnd).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+                "reasoningEncryptedContent": "encrypted_reasoning_content_xyz",
+              },
+            },
+            "type": "reasoning-end",
+          }
+        `);
+
+        // Verify reasoning-start comes before reasoning-end in the stream
+        const reasoningStartIndex = parts.findIndex(
+          part => part.type === 'reasoning-start',
+        );
+        const reasoningEndIndex = parts.findIndex(
+          part => part.type === 'reasoning-end',
+        );
+        expect(reasoningStartIndex).toBeLessThan(reasoningEndIndex);
+      });
+
+      it('should stream reasoning text deltas (response.reasoning_text.delta)', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-code-fast-1',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'in_progress',
+              summary: [],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_text.delta',
+            item_id: 'rs_456',
+            output_index: 0,
+            content_index: 0,
+            delta: 'First',
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_text.delta',
+            item_id: 'rs_456',
+            output_index: 0,
+            content_index: 0,
+            delta: ', analyze the question.',
+          }),
+          JSON.stringify({
+            type: 'response.reasoning_text.done',
+            item_id: 'rs_456',
+            output_index: 0,
+            content_index: 0,
+            text: 'First, analyze the question.',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [
+                { type: 'summary_text', text: 'First, analyze the question.' },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_789',
+              role: 'assistant',
+              status: 'in_progress',
+              content: [],
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_789',
+            output_index: 1,
+            content_index: 0,
+            delta: 'The answer.',
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-code-fast-1',
+              status: 'completed',
+              output: [],
+              usage: {
+                input_tokens: 10,
+                output_tokens: 20,
+                output_tokens_details: { reasoning_tokens: 15 },
+              },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel('grok-code-fast-1').doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const reasoningStart = parts.find(
+          part => part.type === 'reasoning-start',
+        );
+        expect(reasoningStart).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+              },
+            },
+            "type": "reasoning-start",
+          }
+        `);
+
+        const reasoningDeltas = parts.filter(
+          part => part.type === 'reasoning-delta',
+        );
+        expect(reasoningDeltas).toHaveLength(2);
+        expect(reasoningDeltas[0].delta).toBe('First');
+        expect(reasoningDeltas[1].delta).toBe(', analyze the question.');
+
+        const reasoningEnd = parts.find(part => part.type === 'reasoning-end');
+        expect(reasoningEnd).toMatchInlineSnapshot(`
+          {
+            "id": "reasoning-rs_456",
+            "providerMetadata": {
+              "xai": {
+                "itemId": "rs_456",
+              },
+            },
+            "type": "reasoning-end",
+          }
+        `);
+
+        // Verify ordering: reasoning-start < reasoning-deltas < reasoning-end < text
+        const startIdx = parts.findIndex(p => p.type === 'reasoning-start');
+        const firstDeltaIdx = parts.findIndex(
+          p => p.type === 'reasoning-delta',
+        );
+        const endIdx = parts.findIndex(p => p.type === 'reasoning-end');
+        const textIdx = parts.findIndex(p => p.type === 'text-delta');
+        expect(startIdx).toBeLessThan(firstDeltaIdx);
+        expect(firstDeltaIdx).toBeLessThan(endIdx);
+        expect(endIdx).toBeLessThan(textIdx);
+      });
+
+      it('should stream x_search tool call', async () => {
+        prepareChunksFixtureResponse('xai-x-search-tool');
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toMatchSnapshot();
+      });
+
+      it('should not emit duplicate text-delta from response.output_item.done after streaming', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              created_at: 1700000000,
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          // Message item added - should emit text-start
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'in_progress',
+              role: 'assistant',
+              content: [],
+            },
+            output_index: 0,
+          }),
+          // Stream text deltas
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: ' ',
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            item_id: 'msg_123',
+            output_index: 0,
+            content_index: 0,
+            delta: 'world',
+          }),
+          // Message item done - should NOT emit text-delta with full text
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Hello world', // Full accumulated text
+                  annotations: [],
+                },
+              ],
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        // Count text-delta events
+        const textDeltas = parts.filter(part => part.type === 'text-delta');
+
+        // Should only have 3 text-deltas from streaming, NOT 4 (with duplicate full text)
+        expect(textDeltas).toHaveLength(3);
+        expect(textDeltas.map(d => d.delta)).toEqual(['Hello', ' ', 'world']);
+
+        // Verify there's no text-delta with the full accumulated text
+        const fullTextDelta = textDeltas.find(d => d.delta === 'Hello world');
+        expect(fullTextDelta).toBeUndefined();
       });
     });
 
@@ -717,6 +1724,491 @@ describe('XaiResponsesLanguageModel', () => {
           providerExecuted: true,
         });
       });
+
+      it('should stream function tool call arguments', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_123',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '',
+              status: 'in_progress',
+            },
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.delta',
+            item_id: 'fc_123',
+            output_index: 0,
+            delta: '{"location"',
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.delta',
+            item_id: 'fc_123',
+            output_index: 0,
+            delta: ':"sf"}',
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.done',
+            item_id: 'fc_123',
+            output_index: 0,
+            arguments: '{"location":"sf"}',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_123',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '{"location":"sf"}',
+              status: 'completed',
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'get weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+              },
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-input-start',
+          id: 'call_123',
+          toolName: 'weather',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-input-delta',
+          id: 'call_123',
+          delta: '{"location"',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-input-delta',
+          id: 'call_123',
+          delta: ':"sf"}',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-input-end',
+          id: 'call_123',
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'call_123',
+          toolName: 'weather',
+          input: '{"location":"sf"}',
+        });
+      });
+
+      it('should return tool-calls finish reason when function_call is streamed', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_123',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '',
+              status: 'in_progress',
+            },
+          }),
+          JSON.stringify({
+            type: 'response.function_call_arguments.done',
+            item_id: 'fc_123',
+            output_index: 0,
+            arguments: '{"location":"sf"}',
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            output_index: 0,
+            item: {
+              type: 'function_call',
+              id: 'fc_123',
+              call_id: 'call_123',
+              name: 'weather',
+              arguments: '{"location":"sf"}',
+              status: 'completed',
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'weather',
+              description: 'get weather',
+              inputSchema: {
+                type: 'object',
+                properties: { location: { type: 'string' } },
+              },
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(p => p.type === 'finish');
+
+        expect(finishPart).toMatchObject({
+          type: 'finish',
+          finishReason: 'tool-calls',
+        });
+      });
+    });
+
+    describe('tool name mapping by type in streaming', () => {
+      it('should map web_search_call type to web_search tool name when name is empty', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: '',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ws_123',
+          toolName: 'web_search',
+          input: '{"query":"test"}',
+          providerExecuted: true,
+        });
+      });
+
+      it('should map x_search_call type to x_search tool name when name is empty', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'x_search_call',
+              id: 'xs_123',
+              name: '',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.x_search',
+              name: 'x_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'xs_123',
+          toolName: 'x_search',
+          input: '{"query":"test"}',
+          providerExecuted: true,
+        });
+      });
+
+      it('should map code_interpreter_call type to code_execution tool name when name is empty', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'code_interpreter_call',
+              id: 'ci_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.code_execution',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ci_123',
+          toolName: 'code_execution',
+          input: '{}',
+          providerExecuted: true,
+        });
+      });
+
+      it('should map code_execution_call type to code_execution tool name when name is empty', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'code_execution_call',
+              id: 'ce_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.code_execution',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ce_123',
+          toolName: 'code_execution',
+          input: '{}',
+          providerExecuted: true,
+        });
+      });
+
+      it('should use custom tool name from provider tool when type matches', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: '',
+              arguments: '{}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'xai.web_search',
+              name: 'my_custom_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ws_123',
+          toolName: 'my_custom_search',
+          input: '{}',
+          providerExecuted: true,
+        });
+      });
     });
 
     describe('citation streaming', () => {
@@ -769,6 +2261,440 @@ describe('XaiResponsesLanguageModel', () => {
           url: 'https://example.com',
           title: 'example',
         });
+      });
+    });
+
+    describe('usage streaming', () => {
+      it('should extract usage with cached input tokens', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: {
+                input_tokens: 345,
+                input_tokens_details: {
+                  cached_tokens: 50,
+                },
+                output_tokens: 538,
+                output_tokens_details: {
+                  reasoning_tokens: 123,
+                },
+                total_tokens: 883,
+              },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        const finishPart = parts.find(part => part.type === 'finish');
+        expect(finishPart).toMatchInlineSnapshot(`
+          {
+            "finishReason": "stop",
+            "type": "finish",
+            "usage": {
+              "cachedInputTokens": 50,
+              "inputTokens": 345,
+              "outputTokens": 538,
+              "reasoningTokens": 123,
+              "totalTokens": 883,
+            },
+          }
+        `);
+      });
+    });
+  });
+
+  describe('schema validation', () => {
+    it('should accept response.created with usage: null', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast',
+            created_at: 1700000000,
+            status: 'in_progress',
+            output: [],
+            usage: null,
+          },
+        }),
+        JSON.stringify({
+          type: 'response.output_item.added',
+          item: {
+            id: 'msg_001',
+            type: 'message',
+            role: 'assistant',
+            content: [],
+            status: 'in_progress',
+          },
+          output_index: 0,
+        }),
+        JSON.stringify({
+          type: 'response.content_part.added',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          part: { type: 'output_text', text: '' },
+        }),
+        JSON.stringify({
+          type: 'response.output_text.delta',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          delta: 'Hello',
+        }),
+        JSON.stringify({
+          type: 'response.completed',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast',
+            created_at: 1700000000,
+            status: 'completed',
+            output: [
+              {
+                id: 'msg_001',
+                type: 'message',
+                role: 'assistant',
+                content: [{ type: 'output_text', text: 'Hello' }],
+                status: 'completed',
+              },
+            ],
+            usage: {
+              input_tokens: 10,
+              output_tokens: 5,
+              total_tokens: 15,
+            },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Hello',
+        }),
+      );
+
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'finish',
+        }),
+      );
+    });
+
+    it('should accept response.in_progress with usage: null', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast',
+            created_at: 1700000000,
+            status: 'in_progress',
+            output: [],
+            usage: null,
+          },
+        }),
+        JSON.stringify({
+          type: 'response.in_progress',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast',
+            created_at: 1700000000,
+            status: 'in_progress',
+            output: [],
+            usage: null,
+          },
+        }),
+        JSON.stringify({
+          type: 'response.output_item.added',
+          item: {
+            id: 'msg_001',
+            type: 'message',
+            role: 'assistant',
+            content: [],
+            status: 'in_progress',
+          },
+          output_index: 0,
+        }),
+        JSON.stringify({
+          type: 'response.content_part.added',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          part: { type: 'output_text', text: '' },
+        }),
+        JSON.stringify({
+          type: 'response.output_text.delta',
+          item_id: 'msg_001',
+          output_index: 0,
+          content_index: 0,
+          delta: 'Hi',
+        }),
+        JSON.stringify({
+          type: 'response.completed',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast',
+            created_at: 1700000000,
+            status: 'completed',
+            output: [
+              {
+                id: 'msg_001',
+                type: 'message',
+                role: 'assistant',
+                content: [{ type: 'output_text', text: 'Hi' }],
+                status: 'completed',
+              },
+            ],
+            usage: {
+              input_tokens: 5,
+              output_tokens: 1,
+              total_tokens: 6,
+            },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'text-delta',
+          delta: 'Hi',
+        }),
+      );
+    });
+  });
+
+  describe('response.incomplete handling', () => {
+    it('should set finish reason to length for max_output_tokens', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.output_text.delta',
+          item_id: 'msg_456',
+          output_index: 0,
+          content_index: 0,
+          delta: 'partial output',
+        }),
+        JSON.stringify({
+          type: 'response.incomplete',
+          response: {
+            incomplete_details: { reason: 'max_output_tokens' },
+            usage: { input_tokens: 100, output_tokens: 4096 },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: 'length',
+        usage: expect.objectContaining({
+          inputTokens: 100,
+          outputTokens: 4096,
+        }),
+      });
+    });
+
+    it('should default to other when incomplete_details is missing', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.incomplete',
+          response: {
+            usage: { input_tokens: 50, output_tokens: 200 },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: 'other',
+      });
+    });
+  });
+
+  describe('response.failed handling', () => {
+    it('should set finish reason to error', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.failed',
+          response: {
+            error: {
+              code: 'server_error',
+              message: 'Internal server error',
+            },
+            usage: { input_tokens: 50, output_tokens: 0 },
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: 'error',
+        usage: expect.objectContaining({
+          inputTokens: 50,
+          outputTokens: 0,
+        }),
+      });
+    });
+
+    it('should map incomplete_details reason on failed response', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'response.failed',
+          response: {
+            error: {
+              code: 'server_error',
+              message: 'response failed',
+            },
+            incomplete_details: { reason: 'max_output_tokens' },
+            usage: null,
+          },
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finish = parts.find(part => part.type === 'finish');
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        finishReason: 'length',
+      });
+    });
+  });
+
+  describe('error event handling', () => {
+    it('should emit error chunk for server error events', async () => {
+      prepareStreamChunks([
+        JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: 'resp_123',
+            object: 'response',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+          },
+        }),
+        JSON.stringify({
+          type: 'error',
+          code: null,
+          message:
+            'Service temporarily unavailable. The model did not respond to this request.',
+          param: null,
+        }),
+      ]);
+
+      const { stream } = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const errorPart = parts.find(part => part.type === 'error');
+
+      expect(errorPart).toMatchObject({
+        type: 'error',
+        error: {
+          type: 'error',
+          code: null,
+          message:
+            'Service temporarily unavailable. The model did not respond to this request.',
+          param: null,
+        },
       });
     });
   });

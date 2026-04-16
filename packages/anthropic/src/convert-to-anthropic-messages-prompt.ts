@@ -382,18 +382,31 @@ export async function convertToAnthropicMessagesPrompt({
 
             switch (part.type) {
               case 'text': {
-                anthropicContent.push({
-                  type: 'text',
-                  text:
-                    // trim the last text part if it's the last message in the block
-                    // because Anthropic does not allow trailing whitespace
-                    // in pre-filled assistant responses
-                    isLastBlock && isLastMessage && isLastContentPart
-                      ? part.text.trim()
-                      : part.text,
+                // Check if this is a compaction block (via providerMetadata)
+                const textMetadata = part.providerOptions?.anthropic as
+                  | { type?: string }
+                  | undefined;
 
-                  cache_control: cacheControl,
-                });
+                if (textMetadata?.type === 'compaction') {
+                  anthropicContent.push({
+                    type: 'compaction',
+                    content: part.text,
+                    cache_control: cacheControl,
+                  });
+                } else {
+                  anthropicContent.push({
+                    type: 'text',
+                    text:
+                      // trim the last text part if it's the last message in the block
+                      // because Anthropic does not allow trailing whitespace
+                      // in pre-filled assistant responses
+                      isLastBlock && isLastMessage && isLastContentPart
+                        ? part.text.trim()
+                        : part.text,
+
+                    cache_control: cacheControl,
+                  });
+                }
                 break;
               }
 
@@ -530,10 +543,15 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
+                  // code_execution_20260120 returns 'code_execution_result'
+                  // for programmatic tool calls and 'bash_code_execution_*' /
+                  // 'text_editor_*' for direct execution, so it is handled
+                  // by both branches below.
+                  //
                   // to distinguish between code execution 20250522 and 20250825,
                   // we check if a type property is present in the output.value
                   if (output.value.type === 'code_execution_result') {
-                    // code execution 20250522
+                    // code execution 20250522 / 20260120
                     const codeExecutionOutput = await validateTypes({
                       value: output.value,
                       schema: codeExecution_20250522OutputSchema,
@@ -551,7 +569,7 @@ export async function convertToAnthropicMessagesPrompt({
                       cache_control: cacheControl,
                     });
                   } else {
-                    // code execution 20250825
+                    // code execution 20250825 / 20260120
                     const codeExecutionOutput = await validateTypes({
                       value: output.value,
                       schema: codeExecution_20250825OutputSchema,

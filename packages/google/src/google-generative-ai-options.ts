@@ -30,11 +30,20 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash'
   | 'gemini-2.5-flash-image-preview'
   | 'gemini-2.5-flash-lite'
-  | 'gemini-2.5-flash-lite-preview-09-2025'
-  | 'gemini-2.5-flash-preview-04-17'
-  | 'gemini-2.5-flash-preview-09-2025'
+  | 'gemini-2.5-flash-preview-tts'
+  | 'gemini-2.5-pro-preview-tts'
+  | 'gemini-2.5-flash-native-audio-latest'
+  | 'gemini-2.5-flash-native-audio-preview-09-2025'
+  | 'gemini-2.5-flash-native-audio-preview-12-2025'
+  | 'gemini-2.5-computer-use-preview-10-2025'
   | 'gemini-3-pro-preview'
   | 'gemini-3-pro-image-preview'
+  | 'gemini-3-flash-preview'
+  | 'gemini-3.1-pro-preview'
+  | 'gemini-3.1-pro-preview-customtools'
+  | 'gemini-3.1-flash-image-preview'
+  | 'gemini-3.1-flash-lite-preview'
+  | 'gemini-3.1-flash-tts-preview'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
@@ -58,7 +67,9 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
           thinkingBudget: z.number().optional(),
           includeThoughts: z.boolean().optional(),
           // https://ai.google.dev/gemini-api/docs/gemini-3?thinking=high#thinking_level
-          thinkingLevel: z.enum(['low', 'medium', 'high']).optional(),
+          thinkingLevel: z
+            .enum(['minimal', 'low', 'medium', 'high'])
+            .optional(),
         })
         .optional(),
 
@@ -163,11 +174,37 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
               '9:16',
               '16:9',
               '21:9',
+              '1:8',
+              '8:1',
+              '1:4',
+              '4:1',
             ])
             .optional(),
-          imageSize: z.enum(['1K', '2K', '4K']).optional(),
+          imageSize: z.enum(['1K', '2K', '4K', '512']).optional(),
         })
         .optional(),
+
+      /**
+       * Optional. Configuration for grounding retrieval.
+       * Used to provide location context for Google Maps and Google Search grounding.
+       *
+       * https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/grounding-with-google-maps
+       */
+      retrievalConfig: z
+        .object({
+          latLng: z
+            .object({
+              latitude: z.number(),
+              longitude: z.number(),
+            })
+            .optional(),
+        })
+        .optional(),
+
+      /**
+       * Optional. The service tier to use for the request.
+       */
+      serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
     }),
   ),
 );
@@ -175,3 +212,10 @@ export const googleGenerativeAIProviderOptions = lazySchema(() =>
 export type GoogleGenerativeAIProviderOptions = InferValidator<
   typeof googleGenerativeAIProviderOptions
 >;
+
+// Vertex API requires another service tier format.
+export const VertexServiceTierMap = {
+  standard: 'SERVICE_TIER_STANDARD',
+  flex: 'SERVICE_TIER_FLEX',
+  priority: 'SERVICE_TIER_PRIORITY',
+} as const;
