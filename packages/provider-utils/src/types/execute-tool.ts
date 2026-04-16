@@ -1,6 +1,8 @@
 import { isAsyncIterable } from '../is-async-iterable';
-import { Context } from './context';
-import { ToolExecuteFunction, ToolExecutionOptions } from './tool';
+import { InferToolContext } from './infer-tool-context';
+import { InferToolInput } from './infer-tool-input';
+import { InferToolOutput } from './infer-tool-output';
+import { Tool, ToolExecutionOptions } from './tool';
 
 /**
  * Executes a tool function, supporting both synchronous and streaming/asynchronous results.
@@ -21,21 +23,24 @@ import { ToolExecuteFunction, ToolExecutionOptions } from './tool';
  * @param params.options Additional options for tool execution.
  * @yields An object containing either a preliminary or final output from the tool.
  */
-export async function* executeTool<INPUT, OUTPUT, CONTEXT extends Context>({
-  execute,
+export async function* executeTool<
+  TOOL extends Tool & { execute: NonNullable<Tool['execute']> },
+>({
+  tool,
   input,
   options,
 }: {
-  execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
-  input: INPUT;
-  options: ToolExecutionOptions<NoInfer<CONTEXT>>;
+  tool: TOOL;
+  input: InferToolInput<TOOL>;
+  options: ToolExecutionOptions<InferToolContext<TOOL>>;
 }): AsyncGenerator<
-  { type: 'preliminary'; output: OUTPUT } | { type: 'final'; output: OUTPUT }
+  | { type: 'preliminary'; output: InferToolOutput<TOOL> }
+  | { type: 'final'; output: InferToolOutput<TOOL> }
 > {
-  const result = execute(input, options);
+  const result = tool.execute(input, options);
 
   if (isAsyncIterable(result)) {
-    let lastOutput: OUTPUT | undefined;
+    let lastOutput: InferToolOutput<TOOL> | undefined;
     for await (const output of result) {
       lastOutput = output;
       yield { type: 'preliminary', output };
