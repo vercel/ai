@@ -1,8 +1,4 @@
-import type {
-  Context,
-  InferToolSetContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { LanguageModelStreamPart } from './stream-language-model-call';
 
@@ -20,7 +16,7 @@ export function invokeToolCallbacksFromStream<
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  context: USER_CONTEXT;
 }): ReadableStream<LanguageModelStreamPart<TOOLS>> {
   if (tools == null) return stream;
 

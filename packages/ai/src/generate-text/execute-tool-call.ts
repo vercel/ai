@@ -1,9 +1,14 @@
 import type {
-  Context,
+  InferToolContext,
+  InferToolInput,
   InferToolSetContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
+import {
+  executeTool,
+  isExecutableTool,
+  ModelMessage,
+} from '@ai-sdk/provider-utils';
 import {
   getToolTimeoutMs,
   TimeoutConfiguration,
@@ -31,18 +36,15 @@ import { TypedToolResult } from './tool-result';
  *
  * @returns The tool output (result or error), or undefined if the tool has no execute function.
  */
-export async function executeToolCall<
-  TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
->({
+export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
+  toolsContext,
   telemetry,
   callId,
   messages,
   abortSignal,
   timeout,
-  context,
   stepNumber,
   provider,
   modelId,
@@ -57,7 +59,7 @@ export async function executeToolCall<
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
   timeout?: TimeoutConfiguration<TOOLS>;
   stepNumber?: number;
   provider?: string;
@@ -78,9 +80,13 @@ export async function executeToolCall<
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
 
-  if (tool?.execute == null) {
+  if (!isExecutableTool(tool)) {
     return undefined;
   }
+
+  // TODO validate the context type against the tool context schema
+  const context: InferToolContext<typeof tool> =
+    toolsContext?.[toolName as keyof typeof toolsContext];
 
   const baseCallbackEvent = {
     callId,
@@ -90,7 +96,7 @@ export async function executeToolCall<
     toolCall,
     messages,
     functionId: telemetry?.functionId,
-    context,
+    context, // TODO rename to toolContext
   };
 
   let output: unknown;
@@ -119,8 +125,8 @@ export async function executeToolCall<
       toolCallId,
       execute: async () => {
         const stream = executeTool({
-          execute: tool.execute!.bind(tool),
-          input,
+          tool,
+          input: input as InferToolInput<typeof tool>,
           options: {
             toolCallId,
             messages,

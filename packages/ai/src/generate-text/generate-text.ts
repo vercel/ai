@@ -20,19 +20,19 @@ import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-f
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
+import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
+import { prepareToolChoice } from '../prompt/prepare-tool-choice';
+import { prepareTools } from '../prompt/prepare-tools';
+import { Prompt } from '../prompt/prompt';
 import {
   getStepTimeoutMs,
   getTotalTimeoutMs,
   RequestOptions,
   TimeoutConfiguration,
 } from '../prompt/request-options';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { prepareToolChoice } from '../prompt/prepare-tool-choice';
-import { prepareTools } from '../prompt/prepare-tools';
-import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
@@ -58,7 +58,6 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
-import { ContextParameter } from './context-parameter';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -71,7 +70,7 @@ import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
-import { isApprovalNeeded } from './is-approval-needed';
+import { isToolApprovalNeeded } from './is-tool-approval-needed';
 import { Output, text } from './output';
 import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
@@ -89,8 +88,10 @@ import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
+import { ToolsContextParameter } from './tools-context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -260,6 +261,7 @@ export async function generateText<
   stopWhen = isStepCount(1),
   experimental_output,
   output = experimental_output,
+  toolNeedsApproval,
   experimental_telemetry: telemetry,
   providerOptions,
   activeTools,
@@ -267,7 +269,8 @@ export async function generateText<
   prepareStep = experimental_prepareStep,
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
-  context: contextArg,
+  context = {} as USER_CONTEXT,
+  toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
     generateId = originalGenerateId,
@@ -283,7 +286,7 @@ export async function generateText<
 }: LanguageModelCallOptions &
   RequestOptions<TOOLS> &
   Prompt &
-  ContextParameter<TOOLS, USER_CONTEXT> & {
+  ToolsContextParameter<TOOLS> & {
     /**
      * The language model to use.
      */
@@ -317,6 +320,12 @@ export async function generateText<
     providerOptions?: ProviderOptions;
 
     /**
+     * Runtime context. Treat runtime context as immutable.
+     * If you need to mutate runtime context, update it in `prepareStep`.
+     */
+    context?: USER_CONTEXT;
+
+    /**
      * Limits the tools that are available for the model to call without
      * changing the tool call and result types in the result.
      */
@@ -333,6 +342,13 @@ export async function generateText<
      * @deprecated Use `output` instead.
      */
     experimental_output?: OUTPUT;
+
+    /**
+     * Optional tool approval configuration.
+     *
+     * This configuration takes precedence over tool-defined approval settings.
+     */
+    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
 
     /**
      * Custom download function to use for URLs.
@@ -439,10 +455,6 @@ export async function generateText<
       generateCallId?: IdGenerator;
     };
   }): Promise<GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>> {
-  // cast to prevent type errors below
-  let context: InferToolSetContext<TOOLS> & USER_CONTEXT = (contextArg ??
-    {}) as InferToolSetContext<TOOLS> & USER_CONTEXT;
-
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
 
@@ -512,6 +524,7 @@ export async function generateText<
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
       context,
+      toolsContext,
     },
     callbacks: [
       onStart,
@@ -546,7 +559,7 @@ export async function generateText<
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
         timeout,
-        context,
+        toolsContext,
         stepNumber: 0,
         provider: model.provider,
         modelId: model.modelId,
@@ -650,6 +663,7 @@ export async function generateText<
           stepNumber: steps.length,
           messages: stepInputMessages,
           context,
+          toolsContext,
         });
 
         const stepModel = resolveLanguageModel(
@@ -667,6 +681,7 @@ export async function generateText<
         });
 
         context = prepareStepResult?.context ?? context;
+        toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
 
         const stepActiveTools = filterActiveTools({
           tools,
@@ -690,31 +705,30 @@ export async function generateText<
           prepareStepResult?.providerOptions,
         );
 
-        const onStepStartEvent = {
-          callId,
-          stepNumber: steps.length,
-          provider: stepModel.provider,
-          modelId: stepModel.modelId,
-          system: stepSystem,
-          messages: stepMessages,
-          tools,
-          toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-          activeTools: prepareStepResult?.activeTools ?? activeTools,
-          steps: [...steps],
-          providerOptions: stepProviderOptions,
-          timeout,
-          headers,
-          stopWhen,
-          output,
-          functionId: telemetry?.functionId,
-          context,
-          promptMessages,
-          stepTools,
-          stepToolChoice,
-        };
-
         await notify({
-          event: onStepStartEvent,
+          event: {
+            callId,
+            stepNumber: steps.length,
+            provider: stepModel.provider,
+            modelId: stepModel.modelId,
+            system: stepSystem,
+            messages: stepMessages,
+            tools,
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            activeTools: prepareStepResult?.activeTools ?? activeTools,
+            steps: [...steps],
+            providerOptions: stepProviderOptions,
+            timeout,
+            headers,
+            stopWhen,
+            output,
+            functionId: telemetry?.functionId,
+            context,
+            promptMessages,
+            stepTools,
+            stepToolChoice,
+            toolsContext,
+          },
           callbacks: [
             onStepStart,
             unifiedTelemetry.onStepStart as
@@ -793,11 +807,12 @@ export async function generateText<
           }
 
           if (
-            await isApprovalNeeded({
-              tool,
+            await isToolApprovalNeeded({
+              tools,
+              toolNeedsApproval,
               toolCall,
               messages: stepInputMessages,
-              context,
+              toolsContext,
             })
           ) {
             toolApprovalRequests[toolCall.toolCallId] = {
@@ -846,7 +861,7 @@ export async function generateText<
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
               timeout,
-              context,
+              toolsContext,
               stepNumber: steps.length,
               provider: stepModel.provider,
               modelId: stepModel.modelId,
@@ -958,6 +973,7 @@ export async function generateText<
             providerMetadata: currentModelResponse.providerMetadata,
             request: stepRequest,
             response: stepResponse,
+            toolsContext,
           });
 
         logWarnings({
@@ -1035,6 +1051,7 @@ export async function generateText<
       providerMetadata: lastStep.providerMetadata,
       steps,
       totalUsage,
+      toolsContext,
     };
 
     await notify({
@@ -1072,10 +1089,7 @@ export async function generateText<
   }
 }
 
-async function executeTools<
-  TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
->({
+async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
   tools,
   telemetry,
@@ -1083,7 +1097,7 @@ async function executeTools<
   messages,
   abortSignal,
   timeout,
-  context,
+  toolsContext,
   stepNumber,
   provider,
   modelId,
@@ -1098,7 +1112,7 @@ async function executeTools<
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
   stepNumber: number;
   provider: string;
   modelId: string;
@@ -1116,7 +1130,7 @@ async function executeTools<
         messages,
         abortSignal,
         timeout,
-        context,
+        toolsContext,
         stepNumber,
         provider,
         modelId,

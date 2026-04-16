@@ -77,6 +77,28 @@ const codeAgent = new ToolLoopAgent({
 });
 ```
 
+You can also require approval before a tool executes. Use `needsApproval` on the
+tool itself for the default behavior, or set `toolNeedsApproval` on the
+`ToolLoopAgent` when approval should be configured per agent:
+
+```ts
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    runCode: tool({
+      description: 'Execute Python code',
+      inputSchema: z.object({
+        code: z.string(),
+      }),
+      execute: async ({ code }) => ({ output: code }),
+    }),
+  },
+  toolNeedsApproval: {
+    runCode: true,
+  },
+});
+```
+
 ### Loop Control
 
 By default, agents run for 20 steps (`stopWhen: isStepCount(20)`). In each step, the model either generates text or calls a tool. If it generates text, the agent completes. If it calls a tool, the AI SDK executes that tool.

@@ -540,6 +540,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'Limits the tools that are available for the model to call without changing the tool call and result types in the result. All tools are active by default.',
     },
     {
+      name: 'toolNeedsApproval',
+      type: 'Record<TOOLNAME, boolean | ((input, options) => boolean | Promise<boolean>)>',
+      isOptional: true,
+      description:
+        "Per-tool approval configuration for this call. Each tool can be set to `true` / `false` or to a function that decides dynamically based on the tool input and options such as `toolCallId`, `messages`, and `context`. This setting takes precedence over a tool's `needsApproval` default.",
+    },
+    {
       name: 'stopWhen',
       type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>>',
       isOptional: true,
@@ -591,7 +598,13 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'CONTEXT',
                       isOptional: true,
                       description:
-                        'The context passed via the `context` setting.',
+                        'The shared runtime context passed via the `context` setting.',
+                    },
+                    {
+                      name: 'toolsContext',
+                      type: 'InferToolSetContext<TOOLS>',
+                      description:
+                        'The per-tool context map passed via the `toolsContext` setting.',
                     },
                   ],
                 },
@@ -644,7 +657,13 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'CONTEXT',
               isOptional: true,
               description:
-                'Context that is passed into tool execution. Changing the context will affect the context in this step and all subsequent steps.',
+                'Shared runtime context. Changing it will affect this step and all subsequent steps.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map. Changing it will affect tool-specific context in this step and all subsequent steps.',
             },
             {
               name: 'providerOptions',
@@ -662,7 +681,13 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'CONTEXT',
       isOptional: true,
       description:
-        'User-defined context object passed to `prepareStep`, tool execution, and lifecycle callbacks.',
+        'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'Per-tool context map keyed by tool name. Required when at least one tool defines `contextSchema`; not accepted when no tools need context.',
     },
     {
       name: 'experimental_download',
@@ -1030,7 +1055,13 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'User-defined context object that flows through the entire generation lifecycle.',
+                'User-defined shared runtime context object that flows through the generation lifecycle.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map passed via `toolsContext`, keyed by tool name.',
             },
           ],
         },
@@ -1138,7 +1169,13 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'User-defined context object. May be updated from prepareStep between steps.',
+                'User-defined shared runtime context object. May be updated from prepareStep between steps.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map. May be updated from prepareStep between steps.',
             },
           ],
         },
@@ -1193,7 +1230,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'User-defined context object flowing through the generation.',
+                'Tool-specific context object for the tool call that is about to execute.',
             },
           ],
         },
@@ -1254,7 +1291,7 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'User-defined context object flowing through the generation.',
+                'Tool-specific context object for the tool call that just completed.',
             },
             {
               name: 'success',
@@ -1309,7 +1346,13 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'User-defined context object flowing through the generation.',
+                'User-defined shared runtime context object flowing through the generation.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map for the generation step.',
             },
             {
               name: 'content',
@@ -1947,7 +1990,13 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'The final state of the user-defined context object. This reflects any modifications made during the generation lifecycle via prepareStep or tool execution.',
+                'The final state of the user-defined shared runtime context object. This reflects any modifications made during the generation lifecycle via `prepareStep`.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'The final state of the per-tool context map passed via `toolsContext`.',
             },
           ],
         },
@@ -2385,7 +2434,13 @@ To see `generateText` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'User-defined context object flowing through the generation.',
+                'User-defined shared runtime context object flowing through the generation.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map for the final generation step.',
             },
             {
               name: 'content',

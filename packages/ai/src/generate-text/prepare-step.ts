@@ -49,11 +49,14 @@ export type PrepareStepFunction<
   messages: Array<ModelMessage>;
 
   /**
-   * User-defined runtime context.
-   *
-   * To modify the context, return a new context in the result.
+   * Tool context.
    */
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
+
+  /**
+   * User-defined runtime context.
+   */
+  context: USER_CONTEXT;
 }) =>
   | PromiseLike<PrepareStepResult<TOOLS, USER_CONTEXT>>
   | PrepareStepResult<TOOLS, USER_CONTEXT>;
@@ -95,12 +98,22 @@ export type PrepareStepResult<
       messages?: Array<ModelMessage>;
 
       /**
-       * User-defined runtime context that is passed into tool execution.
+       * Tool context.
+       *
+       * Changing the toolsContext will affect the toolsContext in this step
+       * and all subsequent steps.
+       *
+       * The toolsContext is passed into tool execution.
+       */
+      toolsContext?: InferToolSetContext<TOOLS>;
+
+      /**
+       * Runtime context.
        *
        * Changing the context will affect the context in this step
        * and all subsequent steps.
        */
-      context?: InferToolSetContext<TOOLS> & USER_CONTEXT;
+      context?: USER_CONTEXT;
 
       /**
        * Additional provider-specific options for this step.
