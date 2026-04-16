@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.33
+
+### Major Changes
+
+- 832f86f: fix(anthropic): remove cacheCreationInputTokens from providerMetadata
+
 ## 4.0.0-beta.32
 
 ### Patch Changes
