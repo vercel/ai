@@ -34,15 +34,15 @@ import { AgentCallParameters } from './agent';
 
 export type ToolLoopAgentOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
+> = Callback<OnStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 export type ToolLoopAgentOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
+> = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 export type ToolLoopAgentOnToolCallStartCallback<
   TOOLS extends ToolSet = ToolSet,
@@ -54,13 +54,13 @@ export type ToolLoopAgentOnToolCallFinishCallback<
 
 export type ToolLoopAgentOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
-> = Callback<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
+  RUNTIME_CONTEXT extends Context = Context,
+> = Callback<OnStepFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 export type ToolLoopAgentOnFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
-> = Callback<OnFinishEvent<TOOLS, USER_CONTEXT>>;
+  RUNTIME_CONTEXT extends Context = Context,
+> = Callback<OnFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Configuration options for an agent.
@@ -68,7 +68,7 @@ export type ToolLoopAgentOnFinishCallback<
 export type ToolLoopAgentSettings<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
 > = LanguageModelCallOptions &
   Omit<RequestOptions<TOOLS>, 'abortSignal'> &
@@ -102,8 +102,8 @@ export type ToolLoopAgentSettings<
      * @default isStepCount(20)
      */
     stopWhen?:
-      | StopCondition<NoInfer<TOOLS>, USER_CONTEXT>
-      | Array<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>;
+      | StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>
+      | Array<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
      * Optional telemetry configuration (experimental).
@@ -125,7 +125,7 @@ export type ToolLoopAgentSettings<
      * Runtime context. Treat runtime context as immutable.
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
-    context?: USER_CONTEXT;
+    runtimeContext?: RUNTIME_CONTEXT;
 
     /**
      * Optional tool approval configuration.
@@ -137,7 +137,7 @@ export type ToolLoopAgentSettings<
     /**
      * Optional function that you can use to provide different settings for a step.
      */
-    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, USER_CONTEXT>;
+    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
@@ -149,7 +149,7 @@ export type ToolLoopAgentSettings<
      */
     experimental_onStart?: ToolLoopAgentOnStartCallback<
       NoInfer<TOOLS>,
-      USER_CONTEXT,
+      RUNTIME_CONTEXT,
       NoInfer<OUTPUT>
     >;
 
@@ -158,7 +158,7 @@ export type ToolLoopAgentSettings<
      */
     experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>,
+      NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
     >;
 
@@ -181,7 +181,7 @@ export type ToolLoopAgentSettings<
      */
     onStepFinish?: ToolLoopAgentOnStepFinishCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>
+      NoInfer<RUNTIME_CONTEXT>
     >;
 
     /**
@@ -189,7 +189,7 @@ export type ToolLoopAgentSettings<
      */
     onFinish?: ToolLoopAgentOnFinishCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>
+      NoInfer<RUNTIME_CONTEXT>
     >;
 
     /**
@@ -221,7 +221,7 @@ export type ToolLoopAgentSettings<
         AgentCallParameters<
           CALL_OPTIONS,
           NoInfer<TOOLS>,
-          NoInfer<USER_CONTEXT>
+          NoInfer<RUNTIME_CONTEXT>
         >,
         'onStepFinish'
       > &
@@ -229,7 +229,7 @@ export type ToolLoopAgentSettings<
           ToolLoopAgentSettings<
             CALL_OPTIONS,
             TOOLS,
-            USER_CONTEXT,
+            RUNTIME_CONTEXT,
             NoInfer<OUTPUT>
           >,
           | 'model'
@@ -250,14 +250,14 @@ export type ToolLoopAgentSettings<
           | 'toolNeedsApproval'
           | 'providerOptions'
           | 'experimental_download'
-          | 'context'
+          | 'runtimeContext'
         > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
       Pick<
         ToolLoopAgentSettings<
           CALL_OPTIONS,
           TOOLS,
-          USER_CONTEXT,
+          RUNTIME_CONTEXT,
           NoInfer<OUTPUT>
         >,
         | 'model'
@@ -278,7 +278,7 @@ export type ToolLoopAgentSettings<
         | 'toolNeedsApproval'
         | 'providerOptions'
         | 'experimental_download'
-        | 'context'
+        | 'runtimeContext'
       > &
         Omit<Prompt, 'system'> & {
           toolsContext: InferToolSetContext<TOOLS>;

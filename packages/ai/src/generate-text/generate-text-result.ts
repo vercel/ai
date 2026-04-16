@@ -24,7 +24,7 @@ import {
  */
 export interface GenerateTextResult<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context,
+  RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
 > {
   /**
@@ -152,7 +152,7 @@ export interface GenerateTextResult<
    * You can use this to get information about intermediate steps,
    * such as the tool calls or the response headers.
    */
-  readonly steps: Array<StepResult<TOOLS, USER_CONTEXT>>;
+  readonly steps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 
   /**
    * The generated structured output. It uses the `output` specification.

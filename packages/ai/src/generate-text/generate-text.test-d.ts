@@ -105,37 +105,37 @@ describe('generateText types', () => {
     }),
   };
 
-  describe('context', () => {
-    it('should accept no context', async () => {
+  describe('runtimeContext', () => {
+    it('should accept no runtimeContext', async () => {
       generateText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
       });
     });
 
-    it('should allow empty context', async () => {
+    it('should allow empty runtimeContext', async () => {
       generateText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
-        context: {},
+        runtimeContext: {},
       });
     });
 
-    it('should accept user context', async () => {
+    it('should accept user runtimeContext', async () => {
       generateText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
-        context: { telemetryId: '123' },
+        runtimeContext: { telemetryId: '123' },
       });
     });
 
     describe('prepareStep', () => {
-      it('should expose default context type', async () => {
+      it('should expose default runtimeContext type', async () => {
         generateText({
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
 
             return {};
@@ -143,13 +143,13 @@ describe('generateText types', () => {
         });
       });
 
-      it('should accept empty context', async () => {
+      it('should accept empty runtimeContext', async () => {
         generateText({
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
-          context: {},
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<{}>();
+          runtimeContext: {},
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<{}>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
 
             return {};
@@ -157,13 +157,13 @@ describe('generateText types', () => {
         });
       });
 
-      it('should accept arbitrary context', async () => {
+      it('should accept arbitrary runtimeContext', async () => {
         generateText({
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
-          context: { someValue: 'value' },
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toMatchObjectType<{
+          runtimeContext: { someValue: 'value' },
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toMatchObjectType<{
               someValue: string;
             }>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
@@ -173,13 +173,13 @@ describe('generateText types', () => {
         });
       });
 
-      it('should accept user context', async () => {
+      it('should accept user runtimeContext', async () => {
         generateText({
           model: new MockLanguageModelV4(),
           prompt: 'Hello',
-          context: { telemetryId: '123' },
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toMatchObjectType<{
+          runtimeContext: { telemetryId: '123' },
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toMatchObjectType<{
               telemetryId: string;
             }>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
@@ -305,8 +305,8 @@ describe('generateText types', () => {
           prompt: 'Hello',
           tools: mixedTools,
           toolsContext: { weather: { weatherApiKey: 'key' } },
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{
               weather: {
                 weatherApiKey: string;
@@ -325,8 +325,8 @@ describe('generateText types', () => {
           tools: mixedTools,
           // @ts-expect-error missing required weather tool context
           toolsContext: {},
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{
               weather: {
                 weatherApiKey: string;
@@ -345,8 +345,8 @@ describe('generateText types', () => {
           tools: mixedTools,
           // @ts-expect-error missing required weather.weatherApiKey
           toolsContext: { weather: { wrong: 'value' } },
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{
               weather: {
                 weatherApiKey: string;
@@ -366,8 +366,8 @@ describe('generateText types', () => {
           prompt: 'Hello',
           // @ts-expect-error toolsContext is not accepted when no tools are provided
           toolsContext: {},
-          prepareStep: ({ context, toolsContext }) => {
-            expectTypeOf(context).toEqualTypeOf<Context>();
+          prepareStep: ({ runtimeContext, toolsContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<Context>();
             expectTypeOf(toolsContext).toEqualTypeOf<{}>();
 
             return {};

@@ -6,7 +6,6 @@ exports[`streamText > options.experimental_onStart > should send correct informa
 {
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",
-  "context": {},
   "frequencyPenalty": undefined,
   "functionId": "test-function",
   "headers": undefined,
@@ -24,6 +23,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "reasoning": undefined,
   "recordInputs": undefined,
   "recordOutputs": undefined,
+  "runtimeContext": {},
   "seed": undefined,
   "stopSequences": undefined,
   "stopWhen": [Function],
