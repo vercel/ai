@@ -1,6 +1,6 @@
 ---
 title: Announcing AI SDK 7 Beta
-description: AI SDK 7 Beta is now available with durable agents, top-level reasoning, provider-independent uploads, typed tool context, and granular timeout controls.
+description: AI SDK 7 Beta is now available with durable agents, telemetry integrations, top-level reasoning, provider-independent uploads, typed tool context, and granular timeout controls.
 ---
 
 # Announcing AI SDK 7 Beta
@@ -73,6 +73,33 @@ export const supportAgent = new WorkflowAgent({
 ```
 
 On the UI side, `WorkflowChatTransport` lets `useChat` reconnect and resume interrupted streams automatically. Learn more in the [WorkflowAgent documentation](/docs/agents/workflow-agent).
+
+### Telemetry Revamp
+
+AI SDK 7 completely revamps telemetry. OpenTelemetry support now lives in the new `@ai-sdk/otel` package, and telemetry is built around a new integration system that you can register globally or customize per call.
+
+```ts
+import { registerTelemetryIntegration, streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { GenAIOpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new GenAIOpenTelemetryIntegration());
+
+const result = streamText({
+  model: openai('gpt-5.4'),
+  prompt: "Summarize today's release notes.",
+  experimental_telemetry: { isEnabled: true },
+});
+```
+
+This new architecture powers several major improvements:
+
+- **Decoupled OpenTelemetry support** via `@ai-sdk/otel`
+- **Semantic-convention spans** with `GenAIOpenTelemetryIntegration`, or legacy AI SDK spans with `OpenTelemetryIntegration`
+- **Per-call or global integrations** through `registerTelemetryIntegration()` and `experimental_telemetry.integrations`
+- **DevTools support** through integrations like `DevToolsTelemetry()` for local inspection and debugging
+
+Learn more in the [Telemetry documentation](/docs/ai-sdk-core/telemetry) and [DevTools documentation](/docs/ai-sdk-core/devtools).
 
 ### Top-level Reasoning
 
