@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.82
+
+### Patch Changes
+
+- eacfb5e: feat (provider/gateway): add get-generation support
+
 ## 2.0.81
 
 ### Patch Changes
