@@ -1,6 +1,6 @@
 ---
 title: Announcing AI SDK 7 Beta
-description: AI SDK 7 Beta is now available with durable agents, telemetry integrations, top-level reasoning, provider-independent uploads, typed tool context, and granular timeout controls.
+description: AI SDK 7 Beta is now available with `WorkflowAgent`, telemetry integrations, top-level reasoning, provider-independent uploads, typed tool context, and granular timeout controls.
 ---
 
 # Announcing AI SDK 7 Beta
@@ -21,7 +21,7 @@ If you're building with `generateText`, `streamText`, `ToolLoopAgent`, and `useC
 
 The AI SDK 7 Beta is intended for:
 
-- **Trying new features** like durable agents, top-level reasoning, and provider-independent uploads
+- **Trying new features** like `WorkflowAgent`, top-level reasoning, and provider-independent uploads
 - **Validating existing AI SDK 6 apps** against the migration guide before stable release
 - **Giving us feedback** on the APIs, docs, and migration experience
 
@@ -35,7 +35,7 @@ To install the AI SDK 7 Beta, run:
 npm install ai@beta @ai-sdk/openai@beta @ai-sdk/react@beta
 ```
 
-If you want to use telemetry or durable agents, install the optional packages as well:
+If you want to use telemetry or `WorkflowAgent`, install the optional packages as well:
 
 ```bash
 npm install @ai-sdk/otel@beta @ai-sdk/workflow@beta workflow
@@ -77,7 +77,7 @@ On the UI side, `WorkflowChatTransport` lets `useChat` reconnect and resume inte
 
 ### Overhauled Telemetry
 
-AI SDK 7 overhauls telemetry to make observability much easier to adopt. OpenTelemetry support now lives in the new `@ai-sdk/otel` package, and setup is intentionally simple: register an integration once, then enable telemetry on the calls you want to trace.
+AI SDK 7 overhauls telemetry to make observability much easier to adopt. OpenTelemetry support now lives in the new `@ai-sdk/otel` package, and setup is simple: register an integration once, then enable telemetry on the calls you want to trace.
 
 ```ts
 import { registerTelemetryIntegration, streamText } from 'ai';
@@ -114,7 +114,7 @@ const { text, reasoning } = await generateText({
 });
 ```
 
-The same setting also works on `ToolLoopAgent`. Since it accepts the same settings as `generateText` and `streamText`, you can configure reasoning once and stream from the agent:
+The same setting also works on `ToolLoopAgent`:
 
 ```ts
 import { ToolLoopAgent } from 'ai';
@@ -139,7 +139,7 @@ Learn more in the [Reasoning documentation](/docs/ai-sdk-core/reasoning).
 
 ### File and Skill Uploads
 
-AI SDK 7 adds provider-independent upload APIs for files and skills. Both return provider references that you can reuse in later model calls and even merge across providers when needed.
+AI SDK 7 adds provider-independent upload APIs for files (`uploadFile`) and skills (`uploadSkill`). Both functions return provider references that you can reuse in later model calls and even merge across providers when needed.
 
 #### File Uploads
 
