@@ -2764,7 +2764,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const uiMessageStream = result.toUIMessageStream({ sendReasoning: true });
+      const uiMessageStream = result.toUIMessageStream();
 
       expect(await convertReadableStreamToArray(uiMessageStream))
         .toMatchInlineSnapshot(`
