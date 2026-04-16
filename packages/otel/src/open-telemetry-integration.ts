@@ -58,7 +58,7 @@ function recordSpanError(span: Span, error: unknown): void {
 function shouldRecord(
   telemetry: TelemetryOptions | undefined,
 ): telemetry is TelemetryOptions {
-  return telemetry?.isEnabled === true;
+  return telemetry?.isEnabled !== false;
 }
 
 function selectAttributes(
@@ -181,7 +181,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       | EmbedOnStartEvent
       | RerankOnStartEvent,
   ): void {
-    if (event.isEnabled !== true) return;
+    if (event.isEnabled === false) return;
 
     if (
       event.operationId === 'ai.embed' ||

@@ -20,7 +20,7 @@ export async function selectTelemetryAttributes({
   };
 }): Promise<Attributes> {
   // when telemetry is disabled, return an empty object to avoid serialization overhead:
-  if (telemetry?.isEnabled !== true) {
+  if (telemetry?.isEnabled === false) {
     return {};
   }
 

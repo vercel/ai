@@ -10,7 +10,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "frequencyPenalty": undefined,
   "functionId": "test-function",
   "headers": undefined,
-  "isEnabled": undefined,
+  "isEnabled": true,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,

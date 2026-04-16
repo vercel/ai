@@ -414,10 +414,10 @@ describe('OpenTelemetryIntegration', () => {
       expect(tracer.startSpan).not.toHaveBeenCalled();
     });
 
-    it('does not create a span when isEnabled is undefined', () => {
+    it('should create a span when isEnabled is not defined explicitly', () => {
       otelIntegration.onStart?.(makeOnStartEvent({ isEnabled: undefined }));
 
-      expect(tracer.startSpan).not.toHaveBeenCalled();
+      expect(tracer.startSpan).toHaveBeenCalled();
     });
 
     it('uses a tracer configured for the call id', () => {
@@ -1303,12 +1303,17 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     await generateText({
       model: new MockLanguageModelV4({
         doGenerate: async ({}) => ({
           ...integrationDummyResponseValues,
           content: [{ type: 'text', text: 'Hello, world!' }],
+          response: {
+            id: 'test-id-default-enabled',
+            timestamp: new Date(10000),
+            modelId: 'mock-model-id',
+          },
         }),
       }),
       prompt: 'prompt',
@@ -1825,10 +1830,13 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     const result = streamText({
       model: createStreamTestModel(),
       prompt: 'test-input',
+      experimental_telemetry: {
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
       _internal: {
         now: mockValues(0, 100, 500),
       },
@@ -2232,7 +2240,7 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     await rerank({
       model: rerankModel,
       documents: [
@@ -2240,11 +2248,55 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
         'rainy day in the city',
         'cloudy day in the mountains',
       ],
+      experimental_telemetry: {
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
       query: 'rainy day',
       topN: 3,
     });
 
-    expect(tracer.jsonSpans).toMatchInlineSnapshot(`[]`);
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.documents": [
+              ""sunny day at the beach"",
+              ""rainy day in the city"",
+              ""cloudy day in the mountains"",
+            ],
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.rerank",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.rerank",
+          },
+          "events": [],
+          "name": "ai.rerank",
+        },
+        {
+          "attributes": {
+            "ai.documents": [
+              ""sunny day at the beach"",
+              ""rainy day in the city"",
+              ""cloudy day in the mountains"",
+            ],
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.rerank.doRerank",
+            "ai.ranking": [
+              "{"index":2,"relevanceScore":0.9}",
+              "{"index":0,"relevanceScore":0.8}",
+              "{"index":1,"relevanceScore":0.7}",
+            ],
+            "ai.ranking.type": "text",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.rerank.doRerank",
+          },
+          "events": [],
+          "name": "ai.rerank.doRerank",
+        },
+      ]
+    `);
   });
 
   it('should record telemetry data when enabled (single call path)', async () => {
@@ -2391,7 +2443,7 @@ describe('OpenTelemetryIntegration integration with embed', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding]),
@@ -2482,7 +2534,7 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     await embedMany({
       model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
@@ -2650,7 +2702,7 @@ describe('OpenTelemetryIntegration integration with generateObject', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     await generateObject({
       model: new MockLanguageModelV4({
         doGenerate: async () => ({
@@ -2796,7 +2848,7 @@ describe('OpenTelemetryIntegration integration with streamObject', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     const result = streamObject({
       model: new MockLanguageModelV4({
         doStream: async () => ({

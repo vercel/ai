@@ -309,7 +309,7 @@ export async function generateObject<
       schema: jsonSchema as Record<string, unknown> | undefined,
       schemaName,
       schemaDescription,
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,

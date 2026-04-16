@@ -37,7 +37,7 @@ export interface RerankOnStartEvent {
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
@@ -96,7 +96,7 @@ export interface RerankOnFinishEvent {
     body?: unknown;
   };
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
@@ -137,7 +137,7 @@ export interface RerankStartEvent {
   /** Number of top documents to return. */
   readonly topN: number | undefined;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
