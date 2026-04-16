@@ -19,12 +19,11 @@ run(async () => {
     model: anthropic('claude-3-5-sonnet-20240620'),
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
-    context: {
+    runtimeContext: {
       something: 'custom',
       someOtherThing: 'other-value',
     },
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
     },
   });

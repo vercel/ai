@@ -3267,6 +3267,59 @@ describe('streamText', () => {
         `);
     });
 
+    it('should omit reasoning content when sendReasoning is false', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({
+        sendReasoning: false,
+      });
+
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hi",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": " there!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "finishReason": "stop",
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
     it('should send reasoning content when sendReasoning is true', async () => {
       const result = streamText({
         model: modelWithReasoning,
@@ -5011,7 +5064,6 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -5088,7 +5140,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -5153,7 +5207,6 @@ describe('streamText', () => {
                 "url": "https://example.com/2",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -5181,7 +5234,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -5240,7 +5295,6 @@ describe('streamText', () => {
                 "type": "file",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -5280,7 +5334,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -5349,7 +5405,6 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -5398,7 +5453,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -5536,13 +5593,13 @@ describe('streamText', () => {
       expect(startEvent).toMatchSnapshot();
     });
 
-    it('should pass context', async () => {
+    it('should pass runtimeContext', async () => {
       let startEvent!: any;
 
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        context: { userId: 'test-user', sessionId: '123' },
+        runtimeContext: { userId: 'test-user', sessionId: '123' },
         experimental_onStart: async event => {
           startEvent = event;
         },
@@ -5551,7 +5608,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(startEvent.context).toEqual({
+      expect(startEvent.runtimeContext).toEqual({
         userId: 'test-user',
         sessionId: '123',
       });
@@ -5967,7 +6024,7 @@ describe('streamText', () => {
       expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
     });
 
-    it('should expose providerOptions and context', async () => {
+    it('should expose providerOptions and runtimeContext', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];
@@ -5976,7 +6033,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         providerOptions: { openai: { logprobs: true } },
-        context: { userId: 'test-user' },
+        runtimeContext: { userId: 'test-user' },
         experimental_onStepStart: async event => {
           stepStartEvent = event;
         },
@@ -5988,7 +6045,7 @@ describe('streamText', () => {
       expect(stepStartEvent.providerOptions).toEqual({
         openai: { logprobs: true },
       });
-      expect(stepStartEvent.context).toEqual({
+      expect(stepStartEvent.runtimeContext).toEqual({
         userId: 'test-user',
       });
     });
@@ -6013,6 +6070,114 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(stepStartEvent.functionId).toBe('test-function');
+    });
+
+    it('should pass updated toolsContext from prepareStep', async () => {
+      const prepareStepToolsContexts: Array<unknown> = [];
+      const stepStartEvents: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0][] = [];
+      let responseCount = 0;
+      let recordedToolContext: unknown;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata' as const,
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call' as const,
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                    {
+                      type: 'finish' as const,
+                      finishReason: {
+                        unified: 'tool-calls' as const,
+                        raw: undefined,
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+              default:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata' as const,
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-start' as const, id: '1' },
+                    { type: 'text-delta' as const, id: '1', delta: 'Done.' },
+                    { type: 'text-end' as const, id: '1' },
+                    {
+                      type: 'finish' as const,
+                      finishReason: { unified: 'stop' as const, raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ label: z.string() }),
+            execute: async (_, { context }) => {
+              recordedToolContext = context;
+              return 'test-result';
+            },
+          }),
+        },
+        prompt: 'test-input',
+        toolsContext: { tool1: { label: 'initial' } },
+        stopWhen: isStepCount(3),
+        prepareStep: async ({ stepNumber, toolsContext }) => {
+          prepareStepToolsContexts.push(toolsContext);
+
+          if (stepNumber === 0) {
+            return {
+              toolsContext: {
+                tool1: { label: 'updated' },
+              },
+            };
+          }
+
+          return undefined;
+        },
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(prepareStepToolsContexts).toEqual([
+        { tool1: { label: 'initial' } },
+        { tool1: { label: 'updated' } },
+      ]);
+      expect(stepStartEvents[0].toolsContext).toEqual({
+        tool1: { label: 'updated' },
+      });
+      expect(stepStartEvents[1].toolsContext).toEqual({
+        tool1: { label: 'updated' },
+      });
+      expect(recordedToolContext).toEqual({ label: 'updated' });
     });
   });
 
@@ -6297,24 +6462,50 @@ describe('streamText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
-        context: { traceId: 'trace-abc', spanId: 'span-123' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
-        onError: () => {},
+        ...defaultSettings(),
       });
 
       await result.consumeStream();
 
-      expect(toolCallStartEvents.length).toBe(1);
-      expect(toolCallStartEvents[0].context).toEqual({
-        traceId: 'trace-abc',
-        spanId: 'span-123',
-      });
+      expect(toolCallStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -6600,25 +6791,53 @@ describe('streamText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
-        context: { traceId: 'trace-xyz', operation: 'test-op' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
-        onError: () => {},
+        ...defaultSettings(),
       });
 
       await result.consumeStream();
 
-      expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].success).toBe(true);
-      expect(toolCallFinishEvents[0].context).toEqual({
-        traceId: 'trace-xyz',
-        operation: 'test-op',
-      });
+      expect(toolCallFinishEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "durationMs": 0,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "output": "test-result",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should pass context on error', async () => {
@@ -6654,13 +6873,14 @@ describe('streamText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async (): Promise<string> => {
               throw toolError;
             },
           }),
         },
         prompt: 'test-input',
-        context: { errorTraceId: 'err-trace' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
@@ -6673,7 +6893,7 @@ describe('streamText', () => {
       expect(toolCallFinishEvents[0].success).toBe(false);
       expect(toolCallFinishEvents[0].error).toBe(toolError);
       expect(toolCallFinishEvents[0].context).toEqual({
-        errorTraceId: 'err-trace',
+        context: 'test',
       });
     });
   });
@@ -7137,7 +7357,6 @@ describe('streamText', () => {
               "type": "tool-result",
             },
           ],
-          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
           "files": [],
@@ -7200,6 +7419,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [
             {
@@ -7258,7 +7478,6 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -7316,7 +7535,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -7363,6 +7584,7 @@ describe('streamText', () => {
               "type": "tool-result",
             },
           ],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -7450,7 +7672,6 @@ describe('streamText', () => {
               "url": "https://example.com/2",
             },
           ],
-          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
           "files": [],
@@ -7483,6 +7704,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "runtimeContext": {},
           "sources": [
             {
               "id": "123",
@@ -7546,7 +7768,6 @@ describe('streamText', () => {
                   "url": "https://example.com/2",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -7574,7 +7795,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -7598,6 +7821,7 @@ describe('streamText', () => {
           "text": "Hello!",
           "toolCalls": [],
           "toolResults": [],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -7710,7 +7934,6 @@ describe('streamText', () => {
               "type": "file",
             },
           ],
-          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
           "files": [
@@ -7768,6 +7991,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [],
           "staticToolResults": [],
@@ -7800,7 +8024,6 @@ describe('streamText', () => {
                   "type": "file",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -7840,7 +8063,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -7864,6 +8089,7 @@ describe('streamText', () => {
           "text": "Hello!",
           "toolCalls": [],
           "toolResults": [],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -8432,7 +8658,6 @@ describe('streamText', () => {
                   "type": "text",
                 },
               ],
-              "context": {},
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
               "files": [],
@@ -8501,6 +8726,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
+              "runtimeContext": {},
               "sources": [],
               "staticToolCalls": [],
               "staticToolResults": [],
@@ -8536,7 +8762,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -8590,7 +8815,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -8619,7 +8846,6 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "model": {
@@ -8683,7 +8909,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -8707,6 +8935,7 @@ describe('streamText', () => {
               "text": "Hello, world!",
               "toolCalls": [],
               "toolResults": [],
+              "toolsContext": {},
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -8778,7 +9007,6 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "model": {
@@ -8832,7 +9060,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -8861,7 +9091,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -8925,7 +9154,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -9038,7 +9269,6 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "model": {
@@ -9092,7 +9322,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -9121,7 +9353,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -9185,7 +9416,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -9340,7 +9573,7 @@ describe('streamText', () => {
         stepNumber: number;
         steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
-        context: unknown;
+        runtimeContext: unknown;
       }>;
 
       beforeEach(async () => {
@@ -9409,7 +9642,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             }),
           },
-          context: { context: 'state1' },
+          runtimeContext: { context: 'state1' },
           prompt: 'test-input',
           stopWhen: isStepCount(3),
           _internal: {
@@ -9421,14 +9654,14 @@ describe('streamText', () => {
             stepNumber,
             steps,
             messages,
-            context,
+            runtimeContext,
           }) => {
             prepareStepCalls.push({
               modelId: typeof model === 'string' ? model : model.modelId,
               stepNumber,
               steps,
               messages,
-              context,
+              runtimeContext,
             });
 
             if (stepNumber === 0) {
@@ -9444,7 +9677,7 @@ describe('streamText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
-                context: { context: 'state2' },
+                runtimeContext: { context: 'state2' },
               };
             }
 
@@ -9452,7 +9685,7 @@ describe('streamText', () => {
               return {
                 activeTools: [],
                 system: 'system-message-1',
-                context: { context: 'state3' },
+                runtimeContext: { context: 'state3' },
               };
             }
           },
@@ -9597,9 +9830,6 @@ describe('streamText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
-              "context": {
-                "context": "state1",
-              },
               "messages": [
                 {
                   "content": "test-input",
@@ -9607,6 +9837,9 @@ describe('streamText', () => {
                 },
               ],
               "modelId": "mock-model-id",
+              "runtimeContext": {
+                "context": "state1",
+              },
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
@@ -9634,9 +9867,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {
-                    "context": "state2",
-                  },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -9685,7 +9915,11 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state2",
+                  },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -9714,9 +9948,6 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "context": {
-                    "context": "state3",
-                  },
                   "finishReason": "stop",
                   "functionId": undefined,
                   "model": {
@@ -9775,7 +10006,11 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state3",
+                  },
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -9798,9 +10033,6 @@ describe('streamText', () => {
               ],
             },
             {
-              "context": {
-                "context": "state2",
-              },
               "messages": [
                 {
                   "content": "test-input",
@@ -9837,6 +10069,9 @@ describe('streamText', () => {
                 },
               ],
               "modelId": "mock-model-id",
+              "runtimeContext": {
+                "context": "state2",
+              },
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
@@ -9864,9 +10099,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {
-                    "context": "state2",
-                  },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -9915,7 +10147,11 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state2",
+                  },
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -9944,9 +10180,6 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "context": {
-                    "context": "state3",
-                  },
                   "finishReason": "stop",
                   "functionId": undefined,
                   "model": {
@@ -10005,7 +10238,11 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state3",
+                  },
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -10316,7 +10553,6 @@ describe('streamText', () => {
                   "type": "text",
                 },
               ],
-              "context": {},
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
               "files": [],
@@ -10385,6 +10621,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
+              "runtimeContext": {},
               "sources": [],
               "staticToolCalls": [],
               "staticToolResults": [],
@@ -10420,7 +10657,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -10474,7 +10710,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -10503,7 +10741,6 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "model": {
@@ -10567,7 +10804,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -10591,6 +10830,7 @@ describe('streamText', () => {
               "text": "Hello, world!",
               "toolCalls": [],
               "toolResults": [],
+              "toolsContext": {},
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -10662,7 +10902,6 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "model": {
@@ -10716,7 +10955,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -10745,7 +10986,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -10809,7 +11049,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -10918,7 +11160,6 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "model": {
@@ -10972,7 +11213,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -11001,7 +11244,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -11065,7 +11307,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -11338,7 +11582,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -11392,7 +11635,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -11447,7 +11692,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -11501,7 +11745,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -12642,7 +12888,7 @@ describe('streamText', () => {
         {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
-          context: {},
+          context: undefined,
           messages: expect.any(Array),
         },
       );
@@ -13684,7 +13930,6 @@ describe('streamText', () => {
                 "type": "tool-error",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -13731,7 +13976,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -14188,7 +14435,6 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -14240,7 +14486,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -14419,7 +14667,6 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
-            "context": {},
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
             "files": [],
@@ -14482,6 +14729,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "sources": [],
             "staticToolCalls": [
               {
@@ -14540,7 +14788,6 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -14598,7 +14845,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -14645,6 +14894,7 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
+            "toolsContext": {},
             "totalUsage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -14769,7 +15019,6 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -14827,7 +15076,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -15222,7 +15473,6 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -15249,7 +15499,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
@@ -15708,7 +15960,6 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "context": {},
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
             "files": [],
@@ -15741,6 +15992,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "sources": [],
             "staticToolCalls": [],
             "staticToolResults": [],
@@ -15755,7 +16007,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -15783,7 +16034,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -15807,6 +16060,7 @@ describe('streamText', () => {
             "text": "{ "value": "Hello, world!" }",
             "toolCalls": [],
             "toolResults": [],
+            "toolsContext": {},
             "totalUsage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -16850,7 +17104,6 @@ describe('streamText', () => {
                   "type": "reasoning",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -16893,7 +17146,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -17240,7 +17495,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -17287,7 +17541,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -17617,14 +17873,17 @@ describe('streamText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async ({ value }, { context }) => {
               recordedContext = context;
               return { value: 'test-result' };
             },
           }),
         },
-        context: {
-          context: 'test',
+        toolsContext: {
+          t1: {
+            context: 'test',
+          },
         },
         prompt: 'test-input',
       });
@@ -17637,7 +17896,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should pass context to prepareStep', async () => {
+    it('should pass runtimeContext to prepareStep', async () => {
       let capturedContext: unknown;
 
       const result = streamText({
@@ -17656,9 +17915,9 @@ describe('streamText', () => {
             response: {},
           }),
         }),
-        context: { myData: 'test-value' },
-        prepareStep: async ({ context }) => {
-          capturedContext = context;
+        runtimeContext: { myData: 'test-value' },
+        prepareStep: async ({ runtimeContext }) => {
+          capturedContext = runtimeContext;
           return undefined;
         },
         prompt: 'test',
@@ -17668,7 +17927,7 @@ describe('streamText', () => {
       expect(capturedContext).toEqual({ myData: 'test-value' });
     });
 
-    it('should send context in onFinish callback', async () => {
+    it('should send runtimeContext in onFinish callback', async () => {
       let recordedContext: unknown | undefined;
 
       const result = streamText({
@@ -17687,12 +17946,12 @@ describe('streamText', () => {
             ]),
           }),
         }),
-        context: {
+        runtimeContext: {
           context: 'test',
         },
         prompt: 'test-input',
-        onFinish: ({ context }) => {
-          recordedContext = context;
+        onFinish: ({ runtimeContext }) => {
+          recordedContext = runtimeContext;
         },
       });
 
@@ -18294,7 +18553,6 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -18345,7 +18603,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -20586,7 +20846,7 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
-    describe('when a single tool needs approval', () => {
+    describe('when a single tool needs approval (user-defined)', () => {
       let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
@@ -20617,8 +20877,10 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
         });
       });
@@ -20810,7 +21072,7 @@ describe('streamText', () => {
       });
     });
 
-    describe('when a single tool has a needsApproval function', () => {
+    describe('when a single tool has a user-defined approval function', () => {
       let result: StreamTextResult<any, any, any>;
       let needsApprovalCalls: Array<{ input: any; options: any }> = [];
 
@@ -20845,11 +21107,13 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: input => `result for ${input.value}`,
-              needsApproval: (input, options) => {
-                needsApprovalCalls.push({ input, options });
-                return input.value === 'value-needs-approval';
-              },
             }),
+          },
+          toolNeedsApproval: {
+            tool1: (input, options) => {
+              needsApprovalCalls.push({ input, options });
+              return input.value === 'value-needs-approval';
+            },
           },
           stopWhen: isStepCount(3),
           prompt: 'test-input',
@@ -21133,8 +21397,43 @@ describe('streamText', () => {
         `);
       });
 
-      it('should call the needsApproval function with the correct input and options', async () => {
-        expect(needsApprovalCalls).toMatchInlineSnapshot(`[]`);
+      it('should call the approval function with the correct input and options', async () => {
+        await result.consumeStream();
+
+        expect(needsApprovalCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value-needs-approval",
+              },
+              "options": {
+                "context": undefined,
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+                "toolCallId": "call-1",
+              },
+            },
+            {
+              "input": {
+                "value": "value-no-approval",
+              },
+              "options": {
+                "context": undefined,
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+                "toolCallId": "call-2",
+              },
+            },
+          ]
+        `);
       });
     });
 
@@ -21173,8 +21472,10 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: executeFunction,
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -21477,8 +21778,10 @@ describe('streamText', () => {
               execute: async (): Promise<string> => {
                 throw new Error('No valid token for plugin');
               },
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -21601,8 +21904,10 @@ describe('streamText', () => {
                 yield 'preliminary-result';
                 yield 'final-result';
               },
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -21930,8 +22235,10 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: executeFunction,
-              needsApproval: true,
             }),
+          },
+          toolNeedsApproval: {
+            tool1: true,
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -23011,7 +23318,7 @@ describe('streamText', () => {
       ]);
     });
 
-    it('should call global integrations before per-call integrations', async () => {
+    it('should only call per-call integrations when both global and per-call integrations are provided', async () => {
       const events: string[] = [];
 
       globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
@@ -23037,7 +23344,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(events).toEqual(['global', 'per-call']);
+      expect(events).toEqual(['per-call']);
     });
 
     it('should call integration listeners alongside user callbacks', async () => {

@@ -83,19 +83,19 @@ const { ranking } = await rerank({
     },
     {
       name: 'experimental_telemetry',
-      type: 'TelemetrySettings',
+      type: 'TelemetryOptions',
       isOptional: true,
       description: 'Telemetry configuration. Experimental feature.',
       properties: [
         {
-          type: 'TelemetrySettings',
+          type: 'TelemetryOptions',
           parameters: [
             {
               name: 'isEnabled',
               type: 'boolean',
               isOptional: true,
               description:
-                'Enable or disable telemetry. Disabled by default while experimental.',
+                'Enable or disable telemetry. Enabled by default. Set to `false` to opt out.',
             },
             {
               name: 'recordInputs',
@@ -123,7 +123,7 @@ const { ranking } = await rerank({
               isOptional: true,
               type: 'TelemetryIntegration | TelemetryIntegration[]',
               description:
-                'Per-call telemetry integrations that receive lifecycle events. These run after any globally registered integrations.',
+                'Per-call telemetry integrations that receive lifecycle events. When provided, these replace any globally registered integrations for this call.',
             },
           ],
         },

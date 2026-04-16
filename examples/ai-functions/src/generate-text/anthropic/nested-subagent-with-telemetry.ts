@@ -38,7 +38,6 @@ const createCityResearchAgent = (city: string) =>
             model: anthropic('claude-sonnet-4-5-20250929'),
             prompt: `Generate a realistic weather forecast for ${city} during ${season}. Include temperature in Celsius, humidity, wind speed, and a fun climate fact. Keep it to 2-3 sentences.`,
             experimental_telemetry: {
-              isEnabled: true,
               functionId: `forecast-lookup-${city.toLowerCase()}`,
             },
           });
@@ -47,7 +46,6 @@ const createCityResearchAgent = (city: string) =>
       },
     },
     experimental_telemetry: {
-      isEnabled: true,
       functionId: `weather-subagent-${city.toLowerCase()}`,
     },
   });
@@ -73,7 +71,6 @@ const weatherAgent = new ToolLoopAgent({
     },
   },
   experimental_telemetry: {
-    isEnabled: true,
     functionId: 'weather-comparison-agent',
   },
 });

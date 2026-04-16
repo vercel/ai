@@ -3,9 +3,10 @@ import type { TelemetryIntegration } from './telemetry-integration';
 /**
  * Telemetry configuration.
  */
-export type TelemetrySettings = {
+export type TelemetryOptions = {
   /**
-   * Enable or disable telemetry. Disabled by default while experimental.
+   * Enable or disable telemetry. Enabled by default when a telemetry
+   * integration is registered. Set to `false` to opt out.
    */
   isEnabled?: boolean;
 
@@ -33,8 +34,8 @@ export type TelemetrySettings = {
   /**
    * Per-call telemetry integrations that receive lifecycle events during generation.
    *
-   * These integrations run after any globally registered integrations
-   * (see `registerTelemetryIntegration`).
+   * When provided, these integrations will take precedence over the globally registered
+   * integrations for this call.
    */
   integrations?: TelemetryIntegration | TelemetryIntegration[];
 };

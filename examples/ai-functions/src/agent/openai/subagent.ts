@@ -36,13 +36,12 @@ run(async () => {
         },
       }),
     },
-    context: {
+    runtimeContext: {
       agentType: 'child',
       agentLevel: 'L2',
     },
     stopWhen: isStepCount(3),
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'child-agent',
     },
   });
@@ -66,13 +65,12 @@ run(async () => {
         },
       }),
     },
-    context: {
+    runtimeContext: {
       agentType: 'parent',
       agentLevel: 'L1',
     },
     stopWhen: isStepCount(3),
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'parent-agent',
     },
   });

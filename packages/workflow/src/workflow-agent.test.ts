@@ -1524,42 +1524,6 @@ describe('WorkflowAgent', () => {
     });
   });
 
-  describe('maxSteps', () => {
-    it('should pass maxSteps to streamTextIterator', async () => {
-      const mockModel = createMockModel();
-
-      const agent = new WorkflowAgent({
-        model: mockModel,
-        tools: {},
-      });
-
-      const mockWritable = new WritableStream({
-        write: vi.fn(),
-        close: vi.fn(),
-      });
-
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockIterator = {
-        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
-      };
-      vi.mocked(streamTextIterator).mockReturnValue(
-        mockIterator as unknown as MockIterator,
-      );
-
-      await agent.stream({
-        messages: [{ role: 'user', content: 'test' }],
-        writable: mockWritable,
-        maxSteps: 5,
-      });
-
-      expect(streamTextIterator).toHaveBeenCalledWith(
-        expect.objectContaining({
-          maxSteps: 5,
-        }),
-      );
-    });
-  });
-
   describe('toolChoice', () => {
     it('should pass toolChoice from constructor to streamTextIterator', async () => {
       const mockModel = createMockModel();
@@ -2522,7 +2486,7 @@ describe('WorkflowAgent', () => {
     it('should pass telemetry settings from constructor to streamTextIterator', async () => {
       const mockModel = createMockModel();
 
-      const telemetrySettings = {
+      const TelemetryOptions = {
         isEnabled: true,
         functionId: 'test-agent',
         metadata: { version: '1.0' },
@@ -2531,7 +2495,7 @@ describe('WorkflowAgent', () => {
       const agent = new WorkflowAgent({
         model: mockModel,
         tools: {},
-        experimental_telemetry: telemetrySettings,
+        experimental_telemetry: TelemetryOptions,
       });
 
       const mockWritable = new WritableStream({
@@ -2554,7 +2518,7 @@ describe('WorkflowAgent', () => {
 
       expect(streamTextIterator).toHaveBeenCalledWith(
         expect.objectContaining({
-          experimental_telemetry: telemetrySettings,
+          experimental_telemetry: TelemetryOptions,
         }),
       );
     });

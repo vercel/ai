@@ -250,10 +250,16 @@ const result = await generateText({
         'Identifier from telemetry settings for grouping related operations.',
     },
     {
-      name: 'context',
+      name: 'runtimeContext',
       type: 'CONTEXT',
       description:
-        'User-defined runtime context object that flows through the entire generation lifecycle.',
+        'User-defined shared runtime context object that flows through the generation lifecycle.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'Per-tool context map passed via `toolsContext`, keyed by tool name.',
     },
   ]}
 />
@@ -359,10 +365,16 @@ const result = await generateText({
         'Identifier from telemetry settings for grouping related operations.',
     },
     {
-      name: 'context',
+      name: 'runtimeContext',
       type: 'CONTEXT',
       description:
-        'User-defined runtime context object. May be updated from prepareStep between steps.',
+        'User-defined shared runtime context object. May be updated from prepareStep between steps.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'Per-tool context map. May be updated from prepareStep between steps.',
     },
   ]}
 />
@@ -449,7 +461,7 @@ const result = await generateText({
       name: 'context',
       type: 'CONTEXT',
       description:
-        'User-defined runtime context object flowing through the generation.',
+        'Tool-specific context object for the tool call that is about to execute.',
     },
   ]}
 />
@@ -547,7 +559,7 @@ const result = await generateText({
       name: 'context',
       type: 'CONTEXT',
       description:
-        'User-defined runtime context object flowing through the generation.',
+        'Tool-specific context object for the tool call that just completed.',
     },
     {
       name: 'success',
@@ -693,10 +705,16 @@ const result = await generateText({
         'Identifier from telemetry settings for grouping related operations.',
     },
     {
-      name: 'context',
+      name: 'runtimeContext',
       type: 'CONTEXT',
       description:
-        'User-defined runtime context object flowing through the generation.',
+        'User-defined shared runtime context object flowing through the generation.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'Per-tool context map for the generation step.',
     },
     {
       name: 'providerMetadata',
@@ -841,9 +859,16 @@ const result = await generateText({
         'Identifier from telemetry settings for grouping related operations.',
     },
     {
-      name: 'context',
+      name: 'runtimeContext',
       type: 'CONTEXT',
-      description: 'The final state of the user-defined runtime context object.',
+      description:
+        'The final state of the user-defined shared runtime context object.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'The final state of the per-tool context map passed via `toolsContext`.',
     },
     {
       name: 'providerMetadata',
