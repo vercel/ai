@@ -2475,18 +2475,6 @@ class DefaultStreamTextResult<
               break;
             }
 
-<<<<<<< HEAD
-            case 'reasoning-end': {
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
-              break;
-            }
-
             case 'file': {
               controller.enqueue({
                 type: 'file',
@@ -2496,20 +2484,6 @@ class DefaultStreamTextResult<
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
               });
-=======
-            case 'file':
-            case 'reasoning-file': {
-              if (partType !== 'reasoning-file' || sendReasoning) {
-                controller.enqueue({
-                  type: part.type,
-                  mediaType: part.file.mediaType,
-                  url: `data:${part.file.mediaType};base64,${part.file.base64}`,
-                  ...(part.providerMetadata != null
-                    ? { providerMetadata: part.providerMetadata }
-                    : {}),
-                });
-              }
->>>>>>> 33d099cc6 (fix(ai): omit reasoning-start/end when sendReasoning is false (#14549))
               break;
             }
 
