@@ -1,4 +1,8 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import {
   FlexibleSchema,
   MaybePromiseLike,
@@ -246,8 +250,8 @@ export type ToolLoopAgentSettings<
           | 'toolNeedsApproval'
           | 'providerOptions'
           | 'experimental_download'
-          | 'toolsContext'
-        > & { context: USER_CONTEXT },
+          | 'context'
+        > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
       Pick<
         ToolLoopAgentSettings<
@@ -274,10 +278,10 @@ export type ToolLoopAgentSettings<
         | 'toolNeedsApproval'
         | 'providerOptions'
         | 'experimental_download'
-        | 'toolsContext'
+        | 'context'
       > &
         Omit<Prompt, 'system'> & {
-          context: USER_CONTEXT;
+          toolsContext: InferToolSetContext<TOOLS>;
         }
     >;
   };
