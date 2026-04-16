@@ -37,7 +37,7 @@ import {
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import { LanguageModelRequestMetadata } from '../types';
@@ -372,7 +372,7 @@ export function streamText<
     /**
      * Optional telemetry configuration (experimental).
      */
-    experimental_telemetry?: TelemetrySettings;
+    experimental_telemetry?: TelemetryOptions;
 
     /**
      * Additional provider-specific options. They are passed through
@@ -793,7 +793,7 @@ class DefaultStreamTextResult<
     include,
   }: {
     model: LanguageModelV4;
-    telemetry: TelemetrySettings | undefined;
+    telemetry: TelemetryOptions | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: LanguageModelCallOptions;
     maxRetries: number | undefined;
@@ -1316,7 +1316,7 @@ class DefaultStreamTextResult<
       functionId: telemetry?.functionId,
     };
     const onStartTelemetryProps = {
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,

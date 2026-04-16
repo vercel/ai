@@ -6,7 +6,7 @@ import {
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import { Warning } from '../types/warning';
 import type { Callback } from '../util/callback';
@@ -90,7 +90,7 @@ export async function embedMany({
   /**
    * Optional telemetry configuration (experimental).
    */
-  experimental_telemetry?: TelemetrySettings;
+  experimental_telemetry?: TelemetryOptions;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -153,7 +153,7 @@ export async function embedMany({
       maxRetries,
       headers: headersWithUserAgent,
       providerOptions,
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
@@ -180,7 +180,7 @@ export async function embedMany({
               provider: model.provider,
               modelId: model.modelId,
               values,
-              isEnabled: telemetry?.isEnabled,
+              isEnabled: telemetry?.isEnabled ?? true,
               recordInputs: telemetry?.recordInputs,
               recordOutputs: telemetry?.recordOutputs,
               functionId: telemetry?.functionId,
@@ -239,7 +239,7 @@ export async function embedMany({
           warnings,
           providerMetadata,
           response: [response],
-          isEnabled: telemetry?.isEnabled,
+          isEnabled: telemetry?.isEnabled ?? true,
           recordInputs: telemetry?.recordInputs,
           recordOutputs: telemetry?.recordOutputs,
           functionId: telemetry?.functionId,
@@ -290,7 +290,7 @@ export async function embedMany({
                 provider: model.provider,
                 modelId: model.modelId,
                 values: chunk,
-                isEnabled: telemetry?.isEnabled,
+                isEnabled: telemetry?.isEnabled ?? true,
                 recordInputs: telemetry?.recordInputs,
                 recordOutputs: telemetry?.recordOutputs,
                 functionId: telemetry?.functionId,
@@ -373,7 +373,7 @@ export async function embedMany({
         warnings,
         providerMetadata,
         response: responses,
-        isEnabled: telemetry?.isEnabled,
+        isEnabled: telemetry?.isEnabled ?? true,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,

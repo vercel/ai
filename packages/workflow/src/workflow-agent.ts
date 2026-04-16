@@ -92,7 +92,7 @@ export type ProviderOptions = SharedV4ProviderOptions;
 /**
  * Telemetry settings for observability.
  */
-export interface TelemetrySettings {
+export interface TelemetryOptions {
   /**
    * Enable or disable telemetry. Defaults to true.
    */
@@ -339,7 +339,7 @@ export interface PrepareCallOptions<
   tools: TTools;
   instructions?: string | SystemModelMessage | Array<SystemModelMessage>;
   toolChoice?: ToolChoice<TTools>;
-  experimental_telemetry?: TelemetrySettings;
+  experimental_telemetry?: TelemetryOptions;
   experimental_context?: unknown;
   messages: ModelMessage[];
 }
@@ -407,7 +407,7 @@ export interface WorkflowAgentOptions<
   /**
    * Optional telemetry configuration (experimental).
    */
-  experimental_telemetry?: TelemetrySettings;
+  experimental_telemetry?: TelemetryOptions;
 
   /**
    * Default context that is passed into tool execution for every stream call on this agent.
@@ -736,7 +736,7 @@ export type WorkflowAgentStreamOptions<
     /**
      * Optional telemetry configuration (experimental).
      */
-    experimental_telemetry?: TelemetrySettings;
+    experimental_telemetry?: TelemetryOptions;
 
     /**
      * Context that is passed into tool execution.
@@ -1005,7 +1005,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
     | Array<SystemModelMessage>;
   private generationSettings: GenerationSettings;
   private toolChoice?: ToolChoice<TBaseTools>;
-  private telemetry?: TelemetrySettings;
+  private telemetry?: TelemetryOptions;
   private experimentalContext: unknown;
   private stopWhen?:
     | StopCondition<ToolSet, any>

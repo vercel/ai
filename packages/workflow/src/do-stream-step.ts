@@ -16,7 +16,7 @@ import {
   type ToolSet,
 } from 'ai';
 import { gateway } from 'ai';
-import type { ProviderOptions, TelemetrySettings } from './workflow-agent.js';
+import type { ProviderOptions, TelemetryOptions } from './workflow-agent.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
@@ -54,7 +54,7 @@ export interface DoStreamStepOptions {
   providerOptions?: ProviderOptions;
   toolChoice?: ToolChoice<ToolSet>;
   includeRawChunks?: boolean;
-  experimental_telemetry?: TelemetrySettings;
+  experimental_telemetry?: TelemetryOptions;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
 }

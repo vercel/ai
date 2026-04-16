@@ -22,7 +22,7 @@ export {
   type WorkflowAgentOnFinishCallback,
   type WorkflowAgentOnStepFinishCallback,
   type StreamTextTransform,
-  type TelemetrySettings,
+  type TelemetryOptions,
   type ToolCallRepairFunction,
   type WorkflowAgentOnStartCallback,
   type WorkflowAgentOnStepStartCallback,

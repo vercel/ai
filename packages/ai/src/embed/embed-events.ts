@@ -33,7 +33,7 @@ export interface EmbedOnStartEvent {
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
@@ -85,7 +85,7 @@ export interface EmbedOnFinishEvent {
     | Array<{ headers?: Record<string, string>; body?: unknown } | undefined>
     | undefined;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
@@ -123,7 +123,7 @@ export interface EmbedStartEvent {
   /** The values being embedded in this particular model call. */
   readonly values: Array<string>;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */

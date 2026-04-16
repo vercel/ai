@@ -1843,7 +1843,7 @@ describe('streamObject', () => {
         expect(events).toEqual(['onStart', 'doStream']);
       });
 
-      it('should provide the correct event properties', async () => {
+      it('should send correct information with text prompt', async () => {
         let startEvent: any;
 
         const { partialObjectStream } = streamObject({
@@ -1873,22 +1873,20 @@ describe('streamObject', () => {
           prompt: 'test-prompt',
           temperature: 0.5,
           maxOutputTokens: 100,
+          experimental_telemetry: {
+            functionId: 'test-function',
+          },
           experimental_onStart: event => {
             startEvent = event;
+          },
+          _internal: {
+            generateId: () => 'test-call-id',
           },
         });
 
         await convertAsyncIterableToArray(partialObjectStream);
 
-        expect(startEvent.operationId).toBe('ai.streamObject');
-        expect(startEvent.provider).toBe('test-provider');
-        expect(startEvent.modelId).toBe('test-model');
-        expect(startEvent.prompt).toBe('test-prompt');
-        expect(startEvent.temperature).toBe(0.5);
-        expect(startEvent.maxOutputTokens).toBe(100);
-        expect(startEvent.schemaName).toBe('test-schema');
-        expect(startEvent.schemaDescription).toBe('A test schema');
-        expect(startEvent.callId).toBeDefined();
+        expect(startEvent).toMatchSnapshot();
       });
     });
 

@@ -4,7 +4,7 @@ import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { RerankingModel } from '../types';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
@@ -87,7 +87,7 @@ export async function rerank<VALUE extends JSONObject | string>({
   /**
    * Optional telemetry configuration (experimental).
    */
-  experimental_telemetry?: TelemetrySettings;
+  experimental_telemetry?: TelemetryOptions;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -135,7 +135,7 @@ export async function rerank<VALUE extends JSONObject | string>({
         maxRetries: maxRetriesArg ?? 2,
         headers,
         providerOptions,
-        isEnabled: telemetry?.isEnabled,
+        isEnabled: telemetry?.isEnabled ?? true,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,
@@ -158,7 +158,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           timestamp: new Date(),
           modelId: model.modelId,
         },
-        isEnabled: telemetry?.isEnabled,
+        isEnabled: telemetry?.isEnabled ?? true,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,
@@ -199,7 +199,7 @@ export async function rerank<VALUE extends JSONObject | string>({
       maxRetries,
       headers,
       providerOptions,
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
@@ -220,7 +220,7 @@ export async function rerank<VALUE extends JSONObject | string>({
             documentsType: documentsToSend.type,
             query,
             topN,
-            isEnabled: telemetry?.isEnabled,
+            isEnabled: telemetry?.isEnabled ?? true,
             recordInputs: telemetry?.recordInputs,
             recordOutputs: telemetry?.recordOutputs,
             functionId: telemetry?.functionId,
@@ -288,7 +288,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           headers: response?.headers,
           body: response?.body,
         },
-        isEnabled: telemetry?.isEnabled,
+        isEnabled: telemetry?.isEnabled ?? true,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,
