@@ -3121,7 +3121,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         providerOptions: {
           anthropic: {
             inferenceGeo: 'us',
-          } satisfies AnthropicLanguageModelOptions,
+          } satisfies AnthropicProviderOptions,
         },
       });
 

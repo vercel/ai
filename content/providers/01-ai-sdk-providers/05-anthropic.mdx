@@ -262,7 +262,7 @@ The `speed` option accepts `'fast'` or `'standard'` (default behavior).
 Anthropic supports an [`inferenceGeo` option](https://platform.claude.com/docs/en/build-with-claude/data-residency) that controls where model inference runs for a request.
 
 ```ts highlight="8-10"
-import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -271,7 +271,7 @@ const { text } = await generateText({
   providerOptions: {
     anthropic: {
       inferenceGeo: 'us',
-    } satisfies AnthropicLanguageModelOptions,
+    } satisfies AnthropicProviderOptions,
   },
 });
 ```

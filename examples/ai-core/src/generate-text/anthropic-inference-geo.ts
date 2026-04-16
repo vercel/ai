@@ -1,7 +1,4 @@
-import {
-  anthropic,
-  type AnthropicLanguageModelOptions,
-} from '@ai-sdk/anthropic';
+import { anthropic, type AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { run } from '../lib/run';
 import { print } from '../lib/print';
@@ -13,7 +10,7 @@ run(async () => {
     providerOptions: {
       anthropic: {
         inferenceGeo: 'us',
-      } satisfies AnthropicLanguageModelOptions,
+      } satisfies AnthropicProviderOptions,
     },
   });
 
