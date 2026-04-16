@@ -24,8 +24,8 @@ importers:
         specifier: ^9.1.7
         version: 9.1.7
       konsistent:
-        specifier: 0.0.1-alpha.3
-        version: 0.0.1-alpha.3
+        specifier: 0.0.1-alpha.4
+        version: 0.0.1-alpha.4
       lint-staged:
         specifier: ^15.5.1
         version: 15.5.2
@@ -15250,8 +15250,8 @@ packages:
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
 
-  konsistent@0.0.1-alpha.3:
-    resolution: {integrity: sha512-r91w+iHiL0eF5Q1BGxWnYMDfl6Tf+8BMo8xa0sQHbwvZYFuydy5oaD0l54xPb8VlVr8+VBRsq6+zempEyEt4mA==}
+  konsistent@0.0.1-alpha.4:
+    resolution: {integrity: sha512-IyQZlL0OSFHq0bE9FJkwiuR4+C0H0GGnOflbOuhf29JA4b3qfmG2G52LCjdAFMtP7wTJMiab0gg3uvKzgfRN/Q==}
     hasBin: true
 
   kuler@2.0.0:
@@ -35447,7 +35447,7 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  konsistent@0.0.1-alpha.3:
+  konsistent@0.0.1-alpha.4:
     dependencies:
       citty: 0.1.6
       picocolors: 1.1.1
