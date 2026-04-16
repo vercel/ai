@@ -9,6 +9,10 @@ export type {
   GatewaySpendReportRow,
   GatewaySpendReportResponse,
 } from './gateway-spend-report';
+export type {
+  GatewayGenerationInfoParams,
+  GatewayGenerationInfo,
+} from './gateway-generation-info';
 export type { GatewayLanguageModelEntry as GatewayModelEntry } from './gateway-model-entry';
 export {
   createGatewayProvider,
