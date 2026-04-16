@@ -37,7 +37,7 @@ import {
   mockValues,
 } from 'ai/test';
 import { MockTracer as IntegrationMockTracer } from './mock-tracer';
-import { OpenTelemetry } from './open-telemetry-integration';
+import { OpenTelemetry } from './open-telemetry';
 
 export function createResolvablePromise<T = any>(): {
   promise: Promise<T>;
