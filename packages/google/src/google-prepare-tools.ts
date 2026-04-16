@@ -33,6 +33,7 @@ export function prepareTools({
         functionCallingConfig?: {
           mode: 'AUTO' | 'NONE' | 'ANY' | 'VALIDATED';
           allowedFunctionNames?: string[];
+          streamFunctionCallArguments?: boolean;
         };
         includeServerSideToolInvocations?: boolean;
       };
@@ -122,7 +123,7 @@ export function prepareTools({
               type: 'unsupported',
               feature: `provider-defined tool ${tool.id}`,
               details:
-                'The code execution tools is not supported with other Gemini models than Gemini 2.',
+                'The code execution tool is not supported with other Gemini models than Gemini 2.',
             });
           }
           break;

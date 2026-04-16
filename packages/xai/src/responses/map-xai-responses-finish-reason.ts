@@ -8,6 +8,7 @@ export function mapXaiResponsesFinishReason(
     case 'completed':
       return 'stop';
     case 'length':
+    case 'max_output_tokens':
       return 'length';
     case 'tool_calls':
     case 'function_call':

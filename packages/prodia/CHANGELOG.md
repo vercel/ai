@@ -1,5 +1,25 @@
 # @ai-sdk/prodia
 
+## 1.0.27
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
 ## 1.0.24
 
 ### Patch Changes

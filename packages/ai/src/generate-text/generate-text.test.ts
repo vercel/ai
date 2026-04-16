@@ -8404,7 +8404,7 @@ describe('generateText', () => {
           });
         });
 
-        it('should send tool-approval-response to the model', async () => {
+        it('should send tool-approval-response to the model exactly once', async () => {
           expect(prompts[0]).toMatchInlineSnapshot(`
             [
               {
@@ -8435,12 +8435,6 @@ describe('generateText', () => {
               },
               {
                 "content": [
-                  {
-                    "approvalId": "mcp-approval-1",
-                    "approved": true,
-                    "reason": undefined,
-                    "type": "tool-approval-response",
-                  },
                   {
                     "approvalId": "mcp-approval-1",
                     "approved": true,
@@ -8564,7 +8558,7 @@ describe('generateText', () => {
           });
         });
 
-        it('should send denied tool-approval-response to the model', async () => {
+        it('should send denied tool-approval-response to the model exactly once', async () => {
           expect(prompts[0]).toMatchInlineSnapshot(`
             [
               {
@@ -8615,12 +8609,6 @@ describe('generateText', () => {
                     "toolCallId": "mcp-call-1",
                     "toolName": "mcp_tool",
                     "type": "tool-result",
-                  },
-                  {
-                    "approvalId": "mcp-approval-1",
-                    "approved": false,
-                    "reason": "User denied the request",
-                    "type": "tool-approval-response",
                   },
                 ],
                 "providerOptions": undefined,

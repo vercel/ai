@@ -21,6 +21,7 @@ import {
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { toCamelCase } from '../utils/to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
@@ -101,13 +102,19 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV3 
   }: LanguageModelV3CallOptions) {
     const warnings: SharedV3Warning[] = [];
 
-    // Parse provider options
-    const completionOptions =
+    // Parse provider options (support both raw and camelCase keys)
+    const completionOptions = Object.assign(
       (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
         schema: openaiCompatibleLanguageModelCompletionOptions,
-      })) ?? {};
+      })) ?? {},
+      (await parseProviderOptions({
+        provider: toCamelCase(this.providerOptionsName),
+        providerOptions,
+        schema: openaiCompatibleLanguageModelCompletionOptions,
+      })) ?? {},
+    );
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -153,6 +160,7 @@ export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV3 
         presence_penalty: presencePenalty,
         seed,
         ...providerOptions?.[this.providerOptionsName],
+        ...providerOptions?.[toCamelCase(this.providerOptionsName)],
 
         // prompt:
         prompt: completionPrompt,

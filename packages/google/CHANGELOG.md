@@ -1,5 +1,62 @@
 # @ai-sdk/google
 
+## 3.0.64
+
+### Patch Changes
+
+- 71c52e0: chore(provider/google): update available models
+
+## 3.0.63
+
+### Patch Changes
+
+- 1e1a5ab: fix(google): fix `serviceTier` to be correctly formatted for Vertex API
+
+## 3.0.62
+
+### Patch Changes
+
+- 46a3584: fix(google-vertex): don't send streamFunctionCallArguments for unary API calls and change default to false
+
+## 3.0.61
+
+### Patch Changes
+
+- 03a04f6: feat(google-vertex): add support for streaming tool arguments input
+
+## 3.0.60
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 3.0.59
+
+### Patch Changes
+
+- 6247886: chore(provider-utils,google): fix grammar errors in error and warning messages
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 3.0.58
+
+### Patch Changes
+
+- f20ba77: feat(provider/google): preserve per-modality token details in usage data
+
+## 3.0.57
+
+### Patch Changes
+
+- 0f2b2f1: fix(provider/google): fix Gemini service tier enum after upstream update
+
+## 3.0.56
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
 ## 3.0.55
 
 ### Patch Changes

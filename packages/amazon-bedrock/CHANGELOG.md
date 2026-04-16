@@ -1,5 +1,64 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.95
+
+### Patch Changes
+
+- Updated dependencies [95b4fe0]
+  - @ai-sdk/anthropic@3.0.71
+
+## 4.0.94
+
+### Patch Changes
+
+- 2ff8d57: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [2ff8d57]
+  - @ai-sdk/anthropic@3.0.70
+
+## 4.0.93
+
+### Patch Changes
+
+- Updated dependencies [61f1a61]
+  - @ai-sdk/anthropic@3.0.69
+
+## 4.0.92
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+- Updated dependencies [d42076d]
+  - @ai-sdk/anthropic@3.0.68
+
+## 4.0.91
+
+### Patch Changes
+
+- ac80bc7: fix(amazon-bedrock): preserve empty text blocks when reasoning content is present
+
+## 4.0.90
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+  - @ai-sdk/anthropic@3.0.67
+
+## 4.0.89
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+  - @ai-sdk/anthropic@3.0.66
+
+## 4.0.88
+
+### Patch Changes
+
+- Updated dependencies [94aed06]
+  - @ai-sdk/anthropic@3.0.65
+
 ## 4.0.87
 
 ### Patch Changes

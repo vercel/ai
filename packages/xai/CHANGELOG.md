@@ -1,5 +1,60 @@
 # @ai-sdk/xai
 
+## 3.0.83
+
+### Patch Changes
+
+- b937f3e: fix(xai): support encrypted reasoning round-trip for ZDR
+
+## 3.0.82
+
+### Patch Changes
+
+- 72ebb54: fix (provider/xai): handle mid-stream error chunks
+
+## 3.0.81
+
+### Patch Changes
+
+- c1cc97f: fix (provider/xai): add response.incomplete and response.failed streaming event handling
+
+## 3.0.80
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+- Updated dependencies [d42076d]
+  - @ai-sdk/openai-compatible@2.0.41
+
+## 3.0.79
+
+### Patch Changes
+
+- Updated dependencies [01c9c16]
+  - @ai-sdk/openai-compatible@2.0.40
+
+## 3.0.78
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+  - @ai-sdk/openai-compatible@2.0.39
+
+## 3.0.77
+
+### Patch Changes
+
+- bacdae4: feat(provider/xai): add video extension and reference-to-video (R2V) support
+
+## 3.0.76
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+  - @ai-sdk/openai-compatible@2.0.38
+
 ## 3.0.75
 
 ### Patch Changes

@@ -1,5 +1,122 @@
 # @ai-sdk/gateway
 
+## 3.0.104
+
+### Patch Changes
+
+- 493d7d4: bump `@vercel/oidc` dependency to 3.2.0
+
+## 3.0.103
+
+### Patch Changes
+
+- 20805c8: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.102
+
+### Patch Changes
+
+- 2ff8d57: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 3.0.101
+
+### Patch Changes
+
+- 83434a9: feat (provider/gateway): add sort options
+
+## 3.0.100
+
+### Patch Changes
+
+- a27a631: feat (provider/gateway): make model list resilient to unknown model types
+
+## 3.0.99
+
+### Patch Changes
+
+- 8c4abaf: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.98
+
+### Patch Changes
+
+- 9031f26: fix (provider/gateway): add 'reranking' to modelType validation schema and type so getAvailableModels() accepts reranking models from the gateway API
+
+## 3.0.97
+
+### Patch Changes
+
+- 06f7838: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.96
+
+### Patch Changes
+
+- a0d9373: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.95
+
+### Patch Changes
+
+- 08c5ac3: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.94
+
+### Patch Changes
+
+- 37a378e: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.93
+
+### Patch Changes
+
+- ec18852: feat (provider/gateway): add reranking model support with `rerankingModel()` and `reranking()` methods
+
+## 3.0.92
+
+### Patch Changes
+
+- 9de7d7b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.91
+
+### Patch Changes
+
+- 3aca847: feat (provider/gateway): add quotaEntityId gateway provider option
+
+## 3.0.90
+
+### Patch Changes
+
+- e923a24: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.89
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 3.0.88
+
+### Patch Changes
+
+- 5f439a1: feat (provider/gateway): add hipaaCompliant gateway provider option
+
+## 3.0.87
+
+### Patch Changes
+
+- ffd431a: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.86
+
+### Patch Changes
+
+- 15bfbd2: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
 ## 3.0.85
 
 ### Patch Changes

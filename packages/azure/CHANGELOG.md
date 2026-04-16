@@ -1,5 +1,36 @@
 # @ai-sdk/azure
 
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [953385d]
+  - @ai-sdk/openai@3.0.53
+
+## 3.0.53
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+- Updated dependencies [d42076d]
+  - @ai-sdk/openai@3.0.52
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+  - @ai-sdk/openai@3.0.51
+
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+  - @ai-sdk/openai@3.0.50
+
 ## 3.0.50
 
 ### Patch Changes

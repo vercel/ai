@@ -1,5 +1,181 @@
 # ai
 
+## 6.0.168
+
+### Patch Changes
+
+- Updated dependencies [493d7d4]
+  - @ai-sdk/gateway@3.0.104
+
+## 6.0.167
+
+### Patch Changes
+
+- Updated dependencies [20805c8]
+  - @ai-sdk/gateway@3.0.103
+
+## 6.0.166
+
+### Patch Changes
+
+- b8d28f4: fix(ai): omit reasoning-start/end when sendReasoning is false
+
+## 6.0.165
+
+### Patch Changes
+
+- Updated dependencies [2ff8d57]
+  - @ai-sdk/gateway@3.0.102
+
+## 6.0.164
+
+### Patch Changes
+
+- Updated dependencies [83434a9]
+  - @ai-sdk/gateway@3.0.101
+
+## 6.0.163
+
+### Patch Changes
+
+- Updated dependencies [a27a631]
+  - @ai-sdk/gateway@3.0.100
+
+## 6.0.162
+
+### Patch Changes
+
+- Updated dependencies [8c4abaf]
+  - @ai-sdk/gateway@3.0.99
+
+## 6.0.161
+
+### Patch Changes
+
+- Updated dependencies [9031f26]
+  - @ai-sdk/gateway@3.0.98
+
+## 6.0.160
+
+### Patch Changes
+
+- Updated dependencies [06f7838]
+  - @ai-sdk/gateway@3.0.97
+
+## 6.0.159
+
+### Patch Changes
+
+- Updated dependencies [a0d9373]
+  - @ai-sdk/gateway@3.0.96
+
+## 6.0.158
+
+### Patch Changes
+
+- 295beba: fix(ai): fix `lastAssistantMessageIsCompleteWithApprovalResponses` to no longer ignore `providerExecuted` tool approvals
+
+## 6.0.157
+
+### Patch Changes
+
+- ff11aee: fix(ai): fix `providerExecuted` tool approvals being passed to language model twice
+
+## 6.0.156
+
+### Patch Changes
+
+- Updated dependencies [08c5ac3]
+  - @ai-sdk/gateway@3.0.95
+
+## 6.0.155
+
+### Patch Changes
+
+- 06764c5: fix(ai): skip passing invalid JSON inputs to response messages
+
+## 6.0.154
+
+### Patch Changes
+
+- Updated dependencies [37a378e]
+  - @ai-sdk/gateway@3.0.94
+
+## 6.0.153
+
+### Patch Changes
+
+- f152133: feat (ai/core): support plain string model IDs in `rerank()` function
+
+  The `rerank()` function now accepts plain model strings (e.g., `'cohere/rerank-v3.5'`) in addition to `RerankingModel` objects, matching the behavior of `generateText`, `embed`, and other core functions.
+
+## 6.0.152
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 6.0.151
+
+### Patch Changes
+
+- Updated dependencies [ec18852]
+  - @ai-sdk/gateway@3.0.93
+
+## 6.0.150
+
+### Patch Changes
+
+- 1003609: fix(ai): skip stringifying text when streaming partial text
+- Updated dependencies [9de7d7b]
+  - @ai-sdk/gateway@3.0.92
+
+## 6.0.149
+
+### Patch Changes
+
+- Updated dependencies [3aca847]
+  - @ai-sdk/gateway@3.0.91
+
+## 6.0.148
+
+### Patch Changes
+
+- Updated dependencies [e923a24]
+  - @ai-sdk/gateway@3.0.90
+
+## 6.0.147
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+  - @ai-sdk/gateway@3.0.89
+
+## 6.0.146
+
+### Patch Changes
+
+- Updated dependencies [5f439a1]
+  - @ai-sdk/gateway@3.0.88
+
+## 6.0.145
+
+### Patch Changes
+
+- Updated dependencies [ffd431a]
+  - @ai-sdk/gateway@3.0.87
+
+## 6.0.144
+
+### Patch Changes
+
+- 0469aed: fix: allow inline data URLs in download validation
+- Updated dependencies [0469aed]
+- Updated dependencies [15bfbd2]
+  - @ai-sdk/provider-utils@4.0.22
+  - @ai-sdk/gateway@3.0.86
+
 ## 6.0.143
 
 ### Patch Changes

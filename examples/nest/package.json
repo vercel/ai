@@ -14,11 +14,11 @@
     "start:prod": "node dist/main"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.49",
+    "@ai-sdk/openai": "3.0.53",
     "@nestjs/common": "^10.4.15",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.4.9",
-    "ai": "6.0.143",
+    "ai": "6.0.168",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1"
   },

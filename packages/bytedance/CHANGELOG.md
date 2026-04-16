@@ -1,5 +1,31 @@
 # @ai-sdk/bytedance
 
+## 1.0.10
+
+### Patch Changes
+
+- a8cec3a: feat (provider/bytedance): add seedance 2.0 support
+
+## 1.0.9
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
 ## 1.0.6
 
 ### Patch Changes

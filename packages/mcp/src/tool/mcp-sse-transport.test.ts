@@ -381,4 +381,75 @@ describe('SseMCPTransport', () => {
       fetchSpy.mockRestore();
     });
   });
+
+  describe('custom fetch', () => {
+    it('should use provided fetch function for SSE connection', async () => {
+      const controller = new TestResponseController();
+      server.urls['http://localhost:3000/sse'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      const customFetch = vi.fn(globalThis.fetch);
+
+      transport = new SseMCPTransport({
+        url: 'http://localhost:3000/sse',
+        fetch: customFetch,
+      });
+
+      const connectPromise = transport.start();
+      controller.write(
+        'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+      );
+      await connectPromise;
+
+      expect(customFetch).toHaveBeenCalledWith(
+        'http://localhost:3000/sse',
+        expect.objectContaining({ headers: expect.anything() }),
+      );
+
+      await transport.close();
+    });
+
+    it('should use provided fetch function for POST send()', async () => {
+      const controller = new TestResponseController();
+      server.urls['http://localhost:3000/sse'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+      server.urls['http://localhost:3000/messages'].response = {
+        type: 'empty',
+        status: 200,
+      };
+
+      const customFetch = vi.fn(globalThis.fetch);
+
+      transport = new SseMCPTransport({
+        url: 'http://localhost:3000/sse',
+        fetch: customFetch,
+      });
+
+      const connectPromise = transport.start();
+      controller.write(
+        'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+      );
+      await connectPromise;
+
+      customFetch.mockClear();
+
+      await transport.send({
+        jsonrpc: '2.0' as const,
+        method: 'test',
+        params: {},
+        id: '1',
+      });
+
+      expect(customFetch).toHaveBeenCalledWith(
+        'http://localhost:3000/messages',
+        expect.objectContaining({ method: 'POST' }),
+      );
+
+      await transport.close();
+    });
+  });
 });

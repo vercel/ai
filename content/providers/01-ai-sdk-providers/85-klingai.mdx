@@ -184,7 +184,7 @@ import { klingai, type KlingAIVideoModelOptions } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
-  model: klingai.video('kling-v2.6-motion-control'),
+  model: klingai.video('kling-v3.0-motion-control'),
   prompt: {
     image: 'https://example.com/character.png',
     text: 'The character performs a smooth dance move',
@@ -194,6 +194,8 @@ const { videos } = await generateVideo({
       videoUrl: 'https://example.com/reference-motion.mp4',
       characterOrientation: 'image',
       mode: 'std',
+      // Optional: reference element from element library (v3.0+, max 1)
+      elementList: [{ element_id: 829836802793406551 }],
     } satisfies KlingAIVideoModelOptions,
   },
 });
@@ -218,6 +220,10 @@ The following provider options are available via `providerOptions.klingai`. Opti
 - **pollTimeoutMs** _number_
 
   Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes).
+
+- **watermarkEnabled** _boolean_
+
+  Whether to generate watermarked results simultaneously.
 
 #### Text-to-Video and Image-to-Video Options
 
@@ -267,9 +273,11 @@ The following provider options are available via `providerOptions.klingai`. Opti
 
   Dynamic brush configurations for motion brush. Up to 6 groups, each with a `mask` (image URL or base64) and `trajectories` (array of `{x, y}` coordinates).
 
+#### Image-to-Video and Motion Control Options
+
 - **elementList** _Array&lt;\{element_id: number\}&gt;_
 
-  Reference elements for element control (Kling v3.0+ I2V). Supports video character elements and multi-image elements. Up to 3 reference elements. Cannot coexist with `voiceList`.
+  Reference elements for element control (Kling v3.0+). Supports video character elements and multi-image elements. Up to 3 elements for I2V (cannot coexist with `voiceList`). Up to 1 element for motion control.
 
 #### Motion Control Only Options
 
@@ -286,10 +294,6 @@ The following provider options are available via `providerOptions.klingai`. Opti
 - **keepOriginalSound** _'yes' | 'no'_
 
   Whether to keep the original sound from the reference video. Defaults to `'yes'`.
-
-- **watermarkEnabled** _boolean_
-
-  Whether to generate watermarked results simultaneously.
 
 <Note>
   Video generation is an asynchronous process that can take several minutes.
@@ -329,6 +333,7 @@ The following provider options are available via `providerOptions.klingai`. Opti
 
 | Model                       | Description                                                  |
 | --------------------------- | ------------------------------------------------------------ |
+| `kling-v3.0-motion-control` | Latest v3.0, enhanced facial consistency via element binding |
 | `kling-v2.6-motion-control` | Transfers motion from a reference video to a character image |
 
 <Note>

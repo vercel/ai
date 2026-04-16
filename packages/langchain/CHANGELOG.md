@@ -1,5 +1,163 @@
 # @ai-sdk/langchain
 
+## 2.0.174
+
+### Patch Changes
+
+- ai@6.0.168
+
+## 2.0.173
+
+### Patch Changes
+
+- ai@6.0.167
+
+## 2.0.172
+
+### Patch Changes
+
+- Updated dependencies [b8d28f4]
+  - ai@6.0.166
+
+## 2.0.171
+
+### Patch Changes
+
+- ai@6.0.165
+
+## 2.0.170
+
+### Patch Changes
+
+- ai@6.0.164
+
+## 2.0.169
+
+### Patch Changes
+
+- ai@6.0.163
+
+## 2.0.168
+
+### Patch Changes
+
+- ai@6.0.162
+
+## 2.0.167
+
+### Patch Changes
+
+- ai@6.0.161
+
+## 2.0.166
+
+### Patch Changes
+
+- ai@6.0.160
+
+## 2.0.165
+
+### Patch Changes
+
+- ai@6.0.159
+
+## 2.0.164
+
+### Patch Changes
+
+- Updated dependencies [295beba]
+  - ai@6.0.158
+
+## 2.0.163
+
+### Patch Changes
+
+- Updated dependencies [ff11aee]
+  - ai@6.0.157
+
+## 2.0.162
+
+### Patch Changes
+
+- ai@6.0.156
+
+## 2.0.161
+
+### Patch Changes
+
+- Updated dependencies [06764c5]
+  - ai@6.0.155
+
+## 2.0.160
+
+### Patch Changes
+
+- ai@6.0.154
+
+## 2.0.159
+
+### Patch Changes
+
+- Updated dependencies [f152133]
+  - ai@6.0.153
+
+## 2.0.158
+
+### Patch Changes
+
+- Updated dependencies [d42076d]
+  - ai@6.0.152
+
+## 2.0.157
+
+### Patch Changes
+
+- ai@6.0.151
+
+## 2.0.156
+
+### Patch Changes
+
+- Updated dependencies [1003609]
+  - ai@6.0.150
+
+## 2.0.155
+
+### Patch Changes
+
+- ai@6.0.149
+
+## 2.0.154
+
+### Patch Changes
+
+- ai@6.0.148
+
+## 2.0.153
+
+### Patch Changes
+
+- ai@6.0.147
+
+## 2.0.152
+
+### Patch Changes
+
+- ai@6.0.146
+
+## 2.0.151
+
+### Patch Changes
+
+- ai@6.0.145
+
+## 2.0.150
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - ai@6.0.144
+
 ## 2.0.149
 
 ### Patch Changes

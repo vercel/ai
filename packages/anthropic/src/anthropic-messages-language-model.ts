@@ -269,8 +269,38 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
+      rejectsSamplingParameters,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
+
+    if (rejectsSamplingParameters) {
+      if (temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${this.modelId} and will be ignored`,
+        });
+        temperature = undefined;
+      }
+      if (topK != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${this.modelId} and will be ignored`,
+        });
+        topK = undefined;
+      }
+      if (topP != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${this.modelId} and will be ignored`,
+        });
+        topP = undefined;
+      }
+    }
+
+    const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
 
     const supportsStructuredOutput =
       (this.config.supportsNativeStructuredOutput ?? true) &&
@@ -343,6 +373,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       thinkingType === 'enabled'
         ? anthropicOptions?.thinking?.budgetTokens
         : undefined;
+    const thinkingDisplay =
+      thinkingType === 'adaptive'
+        ? anthropicOptions?.thinking?.display
+        : undefined;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
 
@@ -362,15 +396,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         thinking: {
           type: thinkingType,
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
+          ...(thinkingDisplay != null && { display: thinkingDisplay }),
         },
       }),
       ...((anthropicOptions?.effort ||
+        anthropicOptions?.taskBudget ||
         (useStructuredOutput &&
           responseFormat?.type === 'json' &&
           responseFormat.schema != null)) && {
         output_config: {
           ...(anthropicOptions?.effort && {
             effort: anthropicOptions.effort,
+          }),
+          ...(anthropicOptions?.taskBudget && {
+            task_budget: {
+              type: anthropicOptions.taskBudget.type,
+              total: anthropicOptions.taskBudget.total,
+              ...(anthropicOptions.taskBudget.remaining != null && {
+                remaining: anthropicOptions.taskBudget.remaining,
+              }),
+            },
           }),
           ...(useStructuredOutput &&
             responseFormat?.type === 'json' &&
@@ -384,6 +429,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       }),
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
+      }),
+      ...(anthropicOptions?.inferenceGeo && {
+        inference_geo: anthropicOptions.inferenceGeo,
       }),
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
@@ -535,8 +583,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       // adjust max tokens to account for thinking:
       baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
     } else {
-      // Only check temperature/topP mutual exclusivity when thinking is not enabled
-      if (topP != null && temperature != null) {
+      // Only check temperature/topP mutual exclusivity for known Anthropic models
+      // when thinking is not enabled. Non-Anthropic models using the Anthropic-compatible
+      // API (e.g. Minimax) may require both parameters to be set.
+      if (isAnthropicModel && topP != null && temperature != null) {
         warnings.push({
           type: 'unsupported',
           feature: 'topP',
@@ -605,14 +655,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
       betas.add('effort-2025-11-24');
     }
 
+    if (anthropicOptions?.taskBudget) {
+      betas.add('task-budgets-2026-03-13');
+    }
+
     if (anthropicOptions?.speed === 'fast') {
       betas.add('fast-mode-2026-02-01');
     }
 
-    // only when streaming: enable fine-grained tool streaming
-    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
-      betas.add('fine-grained-tool-streaming-2025-05-14');
-    }
+    const defaultEagerInputStreaming =
+      stream && (anthropicOptions?.toolStreaming ?? true);
 
     const {
       tools: anthropicTools,
@@ -628,6 +680,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             cacheControlValidator,
             supportsStructuredOutput: false,
             supportsStrictTools,
+            defaultEagerInputStreaming,
           }
         : {
             tools: tools ?? [],
@@ -636,6 +689,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
             cacheControlValidator,
             supportsStructuredOutput,
             supportsStrictTools,
+            defaultEagerInputStreaming,
           },
     );
 
@@ -2277,15 +2331,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
   supportsStructuredOutput: boolean;
+  rejectsSamplingParameters: boolean;
   isKnownModel: boolean;
 } {
-  if (
+  if (modelId.includes('claude-opus-4-7')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      isKnownModel: true,
+    };
+  } else if (
     modelId.includes('claude-sonnet-4-6') ||
     modelId.includes('claude-opus-4-6')
   ) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (
@@ -2296,36 +2359,42 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: true,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-sonnet-4-')) {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: false,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
+      rejectsSamplingParameters: false,
       isKnownModel: false,
     };
   }

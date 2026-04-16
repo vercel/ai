@@ -205,6 +205,7 @@ describe('KlingAIVideoModel', () => {
       await model.doGenerate({ ...defaultOptions });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model_name: 'kling-v2-6',
         prompt,
         video_url: 'https://example.com/reference-motion.mp4',
         character_orientation: 'image',
@@ -448,6 +449,38 @@ describe('KlingAIVideoModel', () => {
           feature: 'n',
         }),
       );
+    });
+
+    it('should derive model_name kling-v3 for kling-v3.0-motion-control', async () => {
+      const model = createBasicModel({
+        modelId: 'kling-v3.0-motion-control',
+      });
+
+      await model.doGenerate({ ...defaultOptions });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({ model_name: 'kling-v3' });
+    });
+
+    it('should send element_list when provided for motion control', async () => {
+      const model = createBasicModel({
+        modelId: 'kling-v3.0-motion-control',
+      });
+
+      await model.doGenerate({
+        ...defaultOptions,
+        providerOptions: {
+          klingai: {
+            ...klingaiProviderOptions.klingai,
+            elementList: [{ element_id: 829836802793406551 }],
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        element_list: [{ element_id: 829836802793406551 }],
+      });
     });
 
     it('should send mode=pro when specified', async () => {
@@ -739,6 +772,25 @@ describe('KlingAIVideoModel', () => {
       expect(body).toMatchObject({
         voice_list: [{ voice_id: 'voice-abc' }],
         sound: 'on',
+      });
+    });
+
+    it('should send watermark_info when watermarkEnabled is set for T2V', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-t2v' });
+
+      await model.doGenerate({
+        ...t2vDefaultOptions,
+        providerOptions: {
+          klingai: {
+            ...t2vProviderOptions.klingai,
+            watermarkEnabled: true,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        watermark_info: { enabled: true },
       });
     });
 
@@ -1064,6 +1116,25 @@ describe('KlingAIVideoModel', () => {
       expect(body).toMatchObject({
         voice_list: [{ voice_id: 'voice-abc' }, { voice_id: 'voice-def' }],
         sound: 'on',
+      });
+    });
+
+    it('should send watermark_info when watermarkEnabled is set for I2V', async () => {
+      const model = createBasicModel({ modelId: 'kling-v2.6-i2v' });
+
+      await model.doGenerate({
+        ...i2vDefaultOptions,
+        providerOptions: {
+          klingai: {
+            ...i2vProviderOptions.klingai,
+            watermarkEnabled: false,
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body).toMatchObject({
+        watermark_info: { enabled: false },
       });
     });
 

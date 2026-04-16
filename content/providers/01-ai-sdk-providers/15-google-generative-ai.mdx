@@ -245,11 +245,11 @@ The following optional provider options are available for Google Generative AI m
   Optional. Defines labels used in billing reports. Available on Vertex AI only.
   See [Google Cloud labels documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls).
 
-- **serviceTier** _'SERVICE_TIER_STANDARD' | 'SERVICE_TIER_FLEX' | 'SERVICE_TIER_PRIORITY'_
+- **serviceTier** _'standard' | 'flex' | 'priority'_
 
   Optional. The service tier to use for the request.
-  Set to 'SERVICE_TIER_FLEX' for 50% cheaper processing at the cost of increased latency.
-  Set to 'SERVICE_TIER_PRIORITY' for ultra-low latency at a 75-100% price premium over 'SERVICE_TIER_STANDARD'.
+  Set to 'flex' for 50% cheaper processing at the cost of increased latency.
+  Set to 'priority' for ultra-low latency at a 75-100% price premium over 'standard'.
 
 - **threshold** _string_
 

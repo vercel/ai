@@ -1,5 +1,31 @@
 # @ai-sdk/klingai
 
+## 3.0.14
+
+### Patch Changes
+
+- f4a9c74: feat (provider/klingai): add kling v3.0 motion control support
+
+## 3.0.13
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 3.0.11
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
 ## 3.0.10
 
 ### Patch Changes
