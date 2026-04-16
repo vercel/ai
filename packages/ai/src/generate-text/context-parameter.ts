@@ -8,6 +8,7 @@ import {
 /**
  * Helper type to make the context parameter optional or required based on the tool set and user context.
  */
+// TODO simplify to ToolsContextParameter once coupling is removed
 export type ContextParameter<
   TOOLS extends ToolSet,
   USER_CONTEXT extends Context,
@@ -25,7 +26,9 @@ export type ContextParameter<
        * If you need to mutate the context, analyze the tool calls and results
        * in `prepareStep` and update it there.
        */
-      context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+      context: USER_CONTEXT;
+
+      toolsContext: InferToolSetContext<TOOLS>;
     }
   : HasRequiredKey<USER_CONTEXT> extends true
     ? {
@@ -40,5 +43,7 @@ export type ContextParameter<
          * in `prepareStep` and update it there.
          */
         context: USER_CONTEXT;
+
+        toolsContext?: never;
       }
-    : { context?: never });
+    : { context?: never; toolsContext?: never });

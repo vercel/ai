@@ -270,6 +270,7 @@ export async function generateText<
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
   context: contextArg,
+  // toolsContext: toolsContextArg,
   experimental_include: include,
   _internal: {
     generateId = originalGenerateId,

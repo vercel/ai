@@ -21,6 +21,7 @@ import { ToolExecuteFunction, ToolExecutionOptions } from './tool';
  * @param params.options Additional options for tool execution.
  * @yields An object containing either a preliminary or final output from the tool.
  */
+// TODO change to tool as param (this removing the need for bind)
 export async function* executeTool<INPUT, OUTPUT, CONTEXT extends Context>({
   execute,
   input,
