@@ -47,7 +47,14 @@ AI SDK 7 Beta introduces several new capabilities (with more to come soon):
 
 ### WorkflowAgent
 
-AI SDK 7 introduces `WorkflowAgent`, a durable agent implementation built for Vercel Workflows. It gives you the same multi-step loop as `ToolLoopAgent`, but with persisted workflow state, resumability, retries, and approval flows that can pause and resume safely.
+AI SDK 7 introduces `WorkflowAgent`, a durable agent implementation built for Vercel Workflows. This is a major unlock for production agents: instead of running entirely in memory and being limited to a single request lifecycle, your agent can keep going across workflow boundaries with durable execution built in.
+
+Why this matters:
+
+- **Durable tool execution** — every tool call runs as its own workflow step with persistence and automatic retries
+- **Long-running agents** — workflows can keep going far beyond a normal request/response window
+- **Pause and resume safely** — approval flows and interruptions no longer force a full restart
+- **Built-in observability** — each tool step is visible in workflow dashboards out of the box
 
 ```ts
 import { WorkflowAgent } from '@ai-sdk/workflow';
@@ -76,7 +83,7 @@ On the UI side, `WorkflowChatTransport` lets `useChat` reconnect and resume inte
 
 ### Overhauled Telemetry
 
-AI SDK 7 overhauls telemetry. OpenTelemetry support now lives in the new `@ai-sdk/otel` package, and telemetry is built around a new integration system that you can register globally or customize per call.
+AI SDK 7 overhauls telemetry to make observability much easier to adopt. OpenTelemetry support now lives in the new `@ai-sdk/otel` package, and setup is intentionally simple: register an integration once, then enable telemetry on the calls you want to trace.
 
 ```ts
 import { registerTelemetryIntegration, streamText } from 'ai';
@@ -92,14 +99,14 @@ const result = streamText({
 });
 ```
 
-This new architecture powers several major improvements:
+Why this matters:
 
-- **Decoupled OpenTelemetry support** via `@ai-sdk/otel`
-- **Semantic-convention spans** with `GenAIOpenTelemetryIntegration`, or legacy AI SDK spans with `OpenTelemetryIntegration`
-- **Per-call or global integrations** through `registerTelemetryIntegration()` and `experimental_telemetry.integrations`
-- **DevTools support** through integrations like `DevToolsTelemetry()` for local inspection and debugging
+- **Simple setup** — one package, one registration, one per-call flag
+- **Pluggable integrations** — register once globally or swap integrations per call
+- **Modern tracing formats** — use `GenAIOpenTelemetryIntegration` for semantic-convention spans or `OpenTelemetryIntegration` for legacy AI SDK spans
+- **Fast path to observability** — send traces to providers like [Braintrust](/providers/observability/braintrust), [Langfuse](/providers/observability/langfuse), and [MLflow](/providers/observability/mlflow), or inspect them locally with `DevToolsTelemetry()`
 
-Observability integrations are already available across the ecosystem. Some, like [Braintrust](/providers/observability/braintrust), [Langfuse](/providers/observability/langfuse), and [MLflow](/providers/observability/mlflow), integrate via `@ai-sdk/otel`. Others, like [LangSmith](/providers/observability/langsmith), [Axiom](/providers/observability/axiom), and [Helicone](/providers/observability/helicone), integrate through wrappers or provider-level instrumentation instead.
+Observability integrations are already available across the ecosystem. Some integrate via `@ai-sdk/otel`; others, like [LangSmith](/providers/observability/langsmith), [Axiom](/providers/observability/axiom), and [Helicone](/providers/observability/helicone), connect through wrappers or provider-level instrumentation instead.
 
 Learn more in the [Telemetry documentation](/docs/ai-sdk-core/telemetry), [Observability Integrations](/providers/observability), and [DevTools documentation](/docs/ai-sdk-core/devtools).
 
