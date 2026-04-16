@@ -27,6 +27,7 @@ export async function prepareTools({
   cacheControlValidator,
   supportsStructuredOutput,
   supportsStrictTools,
+  defaultEagerInputStreaming = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -42,6 +43,15 @@ export async function prepareTools({
    * Whether the model supports strict mode on tool definitions.
    */
   supportsStrictTools: boolean;
+
+  /**
+   * Default for `eager_input_streaming` on function tools that do not set
+   * it explicitly. Used to translate the model-level `toolStreaming` option
+   * (which previously enabled fine-grained tool streaming globally via the
+   * now-deprecated `fine-grained-tool-streaming-2025-05-14` beta) into the
+   * GA per-tool opt-in.
+   */
+  defaultEagerInputStreaming?: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -73,8 +83,10 @@ export async function prepareTools({
         const anthropicOptions = tool.providerOptions?.anthropic as
           | AnthropicToolOptions
           | undefined;
-        // eager_input_streaming is only supported on custom (function) tools
-        const eagerInputStreaming = anthropicOptions?.eagerInputStreaming;
+        // eager_input_streaming is only supported on custom (function) tools.
+        // Fall back to the model-level default when the tool doesn't set it.
+        const eagerInputStreaming =
+          anthropicOptions?.eagerInputStreaming ?? defaultEagerInputStreaming;
         const deferLoading = anthropicOptions?.deferLoading;
         const allowedCallers = anthropicOptions?.allowedCallers;
 

@@ -184,10 +184,13 @@ export const anthropicLanguageModelOptions = z.object({
     .optional(),
 
   /**
-   * @deprecated No longer has any effect. Fine-grained tool streaming is GA
-   * and is opted-in per-tool via
-   * `providerOptions.anthropic.eagerInputStreaming: true` on the tool
-   * definition.
+   * Whether to enable fine-grained (eager) streaming of tool call inputs
+   * and structured outputs as a default for all tools in this request. When
+   * set to false, tool inputs arrive in larger buffered chunks after JSON
+   * validation. Individual tools can still override this default via
+   * `providerOptions.anthropic.eagerInputStreaming`.
+   *
+   * @default true
    */
   toolStreaming: z.boolean().optional(),
 

@@ -720,13 +720,15 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
     }
 
     // Fine-grained tool streaming is GA on all models and platforms. It is
-    // now opted-in per-tool via `eager_input_streaming: true` on the tool
-    // definition (set via `providerOptions.anthropic.eagerInputStreaming` on
-    // the tool), rather than via a global `anthropic-beta` header. The
-    // legacy beta flag is unnecessary on Anthropic direct and is rejected by
-    // Bedrock's passthrough validation on newer models (e.g. Opus 4.7). The
-    // model-level `toolStreaming` option is now a no-op.
+    // now opted-in per-tool via `eager_input_streaming: true` on each tool
+    // rather than via the legacy `anthropic-beta` header. We translate the
+    // model-level `toolStreaming` option (default true) into a per-tool
+    // default so existing behavior is preserved while using the supported
+    // API. The legacy beta is no longer sent; Bedrock's passthrough
+    // validation on newer models (e.g. Opus 4.7) rejects it.
     // https://docs.claude.com/en/docs/build-with-claude/fine-grained-tool-streaming
+    const defaultEagerInputStreaming =
+      stream && (anthropicOptions?.toolStreaming ?? true);
 
     const {
       tools: anthropicTools,
@@ -742,6 +744,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
             cacheControlValidator,
             supportsStructuredOutput: false,
             supportsStrictTools,
+            defaultEagerInputStreaming,
           }
         : {
             tools: tools ?? [],
@@ -750,6 +753,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
             cacheControlValidator,
             supportsStructuredOutput,
             supportsStrictTools,
+            defaultEagerInputStreaming,
           },
     );
 
