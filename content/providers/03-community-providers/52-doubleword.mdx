@@ -53,7 +53,7 @@ You can create language models using any model ID configured in your Doubleword 
 ```ts
 import { doubleword } from '@doubleword/vercel-ai';
 
-const model = doubleword('Qwen/Qwen3-30B-A3B');
+const model = doubleword('Qwen/Qwen3.5-35B-A3B-FP8');
 ```
 
 Doubleword routes requests to the appropriate inference provider based on your configured routing rules.
@@ -77,7 +77,7 @@ import { generateText } from 'ai';
 import { doubleword } from '@doubleword/vercel-ai';
 
 const { text } = await generateText({
-  model: doubleword('Qwen/Qwen3-30B-A3B'),
+  model: doubleword('Qwen/Qwen3.5-35B-A3B-FP8'),
   prompt: 'What is Doubleword?',
 });
 
@@ -91,7 +91,7 @@ import { streamText } from 'ai';
 import { doubleword } from '@doubleword/vercel-ai';
 
 const result = streamText({
-  model: doubleword('Qwen/Qwen3-30B-A3B'),
+  model: doubleword('Qwen/Qwen3.5-35B-A3B-FP8'),
   prompt: 'Explain the benefits of an AI gateway.',
 });
 
@@ -107,7 +107,7 @@ import { generateText, tool, jsonSchema, stepCountIs } from 'ai';
 import { doubleword } from '@doubleword/vercel-ai';
 
 const { text } = await generateText({
-  model: doubleword('Qwen/Qwen3-30B-A3B'),
+  model: doubleword('Qwen/Qwen3.5-35B-A3B-FP8'),
   tools: {
     getWeather: tool({
       description: 'Get the weather for a location',
@@ -151,9 +151,9 @@ const doubleword = createDoublewordBatch();
 
 // Concurrent calls are automatically collected into batch submissions
 const results = await Promise.all([
-  generateText({ model: doubleword('Qwen/Qwen3-30B-A3B'), prompt: 'Summarize chapter 1.' }),
-  generateText({ model: doubleword('Qwen/Qwen3-30B-A3B'), prompt: 'Summarize chapter 2.' }),
-  generateText({ model: doubleword('Qwen/Qwen3-30B-A3B'), prompt: 'Summarize chapter 3.' }),
+  generateText({ model: doubleword('Qwen/Qwen3.5-35B-A3B-FP8'), prompt: 'Summarize chapter 1.' }),
+  generateText({ model: doubleword('Qwen/Qwen3.5-35B-A3B-FP8'), prompt: 'Summarize chapter 2.' }),
+  generateText({ model: doubleword('Qwen/Qwen3.5-35B-A3B-FP8'), prompt: 'Summarize chapter 3.' }),
 ]);
 
 // Flush remaining requests when done
