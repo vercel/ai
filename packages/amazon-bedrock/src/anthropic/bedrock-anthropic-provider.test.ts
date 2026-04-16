@@ -518,6 +518,56 @@ describe('bedrock-anthropic-provider', () => {
     );
   });
 
+  it('should strip fine-grained-tool-streaming beta for claude-opus-4-7', () => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('global.anthropic.claude-opus-4-7');
+
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'global.anthropic.claude-opus-4-7',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+      },
+      new Set(['fine-grained-tool-streaming-2025-05-14']),
+    );
+
+    expect(transformedBody).not.toHaveProperty('anthropic_beta');
+  });
+
+  it('should keep fine-grained-tool-streaming beta for other claude models', () => {
+    const provider = createBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('anthropic.claude-sonnet-4-5');
+
+    const constructorCall = vi.mocked(AnthropicMessagesLanguageModel).mock
+      .calls[vi.mocked(AnthropicMessagesLanguageModel).mock.calls.length - 1];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'anthropic.claude-sonnet-4-5',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+      },
+      new Set(['fine-grained-tool-streaming-2025-05-14']),
+    );
+
+    expect(transformedBody?.anthropic_beta).toContain(
+      'fine-grained-tool-streaming-2025-05-14',
+    );
+  });
+
   it('should handle models with us. prefix for inference profiles', () => {
     const provider = createBedrockAnthropic({
       region: 'us-east-1',
