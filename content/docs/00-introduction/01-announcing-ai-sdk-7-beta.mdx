@@ -52,10 +52,11 @@ AI SDK 7 introduces `WorkflowAgent`, a durable agent implementation built on the
 ```ts
 import { WorkflowAgent } from '@ai-sdk/workflow';
 import { tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 export const supportAgent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: __MODEL__,
   instructions: 'You are a helpful support agent.',
   tools: {
     lookupOrder: tool({
@@ -80,13 +81,13 @@ AI SDK 7 overhauls telemetry to make observability much easier to adopt. OpenTel
 
 ```ts
 import { registerTelemetryIntegration, streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
 import { GenAIOpenTelemetryIntegration } from '@ai-sdk/otel';
+__PROVIDER_IMPORT__;
 
 registerTelemetryIntegration(new GenAIOpenTelemetryIntegration());
 
 const result = streamText({
-  model: openai('gpt-5.4'),
+  model: __MODEL__,
   prompt: "Summarize today's release notes.",
   experimental_telemetry: { isEnabled: true },
 });
@@ -104,10 +105,10 @@ Reasoning is now a top-level setting on `generateText` and `streamText`, so you 
 
 ```ts
 import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 const { text, reasoning } = await generateText({
-  model: openai.responses('gpt-5.2'),
+  model: __MODEL__,
   reasoning: 'high',
   prompt: 'Explain quantum entanglement in simple terms.',
 });
@@ -117,10 +118,10 @@ The same setting also works on `ToolLoopAgent`. Since it accepts the same settin
 
 ```ts
 import { ToolLoopAgent } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
-  model: openai.responses('gpt-5.4'),
+  model: __MODEL__,
   reasoning: 'high',
   instructions: 'You are a helpful physics tutor.',
 });
@@ -217,10 +218,10 @@ Timeouts now work at multiple levels: total call, individual step, stalled strea
 
 ```ts
 import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 const result = await generateText({
-  model: openai.responses('gpt-5.2'),
+  model: __MODEL__,
   tools: {
     weather: weatherTool,
     slowApi: slowApiTool,
