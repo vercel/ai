@@ -1,2 +1,2 @@
-export { GenAIOpenTelemetry } from './gen-ai-open-telemetry-integration';
+export { GenAIOpenTelemetry } from './gen-ai-open-telemetry';
 export { OpenTelemetry } from './open-telemetry';
