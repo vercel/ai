@@ -1,5 +1,11 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- fbea042: refactor: replace duplicate `filterTools`/`filterToolSet` with shared `experimental_filterActiveTools` from `ai`
+
 ## 1.0.0-beta.20
 
 ### Patch Changes
