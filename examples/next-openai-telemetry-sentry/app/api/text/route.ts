@@ -12,7 +12,6 @@ export async function POST(req: Request) {
       example: 'value',
     },
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'example-function-id',
     },
   });

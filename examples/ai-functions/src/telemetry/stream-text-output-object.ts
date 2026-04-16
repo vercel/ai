@@ -38,7 +38,6 @@ run(async () => {
       someOtherThing: 'other-value',
     },
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
     },
   });

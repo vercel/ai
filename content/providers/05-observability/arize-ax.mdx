@@ -75,7 +75,7 @@ export function register() {
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
 
-Set the `experimental_telemetry` flag to true in all calls using the AI SDK:
+Once the integration is registered, telemetry is emitted automatically for all AI SDK calls:
 
 ```typescript
 import { generateText } from 'ai';
@@ -84,9 +84,6 @@ import { openai } from '@ai-sdk/openai';
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Please write a haiku.',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
@@ -140,15 +137,12 @@ registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
 
-You must set the `experimental_telemetry` flag to true in all calls using the AI SDK.
+Once the integration is registered, telemetry is emitted automatically for all AI SDK calls:
 
 ```typescript
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Please write a haiku.',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
@@ -197,15 +191,12 @@ registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
 
-You must set the `experimental_telemetry` flag to true in all calls using the AI SDK.
+Once the integration is registered, telemetry is emitted automatically for all AI SDK calls:
 
 ```typescript
 const result = await generateText({
   model: openai('gpt-5-mini'),
   prompt: 'Please write a haiku.',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
