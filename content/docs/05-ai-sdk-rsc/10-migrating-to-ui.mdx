@@ -349,13 +349,11 @@ After switching to AI SDK UI, these messages are synced by initializing the `use
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { isStepCount } from 'ai';
 
 export function ListFlights({ chatId, flights }) {
   const { append } = useChat({
     id: chatId,
     body: { id: chatId },
-    stopWhen: isStepCount(5),
   });
 
   return (
