@@ -295,6 +295,7 @@
     "workflow-agent-enrich-callbacks",
     "workflow-agent-model-type",
     "workflow-serde-support",
+    "workflow-use-filter-active-tools",
     "xsppb-nrpzc-sshwt",
     "yellow-crabs-mate",
     "yellow-lobsters-warn",
