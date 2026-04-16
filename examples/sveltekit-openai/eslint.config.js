@@ -18,6 +18,7 @@ export default ts.config(
   {
     rules: {
       'no-undef': 'off',
+      'svelte/no-navigation-without-resolve': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

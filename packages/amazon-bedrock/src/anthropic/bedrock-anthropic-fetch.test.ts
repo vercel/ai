@@ -1,6 +1,7 @@
 import { createBedrockAnthropicFetch } from './bedrock-anthropic-fetch';
 import { EventStreamCodec } from '@smithy/eventstream-codec';
 import { toUtf8, fromUtf8 } from '@smithy/util-utf8';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('createBedrockAnthropicFetch', () => {
@@ -340,5 +341,140 @@ describe('createBedrockAnthropicFetch', () => {
 
     // Should emit the raw payload data as fallback
     expect(text).toBe(`data: ${chunkPayload}\n\n`);
+  });
+
+  it('should transform Bedrock error with message into Anthropic error format', async () => {
+    const errorBody = JSON.stringify({
+      message: 'cache_control: Extra inputs are not permitted',
+    });
+    const mockResponse = new Response(errorBody, {
+      status: 400,
+      statusText: 'Bad Request',
+      headers: { 'content-type': 'application/json' },
+    });
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+
+    expect(response.status).toBe(400);
+    expect(response.statusText).toBe('Bad Request');
+    const body = JSON.parse(await response.text());
+    expect(body).toEqual({
+      type: 'error',
+      error: {
+        type: 'error',
+        message: 'cache_control: Extra inputs are not permitted',
+      },
+    });
+  });
+
+  it('should transform Bedrock error with extra fields into Anthropic error format', async () => {
+    const errorBody = JSON.stringify({
+      message: 'tools.0.custom.input_schema.type: Field required',
+      someOtherField: 'value',
+    });
+    const mockResponse = new Response(errorBody, {
+      status: 400,
+      statusText: 'Bad Request',
+      headers: { 'content-type': 'application/json' },
+    });
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+
+    const body = JSON.parse(await response.text());
+    expect(body.error.message).toBe(
+      'tools.0.custom.input_schema.type: Field required',
+    );
+  });
+
+  it('should use raw text as message when Bedrock error has no message field', async () => {
+    const errorBody = JSON.stringify({ code: 'ValidationException' });
+    const mockResponse = new Response(errorBody, {
+      status: 400,
+      statusText: 'Bad Request',
+      headers: { 'content-type': 'application/json' },
+    });
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+
+    const body = JSON.parse(await response.text());
+    expect(body.error.message).toBe(errorBody);
+  });
+
+  it('should use raw text as message when Bedrock error is not valid JSON', async () => {
+    const errorBody = 'Internal Server Error';
+    const mockResponse = new Response(errorBody, {
+      status: 500,
+      statusText: 'Internal Server Error',
+      headers: { 'content-type': 'text/plain' },
+    });
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+
+    expect(response.status).toBe(500);
+    const body = JSON.parse(await response.text());
+    expect(body.error.message).toBe('Internal Server Error');
+  });
+
+  it('should correctly decode multi-byte UTF-8 characters (emoji and non-Latin scripts)', async () => {
+    const codec = new EventStreamCodec(toUtf8, fromUtf8);
+
+    // Create an event with multi-byte UTF-8 characters that would be corrupted by atob()
+    const anthropicEvent = JSON.stringify({
+      type: 'content_block_delta',
+      delta: { type: 'text_delta', text: 'Hello! 👋🌍 Привет 你好 مرحبا' },
+    });
+
+    // Properly encode the UTF-8 string to base64 (this is what Bedrock sends)
+    const utf8Bytes = new TextEncoder().encode(anthropicEvent);
+    const base64Event = convertUint8ArrayToBase64(utf8Bytes);
+
+    const chunkPayload = JSON.stringify({
+      bytes: base64Event,
+    });
+
+    const bedrockEvent = codec.encode({
+      headers: {
+        ':message-type': { type: 'string', value: 'event' },
+        ':event-type': { type: 'string', value: 'chunk' },
+      },
+      body: fromUtf8(chunkPayload),
+    });
+
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(bedrockEvent);
+        controller.close();
+      },
+    });
+
+    const mockResponse = createMockResponse(
+      stream,
+      'application/vnd.amazon.eventstream',
+    );
+    const baseFetch = createMockFetch(mockResponse);
+    const wrappedFetch = createBedrockAnthropicFetch(baseFetch);
+
+    const response = await wrappedFetch('https://example.com', {});
+    const reader = response.body!.getReader();
+    const { value } = await reader.read();
+    const text = new TextDecoder().decode(value);
+
+    // Verify the output matches the original event with all UTF-8 characters intact
+    expect(text).toBe(`data: ${anthropicEvent}\n\n`);
+
+    // Also verify specific characters are present and not corrupted
+    expect(text).toContain('👋');
+    expect(text).toContain('🌍');
+    expect(text).toContain('Привет');
+    expect(text).toContain('你好');
+    expect(text).toContain('مرحبا');
   });
 });

@@ -1,5 +1,12 @@
 # @ai-sdk/elevenlabs
 
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
 ## 1.0.24
 
 ### Patch Changes

@@ -457,6 +457,7 @@ export function createFeatureTestSuite({
 
               it(
                 'should stream complex nested objects',
+                { timeout: 60000 },
                 async () => {
                   const result = streamObject({
                     model,
@@ -495,7 +496,6 @@ export function createFeatureTestSuite({
                   ).toBeGreaterThan(0);
                   expect(parts.length).toBeGreaterThan(0);
                 },
-                { timeout: 60000 },
               );
 
               describe('Schema and Prompt Variations', () => {

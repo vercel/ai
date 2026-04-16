@@ -194,6 +194,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
     });
 
     const content: Array<LanguageModelV2Content> = [];
+    let hasFunctionCall = false;
 
     const webSearchSubTools = [
       'web_search',
@@ -282,6 +283,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
         }
 
         case 'function_call': {
+          hasFunctionCall = true;
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -329,7 +331,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
 
     return {
       content,
-      finishReason: mapXaiResponsesFinishReason(response.status),
+      finishReason: hasFunctionCall
+        ? 'tool-calls'
+        : mapXaiResponsesFinishReason(response.status),
       usage: convertXaiResponsesUsage(response.usage),
       request: { body },
       response: {
@@ -374,6 +378,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
       outputTokens: undefined,
       totalTokens: undefined,
     };
+    let hasFunctionCall = false;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -555,7 +560,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
 
             if (
               event.type === 'response.done' ||
-              event.type === 'response.completed'
+              event.type === 'response.completed' ||
+              event.type === 'response.incomplete'
             ) {
               const response = event.response;
 
@@ -568,12 +574,48 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                 usage.cachedInputTokens = converted.cachedInputTokens;
               }
 
-              if (response.status) {
-                finishReason = mapXaiResponsesFinishReason(response.status);
+              if (event.type === 'response.incomplete') {
+                const reason =
+                  'incomplete_details' in response
+                    ? response.incomplete_details?.reason
+                    : undefined;
+                finishReason = reason
+                  ? mapXaiResponsesFinishReason(reason)
+                  : 'other';
+              } else if ('status' in response && response.status) {
+                finishReason = hasFunctionCall
+                  ? 'tool-calls'
+                  : mapXaiResponsesFinishReason(response.status);
               }
 
               return;
             }
+
+            if (event.type === 'response.failed') {
+              const reason = event.response.incomplete_details?.reason;
+              finishReason = reason
+                ? mapXaiResponsesFinishReason(reason)
+                : 'error';
+
+              if (event.response.usage) {
+                const converted = convertXaiResponsesUsage(
+                  event.response.usage,
+                );
+                usage.inputTokens = converted.inputTokens;
+                usage.outputTokens = converted.outputTokens;
+                usage.totalTokens = converted.totalTokens;
+                usage.reasoningTokens = converted.reasoningTokens;
+                usage.cachedInputTokens = converted.cachedInputTokens;
+              }
+
+              return;
+            }
+
+            if (event.type === 'error') {
+              controller.enqueue({ type: 'error', error: event });
+              return;
+            }
+
             // Function call arguments streaming (standard function tools)
             if (event.type === 'response.function_call_arguments.delta') {
               const toolCall = ongoingToolCalls[event.output_index];
@@ -767,6 +809,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                     toolName: part.name,
                   });
                 } else if (event.type === 'response.output_item.done') {
+                  hasFunctionCall = true;
                   ongoingToolCalls[event.output_index] = undefined;
 
                   controller.enqueue({

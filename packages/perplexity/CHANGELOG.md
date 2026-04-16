@@ -1,5 +1,18 @@
 # @ai-sdk/perplexity
 
+## 2.0.27
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
+## 2.0.26
+
+### Patch Changes
+
+- e70fd60: feat(perplexity): expose provider-reported cost in providerMetadata
+
 ## 2.0.25
 
 ### Patch Changes

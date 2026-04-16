@@ -1,5 +1,44 @@
 # @ai-sdk/anthropic
 
+## 2.0.76
+
+### Patch Changes
+
+- 2fe3997: feat (provider/anthropic): add support for inference_geo provider option
+
+## 2.0.75
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 2.0.74
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
+## 2.0.73
+
+### Patch Changes
+
+- 42bc840: fix(anthropic): move claude-haiku-4-5 to the 4-5 model group in getModelCapabilities
+
+  Moves `claude-haiku-4-5` from the `claude-sonnet-4-`/`claude-3-7-sonnet` group (structured output: false) to the `claude-sonnet-4-5`/`claude-opus-4-5` group (structured output: true), aligning with main and release-v6.0.
+
+## 2.0.72
+
+### Patch Changes
+
+- 98bd0e2: feat(provider/anthropic): support new code_execution tool
+
+## 2.0.71
+
+### Patch Changes
+
+- b0a0821: feat (provider/anthropic): support passing metadata.user_id
+
 ## 2.0.70
 
 ### Patch Changes

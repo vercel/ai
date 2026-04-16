@@ -1,5 +1,61 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.95
+
+### Patch Changes
+
+- Updated dependencies [2fe3997]
+  - @ai-sdk/anthropic@2.0.76
+
+## 3.0.94
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [4b40033]
+  - @ai-sdk/anthropic@2.0.75
+
+## 3.0.93
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/anthropic@2.0.74
+
+## 3.0.92
+
+### Patch Changes
+
+- Updated dependencies [42bc840]
+  - @ai-sdk/anthropic@2.0.73
+
+## 3.0.91
+
+### Patch Changes
+
+- Updated dependencies [98bd0e2]
+  - @ai-sdk/anthropic@2.0.72
+
+## 3.0.90
+
+### Patch Changes
+
+- 0967b6c: fix(provider/amazon-bedrock): transform bedrock/anthropic error responses to anthropic format
+
+## 3.0.89
+
+### Patch Changes
+
+- Updated dependencies [b0a0821]
+  - @ai-sdk/anthropic@2.0.71
+
+## 3.0.88
+
+### Patch Changes
+
+- af256b7: fix(provider/amazon-bedrock): fix base64 decoding
+
 ## 3.0.87
 
 ### Patch Changes

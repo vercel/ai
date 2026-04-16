@@ -21,6 +21,7 @@ export type AnthropicMessagesModelId =
   | 'claude-sonnet-4-5'
   | 'claude-sonnet-4-6'
   | 'claude-opus-4-6'
+  | 'claude-opus-4-7'
   | (string & {});
 
 /**
@@ -82,6 +83,12 @@ export const anthropicProviderOptions = z.object({
       z.object({
         /** for Sonnet 4.6, Opus 4.6, and newer models */
         type: z.literal('adaptive'),
+        /**
+         * Controls whether thinking content is included in the response.
+         * - `"omitted"`: Thinking blocks are present but text is empty (default for Opus 4.7+).
+         * - `"summarized"`: Thinking content is returned. Required to see reasoning output.
+         */
+        display: z.enum(['omitted', 'summarized']).optional(),
       }),
       z.object({
         /** for models before Opus 4.6, except Sonnet 4.6 still supports it */
@@ -112,6 +119,23 @@ export const anthropicProviderOptions = z.object({
     .optional(),
 
   /**
+   * Metadata to include with the request.
+   *
+   * See https://platform.claude.com/docs/en/api/messages/create for details.
+   */
+  metadata: z
+    .object({
+      /**
+       * An external identifier for the user associated with the request.
+       *
+       * Should be a UUID, hash value, or other opaque identifier.
+       * Must not contain PII (name, email, phone number, etc.).
+       */
+      userId: z.string().optional(),
+    })
+    .optional(),
+
+  /**
    * Agent Skills configuration. Skills enable Claude to perform specialized tasks
    * like document processing (PPTX, DOCX, PDF, XLSX) and data analysis.
    * Requires code execution tool to be enabled.
@@ -134,13 +158,38 @@ export const anthropicProviderOptions = z.object({
   /**
    * @default 'high'
    */
-  effort: z.enum(['low', 'medium', 'high', 'max']).optional(),
+  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+
+  /**
+   * Task budget for agentic turns. Informs the model of the total token budget
+   * available for the current task, allowing it to prioritize work and wind down
+   * gracefully as the budget is consumed.
+   *
+   * Advisory only — does not enforce a hard token limit.
+   */
+  taskBudget: z
+    .object({
+      type: z.literal('tokens'),
+      total: z.number().int().min(20000),
+      remaining: z.number().int().min(0).optional(),
+    })
+    .optional(),
 
   /**
    * Enable fast mode for faster inference (2.5x faster output token speeds).
    * Only supported with claude-opus-4-6.
    */
   speed: z.enum(['fast', 'standard']).optional(),
+
+  /**
+   * Controls where model inference runs for this request.
+   *
+   * - `"global"`: Inference may run in any available geography (default).
+   * - `"us"`: Inference runs only in US-based infrastructure.
+   *
+   * See https://platform.claude.com/docs/en/build-with-claude/data-residency
+   */
+  inferenceGeo: z.enum(['us', 'global']).optional(),
 
   /**
    * Context management configuration for automatic context window management.

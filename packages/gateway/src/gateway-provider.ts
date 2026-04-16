@@ -13,6 +13,16 @@ import {
   type GatewayFetchMetadataResponse,
   type GatewayCreditsResponse,
 } from './gateway-fetch-metadata';
+import {
+  GatewaySpendReport,
+  type GatewaySpendReportParams,
+  type GatewaySpendReportResponse,
+} from './gateway-spend-report';
+import {
+  GatewayGenerationInfoFetcher,
+  type GatewayGenerationInfoParams,
+  type GatewayGenerationInfo,
+} from './gateway-generation-info';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
@@ -47,6 +57,22 @@ Returns available providers and models for use with the remote provider.
 Returns credit information for the authenticated user.
  */
   getCredits(): Promise<GatewayCreditsResponse>;
+
+  /**
+   * Returns a spend report with cost, token, and request count data,
+   * aggregated by the specified dimension.
+   */
+  getSpendReport(
+    params: GatewaySpendReportParams,
+  ): Promise<GatewaySpendReportResponse>;
+
+  /**
+   * Returns detailed information about a specific generation by its ID,
+   * including cost, token usage, latency, and provider details.
+   */
+  getGenerationInfo(
+    params: GatewayGenerationInfoParams,
+  ): Promise<GatewayGenerationInfo>;
 
   /**
 Creates a model for generating text embeddings.
@@ -221,6 +247,36 @@ export function createGatewayProvider(
       });
   };
 
+  const getSpendReport = async (params: GatewaySpendReportParams) => {
+    return new GatewaySpendReport({
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    })
+      .getSpendReport(params)
+      .catch(async (error: unknown) => {
+        throw await asGatewayError(
+          error,
+          await parseAuthMethod(await getHeaders()),
+        );
+      });
+  };
+
+  const getGenerationInfo = async (params: GatewayGenerationInfoParams) => {
+    return new GatewayGenerationInfoFetcher({
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    })
+      .getGenerationInfo(params)
+      .catch(async (error: unknown) => {
+        throw await asGatewayError(
+          error,
+          await parseAuthMethod(await getHeaders()),
+        );
+      });
+  };
+
   const provider = function (modelId: GatewayModelId) {
     if (new.target) {
       throw new Error(
@@ -233,6 +289,8 @@ export function createGatewayProvider(
 
   provider.getAvailableModels = getAvailableModels;
   provider.getCredits = getCredits;
+  provider.getSpendReport = getSpendReport;
+  provider.getGenerationInfo = getGenerationInfo;
   provider.imageModel = (modelId: GatewayImageModelId) => {
     return new GatewayImageModel(modelId, {
       provider: 'gateway',

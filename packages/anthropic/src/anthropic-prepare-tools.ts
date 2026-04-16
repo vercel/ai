@@ -90,6 +90,13 @@ export async function prepareTools({
             });
             break;
           }
+          case 'anthropic.code_execution_20260120': {
+            anthropicTools.push({
+              type: 'code_execution_20260120',
+              name: 'code_execution',
+            });
+            break;
+          }
           case 'anthropic.computer_20250124': {
             betas.add('computer-use-2025-01-24');
             anthropicTools.push({
