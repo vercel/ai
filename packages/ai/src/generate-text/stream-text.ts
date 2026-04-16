@@ -410,7 +410,7 @@ export function streamText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
+    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -811,9 +811,7 @@ class DefaultStreamTextResult<
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     stopConditions: Array<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>;
     output: OUTPUT | undefined;
-    toolNeedsApproval:
-      | ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>
-      | undefined;
+    toolNeedsApproval: ToolNeedsApprovalConfiguration<TOOLS> | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>
