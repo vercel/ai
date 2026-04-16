@@ -10,6 +10,7 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
+  asArray,
   createIdGenerator,
   DelayedPromise,
   IdGenerator,
@@ -64,7 +65,6 @@ import {
 } from '../ui-message-stream/ui-message-chunks';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import { InferUIMessageData, InferUIMessageMetadata } from '../ui/ui-messages';
-import { asArray } from '../util/as-array';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,

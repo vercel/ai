@@ -1,4 +1,4 @@
-import { asArray } from './as-array';
+import { asArray } from '@ai-sdk/provider-utils';
 import type { Callback } from './callback';
 
 /**

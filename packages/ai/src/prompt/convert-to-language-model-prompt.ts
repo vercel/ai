@@ -6,6 +6,7 @@ import {
   LanguageModelV4ToolResultOutput,
 } from '@ai-sdk/provider';
 import {
+  asArray,
   CustomPart,
   DataContent,
   FilePart,
@@ -33,7 +34,6 @@ import { logWarnings } from '../logger/log-warnings';
 import type { Warning } from '../types/warning';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
-import { asArray } from '../util/as-array';
 import { MissingToolResultsError } from '../error/missing-tool-result-error';
 
 export async function convertToLanguageModelPrompt({

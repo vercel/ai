@@ -1,4 +1,4 @@
-import { asArray } from '../util/as-array';
+import { asArray } from '@ai-sdk/provider-utils';
 import { Callback } from '../util/callback';
 import { mergeCallbacks } from '../util/merge-callbacks';
 import type { TelemetryIntegration } from './telemetry-integration';

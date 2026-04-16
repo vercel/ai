@@ -9,6 +9,7 @@ import type {
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
+  asArray,
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
@@ -48,7 +49,6 @@ import {
   asLanguageModelUsage,
   LanguageModelUsage,
 } from '../types/usage';
-import { asArray } from '../util/as-array';
 import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
