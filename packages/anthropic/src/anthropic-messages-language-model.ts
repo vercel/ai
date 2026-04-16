@@ -719,8 +719,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       betas.add('fast-mode-2026-02-01');
     }
 
-    // only when streaming: enable fine-grained tool streaming
-    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
+    // only when streaming: enable fine-grained tool streaming.
+    if (
+      stream &&
+      (anthropicOptions?.toolStreaming ?? true) &&
+      !this.modelId.includes('claude-opus-4-7')
+    ) {
       betas.add('fine-grained-tool-streaming-2025-05-14');
     }
 

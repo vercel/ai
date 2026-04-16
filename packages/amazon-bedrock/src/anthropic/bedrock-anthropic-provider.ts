@@ -37,13 +37,6 @@ const BEDROCK_TOOL_NAME_MAP: Record<string, string> = {
   text_editor_20250728: 'str_replace_based_edit_tool',
 };
 
-function getBedrockUnsupportedBetas(modelId: string): ReadonlySet<string> {
-  if (modelId.includes('claude-opus-4-7')) {
-    return new Set(['fine-grained-tool-streaming-2025-05-14']);
-  }
-  return new Set();
-}
-
 // Map tool types to required anthropic_beta values for Bedrock
 const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
   bash_20250124: 'computer-use-2025-01-24',
@@ -284,10 +277,7 @@ export function createBedrockAnthropic(
               }
             : undefined;
 
-        const unsupportedBetas = getBedrockUnsupportedBetas(modelId);
-        const requiredBetas = new Set<string>(
-          [...betas].filter(b => !unsupportedBetas.has(b)),
-        );
+        const requiredBetas = new Set<string>(betas);
         const transformedTools = tools?.map((tool: Record<string, unknown>) => {
           const toolType = tool.type as string | undefined;
 
