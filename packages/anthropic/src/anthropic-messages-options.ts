@@ -188,12 +188,7 @@ export const anthropicLanguageModelOptions = z.object({
    * and structured outputs for every function tool in the request. When
    * true (the default), each function tool receives a default of
    * `eager_input_streaming: true` unless it explicitly sets
-   * `providerOptions.anthropic.eagerInputStreaming`. When false, no default
-   * is injected — tools that want fine-grained streaming must opt in per
-   * tool. Only applies to streaming requests.
-   *
-   * Fine-grained streaming is a GA feature; see
-   * https://docs.claude.com/en/docs/build-with-claude/fine-grained-tool-streaming.
+   * `providerOptions.anthropic.eagerInputStreaming`.
    *
    * @default true
    */
