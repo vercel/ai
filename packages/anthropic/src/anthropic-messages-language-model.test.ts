@@ -8603,6 +8603,59 @@ describe('AnthropicMessagesLanguageModel', () => {
         expect(toolCall?.input).toBe('{"city": "London"}');
       });
 
+      it('should handle a real-world code_execution_tool_result pre-populated in message_start content', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"type":"message_start","message":{"id":"msg_01Test","type":"message","role":"assistant","content":[{"type":"code_execution_tool_result","tool_use_id":"srvtoolu_01CodeExec","content":{"type":"code_execution_result","stdout":"1\\\\n","stderr":"","return_code":0,"content":[]}}],"model":"claude-3-haiku-20240307","stop_reason":"tool_use","stop_sequence":null,"usage":{"input_tokens":100,"output_tokens":1}}}\n\n`,
+            `data: [DONE]\n\n`,
+          ],
+        };
+
+        const { stream } = await model.doStream({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20250825',
+              name: 'code_execution',
+              args: {},
+            },
+          ],
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const responseMetadata = parts.find(
+          (
+            part,
+          ): part is LanguageModelV4StreamPart & {
+            type: 'response-metadata';
+          } => part.type === 'response-metadata',
+        );
+        const toolResult = parts.find(
+          (part): part is LanguageModelV4StreamPart & { type: 'tool-result' } =>
+            part.type === 'tool-result',
+        );
+
+        expect(responseMetadata).toMatchObject({
+          type: 'response-metadata',
+          id: 'msg_01Test',
+          modelId: 'claude-3-haiku-20240307',
+        });
+        expect(toolResult).toMatchObject({
+          type: 'tool-result',
+          toolCallId: 'srvtoolu_01CodeExec',
+          toolName: 'code_execution',
+          result: {
+            type: 'code_execution_result',
+            stdout: '1\\n',
+            stderr: '',
+            return_code: 0,
+            content: [],
+          },
+        });
+      });
+
       describe('with fixture (multi-turn dice game)', () => {
         it('should stream programmatic tool calling with multiple message_start/stop sequences', async () => {
           prepareChunksFixtureResponse('anthropic-programmatic-tool-calling.1');

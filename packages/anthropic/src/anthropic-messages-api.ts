@@ -891,6 +891,235 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
   ),
 );
 
+const anthropicToolCallCallerSchema = z.union([
+  z.object({
+    type: z.literal('code_execution_20250825'),
+    tool_id: z.string(),
+  }),
+  z.object({
+    type: z.literal('code_execution_20260120'),
+    tool_id: z.string(),
+  }),
+  z.object({
+    type: z.literal('direct'),
+  }),
+]);
+
+const anthropicMessagesContentBlockSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('text'),
+    text: z.string(),
+  }),
+  z.object({
+    type: z.literal('thinking'),
+    thinking: z.string(),
+  }),
+  z.object({
+    type: z.literal('tool_use'),
+    id: z.string(),
+    name: z.string(),
+    // Programmatic tool calling: input may be present directly for deferred tool calls
+    input: z.record(z.string(), z.unknown()).optional(),
+    // Programmatic tool calling: caller info when triggered from code execution
+    caller: anthropicToolCallCallerSchema.optional(),
+  }),
+  z.object({
+    type: z.literal('redacted_thinking'),
+    data: z.string(),
+  }),
+  z.object({
+    type: z.literal('compaction'),
+    content: z.string().nullish(),
+  }),
+  z.object({
+    type: z.literal('server_tool_use'),
+    id: z.string(),
+    name: z.string(),
+    input: z.record(z.string(), z.unknown()).nullish(),
+    caller: anthropicToolCallCallerSchema.optional(),
+  }),
+  z.object({
+    type: z.literal('mcp_tool_use'),
+    id: z.string(),
+    name: z.string(),
+    input: z.unknown(),
+    server_name: z.string(),
+  }),
+  z.object({
+    type: z.literal('mcp_tool_result'),
+    tool_use_id: z.string(),
+    is_error: z.boolean(),
+    content: z.array(
+      z.union([
+        z.string(),
+        z.object({ type: z.literal('text'), text: z.string() }),
+      ]),
+    ),
+  }),
+  z.object({
+    type: z.literal('web_fetch_tool_result'),
+    tool_use_id: z.string(),
+    content: z.union([
+      z.object({
+        type: z.literal('web_fetch_result'),
+        url: z.string(),
+        retrieved_at: z.string(),
+        content: z.object({
+          type: z.literal('document'),
+          title: z.string().nullable(),
+          citations: z.object({ enabled: z.boolean() }).optional(),
+          source: z.union([
+            z.object({
+              type: z.literal('base64'),
+              media_type: z.literal('application/pdf'),
+              data: z.string(),
+            }),
+            z.object({
+              type: z.literal('text'),
+              media_type: z.literal('text/plain'),
+              data: z.string(),
+            }),
+          ]),
+        }),
+      }),
+      z.object({
+        type: z.literal('web_fetch_tool_result_error'),
+        error_code: z.string(),
+      }),
+    ]),
+  }),
+  z.object({
+    type: z.literal('web_search_tool_result'),
+    tool_use_id: z.string(),
+    content: z.union([
+      z.array(
+        z.object({
+          type: z.literal('web_search_result'),
+          url: z.string(),
+          title: z.string(),
+          encrypted_content: z.string(),
+          page_age: z.string().nullish(),
+        }),
+      ),
+      z.object({
+        type: z.literal('web_search_tool_result_error'),
+        error_code: z.string(),
+      }),
+    ]),
+  }),
+  z.object({
+    type: z.literal('code_execution_tool_result'),
+    tool_use_id: z.string(),
+    content: z.union([
+      z.object({
+        type: z.literal('code_execution_result'),
+        stdout: z.string(),
+        stderr: z.string(),
+        return_code: z.number(),
+        content: z
+          .array(
+            z.object({
+              type: z.literal('code_execution_output'),
+              file_id: z.string(),
+            }),
+          )
+          .optional()
+          .default([]),
+      }),
+      z.object({
+        type: z.literal('encrypted_code_execution_result'),
+        encrypted_stdout: z.string(),
+        stderr: z.string(),
+        return_code: z.number(),
+        content: z
+          .array(
+            z.object({
+              type: z.literal('code_execution_output'),
+              file_id: z.string(),
+            }),
+          )
+          .optional()
+          .default([]),
+      }),
+      z.object({
+        type: z.literal('code_execution_tool_result_error'),
+        error_code: z.string(),
+      }),
+    ]),
+  }),
+  z.object({
+    type: z.literal('bash_code_execution_tool_result'),
+    tool_use_id: z.string(),
+    content: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('bash_code_execution_result'),
+        content: z.array(
+          z.object({
+            type: z.literal('bash_code_execution_output'),
+            file_id: z.string(),
+          }),
+        ),
+        stdout: z.string(),
+        stderr: z.string(),
+        return_code: z.number(),
+      }),
+      z.object({
+        type: z.literal('bash_code_execution_tool_result_error'),
+        error_code: z.string(),
+      }),
+    ]),
+  }),
+  z.object({
+    type: z.literal('text_editor_code_execution_tool_result'),
+    tool_use_id: z.string(),
+    content: z.discriminatedUnion('type', [
+      z.object({
+        type: z.literal('text_editor_code_execution_tool_result_error'),
+        error_code: z.string(),
+      }),
+      z.object({
+        type: z.literal('text_editor_code_execution_view_result'),
+        content: z.string(),
+        file_type: z.string(),
+        num_lines: z.number().nullable(),
+        start_line: z.number().nullable(),
+        total_lines: z.number().nullable(),
+      }),
+      z.object({
+        type: z.literal('text_editor_code_execution_create_result'),
+        is_file_update: z.boolean(),
+      }),
+      z.object({
+        type: z.literal('text_editor_code_execution_str_replace_result'),
+        lines: z.array(z.string()).nullable(),
+        new_lines: z.number().nullable(),
+        new_start: z.number().nullable(),
+        old_lines: z.number().nullable(),
+        old_start: z.number().nullable(),
+      }),
+    ]),
+  }),
+  z.object({
+    type: z.literal('tool_search_tool_result'),
+    tool_use_id: z.string(),
+    content: z.union([
+      z.object({
+        type: z.literal('tool_search_tool_search_result'),
+        tool_references: z.array(
+          z.object({
+            type: z.literal('tool_reference'),
+            tool_name: z.string(),
+          }),
+        ),
+      }),
+      z.object({
+        type: z.literal('tool_search_tool_result_error'),
+        error_code: z.string(),
+      }),
+    ]),
+  }),
+]);
+
 // limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 export const anthropicMessagesChunkSchema = lazySchema(() =>
@@ -908,33 +1137,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             cache_read_input_tokens: z.number().nullish(),
           }),
           // Programmatic tool calling: content may be pre-populated for deferred tool calls
-          content: z
-            .array(
-              z.discriminatedUnion('type', [
-                z.object({
-                  type: z.literal('tool_use'),
-                  id: z.string(),
-                  name: z.string(),
-                  input: z.unknown(),
-                  caller: z
-                    .union([
-                      z.object({
-                        type: z.literal('code_execution_20250825'),
-                        tool_id: z.string(),
-                      }),
-                      z.object({
-                        type: z.literal('code_execution_20260120'),
-                        tool_id: z.string(),
-                      }),
-                      z.object({
-                        type: z.literal('direct'),
-                      }),
-                    ])
-                    .optional(),
-                }),
-              ]),
-            )
-            .nullish(),
+          content: z.array(anthropicMessagesContentBlockSchema).nullish(),
           stop_reason: z.string().nullish(),
           container: z
             .object({
@@ -947,250 +1150,7 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
       z.object({
         type: z.literal('content_block_start'),
         index: z.number(),
-        content_block: z.discriminatedUnion('type', [
-          z.object({
-            type: z.literal('text'),
-            text: z.string(),
-          }),
-          z.object({
-            type: z.literal('thinking'),
-            thinking: z.string(),
-          }),
-          z.object({
-            type: z.literal('tool_use'),
-            id: z.string(),
-            name: z.string(),
-            // Programmatic tool calling: input may be present directly for deferred tool calls
-            input: z.record(z.string(), z.unknown()).optional(),
-            // Programmatic tool calling: caller info when triggered from code execution
-            caller: z
-              .union([
-                z.object({
-                  type: z.literal('code_execution_20250825'),
-                  tool_id: z.string(),
-                }),
-                z.object({
-                  type: z.literal('code_execution_20260120'),
-                  tool_id: z.string(),
-                }),
-                z.object({
-                  type: z.literal('direct'),
-                }),
-              ])
-              .optional(),
-          }),
-          z.object({
-            type: z.literal('redacted_thinking'),
-            data: z.string(),
-          }),
-          z.object({
-            type: z.literal('compaction'),
-            content: z.string().nullish(),
-          }),
-          z.object({
-            type: z.literal('server_tool_use'),
-            id: z.string(),
-            name: z.string(),
-            input: z.record(z.string(), z.unknown()).nullish(),
-            caller: z
-              .union([
-                z.object({
-                  type: z.literal('code_execution_20260120'),
-                  tool_id: z.string(),
-                }),
-                z.object({
-                  type: z.literal('direct'),
-                }),
-              ])
-              .optional(),
-          }),
-          z.object({
-            type: z.literal('mcp_tool_use'),
-            id: z.string(),
-            name: z.string(),
-            input: z.unknown(),
-            server_name: z.string(),
-          }),
-          z.object({
-            type: z.literal('mcp_tool_result'),
-            tool_use_id: z.string(),
-            is_error: z.boolean(),
-            content: z.array(
-              z.union([
-                z.string(),
-                z.object({ type: z.literal('text'), text: z.string() }),
-              ]),
-            ),
-          }),
-          z.object({
-            type: z.literal('web_fetch_tool_result'),
-            tool_use_id: z.string(),
-            content: z.union([
-              z.object({
-                type: z.literal('web_fetch_result'),
-                url: z.string(),
-                retrieved_at: z.string(),
-                content: z.object({
-                  type: z.literal('document'),
-                  title: z.string().nullable(),
-                  citations: z.object({ enabled: z.boolean() }).optional(),
-                  source: z.union([
-                    z.object({
-                      type: z.literal('base64'),
-                      media_type: z.literal('application/pdf'),
-                      data: z.string(),
-                    }),
-                    z.object({
-                      type: z.literal('text'),
-                      media_type: z.literal('text/plain'),
-                      data: z.string(),
-                    }),
-                  ]),
-                }),
-              }),
-              z.object({
-                type: z.literal('web_fetch_tool_result_error'),
-                error_code: z.string(),
-              }),
-            ]),
-          }),
-          z.object({
-            type: z.literal('web_search_tool_result'),
-            tool_use_id: z.string(),
-            content: z.union([
-              z.array(
-                z.object({
-                  type: z.literal('web_search_result'),
-                  url: z.string(),
-                  title: z.string(),
-                  encrypted_content: z.string(),
-                  page_age: z.string().nullish(),
-                }),
-              ),
-              z.object({
-                type: z.literal('web_search_tool_result_error'),
-                error_code: z.string(),
-              }),
-            ]),
-          }),
-          // code execution results for code_execution_20250522 tool:
-          z.object({
-            type: z.literal('code_execution_tool_result'),
-            tool_use_id: z.string(),
-            content: z.union([
-              z.object({
-                type: z.literal('code_execution_result'),
-                stdout: z.string(),
-                stderr: z.string(),
-                return_code: z.number(),
-                content: z
-                  .array(
-                    z.object({
-                      type: z.literal('code_execution_output'),
-                      file_id: z.string(),
-                    }),
-                  )
-                  .optional()
-                  .default([]),
-              }),
-              z.object({
-                type: z.literal('encrypted_code_execution_result'),
-                encrypted_stdout: z.string(),
-                stderr: z.string(),
-                return_code: z.number(),
-                content: z
-                  .array(
-                    z.object({
-                      type: z.literal('code_execution_output'),
-                      file_id: z.string(),
-                    }),
-                  )
-                  .optional()
-                  .default([]),
-              }),
-              z.object({
-                type: z.literal('code_execution_tool_result_error'),
-                error_code: z.string(),
-              }),
-            ]),
-          }),
-          // bash code execution results for code_execution_20250825 tool:
-          z.object({
-            type: z.literal('bash_code_execution_tool_result'),
-            tool_use_id: z.string(),
-            content: z.discriminatedUnion('type', [
-              z.object({
-                type: z.literal('bash_code_execution_result'),
-                content: z.array(
-                  z.object({
-                    type: z.literal('bash_code_execution_output'),
-                    file_id: z.string(),
-                  }),
-                ),
-                stdout: z.string(),
-                stderr: z.string(),
-                return_code: z.number(),
-              }),
-              z.object({
-                type: z.literal('bash_code_execution_tool_result_error'),
-                error_code: z.string(),
-              }),
-            ]),
-          }),
-          // text editor code execution results for code_execution_20250825 tool:
-          z.object({
-            type: z.literal('text_editor_code_execution_tool_result'),
-            tool_use_id: z.string(),
-            content: z.discriminatedUnion('type', [
-              z.object({
-                type: z.literal('text_editor_code_execution_tool_result_error'),
-                error_code: z.string(),
-              }),
-              z.object({
-                type: z.literal('text_editor_code_execution_view_result'),
-                content: z.string(),
-                file_type: z.string(),
-                num_lines: z.number().nullable(),
-                start_line: z.number().nullable(),
-                total_lines: z.number().nullable(),
-              }),
-              z.object({
-                type: z.literal('text_editor_code_execution_create_result'),
-                is_file_update: z.boolean(),
-              }),
-              z.object({
-                type: z.literal(
-                  'text_editor_code_execution_str_replace_result',
-                ),
-                lines: z.array(z.string()).nullable(),
-                new_lines: z.number().nullable(),
-                new_start: z.number().nullable(),
-                old_lines: z.number().nullable(),
-                old_start: z.number().nullable(),
-              }),
-            ]),
-          }),
-          // tool search tool results for tool_search_tool_regex_20251119 and tool_search_tool_bm25_20251119:
-          z.object({
-            type: z.literal('tool_search_tool_result'),
-            tool_use_id: z.string(),
-            content: z.union([
-              z.object({
-                type: z.literal('tool_search_tool_search_result'),
-                tool_references: z.array(
-                  z.object({
-                    type: z.literal('tool_reference'),
-                    tool_name: z.string(),
-                  }),
-                ),
-              }),
-              z.object({
-                type: z.literal('tool_search_tool_result_error'),
-                error_code: z.string(),
-              }),
-            ]),
-          }),
-        ]),
+        content_block: anthropicMessagesContentBlockSchema,
       }),
       z.object({
         type: z.literal('content_block_delta'),
