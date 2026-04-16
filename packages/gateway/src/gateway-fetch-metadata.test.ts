@@ -237,7 +237,7 @@ describe('GatewayFetchMetadata', () => {
             id: `model-${type}`,
             name: `Model ${type}`,
             specification: {
-              specificationVersion: 'v4' as const,
+              specificationVersion: 'v3' as const,
               provider: 'test-provider',
               modelId: `model-${type}`,
             },
@@ -267,7 +267,7 @@ describe('GatewayFetchMetadata', () => {
               id: 'model-future',
               name: 'Future Model',
               specification: {
-                specificationVersion: 'v4' as const,
+                specificationVersion: 'v3' as const,
                 provider: 'test-provider',
                 modelId: 'model-future',
               },

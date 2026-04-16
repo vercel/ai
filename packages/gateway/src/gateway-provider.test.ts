@@ -6,7 +6,6 @@ import {
 } from './gateway-provider';
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
 import { GatewaySpendReport } from './gateway-spend-report';
-import { NoSuchModelError } from '@ai-sdk/provider';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
@@ -571,7 +570,7 @@ describe('GatewayProvider', () => {
       // Check that GatewayFetchMetadata was instantiated with the default baseURL
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v3/ai',
         }),
       );
     });
@@ -594,7 +593,7 @@ describe('GatewayProvider', () => {
 
       const config = getGatewayImageModelInternalConfig(model);
       expect(config.provider).toBe('gateway');
-      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v3/ai');
     });
 
     it('should expose videoModel on the default provider and construct model', () => {
@@ -607,7 +606,7 @@ describe('GatewayProvider', () => {
 
       const config = getGatewayVideoModelInternalConfig(model);
       expect(config.provider).toBe('gateway');
-      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v3/ai');
     });
 
     it('should override default baseURL when provided', async () => {
@@ -1148,7 +1147,7 @@ describe('GatewayProvider', () => {
       expect(credits).toEqual({ balance: '150.50', total_used: '75.25' });
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v3/ai',
           headers: expect.any(Function),
           fetch: undefined,
         }),
@@ -1163,7 +1162,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should work with custom baseURL', async () => {
-      const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
+      const customBaseURL = 'https://custom-gateway.example.com/v3/ai';
       const provider = createGatewayProvider({
         apiKey: 'test-key',
         baseURL: customBaseURL,
@@ -1247,7 +1246,7 @@ describe('GatewayProvider', () => {
       expect(report).toEqual(mockResults);
       expect(GatewaySpendReport).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v3/ai',
           headers: expect.any(Function),
           fetch: undefined,
         }),
@@ -1281,7 +1280,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should work with custom baseURL', async () => {
-      const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
+      const customBaseURL = 'https://custom-gateway.example.com/v3/ai';
       const provider = createGatewayProvider({
         apiKey: 'test-key',
         baseURL: customBaseURL,

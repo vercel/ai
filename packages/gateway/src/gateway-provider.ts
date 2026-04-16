@@ -187,7 +187,7 @@ export function createGatewayProvider(
 
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v4/ai';
+    'https://ai-gateway.vercel.sh/v3/ai';
 
   const getHeaders = async () => {
     try {
