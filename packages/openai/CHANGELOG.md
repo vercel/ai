@@ -1,5 +1,54 @@
 # @ai-sdk/openai
 
+## 3.0.53
+
+### Patch Changes
+
+- 953385d: fix(openai): default undefined tool-call input to empty object before serializing tool arguments
+
+## 3.0.52
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
+## 3.0.49
+
+### Patch Changes
+
+- bc01093: fix(openai): support file-url parts in tool output content
+
+## 3.0.48
+
+### Patch Changes
+
+- 9c548de: Add `gpt-5.4-mini`, `gpt-5.4-mini-2026-03-17`, `gpt-5.4-nano`, and `gpt-5.4-nano-2026-03-17` models.
+- bcb04df: fix(openai): preserve raw finish reason for failed responses stream events
+
+  Handle `response.failed` chunks in Responses API streaming so `finishReason.raw` is preserved from `incomplete_details.reason` (e.g. `max_output_tokens`), and map failed-without-reason cases to unified `error` instead of `other`.
+
+## 3.0.47
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 3.0.46
 
 ### Patch Changes
@@ -366,13 +415,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 60f4775: fix: remove code for unsuported o1-mini and o1-preview models
@@ -382,15 +431,15 @@
 - 2e86082: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
 
   ```ts
-  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
-  import { generateText } from 'ai';
+  import { openai, type OpenAIChatLanguageModelOptions } from "@ai-sdk/openai";
+  import { generateText } from "ai";
 
   await generateText({
-    model: openai.chat('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: openai.chat("gpt-4o"),
+    prompt: "Invent a new holiday and describe its traditions.",
     providerOptions: {
       openai: {
-        user: 'user-123',
+        user: "user-123",
       } satisfies OpenAIChatLanguageModelOptions,
     },
   });
@@ -791,13 +840,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1267,15 +1316,15 @@
 - 2e86082: feat(provider/openai): `OpenAIChatLanguageModelOptions` type
 
   ```ts
-  import { openai, type OpenAIChatLanguageModelOptions } from '@ai-sdk/openai';
-  import { generateText } from 'ai';
+  import { openai, type OpenAIChatLanguageModelOptions } from "@ai-sdk/openai";
+  import { generateText } from "ai";
 
   await generateText({
-    model: openai.chat('gpt-4o'),
-    prompt: 'Invent a new holiday and describe its traditions.',
+    model: openai.chat("gpt-4o"),
+    prompt: "Invent a new holiday and describe its traditions.",
     providerOptions: {
       openai: {
-        user: 'user-123',
+        user: "user-123",
       } satisfies OpenAIChatLanguageModelOptions,
     },
   });
@@ -1571,7 +1620,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1584,7 +1633,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1646,10 +1695,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -1948,7 +1997,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1961,7 +2010,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2006,10 +2055,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

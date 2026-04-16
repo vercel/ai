@@ -105,7 +105,7 @@ const { text } = await generateText({
 ### ToolLoopAgent
 
 ```ts
-import { ToolLoopAgent, stepCountIs } from 'ai';
+import { ToolLoopAgent } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { HindsightClient } from '@vectorize-io/hindsight-client';
 import { createHindsightTools } from '@vectorize-io/hindsight-ai-sdk';
@@ -115,7 +115,6 @@ const client = new HindsightClient({ baseUrl: process.env.HINDSIGHT_API_URL });
 const agent = new ToolLoopAgent({
   model: openai('gpt-4o'),
   tools: createHindsightTools({ client, bankId: 'user-123' }),
-  stopWhen: stepCountIs(10),
   instructions: 'You are a helpful assistant with long-term memory.',
 });
 

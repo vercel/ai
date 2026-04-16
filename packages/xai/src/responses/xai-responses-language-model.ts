@@ -110,7 +110,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
     const { input, inputWarnings } = await convertToXaiResponsesInput({
       prompt,
-      store: true,
+      store: options.store ?? true,
     });
     warnings.push(...inputWarnings);
 
@@ -228,6 +228,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     });
 
     const content: Array<LanguageModelV3Content> = [];
+    let hasFunctionCall = false;
 
     const webSearchSubTools = [
       'web_search',
@@ -350,6 +351,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'function_call': {
+          hasFunctionCall = true;
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -364,12 +366,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             .map(s => s.text)
             .filter(text => text && text.length > 0);
 
-          if (summaryTexts.length > 0) {
-            const reasoningText = summaryTexts.join('');
-            if (part.encrypted_content || part.id) {
-              content.push({
-                type: 'reasoning',
-                text: reasoningText,
+          const reasoningText = summaryTexts.join('');
+
+          // condition changed here since encrypted content can now come with empty reasoning text
+          if (reasoningText || part.encrypted_content) {
+            const hasMetadata = part.encrypted_content || part.id;
+            content.push({
+              type: 'reasoning',
+              text: reasoningText,
+              ...(hasMetadata && {
                 providerMetadata: {
                   xai: {
                     ...(part.encrypted_content && {
@@ -378,13 +383,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     ...(part.id && { itemId: part.id }),
                   },
                 },
-              });
-            } else {
-              content.push({
-                type: 'reasoning',
-                text: reasoningText,
-              });
-            }
+              }),
+            });
           }
           break;
         }
@@ -398,7 +398,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     return {
       content,
       finishReason: {
-        unified: mapXaiResponsesFinishReason(response.status),
+        unified: hasFunctionCall
+          ? 'tool-calls'
+          : mapXaiResponsesFinishReason(response.status),
         raw: response.status ?? undefined,
       },
       usage: response.usage
@@ -450,6 +452,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       unified: 'other',
       raw: undefined,
     };
+    let hasFunctionCall = false;
     let usage: LanguageModelV3Usage | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
@@ -633,7 +636,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
 
             if (
               event.type === 'response.done' ||
-              event.type === 'response.completed'
+              event.type === 'response.completed' ||
+              event.type === 'response.incomplete'
             ) {
               const response = event.response;
 
@@ -641,13 +645,45 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 usage = convertXaiResponsesUsage(response.usage);
               }
 
-              if (response.status) {
+              if (event.type === 'response.incomplete') {
+                const reason =
+                  'incomplete_details' in response
+                    ? response.incomplete_details?.reason
+                    : undefined;
                 finishReason = {
-                  unified: mapXaiResponsesFinishReason(response.status),
+                  unified: reason
+                    ? mapXaiResponsesFinishReason(reason)
+                    : 'other',
+                  raw: reason ?? 'incomplete',
+                };
+              } else if ('status' in response && response.status) {
+                finishReason = {
+                  unified: hasFunctionCall
+                    ? 'tool-calls'
+                    : mapXaiResponsesFinishReason(response.status),
                   raw: response.status,
                 };
               }
 
+              return;
+            }
+
+            if (event.type === 'response.failed') {
+              const reason = event.response.incomplete_details?.reason;
+              finishReason = {
+                unified: reason ? mapXaiResponsesFinishReason(reason) : 'error',
+                raw: reason ?? 'error',
+              };
+
+              if (event.response.usage) {
+                usage = convertXaiResponsesUsage(event.response.usage);
+              }
+
+              return;
+            }
+
+            if (event.type === 'error') {
+              controller.enqueue({ type: 'error', error: event });
               return;
             }
 
@@ -911,6 +947,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     toolName: part.name,
                   });
                 } else if (event.type === 'response.output_item.done') {
+                  hasFunctionCall = true;
                   ongoingToolCalls[event.output_index] = undefined;
 
                   controller.enqueue({

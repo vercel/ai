@@ -13,9 +13,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { delay } from '@ai-sdk/provider-utils';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 
-class TestChatState<UI_MESSAGE extends UIMessage>
-  implements ChatState<UI_MESSAGE>
-{
+class TestChatState<
+  UI_MESSAGE extends UIMessage,
+> implements ChatState<UI_MESSAGE> {
   history: UI_MESSAGE[][] = [];
 
   status: ChatStatus = 'ready';

@@ -12,6 +12,7 @@ run(async () => {
       prompt: 'Make the cat look like a princess with a small tiara',
       providerOptions: {
         xai: {
+          mode: 'edit-video',
           videoUrl:
             'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/prudence.mp4',
           pollTimeoutMs: 600000,
@@ -24,7 +25,12 @@ run(async () => {
   await presentVideos(step1.videos);
 
   // Use the xAI-hosted URL from step 1 as input for the next two edits
-  const step1VideoUrl = step1.providerMetadata?.xai?.videoUrl as string;
+  const step1VideoUrl = step1.providerMetadata?.xai?.videoUrl as
+    | string
+    | undefined;
+  if (step1VideoUrl == null) {
+    throw new Error('xAI provider metadata did not include a step-1 videoUrl.');
+  }
 
   // Step 2: Apply two more edits concurrently, building on step 1
   const edits = [
@@ -42,6 +48,7 @@ run(async () => {
             prompt,
             providerOptions: {
               xai: {
+                mode: 'edit-video',
                 videoUrl: step1VideoUrl,
                 pollTimeoutMs: 600000,
               } satisfies XaiVideoModelOptions,

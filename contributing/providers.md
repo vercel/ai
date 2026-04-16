@@ -19,6 +19,7 @@ to prevent unnecessary breakages.
 
 Types and Zod schemas for the provider specific model options follow the pattern `{Provider}{ModelType}Options`, e.g. `AnthropicLanguageModelOptions`.
 If a provider has multiple implementations for the same model type, add a qualifier: `{Provider}{ModelType}{Qualifier}Options`, e.g. `OpenAILanguageModelChatOptions` and `OpenAILanguageModelResponsesOptions`.
+If options apply provider-wide rather than to a specific model type, use `{Provider}ProviderOptions` instead, e.g. `GatewayProviderOptions`.
 
 - types are PascalCase, Zod schemas are camelCase (e.g. `openaiLanguageModelChatOptions`)
 - types must be exported from the provider package, Zod schemas must not

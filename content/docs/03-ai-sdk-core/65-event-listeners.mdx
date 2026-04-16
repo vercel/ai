@@ -1,15 +1,15 @@
 ---
 title: Event Callbacks
-description: Subscribe to lifecycle events in generateText, streamText, embed, and embedMany calls
+description: Subscribe to lifecycle events in generateText and streamText calls
 ---
 
 # Event Callbacks
 
-The AI SDK provides per-call event callbacks that you can pass to `generateText`, `streamText`, `embed`, and `embedMany` to observe lifecycle events. This is useful for building observability tools, logging systems, analytics, and debugging utilities.
+The AI SDK provides per-call event callbacks that you can pass to `generateText` and `streamText` to observe lifecycle events. This is useful for building observability tools, logging systems, analytics, and debugging utilities.
 
 ## Basic Usage
 
-Pass callbacks directly to `generateText`, `streamText`, `embed`, or `embedMany`:
+Pass callbacks directly to `generateText` or `streamText`:
 
 ```ts
 import { generateText } from 'ai';
@@ -27,8 +27,6 @@ const result = await generateText({
 ```
 
 ## Available Callbacks
-
-### `generateText` / `streamText`
 
 <PropertiesTable
   content={[
@@ -67,30 +65,9 @@ const result = await generateText({
   ]}
 />
 
-### `embed` / `embedMany`
-
-<PropertiesTable
-  content={[
-    {
-      name: 'experimental_onStart',
-      type: '(event: EmbedOnStartEvent) => void | Promise<void>',
-      description:
-        'Called when the embedding operation begins, before the embedding model is called.',
-    },
-    {
-      name: 'experimental_onFinish',
-      type: '(event: EmbedOnFinishEvent) => void | Promise<void>',
-      description:
-        'Called when the embedding operation completes, after the embedding model returns.',
-    },
-  ]}
-/>
-
 ## Event Reference
 
-### `generateText` / `streamText`
-
-#### `experimental_onStart`
+### `experimental_onStart`
 
 Called when the generation operation begins, before any LLM calls are made.
 
@@ -244,7 +221,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onStepStart`
+### `experimental_onStepStart`
 
 Called before each step (LLM call) begins. Useful for tracking multi-step generations.
 
@@ -358,7 +335,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onToolCallStart`
+### `experimental_onToolCallStart`
 
 Called before a tool's `execute` function runs.
 
@@ -450,7 +427,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onToolCallFinish`
+### `experimental_onToolCallFinish`
 
 Called after a tool's `execute` function completes or errors. Uses a discriminated union on the `success` field.
 
@@ -571,7 +548,7 @@ const result = await generateText({
   ]}
 />
 
-#### `onStepFinish`
+### `onStepFinish`
 
 Called after each step (LLM call) completes. Provides the full `StepResult`.
 
@@ -712,7 +689,7 @@ const result = await generateText({
   ]}
 />
 
-#### `onFinish`
+### `onFinish`
 
 Called when the entire generation completes (all steps finished). Includes aggregated data.
 
@@ -864,164 +841,6 @@ const result = await generateText({
   ]}
 />
 
-### `embed` / `embedMany`
-
-#### `experimental_onStart`
-
-Called when the embedding operation begins, before the embedding model is called. Both `embed` and `embedMany` share the same event interface; the `operationId` field distinguishes them (`'ai.embed'` vs `'ai.embedMany'`), and the `value` field is a single string for `embed` or an array of strings for `embedMany`.
-
-```ts
-import { embed } from 'ai';
-
-const result = await embed({
-  model: openai.embedding('text-embedding-3-small'),
-  value: 'sunny day at the beach',
-  experimental_onStart: event => {
-    console.log('Operation:', event.operationId);
-    console.log('Model:', event.model.modelId);
-  },
-});
-```
-
-<PropertiesTable
-  content={[
-    {
-      name: 'callId',
-      type: 'string',
-      description: 'Unique identifier for this embed call.',
-    },
-    {
-      name: 'operationId',
-      type: 'string',
-      description:
-        "Identifies the operation type ('ai.embed' or 'ai.embedMany').",
-    },
-    {
-      name: 'model',
-      type: '{ provider: string; modelId: string }',
-      description: 'The embedding model being used.',
-    },
-    {
-      name: 'value',
-      type: 'string | Array<string>',
-      description:
-        'The value(s) being embedded. A single string for embed, or an array for embedMany.',
-    },
-    {
-      name: 'maxRetries',
-      type: 'number',
-      description: 'Maximum number of retries for failed requests.',
-    },
-    {
-      name: 'abortSignal',
-      type: 'AbortSignal | undefined',
-      description: 'Abort signal for cancelling the operation.',
-    },
-    {
-      name: 'headers',
-      type: 'Record<string, string | undefined> | undefined',
-      description: 'Additional HTTP headers sent with the request.',
-    },
-    {
-      name: 'providerOptions',
-      type: 'ProviderOptions | undefined',
-      description: 'Additional provider-specific options.',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, JSONValue> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-  ]}
-/>
-
-#### `experimental_onFinish`
-
-Called when the embedding operation completes. For `embed`, `embedding` is a single vector and `response` is a single response object. For `embedMany`, `embedding` is an array of vectors and `response` is an array of response objects (one per chunk).
-
-```ts
-import { embedMany } from 'ai';
-
-const result = await embedMany({
-  model: openai.embedding('text-embedding-3-small'),
-  values: ['sunny day at the beach', 'rainy afternoon in the city'],
-  experimental_onFinish: event => {
-    console.log('Operation:', event.operationId);
-    console.log('Usage:', event.usage);
-  },
-});
-```
-
-<PropertiesTable
-  content={[
-    {
-      name: 'callId',
-      type: 'string',
-      description: 'Unique identifier for this embed call.',
-    },
-    {
-      name: 'operationId',
-      type: 'string',
-      description:
-        "Identifies the operation type ('ai.embed' or 'ai.embedMany').",
-    },
-    {
-      name: 'model',
-      type: '{ provider: string; modelId: string }',
-      description: 'The embedding model that was used.',
-    },
-    {
-      name: 'value',
-      type: 'string | Array<string>',
-      description: 'The value(s) that were embedded.',
-    },
-    {
-      name: 'embedding',
-      type: 'Embedding | Array<Embedding>',
-      description:
-        'The resulting embedding(s). A single vector for embed, or an array for embedMany.',
-    },
-    {
-      name: 'usage',
-      type: 'EmbeddingModelUsage',
-      description: 'Token usage for the embedding operation.',
-    },
-    {
-      name: 'warnings',
-      type: 'Array<Warning>',
-      description: 'Warnings from the embedding model.',
-    },
-    {
-      name: 'providerMetadata',
-      type: 'ProviderMetadata | undefined',
-      description: 'Optional provider-specific metadata.',
-    },
-    {
-      name: 'response',
-      type: '{ headers?: Record<string, string>; body?: unknown } | Array<{ headers?: Record<string, string>; body?: unknown } | undefined> | undefined',
-      description:
-        'Response data. A single response for embed, or an array for embedMany (one per chunk).',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, JSONValue> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-  ]}
-/>
-
 ## Use Cases
 
 ### Logging and Debugging
@@ -1080,31 +899,9 @@ const result = await generateText({
 });
 ```
 
-### Embedding Observability
-
-```ts
-import { embedMany } from 'ai';
-
-const result = await embedMany({
-  model: openai.embedding('text-embedding-3-small'),
-  values: ['sunny day at the beach', 'rainy afternoon in the city'],
-  experimental_onStart: event => {
-    console.log(`Embedding started (${event.operationId})`, {
-      model: event.model.modelId,
-      valueCount: Array.isArray(event.value) ? event.value.length : 1,
-    });
-  },
-  experimental_onFinish: event => {
-    console.log(`Embedding complete (${event.operationId})`, {
-      tokens: event.usage.tokens,
-    });
-  },
-});
-```
-
 ## Error Handling
 
-Errors thrown inside callbacks are caught and do not break the generation or embedding flow. This ensures that monitoring code cannot disrupt your application:
+Errors thrown inside callbacks are caught and do not break the generation flow. This ensures that monitoring code cannot disrupt your application:
 
 ```ts
 const result = await generateText({

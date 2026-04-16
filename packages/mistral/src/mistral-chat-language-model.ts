@@ -125,6 +125,7 @@ export class MistralChatLanguageModel implements LanguageModelV3 {
       temperature,
       top_p: topP,
       random_seed: seed,
+      reasoning_effort: options.reasoningEffort,
 
       // response format:
       response_format:

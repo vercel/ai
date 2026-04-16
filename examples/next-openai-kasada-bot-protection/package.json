@@ -5,14 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "next start"
   },
   "dependencies": {
-    "@ai-sdk/openai": "3.0.46",
-    "@ai-sdk/react": "3.0.134",
+    "@ai-sdk/openai": "3.0.53",
+    "@ai-sdk/react": "3.0.169",
     "@vercel/functions": "^3.1.0",
-    "ai": "6.0.132",
+    "ai": "6.0.167",
     "next": "^15.5.9",
     "react": "^18",
     "react-dom": "^18",
@@ -23,8 +22,6 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",
-    "eslint": "8.57.1",
-    "eslint-config-next": "14.2.3",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "5.8.3"

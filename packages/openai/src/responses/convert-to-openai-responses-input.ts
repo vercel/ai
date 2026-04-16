@@ -33,6 +33,10 @@ import {
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
 
+function serializeToolCallArguments(input: unknown): string {
+  return JSON.stringify(input === undefined ? {} : input);
+}
+
 /**
  * Check if a string is a file ID based on the given prefixes
  * Returns false if prefixes is undefined (disables file ID detection)
@@ -334,7 +338,7 @@ export async function convertToOpenAIResponsesInput({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: resolvedToolName,
-                arguments: JSON.stringify(part.input),
+                arguments: serializeToolCallArguments(part.input),
                 id,
               });
               break;
@@ -709,6 +713,11 @@ export async function convertToOpenAIResponsesInput({
                           filename: item.filename ?? 'data',
                           file_data: `data:${item.mediaType};base64,${item.data}`,
                         };
+                      case 'file-url':
+                        return {
+                          type: 'input_file' as const,
+                          file_url: item.url,
+                        };
                       default:
                         warnings.push({
                           type: 'other',
@@ -770,6 +779,13 @@ export async function convertToOpenAIResponsesInput({
                         type: 'input_file' as const,
                         filename: item.filename ?? 'data',
                         file_data: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    case 'file-url': {
+                      return {
+                        type: 'input_file' as const,
+                        file_url: item.url,
                       };
                     }
 

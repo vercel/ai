@@ -1,5 +1,33 @@
 # @ai-sdk/prodia
 
+## 1.0.27
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 1.0.26
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 1.0.25
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
+## 1.0.24
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 1.0.23
 
 ### Patch Changes

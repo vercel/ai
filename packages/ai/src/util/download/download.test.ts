@@ -137,6 +137,15 @@ describe('download', () => {
     );
   });
 
+  it('should allow inline data URLs', async () => {
+    const result = await download({
+      url: new URL('data:text/plain;base64,aGVsbG8='),
+    });
+
+    expect(result.data).toEqual(new TextEncoder().encode('hello'));
+    expect(result.mediaType).toBe('text/plain');
+  });
+
   it('should throw DownloadError when response is not ok', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,

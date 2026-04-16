@@ -1,5 +1,45 @@
 # @ai-sdk/alibaba
 
+## 1.0.17
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+- Updated dependencies [d42076d]
+  - @ai-sdk/openai-compatible@2.0.41
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [01c9c16]
+  - @ai-sdk/openai-compatible@2.0.40
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+  - @ai-sdk/openai-compatible@2.0.39
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+  - @ai-sdk/openai-compatible@2.0.38
+
+## 1.0.13
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/openai-compatible@2.0.37
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 1.0.12
 
 ### Patch Changes

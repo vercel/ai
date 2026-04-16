@@ -838,6 +838,40 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should default missing tool call input to an empty object', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                input: undefined,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": "{}",
+            "call_id": "call_123",
+            "id": undefined,
+            "name": "search",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+
     it('should convert messages with tool call parts that have ids', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -2212,6 +2246,106 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should convert single tool result part with multipart that contains file-url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/document.pdf',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "file_url": "https://example.com/document.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should convert single tool result part with multipart with mixed content including file-url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'Here is the file you asked for:',
+                    },
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/test.pdf',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "text": "Here is the file you asked for:",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/test.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
     });
 
     it('should convert single tool result part with multipart with mixed content (text, image, file)', async () => {
@@ -4021,6 +4155,55 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should convert custom tool result content output with file-url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_006',
+                toolName: 'write_sql',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'Here is the file:' },
+                    { type: 'file-url', url: 'https://example.com/test.pdf' },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_006",
+            "output": [
+              {
+                "text": "Here is the file:",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/test.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
     });
 
     it('should not emit custom_tool_call when customProviderToolNames is not provided', async () => {

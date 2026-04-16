@@ -27,6 +27,12 @@ describe('validateDownloadUrl', () => {
         validateDownloadUrl('https://example.com:8080/file'),
       ).not.toThrow();
     });
+
+    it('should allow data URLs', () => {
+      expect(() =>
+        validateDownloadUrl('data:text/plain;base64,aGVsbG8='),
+      ).not.toThrow();
+    });
   });
 
   describe('blocked protocols', () => {
@@ -44,12 +50,6 @@ describe('validateDownloadUrl', () => {
 
     it('should block javascript: URLs', () => {
       expect(() => validateDownloadUrl('javascript:alert(1)')).toThrow(
-        DownloadError,
-      );
-    });
-
-    it('should block data: URLs', () => {
-      expect(() => validateDownloadUrl('data:text/plain,hello')).toThrow(
         DownloadError,
       );
     });

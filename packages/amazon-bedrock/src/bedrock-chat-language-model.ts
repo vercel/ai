@@ -368,6 +368,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     const {
       reasoningConfig: _,
       additionalModelRequestFields: __,
+      serviceTier: ___,
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
@@ -386,6 +387,11 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         }),
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
+        }),
+        ...(bedrockOptions.serviceTier != null && {
+          serviceTier: {
+            type: bedrockOptions.serviceTier,
+          },
         }),
         ...filteredBedrockOptions,
         ...(toolConfig.tools !== undefined && toolConfig.tools.length > 0
@@ -441,7 +447,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
     // map response content to content array
     for (const part of response.output.message.content) {
       // text
-      if (part.text) {
+      if (part.text != null) {
         content.push({ type: 'text', text: part.text });
       }
 

@@ -1,5 +1,95 @@
 # @ai-sdk/google
 
+## 3.0.64
+
+### Patch Changes
+
+- 71c52e0: chore(provider/google): update available models
+
+## 3.0.63
+
+### Patch Changes
+
+- 1e1a5ab: fix(google): fix `serviceTier` to be correctly formatted for Vertex API
+
+## 3.0.62
+
+### Patch Changes
+
+- 46a3584: fix(google-vertex): don't send streamFunctionCallArguments for unary API calls and change default to false
+
+## 3.0.61
+
+### Patch Changes
+
+- 03a04f6: feat(google-vertex): add support for streaming tool arguments input
+
+## 3.0.60
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 3.0.59
+
+### Patch Changes
+
+- 6247886: chore(provider-utils,google): fix grammar errors in error and warning messages
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 3.0.58
+
+### Patch Changes
+
+- f20ba77: feat(provider/google): preserve per-modality token details in usage data
+
+## 3.0.57
+
+### Patch Changes
+
+- 0f2b2f1: fix(provider/google): fix Gemini service tier enum after upstream update
+
+## 3.0.56
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
+## 3.0.55
+
+### Patch Changes
+
+- bdde9d4: feat(provider/google): support combining built-in tools with function calling on Gemini 3
+
+## 3.0.54
+
+### Patch Changes
+
+- 4e22c2c: feat(provider/google): add support for service tier parameter
+
+## 3.0.53
+
+### Patch Changes
+
+- 2e5adff: chore(provider/google): remove obsolete Google image model
+
+## 3.0.52
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- 47114a3: feat(provider/google): Add multimodal tool-result support for Google function responses.
+
+  Tool results with `output.type = 'content'` now map media parts into
+  `functionResponse.parts` for Google models, including `image-data`,
+  `file-data`, and base64 `data:` URLs in URL-style content parts.
+  Remote HTTP(S) URLs in URL-style tool-result parts are not supported.
+
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 3.0.51
 
 ### Patch Changes
@@ -363,13 +453,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 2625a04: feat(openai); update spec for mcp approval
@@ -678,13 +768,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

@@ -14,7 +14,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnthropicLanguageModelOptions } from './anthropic-messages-options';
-import { anthropic, createAnthropic } from './anthropic-provider';
+import { createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -1167,6 +1167,26 @@ describe('AnthropicMessagesLanguageModel', () => {
         const requestBody = await server.calls[0].requestBodyJson;
         expect(requestBody.temperature).toBeUndefined();
         expect(requestBody.top_p).toBeUndefined();
+      });
+
+      it('should send both temperature and topP for non-Anthropic models', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const nonAnthropicModel = provider('MiniMax-M2.7');
+        const { warnings } = await nonAnthropicModel.doGenerate({
+          prompt: TEST_PROMPT,
+          temperature: 0.7,
+          topP: 0.9,
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.temperature).toBe(0.7);
+        expect(requestBody.top_p).toBe(0.9);
+        expect(warnings).not.toContainEqual(
+          expect.objectContaining({
+            feature: 'topP',
+          }),
+        );
       });
     });
 
@@ -4369,6 +4389,47 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(result.warnings).toStrictEqual([]);
     });
 
+    it('should set inference_geo in request body', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            inferenceGeo: 'us',
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "inference_geo": "us",
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+      expect(await server.calls[0].requestHeaders).toMatchInlineSnapshot(`
+        {
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "x-api-key": "test-api-key",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
     it('should pass cache_control to request body', async () => {
       prepareJsonFixtureResponse('anthropic-text');
 
@@ -4435,6 +4496,42 @@ describe('AnthropicMessagesLanguageModel', () => {
               "role": "user",
             },
           ],
+          "model": "claude-3-haiku-20240307",
+        }
+      `);
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should pass metadata with user_id to request body', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: {
+            metadata: { userId: 'test-user-id' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "max_tokens": 4096,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "metadata": {
+            "user_id": "test-user-id",
+          },
           "model": "claude-3-haiku-20240307",
         }
       `);
@@ -5091,6 +5188,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "tools": [
               {
                 "description": "Respond with a JSON object.",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -5246,6 +5344,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "tools": [
               {
                 "description": "Respond with a JSON object.",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -5416,6 +5515,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "tools": [
               {
                 "description": "Get the weather in a location",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -5433,6 +5533,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               {
                 "description": "Respond with a JSON object.",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -6691,7 +6792,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
-          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "custom-provider-header": "provider-header-value",
@@ -6701,7 +6801,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
-    it('should merge custom anthropic-beta header with fine-grained-tool-streaming beta', async () => {
+    it('should merge custom anthropic-beta headers without legacy fine-grained-tool-streaming beta', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -6727,8 +6827,96 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(
         server.calls[0].requestHeaders['anthropic-beta'],
       ).toMatchInlineSnapshot(
-        `"fine-grained-tool-streaming-2025-05-14,config-beta1,config-beta2,request-beta1,request-beta2"`,
+        `"config-beta1,config-beta2,request-beta1,request-beta2"`,
       );
+    });
+
+    it('should default to per-tool eager_input_streaming on streaming requests and not send the legacy beta header', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({ apiKey: 'test-api-key' });
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.tools[0].eager_input_streaming).toBe(true);
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toBeUndefined();
+    });
+
+    it('should not add eager_input_streaming when toolStreaming is explicitly false', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({ apiKey: 'test-api-key' });
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { anthropic: { toolStreaming: false } },
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.tools[0].eager_input_streaming).toBeUndefined();
+    });
+
+    it('should not default eager_input_streaming on non-streaming (generate) calls', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_1',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'ok' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 1, output_tokens: 1 },
+        },
+      };
+
+      const provider = createAnthropic({ apiKey: 'test-api-key' });
+      await provider('claude-3-haiku-20240307').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.tools[0].eager_input_streaming).toBeUndefined();
     });
 
     it('should include providerOptions.anthropic.anthropicBeta in anthropic-beta header', async () => {
@@ -8678,9 +8866,8 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       prepareTransformJsonResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {
@@ -8721,9 +8908,8 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       prepareTransformStreamResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {
@@ -8763,9 +8949,8 @@ describe('AnthropicMessagesLanguageModel', () => {
     it('should work without transformRequestBody', async () => {
       prepareTransformJsonResponse();
 
-      const { AnthropicMessagesLanguageModel } = await import(
-        './anthropic-messages-language-model'
-      );
+      const { AnthropicMessagesLanguageModel } =
+        await import('./anthropic-messages-language-model');
       const model = new AnthropicMessagesLanguageModel(
         'claude-3-haiku-20240307',
         {
@@ -9042,6 +9227,139 @@ describe('AnthropicMessagesLanguageModel', () => {
           tool_choice: { type: 'auto', disable_parallel_tool_use: true },
         });
       });
+    });
+  });
+});
+
+describe('claude-opus-4-7 specific behavior', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const provider = createAnthropic({ apiKey: 'test-api-key' });
+  const opusModel = provider('claude-opus-4-7');
+
+  it('should warn and strip temperature when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      temperature: 0.7,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.temperature).toBeUndefined();
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'temperature',
+      }),
+    );
+  });
+
+  it('should warn and strip topK when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      topK: 40,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.top_k).toBeUndefined();
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'topK',
+      }),
+    );
+  });
+
+  it('should warn and strip topP when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const { warnings } = await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      topP: 0.9,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.top_p).toBeUndefined();
+    expect(warnings).toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'topP',
+      }),
+    );
+  });
+
+  it('should include task_budget in output_config and add beta header', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          taskBudget: { type: 'tokens', total: 400000 },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.task_budget).toEqual({
+      type: 'tokens',
+      total: 400000,
+    });
+
+    const betaHeader = server.calls[0].requestHeaders['anthropic-beta'];
+    expect(betaHeader).toContain('task-budgets-2026-03-13');
+  });
+
+  it('should include remaining in task_budget when provided', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          taskBudget: { type: 'tokens', total: 400000, remaining: 215000 },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.task_budget).toEqual({
+      type: 'tokens',
+      total: 400000,
+      remaining: 215000,
+    });
+  });
+
+  it('should include display in thinking block when set', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'adaptive', display: 'summarized' },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({
+      type: 'adaptive',
+      display: 'summarized',
     });
   });
 });

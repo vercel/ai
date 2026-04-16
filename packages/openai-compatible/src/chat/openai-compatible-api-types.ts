@@ -20,8 +20,7 @@ export interface OpenAICompatibleSystemMessage extends JsonRecord {
   content: string;
 }
 
-export interface OpenAICompatibleUserMessage
-  extends JsonRecord<OpenAICompatibleContentPart> {
+export interface OpenAICompatibleUserMessage extends JsonRecord<OpenAICompatibleContentPart> {
   role: 'user';
   content: string | Array<OpenAICompatibleContentPart>;
 }
@@ -54,8 +53,7 @@ export interface OpenAICompatibleContentPartFile extends JsonRecord {
   file: { filename: string; file_data: string };
 }
 
-export interface OpenAICompatibleAssistantMessage
-  extends JsonRecord<OpenAICompatibleMessageToolCall> {
+export interface OpenAICompatibleAssistantMessage extends JsonRecord<OpenAICompatibleMessageToolCall> {
   role: 'assistant';
   content?: string | null;
   reasoning_content?: string;
