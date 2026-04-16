@@ -483,4 +483,37 @@ console.log(text);`,
     websiteUrl: 'https://github.com/vercel/bash-tool',
     npmUrl: 'https://www.npmjs.com/package/bash-tool',
   },
+  {
+    slug: 'browserbase',
+    name: 'Browserbase',
+    description:
+      'Browserbase provides browser automation tools for AI agents powered by Stagehand. Navigate websites, take screenshots, click buttons, fill forms, extract structured data, and execute multi-step browser tasks in cloud-hosted sessions with built-in CAPTCHA solving and anti-bot stealth mode.',
+    packageName: '@browserbasehq/ai-sdk',
+    tags: ['browser', 'browser-automation', 'web', 'extraction'],
+    apiKeyEnvName: 'BROWSERBASE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @browserbasehq/ai-sdk',
+      npm: 'npm install @browserbasehq/ai-sdk',
+      yarn: 'yarn add @browserbasehq/ai-sdk',
+      bun: 'bun add @browserbasehq/ai-sdk',
+    },
+    codeExample: `import { generateText, stepCountIs } from 'ai';
+import { createBrowserbaseTools } from '@browserbasehq/ai-sdk';
+
+const browserbase = createBrowserbaseTools();
+
+const { text } = await generateText({
+  model: 'google/gemini-3-pro-preview',
+  tools: browserbase.tools,
+  stopWhen: stepCountIs(10),
+  prompt: 'Open https://news.ycombinator.com and summarize the top 3 stories.',
+});
+
+console.log(text);
+await browserbase.closeSession();`,
+    docsUrl: 'https://docs.browserbase.com',
+    apiKeyUrl: 'https://www.browserbase.com/settings',
+    websiteUrl: 'https://www.browserbase.com',
+    npmUrl: 'https://www.npmjs.com/package/@browserbasehq/ai-sdk',
+  },
 ];

@@ -1,5 +1,83 @@
 # @ai-sdk/anthropic
 
+## 3.0.71
+
+### Patch Changes
+
+- 95b4fe0: fix(provider/anthropic): stop adding `fine-grained-tool-streaming-2025-05-14` beta for `claude-opus-4-7`
+
+## 3.0.70
+
+### Patch Changes
+
+- 2ff8d57: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 3.0.69
+
+### Patch Changes
+
+- 61f1a61: feat (provider/anthropic): add support for inference_geo provider option
+
+## 3.0.68
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 3.0.67
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
+## 3.0.65
+
+### Patch Changes
+
+- 94aed06: fix(anthropic): allow both temperature and topP for non-Anthropic models using the Anthropic-compatible API
+
+  The temperature/topP mutual exclusivity check now only applies to known Anthropic models (model IDs starting with `claude-`). Non-Anthropic models using the Anthropic-compatible API (e.g. Minimax) can now send both parameters as required by their APIs.
+
+## 3.0.64
+
+### Patch Changes
+
+- 05b8ca2: feat (provider/anthropic): support passing metadata.user_id
+
+## 3.0.63
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
+## 3.0.62
+
+### Patch Changes
+
+- 41c6a56: fix(anthropic): skip passing beta header for tool search tools
+
+## 3.0.61
+
+### Patch Changes
+
+- 2381567: fix(vertex): throw warning when strict: true for vertexAnthropic
+
+## 3.0.60
+
+### Patch Changes
+
+- ffe0f90: fix(anthropic): preserve the error code returned by model
+
 ## 3.0.59
 
 ### Patch Changes
@@ -422,13 +500,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - f33a018: chore: add model ID for Haiku 4.5
@@ -768,13 +846,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

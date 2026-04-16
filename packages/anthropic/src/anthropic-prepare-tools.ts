@@ -26,6 +26,8 @@ export async function prepareTools({
   disableParallelToolUse,
   cacheControlValidator,
   supportsStructuredOutput,
+  supportsStrictTools,
+  defaultEagerInputStreaming = false,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice: LanguageModelV3CallOptions['toolChoice'] | undefined;
@@ -33,9 +35,20 @@ export async function prepareTools({
   cacheControlValidator?: CacheControlValidator;
 
   /**
-   * Whether the model supports structured output.
+   * Whether the model supports native structured output response format.
    */
   supportsStructuredOutput: boolean;
+
+  /**
+   * Whether the model supports strict mode on tool definitions.
+   */
+  supportsStrictTools: boolean;
+
+  /**
+   * Default for `eager_input_streaming` on function tools that do not set
+   * it explicitly. Driven by the model-level `toolStreaming` option.
+   */
+  defaultEagerInputStreaming?: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -67,10 +80,20 @@ export async function prepareTools({
         const anthropicOptions = tool.providerOptions?.anthropic as
           | AnthropicToolOptions
           | undefined;
-        // eager_input_streaming is only supported on custom (function) tools
-        const eagerInputStreaming = anthropicOptions?.eagerInputStreaming;
+        // eager_input_streaming is only supported on custom (function) tools.
+        // Fall back to the model-level default when the tool doesn't set it.
+        const eagerInputStreaming =
+          anthropicOptions?.eagerInputStreaming ?? defaultEagerInputStreaming;
         const deferLoading = anthropicOptions?.deferLoading;
         const allowedCallers = anthropicOptions?.allowedCallers;
+
+        if (!supportsStrictTools && tool.strict != null) {
+          toolWarnings.push({
+            type: 'unsupported',
+            feature: 'strict',
+            details: `Tool '${tool.name}' has strict: ${tool.strict}, but strict mode is not supported by this provider. The strict property will be ignored.`,
+          });
+        }
 
         anthropicTools.push({
           name: tool.name,
@@ -78,7 +101,7 @@ export async function prepareTools({
           input_schema: tool.inputSchema,
           cache_control: cacheControl,
           ...(eagerInputStreaming ? { eager_input_streaming: true } : {}),
-          ...(supportsStructuredOutput === true && tool.strict != null
+          ...(supportsStrictTools === true && tool.strict != null
             ? { strict: tool.strict }
             : {}),
           ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
@@ -308,7 +331,6 @@ export async function prepareTools({
           }
 
           case 'anthropic.tool_search_regex_20251119': {
-            betas.add('advanced-tool-use-2025-11-20');
             anthropicTools.push({
               type: 'tool_search_tool_regex_20251119',
               name: 'tool_search_tool_regex',
@@ -317,7 +339,6 @@ export async function prepareTools({
           }
 
           case 'anthropic.tool_search_bm25_20251119': {
-            betas.add('advanced-tool-use-2025-11-20');
             anthropicTools.push({
               type: 'tool_search_tool_bm25_20251119',
               name: 'tool_search_tool_bm25',

@@ -2,7 +2,7 @@ import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://vercel.com/docs/ai-gateway/provider-options
-const gatewayLanguageModelOptions = lazySchema(() =>
+const gatewayProviderOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
@@ -17,6 +17,14 @@ const gatewayLanguageModelOptions = lazySchema(() =>
        * Example: `['bedrock', 'anthropic']` will try Amazon Bedrock first, then Anthropic as fallback.
        */
       order: z.array(z.string()).optional(),
+      /**
+       * Sort providers by a performance or cost metric before routing.
+       *
+       * - `'cost'`: lowest cost first
+       * - `'ttft'`: lowest time-to-first-token first
+       * - `'tps'`: highest tokens-per-second first
+       */
+      sort: z.enum(['cost', 'ttft', 'tps']).optional(),
       /**
        * The unique identifier for the end user on behalf of whom the request was made.
        *
@@ -60,6 +68,24 @@ const gatewayLanguageModelOptions = lazySchema(() =>
        */
       zeroDataRetention: z.boolean().optional(),
       /**
+       * Whether to filter by only providers that do not train on prompt data.
+       * When enabled, only providers that have agreements with Vercel AI Gateway
+       * to not use prompts for model training will be used.
+       */
+      disallowPromptTraining: z.boolean().optional(),
+      /**
+       * Whether to filter by only providers that are HIPAA compliant with
+       * Vercel AI Gateway. When enabled, only providers that have agreements
+       * with Vercel AI Gateway for HIPAA compliance will be used.
+       */
+      hipaaCompliant: z.boolean().optional(),
+      /**
+       * The unique identifier for the entity against which quota is tracked.
+       *
+       * Used for quota management and enforcement purposes.
+       */
+      quotaEntityId: z.string().optional(),
+      /**
        * Per-provider timeouts for BYOK credentials in milliseconds.
        * Controls how long to wait for a provider to start responding
        * before falling back to the next available provider.
@@ -75,6 +101,4 @@ const gatewayLanguageModelOptions = lazySchema(() =>
   ),
 );
 
-export type GatewayLanguageModelOptions = InferSchema<
-  typeof gatewayLanguageModelOptions
->;
+export type GatewayProviderOptions = InferSchema<typeof gatewayProviderOptions>;

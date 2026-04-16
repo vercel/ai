@@ -51,8 +51,13 @@ export type OpenAIChatModelId =
   | 'gpt-5.2-chat-latest'
   | 'gpt-5.2-pro'
   | 'gpt-5.2-pro-2025-12-11'
+  | 'gpt-5.3-chat-latest'
   | 'gpt-5.4'
   | 'gpt-5.4-2026-03-05'
+  | 'gpt-5.4-mini'
+  | 'gpt-5.4-mini-2026-03-17'
+  | 'gpt-5.4-nano'
+  | 'gpt-5.4-nano-2026-03-17'
   | 'gpt-5.4-pro'
   | 'gpt-5.4-pro-2026-03-05'
   | (string & {});

@@ -1,7 +1,6 @@
 import {
   getErrorMessage,
   LanguageModelV3,
-  LanguageModelV3ToolChoice,
   SharedV3Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -10,16 +9,13 @@ import {
   DelayedPromise,
   IdGenerator,
   isAbortError,
-  ModelMessage,
   ProviderOptions,
-  SystemModelMessage,
-  ToolApprovalResponse,
   ToolContent,
 } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError } from '../error';
-import { Listener, notify } from '../util/notify';
+import { notify } from '../util/notify';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import {
@@ -600,7 +596,7 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
-  let lastPublishedJson = '';
+  let lastPublishedValue = '';
 
   function publishTextChunk({
     controller,
@@ -673,20 +669,25 @@ function createOutputTransformStream<
 
       // null should be allowed (valid JSON value) but undefined should not:
       if (result !== undefined) {
-        // only send new json if it has changed:
-        const currentJson = JSON.stringify(result.partial);
-        if (currentJson !== lastPublishedJson) {
+        // only send new value if it has changed:
+        // For string partials (text output), compare directly to avoid unnecessary JSON.stringify overhead
+        const currentValue =
+          typeof result.partial === 'string'
+            ? result.partial
+            : JSON.stringify(result.partial);
+        if (currentValue !== lastPublishedValue) {
           publishTextChunk({ controller, partialOutput: result.partial });
-          lastPublishedJson = currentJson;
+          lastPublishedValue = currentValue;
         }
       }
     },
   });
 }
 
-class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
-  implements StreamTextResult<TOOLS, OUTPUT>
-{
+class DefaultStreamTextResult<
+  TOOLS extends ToolSet,
+  OUTPUT extends Output,
+> implements StreamTextResult<TOOLS, OUTPUT> {
   private readonly _totalUsage = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['usage']>
   >();
@@ -1355,11 +1356,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
           deniedToolApprovals.length > 0 ||
           approvedToolApprovals.length > 0
         ) {
-          const providerExecutedToolApprovals = [
-            ...approvedToolApprovals,
-            ...deniedToolApprovals,
-          ].filter(toolApproval => toolApproval.toolCall.providerExecuted);
-
           const localApprovedToolApprovals = approvedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
           );
@@ -1432,23 +1428,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                 }
               }),
             );
-
-            // forward provider-executed approval responses to the provider (do not execute locally):
-            if (providerExecutedToolApprovals.length > 0) {
-              initialResponseMessages.push({
-                role: 'tool',
-                content: providerExecutedToolApprovals.map(
-                  toolApproval =>
-                    ({
-                      type: 'tool-approval-response',
-                      approvalId: toolApproval.approvalResponse.approvalId,
-                      approved: toolApproval.approvalResponse.approved,
-                      reason: toolApproval.approvalResponse.reason,
-                      providerExecuted: true,
-                    }) satisfies ToolApprovalResponse,
-                ),
-              });
-            }
 
             // Local tool results (approved + denied) are sent as tool results:
             if (toolOutputs.length > 0 || localDeniedToolApprovals.length > 0) {
@@ -2468,14 +2447,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               break;
             }
 
-            case 'reasoning-start': {
-              controller.enqueue({
-                type: 'reasoning-start',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
+            case 'reasoning-start':
+            case 'reasoning-end': {
+              if (sendReasoning) {
+                controller.enqueue({
+                  type: partType,
+                  id: part.id,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 
@@ -2490,17 +2472,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
                     : {}),
                 });
               }
-              break;
-            }
-
-            case 'reasoning-end': {
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
               break;
             }
 
@@ -2647,7 +2618,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT extends Output>
               controller.enqueue({
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
-                errorText: onError(part.error),
+                errorText: part.providerExecuted
+                  ? typeof part.error === 'string'
+                    ? part.error
+                    : JSON.stringify(part.error)
+                  : onError(part.error),
                 ...(part.providerExecuted != null
                   ? { providerExecuted: part.providerExecuted }
                   : {}),

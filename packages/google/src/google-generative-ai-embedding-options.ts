@@ -7,7 +7,18 @@ import { z } from 'zod/v4';
 
 export type GoogleGenerativeAIEmbeddingModelId =
   | 'gemini-embedding-001'
+  | 'gemini-embedding-2-preview'
   | (string & {});
+
+const googleEmbeddingContentPartSchema = z.union([
+  z.object({ text: z.string() }),
+  z.object({
+    inlineData: z.object({
+      mimeType: z.string(),
+      data: z.string(),
+    }),
+  }),
+]);
 
 export const googleEmbeddingModelOptions = lazySchema(() =>
   zodSchema(
@@ -41,6 +52,19 @@ export const googleEmbeddingModelOptions = lazySchema(() =>
           'FACT_VERIFICATION',
           'CODE_RETRIEVAL_QUERY',
         ])
+        .optional(),
+
+      /**
+       * Optional. Per-value multimodal content parts for embedding non-text
+       * content (images, video, PDF, audio). Each entry corresponds to the
+       * embedding value at the same index and its parts are merged with the
+       * text value in the request. Use `null` for entries that are text-only.
+       *
+       * The array length must match the number of values being embedded. In
+       * the case of a single embedding, the array length must be 1.
+       */
+      content: z
+        .array(z.array(googleEmbeddingContentPartSchema).min(1).nullable())
         .optional(),
     }),
   ),

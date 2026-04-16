@@ -15,6 +15,19 @@ export function resourceUrlFromServerUrl(url: URL | string): URL {
 }
 
 /**
+ * Serializes a resource URL to a string, removing the trailing slash that
+ * URL.href adds to pathless URLs. Per the MCP spec, implementations SHOULD
+ * use the form without the trailing slash for better interoperability.
+ */
+export function resourceUrlStripSlash(resource: URL): string {
+  const href = resource.href;
+  if (resource.pathname === '/' && href.endsWith('/')) {
+    return href.slice(0, -1);
+  }
+  return href;
+}
+
+/**
  * Checks if a requested resource URL matches a configured resource URL.
  * A requested resource matches if it has the same scheme, domain, port,
  * and its path starts with the configured resource's path.

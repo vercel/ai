@@ -6,6 +6,9 @@ export type XaiResponsesModelId =
   | 'grok-4'
   | 'grok-4-fast-non-reasoning'
   | 'grok-4-fast-reasoning'
+  | 'grok-4.20-0309-non-reasoning'
+  | 'grok-4.20-0309-reasoning'
+  | 'grok-4.20-multi-agent-0309'
   | (string & {});
 
 /**
@@ -21,6 +24,8 @@ export const xaiLanguageModelResponsesOptions = z.object({
   topLogprobs: z.number().int().min(0).max(8).optional(),
   /**
    * Whether to store the input message(s) and model response for later retrieval.
+   * Must be set to `false` for teams with Zero Data Retention (ZDR) enabled,
+   * otherwise the API will return an error.
    * @default true
    */
   store: z.boolean().optional(),

@@ -48,7 +48,7 @@ import {
   createNullLanguageModelUsage,
 } from '../types/usage';
 import { StepResult } from './step-result';
-import { stepCountIs } from './stop-condition';
+import { isLoopFinished, stepCountIs } from './stop-condition';
 import {
   streamText,
   StreamTextOnFinishCallback,
@@ -2921,6 +2921,59 @@ describe('streamText', () => {
             },
             {
               "id": "1",
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "finishReason": "stop",
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
+    it('should omit reasoning content when sendReasoning is false', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({
+        sendReasoning: false,
+      });
+
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hi",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": " there!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
               "type": "text-end",
             },
             {
@@ -11129,6 +11182,77 @@ describe('streamText', () => {
         `);
       });
     });
+
+    it('should complete tool loop with isLoopFinished()', async () => {
+      let responseCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV3({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call',
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                  response: {},
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Done!' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                  response: {},
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isLoopFinished(),
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toBe('Done!');
+      expect((await result.steps).length).toBe(2);
+    });
   });
 
   describe('options.headers', () => {
@@ -11518,6 +11642,66 @@ describe('streamText', () => {
               },
             ]
           `);
+      });
+    });
+
+    describe('provider-executed tool error with structured object preserves error in ui message stream', () => {
+      it('should preserve structured error despite custom onError for provider-executed tools', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'web_fetch',
+                input: `{ "url": "https://example.com" }`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'web_fetch',
+                result: {
+                  type: 'web_fetch_tool_result_error',
+                  errorCode: 'url_not_accessible',
+                },
+                isError: true,
+                providerExecuted: true,
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            web_fetch: {
+              type: 'provider',
+              id: 'test.web_fetch',
+              inputSchema: z.object({ url: z.string() }),
+              args: {},
+            },
+          },
+          ...defaultSettings(),
+          stopWhen: stepCountIs(4),
+        });
+
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream({
+            onError: () => 'Oops, an error occurred!',
+          }),
+        );
+
+        const errorChunk = chunks.find(
+          (c: any) => c.type === 'tool-output-error',
+        );
+
+        const parsed = JSON.parse((errorChunk as any).errorText);
+        expect(parsed).toEqual({
+          type: 'web_fetch_tool_result_error',
+          errorCode: 'url_not_accessible',
+        });
       });
     });
 
@@ -15057,6 +15241,50 @@ describe('streamText', () => {
             "Hello, world!",
           ]
         `);
+      });
+
+      it('should not call JSON.stringify for string partial outputs', async () => {
+        const originalStringify = JSON.stringify;
+        const stringifySpy = vi.spyOn(JSON, 'stringify').mockImplementation(((
+          ...args: Parameters<typeof JSON.stringify>
+        ) => {
+          if (typeof args[0] === 'string') {
+            throw new Error(
+              'JSON.stringify should not be called for string partial outputs',
+            );
+          }
+          return originalStringify.call(JSON, ...args);
+        }) as typeof JSON.stringify);
+
+        try {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                { type: 'text-delta', id: '1', delta: 'world!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            prompt: 'prompt',
+            output: Output.text(),
+          });
+
+          expect(await convertAsyncIterableToArray(result.partialOutputStream))
+            .toMatchInlineSnapshot(`
+            [
+              "Hello, ",
+              "Hello, world!",
+            ]
+          `);
+        } finally {
+          stringifySpy.mockRestore();
+        }
       });
 
       it('should resolve output promise with the correct content', async () => {
@@ -22163,7 +22391,7 @@ describe('streamText', () => {
           });
         });
 
-        it('should send tool-approval-response to the model', async () => {
+        it('should send tool-approval-response to the model exactly once', async () => {
           await result.consumeStream();
           expect(prompts[0]).toMatchInlineSnapshot(`
             [
@@ -22195,12 +22423,6 @@ describe('streamText', () => {
               },
               {
                 "content": [
-                  {
-                    "approvalId": "mcp-approval-1",
-                    "approved": true,
-                    "reason": undefined,
-                    "type": "tool-approval-response",
-                  },
                   {
                     "approvalId": "mcp-approval-1",
                     "approved": true,
@@ -22338,7 +22560,7 @@ describe('streamText', () => {
           });
         });
 
-        it('should send denied tool-approval-response to the model', async () => {
+        it('should send denied tool-approval-response to the model exactly once', async () => {
           await result.consumeStream();
           expect(prompts[0]).toMatchInlineSnapshot(`
             [
@@ -22370,12 +22592,6 @@ describe('streamText', () => {
               },
               {
                 "content": [
-                  {
-                    "approvalId": "mcp-approval-1",
-                    "approved": false,
-                    "reason": "User denied the request",
-                    "type": "tool-approval-response",
-                  },
                   {
                     "approvalId": "mcp-approval-1",
                     "approved": false,

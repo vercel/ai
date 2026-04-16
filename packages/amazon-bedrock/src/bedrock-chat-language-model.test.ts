@@ -2137,6 +2137,41 @@ describe('doStream', () => {
     });
   });
 
+  it('should pass serviceTier provider option in stream requests', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          serviceTier: 'priority',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody).toMatchObject({
+      serviceTier: {
+        type: 'priority',
+      },
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.serviceTier,
+    ).toBeUndefined();
+  });
+
   it('should handle JSON response format in streaming', async () => {
     setupMockEventStreamHandler();
     prepareChunksFixtureResponse('bedrock-json-tool.1');
@@ -4231,6 +4266,30 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass serviceTier provider option in generate requests', async () => {
+    prepareJsonFixtureResponse('bedrock-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          serviceTier: 'priority',
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody).toMatchObject({
+      serviceTier: {
+        type: 'priority',
+      },
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.serviceTier,
+    ).toBeUndefined();
+  });
+
   it('maps maxReasoningEffort for Nova without thinking (generate)', async () => {
     server.urls[novaGenerateUrl].response = {
       type: 'json-value',
@@ -4543,6 +4602,76 @@ describe('doGenerate', () => {
             },
           },
           "text": "I need to think about this problem carefully...",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve empty text blocks between reasoning blocks', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'thinking...',
+                    signature: 'sig-1',
+                  },
+                },
+              },
+              { text: '' },
+              {
+                reasoningContent: {
+                  reasoningText: {
+                    text: 'more thinking...',
+                    signature: 'sig-2',
+                  },
+                },
+              },
+              { text: 'The answer is 42.' },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "bedrock": {
+              "signature": "sig-1",
+            },
+          },
+          "text": "thinking...",
+          "type": "reasoning",
+        },
+        {
+          "text": "",
+          "type": "text",
+        },
+        {
+          "providerMetadata": {
+            "bedrock": {
+              "signature": "sig-2",
+            },
+          },
+          "text": "more thinking...",
           "type": "reasoning",
         },
         {

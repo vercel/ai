@@ -15,6 +15,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   jsonSchema,
+  parseProviderOptions,
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -30,6 +31,7 @@ import {
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
 import { OpenResponsesConfig } from './open-responses-config';
+import { openResponsesOptionsSchema } from './open-responses-options';
 
 export class OpenResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
@@ -127,6 +129,12 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
           }
         : undefined;
 
+    const openResponsesOptions = await parseProviderOptions({
+      provider: this.config.providerOptionsName,
+      providerOptions,
+      schema: openResponsesOptionsSchema,
+    });
+
     return {
       body: {
         model: this.modelId,
@@ -137,6 +145,18 @@ export class OpenResponsesLanguageModel implements LanguageModelV3 {
         top_p: topP,
         presence_penalty: presencePenalty,
         frequency_penalty: frequencyPenalty,
+        reasoning:
+          openResponsesOptions?.reasoningEffort != null ||
+          openResponsesOptions?.reasoningSummary != null
+            ? {
+                ...(openResponsesOptions?.reasoningEffort != null && {
+                  effort: openResponsesOptions.reasoningEffort,
+                }),
+                ...(openResponsesOptions?.reasoningSummary != null && {
+                  summary: openResponsesOptions.reasoningSummary,
+                }),
+              }
+            : undefined,
         tools: functionTools?.length ? functionTools : undefined,
         tool_choice: convertedToolChoice,
         ...(textFormat != null && { text: { format: textFormat } }),

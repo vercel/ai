@@ -7,6 +7,7 @@ export type BedrockChatModelId =
   | 'anthropic.claude-v2'
   | 'anthropic.claude-v2:1'
   | 'anthropic.claude-instant-v1'
+  | 'anthropic.claude-opus-4-7'
   | 'anthropic.claude-opus-4-6-v1'
   | 'anthropic.claude-sonnet-4-6-v1'
   | 'anthropic.claude-opus-4-5-20251101-v1:0'
@@ -54,6 +55,7 @@ export type BedrockChatModelId =
   | 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
   | 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
   | 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+  | 'us.anthropic.claude-opus-4-7'
   | 'us.anthropic.claude-opus-4-6-v1'
   | 'us.anthropic.claude-sonnet-4-6-v1'
   | 'us.anthropic.claude-opus-4-5-20251101-v1:0'
@@ -122,6 +124,16 @@ export const amazonBedrockLanguageModelOptions = z.object({
    * Anthropic beta features to enable
    */
   anthropicBeta: z.array(z.string()).optional(),
+  /**
+   * Service tier for the request.
+   * @see https://docs.aws.amazon.com/bedrock/latest/userguide/service-tiers-inference.html
+   *
+   * - 'reserved': Uses provisioned throughput capacity
+   * - 'priority': Prioritizes low-latency inference when capacity is available
+   * - 'default': Standard on-demand tier
+   * - 'flex': Lower-cost tier for flexible latency workloads
+   */
+  serviceTier: z.enum(['reserved', 'priority', 'default', 'flex']).optional(),
 });
 
 export type AmazonBedrockLanguageModelOptions = z.infer<

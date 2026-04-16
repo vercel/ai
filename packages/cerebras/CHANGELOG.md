@@ -1,5 +1,45 @@
 # @ai-sdk/cerebras
 
+## 2.0.45
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+- Updated dependencies [d42076d]
+  - @ai-sdk/openai-compatible@2.0.41
+
+## 2.0.44
+
+### Patch Changes
+
+- Updated dependencies [01c9c16]
+  - @ai-sdk/openai-compatible@2.0.40
+
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+  - @ai-sdk/openai-compatible@2.0.39
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+  - @ai-sdk/openai-compatible@2.0.38
+
+## 2.0.41
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/openai-compatible@2.0.37
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 2.0.40
 
 ### Patch Changes
@@ -326,13 +366,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 42e9f64: Add support for 5 new Cerebras models:
@@ -565,13 +605,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

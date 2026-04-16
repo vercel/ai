@@ -15,10 +15,10 @@ function to generate videos based on a given prompt using a video model.
 
 ```tsx
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { fal } from '@ai-sdk/fal';
+__PROVIDER_IMPORT__;
 
 const { video } = await generateVideo({
-  model: fal.video('luma-dream-machine/ray-2'),
+  model: __VIDEO_MODEL__,
   prompt: 'A cat walking on a treadmill',
 });
 ```
@@ -39,10 +39,10 @@ Models only support a few aspect ratios, and the supported aspect ratios are dif
 
 ```tsx highlight={"7"}
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { fal } from '@ai-sdk/fal';
+__PROVIDER_IMPORT__;
 
 const { video } = await generateVideo({
-  model: fal.video('luma-dream-machine/ray-2'),
+  model: __VIDEO_MODEL__,
   prompt: 'A cat walking on a treadmill',
   aspectRatio: '16:9',
 });
@@ -55,10 +55,10 @@ Models only support specific resolutions, and the supported resolutions are diff
 
 ```tsx highlight={"7"}
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { google } from '@ai-sdk/google';
+__PROVIDER_IMPORT__;
 
 const { video } = await generateVideo({
-  model: google.video('veo-2.0-generate-001'),
+  model: __VIDEO_MODEL__,
   prompt: 'A serene mountain landscape at sunset',
   resolution: '1280x720',
 });
@@ -70,10 +70,10 @@ Some video models support specifying the duration of the generated video in seco
 
 ```tsx highlight={"7"}
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { fal } from '@ai-sdk/fal';
+__PROVIDER_IMPORT__;
 
 const { video } = await generateVideo({
-  model: fal.video('luma-dream-machine/ray-2'),
+  model: __VIDEO_MODEL__,
   prompt: 'A timelapse of clouds moving across the sky',
   duration: 5,
 });
@@ -85,10 +85,10 @@ Some video models allow you to specify the frames per second for the generated v
 
 ```tsx highlight={"7"}
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { fal } from '@ai-sdk/fal';
+__PROVIDER_IMPORT__;
 
 const { video } = await generateVideo({
-  model: fal.video('luma-dream-machine/ray-2'),
+  model: __VIDEO_MODEL__,
   prompt: 'A hummingbird in slow motion',
   fps: 24,
 });
@@ -100,10 +100,10 @@ const { video } = await generateVideo({
 
 ```tsx highlight={"7"}
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { google } from '@ai-sdk/google';
+__PROVIDER_IMPORT__;
 
 const { videos } = await generateVideo({
-  model: google.video('veo-2.0-generate-001'),
+  model: __VIDEO_MODEL__,
   prompt: 'A rocket launching into space',
   n: 3, // number of videos to generate
 });
@@ -120,7 +120,7 @@ If needed, you can override this behavior using the `maxVideosPerCall` setting:
 
 ```tsx
 const { videos } = await generateVideo({
-  model: google.video('veo-2.0-generate-001'),
+  model: __VIDEO_MODEL__,
   prompt: 'A rocket launching into space',
   maxVideosPerCall: 2, // Override the default batch size
   n: 4, // Will make 2 calls of 2 videos each
@@ -133,10 +133,10 @@ Some video models support generating videos from an input image. You can provide
 
 ```tsx highlight={"7-10"}
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { fal } from '@ai-sdk/fal';
+__PROVIDER_IMPORT__;
 
 const { video } = await generateVideo({
-  model: fal.video('hunyuan-video'),
+  model: __VIDEO_MODEL__,
   prompt: {
     image: 'https://example.com/my-image.png',
     text: 'Animate this image with gentle motion',
@@ -148,7 +148,7 @@ You can also provide the image as a base64-encoded string or `Uint8Array`:
 
 ```tsx
 const { video } = await generateVideo({
-  model: fal.video('hunyuan-video'),
+  model: __VIDEO_MODEL__,
   prompt: {
     image: imageBase64String, // or imageUint8Array
     text: 'Animate this image',
@@ -163,10 +163,10 @@ If supported by the model, the same seed will always produce the same video.
 
 ```tsx highlight={"7"}
 import { experimental_generateVideo as generateVideo } from 'ai';
-import { fal } from '@ai-sdk/fal';
+__PROVIDER_IMPORT__;
 
 const { video } = await generateVideo({
-  model: fal.video('luma-dream-machine/ray-2'),
+  model: __VIDEO_MODEL__,
   prompt: 'A cat walking on a treadmill',
   seed: 1234567890,
 });
@@ -200,11 +200,11 @@ type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSigna
 that you can use to abort the video generation process or set a timeout.
 
 ```ts highlight={"7"}
-import { fal } from '@ai-sdk/fal';
 import { experimental_generateVideo as generateVideo } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { video } = await generateVideo({
-  model: fal.video('luma-dream-machine/ray-2'),
+  model: __VIDEO_MODEL__,
   prompt: 'A cat walking on a treadmill',
   abortSignal: AbortSignal.timeout(60000), // Abort after 60 seconds
 });
@@ -249,11 +249,11 @@ const { video } = await generateVideo({
 that you can use to add custom headers to the video generation request.
 
 ```ts highlight={"7"}
-import { fal } from '@ai-sdk/fal';
 import { experimental_generateVideo as generateVideo } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { video } = await generateVideo({
-  model: fal.video('luma-dream-machine/ray-2'),
+  model: __VIDEO_MODEL__,
   prompt: 'A cat walking on a treadmill',
   headers: { 'X-Custom-Header': 'custom-value' },
 });
@@ -265,7 +265,7 @@ If the model returns warnings, e.g. for unsupported parameters, they will be ava
 
 ```tsx
 const { video, warnings } = await generateVideo({
-  model: fal.video('luma-dream-machine/ray-2'),
+  model: __VIDEO_MODEL__,
   prompt: 'A cat walking on a treadmill',
 });
 ```
@@ -298,7 +298,7 @@ When generating multiple videos with `n > 1`, you can also access per-call metad
 
 ```tsx
 const { videos, responses } = await generateVideo({
-  model: google.video('veo-2.0-generate-001'),
+  model: __VIDEO_MODEL__,
   prompt: 'A rocket launching into space',
   n: 5, // May require multiple API calls
 });
@@ -361,6 +361,6 @@ try {
 | [Kling AI](/providers/ai-sdk-providers/klingai#video-models)            | `kling-v2.6-i2v`            | Image-to-video                         |
 | [Kling AI](/providers/ai-sdk-providers/klingai#video-models)            | `kling-v2.6-motion-control` | Motion control                         |
 | [Replicate](/providers/ai-sdk-providers/replicate#video-models)         | `minimax/video-01`          | Text-to-video                          |
-| [xAI](/providers/ai-sdk-providers/xai#video-models)                     | `grok-imagine-video`        | Text-to-video, image-to-video, editing |
+| [xAI](/providers/ai-sdk-providers/xai#video-models)                     | `grok-imagine-video`        | Text-to-video, image-to-video, editing, extension, R2V |
 
 Above are a small subset of the video models supported by the AI SDK providers. For more, see the respective provider documentation.

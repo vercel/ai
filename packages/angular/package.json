@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/angular",
-  "version": "2.0.122",
+  "version": "2.0.168",
   "description": "Angular implementation of ai-sdk.",
   "license": "Apache-2.0",
   "main": "dist/index.cjs",
@@ -10,9 +10,7 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --tsconfig tsconfig.build.json --watch",
     "clean": "del-cli dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.ts --run",
     "test:update": "vitest --config vitest.config.ts --run -u",
     "test:watch": "vitest --config vitest.config.ts"
@@ -43,12 +41,10 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
-    "eslint": "8.57.1",
-    "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^24.0.0",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "^3.0.0",
+    "vitest": "^4.1.0",
     "zod": "3.25.76"
   },
   "peerDependencies": {

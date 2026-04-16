@@ -6,6 +6,10 @@ import {
 import { OpenAIChatPrompt } from './openai-chat-prompt';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 
+function serializeToolCallArguments(input: unknown): string {
+  return JSON.stringify(input === undefined ? {} : input);
+}
+
 export function convertToOpenAIChatMessages({
   prompt,
   systemMessageMode = 'system',
@@ -165,7 +169,7 @@ export function convertToOpenAIChatMessages({
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeToolCallArguments(part.input),
                 },
               });
               break;
