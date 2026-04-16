@@ -110,7 +110,7 @@ The `GenAIOpenTelemetry` also accepts a custom `Tracer` in the same way.
 
 ## Telemetry Integrations
 
-Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and register it globally or pass it via `experimental_telemetry.integrations`.
+Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `Telemetry` once and register it globally or pass it via `experimental_telemetry.integrations`.
 
 The `GenAIOpenTelemetry` and `OpenTelemetry` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
 
@@ -154,12 +154,12 @@ Errors inside integrations are caught and do not break the generation flow.
 
 ### Building a custom integration
 
-Implement the `TelemetryIntegration` interface from the `ai` package. All methods are optional — implement only the lifecycle events you care about:
+Implement the `Telemetry` interface from the `ai` package. All methods are optional — implement only the lifecycle events you care about:
 
 ```ts
-import type { TelemetryIntegration } from 'ai';
+import type { Telemetry } from 'ai';
 
-class MyIntegration implements TelemetryIntegration {
+class MyIntegration implements Telemetry {
   async onStart(event) {
     console.log('Generation started:', event.model.modelId);
   }
@@ -187,7 +187,7 @@ class MyIntegration implements TelemetryIntegration {
   }
 }
 
-export function myIntegration(): TelemetryIntegration {
+export function myIntegration(): Telemetry {
   return new MyIntegration();
 }
 ```

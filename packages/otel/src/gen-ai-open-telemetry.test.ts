@@ -6,7 +6,7 @@ import {
   SpanStatusCode,
   Tracer,
 } from '@opentelemetry/api';
-import type { TelemetryIntegration } from 'ai';
+import type { Telemetry } from 'ai';
 import { GenAIOpenTelemetry } from './gen-ai-open-telemetry';
 
 type MockSpan = Span & {
@@ -172,7 +172,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     ...telemetryFields(),
     runtimeContext: {},
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onStart']>>[0];
+  } as Parameters<NonNullable<Telemetry['onStart']>>[0];
 }
 
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
@@ -201,7 +201,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     stepTools: undefined,
     stepToolChoice: undefined,
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onStepStart']>>[0];
+  } as Parameters<NonNullable<Telemetry['onStepStart']>>[0];
 }
 
 function makeStepFinishEvent(overrides?: Record<string, unknown>) {
@@ -252,7 +252,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     runtimeContext: {},
     toolsContext: {},
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onStepFinish']>>[0];
+  } as Parameters<NonNullable<Telemetry['onStepFinish']>>[0];
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
@@ -276,7 +276,7 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onFinish']>>[0];
+  } as Parameters<NonNullable<Telemetry['onFinish']>>[0];
 }
 
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
@@ -297,7 +297,7 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     context: {},
     toolsContext: {},
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onToolCallStart']>>[0];
+  } as Parameters<NonNullable<Telemetry['onToolCallStart']>>[0];
 }
 
 function makeToolCallFinishEvent(
@@ -329,18 +329,18 @@ function makeToolCallFinishEvent(
       ...base,
       success: true as const,
       output: { result: 'ok' },
-    } as Parameters<NonNullable<TelemetryIntegration['onToolCallFinish']>>[0];
+    } as Parameters<NonNullable<Telemetry['onToolCallFinish']>>[0];
   }
   return {
     ...base,
     success: false as const,
     error: new Error('tool failed'),
-  } as Parameters<NonNullable<TelemetryIntegration['onToolCallFinish']>>[0];
+  } as Parameters<NonNullable<Telemetry['onToolCallFinish']>>[0];
 }
 
 describe('GenAIOpenTelemetry', () => {
   let tracer: MockTracer;
-  let integration: TelemetryIntegration;
+  let integration: Telemetry;
 
   beforeEach(() => {
     tracer = createMockTracer();

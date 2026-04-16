@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { TelemetryIntegration } from './telemetry-integration';
+import type { Telemetry } from './telemetry-integration';
 import {
   registerTelemetry,
   getGlobalTelemetryIntegrations,
@@ -11,7 +11,7 @@ beforeEach(() => {
 
 describe('registerTelemetry', () => {
   it('adds an integration to the global registry', () => {
-    const integration: TelemetryIntegration = { onStart: vi.fn() };
+    const integration: Telemetry = { onStart: vi.fn() };
 
     registerTelemetry(integration);
 
@@ -19,8 +19,8 @@ describe('registerTelemetry', () => {
   });
 
   it('adds multiple integrations in registration order', () => {
-    const integration1: TelemetryIntegration = { onStart: vi.fn() };
-    const integration2: TelemetryIntegration = { onFinish: vi.fn() };
+    const integration1: Telemetry = { onStart: vi.fn() };
+    const integration2: Telemetry = { onFinish: vi.fn() };
 
     registerTelemetry(integration1);
     registerTelemetry(integration2);

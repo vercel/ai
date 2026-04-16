@@ -32,7 +32,7 @@ import type { Callback } from '../util/callback';
  * Implement this interface to create custom telemetry integrations.
  * Methods can be sync or return a PromiseLike.
  */
-export interface TelemetryIntegration {
+export interface Telemetry {
   /**
    * Called when an operation begins. Fired for text generation
    * (generateText/streamText), object generation (generateObject/streamObject),
