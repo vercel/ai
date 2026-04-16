@@ -1,6 +1,6 @@
 import {
-  type Experimental_VideoModelV4 as VideoModelV4,
-  type ProviderV4,
+  Experimental_VideoModelV4 as VideoModelV4,
+  ProviderV4,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {
