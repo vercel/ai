@@ -5,23 +5,18 @@ import { InferToolOutput } from './infer-tool-output';
 import { Tool, ToolExecutionOptions } from './tool';
 
 /**
- * Executes a tool function, supporting both synchronous and streaming/asynchronous results.
+ * Executes a tool function and normalizes its results into a stream of outputs.
  *
- * This generator yields intermediate ("preliminary") outputs as they're produced, allowing callers
- * to stream partial tool results before completion. When execution is finished, it yields a final output,
- * ensuring all consumers receive a conclusive result.
- *
- * - If the tool's `execute` function returns an `AsyncIterable`, all intermediate values are yielded
- *   as `{ type: "preliminary", output }` except the last, which is yielded as `{ type: "final", output }`.
+ * - If the tool's `execute` function returns an `AsyncIterable`, each yielded value is emitted as
+ *   `{ type: "preliminary", output }`. After iteration completes, the last yielded value is emitted
+ *   again as `{ type: "final", output }`.
  * - If the tool returns a direct value or Promise, a single `{ type: "final", output }` is yielded.
  *
- * @template INPUT Input type for the tool execution.
- * @template OUTPUT Output type for the tool execution.
- * @template CONTEXT Context object extension for execution (extends Context).
- * @param params.execute The tool execute function.
- * @param params.input Input value to pass to the execute function.
+ * @param params.tool The tool whose `execute` function should be invoked.
+ * @param params.input The input value to pass to the tool.
  * @param params.options Additional options for tool execution.
- * @yields An object containing either a preliminary or final output from the tool.
+ * @yields A preliminary output for each streamed value, followed by a final output, or a single final
+ * output for non-streaming tools.
  */
 export async function* executeTool<
   TOOL extends Tool & { execute: NonNullable<Tool['execute']> },
