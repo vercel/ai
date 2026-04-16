@@ -269,12 +269,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
     const {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
-<<<<<<< HEAD
-=======
-      supportsAdaptiveThinking,
       rejectsSamplingParameters,
-      supportsXhighEffort,
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
@@ -371,34 +366,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
         toolNameMapping,
       });
 
-<<<<<<< HEAD
-=======
-    /*
-     * Map top-level `reasoning` to Anthropic thinking/effort when provider
-     * options don't already specify them. Provider options always take precedence.
-     */
-    if (isCustomReasoning(reasoning) && anthropicOptions?.effort == null) {
-      const reasoningConfig = resolveAnthropicReasoningConfig({
-        reasoning,
-        supportsAdaptiveThinking,
-        supportsXhighEffort,
-        maxOutputTokensForModel,
-        warnings,
-      });
-      if (reasoningConfig != null) {
-        if (anthropicOptions.thinking == null) {
-          anthropicOptions.thinking = reasoningConfig.thinking;
-        }
-        if (
-          reasoningConfig.effort != null &&
-          anthropicOptions.thinking?.type !== 'disabled'
-        ) {
-          anthropicOptions.effort = reasoningConfig.effort;
-        }
-      }
-    }
-
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
     const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
       thinkingType === 'enabled' || thinkingType === 'adaptive';
@@ -2364,21 +2331,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV3 {
 function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
   supportsStructuredOutput: boolean;
-<<<<<<< HEAD
-=======
-  supportsAdaptiveThinking: boolean;
   rejectsSamplingParameters: boolean;
-  supportsXhighEffort: boolean;
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
   isKnownModel: boolean;
 } {
   if (modelId.includes('claude-opus-4-7')) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
-      supportsAdaptiveThinking: true,
       rejectsSamplingParameters: true,
-      supportsXhighEffort: true,
       isKnownModel: true,
     };
   } else if (
@@ -2388,12 +2348,7 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
-<<<<<<< HEAD
-=======
-      supportsAdaptiveThinking: true,
       rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
       isKnownModel: true,
     };
   } else if (
@@ -2404,72 +2359,42 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: true,
-<<<<<<< HEAD
-=======
-      supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
-<<<<<<< HEAD
-=======
-      supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-sonnet-4-')) {
     return {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
-<<<<<<< HEAD
-=======
-      supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
     return {
       maxOutputTokens: 32000,
       supportsStructuredOutput: false,
-<<<<<<< HEAD
-=======
-      supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
-<<<<<<< HEAD
-=======
-      supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
       isKnownModel: true,
     };
   } else {
     return {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
-<<<<<<< HEAD
-=======
-      supportsAdaptiveThinking: false,
       rejectsSamplingParameters: false,
-      supportsXhighEffort: false,
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
       isKnownModel: false,
     };
   }
@@ -2500,57 +2425,6 @@ function hasWebTool20260209WithoutCodeExecution(
   return hasWebTool20260209 && !hasCodeExecutionTool;
 }
 
-<<<<<<< HEAD
-=======
-function resolveAnthropicReasoningConfig({
-  reasoning,
-  supportsAdaptiveThinking,
-  supportsXhighEffort,
-  maxOutputTokensForModel,
-  warnings,
-}: {
-  reasoning: LanguageModelV4CallOptions['reasoning'];
-  supportsAdaptiveThinking: boolean;
-  supportsXhighEffort: boolean;
-  maxOutputTokensForModel: number;
-  warnings: SharedV4Warning[];
-}): Pick<AnthropicLanguageModelOptions, 'thinking' | 'effort'> | undefined {
-  if (!isCustomReasoning(reasoning)) {
-    return undefined;
-  }
-
-  if (reasoning === 'none') {
-    return { thinking: { type: 'disabled' } };
-  }
-
-  if (supportsAdaptiveThinking) {
-    const effort = mapReasoningToProviderEffort({
-      reasoning,
-      effortMap: {
-        minimal: 'low' as const,
-        low: 'low' as const,
-        medium: 'medium' as const,
-        high: 'high' as const,
-        xhigh: supportsXhighEffort ? ('xhigh' as const) : ('max' as const),
-      },
-      warnings,
-    });
-    return { thinking: { type: 'adaptive' }, effort };
-  }
-
-  const budgetTokens = mapReasoningToProviderBudget({
-    reasoning,
-    maxOutputTokens: maxOutputTokensForModel,
-    maxReasoningBudget: maxOutputTokensForModel,
-    warnings,
-  });
-  if (budgetTokens == null) {
-    return undefined;
-  }
-  return { thinking: { type: 'enabled', budgetTokens } };
-}
-
->>>>>>> 0d8f10713 (feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements (#14529))
 function mapAnthropicResponseContextManagement(
   contextManagement: AnthropicResponseContextManagement | null | undefined,
 ): AnthropicMessageMetadata['contextManagement'] | null {
