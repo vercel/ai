@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 55f0938: chore(provider/google): update available models
+
 ## 4.0.0-beta.39
 
 ### Patch Changes
