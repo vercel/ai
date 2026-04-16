@@ -1,6 +1,6 @@
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { streamText } from 'ai';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
