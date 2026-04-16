@@ -453,3 +453,35 @@ const mcpClient = await createMCPClient({
 ```
 
 If the MCP server you use does not issue redirects, no changes are needed — the new default is more secure.
+
+## Anthropic Provider
+
+### `providerMetadata.anthropic.cacheCreationInputTokens` Removed
+
+The Anthropic-specific `cacheCreationInputTokens` field on `providerMetadata.anthropic` has been removed from the responses of `generateText` and `streamText` (as well as the `@ai-sdk/google-vertex/anthropic` sub-provider). This duplicated information that is already available on the standard, provider-agnostic `usage` object.
+
+Use `result.usage.inputTokenDetails.cacheWriteTokens` to read the number of tokens written to the cache, and `result.usage.inputTokenDetails.cacheReadTokens` to read the number of tokens served from the cache:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: [
+    /* ... messages with cacheControl ... */
+  ],
+});
+
+console.log(result.providerMetadata?.anthropic?.cacheCreationInputTokens);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: [
+    /* ... messages with cacheControl ... */
+  ],
+});
+
+console.log(result.usage.inputTokenDetails.cacheWriteTokens);
+```
+
+If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.providerMetadata?.anthropic?.usage`.
