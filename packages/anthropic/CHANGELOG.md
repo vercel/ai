@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.76
+
+### Patch Changes
+
+- 2fe3997: feat (provider/anthropic): add support for inference_geo provider option
+
 ## 2.0.75
 
 ### Patch Changes
