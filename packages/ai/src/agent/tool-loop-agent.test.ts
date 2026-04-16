@@ -915,7 +915,7 @@ describe('ToolLoopAgent', () => {
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
           maxOutputTokens: 500,
-          context: { userId: 'test-user' },
+          runtimeContext: { userId: 'test-user' },
         });
 
         await agent.generate({
@@ -933,17 +933,17 @@ describe('ToolLoopAgent', () => {
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
-          context: startEvent.context,
+          runtimeContext: startEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
-            "context": {
-              "userId": "test-user",
-            },
             "maxOutputTokens": 500,
             "messages": undefined,
             "modelId": "mock-model-id",
             "prompt": "Hello, world!",
             "provider": "mock-provider",
+            "runtimeContext": {
+              "userId": "test-user",
+            },
             "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
@@ -1098,7 +1098,7 @@ describe('ToolLoopAgent', () => {
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
           maxOutputTokens: 500,
-          context: { userId: 'test-user' },
+          runtimeContext: { userId: 'test-user' },
         });
 
         const result = await agent.stream({
@@ -1118,17 +1118,17 @@ describe('ToolLoopAgent', () => {
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
-          context: startEvent.context,
+          runtimeContext: startEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
-            "context": {
-              "userId": "test-user",
-            },
             "maxOutputTokens": 500,
             "messages": undefined,
             "modelId": "mock-model-id",
             "prompt": "Hello, world!",
             "provider": "mock-provider",
+            "runtimeContext": {
+              "userId": "test-user",
+            },
             "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
@@ -1302,7 +1302,7 @@ describe('ToolLoopAgent', () => {
         const agent = new ToolLoopAgent({
           model: mockModel,
           instructions: 'You are a helpful assistant',
-          context: { userId: 'test-user' },
+          runtimeContext: { userId: 'test-user' },
         });
 
         await agent.generate({
@@ -1319,15 +1319,15 @@ describe('ToolLoopAgent', () => {
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
-          context: stepStartEvent.context,
+          runtimeContext: stepStartEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
-            "context": {
-              "userId": "test-user",
-            },
             "messagesLength": 1,
             "modelId": "mock-model-id",
             "provider": "mock-provider",
+            "runtimeContext": {
+              "userId": "test-user",
+            },
             "stepNumber": 0,
             "steps": [],
             "system": "You are a helpful assistant",
@@ -1456,7 +1456,7 @@ describe('ToolLoopAgent', () => {
         const agent = new ToolLoopAgent({
           model: mockModel,
           instructions: 'You are a helpful assistant',
-          context: { userId: 'test-user' },
+          runtimeContext: { userId: 'test-user' },
         });
 
         const result = await agent.stream({
@@ -1475,15 +1475,15 @@ describe('ToolLoopAgent', () => {
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
-          context: stepStartEvent.context,
+          runtimeContext: stepStartEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
-            "context": {
-              "userId": "test-user",
-            },
             "messagesLength": 1,
             "modelId": "mock-model-id",
             "provider": "mock-provider",
+            "runtimeContext": {
+              "userId": "test-user",
+            },
             "stepNumber": 0,
             "steps": [],
             "system": "You are a helpful assistant",

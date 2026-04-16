@@ -4,19 +4,19 @@ import { LanguageModelStreamPart } from './stream-language-model-call';
 
 export function invokeToolCallbacksFromStream<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context,
+  RUNTIME_CONTEXT extends Context,
 >({
   stream,
   tools,
   stepInputMessages,
   abortSignal,
-  context,
+  runtimeContext,
 }: {
   stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
-  context: USER_CONTEXT;
+  runtimeContext: RUNTIME_CONTEXT;
 }): ReadableStream<LanguageModelStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
@@ -37,7 +37,7 @@ export function invokeToolCallbacksFromStream<
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                context,
+                context: runtimeContext,
               });
             }
 
@@ -54,7 +54,7 @@ export function invokeToolCallbacksFromStream<
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                context,
+                context: runtimeContext,
               });
             }
 
@@ -73,7 +73,7 @@ export function invokeToolCallbacksFromStream<
                 toolCallId: chunk.toolCallId,
                 messages: stepInputMessages,
                 abortSignal,
-                context,
+                context: runtimeContext,
               });
             }
           }

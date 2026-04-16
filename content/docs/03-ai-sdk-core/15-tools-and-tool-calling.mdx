@@ -408,7 +408,7 @@ It is called with the following parameters:
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
 - `messages`: The messages that will be sent to the model for the current step.
-- `context`: The runtime context passed via the `context` setting.
+- `runtimeContext`: The runtime context passed via the `runtimeContext` setting.
 - `toolsContext`: The per-tool context map passed via the `toolsContext` setting.
 
 You can use it to provide different settings for a step, including modifying the input messages.
@@ -729,7 +729,7 @@ const result = await generateText({
 
 ### Runtime Context
 
-You can pass in arbitrary runtime context from `generateText` or `streamText` via the `context` setting.
+You can pass in arbitrary runtime context from `generateText` or `streamText` via the `runtimeContext` setting.
 This runtime context is available in `prepareStep`.
 
 To avoid confusion with prompt context or retrieved context, the docs refer to this feature as runtime context.
@@ -740,7 +740,7 @@ Tool execution context is now separate. If a tool needs server-side values such 
 
 At a high level:
 
-- Pass shared step-level state through `context`
+- Pass shared step-level state through `runtimeContext`
 - Read or update it in `prepareStep`
 - Pass per-tool values through `toolsContext`
 - Declare each tool's expected tool context with `contextSchema`
@@ -780,7 +780,7 @@ const result = streamText({
       },
     }),
   },
-  context: {
+  runtimeContext: {
     somethingElse: 'other-context',
   },
   toolsContext: {
@@ -788,14 +788,14 @@ const result = streamText({
       weatherApiKey: 'weather-123',
     },
   },
-  prepareStep: async ({ context, toolsContext }) => {
-    console.log('prepareStep context:', context);
+  prepareStep: async ({ runtimeContext, toolsContext }) => {
+    console.log('prepareStep runtimeContext:', runtimeContext);
     console.log('prepareStep toolsContext:', toolsContext);
 
     return {
-      // You can keep the context unchanged or return a new one
+      // You can keep the runtimeContext unchanged or return a new one
       // to affect the current and subsequent steps.
-      context,
+      runtimeContext,
     };
   },
   prompt: 'What is the weather in San Francisco?',
@@ -820,7 +820,7 @@ In this example, `prepareStep` receives the full runtime context object:
 }
 ```
 
-The `weather` tool then receives only its own typed `context` based on its `contextSchema`. In this case, `execute` can access `weatherApiKey`, while the shared step-level `context` remains separate.
+The `weather` tool then receives only its own typed `context` based on its `contextSchema`. In this case, `execute` can access `weatherApiKey`, while the shared step-level `runtimeContext` remains separate.
 
 
 ## Tool Input Lifecycle Hooks
