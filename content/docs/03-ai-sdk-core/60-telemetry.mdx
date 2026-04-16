@@ -58,16 +58,16 @@ You might for example want to disable recording inputs if they contain sensitive
 ## Telemetry Metadata
 
 You can provide a `functionId` to identify the function that the telemetry data is for,
-and `context` to include additional information in the telemetry data.
+and `runtimeContext` to include additional information in the telemetry data.
 
 ```ts highlight="6-10"
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
-  context: {
+  runtimeContext: {
     something: 'custom',
     someOtherThing: 'other-value',
-  }
+  },
   experimental_telemetry: {
     isEnabled: true,
     functionId: 'my-awesome-function',
@@ -516,7 +516,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.response.providerMetadata`: provider specific metadata returned with the generation response
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.settings.context.*`: the context that was passed in through the `context` option
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
 
@@ -553,7 +553,7 @@ Many spans that use embedding models (`ai.embed`, `ai.embed.doEmbed`, `ai.embedM
 - `ai.request.headers.*`: the request headers that were passed in through `headers`
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.settings.context.*`: the context that was passed in through the `context` option
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
 - `ai.usage.tokens`: the number of tokens that were used
 - `resource.name`: the functionId that was set through `telemetry.functionId`
 

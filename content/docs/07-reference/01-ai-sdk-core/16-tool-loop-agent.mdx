@@ -247,7 +247,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               description:
                 'User-defined shared runtime context object that flows through the entire generation lifecycle.',
@@ -359,7 +359,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               description:
                 'User-defined shared runtime context object. May be updated from prepareStep between steps.',
@@ -520,10 +520,10 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'ToolLoopAgentOnFinishCallback',
       isOptional: true,
       description:
-        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `context`, `toolsContext`, and functionId. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, `toolsContext`, and functionId. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
-      name: 'context',
+      name: 'runtimeContext',
       type: 'CONTEXT',
       isOptional: true,
       description:
