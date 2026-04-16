@@ -17,7 +17,6 @@ const result = streamText({
   prompt: 'Whats the weather in SF and London in C?',
   tools,
   stopWhen: isStepCount(5),
-  experimental_telemetry: { isEnabled: true },
   providerOptions: {
     anthropic: {
       thinking: {

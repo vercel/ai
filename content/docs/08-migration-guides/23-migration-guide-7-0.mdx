@@ -76,6 +76,70 @@ For Node.js applications (without Next.js), register the integration at the top 
 
 This applies to all AI SDK functions that accept `experimental_telemetry`, including `generateText`, `streamText`, `ToolLoopAgent`, `embed`, `embedMany`, and `rerank`.
 
+### Telemetry: Enabled by Default When an Integration Is Registered
+
+In AI SDK 6, telemetry was opt-in — you had to set `experimental_telemetry: { isEnabled: true }` on every call to emit events. In AI SDK 7, telemetry is opt-out: once you register a telemetry integration (for example `OpenTelemetryIntegration` or `DevToolsTelemetry`), all AI SDK calls emit telemetry events by default.
+
+```tsx filename="AI SDK 6"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: { isEnabled: true },
+});
+```
+
+```tsx filename="AI SDK 7"
+import { generateText } from 'ai';
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+});
+```
+
+You can safely remove `experimental_telemetry: { isEnabled: true }` from all of your calls. If you are already passing other fields like `functionId` or `integrations`, keep them — only `isEnabled: true` is redundant:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: {
+    isEnabled: true,
+    functionId: 'my-awesome-function',
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: {
+    functionId: 'my-awesome-function',
+  },
+});
+```
+
+To opt out of telemetry for a specific call, set `isEnabled: false`:
+
+```tsx
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: { isEnabled: false },
+});
+```
+
+To disable telemetry globally, do not register any telemetry integrations.
+
+This applies to all AI SDK functions that accept `experimental_telemetry`, including `generateText`, `streamText`, `ToolLoopAgent`, `embed`, `embedMany`, and `rerank`.
+
 ### Telemetry: `tracer` Property Removed from `experimental_telemetry`
 
 The `tracer` property on `experimental_telemetry` has been removed. If you were passing a custom OpenTelemetry `Tracer`, pass it to the `OpenTelemetryIntegration` constructor instead:
