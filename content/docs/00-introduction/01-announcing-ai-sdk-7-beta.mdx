@@ -49,12 +49,7 @@ AI SDK 7 Beta introduces several new capabilities (with more to come soon):
 
 AI SDK 7 introduces `WorkflowAgent`, a durable agent implementation built for Vercel Workflows. This is a major unlock for production agents: instead of running entirely in memory and being limited to a single request lifecycle, your agent can keep going across workflow boundaries with durable execution built in.
 
-Why this matters:
-
-- **Durable tool execution** — every tool call runs as its own workflow step with persistence and automatic retries
-- **Long-running agents** — workflows can keep going far beyond a normal request/response window
-- **Pause and resume safely** — approval flows and interruptions no longer force a full restart
-- **Built-in observability** — each tool step is visible in workflow dashboards out of the box
+Every tool call runs as its own workflow step with persistence and automatic retries. Workflows can keep going far beyond a normal request/response window, approval flows and interruptions no longer force a full restart, and each tool step is visible in workflow dashboards out of the box.
 
 ```ts
 import { WorkflowAgent } from '@ai-sdk/workflow';
@@ -99,12 +94,7 @@ const result = streamText({
 });
 ```
 
-Why this matters:
-
-- **Simple setup** — one package, one registration, one per-call flag
-- **Pluggable integrations** — register once globally or swap integrations per call
-- **Modern tracing formats** — use `GenAIOpenTelemetryIntegration` for semantic-convention spans or `OpenTelemetryIntegration` for legacy AI SDK spans
-- **Fast path to observability** — send traces to providers like [Braintrust](/providers/observability/braintrust), [Langfuse](/providers/observability/langfuse), and [MLflow](/providers/observability/mlflow), or inspect them locally with `DevToolsTelemetry()`
+Register an integration once globally or swap integrations per call. Use `GenAIOpenTelemetryIntegration` for semantic-convention spans or `OpenTelemetryIntegration` for legacy AI SDK spans. Send traces to providers like [Braintrust](/providers/observability/braintrust), [Langfuse](/providers/observability/langfuse), and [MLflow](/providers/observability/mlflow), or inspect them locally with `DevToolsTelemetry()`.
 
 Observability integrations are already available across the ecosystem. Some integrate via `@ai-sdk/otel`; others, like [LangSmith](/providers/observability/langsmith), [Axiom](/providers/observability/axiom), and [Helicone](/providers/observability/helicone), connect through wrappers or provider-level instrumentation instead.
 
