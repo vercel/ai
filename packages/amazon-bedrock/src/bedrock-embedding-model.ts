@@ -62,6 +62,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -98,7 +99,8 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
           singleEmbeddingParams: {
             embeddingPurpose:
               bedrockOptions.embeddingPurpose ?? 'GENERIC_INDEX',
-            embeddingDimension: bedrockOptions.embeddingDimension ?? 1024,
+            embeddingDimension:
+              bedrockOptions.embeddingDimension ?? dimensions ?? 1024,
             text: {
               truncationMode: bedrockOptions.truncate ?? 'END',
               value: values[0],
@@ -112,11 +114,11 @@ export class BedrockEmbeddingModel implements EmbeddingModelV4 {
             input_type: bedrockOptions.inputType ?? 'search_query',
             texts: [values[0]],
             truncate: bedrockOptions.truncate,
-            output_dimension: bedrockOptions.outputDimension,
+            output_dimension: bedrockOptions.outputDimension ?? dimensions,
           }
         : {
             inputText: values[0],
-            dimensions: bedrockOptions.dimensions,
+            dimensions: bedrockOptions.dimensions ?? dimensions,
             normalize: bedrockOptions.normalize,
           };
 

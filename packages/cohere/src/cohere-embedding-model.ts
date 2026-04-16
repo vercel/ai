@@ -60,6 +60,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
 
   async doEmbed({
     values,
+    dimensions,
     headers,
     abortSignal,
     providerOptions,
@@ -97,7 +98,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
         texts: values,
         input_type: embeddingOptions?.inputType ?? 'search_query',
         truncate: embeddingOptions?.truncate,
-        output_dimension: embeddingOptions?.outputDimension,
+        output_dimension: embeddingOptions?.outputDimension ?? dimensions,
       },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

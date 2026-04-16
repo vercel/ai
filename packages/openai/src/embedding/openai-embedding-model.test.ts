@@ -130,6 +130,49 @@ describe('doEmbed', () => {
     `);
   });
 
+  it('should pass the top-level dimensions setting', async () => {
+    prepareJsonFixtureResponse('openai-embedding');
+
+    await provider.embedding('text-embedding-3-large').doEmbed({
+      values: testValues,
+      dimensions: 128,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "dimensions": 128,
+        "encoding_format": "float",
+        "input": [
+          "sunny day at the beach",
+          "rainy day in the city",
+        ],
+        "model": "text-embedding-3-large",
+      }
+    `);
+  });
+
+  it('should prefer providerOptions dimensions over top-level dimensions', async () => {
+    prepareJsonFixtureResponse('openai-embedding');
+
+    await provider.embedding('text-embedding-3-large').doEmbed({
+      values: testValues,
+      dimensions: 128,
+      providerOptions: { openai: { dimensions: 64 } },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "dimensions": 64,
+        "encoding_format": "float",
+        "input": [
+          "sunny day at the beach",
+          "rainy day in the city",
+        ],
+        "model": "text-embedding-3-large",
+      }
+    `);
+  });
+
   it('should pass headers', async () => {
     prepareJsonFixtureResponse('openai-embedding');
 
