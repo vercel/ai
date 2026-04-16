@@ -26,11 +26,6 @@ run(async () => {
     experimental_telemetry: {
       isEnabled: true,
       functionId: 'anthropic-custom-provider-demo',
-      metadata: {
-        environment: 'demo',
-        endpoint_type: 'my-anthropic-proxy',
-        cost_tracking: 'enabled',
-      },
     },
   });
 

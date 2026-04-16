@@ -3,8 +3,8 @@ import {
   InferToolOutput,
   Tool,
   ToolCall,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { ProviderReference } from '../types/provider-reference';
 import { DeepPartial } from '../util/deep-partial';

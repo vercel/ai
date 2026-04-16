@@ -218,7 +218,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {
@@ -297,7 +296,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {
@@ -456,7 +454,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {
@@ -810,7 +807,6 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {

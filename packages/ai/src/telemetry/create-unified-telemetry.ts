@@ -27,23 +27,26 @@ type TelemetryEvent<K extends TelemetryCallbackKey> =
 
 /**
  * Creates a unified telemetry target that sends telemetry events
- * to all registered global telemetry integrations and to
- * any per-call integrations passed to the function.
+ * to the resolved set of integrations.
  *
- * @param args.integrations - Optional per-call integrations to send telemetry events to.
+ * When per-call integrations are provided, they take precedence over the globally
+ * registered integrations for that call. When no per-call integrations are
+ * provided, the globally registered integrations are used.
  *
- * @returns A telemetry target that sends telemetry events to all registered global telemetry integrations and to
- * any per-call integrations passed to the function.
+ * @param args.integrations - Optional per-call integrations to onlysend telemetry events to.
+ *
+ * @returns A telemetry target that fans out lifecycle events to the resolved
+ * set of integrations.
  */
 export function createUnifiedTelemetry({
   integrations: localIntegrations,
 }: {
   integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
 }): TelemetryIntegration {
-  const integrations: Array<TelemetryIntegration> = [
-    ...getGlobalTelemetryIntegrations(),
-    ...asArray(localIntegrations),
-  ];
+  const integrations: Array<TelemetryIntegration> =
+    localIntegrations != null
+      ? asArray(localIntegrations)
+      : getGlobalTelemetryIntegrations();
 
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,

@@ -826,7 +826,6 @@ describe('generateText', () => {
         prompt: 'test-input',
         experimental_telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateId: () => 'test-call-id',
@@ -2264,7 +2263,6 @@ describe('generateText', () => {
           "files": [],
           "finishReason": "stop",
           "functionId": undefined,
-          "metadata": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -2379,7 +2377,6 @@ describe('generateText', () => {
               "context": {},
               "finishReason": "stop",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -2909,7 +2906,6 @@ describe('generateText', () => {
                   },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -2988,7 +2984,6 @@ describe('generateText', () => {
                   },
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3140,7 +3135,6 @@ describe('generateText', () => {
                   },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3219,7 +3213,6 @@ describe('generateText', () => {
                   },
                   "finishReason": "stop",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3608,7 +3601,6 @@ describe('generateText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3707,7 +3699,6 @@ describe('generateText', () => {
                   "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
-                  "metadata": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -6873,7 +6864,6 @@ describe('generateText', () => {
               "context": {},
               "finishReason": "tool-calls",
               "functionId": undefined,
-              "metadata": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -8690,7 +8680,7 @@ describe('generateText', () => {
       ]);
     });
 
-    it('should call global integrations before per-call integrations', async () => {
+    it('should only call per-call integrations when both global and per-call integrations are provided', async () => {
       const events: string[] = [];
 
       globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
@@ -8718,7 +8708,7 @@ describe('generateText', () => {
         },
       });
 
-      expect(events).toEqual(['global', 'per-call']);
+      expect(events).toEqual(['per-call']);
     });
 
     it('should call integration listeners alongside user callbacks', async () => {
