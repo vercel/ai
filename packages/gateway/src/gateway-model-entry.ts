@@ -59,11 +59,7 @@ export interface GatewayLanguageModelEntry {
   /**
    * Optional field to differentiate between model types.
    */
-<<<<<<< HEAD
-  modelType?: 'language' | 'embedding' | 'image' | null;
-=======
   modelType?: KnownModelType | null;
->>>>>>> a27a63193 (Backport: feat (provider/gateway): make model list resilient to unknown model types (#14505))
 }
 
 export type GatewayLanguageModelSpecification = Pick<

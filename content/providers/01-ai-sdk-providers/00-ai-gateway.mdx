@@ -174,39 +174,7 @@ const { text } = await generateText({
 });
 ```
 
-<<<<<<< HEAD
 AI Gateway language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions (see [AI SDK Core](/docs/ai-sdk-core)).
-=======
-AI Gateway language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output) (see [AI SDK Core](/docs/ai-sdk-core)).
-
-## Reranking Models
-
-You can create reranking models using the `rerankingModel` method on the provider instance:
-
-```ts
-import { rerank } from "ai";
-import { gateway } from "@ai-sdk/gateway";
-
-const { ranking } = await rerank({
-  model: gateway.rerankingModel("cohere/rerank-v3.5"),
-  query: "What is the capital of France?",
-  documents: [
-    "Paris is the capital of France.",
-    "Berlin is the capital of Germany.",
-    "Madrid is the capital of Spain.",
-  ],
-  topN: 2,
-});
-
-console.log(ranking);
-// [
-//   { originalIndex: 0, score: 0.89, document: 'Paris is the capital of France.' },
-//   { originalIndex: 2, score: 0.15, document: 'Madrid is the capital of Spain.' },
-// ]
-```
-
-Reranking models are useful for improving search results in retrieval-augmented generation (RAG) pipelines by re-scoring candidate documents after an initial retrieval step.
->>>>>>> a27a63193 (Backport: feat (provider/gateway): make model list resilient to unknown model types (#14505))
 
 ## Available Models
 
@@ -270,89 +238,6 @@ The `getCredits()` method returns your team's credit information based on the au
 - **balance** _number_ - Your team's current available credit balance
 - **total_used** _number_ - Total credits consumed by your team
 
-<<<<<<< HEAD
-=======
-## Generation Lookup
-
-Look up detailed information about a specific generation by its ID, including cost, token usage, latency, and provider details. Generation IDs are available in `providerMetadata.gateway.generationId` on both `generateText` and `streamText` responses.
-
-When streaming, the generation ID is injected on the first content chunk, so you can capture it early in the stream without waiting for completion. This is especially useful in cases where a network interruption or mid-stream error could prevent you from receiving the final response — since the gateway records the final status server-side, you can use the generation ID to look up the results (including cost, token usage, and finish reason) later via `getGenerationInfo()`.
-
-```ts
-import { gateway, generateText } from "ai";
-
-// Make a request
-const result = await generateText({
-  model: gateway("anthropic/claude-sonnet-4"),
-  prompt: "Explain quantum entanglement briefly",
-});
-
-// Get the generation ID from provider metadata
-const generationId = result.providerMetadata?.gateway?.generationId;
-
-// Look up detailed generation info
-const generation = await gateway.getGenerationInfo({ id: generationId });
-
-console.log(`Model: ${generation.model}`);
-console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
-console.log(`Latency: ${generation.latency}ms`);
-console.log(`Prompt tokens: ${generation.promptTokens}`);
-console.log(`Completion tokens: ${generation.completionTokens}`);
-```
-
-With `streamText`, you can capture the generation ID from the first chunk via `fullStream`:
-
-```ts
-import { gateway, streamText } from "ai";
-
-const result = streamText({
-  model: gateway("anthropic/claude-sonnet-4"),
-  prompt: "Explain quantum entanglement briefly",
-});
-
-let generationId: string | undefined;
-
-for await (const part of result.fullStream) {
-  if (!generationId && part.providerMetadata?.gateway?.generationId) {
-    generationId = part.providerMetadata.gateway.generationId as string;
-    console.log(`Generation ID (early): ${generationId}`);
-  }
-}
-
-// Look up cost and usage after the stream completes
-if (generationId) {
-  const generation = await gateway.getGenerationInfo({ id: generationId });
-  console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
-  console.log(`Finish reason: ${generation.finishReason}`);
-}
-```
-
-The `getGenerationInfo()` method accepts:
-
-- **id** _string_ - The generation ID to look up (format: `gen_<ulid>`, required)
-
-It returns a `GatewayGenerationInfo` object with the following fields:
-
-- **id** _string_ - The generation ID
-- **totalCost** _number_ - Total cost in USD
-- **upstreamInferenceCost** _number_ - Upstream inference cost in USD (relevant for BYOK)
-- **usage** _number_ - Usage cost in USD (same as totalCost)
-- **createdAt** _string_ - ISO 8601 timestamp when the generation was created
-- **model** _string_ - Model identifier used
-- **isByok** _boolean_ - Whether Bring Your Own Key credentials were used
-- **providerName** _string_ - The provider that served this generation
-- **streamed** _boolean_ - Whether streaming was used
-- **finishReason** _string_ - Finish reason (e.g. `'stop'`)
-- **latency** _number_ - Time to first token in milliseconds
-- **generationTime** _number_ - Total generation time in milliseconds
-- **promptTokens** _number_ - Number of prompt tokens
-- **completionTokens** _number_ - Number of completion tokens
-- **reasoningTokens** _number_ - Reasoning tokens used (if applicable)
-- **cachedTokens** _number_ - Cached tokens used (if applicable)
-- **cacheCreationTokens** _number_ - Cache creation input tokens
-- **billableWebSearchCalls** _number_ - Number of billable web search calls
-
->>>>>>> a27a63193 (Backport: feat (provider/gateway): make model list resilient to unknown model types (#14505))
 ## Examples
 
 ### Basic Text Generation
@@ -961,15 +846,9 @@ const { text } = await generateText({
 When using provider-specific options through AI Gateway, use the actual provider name (e.g. `anthropic`, `openai`, not `gateway`) as the key:
 
 ```ts
-<<<<<<< HEAD
 import type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
-=======
-import type { AnthropicLanguageModelOptions } from "@ai-sdk/anthropic";
-import type { GatewayProviderOptions } from "@ai-sdk/gateway";
-import { generateText } from "ai";
->>>>>>> a27a63193 (Backport: feat (provider/gateway): make model list resilient to unknown model types (#14505))
 
 const { text } = await generateText({
   model: "anthropic/claude-sonnet-4.6",
@@ -979,13 +858,8 @@ const { text } = await generateText({
       order: ["vertex", "anthropic"],
     } satisfies GatewayProviderOptions,
     anthropic: {
-<<<<<<< HEAD
       thinking: { type: 'enabled', budgetTokens: 12000 },
     } satisfies AnthropicProviderOptions,
-=======
-      thinking: { type: "enabled", budgetTokens: 12000 },
-    } satisfies AnthropicLanguageModelOptions,
->>>>>>> a27a63193 (Backport: feat (provider/gateway): make model list resilient to unknown model types (#14505))
   },
 });
 ```

@@ -79,41 +79,6 @@ export class GatewayFetchMetadata {
 const gatewayAvailableModelsResponseSchema = lazyValidator(() =>
   zodSchema(
     z.object({
-<<<<<<< HEAD
-      models: z.array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          description: z.string().nullish(),
-          pricing: z
-            .object({
-              input: z.string(),
-              output: z.string(),
-              input_cache_read: z.string().nullish(),
-              input_cache_write: z.string().nullish(),
-            })
-            .transform(
-              ({ input, output, input_cache_read, input_cache_write }) => ({
-                input,
-                output,
-                ...(input_cache_read
-                  ? { cachedInputTokens: input_cache_read }
-                  : {}),
-                ...(input_cache_write
-                  ? { cacheCreationInputTokens: input_cache_write }
-                  : {}),
-              }),
-            )
-            .nullish(),
-          specification: z.object({
-            specificationVersion: z.literal('v2'),
-            provider: z.string(),
-            modelId: z.string(),
-          }),
-          modelType: z.enum(['language', 'embedding', 'image']).nullish(),
-        }),
-      ),
-=======
       models: z
         .array(
           z.object({
@@ -141,7 +106,7 @@ const gatewayAvailableModelsResponseSchema = lazyValidator(() =>
               )
               .nullish(),
             specification: z.object({
-              specificationVersion: z.literal('v3'),
+              specificationVersion: z.literal('v2'),
               provider: z.string(),
               modelId: z.string(),
             }),
@@ -155,7 +120,6 @@ const gatewayAvailableModelsResponseSchema = lazyValidator(() =>
               KNOWN_MODEL_TYPES.includes(m.modelType as KnownModelType),
           ),
         ),
->>>>>>> a27a63193 (Backport: feat (provider/gateway): make model list resilient to unknown model types (#14505))
     }),
   ),
 );
