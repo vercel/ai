@@ -46,6 +46,7 @@
         "SENTRY_AUTH_TOKEN",
         "SENTRY_ORG",
         "SENTRY_PROJECT",
+        "TOGETHER_API_KEY",
         "TOGETHER_AI_API_KEY",
         "VERCEL_API_KEY",
         "VERCEL_DEPLOYMENT_ID",

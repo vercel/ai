@@ -12,7 +12,7 @@ async function main() {
     baseURL: 'https://api.together.xyz/v1',
     name: 'togetherai',
     headers: {
-      Authorization: `Bearer ${process.env.TOGETHER_AI_API_KEY}`,
+      Authorization: `Bearer ${process.env.TOGETHER_API_KEY}`,
     },
   });
   const model = togetherai.chatModel(

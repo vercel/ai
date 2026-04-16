@@ -1,5 +1,461 @@
 # ai
 
+## 5.0.178
+
+### Patch Changes
+
+- Updated dependencies [eacfb5e]
+  - @ai-sdk/gateway@2.0.82
+
+## 5.0.177
+
+### Patch Changes
+
+- Updated dependencies [dc91bcc]
+  - @ai-sdk/gateway@2.0.81
+
+## 5.0.176
+
+### Patch Changes
+
+- Updated dependencies [4b40033]
+  - @ai-sdk/gateway@2.0.80
+
+## 5.0.175
+
+### Patch Changes
+
+- Updated dependencies [d4fbea5]
+  - @ai-sdk/gateway@2.0.79
+
+## 5.0.174
+
+### Patch Changes
+
+- Updated dependencies [140640d]
+  - @ai-sdk/gateway@2.0.78
+
+## 5.0.173
+
+### Patch Changes
+
+- Updated dependencies [6c0cde5]
+  - @ai-sdk/gateway@2.0.77
+
+## 5.0.172
+
+### Patch Changes
+
+- Updated dependencies [a5317d0]
+  - @ai-sdk/gateway@2.0.76
+
+## 5.0.171
+
+### Patch Changes
+
+- Updated dependencies [f03fec2]
+  - @ai-sdk/gateway@2.0.75
+
+## 5.0.170
+
+### Patch Changes
+
+- Updated dependencies [8180bff]
+  - @ai-sdk/gateway@2.0.74
+
+## 5.0.169
+
+### Patch Changes
+
+- Updated dependencies [c6fcbfa]
+  - @ai-sdk/gateway@2.0.73
+
+## 5.0.168
+
+### Patch Changes
+
+- Updated dependencies [a064eef]
+  - @ai-sdk/gateway@2.0.72
+
+## 5.0.167
+
+### Patch Changes
+
+- Updated dependencies [6b4ceaa]
+  - @ai-sdk/gateway@2.0.71
+
+## 5.0.166
+
+### Patch Changes
+
+- Updated dependencies [5e2950a]
+  - @ai-sdk/gateway@2.0.70
+
+## 5.0.165
+
+### Patch Changes
+
+- a27a978: fix: allow inline data URLs in download validation
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/gateway@2.0.69
+
+## 5.0.164
+
+### Patch Changes
+
+- Updated dependencies [bc392cb]
+  - @ai-sdk/gateway@2.0.68
+
+## 5.0.163
+
+### Patch Changes
+
+- Updated dependencies [5bc2cb8]
+  - @ai-sdk/gateway@2.0.67
+
+## 5.0.162
+
+### Patch Changes
+
+- Updated dependencies [efc9006]
+  - @ai-sdk/gateway@2.0.66
+
+## 5.0.161
+
+### Patch Changes
+
+- Updated dependencies [4e8bdc7]
+  - @ai-sdk/gateway@2.0.65
+
+## 5.0.160
+
+### Patch Changes
+
+- Updated dependencies [2f94884]
+  - @ai-sdk/gateway@2.0.64
+
+## 5.0.159
+
+### Patch Changes
+
+- Updated dependencies [5e55f43]
+  - @ai-sdk/gateway@2.0.63
+
+## 5.0.158
+
+### Patch Changes
+
+- Updated dependencies [946ef88]
+  - @ai-sdk/gateway@2.0.62
+
+## 5.0.157
+
+### Patch Changes
+
+- 9379c51: README updates
+- Updated dependencies [2e35d03]
+  - @ai-sdk/gateway@2.0.61
+
+## 5.0.156
+
+### Patch Changes
+
+- Updated dependencies [205f9d8]
+  - @ai-sdk/gateway@2.0.60
+
+## 5.0.155
+
+### Patch Changes
+
+- Updated dependencies [6f40c1a]
+  - @ai-sdk/gateway@2.0.59
+
+## 5.0.154
+
+### Patch Changes
+
+- Updated dependencies [f29cec3]
+- Updated dependencies [51c7d28]
+- Updated dependencies [dacdf4b]
+  - @ai-sdk/gateway@2.0.58
+
+## 5.0.153
+
+### Patch Changes
+
+- c59a31c: Remove custom User-Agent header from HttpChatTransport to fix CORS preflight failures in Safari and Firefox
+
+## 5.0.152
+
+### Patch Changes
+
+- Updated dependencies [a608d48]
+- Updated dependencies [c5790b1]
+  - @ai-sdk/gateway@2.0.57
+
+## 5.0.151
+
+### Patch Changes
+
+- Updated dependencies [f54cb63]
+  - @ai-sdk/gateway@2.0.56
+
+## 5.0.150
+
+### Patch Changes
+
+- Updated dependencies [ee7582f]
+  - @ai-sdk/gateway@2.0.55
+
+## 5.0.149
+
+### Patch Changes
+
+- c66afc5: fix(security): validate redirect targets in download functions to prevent SSRF bypass
+
+  `download` now validates the final URL after following HTTP redirects, preventing attackers from bypassing SSRF protections via open redirects to internal/private addresses.
+
+## 5.0.148
+
+### Patch Changes
+
+- Updated dependencies [392dc94]
+  - @ai-sdk/gateway@2.0.54
+
+## 5.0.147
+
+### Patch Changes
+
+- Updated dependencies [7a57a71]
+  - @ai-sdk/gateway@2.0.53
+
+## 5.0.146
+
+### Patch Changes
+
+- 6a2f01b: Add URL validation to `download` to prevent blind SSRF attacks. Private/internal IP addresses, localhost, and non-HTTP protocols are now rejected before fetching.
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+  - @ai-sdk/gateway@2.0.52
+
+## 5.0.145
+
+### Patch Changes
+
+- Updated dependencies [201bb12]
+  - @ai-sdk/gateway@2.0.51
+
+## 5.0.144
+
+### Patch Changes
+
+- Updated dependencies [c4a324b]
+  - @ai-sdk/gateway@2.0.50
+
+## 5.0.143
+
+### Patch Changes
+
+- Updated dependencies [4fa740a]
+  - @ai-sdk/gateway@2.0.49
+
+## 5.0.142
+
+### Patch Changes
+
+- Updated dependencies [8ea21c1]
+  - @ai-sdk/gateway@2.0.48
+
+## 5.0.141
+
+### Patch Changes
+
+- Updated dependencies [4db4318]
+  - @ai-sdk/gateway@2.0.47
+
+## 5.0.140
+
+### Patch Changes
+
+- Updated dependencies [3749ed6]
+  - @ai-sdk/gateway@2.0.46
+
+## 5.0.139
+
+### Patch Changes
+
+- Updated dependencies [9212b2d]
+  - @ai-sdk/gateway@2.0.45
+
+## 5.0.138
+
+### Patch Changes
+
+- Updated dependencies [42815ac]
+  - @ai-sdk/gateway@2.0.44
+
+## 5.0.137
+
+### Patch Changes
+
+- Updated dependencies [5e921ed]
+  - @ai-sdk/gateway@2.0.43
+
+## 5.0.136
+
+### Patch Changes
+
+- Updated dependencies [9baf5ea]
+  - @ai-sdk/gateway@2.0.42
+
+## 5.0.135
+
+### Patch Changes
+
+- Updated dependencies [fe42fd3]
+- Updated dependencies [8b5473c]
+  - @ai-sdk/gateway@2.0.41
+
+## 5.0.134
+
+### Patch Changes
+
+- Updated dependencies [9545c46]
+  - @ai-sdk/gateway@2.0.40
+
+## 5.0.133
+
+### Patch Changes
+
+- Updated dependencies [b4ac032]
+  - @ai-sdk/gateway@2.0.39
+
+## 5.0.132
+
+### Patch Changes
+
+- Updated dependencies [8aac221]
+  - @ai-sdk/gateway@2.0.38
+
+## 5.0.131
+
+### Patch Changes
+
+- Updated dependencies [3f04ffe]
+  - @ai-sdk/gateway@2.0.37
+
+## 5.0.130
+
+### Patch Changes
+
+- 20565b8: security: prevent unbounded memory growth in download functions
+
+  The `download()` function now enforces a default 2 GiB size limit when downloading from user-provided URLs. Downloads that exceed this limit are aborted with a `DownloadError` instead of consuming unbounded memory and crashing the process. The `abortSignal` parameter is now passed through to `fetch()` in all download call sites.
+
+  Added `download` option to `transcribe()` and `experimental_generateVideo()` for providing a custom download function. Use the new `createDownload({ maxBytes })` factory to configure download size limits.
+
+- Updated dependencies [20565b8]
+  - @ai-sdk/provider-utils@3.0.21
+  - @ai-sdk/gateway@2.0.36
+
+## 5.0.129
+
+### Patch Changes
+
+- Updated dependencies [a207442]
+  - @ai-sdk/gateway@2.0.35
+
+## 5.0.128
+
+### Patch Changes
+
+- Updated dependencies [7e6c81a]
+  - @ai-sdk/gateway@2.0.34
+
+## 5.0.127
+
+### Patch Changes
+
+- Updated dependencies [db2e810]
+  - @ai-sdk/gateway@2.0.33
+
+## 5.0.126
+
+### Patch Changes
+
+- Updated dependencies [beba89c]
+  - @ai-sdk/gateway@2.0.32
+
+## 5.0.125
+
+### Patch Changes
+
+- Updated dependencies [8d8fdd2]
+  - @ai-sdk/gateway@2.0.31
+
+## 5.0.124
+
+### Patch Changes
+
+- Updated dependencies [fad90dd]
+- Updated dependencies [8479fe8]
+- Updated dependencies [0d3fc21]
+- Updated dependencies [53e891c]
+  - @ai-sdk/gateway@2.0.30
+
+## 5.0.123
+
+### Patch Changes
+
+- Updated dependencies [5253b83]
+  - @ai-sdk/gateway@2.0.29
+
+## 5.0.122
+
+### Patch Changes
+
+- Updated dependencies [9158228]
+  - @ai-sdk/gateway@2.0.28
+
+## 5.0.121
+
+### Patch Changes
+
+- Updated dependencies [74676fa]
+  - @ai-sdk/gateway@2.0.27
+
+## 5.0.120
+
+### Patch Changes
+
+- Updated dependencies [655377e]
+  - @ai-sdk/gateway@2.0.26
+
+## 5.0.119
+
+### Patch Changes
+
+- Updated dependencies [f6b46d2]
+  - @ai-sdk/gateway@2.0.25
+
+## 5.0.118
+
+### Patch Changes
+
+- 42bad72: `https://ai-sdk.dev` -> `https://v5.ai-sdk.dev`
+
+## 5.0.117
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/gateway@2.0.24
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
 ## 5.0.116
 
 ### Patch Changes
@@ -266,15 +722,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ## 5.0.78
@@ -897,7 +1353,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -910,7 +1366,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1110,10 +1566,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -1935,7 +2391,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1948,7 +2404,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2049,10 +2505,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

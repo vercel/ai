@@ -16,7 +16,7 @@ const createFrame = (payload: Uint8Array): Uint8Array => {
 
 // Mock EventStreamCodec
 vi.mock('@smithy/eventstream-codec', () => ({
-  EventStreamCodec: vi.fn(),
+  EventStreamCodec: vi.fn(function () {}),
 }));
 
 describe('createEventSourceResponseHandler', () => {
@@ -58,9 +58,11 @@ describe('createEventSourceResponseHandler', () => {
     const frame = createFrame(dummyPayload);
 
     const mockDecode = vi.fn().mockReturnValue(message);
-    (EventStreamCodec as unknown as MockInstance).mockImplementation(() => ({
-      decode: mockDecode,
-    }));
+    (EventStreamCodec as unknown as MockInstance).mockImplementation(
+      function () {
+        return { decode: mockDecode };
+      },
+    );
 
     // Create a stream that enqueues the complete frame.
     const stream = new ReadableStream({
@@ -103,9 +105,11 @@ describe('createEventSourceResponseHandler', () => {
     const frame = createFrame(dummyPayload);
 
     const mockDecode = vi.fn().mockReturnValue(message);
-    (EventStreamCodec as unknown as MockInstance).mockImplementation(() => ({
-      decode: mockDecode,
-    }));
+    (EventStreamCodec as unknown as MockInstance).mockImplementation(
+      function () {
+        return { decode: mockDecode };
+      },
+    );
 
     const stream = new ReadableStream({
       start(controller) {
@@ -145,9 +149,11 @@ describe('createEventSourceResponseHandler', () => {
     const frame = createFrame(dummyPayload);
 
     const mockDecode = vi.fn().mockReturnValue(message);
-    (EventStreamCodec as unknown as MockInstance).mockImplementation(() => ({
-      decode: mockDecode,
-    }));
+    (EventStreamCodec as unknown as MockInstance).mockImplementation(
+      function () {
+        return { decode: mockDecode };
+      },
+    );
 
     const stream = new ReadableStream({
       start(controller) {
@@ -198,9 +204,11 @@ describe('createEventSourceResponseHandler', () => {
         throw new Error('Incomplete data');
       })
       .mockReturnValue(message);
-    (EventStreamCodec as unknown as MockInstance).mockImplementation(() => ({
-      decode: mockDecode,
-    }));
+    (EventStreamCodec as unknown as MockInstance).mockImplementation(
+      function () {
+        return { decode: mockDecode };
+      },
+    );
 
     const stream = new ReadableStream({
       start(controller) {

@@ -45,7 +45,7 @@ const { submit, isLoading, object, stop, error, clear } = useObject({
 
     <div class="flex flex-col gap-4 mt-4">
       <div
-        v-for="(notification, index) in (object?.notifications || [])"
+        v-for="(notification, index) in object?.notifications || []"
         :key="index"
         class="flex items-start gap-4 p-4 bg-gray-100 rounded-md dark:bg-gray-800"
       >
@@ -56,7 +56,9 @@ const { submit, isLoading, object, stop, error, clear } = useObject({
             </p>
             <p class="text-sm text-gray-500 dark:text-gray-400">
               {{ notification?.minutesAgo }}
-              <template v-if="notification?.minutesAgo != null"> minutes ago</template>
+              <template v-if="notification?.minutesAgo != null">
+                minutes ago</template
+              >
             </p>
           </div>
           <p class="text-gray-700 dark:text-gray-300">

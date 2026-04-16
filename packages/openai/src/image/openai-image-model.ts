@@ -97,7 +97,7 @@ export class OpenAIImageModel implements ImageModelV2 {
       },
       providerMetadata: {
         openai: {
-          images: response.data.map(item => ({
+          images: response.data.map((item, index) => ({
             ...(item.revised_prompt
               ? { revisedPrompt: item.revised_prompt }
               : {}),
@@ -110,9 +110,80 @@ export class OpenAIImageModel implements ImageModelV2 {
             ...(response.output_format != null
               ? { outputFormat: response.output_format }
               : {}),
+            ...distributeTokenDetails(
+              response.usage,
+              index,
+              response.data.length,
+            ),
           })),
         },
       },
     };
   }
+}
+
+/**
+ * Distributes token usage details evenly across images, with the remainder
+ * assigned to the last image so that summing across all entries gives the
+ * exact total.
+ */
+function distributeTokenDetails(
+  usage:
+    | {
+        input_tokens?: number | null;
+        output_tokens?: number | null;
+        total_tokens?: number | null;
+        input_tokens_details?: {
+          image_tokens?: number | null;
+          text_tokens?: number | null;
+        } | null;
+      }
+    | null
+    | undefined,
+  index: number,
+  total: number,
+): {
+  imageTokens?: number;
+  textTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+} {
+  if (usage == null) {
+    return {};
+  }
+
+  const result: {
+    imageTokens?: number;
+    textTokens?: number;
+    inputTokens?: number;
+    outputTokens?: number;
+  } = {};
+
+  const details = usage.input_tokens_details;
+
+  if (details?.image_tokens != null) {
+    const base = Math.floor(details.image_tokens / total);
+    const remainder = details.image_tokens - base * (total - 1);
+    result.imageTokens = index === total - 1 ? remainder : base;
+  }
+
+  if (details?.text_tokens != null) {
+    const base = Math.floor(details.text_tokens / total);
+    const remainder = details.text_tokens - base * (total - 1);
+    result.textTokens = index === total - 1 ? remainder : base;
+  }
+
+  if (usage.input_tokens != null) {
+    const base = Math.floor(usage.input_tokens / total);
+    const remainder = usage.input_tokens - base * (total - 1);
+    result.inputTokens = index === total - 1 ? remainder : base;
+  }
+
+  if (usage.output_tokens != null) {
+    const base = Math.floor(usage.output_tokens / total);
+    const remainder = usage.output_tokens - base * (total - 1);
+    result.outputTokens = index === total - 1 ? remainder : base;
+  }
+
+  return result;
 }

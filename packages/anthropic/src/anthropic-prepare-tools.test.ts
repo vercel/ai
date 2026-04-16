@@ -37,6 +37,9 @@ describe('prepareTools', () => {
           name: 'testFunction',
           description: 'A test function',
           inputSchema: { type: 'object', properties: {} },
+          providerOptions: {
+            anthropic: { eagerInputStreaming: true },
+          },
         },
       ],
     });
@@ -45,6 +48,7 @@ describe('prepareTools', () => {
         name: 'testFunction',
         description: 'A test function',
         input_schema: { type: 'object', properties: {} },
+        eager_input_streaming: true,
       },
     ]);
     expect(result.toolChoice).toBeUndefined();
@@ -286,6 +290,33 @@ describe('prepareTools', () => {
               "max_uses": 10,
               "name": "web_fetch",
               "type": "web_fetch_20250910",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should correctly prepare code_execution_20260120 without beta header', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider-defined',
+            id: 'anthropic.code_execution_20260120',
+            name: 'code_execution',
+            args: {},
+          },
+        ],
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "betas": Set {},
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "name": "code_execution",
+              "type": "code_execution_20260120",
             },
           ],
         }

@@ -1,5 +1,135 @@
 # @ai-sdk/anthropic
 
+## 2.0.76
+
+### Patch Changes
+
+- 2fe3997: feat (provider/anthropic): add support for inference_geo provider option
+
+## 2.0.75
+
+### Patch Changes
+
+- 4b40033: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 2.0.74
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
+## 2.0.73
+
+### Patch Changes
+
+- 42bc840: fix(anthropic): move claude-haiku-4-5 to the 4-5 model group in getModelCapabilities
+
+  Moves `claude-haiku-4-5` from the `claude-sonnet-4-`/`claude-3-7-sonnet` group (structured output: false) to the `claude-sonnet-4-5`/`claude-opus-4-5` group (structured output: true), aligning with main and release-v6.0.
+
+## 2.0.72
+
+### Patch Changes
+
+- 98bd0e2: feat(provider/anthropic): support new code_execution tool
+
+## 2.0.71
+
+### Patch Changes
+
+- b0a0821: feat (provider/anthropic): support passing metadata.user_id
+
+## 2.0.70
+
+### Patch Changes
+
+- a9a7f73: feat(anthropic): support eagerInputStreaming option for fine-grained tool streaming
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [6a2f01b]
+- Updated dependencies [17d64e3]
+  - @ai-sdk/provider-utils@3.0.22
+
+## 2.0.68
+
+### Patch Changes
+
+- 63bf188: feat(anthropic): expose anthropic.anthropicBeta to downstream providers
+
+## 2.0.67
+
+### Patch Changes
+
+- e1b08a6: Pass `cacheControl` provider option as top-level `cache_control` in Anthropic API request body to support automatic caching.
+
+## 2.0.66
+
+### Patch Changes
+
+- b153525: fix compaction_delta streaming schema to allow null content
+
+## 2.0.65
+
+### Patch Changes
+
+- fe42fd3: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+
+## 2.0.64
+
+### Patch Changes
+
+- 9d5c1b1: fix(provider/anthropic): minor follow up to support no-op speed standard
+
+## 2.0.63
+
+### Patch Changes
+
+- e551c84: fix(anthropic): map proper context management tools for anthropic
+
+## 2.0.62
+
+### Patch Changes
+
+- Updated dependencies [20565b8]
+  - @ai-sdk/provider-utils@3.0.21
+
+## 2.0.61
+
+### Patch Changes
+
+- af58c05: feat(anthropic): add the new compaction feature
+
+## 2.0.60
+
+### Patch Changes
+
+- 368f270: feat(anthropic): add support for Opus 4.6 fast mode
+
+## 2.0.59
+
+### Patch Changes
+
+- ca1f53a: feat(anthropic): add support for Opus 4.6
+
+## 2.0.58
+
+### Patch Changes
+
+- 8479fe8: trigger for backport release
+- 008ce2f: fix `input_tokens` compatibility
+
+## 2.0.57
+
+### Patch Changes
+
+- 526fe8d: fix: trigger new release for `@ai-v5` dist-tag
+- Updated dependencies [526fe8d]
+  - @ai-sdk/provider@2.0.1
+  - @ai-sdk/provider-utils@3.0.20
+
 ## 2.0.56
 
 ### Patch Changes
