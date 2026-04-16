@@ -1,3 +1,5 @@
+export { asArray } from './as-array';
+export type { Arrayable } from './as-array';
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';

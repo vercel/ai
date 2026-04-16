@@ -5,11 +5,13 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import type {
+  Arrayable,
   Context,
   InferToolSetContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
+  asArray,
   createIdGenerator,
   DelayedPromise,
   IdGenerator,
@@ -64,7 +66,6 @@ import {
 } from '../ui-message-stream/ui-message-chunks';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import { InferUIMessageData, InferUIMessageMetadata } from '../ui/ui-messages';
-import { asArray } from '../util/as-array';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -365,9 +366,7 @@ export function streamText<
      *
      * @default isStepCount(1)
      */
-    stopWhen?:
-      | StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>
-      | Array<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
      * Optional telemetry configuration (experimental).
@@ -435,9 +434,7 @@ export function streamText<
      * They are applied in the order they are provided.
      * The stream transformations must maintain the stream structure for streamText to work correctly.
      */
-    experimental_transform?:
-      | StreamTextTransform<TOOLS>
-      | Array<StreamTextTransform<TOOLS>>;
+    experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
 
     /**
      * Custom download function to use for URLs.
@@ -826,10 +823,9 @@ class DefaultStreamTextResult<
     generateId: () => string;
     generateCallId: () => string;
     timeout: TimeoutConfiguration<TOOLS> | undefined;
-    stopWhen:
-      | StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
-      | Array<StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>>
-      | undefined;
+    stopWhen: Arrayable<
+      StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
+    >;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
 

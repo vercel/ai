@@ -1,4 +1,5 @@
 import type {
+  Arrayable,
   Context,
   InferToolSetContext,
   ToolSet,
@@ -101,9 +102,7 @@ export type ToolLoopAgentSettings<
      *
      * @default isStepCount(20)
      */
-    stopWhen?:
-      | StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>
-      | Array<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
      * Optional telemetry configuration (experimental).

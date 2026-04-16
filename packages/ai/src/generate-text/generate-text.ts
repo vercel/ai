@@ -4,11 +4,13 @@ import {
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
 import type {
+  Arrayable,
   Context,
   InferToolSetContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
+  asArray,
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
@@ -48,7 +50,6 @@ import {
   asLanguageModelUsage,
   LanguageModelUsage,
 } from '../types/usage';
-import { asArray } from '../util/as-array';
 import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
@@ -302,9 +303,7 @@ export async function generateText<
      *
      * @default isStepCount(1)
      */
-    stopWhen?:
-      | StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>
-      | Array<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
      * Optional telemetry configuration (experimental).

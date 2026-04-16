@@ -4,9 +4,9 @@ import {
   EmbeddingModelV4CallOptions,
   EmbeddingModelV4Result,
 } from '@ai-sdk/provider';
+import { asArray } from '@ai-sdk/provider-utils';
 import { asEmbeddingModelV4 } from '../model/as-embedding-model-v4';
 import { EmbeddingModelMiddleware } from '../types';
-import { asArray } from '../util/as-array';
 
 /**
  * Wraps an EmbeddingModelV4 instance with middleware functionality.
