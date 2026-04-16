@@ -2319,13 +2319,15 @@ class DefaultStreamTextResult<
 
             case 'reasoning-start':
             case 'reasoning-end': {
-              controller.enqueue({
-                type: partType,
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
+              if (sendReasoning) {
+                controller.enqueue({
+                  type: partType,
+                  id: part.id,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 
