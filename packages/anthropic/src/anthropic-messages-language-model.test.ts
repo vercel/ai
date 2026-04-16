@@ -5641,6 +5641,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "tools": [
               {
                 "description": "Respond with a JSON object.",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -5796,6 +5797,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "tools": [
               {
                 "description": "Respond with a JSON object.",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -5966,6 +5968,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "tools": [
               {
                 "description": "Get the weather in a location",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -5983,6 +5986,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               {
                 "description": "Respond with a JSON object.",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -7280,7 +7284,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       );
     });
 
-    it('should not send the legacy fine-grained-tool-streaming beta header on streaming requests', async () => {
+    it('should default to per-tool eager_input_streaming on streaming requests and not send the legacy beta header', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -7293,36 +7297,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       const provider = createAnthropic({ apiKey: 'test-api-key' });
       await provider('claude-3-haiku-20240307').doStream({
         prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'function',
-            name: 'get_weather',
-            description: 'Get weather',
-            inputSchema: { type: 'object', properties: {} },
-          },
-        ],
-      });
-
-      expect(server.calls[0].requestHeaders['anthropic-beta']).toBeUndefined();
-      const body = await server.calls[0].requestBodyJson;
-      // Without an explicit opt-in, eager_input_streaming is not set on tools.
-      expect(body.tools[0].eager_input_streaming).toBeUndefined();
-    });
-
-    it('should translate toolStreaming: true into per-tool eager_input_streaming on streaming requests', async () => {
-      server.urls['https://api.anthropic.com/v1/messages'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}\n\n`,
-          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}\n\n`,
-          `data: {"type":"message_stop"}\n\n`,
-        ],
-      };
-
-      const provider = createAnthropic({ apiKey: 'test-api-key' });
-      await provider('claude-3-haiku-20240307').doStream({
-        prompt: TEST_PROMPT,
-        providerOptions: { anthropic: { toolStreaming: true } },
         tools: [
           {
             type: 'function',
@@ -7338,7 +7312,35 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(server.calls[0].requestHeaders['anthropic-beta']).toBeUndefined();
     });
 
-    it('should not translate toolStreaming on non-streaming (generate) calls', async () => {
+    it('should not add eager_input_streaming when toolStreaming is explicitly false', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({ apiKey: 'test-api-key' });
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { anthropic: { toolStreaming: false } },
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.tools[0].eager_input_streaming).toBeUndefined();
+    });
+
+    it('should not default eager_input_streaming on non-streaming (generate) calls', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'json-value',
         body: {
@@ -7356,7 +7358,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       const provider = createAnthropic({ apiKey: 'test-api-key' });
       await provider('claude-3-haiku-20240307').doGenerate({
         prompt: TEST_PROMPT,
-        providerOptions: { anthropic: { toolStreaming: true } },
         tools: [
           {
             type: 'function',
