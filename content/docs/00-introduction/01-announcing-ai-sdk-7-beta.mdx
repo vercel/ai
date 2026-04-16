@@ -99,7 +99,7 @@ This new architecture powers several major improvements:
 - **Per-call or global integrations** through `registerTelemetryIntegration()` and `experimental_telemetry.integrations`
 - **DevTools support** through integrations like `DevToolsTelemetry()` for local inspection and debugging
 
-Observability integrations are already available for [Braintrust](/providers/observability/braintrust), [Langfuse](/providers/observability/langfuse), [LangSmith](/providers/observability/langsmith), [Axiom](/providers/observability/axiom), [Helicone](/providers/observability/helicone), [MLflow](/providers/observability/mlflow), and more.
+Observability integrations are already available across the ecosystem. Some, like [Braintrust](/providers/observability/braintrust), [Langfuse](/providers/observability/langfuse), and [MLflow](/providers/observability/mlflow), integrate via `@ai-sdk/otel`. Others, like [LangSmith](/providers/observability/langsmith), [Axiom](/providers/observability/axiom), and [Helicone](/providers/observability/helicone), integrate through wrappers or provider-level instrumentation instead.
 
 Learn more in the [Telemetry documentation](/docs/ai-sdk-core/telemetry), [Observability Integrations](/providers/observability), and [DevTools documentation](/docs/ai-sdk-core/devtools).
 
