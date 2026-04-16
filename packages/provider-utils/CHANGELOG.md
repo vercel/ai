@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.23
+
+### Patch Changes
+
+- 350ea38: refactoring: introduce Arrayable type
+
 ## 5.0.0-beta.22
 
 ### Patch Changes
