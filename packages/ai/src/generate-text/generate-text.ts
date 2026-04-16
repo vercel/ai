@@ -681,6 +681,7 @@ export async function generateText<
         });
 
         context = prepareStepResult?.context ?? context;
+        toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
 
         const stepActiveTools = filterActiveTools({
           tools,

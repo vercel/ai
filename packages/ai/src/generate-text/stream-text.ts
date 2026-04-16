@@ -1569,6 +1569,7 @@ class DefaultStreamTextResult<
           });
 
           context = prepareStepResult?.context ?? context;
+          toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
 
           const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
           const stepSystem = prepareStepResult?.system ?? initialPrompt.system;
