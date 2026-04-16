@@ -1,3 +1,4 @@
+import type { Arrayable } from '@ai-sdk/provider-utils';
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
@@ -113,9 +114,7 @@ export type AgentStreamParameters<
    * They are applied in the order they are provided.
    * The stream transformations must maintain the stream structure for streamText to work correctly.
    */
-  experimental_transform?:
-    | StreamTextTransform<TOOLS>
-    | Array<StreamTextTransform<TOOLS>>;
+  experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
 };
 
 /**

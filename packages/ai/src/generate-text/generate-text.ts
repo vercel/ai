@@ -4,6 +4,7 @@ import {
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
 import type {
+  Arrayable,
   Context,
   InferToolSetContext,
   ToolSet,
@@ -303,9 +304,7 @@ export async function generateText<
      *
      * @default isStepCount(1)
      */
-    stopWhen?:
-      | StopCondition<NoInfer<TOOLS>, USER_CONTEXT>
-      | Array<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>;
+    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>;
 
     /**
      * Optional telemetry configuration (experimental).

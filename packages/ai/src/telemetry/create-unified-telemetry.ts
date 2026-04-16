@@ -1,3 +1,4 @@
+import type { Arrayable } from '@ai-sdk/provider-utils';
 import { asArray } from '@ai-sdk/provider-utils';
 import { Callback } from '../util/callback';
 import { mergeCallbacks } from '../util/merge-callbacks';
@@ -41,7 +42,7 @@ type TelemetryEvent<K extends TelemetryCallbackKey> =
 export function createUnifiedTelemetry({
   integrations: localIntegrations,
 }: {
-  integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
+  integrations?: Arrayable<TelemetryIntegration>;
 }): TelemetryIntegration {
   const integrations: Array<TelemetryIntegration> =
     localIntegrations != null

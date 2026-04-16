@@ -5,6 +5,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import type {
+  Arrayable,
   Context,
   InferToolSetContext,
   ToolSet,
@@ -365,9 +366,7 @@ export function streamText<
      *
      * @default isStepCount(1)
      */
-    stopWhen?:
-      | StopCondition<NoInfer<TOOLS>, USER_CONTEXT>
-      | Array<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>;
+    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>;
 
     /**
      * Optional telemetry configuration (experimental).
@@ -435,9 +434,7 @@ export function streamText<
      * They are applied in the order they are provided.
      * The stream transformations must maintain the stream structure for streamText to work correctly.
      */
-    experimental_transform?:
-      | StreamTextTransform<TOOLS>
-      | Array<StreamTextTransform<TOOLS>>;
+    experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
 
     /**
      * Custom download function to use for URLs.
@@ -821,10 +818,7 @@ class DefaultStreamTextResult<
     generateId: () => string;
     generateCallId: () => string;
     timeout: TimeoutConfiguration<TOOLS> | undefined;
-    stopWhen:
-      | StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>
-      | Array<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>
-      | undefined;
+    stopWhen: Arrayable<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
 

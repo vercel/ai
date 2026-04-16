@@ -1,4 +1,5 @@
 import type {
+  Arrayable,
   Context,
   InferToolSetContext,
   ModelMessage,
@@ -104,10 +105,7 @@ export interface OnStartEvent<
    * Condition(s) for stopping the generation.
    * When the condition is an array, any of the conditions can be met to stop.
    */
-  readonly stopWhen:
-    | StopCondition<NoInfer<TOOLS>, USER_CONTEXT>
-    | Array<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>
-    | undefined;
+  readonly stopWhen: Arrayable<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>;
 
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
@@ -202,10 +200,7 @@ export interface OnStepStartEvent<
    * Condition(s) for stopping the generation.
    * When the condition is an array, any of the conditions can be met to stop.
    */
-  readonly stopWhen:
-    | StopCondition<TOOLS, USER_CONTEXT>
-    | Array<StopCondition<TOOLS, USER_CONTEXT>>
-    | undefined;
+  readonly stopWhen: Arrayable<StopCondition<TOOLS, USER_CONTEXT>>;
 
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
