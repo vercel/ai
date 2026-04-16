@@ -63,6 +63,11 @@ export {
   type ValidationResult,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
+export {
+  StreamingToolCallTracker,
+  type StreamingToolCallDelta,
+  type StreamingToolCallTrackerOptions,
+} from './streaming-tool-call-tracker';
 export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';
