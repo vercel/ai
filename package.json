@@ -27,11 +27,12 @@
     ]
   },
   "devDependencies": {
-    "lint-staged": "^15.5.1",
     "@changesets/cli": "2.27.10",
     "@playwright/test": "^1.44.1",
     "del-cli": "^5.1.0",
     "husky": "^9.1.7",
+    "konsistent": "0.0.1-alpha.2",
+    "lint-staged": "^15.5.1",
     "next": "15.0.7",
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
