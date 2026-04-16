@@ -5,7 +5,7 @@ description: Learn how to use the Doubleword provider for the AI SDK.
 
 # Doubleword Provider
 
-[Doubleword](https://doubleword.ai) is an AI model gateway providing unified routing, management, and security for inference across multiple model providers with up to 90% cost savings. The Doubleword provider for the AI SDK lets you access all models configured in your Doubleword control layer through a single integration.
+[Doubleword](https://doubleword.ai) is an AI model gateway providing unified routing, management, and security for inference across multiple model providers. The Doubleword provider for the AI SDK lets you access all models configured in your Doubleword control layer through a single integration, with up to 90% cost savings via the [Doubleword Inference API](https://docs.doubleword.ai) batch pricing.
 
 ## Setup
 
@@ -91,7 +91,7 @@ import { streamText } from 'ai';
 import { doubleword } from '@doubleword/vercel-ai';
 
 const result = streamText({
-  model: doubleword('claude-sonnet-4-20250514'),
+  model: doubleword('Qwen/Qwen3-30B-A3B'),
   prompt: 'Explain the benefits of an AI gateway.',
 });
 
@@ -102,17 +102,12 @@ for await (const chunk of result.textStream) {
 
 ### Tool Calling
 
-Doubleword supports tool calling with AI SDK 6:
-
 ```ts
-import { generateText, tool } from 'ai';
-import { stepCountIs } from 'ai';
+import { generateText, tool, jsonSchema, stepCountIs } from 'ai';
 import { doubleword } from '@doubleword/vercel-ai';
-import { jsonSchema } from 'ai';
 
 const { text } = await generateText({
   model: doubleword('Qwen/Qwen3-30B-A3B'),
-  prompt: 'What is the weather in London?',
   tools: {
     getWeather: tool({
       description: 'Get the weather for a location',
@@ -128,6 +123,7 @@ const { text } = await generateText({
     }),
   },
   stopWhen: stepCountIs(5),
+  prompt: 'What is the weather in London?',
 });
 ```
 
@@ -143,8 +139,31 @@ const { embedding } = await embed({
 });
 ```
 
+### Batch Pricing
+
+For background workloads where latency is not critical, use `createDoublewordBatch` to transparently route requests through the [Doubleword Inference API](https://docs.doubleword.ai) Batch API — cutting inference costs by up to 90%. Powered by [`autobatcher`](https://www.npmjs.com/package/autobatcher) under the hood.
+
+```ts
+import { generateText } from 'ai';
+import { createDoublewordBatch } from '@doubleword/vercel-ai';
+
+const doubleword = createDoublewordBatch();
+
+// Concurrent calls are automatically collected into batch submissions
+const results = await Promise.all([
+  generateText({ model: doubleword('Qwen/Qwen3-30B-A3B'), prompt: 'Summarize chapter 1.' }),
+  generateText({ model: doubleword('Qwen/Qwen3-30B-A3B'), prompt: 'Summarize chapter 2.' }),
+  generateText({ model: doubleword('Qwen/Qwen3-30B-A3B'), prompt: 'Summarize chapter 3.' }),
+]);
+
+// Flush remaining requests when done
+await doubleword.close();
+```
+
+The interface is identical to the real-time provider — only streaming is not supported (batch results return all at once).
+
 ## Additional Resources
 
 - [Doubleword Provider on GitHub](https://github.com/doublewordai/vercel-doubleword)
 - [Doubleword Documentation](https://docs.doubleword.ai)
-- [Doubleword Website](https://doubleword.ai)
+- [`autobatcher` on npm](https://www.npmjs.com/package/autobatcher) — the batching engine
