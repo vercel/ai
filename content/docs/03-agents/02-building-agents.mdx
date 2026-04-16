@@ -402,12 +402,12 @@ const result = await myAgent.generate({
 
 The available lifecycle callbacks are:
 
-- **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, prompt, settings, and context.
+- **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, prompt, settings, and `runtimeContext`.
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
 - **`experimental_onToolCallStart`**: Called right before a tool's `execute` function runs. Receives the tool call object with tool name, call ID, and input.
 - **`experimental_onToolCallFinish`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `durationMs`, and a `success` discriminator (`output` when successful, `error` when failed).
 - **`onStepFinish`**: Called after each step finishes. Receives step results including usage, finish reason, and tool calls.
-- **`onFinish`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and context.
+- **`onFinish`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and `runtimeContext`.
 
 #### Constructor vs. Method Callbacks
 

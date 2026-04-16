@@ -185,7 +185,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     include: undefined,
     ...telemetryFields(),
-    context: {},
+    runtimeContext: {},
     toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onStart']>>[0];
@@ -211,7 +211,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     include: undefined,
     functionId: undefined,
-    context: {},
+    runtimeContext: {},
     promptMessages: undefined,
     stepTools: undefined,
     stepToolChoice: undefined,
@@ -226,7 +226,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     stepNumber: 0,
     model,
     functionId: undefined,
-    context: {},
+    runtimeContext: {},
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
     reasoning: [],
@@ -1238,7 +1238,7 @@ describe('OpenTelemetryIntegration', () => {
     it('includes context as telemetry attributes', () => {
       otelIntegration.onStart!(
         makeOnStartEvent({
-          context: { userId: 'user-123', sessionId: 'sess-456' },
+          runtimeContext: { userId: 'user-123', sessionId: 'sess-456' },
         }),
       );
 
@@ -1349,7 +1349,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       frequencyPenalty: 0.3,
       presencePenalty: 0.4,
       temperature: 0.5,
-      context: {
+      runtimeContext: {
         test1: 'value1',
         test2: false,
       },
@@ -1857,7 +1857,7 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       presencePenalty: 0.4,
       temperature: 0.5,
       stopSequences: ['stop'],
-      context: {
+      runtimeContext: {
         test1: 'value1',
         test2: false,
       },

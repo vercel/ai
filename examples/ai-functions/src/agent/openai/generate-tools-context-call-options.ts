@@ -33,6 +33,7 @@ const agent = new ToolLoopAgent({
   prepareCall: ({ options, toolsContext, ...rest }) => ({
     ...rest,
     toolsContext: {
+      ...toolsContext,
       weather: {
         apiKey: options.weatherApiKey,
       },

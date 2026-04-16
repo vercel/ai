@@ -170,7 +170,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     include: undefined,
     toolsContext: {},
     ...telemetryFields(),
-    context: {},
+    runtimeContext: {},
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onStart']>>[0];
 }
@@ -195,7 +195,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     include: undefined,
     functionId: undefined,
-    context: {},
+    runtimeContext: {},
     toolsContext: {},
     promptMessages: undefined,
     stepTools: undefined,
@@ -249,7 +249,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       messages: [],
     },
     providerMetadata: undefined,
-    context: {},
+    runtimeContext: {},
     toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onStepFinish']>>[0];

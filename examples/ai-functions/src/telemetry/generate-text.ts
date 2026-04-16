@@ -22,7 +22,7 @@ run(async () => {
     experimental_telemetry: {
       functionId: 'my-awesome-function',
     },
-    context: {
+    runtimeContext: {
       something: 'custom',
       someOtherThing: 'other-value',
     },

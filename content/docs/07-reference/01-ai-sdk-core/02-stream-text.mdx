@@ -638,11 +638,11 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The messages that will be sent to the model for the current step.',
                     },
                     {
-                      name: 'context',
+                      name: 'runtimeContext',
                       type: 'CONTEXT',
                       isOptional: true,
                       description:
-                        'The shared runtime context passed via the `context` setting.',
+                        'The shared runtime context passed via the `runtimeContext` setting.',
                     },
                     {
                       name: 'toolsContext',
@@ -697,7 +697,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Optionally override the full set of messages sent to the model for this step.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               isOptional: true,
               description:
@@ -721,7 +721,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'context',
+      name: 'runtimeContext',
       type: 'CONTEXT',
       isOptional: true,
       description:
@@ -1793,10 +1793,10 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               description:
-                'The final state of the user-defined context object when the stream is aborted.',
+                'The final state of the user-defined runtime context object when the stream is aborted.',
             },
           ],
         },
@@ -1959,7 +1959,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               description:
                 'User-defined shared runtime context object that flows through the entire generation lifecycle.',
@@ -2071,7 +2071,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               description:
                 'User-defined shared runtime context object. May be updated from prepareStep between steps.',

@@ -5011,7 +5011,6 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -5088,6 +5087,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
@@ -5154,7 +5154,6 @@ describe('streamText', () => {
                 "url": "https://example.com/2",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -5182,6 +5181,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
@@ -5242,7 +5242,6 @@ describe('streamText', () => {
                 "type": "file",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -5282,6 +5281,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
@@ -5352,7 +5352,6 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -5401,6 +5400,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
@@ -5540,13 +5540,13 @@ describe('streamText', () => {
       expect(startEvent).toMatchSnapshot();
     });
 
-    it('should pass context', async () => {
+    it('should pass runtimeContext', async () => {
       let startEvent!: any;
 
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        context: { userId: 'test-user', sessionId: '123' },
+        runtimeContext: { userId: 'test-user', sessionId: '123' },
         experimental_onStart: async event => {
           startEvent = event;
         },
@@ -5555,7 +5555,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(startEvent.context).toEqual({
+      expect(startEvent.runtimeContext).toEqual({
         userId: 'test-user',
         sessionId: '123',
       });
@@ -5971,7 +5971,7 @@ describe('streamText', () => {
       expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
     });
 
-    it('should expose providerOptions and context', async () => {
+    it('should expose providerOptions and runtimeContext', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];
@@ -5980,7 +5980,7 @@ describe('streamText', () => {
         model: createTestModel(),
         prompt: 'test-input',
         providerOptions: { openai: { logprobs: true } },
-        context: { userId: 'test-user' },
+        runtimeContext: { userId: 'test-user' },
         experimental_onStepStart: async event => {
           stepStartEvent = event;
         },
@@ -5992,7 +5992,7 @@ describe('streamText', () => {
       expect(stepStartEvent.providerOptions).toEqual({
         openai: { logprobs: true },
       });
-      expect(stepStartEvent.context).toEqual({
+      expect(stepStartEvent.runtimeContext).toEqual({
         userId: 'test-user',
       });
     });
@@ -7304,7 +7304,6 @@ describe('streamText', () => {
               "type": "tool-result",
             },
           ],
-          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
           "files": [],
@@ -7367,6 +7366,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [
             {
@@ -7425,7 +7425,6 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -7483,6 +7482,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
@@ -7619,7 +7619,6 @@ describe('streamText', () => {
               "url": "https://example.com/2",
             },
           ],
-          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
           "files": [],
@@ -7652,6 +7651,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "runtimeContext": {},
           "sources": [
             {
               "id": "123",
@@ -7715,7 +7715,6 @@ describe('streamText', () => {
                   "url": "https://example.com/2",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -7743,6 +7742,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
@@ -7881,7 +7881,6 @@ describe('streamText', () => {
               "type": "file",
             },
           ],
-          "context": {},
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
           "files": [
@@ -7939,6 +7938,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [],
           "staticToolResults": [],
@@ -7971,7 +7971,6 @@ describe('streamText', () => {
                   "type": "file",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -8011,6 +8010,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
@@ -8605,7 +8605,6 @@ describe('streamText', () => {
                   "type": "text",
                 },
               ],
-              "context": {},
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
               "files": [],
@@ -8674,6 +8673,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
+              "runtimeContext": {},
               "sources": [],
               "staticToolCalls": [],
               "staticToolResults": [],
@@ -8709,7 +8709,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -8763,6 +8762,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -8793,7 +8793,6 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "model": {
@@ -8857,6 +8856,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 1,
                   "toolsContext": {},
                   "usage": {
@@ -8954,7 +8954,6 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "model": {
@@ -9008,6 +9007,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
@@ -9038,7 +9038,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -9102,6 +9101,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 1,
                 "toolsContext": {},
                 "usage": {
@@ -9216,7 +9216,6 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "model": {
@@ -9270,6 +9269,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
@@ -9300,7 +9300,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -9364,6 +9363,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 1,
                 "toolsContext": {},
                 "usage": {
@@ -9520,7 +9520,7 @@ describe('streamText', () => {
         stepNumber: number;
         steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
-        context: unknown;
+        runtimeContext: unknown;
       }>;
 
       beforeEach(async () => {
@@ -9589,7 +9589,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             }),
           },
-          context: { context: 'state1' },
+          runtimeContext: { context: 'state1' },
           prompt: 'test-input',
           stopWhen: isStepCount(3),
           _internal: {
@@ -9601,14 +9601,14 @@ describe('streamText', () => {
             stepNumber,
             steps,
             messages,
-            context,
+            runtimeContext,
           }) => {
             prepareStepCalls.push({
               modelId: typeof model === 'string' ? model : model.modelId,
               stepNumber,
               steps,
               messages,
-              context,
+              runtimeContext,
             });
 
             if (stepNumber === 0) {
@@ -9624,7 +9624,7 @@ describe('streamText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
-                context: { context: 'state2' },
+                runtimeContext: { context: 'state2' },
               };
             }
 
@@ -9632,7 +9632,7 @@ describe('streamText', () => {
               return {
                 activeTools: [],
                 system: 'system-message-1',
-                context: { context: 'state3' },
+                runtimeContext: { context: 'state3' },
               };
             }
           },
@@ -9777,9 +9777,6 @@ describe('streamText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
-              "context": {
-                "context": "state1",
-              },
               "messages": [
                 {
                   "content": "test-input",
@@ -9787,6 +9784,9 @@ describe('streamText', () => {
                 },
               ],
               "modelId": "mock-model-id",
+              "runtimeContext": {
+                "context": "state1",
+              },
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
@@ -9814,9 +9814,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {
-                    "context": "state2",
-                  },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -9865,6 +9862,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state2",
+                  },
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -9895,9 +9895,6 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "context": {
-                    "context": "state3",
-                  },
                   "finishReason": "stop",
                   "functionId": undefined,
                   "model": {
@@ -9956,6 +9953,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state3",
+                  },
                   "stepNumber": 1,
                   "toolsContext": {},
                   "usage": {
@@ -9980,9 +9980,6 @@ describe('streamText', () => {
               ],
             },
             {
-              "context": {
-                "context": "state2",
-              },
               "messages": [
                 {
                   "content": "test-input",
@@ -10019,6 +10016,9 @@ describe('streamText', () => {
                 },
               ],
               "modelId": "mock-model-id",
+              "runtimeContext": {
+                "context": "state2",
+              },
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
@@ -10046,9 +10046,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {
-                    "context": "state2",
-                  },
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -10097,6 +10094,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state2",
+                  },
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -10127,9 +10127,6 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "context": {
-                    "context": "state3",
-                  },
                   "finishReason": "stop",
                   "functionId": undefined,
                   "model": {
@@ -10187,6 +10184,9 @@ describe('streamText', () => {
                     ],
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
+                  },
+                  "runtimeContext": {
+                    "context": "state3",
                   },
                   "stepNumber": 1,
                   "toolsContext": {},
@@ -10500,7 +10500,6 @@ describe('streamText', () => {
                   "type": "text",
                 },
               ],
-              "context": {},
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
               "files": [],
@@ -10569,6 +10568,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
+              "runtimeContext": {},
               "sources": [],
               "staticToolCalls": [],
               "staticToolResults": [],
@@ -10604,7 +10604,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -10658,6 +10657,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -10688,7 +10688,6 @@ describe('streamText', () => {
                       "type": "text",
                     },
                   ],
-                  "context": {},
                   "finishReason": "stop",
                   "functionId": undefined,
                   "model": {
@@ -10752,6 +10751,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 1,
                   "toolsContext": {},
                   "usage": {
@@ -10849,7 +10849,6 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "model": {
@@ -10903,6 +10902,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
@@ -10933,7 +10933,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -10997,6 +10996,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 1,
                 "toolsContext": {},
                 "usage": {
@@ -11107,7 +11107,6 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "context": {},
                 "finishReason": "tool-calls",
                 "functionId": undefined,
                 "model": {
@@ -11161,6 +11160,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
@@ -11191,7 +11191,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -11255,6 +11254,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 1,
                 "toolsContext": {},
                 "usage": {
@@ -11529,7 +11529,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -11583,6 +11582,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -11639,7 +11639,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -11693,6 +11692,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -13877,7 +13877,6 @@ describe('streamText', () => {
                 "type": "tool-error",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -13924,6 +13923,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
@@ -14382,7 +14382,6 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -14434,6 +14433,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
@@ -14614,7 +14614,6 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
-            "context": {},
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
             "files": [],
@@ -14677,6 +14676,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "sources": [],
             "staticToolCalls": [
               {
@@ -14735,7 +14735,6 @@ describe('streamText', () => {
                     "type": "tool-result",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -14793,6 +14792,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
@@ -14966,7 +14966,6 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -15024,6 +15023,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
@@ -15420,7 +15420,6 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "context": {},
             "finishReason": "stop",
             "functionId": undefined,
             "model": {
@@ -15447,6 +15446,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "stepNumber": 0,
             "toolsContext": {},
             "usage": {
@@ -15907,7 +15907,6 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "context": {},
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
             "files": [],
@@ -15940,6 +15939,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "sources": [],
             "staticToolCalls": [],
             "staticToolResults": [],
@@ -15954,7 +15954,6 @@ describe('streamText', () => {
                     "type": "text",
                   },
                 ],
-                "context": {},
                 "finishReason": "stop",
                 "functionId": undefined,
                 "model": {
@@ -15982,6 +15981,7 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
                 "stepNumber": 0,
                 "toolsContext": {},
                 "usage": {
@@ -17051,7 +17051,6 @@ describe('streamText', () => {
                   "type": "reasoning",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -17094,6 +17093,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {
@@ -17442,7 +17442,6 @@ describe('streamText', () => {
                       "type": "tool-result",
                     },
                   ],
-                  "context": {},
                   "finishReason": "tool-calls",
                   "functionId": undefined,
                   "model": {
@@ -17489,6 +17488,7 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
                   "stepNumber": 0,
                   "toolsContext": {},
                   "usage": {
@@ -17843,7 +17843,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should pass context to prepareStep', async () => {
+    it('should pass runtimeContext to prepareStep', async () => {
       let capturedContext: unknown;
 
       const result = streamText({
@@ -17862,9 +17862,9 @@ describe('streamText', () => {
             response: {},
           }),
         }),
-        context: { myData: 'test-value' },
-        prepareStep: async ({ context }) => {
-          capturedContext = context;
+        runtimeContext: { myData: 'test-value' },
+        prepareStep: async ({ runtimeContext }) => {
+          capturedContext = runtimeContext;
           return undefined;
         },
         prompt: 'test',
@@ -17874,7 +17874,7 @@ describe('streamText', () => {
       expect(capturedContext).toEqual({ myData: 'test-value' });
     });
 
-    it('should send context in onFinish callback', async () => {
+    it('should send runtimeContext in onFinish callback', async () => {
       let recordedContext: unknown | undefined;
 
       const result = streamText({
@@ -17893,12 +17893,12 @@ describe('streamText', () => {
             ]),
           }),
         }),
-        context: {
+        runtimeContext: {
           context: 'test',
         },
         prompt: 'test-input',
-        onFinish: ({ context }) => {
-          recordedContext = context;
+        onFinish: ({ runtimeContext }) => {
+          recordedContext = runtimeContext;
         },
       });
 
@@ -18500,7 +18500,6 @@ describe('streamText', () => {
                   "type": "tool-result",
                 },
               ],
-              "context": {},
               "finishReason": "stop",
               "functionId": undefined,
               "model": {
@@ -18551,6 +18550,7 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
               "stepNumber": 0,
               "toolsContext": {},
               "usage": {

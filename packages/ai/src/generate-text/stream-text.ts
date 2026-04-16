@@ -163,8 +163,8 @@ export type StreamTextOnErrorCallback = Callback<{
  */
 export type StreamTextOnStepFinishCallback<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context,
-> = Callback<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
+  RUNTIME_CONTEXT extends Context,
+> = Callback<OnStepFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Callback that is set using the `onChunk` option.
@@ -196,8 +196,8 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
  */
 export type StreamTextOnFinishCallback<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context,
-> = Callback<OnFinishEvent<TOOLS, USER_CONTEXT>>;
+  RUNTIME_CONTEXT extends Context,
+> = Callback<OnFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Callback that is set using the `onAbort` option.
@@ -206,12 +206,12 @@ export type StreamTextOnFinishCallback<
  */
 export type StreamTextOnAbortCallback<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context,
+  RUNTIME_CONTEXT extends Context,
 > = Callback<{
   /**
    * Details for all previously finished steps.
    */
-  readonly steps: StepResult<TOOLS, USER_CONTEXT>[];
+  readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
 }>;
 
 /**
@@ -225,9 +225,9 @@ export type StreamTextOnAbortCallback<
  */
 export type StreamTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
+> = Callback<OnStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onStepStart` option.
@@ -240,9 +240,9 @@ export type StreamTextOnStartCallback<
  */
 export type StreamTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
+> = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 export type StreamTextOnToolCallStartCallback<TOOLS extends ToolSet = ToolSet> =
   Callback<OnToolCallStartEvent<TOOLS>>;
@@ -289,7 +289,7 @@ export type StreamTextOnToolCallFinishCallback<
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
- * @param context - User-defined runtime context that flows through the entire generation lifecycle.
+ * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  *
  * @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
  * @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
@@ -301,7 +301,7 @@ export type StreamTextOnToolCallFinishCallback<
  */
 export function streamText<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string, never>,
 >({
   model,
@@ -337,7 +337,7 @@ export function streamText<
   experimental_onStepStart: onStepStart,
   experimental_onToolCallStart: onToolCallStart,
   experimental_onToolCallFinish: onToolCallFinish,
-  context = {} as USER_CONTEXT,
+  runtimeContext = {} as RUNTIME_CONTEXT,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
@@ -366,7 +366,7 @@ export function streamText<
      *
      * @default isStepCount(1)
      */
-    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>;
+    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
      * Optional telemetry configuration (experimental).
@@ -384,7 +384,7 @@ export function streamText<
      * Runtime context. Treat runtime context as immutable.
      * If you need to mutate runtime context, update it in `prepareStep`.
      */
-    context?: USER_CONTEXT;
+    runtimeContext?: RUNTIME_CONTEXT;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -422,7 +422,7 @@ export function streamText<
      * @returns An object that contains the settings for the step.
      * If you return undefined (or for undefined settings), the settings from the outer level will be used.
      */
-    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, USER_CONTEXT>;
+    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
@@ -472,17 +472,20 @@ export function streamText<
      */
     onFinish?: StreamTextOnFinishCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>
+      NoInfer<RUNTIME_CONTEXT>
     >;
 
-    onAbort?: StreamTextOnAbortCallback<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>;
+    onAbort?: StreamTextOnAbortCallback<
+      NoInfer<TOOLS>,
+      NoInfer<RUNTIME_CONTEXT>
+    >;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
     onStepFinish?: StreamTextOnStepFinishCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>
+      NoInfer<RUNTIME_CONTEXT>
     >;
 
     /**
@@ -491,7 +494,7 @@ export function streamText<
      */
     experimental_onStart?: StreamTextOnStartCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>,
+      NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
     >;
 
@@ -501,7 +504,7 @@ export function streamText<
      */
     experimental_onStepStart?: StreamTextOnStepStartCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>,
+      NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
     >;
 
@@ -543,7 +546,7 @@ export function streamText<
       generateId?: IdGenerator;
       generateCallId?: IdGenerator;
     };
-  }): StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT> {
+  }): StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const totalTimeoutMs = getTotalTimeoutMs(timeout);
   const stepTimeoutMs = getStepTimeoutMs(timeout);
   const chunkTimeoutMs = getChunkTimeoutMs(timeout);
@@ -551,7 +554,7 @@ export function streamText<
     stepTimeoutMs != null ? new AbortController() : undefined;
   const chunkAbortController =
     chunkTimeoutMs != null ? new AbortController() : undefined;
-  return new DefaultStreamTextResult<TOOLS, USER_CONTEXT, OUTPUT>({
+  return new DefaultStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     model: resolveLanguageModel(model),
     telemetry,
     headers,
@@ -572,7 +575,7 @@ export function streamText<
     messages,
     tools,
     toolsContext,
-    context,
+    runtimeContext,
     toolChoice,
     transforms: asArray(transform),
     activeTools,
@@ -710,20 +713,20 @@ function createOutputTransformStream<
 
 class DefaultStreamTextResult<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context,
+  RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
-> implements StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT> {
+> implements StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   private readonly _totalUsage = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT>['usage']>
+    Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['usage']>
   >();
   private readonly _finishReason = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT>['finishReason']>
+    Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['finishReason']>
   >();
   private readonly _rawFinishReason = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT>['rawFinishReason']>
+    Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['rawFinishReason']>
   >();
   private readonly _steps = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT>['steps']>
+    Awaited<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps']>
   >();
 
   private readonly addStream: (
@@ -781,7 +784,7 @@ class DefaultStreamTextResult<
     onStepStart,
     onToolCallStart,
     onToolCallFinish,
-    context,
+    runtimeContext,
     toolsContext,
     download,
     include,
@@ -797,7 +800,7 @@ class DefaultStreamTextResult<
     chunkTimeoutMs: number | undefined;
     chunkAbortController: AbortController | undefined;
     toolsContext: InferToolSetContext<TOOLS>;
-    context: USER_CONTEXT;
+    runtimeContext: RUNTIME_CONTEXT;
     system: Prompt['system'];
     prompt: Prompt['prompt'];
     messages: Prompt['messages'];
@@ -806,19 +809,23 @@ class DefaultStreamTextResult<
     transforms: Array<StreamTextTransform<TOOLS>>;
     activeTools: Array<keyof TOOLS> | undefined;
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
-    stopConditions: Array<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>;
+    stopConditions: Array<
+      StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
+    >;
     output: OUTPUT | undefined;
     toolNeedsApproval: ToolNeedsApprovalConfiguration<TOOLS> | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep:
-      | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>
+      | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
       | undefined;
     includeRawChunks: boolean;
     now: () => number;
     generateId: () => string;
     generateCallId: () => string;
     timeout: TimeoutConfiguration<TOOLS> | undefined;
-    stopWhen: Arrayable<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>;
+    stopWhen: Arrayable<
+      StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
+    >;
     download: DownloadFunction | undefined;
     include: { requestBody?: boolean } | undefined;
 
@@ -827,25 +834,28 @@ class DefaultStreamTextResult<
     onError: StreamTextOnErrorCallback;
     onFinish:
       | undefined
-      | StreamTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>;
+      | StreamTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
     onAbort:
       | undefined
-      | StreamTextOnAbortCallback<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>;
+      | StreamTextOnAbortCallback<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>;
     onStepFinish:
       | undefined
-      | StreamTextOnStepFinishCallback<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>;
+      | StreamTextOnStepFinishCallback<
+          NoInfer<TOOLS>,
+          NoInfer<RUNTIME_CONTEXT>
+        >;
     onStart:
       | undefined
       | StreamTextOnStartCallback<
           NoInfer<TOOLS>,
-          NoInfer<USER_CONTEXT>,
+          NoInfer<RUNTIME_CONTEXT>,
           NoInfer<OUTPUT>
         >;
     onStepStart:
       | undefined
       | StreamTextOnStepStartCallback<
           NoInfer<TOOLS>,
-          NoInfer<USER_CONTEXT>,
+          NoInfer<RUNTIME_CONTEXT>,
           NoInfer<OUTPUT>
         >;
     onToolCallStart: undefined | StreamTextOnToolCallStartCallback<TOOLS>;
@@ -871,7 +881,7 @@ class DefaultStreamTextResult<
     let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
-    const recordedSteps: StepResult<TOOLS, USER_CONTEXT>[] = [];
+    const recordedSteps: StepResult<TOOLS, RUNTIME_CONTEXT>[] = [];
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -1072,14 +1082,14 @@ class DefaultStreamTextResult<
           });
 
           // Add step information (after response messages are updated):
-          const currentStepResult: StepResult<TOOLS, USER_CONTEXT> =
+          const currentStepResult: StepResult<TOOLS, RUNTIME_CONTEXT> =
             new DefaultStepResult({
               callId,
               stepNumber: recordedSteps.length,
               provider: model.provider,
               modelId: model.modelId,
               ...callbackTelemetryProps,
-              context,
+              runtimeContext,
               toolsContext,
               content: recordedContent,
               finishReason: part.finishReason,
@@ -1161,7 +1171,7 @@ class DefaultStreamTextResult<
               stepNumber: finalStep.stepNumber,
               model: finalStep.model,
               functionId: finalStep.functionId,
-              context: finalStep.context,
+              runtimeContext: finalStep.runtimeContext,
               finishReason: finalStep.finishReason,
               rawFinishReason: finalStep.rawFinishReason,
               totalUsage,
@@ -1190,7 +1200,7 @@ class DefaultStreamTextResult<
                 | undefined
                 | StreamTextOnFinishCallback<
                     NoInfer<TOOLS>,
-                    NoInfer<USER_CONTEXT>
+                    NoInfer<RUNTIME_CONTEXT>
                   >,
             ],
           });
@@ -1343,14 +1353,14 @@ class DefaultStreamTextResult<
           stopWhen,
           output,
           ...onStartTelemetryProps,
-          context,
+          runtimeContext,
           toolsContext,
         },
         callbacks: [
           onStart,
           unifiedTelemetry.onStart as
             | undefined
-            | StreamTextOnStartCallback<TOOLS, USER_CONTEXT, OUTPUT>,
+            | StreamTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
         ],
       });
 
@@ -1542,7 +1552,7 @@ class DefaultStreamTextResult<
             stepNumber: recordedSteps.length,
             messages: stepInputMessages,
             toolsContext,
-            context,
+            runtimeContext,
           });
 
           const stepModel = resolveLanguageModel(
@@ -1562,7 +1572,7 @@ class DefaultStreamTextResult<
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           });
 
-          context = prepareStepResult?.context ?? context;
+          runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
           toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
 
           const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
@@ -1614,7 +1624,7 @@ class DefaultStreamTextResult<
                     stopWhen,
                     output,
                     ...callbackTelemetryProps,
-                    context,
+                    runtimeContext,
                     toolsContext,
                     promptMessages,
                     stepTools,
@@ -1626,7 +1636,7 @@ class DefaultStreamTextResult<
                       | undefined
                       | StreamTextOnStepStartCallback<
                           TOOLS,
-                          USER_CONTEXT,
+                          RUNTIME_CONTEXT,
                           OUTPUT
                         >,
                   ],
@@ -1641,7 +1651,7 @@ class DefaultStreamTextResult<
             tools,
             stepInputMessages,
             abortSignal,
-            context,
+            runtimeContext,
           });
 
           const streamWithToolResults = stream2.pipeThrough(

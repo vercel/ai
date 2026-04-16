@@ -33,7 +33,7 @@ run(async () => {
       }),
     }),
     prompt: 'Generate a lasagna recipe.',
-    context: {
+    runtimeContext: {
       something: 'custom',
       someOtherThing: 'other-value',
     },

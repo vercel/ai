@@ -29,7 +29,7 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
 export async function createAgentUIStreamResponse<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
 >({
@@ -39,7 +39,7 @@ export async function createAgentUIStreamResponse<
   consumeSseStream,
   ...options
 }: {
-  agent: Agent<CALL_OPTIONS, TOOLS, USER_CONTEXT, OUTPUT>;
+  agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   uiMessages: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
