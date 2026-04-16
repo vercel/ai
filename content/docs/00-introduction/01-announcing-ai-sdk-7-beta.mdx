@@ -89,6 +89,27 @@ const { text, reasoning } = await generateText({
 });
 ```
 
+The same setting also works on agents. Since `ToolLoopAgent` accepts the same settings as `generateText` and `streamText`, you can configure reasoning once and stream from the agent:
+
+```ts
+import { ToolLoopAgent } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const agent = new ToolLoopAgent({
+  model: openai.responses('gpt-5.4'),
+  reasoning: 'high',
+  instructions: 'You are a helpful physics tutor.',
+});
+
+const result = await agent.stream({
+  prompt: 'Explain quantum entanglement in simple terms.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
 Learn more in the [Reasoning documentation](/docs/ai-sdk-core/reasoning).
 
 ### File and Skill Uploads
@@ -109,7 +130,7 @@ const { providerReference } = await uploadFile({
 });
 
 const { text } = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-5.4'),
   messages: [
     {
       role: 'user',
