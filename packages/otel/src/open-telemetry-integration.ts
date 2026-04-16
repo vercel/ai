@@ -231,7 +231,7 @@ export class OpenTelemetryIntegration implements TelemetryIntegration {
       model: { provider: event.provider, modelId: event.modelId },
       headers: event.headers,
       settings,
-      context: event.context as Record<string, unknown> | undefined,
+      context: event.runtimeContext as Record<string, unknown> | undefined,
     });
 
     const attributes = selectAttributes(telemetry, {

@@ -1344,7 +1344,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       frequencyPenalty: 0.3,
       presencePenalty: 0.4,
       temperature: 0.5,
-      context: {
+      runtimeContext: {
         test1: 'value1',
         test2: false,
       },
@@ -1849,7 +1849,7 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       presencePenalty: 0.4,
       temperature: 0.5,
       stopSequences: ['stop'],
-      context: {
+      runtimeContext: {
         test1: 'value1',
         test2: false,
       },

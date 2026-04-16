@@ -241,7 +241,7 @@ export async function doStreamStep(
     },
     functionId: undefined,
     metadata: undefined,
-    context: undefined,
+    runtimeContext: undefined,
     toolsContext: {},
     content: [
       ...(text ? [{ type: 'text' as const, text }] : []),
