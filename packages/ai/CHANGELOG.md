@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.99
+
+### Patch Changes
+
+- 2a9c144: feat(ai): add toolNeedsApproval option
+
 ## 7.0.0-beta.98
 
 ### Patch Changes
