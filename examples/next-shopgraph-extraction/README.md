@@ -76,6 +76,6 @@ on client-side confidence rendering:
 ## Learn More
 
 - [AI SDK docs](https://ai-sdk.dev/docs)
-- [ShopGraph docs](https://shopgraph.dev/docs)
+- [ShopGraph](https://shopgraph.dev)
 - [ShopGraph Leaderboard](https://shopgraph.dev/leaderboard) (site compatibility)
 - [Next.js docs](https://nextjs.org/docs)

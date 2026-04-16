@@ -4,28 +4,34 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, isStaticToolUIPart } from 'ai';
 import { useState } from 'react';
 
-interface FieldWithConfidence {
-  value: unknown;
-  confidence: number;
-  decayed: boolean;
-}
-
-interface ExtractionResult {
+interface ShopGraphProduct {
   product_name: string | null;
   brand: string | null;
   price: { amount: number; currency: string } | null;
   availability: string;
-  overall_confidence: number;
-  fields_with_confidence: Record<string, FieldWithConfidence>;
+  confidence: { overall: number; per_field: Record<string, number> };
+  _shopgraph: {
+    field_confidence: Record<string, number>;
+    extraction_method: string;
+    data_source: string;
+  };
   [key: string]: unknown;
 }
 
-function isExtractionResult(data: unknown): data is ExtractionResult {
+interface ShopGraphResponse {
+  product: ShopGraphProduct;
+  cached: boolean;
+  credit_mode: string;
+}
+
+function isShopGraphResponse(data: unknown): data is ShopGraphResponse {
   return (
     typeof data === 'object' &&
     data !== null &&
-    'fields_with_confidence' in data &&
-    'overall_confidence' in data
+    'product' in data &&
+    typeof (data as ShopGraphResponse).product === 'object' &&
+    (data as ShopGraphResponse).product !== null &&
+    '_shopgraph' in (data as ShopGraphResponse).product
   );
 }
 
@@ -45,20 +51,26 @@ function ConfidenceBadge({ score }: { score: number }) {
         color: isLow ? 'rgb(180, 83, 9)' : 'rgb(22, 101, 52)',
       }}
     >
-      {(score * 100).toFixed(0)}%{isLow ? ' — verification recommended' : ''}
+      {(score * 100).toFixed(0)}%{isLow ? ' — verify' : ''}
     </span>
   );
 }
 
-function ProductCard({ data }: { data: ExtractionResult }) {
-  const fields = data.fields_with_confidence;
+function ProductCard({ data }: { data: ShopGraphResponse }) {
+  const product = data.product;
+  const confidence = product._shopgraph.field_confidence;
+
   const displayFields = [
-    { key: 'product_name', label: 'Product' },
-    { key: 'brand', label: 'Brand' },
-    { key: 'price', label: 'Price' },
-    { key: 'availability', label: 'Availability' },
-    { key: 'description', label: 'Description' },
-    { key: 'material', label: 'Material' },
+    { key: 'product_name', label: 'Product', value: product.product_name },
+    { key: 'brand', label: 'Brand', value: product.brand },
+    {
+      key: 'price',
+      label: 'Price',
+      value: product.price
+        ? `${product.price.currency} ${product.price.amount.toFixed(2)}`
+        : null,
+    },
+    { key: 'availability', label: 'Availability', value: product.availability },
   ];
 
   return (
@@ -76,25 +88,21 @@ function ProductCard({ data }: { data: ExtractionResult }) {
           fontSize: '0.75rem',
           color: '#6b7280',
           marginBottom: '0.75rem',
+          display: 'flex',
+          gap: '1rem',
         }}
       >
-        Overall confidence: {(data.overall_confidence * 100).toFixed(0)}%
+        <span>
+          Overall confidence: {(product.confidence.overall * 100).toFixed(0)}%
+        </span>
+        <span>Method: {product._shopgraph.extraction_method}</span>
+        <span>{data.cached ? 'Cached' : 'Live'}</span>
       </div>
 
-      {displayFields.map(({ key, label }) => {
-        const field = fields[key];
-        if (!field || field.value === null || field.value === 'unknown')
-          return null;
-
-        const isLow = field.confidence < 0.85;
-        let displayValue = String(field.value);
-        if (key === 'price' && data.price) {
-          displayValue = `${data.price.currency} ${data.price.amount.toFixed(2)}`;
-        }
-        if (Array.isArray(field.value)) {
-          if (field.value.length === 0) return null;
-          displayValue = field.value.join(', ');
-        }
+      {displayFields.map(({ key, label, value }) => {
+        if (value === null || value === 'unknown') return null;
+        const conf = confidence[key] ?? 0;
+        const isLow = conf < 0.85;
 
         return (
           <div
@@ -109,9 +117,7 @@ function ProductCard({ data }: { data: ExtractionResult }) {
             }}
           >
             <div>
-              <span
-                style={{ fontSize: '0.75rem', color: '#9ca3af' }}
-              >
+              <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                 {label}
               </span>
               <div
@@ -123,10 +129,10 @@ function ProductCard({ data }: { data: ExtractionResult }) {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {displayValue}
+                {String(value)}
               </div>
             </div>
-            <ConfidenceBadge score={field.confidence} />
+            <ConfidenceBadge score={conf} />
           </div>
         );
       })}
@@ -149,8 +155,10 @@ export default function Page() {
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
     >
-      <h1 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>
-        ShopGraph Extraction
+      <h1
+        style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}
+      >
+        Product Extraction with Confidence Scoring
       </h1>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -170,14 +178,17 @@ export default function Page() {
             {message.parts.map((part, index) => {
               if (part.type === 'text') {
                 return (
-                  <div key={index} style={{ fontSize: '0.875rem', lineHeight: 1.6 }}>
+                  <div
+                    key={index}
+                    style={{ fontSize: '0.875rem', lineHeight: 1.6 }}
+                  >
                     {part.text}
                   </div>
                 );
               }
               if (isStaticToolUIPart(part)) {
                 const result = part.result;
-                if (isExtractionResult(result)) {
+                if (isShopGraphResponse(result)) {
                   return <ProductCard key={index} data={result} />;
                 }
                 return (
