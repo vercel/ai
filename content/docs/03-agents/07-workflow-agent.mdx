@@ -341,8 +341,7 @@ import { isStepCount } from "ai";
 
 const result = await agent.stream({
   messages,
-  maxSteps: 10, // Maximum number of LLM calls
-  stopWhen: isStepCount(5), // Or use stop conditions from AI SDK
+  stopWhen: isStepCount(10), // Stop after 10 LLM calls
 });
 ```
 

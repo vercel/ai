@@ -715,13 +715,6 @@ export type WorkflowAgentStreamOptions<
       | Array<StopCondition<NoInfer<ToolSet>, any>>;
 
     /**
-     * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-     * A maximum number can be set to prevent infinite loops in the case of misconfigured tools.
-     * By default, it's unlimited (the agent loops until completion).
-     */
-    maxSteps?: number;
-
-    /**
      * The tool choice strategy. Default: 'auto'.
      * Overrides the toolChoice from the constructor if provided.
      */
@@ -1471,7 +1464,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
       writable: options.writable,
       prompt: modelPrompt,
       stopConditions: options.stopWhen ?? this.stopWhen,
-      maxSteps: options.maxSteps,
+
       onStepFinish: mergedOnStepFinish,
       onStepStart: mergedOnStepStart,
       onError: options.onError,
