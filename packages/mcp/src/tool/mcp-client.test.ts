@@ -644,7 +644,8 @@ describe('MCPClient', () => {
         "messages": [
           {
             "content": {
-              "text": "Please review this code:\nfunction add(a, b) { return a + b; }",
+              "text": "Please review this code:
+      function add(a, b) { return a + b; }",
               "type": "text",
             },
             "role": "user",
@@ -911,6 +912,48 @@ describe('MCPClient', () => {
       expect(tools).toBeDefined();
       await client.close();
     }
+  });
+
+  it('should expose serverInfo from initialization', async () => {
+    createMockTransport.mockImplementation(
+      () =>
+        new MockMCPTransport({
+          initializeResult: {
+            protocolVersion: '2025-11-25',
+            serverInfo: {
+              name: 'my-server',
+              version: '2.0.0',
+              title: 'My Server',
+            },
+            capabilities: { tools: {} },
+          },
+        }),
+    );
+
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(client.serverInfo).toMatchInlineSnapshot(`
+      {
+        "name": "my-server",
+        "title": "My Server",
+        "version": "2.0.0",
+      }
+    `);
+  });
+
+  it('should expose serverInfo without title when server omits it', async () => {
+    client = await createMCPClient({
+      transport: { type: 'sse', url: 'https://example.com/sse' },
+    });
+
+    expect(client.serverInfo).toMatchInlineSnapshot(`
+      {
+        "name": "mock-mcp-server",
+        "version": "1.0.0",
+      }
+    `);
   });
 
   it('should close transport when client is closed', async () => {
@@ -1580,6 +1623,180 @@ describe('MCPClient', () => {
           page: 1,
         },
       });
+    });
+
+    it('should bypass outputSchema validation when isError is true', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'error-tool',
+            description: 'A tool that can error',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+              },
+            },
+          },
+        ],
+        toolCallResults: {
+          'error-tool': {
+            content: [
+              {
+                type: 'text',
+                text: 'Workflow with name "test" already exists',
+              },
+            ],
+            isError: true,
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'error-tool': {
+            inputSchema: z.object({
+              name: z.string(),
+            }),
+            outputSchema: z.object({
+              id: z.number(),
+              status: z.string(),
+            }),
+          },
+        },
+      });
+
+      const result = await tools['error-tool'].execute(
+        { name: 'test' },
+        { messages: [], toolCallId: '1', experimental_context: {} },
+      );
+
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text: 'Workflow with name "test" already exists',
+          },
+        ],
+        isError: true,
+      });
+    });
+
+    it('should bypass outputSchema validation for isError with structuredContent', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'error-structured-tool',
+            description: 'A tool that errors with structuredContent',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+        toolCallResults: {
+          'error-structured-tool': {
+            content: [
+              {
+                type: 'text',
+                text: 'Something went wrong',
+              },
+            ],
+            structuredContent: {
+              error_code: 'DUPLICATE',
+              message: 'Already exists',
+            },
+            isError: true,
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'error-structured-tool': {
+            inputSchema: z.object({}),
+            outputSchema: z.object({
+              id: z.number(),
+              status: z.string(),
+            }),
+          },
+        },
+      });
+
+      const result = await tools['error-structured-tool'].execute(
+        {},
+        { messages: [], toolCallId: '1', experimental_context: {} },
+      );
+
+      expect(result).toEqual({
+        content: [
+          {
+            type: 'text',
+            text: 'Something went wrong',
+          },
+        ],
+        structuredContent: {
+          error_code: 'DUPLICATE',
+          message: 'Already exists',
+        },
+        isError: true,
+      });
+    });
+
+    it('should still validate outputSchema when isError is false', async () => {
+      const mockTransport = new MockMCPTransport({
+        overrideTools: [
+          {
+            name: 'non-error-tool',
+            description: 'Returns bad data without error flag',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
+        ],
+        toolCallResults: {
+          'non-error-tool': {
+            content: [
+              {
+                type: 'text',
+                text: 'not valid json',
+              },
+            ],
+            isError: false,
+          },
+        },
+      });
+
+      client = await createMCPClient({
+        transport: mockTransport,
+      });
+
+      const tools = await client.tools({
+        schemas: {
+          'non-error-tool': {
+            inputSchema: z.object({}),
+            outputSchema: z.object({
+              value: z.string(),
+            }),
+          },
+        },
+      });
+
+      await expect(
+        tools['non-error-tool'].execute(
+          {},
+          { messages: [], toolCallId: '1', experimental_context: {} },
+        ),
+      ).rejects.toThrow(MCPClientError);
     });
   });
 

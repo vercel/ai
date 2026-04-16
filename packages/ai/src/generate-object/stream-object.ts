@@ -173,11 +173,8 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  */
 export function streamObject<
   SCHEMA extends FlexibleSchema<unknown> = FlexibleSchema<JSONValue>,
-  OUTPUT extends
-    | 'object'
-    | 'array'
-    | 'enum'
-    | 'no-schema' = InferSchema<SCHEMA> extends string ? 'enum' : 'object',
+  OUTPUT extends 'object' | 'array' | 'enum' | 'no-schema' =
+    InferSchema<SCHEMA> extends string ? 'enum' : 'object',
   RESULT = OUTPUT extends 'array'
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
@@ -353,9 +350,11 @@ export function streamObject<
   });
 }
 
-class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-{
+class DefaultStreamObjectResult<
+  PARTIAL,
+  RESULT,
+  ELEMENT_STREAM,
+> implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   private readonly _object = new DelayedPromise<RESULT>();
   private readonly _usage = new DelayedPromise<LanguageModelUsage>();
   private readonly _providerMetadata = new DelayedPromise<

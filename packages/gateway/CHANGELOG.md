@@ -1,5 +1,205 @@
 # @ai-sdk/gateway
 
+## 3.0.103
+
+### Patch Changes
+
+- 20805c8: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.102
+
+### Patch Changes
+
+- 2ff8d57: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 3.0.101
+
+### Patch Changes
+
+- 83434a9: feat (provider/gateway): add sort options
+
+## 3.0.100
+
+### Patch Changes
+
+- a27a631: feat (provider/gateway): make model list resilient to unknown model types
+
+## 3.0.99
+
+### Patch Changes
+
+- 8c4abaf: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.98
+
+### Patch Changes
+
+- 9031f26: fix (provider/gateway): add 'reranking' to modelType validation schema and type so getAvailableModels() accepts reranking models from the gateway API
+
+## 3.0.97
+
+### Patch Changes
+
+- 06f7838: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.96
+
+### Patch Changes
+
+- a0d9373: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.95
+
+### Patch Changes
+
+- 08c5ac3: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.94
+
+### Patch Changes
+
+- 37a378e: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.93
+
+### Patch Changes
+
+- ec18852: feat (provider/gateway): add reranking model support with `rerankingModel()` and `reranking()` methods
+
+## 3.0.92
+
+### Patch Changes
+
+- 9de7d7b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.91
+
+### Patch Changes
+
+- 3aca847: feat (provider/gateway): add quotaEntityId gateway provider option
+
+## 3.0.90
+
+### Patch Changes
+
+- e923a24: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.89
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 3.0.88
+
+### Patch Changes
+
+- 5f439a1: feat (provider/gateway): add hipaaCompliant gateway provider option
+
+## 3.0.87
+
+### Patch Changes
+
+- ffd431a: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.86
+
+### Patch Changes
+
+- 15bfbd2: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
+## 3.0.85
+
+### Patch Changes
+
+- 85e476d: feat (provider/gateway): add disallowPromptTraining gateway provider option
+
+## 3.0.84
+
+### Patch Changes
+
+- 70322b4: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.83
+
+### Patch Changes
+
+- 768a9d6: feat (provider/gateway): add get-generation support
+
+## 3.0.82
+
+### Patch Changes
+
+- 95fedf0: feat (provider/gateway): add spend reporting support
+
+## 3.0.81
+
+### Patch Changes
+
+- e69062d: chore(provider/gateway): rename GatewayLanguageModelOptions back to GatewayProviderOptions
+
+## 3.0.80
+
+### Patch Changes
+
+- 0db5cd8: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.79
+
+### Patch Changes
+
+- 3caa544: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
+## 3.0.78
+
+### Patch Changes
+
+- 763e178: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.77
+
+### Patch Changes
+
+- d99eb91: Backport: chore(provider/gateway): update gateway model settings files
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
+## 3.0.76
+
+### Patch Changes
+
+- 25af909: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.75
+
+### Patch Changes
+
+- f95e0c0: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.74
+
+### Patch Changes
+
+- 7324b56: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.73
+
+### Patch Changes
+
+- ac0c407: Backport: chore(provider/gateway): update gateway model settings files
+- e748159: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.72
+
+### Patch Changes
+
+- 5ffb1ad: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+- f5bf0c6: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.71
 
 ### Patch Changes
@@ -488,13 +688,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - aaf5ebf: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
@@ -776,13 +976,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

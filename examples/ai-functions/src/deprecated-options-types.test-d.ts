@@ -206,8 +206,8 @@ describe('deprecated provider options type aliases', () => {
   });
 
   describe('@ai-sdk/gateway', () => {
-    it('GatewayProviderOptions equals GatewayLanguageModelOptions', () => {
-      expectTypeOf<GatewayProviderOptions>().toEqualTypeOf<GatewayLanguageModelOptions>();
+    it('GatewayLanguageModelOptions equals GatewayProviderOptions', () => {
+      expectTypeOf<GatewayLanguageModelOptions>().toEqualTypeOf<GatewayProviderOptions>();
     });
   });
 

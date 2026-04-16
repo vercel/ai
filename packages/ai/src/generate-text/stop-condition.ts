@@ -9,6 +9,10 @@ export function stepCountIs(stepCount: number): StopCondition<any> {
   return ({ steps }) => steps.length === stepCount;
 }
 
+export function isLoopFinished(): StopCondition<any> {
+  return () => false;
+}
+
 export function hasToolCall(toolName: string): StopCondition<any> {
   return ({ steps }) =>
     steps[steps.length - 1]?.toolCalls?.some(

@@ -1602,4 +1602,90 @@ describe('prepareResponsesTools', () => {
       `);
     });
   });
+
+  describe('tool search', () => {
+    it('should prepare tool_search tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'toolSearch',
+            args: {},
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "tool_search",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare tool_search alongside function tools with defer_loading', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'toolSearch',
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the current weather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: { deferLoading: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "tool_search",
+            },
+            {
+              "defer_loading": true,
+              "description": "Get the current weather",
+              "name": "get_weather",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "location": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "location",
+                ],
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
+  });
 });

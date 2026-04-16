@@ -958,6 +958,145 @@ Your execute function must return:
 - **status** _'completed' | 'failed'_ - Whether the patch was applied successfully
 - **output** _string_ (optional) - Human-readable log text (e.g., results or error messages)
 
+#### Tool Search
+
+Tool search allows the model to dynamically search for and load tools into context as needed,
+rather than loading all tool definitions up front. This can reduce token usage, cost, and latency
+when you have many tools. Mark the tools you want to make searchable with `deferLoading: true`
+in their `providerOptions`.
+
+There are two execution modes:
+
+- **Server-executed (hosted):** OpenAI searches across the deferred tools declared in the request and returns the loaded subset in the same response. No extra round-trip is needed.
+- **Client-executed:** The model emits a `tool_search_call`, your application performs the lookup, and you return the matching tools via the `execute` callback.
+
+##### Server-Executed (Hosted) Tool Search
+
+Use hosted tool search when the candidate tools are already known at request time.
+Add `openai.tools.toolSearch()` with no arguments and mark your tools with `deferLoading: true`:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  prompt: 'What is the weather in San Francisco?',
+  stopWhen: stepCountIs(10),
+  tools: {
+    toolSearch: openai.tools.toolSearch(),
+
+    get_weather: tool({
+      description: 'Get the current weather at a specific location',
+      inputSchema: z.object({
+        location: z.string(),
+        unit: z.enum(['celsius', 'fahrenheit']),
+      }),
+      execute: async ({ location, unit }) => ({
+        location,
+        temperature: unit === 'celsius' ? 18 : 64,
+      }),
+      providerOptions: {
+        openai: { deferLoading: true },
+      },
+    }),
+
+    search_files: tool({
+      description: 'Search through files in the workspace',
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) => ({
+        results: [`Found 3 files matching "${query}"`],
+      }),
+      providerOptions: {
+        openai: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+In hosted mode, the model internally searches the deferred tools, loads the relevant ones, and
+proceeds to call them — all within a single response. The `tool_search_call` and
+`tool_search_output` items appear in the response with `execution: 'server'` and `call_id: null`.
+
+##### Client-Executed Tool Search
+
+Use client-executed tool search when tool discovery depends on runtime state — for example,
+tools that vary per tenant, project, or external system. Pass `execution: 'client'` along with
+a `description`, `parameters` schema, and an `execute` callback:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, tool, stepCountIs } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.4'),
+  prompt: 'What is the weather in San Francisco?',
+  stopWhen: stepCountIs(10),
+  tools: {
+    toolSearch: openai.tools.toolSearch({
+      execution: 'client',
+      description: 'Search for available tools based on what the user needs.',
+      parameters: {
+        type: 'object',
+        properties: {
+          goal: {
+            type: 'string',
+            description: 'What the user is trying to accomplish',
+          },
+        },
+        required: ['goal'],
+        additionalProperties: false,
+      },
+      execute: async ({ arguments: args }) => {
+        // Your custom tool discovery logic here.
+        // Return the tools that match the search goal.
+        return {
+          tools: [
+            {
+              type: 'function',
+              name: 'get_weather',
+              description: 'Get the current weather at a specific location',
+              deferLoading: true,
+              parameters: {
+                type: 'object',
+                properties: {
+                  location: { type: 'string' },
+                },
+                required: ['location'],
+                additionalProperties: false,
+              },
+            },
+          ],
+        };
+      },
+    }),
+
+    get_weather: tool({
+      description: 'Get the current weather at a specific location',
+      inputSchema: z.object({ location: z.string() }),
+      execute: async ({ location }) => ({
+        location,
+        temperature: 64,
+        condition: 'Partly cloudy',
+      }),
+      providerOptions: {
+        openai: { deferLoading: true },
+      },
+    }),
+  },
+});
+```
+
+In client mode, the flow spans two steps:
+
+1. **Step 1:** The model emits a `tool_search_call` with `execution: 'client'` and a non-null `call_id`. The SDK calls your `execute` callback with the search arguments. Your callback returns the discovered tools.
+2. **Step 2:** The SDK sends the `tool_search_output` (with the matching `call_id`) back to the model. The model can now call the loaded tools as normal function calls.
+
+For more details, see the [OpenAI Tool Search documentation](https://platform.openai.com/docs/guides/tools-tool-search).
+
 #### Custom Tool
 
 The OpenAI Responses API supports
@@ -2043,6 +2182,8 @@ The following optional provider options are available for OpenAI completion mode
 | --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `gpt-5.4-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.4`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.4-mini`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5.4-nano`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.3-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.2-pro`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.2-chat-latest` | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |

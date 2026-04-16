@@ -1,5 +1,39 @@
 # @ai-sdk/perplexity
 
+## 3.0.29
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 3.0.28
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 3.0.27
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
+## 3.0.26
+
+### Patch Changes
+
+- 4bcec3c: feat(perplexity): expose provider-reported cost in providerMetadata
+
+## 3.0.25
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
 ## 3.0.24
 
 ### Patch Changes
@@ -193,13 +227,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 95f65c2: chore: use import \* from zod/v4
@@ -404,13 +438,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

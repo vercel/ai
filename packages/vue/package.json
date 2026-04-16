@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "3.0.124",
+  "version": "3.0.167",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -10,9 +10,7 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch",
     "clean": "del-cli dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.js --run",
     "test:update": "vitest --config vitest.config.js --run -u",
     "test:watch": "vitest --config vitest.config.js"
@@ -49,13 +47,11 @@
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vitejs/plugin-vue": "5.2.0",
-    "eslint": "8.57.1",
-    "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^24.0.0",
     "msw": "2.6.4",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "vitest": "2.1.4",
+    "vitest": "^4.1.0",
     "zod": "3.25.76"
   },
   "peerDependencies": {

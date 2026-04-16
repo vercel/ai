@@ -1,5 +1,308 @@
 # ai
 
+## 6.0.167
+
+### Patch Changes
+
+- Updated dependencies [20805c8]
+  - @ai-sdk/gateway@3.0.103
+
+## 6.0.166
+
+### Patch Changes
+
+- b8d28f4: fix(ai): omit reasoning-start/end when sendReasoning is false
+
+## 6.0.165
+
+### Patch Changes
+
+- Updated dependencies [2ff8d57]
+  - @ai-sdk/gateway@3.0.102
+
+## 6.0.164
+
+### Patch Changes
+
+- Updated dependencies [83434a9]
+  - @ai-sdk/gateway@3.0.101
+
+## 6.0.163
+
+### Patch Changes
+
+- Updated dependencies [a27a631]
+  - @ai-sdk/gateway@3.0.100
+
+## 6.0.162
+
+### Patch Changes
+
+- Updated dependencies [8c4abaf]
+  - @ai-sdk/gateway@3.0.99
+
+## 6.0.161
+
+### Patch Changes
+
+- Updated dependencies [9031f26]
+  - @ai-sdk/gateway@3.0.98
+
+## 6.0.160
+
+### Patch Changes
+
+- Updated dependencies [06f7838]
+  - @ai-sdk/gateway@3.0.97
+
+## 6.0.159
+
+### Patch Changes
+
+- Updated dependencies [a0d9373]
+  - @ai-sdk/gateway@3.0.96
+
+## 6.0.158
+
+### Patch Changes
+
+- 295beba: fix(ai): fix `lastAssistantMessageIsCompleteWithApprovalResponses` to no longer ignore `providerExecuted` tool approvals
+
+## 6.0.157
+
+### Patch Changes
+
+- ff11aee: fix(ai): fix `providerExecuted` tool approvals being passed to language model twice
+
+## 6.0.156
+
+### Patch Changes
+
+- Updated dependencies [08c5ac3]
+  - @ai-sdk/gateway@3.0.95
+
+## 6.0.155
+
+### Patch Changes
+
+- 06764c5: fix(ai): skip passing invalid JSON inputs to response messages
+
+## 6.0.154
+
+### Patch Changes
+
+- Updated dependencies [37a378e]
+  - @ai-sdk/gateway@3.0.94
+
+## 6.0.153
+
+### Patch Changes
+
+- f152133: feat (ai/core): support plain string model IDs in `rerank()` function
+
+  The `rerank()` function now accepts plain model strings (e.g., `'cohere/rerank-v3.5'`) in addition to `RerankingModel` objects, matching the behavior of `generateText`, `embed`, and other core functions.
+
+## 6.0.152
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+
+## 6.0.151
+
+### Patch Changes
+
+- Updated dependencies [ec18852]
+  - @ai-sdk/gateway@3.0.93
+
+## 6.0.150
+
+### Patch Changes
+
+- 1003609: fix(ai): skip stringifying text when streaming partial text
+- Updated dependencies [9de7d7b]
+  - @ai-sdk/gateway@3.0.92
+
+## 6.0.149
+
+### Patch Changes
+
+- Updated dependencies [3aca847]
+  - @ai-sdk/gateway@3.0.91
+
+## 6.0.148
+
+### Patch Changes
+
+- Updated dependencies [e923a24]
+  - @ai-sdk/gateway@3.0.90
+
+## 6.0.147
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+  - @ai-sdk/gateway@3.0.89
+
+## 6.0.146
+
+### Patch Changes
+
+- Updated dependencies [5f439a1]
+  - @ai-sdk/gateway@3.0.88
+
+## 6.0.145
+
+### Patch Changes
+
+- Updated dependencies [ffd431a]
+  - @ai-sdk/gateway@3.0.87
+
+## 6.0.144
+
+### Patch Changes
+
+- 0469aed: fix: allow inline data URLs in download validation
+- Updated dependencies [0469aed]
+- Updated dependencies [15bfbd2]
+  - @ai-sdk/provider-utils@4.0.22
+  - @ai-sdk/gateway@3.0.86
+
+## 6.0.143
+
+### Patch Changes
+
+- Updated dependencies [85e476d]
+  - @ai-sdk/gateway@3.0.85
+
+## 6.0.142
+
+### Patch Changes
+
+- 6f75953: feat(ai): add new `isLoopFinished` stop condition helper for unlimited steps
+- Updated dependencies [70322b4]
+  - @ai-sdk/gateway@3.0.84
+
+## 6.0.141
+
+### Patch Changes
+
+- Updated dependencies [768a9d6]
+  - @ai-sdk/gateway@3.0.83
+
+## 6.0.140
+
+### Patch Changes
+
+- Updated dependencies [95fedf0]
+  - @ai-sdk/gateway@3.0.82
+
+## 6.0.139
+
+### Patch Changes
+
+- Updated dependencies [e69062d]
+  - @ai-sdk/gateway@3.0.81
+
+## 6.0.138
+
+### Patch Changes
+
+- Updated dependencies [0db5cd8]
+  - @ai-sdk/gateway@3.0.80
+
+## 6.0.137
+
+### Patch Changes
+
+- Updated dependencies [3caa544]
+  - @ai-sdk/gateway@3.0.79
+
+## 6.0.136
+
+### Patch Changes
+
+- Updated dependencies [763e178]
+  - @ai-sdk/gateway@3.0.78
+
+## 6.0.135
+
+### Patch Changes
+
+- df6a330: chore(ai): remove all experimental agent events
+
+## 6.0.134
+
+### Patch Changes
+
+- ed6876b: chore(ai): remove all experimental embed events
+
+## 6.0.133
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [d99eb91]
+- Updated dependencies [055cd68]
+  - @ai-sdk/gateway@3.0.77
+  - @ai-sdk/provider-utils@4.0.21
+
+## 6.0.132
+
+### Patch Changes
+
+- 28fd5a5: README updates
+
+## 6.0.131
+
+### Patch Changes
+
+- 14f25f9: feat(ai): introduce experimental callbacks for embed function
+
+## 6.0.130
+
+### Patch Changes
+
+- Updated dependencies [25af909]
+  - @ai-sdk/gateway@3.0.76
+
+## 6.0.129
+
+### Patch Changes
+
+- Updated dependencies [f95e0c0]
+  - @ai-sdk/gateway@3.0.75
+
+## 6.0.128
+
+### Patch Changes
+
+- Updated dependencies [7324b56]
+  - @ai-sdk/gateway@3.0.74
+
+## 6.0.127
+
+### Patch Changes
+
+- Updated dependencies [ac0c407]
+- Updated dependencies [e748159]
+  - @ai-sdk/gateway@3.0.73
+
+## 6.0.126
+
+### Patch Changes
+
+- 578615a: Remove custom User-Agent header from HttpChatTransport to fix CORS preflight failures in Safari and Firefox
+
+## 6.0.125
+
+### Patch Changes
+
+- Updated dependencies [5ffb1ad]
+- Updated dependencies [f5bf0c6]
+  - @ai-sdk/gateway@3.0.72
+
 ## 6.0.124
 
 ### Patch Changes
@@ -915,13 +1218,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - b67d224: Fixes an issue where `providerMetadata` and `providerExecuted` were lost when tool input validation failed
@@ -944,15 +1247,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 - 90e5bdd: chore(ai): restructure agent files
@@ -1472,13 +1775,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1825,15 +2128,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ## 6.0.0-beta.71
@@ -2752,7 +3055,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2765,7 +3068,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2965,10 +3268,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -3631,7 +3934,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -3644,7 +3947,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -3742,10 +4045,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

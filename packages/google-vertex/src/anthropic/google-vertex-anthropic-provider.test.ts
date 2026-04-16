@@ -50,6 +50,8 @@ describe('google-vertex-anthropic-provider', () => {
         headers: expect.any(Object),
         buildRequestUrl: expect.any(Function),
         transformRequestBody: expect.any(Function),
+        supportsNativeStructuredOutput: false,
+        supportsStrictTools: false,
       }),
     );
   });
@@ -99,6 +101,8 @@ describe('google-vertex-anthropic-provider', () => {
     expect(provider.tools).toHaveProperty('textEditor_20250728');
     expect(provider.tools).toHaveProperty('computer_20241022');
     expect(provider.tools).toHaveProperty('webSearch_20250305');
+    expect(provider.tools).toHaveProperty('toolSearchRegex_20251119');
+    expect(provider.tools).toHaveProperty('toolSearchBm25_20251119');
     expect(provider.tools).not.toHaveProperty('codeExecution_20250825');
     expect(provider.tools).not.toHaveProperty('codeExecution_20260120');
   });

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/hume",
-  "version": "2.0.25",
+  "version": "2.0.29",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -26,9 +26,7 @@
     "clean": "del-cli dist docs",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/150-hume.mdx ./docs/",
     "postpack": "del-cli docs",
-    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:watch": "vitest --config vitest.node.config.js --watch",
     "test:edge": "vitest --config vitest.edge.config.js --run",

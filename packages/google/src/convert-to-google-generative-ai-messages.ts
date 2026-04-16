@@ -2,22 +2,179 @@ import {
   LanguageModelV3Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 import {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
+  GoogleGenerativeAIFunctionResponsePart,
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+
+const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
+
+function parseBase64DataUrl(
+  value: string,
+): { mediaType: string; data: string } | undefined {
+  const match = dataUrlRegex.exec(value);
+  if (match == null) {
+    return undefined;
+  }
+
+  return {
+    mediaType: match[1],
+    data: match[2],
+  };
+}
+
+function convertUrlToolResultPart(
+  url: string,
+): GoogleGenerativeAIFunctionResponsePart | undefined {
+  // Per https://ai.google.dev/api/caching#FunctionResponsePart, only inline data is supported.
+  // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart suggests that this
+  // may be different for Vertex, but this needs to be confirmed and further tested for both APIs.
+  const parsedDataUrl = parseBase64DataUrl(url);
+  if (parsedDataUrl == null) {
+    return undefined;
+  }
+
+  return {
+    inlineData: {
+      mimeType: parsedDataUrl.mediaType,
+      data: parsedDataUrl.data,
+    },
+  };
+}
+
+/*
+ * Appends tool result content parts to the message using the functionResponse
+ * format with support for multimodal parts (e.g. inline images/files alongside
+ * text). This format is supported by Gemini 3+ models.
+ */
+function appendToolResultParts(
+  parts: GoogleGenerativeAIContentPart[],
+  toolName: string,
+  outputValue: Array<{
+    type: string;
+    [key: string]: unknown;
+  }>,
+): void {
+  const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
+  const responseTextParts: string[] = [];
+
+  for (const contentPart of outputValue) {
+    switch (contentPart.type) {
+      case 'text': {
+        responseTextParts.push(contentPart.text as string);
+        break;
+      }
+      case 'image-data':
+      case 'file-data': {
+        functionResponseParts.push({
+          inlineData: {
+            mimeType: contentPart.mediaType as string,
+            data: contentPart.data as string,
+          },
+        });
+        break;
+      }
+      case 'image-url':
+      case 'file-url': {
+        const functionResponsePart = convertUrlToolResultPart(
+          contentPart.url as string,
+        );
+
+        if (functionResponsePart != null) {
+          functionResponseParts.push(functionResponsePart);
+        } else {
+          responseTextParts.push(JSON.stringify(contentPart));
+        }
+        break;
+      }
+      default: {
+        responseTextParts.push(JSON.stringify(contentPart));
+        break;
+      }
+    }
+  }
+
+  parts.push({
+    functionResponse: {
+      name: toolName,
+      response: {
+        name: toolName,
+        content:
+          responseTextParts.length > 0
+            ? responseTextParts.join('\n')
+            : 'Tool executed successfully.',
+      },
+      ...(functionResponseParts.length > 0
+        ? { parts: functionResponseParts }
+        : {}),
+    },
+  });
+}
+
+/*
+ * Appends tool result content parts using a legacy format for pre-Gemini 3
+ * models that do not support multimodal parts within functionResponse. Instead,
+ * non-text content like images is sent as separate top-level inlineData parts.
+ */
+function appendLegacyToolResultParts(
+  parts: GoogleGenerativeAIContentPart[],
+  toolName: string,
+  outputValue: Array<{
+    type: string;
+    [key: string]: unknown;
+  }>,
+): void {
+  for (const contentPart of outputValue) {
+    switch (contentPart.type) {
+      case 'text':
+        parts.push({
+          functionResponse: {
+            name: toolName,
+            response: {
+              name: toolName,
+              content: contentPart.text,
+            },
+          },
+        });
+        break;
+      case 'image-data':
+        parts.push(
+          {
+            inlineData: {
+              mimeType: String(contentPart.mediaType),
+              data: String(contentPart.data),
+            },
+          },
+          {
+            text: 'Tool executed successfully and returned this image as a response',
+          },
+        );
+        break;
+      default:
+        parts.push({ text: JSON.stringify(contentPart) });
+        break;
+    }
+  }
+}
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV3Prompt,
-  options?: { isGemmaModel?: boolean; providerOptionsName?: string },
+  options?: {
+    isGemmaModel?: boolean;
+    providerOptionsName?: string;
+    supportsFunctionResponseParts?: boolean;
+  },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleGenerativeAIContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
   const providerOptionsName = options?.providerOptionsName ?? 'google';
+  const supportsFunctionResponseParts =
+    options?.supportsFunctionResponseParts ?? true;
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -133,6 +290,29 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'tool-call': {
+                  const serverToolCallId =
+                    providerOpts?.serverToolCallId != null
+                      ? String(providerOpts.serverToolCallId)
+                      : undefined;
+                  const serverToolType =
+                    providerOpts?.serverToolType != null
+                      ? String(providerOpts.serverToolType)
+                      : undefined;
+
+                  if (serverToolCallId && serverToolType) {
+                    return {
+                      toolCall: {
+                        toolType: serverToolType,
+                        args:
+                          typeof part.input === 'string'
+                            ? JSON.parse(part.input)
+                            : part.input,
+                        id: serverToolCallId,
+                      },
+                      thoughtSignature,
+                    };
+                  }
+
                   return {
                     functionCall: {
                       name: part.toolName,
@@ -141,10 +321,36 @@ export function convertToGoogleGenerativeAIMessages(
                     thoughtSignature,
                   };
                 }
+
+                case 'tool-result': {
+                  const serverToolCallId =
+                    providerOpts?.serverToolCallId != null
+                      ? String(providerOpts.serverToolCallId)
+                      : undefined;
+                  const serverToolType =
+                    providerOpts?.serverToolType != null
+                      ? String(providerOpts.serverToolType)
+                      : undefined;
+
+                  if (serverToolCallId && serverToolType) {
+                    return {
+                      toolResponse: {
+                        toolType: serverToolType,
+                        response:
+                          part.output.type === 'json' ? part.output.value : {},
+                        id: serverToolCallId,
+                      },
+                      thoughtSignature,
+                    };
+                  }
+
+                  return undefined;
+                }
               }
             })
             .filter(part => part !== undefined),
         });
+
         break;
       }
 
@@ -157,39 +363,51 @@ export function convertToGoogleGenerativeAIMessages(
           if (part.type === 'tool-approval-response') {
             continue;
           }
+
+          const partProviderOpts =
+            part.providerOptions?.[providerOptionsName] ??
+            (providerOptionsName !== 'google'
+              ? part.providerOptions?.google
+              : part.providerOptions?.vertex);
+          const serverToolCallId =
+            partProviderOpts?.serverToolCallId != null
+              ? String(partProviderOpts.serverToolCallId)
+              : undefined;
+          const serverToolType =
+            partProviderOpts?.serverToolType != null
+              ? String(partProviderOpts.serverToolType)
+              : undefined;
+
+          if (serverToolCallId && serverToolType) {
+            const serverThoughtSignature =
+              partProviderOpts?.thoughtSignature != null
+                ? String(partProviderOpts.thoughtSignature)
+                : undefined;
+
+            if (contents.length > 0) {
+              const lastContent = contents[contents.length - 1];
+              if (lastContent.role === 'model') {
+                lastContent.parts.push({
+                  toolResponse: {
+                    toolType: serverToolType,
+                    response:
+                      part.output.type === 'json' ? part.output.value : {},
+                    id: serverToolCallId,
+                  },
+                  thoughtSignature: serverThoughtSignature,
+                });
+                continue;
+              }
+            }
+          }
+
           const output = part.output;
 
           if (output.type === 'content') {
-            for (const contentPart of output.value) {
-              switch (contentPart.type) {
-                case 'text':
-                  parts.push({
-                    functionResponse: {
-                      name: part.toolName,
-                      response: {
-                        name: part.toolName,
-                        content: contentPart.text,
-                      },
-                    },
-                  });
-                  break;
-                case 'image-data':
-                  parts.push(
-                    {
-                      inlineData: {
-                        mimeType: contentPart.mediaType,
-                        data: contentPart.data,
-                      },
-                    },
-                    {
-                      text: 'Tool executed successfully and returned this image as a response',
-                    },
-                  );
-                  break;
-                default:
-                  parts.push({ text: JSON.stringify(contentPart) });
-                  break;
-              }
+            if (supportsFunctionResponseParts) {
+              appendToolResultParts(parts, part.toolName, output.value);
+            } else {
+              appendLegacyToolResultParts(parts, part.toolName, output.value);
             }
           } else {
             parts.push({

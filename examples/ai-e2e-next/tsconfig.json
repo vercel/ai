@@ -58,6 +58,9 @@
     },
     {
       "path": "../../packages/react"
+    },
+    {
+      "path": "../../packages/xai"
     }
   ]
 }

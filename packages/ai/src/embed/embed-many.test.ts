@@ -1,6 +1,14 @@
 import { EmbeddingModelV3 } from '@ai-sdk/provider';
 import assert from 'node:assert';
-import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  vitest,
+} from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
 import { MockTracer } from '../test/mock-tracer';
@@ -561,6 +569,10 @@ describe('logWarnings', () => {
 
   beforeEach(() => {
     logWarningsSpy = vitest.spyOn(logWarningsModule, 'logWarnings');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('should call logWarnings with the correct warnings (single call path)', async () => {

@@ -1,5 +1,67 @@
 # @ai-sdk/azure
 
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [953385d]
+  - @ai-sdk/openai@3.0.53
+
+## 3.0.53
+
+### Patch Changes
+
+- d42076d: Add AI Gateway hint to provider READMEs
+- Updated dependencies [d42076d]
+  - @ai-sdk/openai@3.0.52
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+  - @ai-sdk/openai@3.0.51
+
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+  - @ai-sdk/openai@3.0.50
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [bc01093]
+  - @ai-sdk/openai@3.0.49
+
+## 3.0.49
+
+### Patch Changes
+
+- Updated dependencies [9c548de]
+- Updated dependencies [bcb04df]
+  - @ai-sdk/openai@3.0.48
+
+## 3.0.48
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+  - @ai-sdk/openai@3.0.47
+
+## 3.0.47
+
+### Patch Changes
+
+- Updated dependencies [75fc0e7]
+  - @ai-sdk/openai@3.0.46
+
 ## 3.0.46
 
 ### Patch Changes
@@ -393,13 +455,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - d64ece9: enables image_generation capabilities in the Azure provider through the Responses API.
@@ -786,13 +848,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1623,7 +1685,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1636,7 +1698,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -1950,7 +2012,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1963,7 +2025,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

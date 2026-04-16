@@ -20,9 +20,9 @@ export class Chat<
   }
 }
 
-class SvelteChatState<UI_MESSAGE extends UIMessage>
-  implements ChatState<UI_MESSAGE>
-{
+class SvelteChatState<
+  UI_MESSAGE extends UIMessage,
+> implements ChatState<UI_MESSAGE> {
   messages: UI_MESSAGE[];
   status = $state<ChatStatus>('ready');
   error = $state<Error | undefined>(undefined);

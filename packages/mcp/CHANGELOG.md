@@ -1,5 +1,63 @@
 # @ai-sdk/mcp
 
+## 1.0.36
+
+### Patch Changes
+
+- 9a8d276: feat(mcp): surface 'serverInfo' exposed from the MCP server
+
+## 1.0.35
+
+### Patch Changes
+
+- 941ebf2: fix(mcp): bypass outputSchema validation when tool returns isError
+
+## 1.0.34
+
+### Patch Changes
+
+- 1141b93: feat(mcp): allow custom fetch for HTTP and SSE transports
+
+## 1.0.33
+
+### Patch Changes
+
+- Updated dependencies [6247886]
+  - @ai-sdk/provider-utils@4.0.23
+
+## 1.0.32
+
+### Patch Changes
+
+- 47c6af0: fix(mcp): strip trailing slash from OAuth resource parameter
+
+## 1.0.31
+
+### Patch Changes
+
+- Updated dependencies [0469aed]
+  - @ai-sdk/provider-utils@4.0.22
+
+## 1.0.30
+
+### Patch Changes
+
+- 055cd68: fix: publish v6 to latest npm dist tag
+- Updated dependencies [055cd68]
+  - @ai-sdk/provider-utils@4.0.21
+
+## 1.0.29
+
+### Patch Changes
+
+- cc8b506: feat(mcp): add `redirect` option to `MCPTransportConfig` for controlling HTTP redirect behavior
+
+## 1.0.28
+
+### Patch Changes
+
+- 0c86a13: fix(mcp): validate state param in oauth flow
+
 ## 1.0.27
 
 ### Patch Changes
@@ -201,15 +259,15 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```
 
 ### Patch Changes
@@ -575,13 +633,13 @@
   This change replaces
 
   ```ts
-  import { experimental_createMCPClient } from 'ai';
-  import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
+  import { experimental_createMCPClient } from "ai";
+  import { Experimental_StdioMCPTransport } from "ai/mcp-stdio";
   ```
 
   with
 
   ```ts
-  import { experimental_createMCPClient } from '@ai-sdk/mcp';
-  import { Experimental_StdioMCPTransport } from '@ai-sdk/mcp/mcp-stdio';
+  import { experimental_createMCPClient } from "@ai-sdk/mcp";
+  import { Experimental_StdioMCPTransport } from "@ai-sdk/mcp/mcp-stdio";
   ```

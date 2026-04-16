@@ -98,7 +98,7 @@ const stopSequenceTests = (model: LanguageModelV3) => {
       expect(result.finishReason).toBe('stop');
       expect(result.providerMetadata?.anthropic?.stopSequence).toBe('5');
     },
-    { timeout: LONG_TEST_MILLIS },
+    LONG_TEST_MILLIS,
   );
 
   it(
@@ -113,7 +113,7 @@ const stopSequenceTests = (model: LanguageModelV3) => {
       expect(result.text).toBeTruthy();
       expect(result.providerMetadata?.anthropic?.stopSequence).toBeNull();
     },
-    { timeout: LONG_TEST_MILLIS },
+    LONG_TEST_MILLIS,
   );
 };
 
@@ -171,7 +171,7 @@ const toolTests = (model: LanguageModelV3) => {
       );
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it(
@@ -204,7 +204,7 @@ README.md     build         data          node_modules  package.json  src       
       expect(result.text).toContain('node_modules');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 
   it(
@@ -247,6 +247,6 @@ README.md     build         data          node_modules  package.json  src       
       expect(editorContent).not.toBe('## README\nThis is a test file.');
       expect(result.usage?.totalTokens).toBeGreaterThan(0);
     },
-    { timeout: COMPUTER_USE_TEST_MILLIS },
+    COMPUTER_USE_TEST_MILLIS,
   );
 };
