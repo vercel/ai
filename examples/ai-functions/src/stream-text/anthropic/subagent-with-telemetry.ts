@@ -1,6 +1,6 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { streamText, ToolLoopAgent, registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -15,7 +15,7 @@ const sdk = new NodeSDK({
 
 sdk.start();
 registerTelemetryIntegration(DevToolsTelemetry());
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 
 const weatherAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5-20250929'),

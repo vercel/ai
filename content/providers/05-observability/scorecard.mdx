@@ -26,10 +26,10 @@ Next, install `@ai-sdk/otel` and create an `instrumentation.ts` file in your pro
 
 ```typescript filename="instrumentation.ts"
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 
 export function register() {
   registerOTel({

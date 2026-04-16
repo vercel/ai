@@ -65,13 +65,13 @@ export async function register() {
   // prevent this from running in the edge runtime
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { registerTelemetryIntegration } = await import('ai');
-    const { OpenTelemetryIntegration } = await import('@ai-sdk/otel');
+    const { OpenTelemetry } = await import('@ai-sdk/otel');
     const { Laminar, getTracer } = await import('@lmnr-ai/lmnr');
 
     Laminar.initialize({
       projectApiKey: process.env.LMNR_PROJECT_API_KEY,
     });
-    registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer: getTracer() }));
+    registerTelemetryIntegration(new OpenTelemetry({ tracer: getTracer() }));
   }
 }
 ```
@@ -142,13 +142,13 @@ export async function register() {
   registerOTel('my-service-name');
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { registerTelemetryIntegration } = await import('ai');
-    const { OpenTelemetryIntegration } = await import('@ai-sdk/otel');
+    const { OpenTelemetry } = await import('@ai-sdk/otel');
     const { Laminar } = await import('@lmnr-ai/lmnr');
     // Make sure to initialize Laminar **after** `@registerOTel`
     Laminar.initialize({
       projectApiKey: process.env.LMNR_PROJECT_API_KEY,
     });
-    registerTelemetryIntegration(new OpenTelemetryIntegration());
+    registerTelemetryIntegration(new OpenTelemetry());
   }
 }
 ```
@@ -168,7 +168,7 @@ This will ensure that
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { registerTelemetryIntegration } = await import('ai');
-    const { OpenTelemetryIntegration } = await import('@ai-sdk/otel');
+    const { OpenTelemetry } = await import('@ai-sdk/otel');
     const Sentry = await import('@sentry/node');
     const { Laminar } = await import('@lmnr-ai/lmnr');
 
@@ -180,7 +180,7 @@ export async function register() {
     Laminar.initialize({
       projectApiKey: process.env.LMNR_PROJECT_API_KEY,
     });
-    registerTelemetryIntegration(new OpenTelemetryIntegration());
+    registerTelemetryIntegration(new OpenTelemetry());
   }
 }
 ```
@@ -193,11 +193,11 @@ Then, initialize tracing in your application:
 
 ```javascript
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { Laminar, getTracer } from '@lmnr-ai/lmnr';
 
 Laminar.initialize();
-registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer: getTracer() }));
+registerTelemetryIntegration(new OpenTelemetry({ tracer: getTracer() }));
 ```
 
 This must be done once in your application, as early as possible, but _after_ other tracing libraries (e.g. `@sentry/node`) are initialized.

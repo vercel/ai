@@ -17,7 +17,7 @@ description: Monitor, evaluate and debug your AI SDK application with Langfuse
 
 The AI SDK supports tracing via OpenTelemetry. With the `LangfuseSpanProcessor` you can collect these traces in Langfuse.
 
-Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` in your `instrumentation.ts` file. Once registered, telemetry is emitted automatically for every AI SDK call:
+Install `@ai-sdk/otel` and register the `OpenTelemetry` in your `instrumentation.ts` file. Once registered, telemetry is emitted automatically for every AI SDK call:
 
 ```ts
 const result = await generateText({
@@ -77,11 +77,11 @@ Add `LangfuseSpanProcessor` to your instrumentation using a manual OpenTelemetry
 
 ```ts filename="instrumentation.ts"
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor, ShouldExportSpan } from '@langfuse/otel';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 
 // Optional: filter out Next.js infra spans
 const shouldExportSpan: ShouldExportSpan = span => {
@@ -113,7 +113,7 @@ Add `LangfuseSpanProcessor` to your OpenTelemetry setup:
 ```ts highlight="3-6, 8-10, 13"
 import { openai } from '@ai-sdk/openai';
 import { registerTelemetryIntegration, generateText } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 
@@ -122,7 +122,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 
 async function main() {
   const result = await generateText({

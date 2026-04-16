@@ -43,7 +43,7 @@ If your `package.json` does not already include `"type": "module"`, add it or re
 
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
 
-OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetryIntegration` globally.
+OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetry` instance globally.
 
 ```bash
 pnpm install @ai-sdk/otel
@@ -61,13 +61,13 @@ const result = await generateText({
 });
 ```
 
-Now, you must install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` once at application startup. For Next.js, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup:
+Now, you must install `@ai-sdk/otel` and register the `OpenTelemetry` instance once at application startup. For Next.js, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup:
 
 ```tsx filename="instrumentation"
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 
 // ... your OpenTelemetry provider setup (e.g. registerOTel, NodeTracerProvider)
 ```
@@ -78,7 +78,7 @@ This applies to all AI SDK functions that accept `experimental_telemetry`, inclu
 
 ### Telemetry: Enabled by Default When an Integration Is Registered
 
-In AI SDK 6, telemetry was opt-in — you had to set `experimental_telemetry: { isEnabled: true }` on every call to emit events. In AI SDK 7, telemetry is opt-out: once you register a telemetry integration (for example `OpenTelemetryIntegration` or `DevToolsTelemetry`), all AI SDK calls emit telemetry events by default.
+In AI SDK 6, telemetry was opt-in — you had to set `experimental_telemetry: { isEnabled: true }` on every call to emit events. In AI SDK 7, telemetry is opt-out: once you register a telemetry integration (for example `OpenTelemetry` or `DevToolsTelemetry`), all AI SDK calls emit telemetry events by default.
 
 ```tsx filename="AI SDK 6"
 import { generateText } from 'ai';
@@ -93,9 +93,9 @@ const result = await generateText({
 ```tsx filename="AI SDK 7"
 import { generateText } from 'ai';
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 
 const result = await generateText({
   model: yourModel,
@@ -142,7 +142,7 @@ This applies to all AI SDK functions that accept `experimental_telemetry`, inclu
 
 ### Telemetry: `tracer` Property Removed from `experimental_telemetry`
 
-The `tracer` property on `experimental_telemetry` has been removed. If you were passing a custom OpenTelemetry `Tracer`, pass it to the `OpenTelemetryIntegration` constructor instead:
+The `tracer` property on `experimental_telemetry` has been removed. If you were passing a custom OpenTelemetry `Tracer`, pass it to the `OpenTelemetry` constructor instead:
 
 ```tsx filename="AI SDK 6"
 import { generateText } from 'ai';
@@ -160,11 +160,11 @@ const result = await generateText({
 
 ```tsx filename="AI SDK 7"
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { trace } from '@opentelemetry/api';
 
 registerTelemetryIntegration(
-  new OpenTelemetryIntegration({
+  new OpenTelemetry({
     tracer: trace.getTracer('my-app'),
   }),
 );
@@ -172,7 +172,7 @@ registerTelemetryIntegration(
 
 This applies to all AI SDK functions that accept `experimental_telemetry`, including `streamText`, `generateObject`, `streamObject`, `embed`, and `embedMany`.
 
-If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetryIntegration` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
+If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetry` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
 
 ### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 

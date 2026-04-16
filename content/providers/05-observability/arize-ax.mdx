@@ -40,7 +40,7 @@ Then, in your `instrumentation.ts` file add the following, including the AI SDK 
 
 ```typescript filename="instrumentation"
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 import {
   isOpenInferenceSpan,
@@ -48,7 +48,7 @@ import {
 } from '@arizeai/openinference-vercel';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-proto';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 
 export function register() {
   registerOTel({
@@ -103,7 +103,7 @@ Then, in your instrumentation.ts file add the following:
 
 ```typescript
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import {
   isOpenInferenceSpan,
   OpenInferenceSimpleSpanProcessor,
@@ -132,7 +132,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 ```
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.
@@ -158,7 +158,7 @@ Then, in your instrumentation.ts file add the following:
 
 ```typescript
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import {
   isOpenInferenceSpan,
   OpenInferenceSimpleSpanProcessor,
@@ -186,7 +186,7 @@ const provider = new NodeTracerProvider({
   ],
 });
 provider.register();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 ```
 
 Spans will show up in Arize AX under the project specified in the `model_id` field above.

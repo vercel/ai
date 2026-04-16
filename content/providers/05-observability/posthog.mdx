@@ -30,12 +30,12 @@ npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources @ai-sdk
 
 ```ts filename="instrumentation.ts"
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PostHogTraceExporter } from '@posthog/ai/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 
 export function register() {
   const sdk = new NodeSDK({
@@ -85,7 +85,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PostHogTraceExporter } from '@posthog/ai/otel';
 import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
@@ -97,7 +97,7 @@ const sdk = new NodeSDK({
   }),
 });
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(new OpenTelemetry());
 ```
 
 **Step 3.** Use the AI SDK. Telemetry is captured automatically once the integration is registered:
