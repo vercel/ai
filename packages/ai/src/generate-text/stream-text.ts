@@ -2317,9 +2317,10 @@ class DefaultStreamTextResult<
               break;
             }
 
-            case 'reasoning-start': {
+            case 'reasoning-start':
+            case 'reasoning-end': {
               controller.enqueue({
-                type: 'reasoning-start',
+                type: partType,
                 id: part.id,
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
@@ -2339,17 +2340,6 @@ class DefaultStreamTextResult<
                     : {}),
                 });
               }
-              break;
-            }
-
-            case 'reasoning-end': {
-              controller.enqueue({
-                type: 'reasoning-end',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
               break;
             }
 
