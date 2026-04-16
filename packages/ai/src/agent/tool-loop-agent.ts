@@ -22,7 +22,7 @@ import {
  * The loop continues until:
  * - A finish reasoning other than tool-calls is returned, or
  * - A tool that is invoked does not have an execute function, or
- * - A tool call needs approval, or
+ * - A tool call needs approval via `toolNeedsApproval` or tool-level `needsApproval`, or
  * - A stop condition is met (default stop condition is isStepCount(20))
  */
 export class ToolLoopAgent<

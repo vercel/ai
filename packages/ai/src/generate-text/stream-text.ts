@@ -121,6 +121,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { ToolOutput } from './tool-output';
 import { StaticToolOutputDenied } from './tool-output-denied';
 
@@ -315,6 +316,7 @@ export function streamText<
   stopWhen = isStepCount(1),
   experimental_output,
   output = experimental_output,
+  toolNeedsApproval,
   experimental_telemetry: telemetry,
   prepareStep,
   providerOptions,
@@ -395,6 +397,13 @@ export function streamText<
      * @deprecated Use `output` instead.
      */
     experimental_output?: OUTPUT;
+
+    /**
+     * Optional tool approval configuration.
+     *
+     * This configuration takes precedence over tool-defined approval settings.
+     */
+    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -567,6 +576,7 @@ export function streamText<
     repairToolCall,
     stopConditions: asArray(stopWhen),
     output,
+    toolNeedsApproval,
     providerOptions,
     prepareStep,
     includeRawChunks,
@@ -751,6 +761,7 @@ class DefaultStreamTextResult<
     repairToolCall,
     stopConditions,
     output,
+    toolNeedsApproval,
     providerOptions,
     prepareStep,
     includeRawChunks,
@@ -792,6 +803,9 @@ class DefaultStreamTextResult<
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     stopConditions: Array<StopCondition<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>>;
     output: OUTPUT | undefined;
+    toolNeedsApproval:
+      | ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>
+      | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<USER_CONTEXT>>
@@ -1634,6 +1648,7 @@ class DefaultStreamTextResult<
               abortSignal,
               timeout,
               context,
+              toolNeedsApproval,
               generateId,
               stepNumber: recordedSteps.length,
               provider: stepModel.provider,

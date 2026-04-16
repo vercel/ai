@@ -20,19 +20,19 @@ import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-f
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import { ModelMessage } from '../prompt';
+import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
+import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
+import { prepareToolChoice } from '../prompt/prepare-tool-choice';
+import { prepareTools } from '../prompt/prepare-tools';
+import { Prompt } from '../prompt/prompt';
 import {
   getStepTimeoutMs,
   getTotalTimeoutMs,
   RequestOptions,
   TimeoutConfiguration,
 } from '../prompt/request-options';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { createToolModelOutput } from '../prompt/create-tool-model-output';
-import { prepareToolChoice } from '../prompt/prepare-tool-choice';
-import { prepareTools } from '../prompt/prepare-tools';
-import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
@@ -71,7 +71,7 @@ import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
-import { isApprovalNeeded } from './is-approval-needed';
+import { isToolApprovalNeeded } from './is-tool-approval-needed';
 import { Output, text } from './output';
 import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
@@ -85,6 +85,7 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
@@ -260,6 +261,7 @@ export async function generateText<
   stopWhen = isStepCount(1),
   experimental_output,
   output = experimental_output,
+  toolNeedsApproval,
   experimental_telemetry: telemetry,
   providerOptions,
   activeTools,
@@ -333,6 +335,13 @@ export async function generateText<
      * @deprecated Use `output` instead.
      */
     experimental_output?: OUTPUT;
+
+    /**
+     * Optional tool approval configuration.
+     *
+     * This configuration takes precedence over tool-defined approval settings.
+     */
+    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
 
     /**
      * Custom download function to use for URLs.
@@ -793,8 +802,9 @@ export async function generateText<
           }
 
           if (
-            await isApprovalNeeded({
-              tool,
+            await isToolApprovalNeeded({
+              tools,
+              toolNeedsApproval,
               toolCall,
               messages: stepInputMessages,
               context,

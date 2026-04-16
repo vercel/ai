@@ -20,6 +20,7 @@ import type {
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
+import { ToolNeedsApprovalConfiguration } from '../generate-text/tool-needs-approval-configuration';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
 import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { RequestOptions } from '../prompt/request-options';
@@ -119,6 +120,16 @@ export type ToolLoopAgentSettings<
      * Optional specification for generating structured outputs.
      */
     output?: OUTPUT;
+
+    /**
+     * Optional tool approval configuration.
+     *
+     * This configuration takes precedence over tool-defined approval settings.
+     */
+    toolNeedsApproval?: ToolNeedsApprovalConfiguration<
+      NoInfer<TOOLS>,
+      USER_CONTEXT
+    >;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -233,6 +244,7 @@ export type ToolLoopAgentSettings<
           | 'stopWhen'
           | 'experimental_telemetry'
           | 'activeTools'
+          | 'toolNeedsApproval'
           | 'providerOptions'
           | 'experimental_download'
         > & { context: InferToolSetContext<TOOLS> & USER_CONTEXT },
@@ -259,6 +271,7 @@ export type ToolLoopAgentSettings<
         | 'stopWhen'
         | 'experimental_telemetry'
         | 'activeTools'
+        | 'toolNeedsApproval'
         | 'providerOptions'
         | 'experimental_download'
       > &
