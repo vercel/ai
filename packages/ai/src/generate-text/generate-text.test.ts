@@ -138,6 +138,17 @@ const modelWithReasoning = new MockLanguageModelV4({
   },
 });
 
+const defaultSettings = () =>
+  ({
+    prompt: 'prompt',
+    experimental_generateMessageId: mockId({ prefix: 'msg' }),
+    _internal: {
+      generateId: mockId({ prefix: 'id' }),
+      generateCallId: () => 'test-telemetry-call-id',
+    },
+    onError: () => {},
+  }) as const;
+
 describe('generateText', () => {
   let logWarningsSpy: ReturnType<typeof vitest.spyOn>;
 
@@ -1720,21 +1731,48 @@ describe('generateText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
-        context: { traceId: 'trace-abc', spanId: 'span-123' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
+        ...defaultSettings(),
       });
 
-      expect(toolCallStartEvents.length).toBe(1);
-      expect(toolCallStartEvents[0].context).toEqual({
-        traceId: 'trace-abc',
-        spanId: 'span-123',
-      });
+      expect(toolCallStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -1956,22 +1994,51 @@ describe('generateText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
-        context: { traceId: 'trace-xyz', operation: 'test-op' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
+        ...defaultSettings(),
       });
 
-      expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].success).toBe(true);
-      expect(toolCallFinishEvents[0].context).toEqual({
-        traceId: 'trace-xyz',
-        operation: 'test-op',
-      });
+      expect(toolCallFinishEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "durationMs": 0,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "output": "test-result",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should pass context on error', async () => {
@@ -1999,24 +2066,53 @@ describe('generateText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async (): Promise<string> => {
               throw toolError;
             },
           }),
         },
-        prompt: 'test-input',
-        context: { errorTraceId: 'err-trace' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
+        ...defaultSettings(),
       });
 
-      expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].success).toBe(false);
-      expect(toolCallFinishEvents[0].error).toBe(toolError);
-      expect(toolCallFinishEvents[0].context).toEqual({
-        errorTraceId: 'err-trace',
-      });
+      expect(toolCallFinishEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "durationMs": 0,
+            "error": [Error: Tool execution failed],
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": false,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -6538,22 +6634,23 @@ describe('generateText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { context }) => {
+            contextSchema: z.object({ context: z.string() }),
+            execute: async (input, { context }) => {
               recordedContext = context;
               return { value: 'test-result' };
             },
           }),
         },
-        context: {
-          context: 'test',
-        },
+        toolsContext: { t1: { context: 'test' } },
         prompt: 'test-input',
       });
 
       // tool should be executed by client
-      expect(recordedContext).toStrictEqual({
-        context: 'test',
-      });
+      expect(recordedContext).toMatchInlineSnapshot(`
+        {
+          "context": "test",
+        }
+      `);
     });
 
     it('should pass context to prepareStep', async () => {

@@ -6301,24 +6301,50 @@ describe('streamText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
-        context: { traceId: 'trace-abc', spanId: 'span-123' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallStart: async event => {
           toolCallStartEvents.push(event);
         },
-        onError: () => {},
+        ...defaultSettings(),
       });
 
       await result.consumeStream();
 
-      expect(toolCallStartEvents.length).toBe(1);
-      expect(toolCallStartEvents[0].context).toEqual({
-        traceId: 'trace-abc',
-        spanId: 'span-123',
-      });
+      expect(toolCallStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -6604,25 +6630,53 @@ describe('streamText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
-        context: { traceId: 'trace-xyz', operation: 'test-op' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
-        onError: () => {},
+        ...defaultSettings(),
       });
 
       await result.consumeStream();
 
-      expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].success).toBe(true);
-      expect(toolCallFinishEvents[0].context).toEqual({
-        traceId: 'trace-xyz',
-        operation: 'test-op',
-      });
+      expect(toolCallFinishEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "durationMs": 0,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "output": "test-result",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should pass context on error', async () => {
@@ -6658,13 +6712,14 @@ describe('streamText', () => {
         tools: {
           tool1: tool({
             inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
             execute: async (): Promise<string> => {
               throw toolError;
             },
           }),
         },
         prompt: 'test-input',
-        context: { errorTraceId: 'err-trace' },
+        toolsContext: { tool1: { context: 'test' } },
         experimental_onToolCallFinish: async event => {
           toolCallFinishEvents.push(event);
         },
@@ -6677,7 +6732,7 @@ describe('streamText', () => {
       expect(toolCallFinishEvents[0].success).toBe(false);
       expect(toolCallFinishEvents[0].error).toBe(toolError);
       expect(toolCallFinishEvents[0].context).toEqual({
-        errorTraceId: 'err-trace',
+        context: 'test',
       });
     });
   });
