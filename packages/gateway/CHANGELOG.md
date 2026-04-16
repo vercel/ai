@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 3.0.102
+
+### Patch Changes
+
+- 2ff8d57: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
 ## 3.0.101
 
 ### Patch Changes
