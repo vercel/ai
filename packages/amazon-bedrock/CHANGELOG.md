@@ -1,5 +1,13 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.34
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [0d8f107]
+  - @ai-sdk/anthropic@4.0.0-beta.30
+
 ## 5.0.0-beta.33
 
 ### Patch Changes
