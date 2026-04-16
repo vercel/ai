@@ -44,6 +44,7 @@ export interface UIMessage<
   METADATA = unknown,
   DATA_PARTS extends UIDataTypes = UIDataTypes,
   TOOLS extends UITools = UITools,
+  PART_METADATA = unknown,
 > {
   /**
    * A unique identifier for the message.
@@ -70,29 +71,30 @@ export interface UIMessage<
    *
    * Assistant messages can have text, reasoning, tool invocation, and file parts.
    */
-  parts: Array<UIMessagePart<DATA_PARTS, TOOLS>>;
+  parts: Array<UIMessagePart<DATA_PARTS, TOOLS, PART_METADATA>>;
 }
 
 export type UIMessagePart<
   DATA_TYPES extends UIDataTypes,
   TOOLS extends UITools,
+  PART_METADATA = unknown,
 > =
-  | TextUIPart
-  | CustomContentUIPart
-  | ReasoningUIPart
-  | ToolUIPart<TOOLS>
-  | DynamicToolUIPart
-  | SourceUrlUIPart
-  | SourceDocumentUIPart
-  | FileUIPart
-  | ReasoningFileUIPart
+  | TextUIPart<PART_METADATA>
+  | CustomContentUIPart<PART_METADATA>
+  | ReasoningUIPart<PART_METADATA>
+  | ToolUIPart<TOOLS, PART_METADATA>
+  | DynamicToolUIPart<PART_METADATA>
+  | SourceUrlUIPart<PART_METADATA>
+  | SourceDocumentUIPart<PART_METADATA>
+  | FileUIPart<PART_METADATA>
+  | ReasoningFileUIPart<PART_METADATA>
   | DataUIPart<DATA_TYPES>
   | StepStartUIPart;
 
 /**
  * A text part of a message.
  */
-export type TextUIPart = {
+export type TextUIPart<PART_METADATA = unknown> = {
   type: 'text';
 
   /**
@@ -109,12 +111,17 @@ export type TextUIPart = {
    * The provider metadata.
    */
   providerMetadata?: ProviderMetadata;
+
+  /**
+   * Application-defined metadata for this part.
+   */
+  metadata?: PART_METADATA;
 };
 
 /**
  * A provider-specific part of a message.
  */
-export type CustomContentUIPart = {
+export type CustomContentUIPart<PART_METADATA = unknown> = {
   type: 'custom';
 
   /**
@@ -126,12 +133,17 @@ export type CustomContentUIPart = {
    * The provider metadata.
    */
   providerMetadata?: ProviderMetadata;
+
+  /**
+   * Application-defined metadata for this part.
+   */
+  metadata?: PART_METADATA;
 };
 
 /**
  * A reasoning part of a message.
  */
-export type ReasoningUIPart = {
+export type ReasoningUIPart<PART_METADATA = unknown> = {
   type: 'reasoning';
 
   /**
@@ -148,35 +160,42 @@ export type ReasoningUIPart = {
    * The provider metadata.
    */
   providerMetadata?: ProviderMetadata;
+
+  /**
+   * Application-defined metadata for this part.
+   */
+  metadata?: PART_METADATA;
 };
 
 /**
  * A source part of a message.
  */
-export type SourceUrlUIPart = {
+export type SourceUrlUIPart<PART_METADATA = unknown> = {
   type: 'source-url';
   sourceId: string;
   url: string;
   title?: string;
   providerMetadata?: ProviderMetadata;
+  metadata?: PART_METADATA;
 };
 
 /**
  * A document source part of a message.
  */
-export type SourceDocumentUIPart = {
+export type SourceDocumentUIPart<PART_METADATA = unknown> = {
   type: 'source-document';
   sourceId: string;
   mediaType: string;
   title: string;
   filename?: string;
   providerMetadata?: ProviderMetadata;
+  metadata?: PART_METADATA;
 };
 
 /**
  * A file part of a message.
  */
-export type FileUIPart = {
+export type FileUIPart<PART_METADATA = unknown> = {
   type: 'file';
 
   /**
@@ -208,12 +227,17 @@ export type FileUIPart = {
    * The provider metadata.
    */
   providerMetadata?: ProviderMetadata;
+
+  /**
+   * Application-defined metadata for this part.
+   */
+  metadata?: PART_METADATA;
 };
 
 /**
  * A reasoning file part of a message.
  */
-export type ReasoningFileUIPart = {
+export type ReasoningFileUIPart<PART_METADATA = unknown> = {
   type: 'reasoning-file';
 
   /**
@@ -233,6 +257,11 @@ export type ReasoningFileUIPart = {
    * The provider metadata.
    */
   providerMetadata?: ProviderMetadata;
+
+  /**
+   * Application-defined metadata for this part.
+   */
+  metadata?: PART_METADATA;
 };
 
 /**
@@ -257,8 +286,11 @@ type asUITool<TOOL extends UITool | Tool> = TOOL extends Tool
 /**
  * Check if a message part is a data part.
  */
-export function isDataUIPart<DATA_TYPES extends UIDataTypes>(
-  part: UIMessagePart<DATA_TYPES, UITools>,
+export function isDataUIPart<
+  DATA_TYPES extends UIDataTypes,
+  PART_METADATA = unknown,
+>(
+  part: UIMessagePart<DATA_TYPES, UITools, PART_METADATA>,
 ): part is DataUIPart<DATA_TYPES> {
   return part.type.startsWith('data-');
 }
@@ -268,7 +300,10 @@ export function isDataUIPart<DATA_TYPES extends UIDataTypes>(
  * It can be derived from a tool without knowing the tool name, and can be used to define
  * UI components for the tool.
  */
-export type UIToolInvocation<TOOL extends UITool | Tool> = {
+export type UIToolInvocation<
+  TOOL extends UITool | Tool,
+  PART_METADATA = unknown,
+> = {
   /**
    * ID of the tool call.
    */
@@ -279,6 +314,11 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
    * Whether the tool call was executed by the provider.
    */
   providerExecuted?: boolean;
+
+  /**
+   * Application-defined metadata for this part.
+   */
+  metadata?: PART_METADATA;
 } & (
   | {
       state: 'input-streaming';
@@ -362,13 +402,16 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
     }
 );
 
-export type ToolUIPart<TOOLS extends UITools = UITools> = ValueOf<{
+export type ToolUIPart<
+  TOOLS extends UITools = UITools,
+  PART_METADATA = unknown,
+> = ValueOf<{
   [NAME in keyof TOOLS & string]: {
     type: `tool-${NAME}`;
-  } & UIToolInvocation<TOOLS[NAME]>;
+  } & UIToolInvocation<TOOLS[NAME], PART_METADATA>;
 }>;
 
-export type DynamicToolUIPart = {
+export type DynamicToolUIPart<PART_METADATA = unknown> = {
   type: 'dynamic-tool';
 
   /**
@@ -386,6 +429,11 @@ export type DynamicToolUIPart = {
    * Whether the tool call was executed by the provider.
    */
   providerExecuted?: boolean;
+
+  /**
+   * Application-defined metadata for this part.
+   */
+  metadata?: PART_METADATA;
 } & (
   | {
       state: 'input-streaming';
@@ -471,45 +519,45 @@ export type DynamicToolUIPart = {
 /**
  * Type guard to check if a message part is a text part.
  */
-export function isTextUIPart(
-  part: UIMessagePart<UIDataTypes, UITools>,
-): part is TextUIPart {
+export function isTextUIPart<PART_METADATA = unknown>(
+  part: UIMessagePart<UIDataTypes, UITools, PART_METADATA>,
+): part is TextUIPart<PART_METADATA> {
   return part.type === 'text';
 }
 
 /**
  * Type guard to check if a message part is a custom part.
  */
-export function isCustomContentUIPart(
-  part: UIMessagePart<UIDataTypes, UITools>,
-): part is CustomContentUIPart {
+export function isCustomContentUIPart<PART_METADATA = unknown>(
+  part: UIMessagePart<UIDataTypes, UITools, PART_METADATA>,
+): part is CustomContentUIPart<PART_METADATA> {
   return part.type === 'custom';
 }
 
 /**
  * Type guard to check if a message part is a file part.
  */
-export function isFileUIPart(
-  part: UIMessagePart<UIDataTypes, UITools>,
-): part is FileUIPart {
+export function isFileUIPart<PART_METADATA = unknown>(
+  part: UIMessagePart<UIDataTypes, UITools, PART_METADATA>,
+): part is FileUIPart<PART_METADATA> {
   return part.type === 'file';
 }
 
 /**
  * Type guard to check if a message part is a reasoning file part.
  */
-export function isReasoningFileUIPart(
-  part: UIMessagePart<UIDataTypes, UITools>,
-): part is ReasoningFileUIPart {
+export function isReasoningFileUIPart<PART_METADATA = unknown>(
+  part: UIMessagePart<UIDataTypes, UITools, PART_METADATA>,
+): part is ReasoningFileUIPart<PART_METADATA> {
   return part.type === 'reasoning-file';
 }
 
 /**
  * Type guard to check if a message part is a reasoning part.
  */
-export function isReasoningUIPart(
-  part: UIMessagePart<UIDataTypes, UITools>,
-): part is ReasoningUIPart {
+export function isReasoningUIPart<PART_METADATA = unknown>(
+  part: UIMessagePart<UIDataTypes, UITools, PART_METADATA>,
+): part is ReasoningUIPart<PART_METADATA> {
   return part.type === 'reasoning';
 }
 
@@ -518,9 +566,12 @@ export function isReasoningUIPart(
  *
  * Static tools are tools for which the types are known at development time.
  */
-export function isStaticToolUIPart<TOOLS extends UITools>(
-  part: UIMessagePart<UIDataTypes, TOOLS>,
-): part is ToolUIPart<TOOLS> {
+export function isStaticToolUIPart<
+  TOOLS extends UITools,
+  PART_METADATA = unknown,
+>(
+  part: UIMessagePart<UIDataTypes, TOOLS, PART_METADATA>,
+): part is ToolUIPart<TOOLS, PART_METADATA> {
   return part.type.startsWith('tool-');
 }
 
@@ -529,9 +580,9 @@ export function isStaticToolUIPart<TOOLS extends UITools>(
  *
  * Dynamic tools are tools for which the input and output types are unknown.
  */
-export function isDynamicToolUIPart(
-  part: UIMessagePart<UIDataTypes, UITools>,
-): part is DynamicToolUIPart {
+export function isDynamicToolUIPart<PART_METADATA = unknown>(
+  part: UIMessagePart<UIDataTypes, UITools, PART_METADATA>,
+): part is DynamicToolUIPart<PART_METADATA> {
   return part.type === 'dynamic-tool';
 }
 
@@ -542,9 +593,9 @@ export function isDynamicToolUIPart(
  *
  * Use `isStaticToolUIPart` or `isDynamicToolUIPart` to check the type of the tool.
  */
-export function isToolUIPart<TOOLS extends UITools>(
-  part: UIMessagePart<UIDataTypes, TOOLS>,
-): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
+export function isToolUIPart<TOOLS extends UITools, PART_METADATA = unknown>(
+  part: UIMessagePart<UIDataTypes, TOOLS, PART_METADATA>,
+): part is ToolUIPart<TOOLS, PART_METADATA> | DynamicToolUIPart<PART_METADATA> {
   return isStaticToolUIPart(part) || isDynamicToolUIPart(part);
 }
 
@@ -554,7 +605,7 @@ export function isToolUIPart<TOOLS extends UITools>(
  * The possible values are the keys of the tool set.
  */
 export function getStaticToolName<TOOLS extends UITools>(
-  part: ToolUIPart<TOOLS>,
+  part: ToolUIPart<TOOLS, unknown>,
 ): keyof TOOLS {
   return part.type.split('-').slice(1).join('-') as keyof TOOLS;
 }
@@ -566,7 +617,7 @@ export function getStaticToolName<TOOLS extends UITools>(
  * If you need to restrict the name to the keys of the tool set, use `getStaticToolName` instead.
  */
 export function getToolName(
-  part: ToolUIPart<UITools> | DynamicToolUIPart,
+  part: ToolUIPart<UITools, unknown> | DynamicToolUIPart,
 ): string {
   return isDynamicToolUIPart(part) ? part.toolName : getStaticToolName(part);
 }
@@ -585,6 +636,11 @@ export type InferUIMessageData<T extends UIMessage> =
 export type InferUIMessageTools<T extends UIMessage> =
   T extends UIMessage<unknown, UIDataTypes, infer TOOLS> ? TOOLS : UITools;
 
+export type InferUIMessagePartMetadata<T extends UIMessage> =
+  T extends UIMessage<unknown, UIDataTypes, UITools, infer PART_METADATA>
+    ? PART_METADATA
+    : unknown;
+
 export type InferUIMessageToolOutputs<UI_MESSAGE extends UIMessage> =
   InferUIMessageTools<UI_MESSAGE>[keyof InferUIMessageTools<UI_MESSAGE>]['output'];
 
@@ -601,5 +657,6 @@ export type InferUIMessageToolCall<UI_MESSAGE extends UIMessage> =
 
 export type InferUIMessagePart<UI_MESSAGE extends UIMessage> = UIMessagePart<
   InferUIMessageData<UI_MESSAGE>,
-  InferUIMessageTools<UI_MESSAGE>
+  InferUIMessageTools<UI_MESSAGE>,
+  InferUIMessagePartMetadata<UI_MESSAGE>
 >;

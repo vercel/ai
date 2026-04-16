@@ -42,6 +42,7 @@ describe('readUIMessageStream', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "",
@@ -58,6 +59,7 @@ describe('readUIMessageStream', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "Hello, ",
@@ -74,6 +76,7 @@ describe('readUIMessageStream', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "streaming",
                 "text": "Hello, world!",
@@ -90,6 +93,7 @@ describe('readUIMessageStream', () => {
                 "type": "step-start",
               },
               {
+                "metadata": undefined,
                 "providerMetadata": undefined,
                 "state": "done",
                 "text": "Hello, world!",

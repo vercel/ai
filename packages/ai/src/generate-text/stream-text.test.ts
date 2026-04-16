@@ -3130,6 +3130,206 @@ describe('streamText', () => {
         `);
     });
 
+    it('should include part metadata on chunks when partMetadata callback returns values', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({
+        partMetadata: ({ part }) => {
+          if (part.type === 'text-start') return { planId: 'plan-1' };
+          if (part.type === 'text-delta') return { planId: 'plan-1' };
+          return undefined;
+        },
+      });
+
+      const chunks = await convertReadableStreamToArray(uiMessageStream);
+
+      const textStart = chunks.find(c => c.type === 'text-start');
+      expect(textStart).toHaveProperty('metadata', { planId: 'plan-1' });
+
+      const textDeltas = chunks.filter(c => c.type === 'text-delta');
+      for (const delta of textDeltas) {
+        expect(delta).toHaveProperty('metadata', { planId: 'plan-1' });
+      }
+
+      const textEnd = chunks.find(c => c.type === 'text-end');
+      expect(textEnd).not.toHaveProperty('metadata');
+    });
+
+    it('should not include metadata field when partMetadata callback returns undefined', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({
+        partMetadata: () => undefined,
+      });
+
+      const chunks = await convertReadableStreamToArray(uiMessageStream);
+
+      for (const chunk of chunks) {
+        expect(chunk).not.toHaveProperty('metadata');
+      }
+    });
+
+    it('should support both partMetadata and messageMetadata simultaneously', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({
+        messageMetadata: () => ({ model: 'gpt-4o' }),
+        partMetadata: ({ part }) => {
+          if (part.type === 'text-start') return { planId: 'plan-1' };
+          return undefined;
+        },
+      });
+
+      const chunks = await convertReadableStreamToArray(uiMessageStream);
+
+      const start = chunks.find(c => c.type === 'start');
+      expect((start as any)?.messageMetadata).toEqual({ model: 'gpt-4o' });
+
+      const textStart = chunks.find(c => c.type === 'text-start');
+      expect((textStart as any)?.metadata).toEqual({ planId: 'plan-1' });
+      expect(textStart).not.toHaveProperty('messageMetadata');
+    });
+
+    it('should include metadata on tool-approval-request chunks', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'tool-call',
+              toolCallId: 'mcp-call-1',
+              toolName: 'mcp_tool',
+              input: `{ "query": "test" }`,
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'mcp-approval-1',
+              toolCallId: 'mcp-call-1',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: undefined },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          mcp_tool: {
+            type: 'provider',
+            id: 'test.mcp_tool',
+            inputSchema: z.object({ query: z.string() }),
+            args: {},
+          },
+        },
+        prompt: 'test-input',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      const chunks = await convertReadableStreamToArray(
+        result.toUIMessageStream({
+          partMetadata: ({ part }) =>
+            part.type === 'tool-approval-request'
+              ? { phase: 'approval' }
+              : undefined,
+        }),
+      );
+
+      const approvalChunk = chunks.find(
+        c => c.type === 'tool-approval-request',
+      );
+      expect(approvalChunk).toHaveProperty('metadata', { phase: 'approval' });
+      expect(approvalChunk).not.toHaveProperty('partMetadata');
+    });
+
+    it('should include metadata on tool-output-denied chunks', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello, world!' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: vi.fn(),
+            needsApproval: true,
+          }),
+        },
+        stopWhen: isStepCount(3),
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+        messages: [
+          { role: 'user', content: 'test-input' },
+          {
+            role: 'assistant',
+            content: [
+              {
+                input: { value: 'value' },
+                providerExecuted: undefined,
+                providerOptions: undefined,
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                type: 'tool-call',
+              },
+              {
+                approvalId: 'id-1',
+                toolCallId: 'call-1',
+                type: 'tool-approval-request',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                approvalId: 'id-1',
+                type: 'tool-approval-response',
+                approved: false,
+              },
+            ],
+          },
+        ],
+      });
+
+      const chunks = await convertReadableStreamToArray(
+        result.toUIMessageStream({
+          partMetadata: ({ part }) =>
+            part.type === 'tool-output-denied'
+              ? { phase: 'denied' }
+              : undefined,
+        }),
+      );
+
+      const deniedChunk = chunks.find(c => c.type === 'tool-output-denied');
+      expect(deniedChunk).toHaveProperty('metadata', { phase: 'denied' });
+      expect(deniedChunk).not.toHaveProperty('partMetadata');
+    });
+
     it('should mask error messages by default', async () => {
       const result = streamText({
         model: createTestModel({

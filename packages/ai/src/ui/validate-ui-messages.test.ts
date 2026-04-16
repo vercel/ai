@@ -229,6 +229,61 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+
+    it('should validate part metadata when partMetadataSchema is provided', async () => {
+      type TestMessage = UIMessage<unknown, never, never, { planId: string }>;
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'text',
+                text: 'Hello, world!',
+                metadata: {
+                  planId: 'plan-1',
+                },
+              },
+            ],
+          },
+        ],
+        partMetadataSchema: z.object({
+          planId: z.string(),
+        }),
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<TestMessage>>();
+      expect((messages[0].parts[0] as any).metadata).toEqual({
+        planId: 'plan-1',
+      });
+    });
+
+    it('should throw type validation error when part metadata is invalid', async () => {
+      await expect(
+        validateUIMessages<
+          UIMessage<unknown, never, never, { planId: string }>
+        >({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'text',
+                  text: 'Hello, world!',
+                  metadata: { planId: 123 },
+                },
+              ],
+            },
+          ],
+          partMetadataSchema: z.object({
+            planId: z.string(),
+          }),
+        }),
+      ).rejects.toThrowError(/messages\[0\]\.parts\[0\]\.metadata/);
+    });
   });
 
   describe('text parts', () => {
@@ -1501,6 +1556,31 @@ describe('safeValidateUIMessages', () => {
     expectToBe(result.success, false);
     expect(result.error.name).toBe('AI_TypeValidationError');
     expect(result.error.message).toContain('Type validation failed');
+  });
+
+  it('should return failure result when part metadata validation fails', async () => {
+    const result = await safeValidateUIMessages<
+      UIMessage<unknown, never, never, { planId: string }>
+    >({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'text',
+              text: 'Hello, world!',
+              metadata: { planId: 123 },
+            },
+          ],
+        },
+      ],
+      partMetadataSchema: z.object({ planId: z.string() }),
+    });
+
+    expectToBe(result.success, false);
+    expect(result.error.name).toBe('AI_TypeValidationError');
+    expect(result.error.message).toContain('messages[0].parts[0].metadata');
   });
 
   it('should return failure result when tool input validation fails', async () => {

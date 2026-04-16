@@ -12,6 +12,7 @@ import { providerMetadataSchema } from '../types/provider-metadata';
 import {
   DataUIPart,
   InferUIMessageData,
+  InferUIMessagePartMetadata,
   InferUIMessageTools,
   ToolUIPart,
   UIMessage,
@@ -33,17 +34,20 @@ const uiMessagesSchema = lazySchema(() =>
                   text: z.string(),
                   state: z.enum(['streaming', 'done']).optional(),
                   providerMetadata: providerMetadataSchema.optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('reasoning'),
                   text: z.string(),
                   state: z.enum(['streaming', 'done']).optional(),
                   providerMetadata: providerMetadataSchema.optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('custom'),
                   kind: z.string(),
                   providerMetadata: providerMetadataSchema.optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('source-url'),
@@ -51,6 +55,7 @@ const uiMessagesSchema = lazySchema(() =>
                   url: z.string(),
                   title: z.string().optional(),
                   providerMetadata: providerMetadataSchema.optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('source-document'),
@@ -59,6 +64,7 @@ const uiMessagesSchema = lazySchema(() =>
                   title: z.string(),
                   filename: z.string().optional(),
                   providerMetadata: providerMetadataSchema.optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('file'),
@@ -66,12 +72,14 @@ const uiMessagesSchema = lazySchema(() =>
                   filename: z.string().optional(),
                   url: z.string(),
                   providerMetadata: providerMetadataSchema.optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('reasoning-file'),
                   mediaType: z.string(),
                   url: z.string(),
                   providerMetadata: providerMetadataSchema.optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('step-start'),
@@ -92,6 +100,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   approval: z.never().optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -104,6 +113,7 @@ const uiMessagesSchema = lazySchema(() =>
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   approval: z.never().optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -120,6 +130,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.never().optional(),
                     reason: z.never().optional(),
                   }),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -136,6 +147,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.boolean(),
                     reason: z.string().optional(),
                   }),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -156,6 +168,7 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                     })
                     .optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -176,6 +189,7 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                     })
                     .optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -192,6 +206,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.literal(false),
                     reason: z.string().optional(),
                   }),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -203,6 +218,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   approval: z.never().optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -214,6 +230,7 @@ const uiMessagesSchema = lazySchema(() =>
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   approval: z.never().optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -229,6 +246,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.never().optional(),
                     reason: z.never().optional(),
                   }),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -244,6 +262,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.boolean(),
                     reason: z.string().optional(),
                   }),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -263,6 +282,7 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                     })
                     .optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -282,6 +302,7 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                     })
                     .optional(),
+                  metadata: z.unknown().optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -297,6 +318,7 @@ const uiMessagesSchema = lazySchema(() =>
                     approved: z.literal(false),
                     reason: z.string().optional(),
                   }),
+                  metadata: z.unknown().optional(),
                 }),
               ]),
             )
@@ -325,11 +347,13 @@ export type SafeValidateUIMessagesResult<UI_MESSAGE extends UIMessage> =
 export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
   messages,
   metadataSchema,
+  partMetadataSchema,
   dataSchemas,
   tools,
 }: {
   messages: unknown;
   metadataSchema?: FlexibleSchema<UIMessage['metadata']>;
+  partMetadataSchema?: FlexibleSchema<InferUIMessagePartMetadata<UI_MESSAGE>>;
   dataSchemas?: {
     [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?: FlexibleSchema<
       InferUIMessageData<UI_MESSAGE>[NAME]
@@ -372,9 +396,32 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
       }
     }
 
-    if (dataSchemas || tools) {
+    if (partMetadataSchema || dataSchemas || tools) {
       for (const [msgIdx, message] of validatedMessages.entries()) {
         for (const [partIdx, part] of message.parts.entries()) {
+          if (
+            partMetadataSchema &&
+            'metadata' in part &&
+            part.metadata != null
+          ) {
+            const entityId =
+              'toolCallId' in part
+                ? part.toolCallId
+                : 'sourceId' in part
+                  ? part.sourceId
+                  : undefined;
+
+            await validateTypes({
+              value: part.metadata,
+              schema: partMetadataSchema,
+              context: {
+                field: `messages[${msgIdx}].parts[${partIdx}].metadata`,
+                entityName: part.type,
+                ...(entityId != null ? { entityId } : {}),
+              },
+            });
+          }
+
           // Data part validation
           if (dataSchemas && part.type.startsWith('data-')) {
             const dataPart = part as DataUIPart<InferUIMessageData<UI_MESSAGE>>;
@@ -490,11 +537,13 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
 export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
   messages,
   metadataSchema,
+  partMetadataSchema,
   dataSchemas,
   tools,
 }: {
   messages: unknown;
   metadataSchema?: FlexibleSchema<UIMessage['metadata']>;
+  partMetadataSchema?: FlexibleSchema<InferUIMessagePartMetadata<UI_MESSAGE>>;
   dataSchemas?: {
     [NAME in keyof InferUIMessageData<UI_MESSAGE> & string]?: FlexibleSchema<
       InferUIMessageData<UI_MESSAGE>[NAME]
@@ -510,6 +559,7 @@ export async function validateUIMessages<UI_MESSAGE extends UIMessage>({
   const response = await safeValidateUIMessages({
     messages,
     metadataSchema,
+    partMetadataSchema,
     dataSchemas,
     tools,
   });

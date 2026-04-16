@@ -63,7 +63,11 @@ import {
   UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
 import { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import { InferUIMessageData, InferUIMessageMetadata } from '../ui/ui-messages';
+import {
+  InferUIMessageData,
+  InferUIMessageMetadata,
+  InferUIMessagePartMetadata,
+} from '../ui/ui-messages';
 import { asArray } from '../util/as-array';
 import {
   AsyncIterableStream,
@@ -2234,6 +2238,7 @@ class DefaultStreamTextResult<
     generateMessageId,
     onFinish,
     messageMetadata,
+    partMetadata,
     sendReasoning = true,
     sendSources = false,
     sendStart = true,
@@ -2267,11 +2272,13 @@ class DefaultStreamTextResult<
         TextStreamPart<TOOLS>,
         UIMessageChunk<
           InferUIMessageMetadata<UI_MESSAGE>,
-          InferUIMessageData<UI_MESSAGE>
+          InferUIMessageData<UI_MESSAGE>,
+          InferUIMessagePartMetadata<UI_MESSAGE>
         >
       >({
         transform: async (part, controller) => {
           const messageMetadataValue = messageMetadata?.({ part });
+          const partMetadataValue = partMetadata?.({ part });
 
           const partType = part.type;
           switch (partType) {
@@ -2281,6 +2288,9 @@ class DefaultStreamTextResult<
                 id: part.id,
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
                   : {}),
               });
               break;
@@ -2294,6 +2304,9 @@ class DefaultStreamTextResult<
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
+                  : {}),
               });
               break;
             }
@@ -2305,6 +2318,9 @@ class DefaultStreamTextResult<
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
+                  : {}),
               });
               break;
             }
@@ -2315,6 +2331,9 @@ class DefaultStreamTextResult<
                 id: part.id,
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
                   : {}),
               });
               break;
@@ -2329,6 +2348,9 @@ class DefaultStreamTextResult<
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
+                  ...(partMetadataValue != null
+                    ? { metadata: partMetadataValue }
+                    : {}),
                 });
               }
               break;
@@ -2340,6 +2362,9 @@ class DefaultStreamTextResult<
                 id: part.id,
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
                   : {}),
               });
               break;
@@ -2354,6 +2379,9 @@ class DefaultStreamTextResult<
                   url: `data:${part.file.mediaType};base64,${part.file.base64}`,
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                  ...(partMetadataValue != null
+                    ? { metadata: partMetadataValue }
                     : {}),
                 });
               }
@@ -2370,6 +2398,9 @@ class DefaultStreamTextResult<
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
+                  ...(partMetadataValue != null
+                    ? { metadata: partMetadataValue }
+                    : {}),
                 });
               }
 
@@ -2383,6 +2414,9 @@ class DefaultStreamTextResult<
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
+                  ...(partMetadataValue != null
+                    ? { metadata: partMetadataValue }
+                    : {}),
                 });
               }
               break;
@@ -2394,6 +2428,9 @@ class DefaultStreamTextResult<
                 kind: part.kind,
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
                   : {}),
               });
               break;
@@ -2411,6 +2448,9 @@ class DefaultStreamTextResult<
                   : {}),
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
                   : {}),
                 ...(dynamic != null ? { dynamic } : {}),
                 ...(part.title != null ? { title: part.title } : {}),
@@ -2442,6 +2482,9 @@ class DefaultStreamTextResult<
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
+                  ...(partMetadataValue != null
+                    ? { metadata: partMetadataValue }
+                    : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   errorText: onError(part.error),
                   ...(part.title != null ? { title: part.title } : {}),
@@ -2458,6 +2501,9 @@ class DefaultStreamTextResult<
                   ...(part.providerMetadata != null
                     ? { providerMetadata: part.providerMetadata }
                     : {}),
+                  ...(partMetadataValue != null
+                    ? { metadata: partMetadataValue }
+                    : {}),
                   ...(dynamic != null ? { dynamic } : {}),
                   ...(part.title != null ? { title: part.title } : {}),
                 });
@@ -2471,6 +2517,9 @@ class DefaultStreamTextResult<
                 type: 'tool-approval-request',
                 approvalId: part.approvalId,
                 toolCallId: part.toolCall.toolCallId,
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
+                  : {}),
               });
               break;
             }
@@ -2487,6 +2536,9 @@ class DefaultStreamTextResult<
                   : {}),
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
+                  : {}),
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
                   : {}),
                 ...(part.preliminary != null
                   ? { preliminary: part.preliminary }
@@ -2513,6 +2565,9 @@ class DefaultStreamTextResult<
                 ...(part.providerMetadata != null
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
+                  : {}),
                 ...(dynamic != null ? { dynamic } : {}),
               });
               break;
@@ -2522,6 +2577,9 @@ class DefaultStreamTextResult<
               controller.enqueue({
                 type: 'tool-output-denied',
                 toolCallId: part.toolCallId,
+                ...(partMetadataValue != null
+                  ? { metadata: partMetadataValue }
+                  : {}),
               });
               break;
             }
@@ -2627,6 +2685,7 @@ class DefaultStreamTextResult<
       generateMessageId,
       onFinish,
       messageMetadata,
+      partMetadata,
       sendReasoning,
       sendSources,
       sendFinish,
@@ -2642,6 +2701,7 @@ class DefaultStreamTextResult<
         generateMessageId,
         onFinish,
         messageMetadata,
+        partMetadata,
         sendReasoning,
         sendSources,
         sendFinish,
@@ -2665,6 +2725,7 @@ class DefaultStreamTextResult<
     generateMessageId,
     onFinish,
     messageMetadata,
+    partMetadata,
     sendReasoning,
     sendSources,
     sendFinish,
@@ -2679,6 +2740,7 @@ class DefaultStreamTextResult<
         generateMessageId,
         onFinish,
         messageMetadata,
+        partMetadata,
         sendReasoning,
         sendSources,
         sendFinish,

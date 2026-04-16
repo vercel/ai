@@ -32,6 +32,7 @@ export async function createAgentUIStreamResponse<
   USER_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
+  PART_METADATA = unknown,
 >({
   headers,
   status,
@@ -50,7 +51,7 @@ export async function createAgentUIStreamResponse<
   onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
 } & UIMessageStreamResponseInit &
   UIMessageStreamOptions<
-    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
+    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>, PART_METADATA>
   >): Promise<Response> {
   return createUIMessageStreamResponse({
     headers,
