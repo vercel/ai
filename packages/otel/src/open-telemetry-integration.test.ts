@@ -1238,7 +1238,7 @@ describe('OpenTelemetryIntegration', () => {
     it('includes context as telemetry attributes', () => {
       otelIntegration.onStart!(
         makeOnStartEvent({
-          context: { userId: 'user-123', sessionId: 'sess-456' },
+          runtimeContext: { userId: 'user-123', sessionId: 'sess-456' },
         }),
       );
 
