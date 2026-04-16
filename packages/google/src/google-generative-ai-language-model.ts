@@ -493,7 +493,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       },
       request: { body: args },
       response: {
-        // TODO timestamp, model id, id
+        id: response.responseId ?? undefined,
+        modelId: response.modelVersion ?? this.modelId,
+        timestamp: new Date(),
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -536,7 +538,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     let serviceTier: string | null = null;
 
     const generateId = this.config.generateId;
+    const modelId = this.modelId;
     let hasToolCalls = false;
+    let metadataExtracted = false;
 
     // Track active blocks to group consecutive parts of same type
     let currentTextBlockId: string | null = null;
@@ -578,6 +582,19 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
             }
 
             const value = chunk.value;
+
+            if (
+              !metadataExtracted &&
+              (value.responseId || value.modelVersion)
+            ) {
+              metadataExtracted = true;
+              controller.enqueue({
+                type: 'response-metadata',
+                id: value.responseId ?? undefined,
+                modelId: value.modelVersion ?? modelId,
+                timestamp: new Date(),
+              });
+            }
 
             const usageMetadata = value.usageMetadata;
 
@@ -1432,6 +1449,8 @@ const responseSchema = lazySchema(() =>
         })
         .nullish(),
       serviceTier: z.string().nullish(),
+      responseId: z.string().nullish(),
+      modelVersion: z.string().nullish(),
     }),
   ),
 );
@@ -1481,6 +1500,8 @@ const chunkSchema = lazySchema(() =>
         })
         .nullish(),
       serviceTier: z.string().nullish(),
+      responseId: z.string().nullish(),
+      modelVersion: z.string().nullish(),
     }),
   ),
 );

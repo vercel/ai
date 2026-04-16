@@ -114,6 +114,9 @@ Here is the breakdown: st**r**awbe**rr**y.",
       "content-length": "580",
       "content-type": "application/json",
     },
+    "id": "DniLab2dFPeSxN8PpqXY4Ag",
+    "modelId": "gemini-3-pro-preview",
+    "timestamp": 2024-01-01T00:00:00.000Z,
   },
   "usage": {
     "inputTokens": {
@@ -258,6 +261,9 @@ Here is the breakdown: st**r**awbe**rr**y.",
       "content-length": "549",
       "content-type": "application/json",
     },
+    "id": "Un6LacrVMcjUxs0PmJfWoQc",
+    "modelId": "gemini-3-pro-preview",
+    "timestamp": 2024-01-01T00:00:00.000Z,
   },
   "usage": {
     "inputTokens": {
@@ -454,6 +460,9 @@ exports[`doGenerate > tool-call > should extract tool calls 1`] = `
       "content-length": "583",
       "content-type": "application/json",
     },
+    "id": "m36LaZGyCLz1xs0PtNSB-QU",
+    "modelId": "gemini-3-pro-preview",
+    "timestamp": 2024-01-01T00:00:00.000Z,
   },
   "usage": {
     "inputTokens": {
@@ -602,6 +611,9 @@ exports[`doGenerate > tool-call-gemini3 > should extract tool call with thoughtS
       "content-length": "581",
       "content-type": "application/json",
     },
+    "id": "JniLacKqGqH0xs0P0O776As",
+    "modelId": "gemini-3-pro-preview",
+    "timestamp": 2024-01-01T00:00:00.000Z,
   },
   "usage": {
     "inputTokens": {
@@ -637,6 +649,12 @@ exports[`doStream > reasoning > should stream reasoning and text parts 1`] = `
   {
     "type": "stream-start",
     "warnings": [],
+  },
+  {
+    "id": "dX6LadKVC7SZ28oPr9yJoQs",
+    "modelId": "gemini-3-pro-preview",
+    "timestamp": 2024-01-01T00:00:00.000Z,
+    "type": "response-metadata",
   },
   {
     "id": "0",
@@ -733,6 +751,12 @@ exports[`doStream > reasoning-gemini3 > should stream reasoning with thoughtSign
   {
     "type": "stream-start",
     "warnings": [],
+  },
+  {
+    "id": "M3iLaY-AI7zTxN8P3Piw4Qg",
+    "modelId": "gemini-3-pro-preview",
+    "timestamp": 2024-01-01T00:00:00.000Z,
+    "type": "response-metadata",
   },
   {
     "id": "0",
@@ -1404,6 +1428,12 @@ exports[`doStream > text > should stream text deltas 1`] = `
     "warnings": [],
   },
   {
+    "id": "bH6LaZW8Fp_3nsEPqtaSwQ4",
+    "modelId": "gemini-3-pro-preview",
+    "timestamp": 2024-01-01T00:00:00.000Z,
+    "type": "response-metadata",
+  },
+  {
     "id": "0",
     "providerMetadata": undefined,
     "type": "text-start",
@@ -1498,6 +1528,12 @@ exports[`doStream > tool-call > should stream tool call 1`] = `
   {
     "type": "stream-start",
     "warnings": [],
+  },
+  {
+    "id": "b36LacjwM668nsEP2tbsgQQ",
+    "modelId": "gemini-3-pro-preview",
+    "timestamp": 2024-01-01T00:00:00.000Z,
+    "type": "response-metadata",
   },
   {
     "id": "test-id",
@@ -1601,6 +1637,12 @@ exports[`doStream > tool-call-gemini3 > should stream tool call with thoughtSign
   {
     "type": "stream-start",
     "warnings": [],
+  },
+  {
+    "id": "QHiLaa6LBrb8vdIPoNztsAg",
+    "modelId": "gemini-3-pro-preview",
+    "timestamp": 2024-01-01T00:00:00.000Z,
+    "type": "response-metadata",
   },
   {
     "id": "test-id",
