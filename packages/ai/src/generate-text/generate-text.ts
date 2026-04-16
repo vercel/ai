@@ -348,7 +348,7 @@ export async function generateText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
+    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
 
     /**
      * Custom download function to use for URLs.
@@ -524,6 +524,7 @@ export async function generateText<
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
       context,
+      toolsContext,
     },
     callbacks: [
       onStart,
@@ -662,6 +663,7 @@ export async function generateText<
           stepNumber: steps.length,
           messages: stepInputMessages,
           context,
+          toolsContext,
         });
 
         const stepModel = resolveLanguageModel(
@@ -702,31 +704,30 @@ export async function generateText<
           prepareStepResult?.providerOptions,
         );
 
-        const onStepStartEvent = {
-          callId,
-          stepNumber: steps.length,
-          provider: stepModel.provider,
-          modelId: stepModel.modelId,
-          system: stepSystem,
-          messages: stepMessages,
-          tools,
-          toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-          activeTools: prepareStepResult?.activeTools ?? activeTools,
-          steps: [...steps],
-          providerOptions: stepProviderOptions,
-          timeout,
-          headers,
-          stopWhen,
-          output,
-          functionId: telemetry?.functionId,
-          context,
-          promptMessages,
-          stepTools,
-          stepToolChoice,
-        };
-
         await notify({
-          event: onStepStartEvent,
+          event: {
+            callId,
+            stepNumber: steps.length,
+            provider: stepModel.provider,
+            modelId: stepModel.modelId,
+            system: stepSystem,
+            messages: stepMessages,
+            tools,
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            activeTools: prepareStepResult?.activeTools ?? activeTools,
+            steps: [...steps],
+            providerOptions: stepProviderOptions,
+            timeout,
+            headers,
+            stopWhen,
+            output,
+            functionId: telemetry?.functionId,
+            context,
+            promptMessages,
+            stepTools,
+            stepToolChoice,
+            toolsContext,
+          },
           callbacks: [
             onStepStart,
             unifiedTelemetry.onStepStart as
@@ -810,7 +811,7 @@ export async function generateText<
               toolNeedsApproval,
               toolCall,
               messages: stepInputMessages,
-              context,
+              toolsContext,
             })
           ) {
             toolApprovalRequests[toolCall.toolCallId] = {
@@ -971,6 +972,7 @@ export async function generateText<
             providerMetadata: currentModelResponse.providerMetadata,
             request: stepRequest,
             response: stepResponse,
+            toolsContext,
           });
 
         logWarnings({
@@ -1048,6 +1050,7 @@ export async function generateText<
       providerMetadata: lastStep.providerMetadata,
       steps,
       totalUsage,
+      toolsContext,
     };
 
     await notify({

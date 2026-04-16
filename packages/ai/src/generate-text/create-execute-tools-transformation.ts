@@ -1,4 +1,4 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import {
   IdGenerator,
   InferToolSetContext,
@@ -14,20 +14,16 @@ import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { TypedToolCall } from './tool-call';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 
-export function createExecuteToolsTransformation<
-  TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
->({
+export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   tools,
   telemetry,
   callId,
   messages,
   abortSignal,
   timeout,
-  context,
   toolsContext,
   toolNeedsApproval,
   generateId,
@@ -44,7 +40,6 @@ export function createExecuteToolsTransformation<
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  context: USER_CONTEXT;
   toolsContext: InferToolSetContext<TOOLS>;
   toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
   generateId: IdGenerator;
@@ -133,7 +128,7 @@ export function createExecuteToolsTransformation<
                   messages,
                   abortSignal,
                   timeout,
-                  context,
+                  toolsContext,
                   stepNumber,
                   provider,
                   modelId,

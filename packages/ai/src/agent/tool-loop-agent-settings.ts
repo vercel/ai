@@ -1,8 +1,4 @@
-import type {
-  Context,
-  InferToolSetContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import {
   FlexibleSchema,
   MaybePromiseLike,
@@ -20,16 +16,16 @@ import type {
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
-import { ToolNeedsApprovalConfiguration } from '../generate-text/tool-needs-approval-configuration';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
+import { ToolNeedsApprovalConfiguration } from '../generate-text/tool-needs-approval-configuration';
+import { ToolsContextParameter } from '../generate-text/tools-context-parameter';
 import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
-import { RequestOptions } from '../prompt/request-options';
 import { Prompt } from '../prompt/prompt';
+import { RequestOptions } from '../prompt/request-options';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
-import { ContextParameter } from '../generate-text/context-parameter';
 import { AgentCallParameters } from './agent';
 
 export type ToolLoopAgentOnStartCallback<
@@ -72,7 +68,7 @@ export type ToolLoopAgentSettings<
   OUTPUT extends Output = never,
 > = LanguageModelCallOptions &
   Omit<RequestOptions<TOOLS>, 'abortSignal'> &
-  ContextParameter<TOOLS, USER_CONTEXT> & {
+  ToolsContextParameter<TOOLS> & {
     /**
      * The id of the agent.
      */
@@ -122,14 +118,17 @@ export type ToolLoopAgentSettings<
     output?: OUTPUT;
 
     /**
+     * Runtime context. Treat runtime context as immutable.
+     * If you need to mutate runtime context, update it in `prepareStep`.
+     */
+    context?: USER_CONTEXT;
+
+    /**
      * Optional tool approval configuration.
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolNeedsApproval?: ToolNeedsApprovalConfiguration<
-      NoInfer<TOOLS>,
-      USER_CONTEXT
-    >;
+    toolNeedsApproval?: ToolNeedsApprovalConfiguration<NoInfer<TOOLS>>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -247,7 +246,8 @@ export type ToolLoopAgentSettings<
           | 'toolNeedsApproval'
           | 'providerOptions'
           | 'experimental_download'
-        > & { context: InferToolSetContext<TOOLS> & USER_CONTEXT },
+          | 'toolsContext'
+        > & { context: USER_CONTEXT },
     ) => MaybePromiseLike<
       Pick<
         ToolLoopAgentSettings<
@@ -274,9 +274,10 @@ export type ToolLoopAgentSettings<
         | 'toolNeedsApproval'
         | 'providerOptions'
         | 'experimental_download'
+        | 'toolsContext'
       > &
         Omit<Prompt, 'system'> & {
-          context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+          context: USER_CONTEXT;
         }
     >;
   };
