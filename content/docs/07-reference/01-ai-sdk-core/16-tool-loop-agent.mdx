@@ -74,7 +74,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
       description:
-        'Condition(s) for ending the agent loop. Default: isStepCount(20).',
+        'Condition(s) for ending the agent loop. Default: isStepCount(20). Use [`isLoopFinished()`](/docs/reference/ai-sdk-core/loop-finished#isloopfinished) to let the agent run until all tools have been called. **Caution:** Without a step limit, runaway loops could incur significant costs.',
     },
     {
       name: 'activeTools',
