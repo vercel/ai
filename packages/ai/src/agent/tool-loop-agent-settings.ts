@@ -26,7 +26,7 @@ import { ToolsContextParameter } from '../generate-text/tools-context-parameter'
 import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { Prompt } from '../prompt/prompt';
 import { RequestOptions } from '../prompt/request-options';
-import { TelemetryOptions } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { LanguageModel, ToolChoice } from '../types/language-model';
 import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
