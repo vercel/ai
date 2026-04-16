@@ -10,8 +10,10 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
-registerTelemetryIntegration(DevToolsTelemetry());
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(
+  new OpenTelemetryIntegration(),
+  DevToolsTelemetry(),
+);
 
 const sdk = new NodeSDK({
   spanProcessors: [new LangfuseSpanProcessor()],
