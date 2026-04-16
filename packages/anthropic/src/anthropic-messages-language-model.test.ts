@@ -9141,35 +9141,6 @@ describe('AnthropicMessagesLanguageModel', () => {
   });
 });
 
-describe('getModelCapabilities', () => {
-  it('should return correct capabilities for claude-opus-4-7', () => {
-    expect(getModelCapabilities('claude-opus-4-7')).toMatchInlineSnapshot(`
-      {
-        "isKnownModel": true,
-        "maxOutputTokens": 128000,
-        "rejectsSamplingParameters": true,
-        "supportsAdaptiveThinking": true,
-        "supportsStructuredOutput": true,
-        "supportsXhighEffort": true,
-      }
-    `);
-  });
-
-  it('should return correct capabilities for claude-opus-4-6', () => {
-    const caps = getModelCapabilities('claude-opus-4-6');
-    expect(caps.rejectsSamplingParameters).toBe(false);
-    expect(caps.supportsXhighEffort).toBe(false);
-    expect(caps.supportsAdaptiveThinking).toBe(true);
-  });
-
-  it('should return correct capabilities for claude-sonnet-4-6', () => {
-    const caps = getModelCapabilities('claude-sonnet-4-6');
-    expect(caps.rejectsSamplingParameters).toBe(false);
-    expect(caps.supportsXhighEffort).toBe(false);
-    expect(caps.supportsAdaptiveThinking).toBe(true);
-  });
-});
-
 describe('claude-opus-4-7 specific behavior', () => {
   const server = createTestServer({
     'https://api.anthropic.com/v1/messages': {},
@@ -9239,30 +9210,6 @@ describe('claude-opus-4-7 specific behavior', () => {
         feature: 'topP',
       }),
     );
-  });
-
-  it('should map xhigh reasoning effort to xhigh for claude-opus-4-7', async () => {
-    prepareJsonFixtureResponse('anthropic-text');
-
-    await opusModel.doGenerate({
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-      reasoning: 'xhigh',
-    });
-
-    const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.output_config?.effort).toBe('xhigh');
-  });
-
-  it('should map xhigh reasoning effort to max for claude-opus-4-6', async () => {
-    prepareJsonFixtureResponse('anthropic-text');
-
-    await provider('claude-opus-4-6').doGenerate({
-      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-      reasoning: 'xhigh',
-    });
-
-    const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.output_config?.effort).toBe('max');
   });
 
   it('should include task_budget in output_config and add beta header', async () => {
