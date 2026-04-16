@@ -28,7 +28,7 @@ OTEL_EXPORTER_OTLP_HEADERS="x-api-key:<PATRONUS_API_KEY>"
 import { registerOTel } from '@vercel/otel';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 
 export function register() {
@@ -47,7 +47,7 @@ export function register() {
   });
 }
 
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 ```
 
 <Note>
@@ -58,7 +58,7 @@ registerTelemetryIntegration(new OpenTelemetry());
 
 ### 2. Register the integration and enable telemetry
 
-Once you've installed `@ai-sdk/otel` and added `registerTelemetryIntegration` to your `instrumentation.ts`, telemetry is captured automatically. Pass `experimental_telemetry` to attach metadata:
+Once you've installed `@ai-sdk/otel` and added `registerTelemetry` to your `instrumentation.ts`, telemetry is captured automatically. Pass `experimental_telemetry` to attach metadata:
 
 ```ts
 import { generateText } from 'ai';

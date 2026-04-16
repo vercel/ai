@@ -25,11 +25,11 @@ OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your Scorecard API Key>"
 Next, install `@ai-sdk/otel` and create an `instrumentation.ts` file in your project root to initialize OpenTelemetry and register the AI SDK telemetry integration:
 
 ```typescript filename="instrumentation.ts"
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 
 export function register() {
   registerOTel({

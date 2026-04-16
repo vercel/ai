@@ -64,10 +64,10 @@ const result = await generateText({
 Now, you must install `@ai-sdk/otel` and register the `OpenTelemetry` instance once at application startup. For Next.js, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup:
 
 ```tsx filename="instrumentation"
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 
 // ... your OpenTelemetry provider setup (e.g. registerOTel, NodeTracerProvider)
 ```
@@ -92,10 +92,10 @@ const result = await generateText({
 
 ```tsx filename="AI SDK 7"
 import { generateText } from 'ai';
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 
 const result = await generateText({
   model: yourModel,
@@ -159,11 +159,11 @@ const result = await generateText({
 ```
 
 ```tsx filename="AI SDK 7"
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { trace } from '@opentelemetry/api';
 
-registerTelemetryIntegration(
+registerTelemetry(
   new OpenTelemetry({
     tracer: trace.getTracer('my-app'),
   }),

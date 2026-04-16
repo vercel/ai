@@ -32,12 +32,12 @@ CONFIDENT_API_KEY="YOUR-PROJECT-API-KEY"
 Register the `OpenTelemetry` globally at application startup so the AI SDK emits OpenTelemetry spans that Confident AI can collect:
 
 ```typescript
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { configureAiSdkTracing } from 'deepeval-ts';
 
 configureAiSdkTracing();
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 ```
 
 ## Tracing Your Application
@@ -168,7 +168,7 @@ You can customize trace grouping and evaluation behavior by passing options to `
 You can pass attributes like `name`, `threadId`, `userId` and `environment` to make it easier to find and filter your traces.
 
 ```typescript
-import { registerTelemetryIntegration, generateText } from 'ai';
+import { registerTelemetry, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { configureAiSdkTracing } from 'deepeval-ts';
@@ -180,7 +180,7 @@ const tracer = configureAiSdkTracing({
   environment: 'production',
 });
 
-registerTelemetryIntegration(new OpenTelemetry({ tracer }));
+registerTelemetry(new OpenTelemetry({ tracer }));
 
 const { text } = await generateText({
   model: openai('gpt-4o'),
@@ -193,7 +193,7 @@ const { text } = await generateText({
 If you use Confident AI Prompt Management, you can associate traces with a specific prompt version. Pass a `Prompt` object to `configureAiSdkTracing` to associate your traces with the prompt version used at runtime.
 
 ```typescript
-import { registerTelemetryIntegration, generateText } from 'ai';
+import { registerTelemetry, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { configureAiSdkTracing, Prompt } from 'deepeval-ts';
@@ -204,7 +204,7 @@ await prompt.pull();
 const tracer = configureAiSdkTracing({
   confidentPrompt: prompt,
 });
-registerTelemetryIntegration(new OpenTelemetry({ tracer }));
+registerTelemetry(new OpenTelemetry({ tracer }));
 
 const { text } = await generateText({
   model: openai('gpt-4o'),
@@ -233,7 +233,7 @@ Confident AI supports automatic online evaluation of your traces by passing a me
 Here's an example of how to attach metric collections to your traces:
 
 ```typescript
-import { registerTelemetryIntegration, generateText } from 'ai';
+import { registerTelemetry, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { configureAiSdkTracing } from 'deepeval-ts';
@@ -243,7 +243,7 @@ const tracer = configureAiSdkTracing({
   llmMetricCollection: 'my-llm-metrics',
   toolMetricCollection: 'my-tool-metrics',
 });
-registerTelemetryIntegration(new OpenTelemetry({ tracer }));
+registerTelemetry(new OpenTelemetry({ tracer }));
 
 const { text } = await generateText({
   model: openai('gpt-4o'),

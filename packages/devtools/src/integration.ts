@@ -93,10 +93,10 @@ function getOperationType(operationId: string): OperationType {
  *
  * Usage:
  * ```ts
- * import { registerTelemetryIntegration } from 'ai';
+ * import { registerTelemetry } from 'ai';
  * import { DevToolsTelemetry } from '@ai-sdk/devtools';
  *
- * registerTelemetryIntegration(DevToolsTelemetry());
+ * registerTelemetry(DevToolsTelemetry());
  * ```
  *
  * Telemetry is enabled by default — no need to set `experimental_telemetry`

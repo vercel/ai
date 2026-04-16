@@ -3,9 +3,7 @@ import type { TelemetryIntegration } from './telemetry-integration';
 /**
  * Registers a telemetry integration globally.
  */
-export function registerTelemetryIntegration(
-  integration: TelemetryIntegration,
-): void {
+export function registerTelemetry(integration: TelemetryIntegration): void {
   if (!globalThis.AI_SDK_TELEMETRY_INTEGRATIONS) {
     globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [];
   }

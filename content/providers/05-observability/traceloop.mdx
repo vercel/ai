@@ -25,10 +25,10 @@ OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your API Key>"
 Install `@ai-sdk/otel` and register the `OpenTelemetry` in your `instrumentation.ts` file:
 
 ```typescript filename="instrumentation.ts"
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 ```
 
 You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:

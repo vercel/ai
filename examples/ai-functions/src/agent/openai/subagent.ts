@@ -2,12 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import {
-  ToolLoopAgent,
-  tool,
-  isStepCount,
-  registerTelemetryIntegration,
-} from 'ai';
+import { ToolLoopAgent, tool, isStepCount, registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { z } from 'zod';
 import { run } from '../../lib/run';
@@ -18,7 +13,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   const childAgent = new ToolLoopAgent({

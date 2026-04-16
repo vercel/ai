@@ -1,5 +1,5 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
-import { generateText, isStepCount, registerTelemetryIntegration } from 'ai';
+import { generateText, isStepCount, registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -11,7 +11,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   const myCustomProvider = createAnthropic({

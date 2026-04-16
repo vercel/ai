@@ -94,12 +94,12 @@ module.exports = nextConfig;
 Next, you need to create a file named `instrumentation.ts` (or `.js`) in the **root directory** of the project (or inside `src` folder if using one), with `LangWatchExporter` as the traceExporter:
 
 ```typescript
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 import { LangWatchExporter } from 'langwatch';
 
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 
 export function register() {
   registerOTel({

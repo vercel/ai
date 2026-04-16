@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, registerTelemetryIntegration } from 'ai';
+import { generateText, registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
@@ -12,7 +12,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   const result = await generateText({

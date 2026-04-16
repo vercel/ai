@@ -29,7 +29,7 @@ declare global {
    * Integrations registered here receive lifecycle events (onStart, onStepStart,
    * etc.) from every `generateText`, `streamText`, and similar call.
    *
-   * Prefer using `registerTelemetryIntegration()` from `'ai'` instead of
+   * Prefer using `registerTelemetry()` from `'ai'` instead of
    * assigning this directly.
    */
   var AI_SDK_TELEMETRY_INTEGRATIONS: TelemetryIntegration[] | undefined;

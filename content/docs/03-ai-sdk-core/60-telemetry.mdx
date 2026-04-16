@@ -27,10 +27,10 @@ pnpm install @ai-sdk/otel
 ```
 
 ```ts
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 ```
 
 For Next.js applications, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup. See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
@@ -69,7 +69,7 @@ const result = await generateText({
 });
 ```
 
-To disable telemetry globally, do not register any telemetry integrations via the `registerTelemetryIntegration()` function.
+To disable telemetry globally, do not register any telemetry integrations via the `registerTelemetry()` function.
 
 ## Telemetry Metadata
 
@@ -95,11 +95,11 @@ const result = await generateText({
 If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetry` constructor:
 
 ```ts highlight="6-8"
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 
 const tracerProvider = new NodeTracerProvider();
-registerTelemetryIntegration(
+registerTelemetry(
   new OpenTelemetry({
     tracer: tracerProvider.getTracer('ai'),
   }),
@@ -116,13 +116,13 @@ The `GenAIOpenTelemetry` and `OpenTelemetry` from `@ai-sdk/otel` are the built-i
 
 ### Registering integrations globally
 
-Use `registerTelemetryIntegration` to register an integration once for all AI SDK calls:
+Use `registerTelemetry` to register an integration once for all AI SDK calls:
 
 ```ts
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry());
 ```
 
 ### Per-call integrations
