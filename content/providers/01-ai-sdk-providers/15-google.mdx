@@ -1,12 +1,12 @@
 ---
-title: Google Generative AI
-description: Learn how to use Google Generative AI Provider.
+title: Google
+description: Learn how to use Google Provider.
 ---
 
-# Google Generative AI Provider
+# Google Provider
 
-The [Google Generative AI](https://ai.google.dev) provider contains language and embedding model support for
-the [Google Generative AI](https://ai.google.dev/api/rest) APIs.
+The [Google](https://ai.google.dev) provider contains language and embedding model support for
+the [Google](https://ai.google.dev/api/rest) APIs.
 
 ## Setup
 
@@ -36,17 +36,17 @@ You can import the default provider instance `google` from `@ai-sdk/google`:
 import { google } from '@ai-sdk/google';
 ```
 
-If you need a customized setup, you can import `createGoogleGenerativeAI` from `@ai-sdk/google` and create a provider instance with your settings:
+If you need a customized setup, you can import `createGoogle` from `@ai-sdk/google` and create a provider instance with your settings:
 
 ```ts
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGoogle } from '@ai-sdk/google';
 
-const google = createGoogleGenerativeAI({
+const google = createGoogle({
   // custom settings
 });
 ```
 
-You can use the following optional settings to customize the Google Generative AI provider instance:
+You can use the following optional settings to customize the Google provider instance:
 
 - **baseURL** _string_
 
@@ -89,7 +89,7 @@ The models support tool calls and some have multi-modal capabilities.
 const model = google('gemini-2.5-flash');
 ```
 
-You can use Google Generative AI language models to generate text with the `generateText` function:
+You can use Google language models to generate text with the `generateText` function:
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -101,11 +101,11 @@ const { text } = await generateText({
 });
 ```
 
-Google Generative AI language models can also be used in the `streamText` function
+Google language models can also be used in the `streamText` function
 and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
-Google Generative AI also supports some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
+Google also supports some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
@@ -128,7 +128,7 @@ await generateText({
 });
 ```
 
-The following optional provider options are available for Google Generative AI models:
+The following optional provider options are available for Google models:
 
 - **cachedContent** _string_
 
@@ -141,7 +141,7 @@ The following optional provider options are available for Google Generative AI m
 
   This is useful when the JSON Schema contains elements that are
   not supported by the OpenAPI schema version that
-  Google Generative AI uses. You can use this to disable
+  Google uses. You can use this to disable
   structured outputs if you need to.
 
   See [Troubleshooting: Schema Limitations](#schema-limitations) for more details.
@@ -177,7 +177,7 @@ The following optional provider options are available for Google Generative AI m
 
 - **thinkingConfig** _\{ thinkingLevel?: 'minimal' | 'low' | 'medium' | 'high'; thinkingBudget?: number; includeThoughts?: boolean \}_
 
-  Optional. Configuration for the model's thinking process. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/thinking).
+  Optional. Configuration for the model's thinking process. Only supported by specific [Google models](https://ai.google.dev/gemini-api/docs/thinking).
 
   - **thinkingLevel** _'minimal' | 'low' | 'medium' | 'high'_
 
@@ -186,7 +186,7 @@ The following optional provider options are available for Google Generative AI m
   - **thinkingBudget** _number_
 
     Optional. Gives the model guidance on the number of thinking tokens it can use when generating a response. Setting it to 0 disables thinking, if the model supports it.
-    For more information about the possible value ranges for each model see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking#set-budget).
+    For more information about the possible value ranges for each model see [Google thinking documentation](https://ai.google.dev/gemini-api/docs/thinking#set-budget).
 
     <Note>
       This option is for Gemini 2.5 models. Gemini 3 models should use
@@ -199,7 +199,7 @@ The following optional provider options are available for Google Generative AI m
 
 - **imageConfig** _\{ aspectRatio?: string, imageSize?: string \}_
 
-  Optional. Configuration for the models image generation. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/image-generation).
+  Optional. Configuration for the models image generation. Only supported by specific [Google models](https://ai.google.dev/gemini-api/docs/image-generation).
 
   - **aspectRatio** _string_
 
@@ -258,7 +258,7 @@ The following optional provider options are available for Google Generative AI m
 
 ### Thinking
 
-The Gemini 2.5 and Gemini 3 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google Generative AI thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
+The Gemini 2.5 and Gemini 3 series models use an internal "thinking process" that significantly improves their reasoning and multi-step planning abilities, making them highly effective for complex tasks such as coding, advanced mathematics, and data analysis. For more information see [Google thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
 
 #### Gemini 3 Models
 
@@ -318,7 +318,7 @@ console.log(reasoning); // Reasoning summary
 
 ### File Inputs
 
-The Google Generative AI provider supports file inputs, e.g. PDF files.
+The Google provider supports file inputs, e.g. PDF files.
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -384,7 +384,7 @@ See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use
 
 ### Cached Content
 
-Google Generative AI supports both explicit and implicit caching to help reduce costs on repetitive content.
+Google supports both explicit and implicit caching to help reduce costs on repetitive content.
 
 #### Implicit Caching
 
@@ -516,7 +516,7 @@ the model has access to the latest information using Google Search.
 
 ```ts highlight="8,17-20"
 import { google } from '@ai-sdk/google';
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
@@ -532,7 +532,7 @@ const { text, sources, providerMetadata } = await generateText({
 // access the grounding metadata. Casting to the provider metadata type
 // is optional but provides autocomplete and type safety.
 const metadata = providerMetadata?.google as
-  | GoogleGenerativeAIProviderMetadata
+  | GoogleProviderMetadata
   | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
@@ -693,7 +693,7 @@ const { text, sources, providerMetadata } = await generateText({
 });
 
 const metadata = providerMetadata?.google as
-  | GoogleGenerativeAIProviderMetadata
+  | GoogleProviderMetadata
   | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const urlContextMetadata = metadata?.urlContextMetadata;
@@ -714,7 +714,7 @@ Example response:
 {
   "urlMetadata": [
     {
-      "retrievedUrl": "https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai",
+      "retrievedUrl": "https://ai-sdk.dev/providers/ai-sdk-providers/google",
       "urlRetrievalStatus": "URL_RETRIEVAL_STATUS_SUCCESS"
     }
   ]
@@ -728,8 +728,8 @@ With the URL context tool, you will also get the `groundingMetadata`.
     "groundingChunks": [
         {
             "web": {
-                "uri": "https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai",
-                "title": "Google Generative AI - AI SDK Providers"
+                "uri": "https://ai-sdk.dev/providers/ai-sdk-providers/google",
+                "title": "Google - AI SDK Providers"
             }
         }
     ],
@@ -766,7 +766,7 @@ import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
   model: google('gemini-2.5-flash'),
-  prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai, tell me how to use Gemini with AI SDK.
+  prompt: `Based on this context: https://ai-sdk.dev/providers/ai-sdk-providers/google, tell me how to use Gemini with AI SDK.
     Also, provide the latest news about AI SDK V5.`,
   tools: {
     google_search: google.tools.googleSearch({}),
@@ -775,7 +775,7 @@ const { text, sources, providerMetadata } = await generateText({
 });
 
 const metadata = providerMetadata?.google as
-  | GoogleGenerativeAIProviderMetadata
+  | GoogleProviderMetadata
   | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const urlContextMetadata = metadata?.urlContextMetadata;
@@ -788,7 +788,7 @@ the model has access to Google Maps data for location-aware responses. This enab
 
 ```ts highlight="7-16"
 import { google, type GoogleLanguageModelOptions } from '@ai-sdk/google';
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
@@ -808,7 +808,7 @@ const { text, sources, providerMetadata } = await generateText({
 });
 
 const metadata = providerMetadata?.google as
-  | GoogleGenerativeAIProviderMetadata
+  | GoogleProviderMetadata
   | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 ```
@@ -849,7 +849,7 @@ This enables the model to provide answers based on your specific data sources an
 
 ```ts highlight="8,17-20"
 import { createVertex } from '@ai-sdk/google-vertex';
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const vertex = createVertex({
@@ -873,7 +873,7 @@ const { text, sources, providerMetadata } = await generateText({
 // access the grounding metadata. Casting to the provider metadata type
 // is optional but provides autocomplete and type safety.
 const metadata = providerMetadata?.google as
-  | GoogleGenerativeAIProviderMetadata
+  | GoogleProviderMetadata
   | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
@@ -1057,7 +1057,7 @@ const { output } = await generateText({
 });
 ```
 
-The following Zod features are known to not work with Google Generative AI:
+The following Zod features are known to not work with Google:
 
 - `z.union`
 - `z.record`
@@ -1117,12 +1117,12 @@ using the `.embedding()` factory method.
 const model = google.embedding('gemini-embedding-001');
 ```
 
-The Google Generative AI provider sends API calls to the right endpoint based on the type of embedding:
+The Google provider sends API calls to the right endpoint based on the type of embedding:
 
 - **Single embeddings**: When embedding a single value with `embed()`, the provider uses the single `:embedContent` endpoint, which typically has higher rate limits compared to the batch endpoint.
 - **Batch embeddings**: When embedding multiple values with `embedMany()` or multiple values in `embed()`, the provider uses the `:batchEmbedContents` endpoint.
 
-Google Generative AI embedding models support additional settings. You can pass them as an options argument:
+Google embedding models support additional settings. You can pass them as an options argument:
 
 ```ts
 import { google, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
@@ -1164,7 +1164,7 @@ const { embeddings } = await embedMany({
 });
 ```
 
-The following optional provider options are available for Google Generative AI embedding models:
+The following optional provider options are available for Google embedding models:
 
 - **outputDimensionality**: _number_
 
