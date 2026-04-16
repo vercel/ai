@@ -223,24 +223,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     if (rejectsSamplingParameters) {
       if (temperature != null) {
         warnings.push({
-          type: 'unsupported',
-          feature: 'temperature',
+          type: 'unsupported-setting',
+          setting: 'temperature',
           details: `temperature is not supported by ${this.modelId} and will be ignored`,
         });
         temperature = undefined;
       }
       if (topK != null) {
         warnings.push({
-          type: 'unsupported',
-          feature: 'topK',
+          type: 'unsupported-setting',
+          setting: 'topK',
           details: `topK is not supported by ${this.modelId} and will be ignored`,
         });
         topK = undefined;
       }
       if (topP != null) {
         warnings.push({
-          type: 'unsupported',
-          feature: 'topP',
+          type: 'unsupported-setting',
+          setting: 'topP',
           details: `topP is not supported by ${this.modelId} and will be ignored`,
         });
         topP = undefined;
@@ -1909,6 +1909,7 @@ function getModelCapabilities(modelId: string): {
     return {
       maxOutputTokens: 8192,
       supportsStructuredOutput: false,
+      rejectsSamplingParameters: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
