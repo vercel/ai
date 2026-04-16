@@ -1,5 +1,11 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.44
+
+### Patch Changes
+
+- ai@7.0.0-beta.98
+
 ## 1.0.0-beta.43
 
 ### Patch Changes
