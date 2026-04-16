@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.71
+
+### Patch Changes
+
+- 95b4fe0: fix(provider/anthropic): stop adding `fine-grained-tool-streaming-2025-05-14` beta for `claude-opus-4-7`
+
 ## 3.0.70
 
 ### Patch Changes
