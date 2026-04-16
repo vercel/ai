@@ -17,13 +17,12 @@ description: Monitor, evaluate and debug your AI SDK application with Langfuse
 
 The AI SDK supports tracing via OpenTelemetry. With the `LangfuseSpanProcessor` you can collect these traces in Langfuse.
 
-Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` in your `instrumentation.ts` file to enable OpenTelemetry span collection, then enable telemetry on each request that you want to trace:
+Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` in your `instrumentation.ts` file. Once registered, telemetry is emitted automatically for every AI SDK call:
 
-```ts highlight="4"
+```ts
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: { isEnabled: true },
 });
 ```
 
@@ -131,7 +130,6 @@ async function main() {
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
       metadata: {
         something: 'custom',
@@ -182,7 +180,6 @@ for (let i = 0; i < 3; i++) {
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: `holiday-tradition-${i}`,
       metadata: {
         langfuseTraceId: parentTraceId,
@@ -222,7 +219,6 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: fetchedPrompt.prompt,
   experimental_telemetry: {
-    isEnabled: true,
     metadata: {
       langfusePrompt: fetchedPrompt.toJSON(),
     },
@@ -236,12 +232,11 @@ The resulting generation will have the prompt linked to the trace in Langfuse. L
 
 All of the `metadata` fields are automatically captured by the exporter. You can also pass custom trace attributes to e.g. track users or sessions.
 
-```ts highlight="6-12"
+```ts highlight="5-11"
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
-    isEnabled: true,
     functionId: 'my-awesome-function', // Trace name
     metadata: {
       langfuseTraceId: 'trace-123', // Langfuse trace

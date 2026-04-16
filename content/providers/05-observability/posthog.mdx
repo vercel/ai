@@ -53,7 +53,7 @@ export function register() {
 
 **Step 3.** Use the AI SDK with telemetry enabled in your route handlers or server actions
 
-```ts highlight="6-12"
+```ts highlight="6-11"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -61,7 +61,6 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Tell me a fun fact about hedgehogs.',
   experimental_telemetry: {
-    isEnabled: true,
     functionId: 'my-ai-function',
     metadata: {
       posthog_distinct_id: 'user_123', // optional: links events to a PostHog user
@@ -101,9 +100,9 @@ sdk.start();
 registerTelemetryIntegration(new OpenTelemetryIntegration());
 ```
 
-**Step 3.** Use the AI SDK with telemetry enabled
+**Step 3.** Use the AI SDK. Telemetry is captured automatically once the integration is registered:
 
-```ts highlight="6-13"
+```ts highlight="6-12"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -111,7 +110,6 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Tell me a fun fact about hedgehogs.',
   experimental_telemetry: {
-    isEnabled: true,
     functionId: 'my-ai-function',
     metadata: {
       posthog_distinct_id: 'user_123', // optional: links events to a PostHog user
@@ -137,12 +135,11 @@ The integration supports streaming functions like `streamText`. Each streamed ca
 
 Pass `posthog_distinct_id` in the `metadata` field to associate LLM events with a specific user in PostHog. If omitted, events are captured anonymously.
 
-```ts highlight="7"
+```ts highlight="6"
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
-    isEnabled: true,
     metadata: {
       posthog_distinct_id: 'user_123',
     },
@@ -154,12 +151,11 @@ const result = await generateText({
 
 You can disable recording of inputs and outputs by setting `recordInputs` and `recordOutputs` to `false`:
 
-```ts highlight="6-7"
+```ts highlight="5-6"
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
-    isEnabled: true,
     recordInputs: false,
     recordOutputs: false,
   },

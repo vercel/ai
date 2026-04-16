@@ -42,7 +42,6 @@ run(async () => {
     },
     stopWhen: isStepCount(3),
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'child-agent',
     },
   });
@@ -72,7 +71,6 @@ run(async () => {
     },
     stopWhen: isStepCount(3),
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'parent-agent',
     },
   });
