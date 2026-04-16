@@ -1,8 +1,8 @@
-# ShopGraph Authenticated Extraction
+# ShopGraph: Per-Field Confidence Scoring for Commerce Data
 
-Authenticated product data extraction with per-field confidence scoring.
+Product extraction APIs return data. [ShopGraph](https://shopgraph.dev) returns data with per-field confidence scores (0.0 to 1.0) so your UI can show users which fields to trust and which to verify.
 
-This example uses the [AI SDK](https://ai-sdk.dev/docs) with [Next.js](https://nextjs.org/) and [OpenAI](https://openai.com) to build a product research assistant. It extracts structured commerce data from any product URL via the [ShopGraph API](https://shopgraph.dev) and displays per-field confidence scores so you can see which data points are reliable and which need verification.
+This example uses the [AI SDK](https://ai-sdk.dev/docs) with [Next.js](https://nextjs.org/) and [OpenAI](https://openai.com) to build a product research chat interface. Fields extracted from structured Schema.org data get 0.93 confidence. Fields parsed by an LLM from page text get 0.70. The UI renders them differently — green for trusted, amber for "verification recommended."
 
 ## How to use
 
