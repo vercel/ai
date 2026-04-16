@@ -19,7 +19,8 @@
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "check": "ultracite check",
-    "fix": "ultracite fix"
+    "fix": "ultracite fix",
+    "konsistent": "konsistent"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
