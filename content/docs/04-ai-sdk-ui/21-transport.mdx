@@ -158,7 +158,7 @@ For complete API details, see the [DirectChatTransport reference](/docs/referenc
 
 ## Workflow Transport
 
-For chat apps built on [Vercel Workflows](/docs/agents/workflow-agent), `WorkflowChatTransport` from `@ai-sdk/workflow` provides automatic stream reconnection. It handles the common scenario where a workflow function times out mid-stream — the transport detects the missing `finish` event and reconnects to resume from where it left off.
+For chat apps built on the [Workflow SDK](/docs/agents/workflow-agent), `WorkflowChatTransport` from `@ai-sdk/workflow` provides automatic stream reconnection. It handles the common scenario where a workflow function times out mid-stream — the transport detects the missing `finish` event and reconnects to resume from where it left off.
 
 ```tsx
 import { useChat } from '@ai-sdk/react';

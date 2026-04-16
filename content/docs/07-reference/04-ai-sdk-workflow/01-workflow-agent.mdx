@@ -5,9 +5,9 @@ description: API Reference for the WorkflowAgent class.
 
 # `WorkflowAgent`
 
-Creates a durable, resumable AI agent for use inside Vercel Workflows. `WorkflowAgent` handles the agent loop, tool schema serialization across workflow step boundaries, and built-in tool approval flows.
+Creates a durable, resumable AI agent that runs on the [Workflow SDK](https://workflow-sdk.dev/). `WorkflowAgent` handles the agent loop, tool schema serialization across workflow step boundaries, and built-in tool approval flows.
 
-Unlike [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent) from the `ai` package, `WorkflowAgent` is designed to survive process restarts, pause for human approval, and integrate with the Workflow DevKit's step mechanism.
+Unlike [`ToolLoopAgent`](/docs/reference/ai-sdk-core/tool-loop-agent) from the `ai` package, `WorkflowAgent` is designed to survive process restarts, pause for human approval, and integrate with the Workflow SDK's step mechanism.
 
 ```ts
 import { WorkflowAgent } from '@ai-sdk/workflow';
