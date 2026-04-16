@@ -120,6 +120,10 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Fast Mode section](#fast-mode) for more details.
 
+- `inferenceGeo` _"us" | "global"_
+
+  Optional. See [Data Residency section](#data-residency) for more details.
+
 - `thinking` _object_
 
   Optional. See [Reasoning section](#reasoning) for more details.
@@ -252,6 +256,27 @@ const { text } = await generateText({
 ```
 
 The `speed` option accepts `'fast'` or `'standard'` (default behavior).
+
+### Data Residency
+
+Anthropic supports an [`inferenceGeo` option](https://platform.claude.com/docs/en/build-with-claude/data-residency) that controls where model inference runs for a request.
+
+```ts highlight="8-10"
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'Summarize the key points of this document.',
+  providerOptions: {
+    anthropic: {
+      inferenceGeo: 'us',
+    } satisfies AnthropicProviderOptions,
+  },
+});
+```
+
+The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` (default, any available geography).
 
 ### Task Budgets
 

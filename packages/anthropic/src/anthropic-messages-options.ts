@@ -182,6 +182,16 @@ export const anthropicProviderOptions = z.object({
   speed: z.enum(['fast', 'standard']).optional(),
 
   /**
+   * Controls where model inference runs for this request.
+   *
+   * - `"global"`: Inference may run in any available geography (default).
+   * - `"us"`: Inference runs only in US-based infrastructure.
+   *
+   * See https://platform.claude.com/docs/en/build-with-claude/data-residency
+   */
+  inferenceGeo: z.enum(['us', 'global']).optional(),
+
+  /**
    * Context management configuration for automatic context window management.
    * Enables features like automatic compaction and clearing of tool uses/thinking blocks.
    */
