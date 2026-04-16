@@ -3,14 +3,15 @@ import type {
   LanguageModelV4Prompt,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type {
-  Experimental_LanguageModelStreamPart as ModelCallStreamPart,
-  LanguageModel,
-  ModelMessage,
-  StepResult,
-  ToolCallRepairFunction,
-  ToolChoice,
-  ToolSet,
+import {
+  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
+  type LanguageModel,
+  type ModelMessage,
+  type StepResult,
+  type ToolCallRepairFunction,
+  type ToolChoice,
+  type ToolSet,
+  experimental_filterActiveTools as filterActiveTools,
 } from 'ai';
 import {
   doStreamStep,
@@ -239,7 +240,10 @@ export async function* streamTextIterator({
       // Filter tools if activeTools is specified
       const effectiveTools =
         currentActiveTools && currentActiveTools.length > 0
-          ? filterToolSet(tools, currentActiveTools)
+          ? (filterActiveTools({
+              tools,
+              activeTools: currentActiveTools,
+            }) ?? tools)
           : tools;
 
       // Serialize tools before crossing the step boundary — zod schemas
@@ -381,19 +385,6 @@ export async function* streamTextIterator({
   }
 
   return conversationPrompt;
-}
-
-/**
- * Filter a tool set to only include the specified active tools.
- */
-function filterToolSet(tools: ToolSet, activeTools: string[]): ToolSet {
-  const filtered: ToolSet = {};
-  for (const toolName of activeTools) {
-    if (toolName in tools) {
-      filtered[toolName] = tools[toolName];
-    }
-  }
-  return filtered;
 }
 
 /**
