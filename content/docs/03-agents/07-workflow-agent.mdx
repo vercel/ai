@@ -352,7 +352,6 @@ import { isLoopFinished } from "ai";
 
 const result = await agent.stream({
   messages,
-  maxSteps: 10,
   stopWhen: isLoopFinished(),
 });
 ```
