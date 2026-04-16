@@ -2447,14 +2447,17 @@ class DefaultStreamTextResult<
               break;
             }
 
-            case 'reasoning-start': {
-              controller.enqueue({
-                type: 'reasoning-start',
-                id: part.id,
-                ...(part.providerMetadata != null
-                  ? { providerMetadata: part.providerMetadata }
-                  : {}),
-              });
+            case 'reasoning-start':
+            case 'reasoning-end': {
+              if (sendReasoning) {
+                controller.enqueue({
+                  type: partType,
+                  id: part.id,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                });
+              }
               break;
             }
 
@@ -2472,6 +2475,7 @@ class DefaultStreamTextResult<
               break;
             }
 
+<<<<<<< HEAD
             case 'reasoning-end': {
               controller.enqueue({
                 type: 'reasoning-end',
@@ -2492,6 +2496,20 @@ class DefaultStreamTextResult<
                   ? { providerMetadata: part.providerMetadata }
                   : {}),
               });
+=======
+            case 'file':
+            case 'reasoning-file': {
+              if (partType !== 'reasoning-file' || sendReasoning) {
+                controller.enqueue({
+                  type: part.type,
+                  mediaType: part.file.mediaType,
+                  url: `data:${part.file.mediaType};base64,${part.file.base64}`,
+                  ...(part.providerMetadata != null
+                    ? { providerMetadata: part.providerMetadata }
+                    : {}),
+                });
+              }
+>>>>>>> 33d099cc6 (fix(ai): omit reasoning-start/end when sendReasoning is false (#14549))
               break;
             }
 
