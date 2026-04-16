@@ -1,5 +1,53 @@
 # @ai-sdk/google
 
+## 2.0.69
+
+### Patch Changes
+
+- bfaafad: chore(provider/google): update available models
+
+## 2.0.68
+
+### Patch Changes
+
+- 4c10694: fix(google): fix `serviceTier` to be correctly formatted for Vertex API
+
+## 2.0.67
+
+### Patch Changes
+
+- 84bbfee: feat(provider/google): preserve per-modality token details in usage data
+
+## 2.0.66
+
+### Patch Changes
+
+- d634323: fix(provider/google): fix Gemini service tier enum after upstream update
+
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+
+## 2.0.64
+
+### Patch Changes
+
+- fd3f1d3: feat(provider/google): add support for service tier parameter
+
+## 2.0.63
+
+### Patch Changes
+
+- 7655bcf: feat(provider/google): Add multimodal tool-result support for Google function responses.
+
+  Tool results with `output.type = 'content'` now map media parts into
+  `functionResponse.parts` for Google models, including `image-data`,
+  `file-data`, and base64 `data:` URLs in URL-style content parts.
+  Remote HTTP(S) URLs in URL-style tool-result parts are not supported.
+
 ## 2.0.62
 
 ### Patch Changes

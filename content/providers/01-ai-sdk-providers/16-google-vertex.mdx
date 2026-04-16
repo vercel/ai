@@ -5,14 +5,15 @@ description: Learn how to use the Google Vertex AI provider.
 
 # Google Vertex Provider
 
-The Google Vertex provider for the [AI SDK](/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs. This includes support for [Google's Gemini models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models) and [Anthropic's Claude partner models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude).
+The Google Vertex provider for the [AI SDK](/docs) contains language model support for the [Google Vertex AI](https://cloud.google.com/vertex-ai) APIs. This includes support for [Google's Gemini models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models), [Anthropic's Claude partner models](https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude), and [MaaS (Model as a Service) open models](https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models).
 
 <Note>
   The Google Vertex provider is compatible with both Node.js and Edge runtimes.
   The Edge runtime is supported through the `@ai-sdk/google-vertex/edge`
   sub-module. More details can be found in the [Google Vertex Edge
-  Runtime](#google-vertex-edge-runtime) and [Google Vertex Anthropic Edge
-  Runtime](#google-vertex-anthropic-edge-runtime) sections below.
+  Runtime](#google-vertex-edge-runtime), [Google Vertex Anthropic Edge
+  Runtime](#google-vertex-anthropic-edge-runtime), and [Google Vertex MaaS Edge
+  Runtime](#google-vertex-maas-edge-runtime) sections below.
 </Note>
 
 ## Setup
@@ -1003,6 +1004,12 @@ The following optional provider options are available for Anthropic models:
 
   Optional. See [Reasoning section](#reasoning) for more details.
 
+- `metadata` _object_
+
+  Optional. Metadata to include with the request. See the [Anthropic API documentation](https://platform.claude.com/docs/en/api/messages/create) for details.
+
+  - `userId` _string_ - An external identifier for the end-user.
+
 ### Reasoning
 
 Anthropic has reasoning support for the `claude-3-7-sonnet@20250219` model.
@@ -1237,4 +1244,148 @@ See also [Anthropic Model Comparison](https://docs.anthropic.com/en/docs/about-c
 <Note>
   The table above lists popular models. You can also pass any available provider
   model ID as a string if needed.
+</Note>
+
+## Google Vertex MaaS Provider Usage
+
+The Google Vertex MaaS (Model as a Service) provider offers access to partner and open models hosted on Vertex AI through an OpenAI-compatible Chat Completions API. This includes models from DeepSeek, Qwen, Meta, MiniMax, Moonshot, and OpenAI.
+
+For more information, see the [Vertex AI MaaS documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/maas/use-open-models).
+
+### Provider Instance
+
+You can import the default provider instance `vertexMaas` from `@ai-sdk/google-vertex/maas`:
+
+```typescript
+import { vertexMaas } from '@ai-sdk/google-vertex/maas';
+```
+
+If you need a customized setup, you can import `createVertexMaas` from `@ai-sdk/google-vertex/maas` and create a provider instance with your settings:
+
+```typescript
+import { createVertexMaas } from '@ai-sdk/google-vertex/maas';
+
+const vertexMaas = createVertexMaas({
+  project: 'my-project', // optional
+  location: 'us-east5', // optional, defaults to 'global'
+});
+```
+
+#### Node.js Runtime
+
+For Node.js environments, the Google Vertex MaaS provider supports all standard Google Cloud authentication options through the `google-auth-library`:
+
+```typescript
+import { createVertexMaas } from '@ai-sdk/google-vertex/maas';
+
+const vertexMaas = createVertexMaas({
+  googleAuthOptions: {
+    credentials: {
+      client_email: 'my-email',
+      private_key: 'my-private-key',
+    },
+  },
+});
+```
+
+##### Optional Provider Settings
+
+- **project** _string_
+
+  The Google Cloud project ID. Defaults to the `GOOGLE_VERTEX_PROJECT` environment variable.
+
+- **location** _string_
+
+  The Google Cloud location, e.g. `us-east5` or `global`. Defaults to the `GOOGLE_VERTEX_LOCATION` environment variable. If not set, defaults to `global`.
+
+- **googleAuthOptions** _object_
+
+  Optional. The Authentication options used by the [Google Auth Library](https://github.com/googleapis/google-auth-library-nodejs/).
+
+- **headers** _Resolvable&lt;Record&lt;string, string | undefined&gt;&gt;_
+
+  Headers to include in requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+<a id="google-vertex-maas-edge-runtime"></a>
+
+#### Edge Runtime
+
+For Edge runtimes, import from `@ai-sdk/google-vertex/maas/edge`:
+
+```typescript
+import { vertexMaas } from '@ai-sdk/google-vertex/maas/edge';
+```
+
+```typescript
+import { createVertexMaas } from '@ai-sdk/google-vertex/maas/edge';
+
+const vertexMaas = createVertexMaas({
+  project: 'my-project',
+  location: 'us-east5',
+});
+```
+
+For Edge runtime authentication, set these environment variables:
+
+- `GOOGLE_CLIENT_EMAIL`
+- `GOOGLE_PRIVATE_KEY`
+- `GOOGLE_PRIVATE_KEY_ID` (optional)
+
+### Language Models
+
+You can create models using the provider instance. The first argument is the model ID:
+
+```ts
+import { vertexMaas } from '@ai-sdk/google-vertex/maas';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: vertexMaas('deepseek-ai/deepseek-v3.2-maas'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+```
+
+Streaming is also supported:
+
+```ts
+import { vertexMaas } from '@ai-sdk/google-vertex/maas';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: vertexMaas('deepseek-ai/deepseek-v3.2-maas'),
+  prompt: 'Invent a new holiday and describe its traditions.',
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+```
+
+### Available Models
+
+The following models are available through the MaaS provider. You can also pass any valid model ID as a string.
+
+| Model ID                                       | Provider |
+| ---------------------------------------------- | -------- |
+| `deepseek-ai/deepseek-r1-0528-maas`           | DeepSeek |
+| `deepseek-ai/deepseek-v3.1-maas`              | DeepSeek |
+| `deepseek-ai/deepseek-v3.2-maas`              | DeepSeek |
+| `openai/gpt-oss-120b-maas`                    | OpenAI   |
+| `openai/gpt-oss-20b-maas`                     | OpenAI   |
+| `meta/llama-4-maverick-17b-128e-instruct-maas` | Meta     |
+| `meta/llama-4-scout-17b-16e-instruct-maas`    | Meta     |
+| `minimax/minimax-m2-maas`                      | MiniMax  |
+| `qwen/qwen3-coder-480b-a35b-instruct-maas`    | Qwen     |
+| `qwen/qwen3-next-80b-a3b-instruct-maas`       | Qwen     |
+| `qwen/qwen3-next-80b-a3b-thinking-maas`       | Qwen     |
+| `moonshotai/kimi-k2-thinking-maas`             | Moonshot |
+
+<Note>
+  Model availability depends on your Google Cloud project and region. Check the
+  [Vertex AI Model Garden](https://console.cloud.google.com/vertex-ai/model-garden)
+  for the latest available models.
 </Note>

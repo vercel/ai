@@ -1,5 +1,19 @@
 # @ai-sdk/alibaba
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [a27a978]
+  - @ai-sdk/provider-utils@3.0.23
+  - @ai-sdk/openai-compatible@1.0.35
+
+## 0.0.4
+
+### Patch Changes
+
+- d00c757: fix(provider/alibaba): handle single-item content array cache control
+
 ## 0.0.3
 
 ### Patch Changes

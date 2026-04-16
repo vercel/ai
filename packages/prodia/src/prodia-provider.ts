@@ -1,5 +1,6 @@
 import {
   type ImageModelV2,
+  type LanguageModelV2,
   NoSuchModelError,
   type ProviderV2,
 } from '@ai-sdk/provider';
@@ -11,6 +12,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ProdiaImageModel } from './prodia-image-model';
 import type { ProdiaImageModelId } from './prodia-image-settings';
+import { ProdiaLanguageModel } from './prodia-language-model';
+import type { ProdiaLanguageModelId } from './prodia-language-model-settings';
 import { VERSION } from './version';
 
 export interface ProdiaProviderSettings {
@@ -37,6 +40,11 @@ export interface ProdiaProviderSettings {
 }
 
 export interface ProdiaProvider extends ProviderV2 {
+  /**
+   * Creates a language model for multimodal generation (img2img with text+image output).
+   */
+  languageModel(modelId: ProdiaLanguageModelId): LanguageModelV2;
+
   /**
    * Creates a model for image generation.
    */
@@ -80,6 +88,14 @@ export function createProdia(
       fetch: options.fetch,
     });
 
+  const createLanguageModel = (modelId: ProdiaLanguageModelId) =>
+    new ProdiaLanguageModel(modelId, {
+      provider: 'prodia.language',
+      baseURL: baseURL ?? defaultBaseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({
       modelId,
@@ -87,17 +103,10 @@ export function createProdia(
     });
   };
 
-  const languageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'languageModel',
-    });
-  };
-
   return {
+    languageModel: createLanguageModel,
     imageModel: createImageModel,
     image: createImageModel,
-    languageModel,
     textEmbeddingModel,
   };
 }

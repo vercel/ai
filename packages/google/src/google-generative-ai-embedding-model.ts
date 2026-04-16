@@ -26,9 +26,7 @@ type GoogleGenerativeAIEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class GoogleGenerativeAIEmbeddingModel
-  implements EmbeddingModelV2<string>
-{
+export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = 'v2';
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "2.0.156",
+  "version": "2.0.179",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -10,9 +10,7 @@
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
     "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
     "clean": "del-cli dist *.tsbuildinfo",
-    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.js --run",
     "test:update": "vitest --config vitest.config.js --run -u",
     "test:watch": "vitest --config vitest.config.js"
@@ -43,8 +41,6 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "eslint": "8.57.1",
-    "eslint-config-vercel-ai": "workspace:*",
     "jsdom": "^24.0.0",
     "msw": "2.6.4",
     "react-dom": "^19",

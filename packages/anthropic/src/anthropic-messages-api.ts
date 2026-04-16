@@ -278,6 +278,10 @@ export type AnthropicTool =
       name: string;
     }
   | {
+      type: 'code_execution_20260120';
+      name: string;
+    }
+  | {
       name: string;
       type: 'computer_20250124' | 'computer_20241022';
       display_width_px: number;
