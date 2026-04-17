@@ -1,9 +1,6 @@
-import {
-  bedrock,
-  type AmazonBedrockLanguageModelOptions,
-} from '@ai-sdk/amazon-bedrock';
+import { bedrock, type BedrockProviderOptions } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
-import { run } from '../../lib/run';
+import { run } from '../lib/run';
 
 run(async () => {
   const result = await generateText({
@@ -16,7 +13,7 @@ run(async () => {
           maxReasoningEffort: 'high',
           display: 'summarized',
         },
-      } satisfies AmazonBedrockLanguageModelOptions,
+      } satisfies BedrockProviderOptions,
     },
   });
 

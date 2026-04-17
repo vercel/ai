@@ -180,15 +180,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
         : undefined;
-<<<<<<< HEAD
-    const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingRequested;
-=======
     const thinkingDisplay =
       thinkingType === 'adaptive'
         ? bedrockOptions.reasoningConfig?.display
         : undefined;
-    const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingEnabled;
->>>>>>> fd0f09713 (Backport: fix(provider/amazon-bedrock): fix Anthropic reasoning behavior related to Opus 4.7 (#14602))
+    const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingRequested;
 
     const inferenceConfig = {
       ...(maxOutputTokens != null && { maxTokens: maxOutputTokens }),
@@ -335,6 +331,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     const {
       reasoningConfig: _,
       additionalModelRequestFields: __,
+      serviceTier: ___,
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
@@ -353,6 +350,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         }),
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
+        }),
+        ...(bedrockOptions.serviceTier != null && {
+          serviceTier: {
+            type: bedrockOptions.serviceTier,
+          },
         }),
         ...filteredBedrockOptions,
         ...(toolConfig.tools !== undefined && toolConfig.tools.length > 0

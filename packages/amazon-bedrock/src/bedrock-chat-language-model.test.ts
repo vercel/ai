@@ -1424,19 +1424,10 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-<<<<<<< HEAD
-=======
-          "id": undefined,
-          "modelId": "anthropic.claude-3-haiku-20240307-v1:0",
-          "timestamp": undefined,
-          "type": "response-metadata",
-        },
-        {
           "id": "0",
           "type": "reasoning-start",
         },
         {
->>>>>>> fd0f09713 (Backport: fix(provider/amazon-bedrock): fix Anthropic reasoning behavior related to Opus 4.7 (#14602))
           "delta": "",
           "id": "0",
           "providerMetadata": {
@@ -3254,8 +3245,6 @@ describe('doGenerate', () => {
     });
   });
 
-<<<<<<< HEAD
-=======
   it('should forward display in adaptive reasoningConfig to thinking', async () => {
     server.urls[anthropicGenerateUrl].response = {
       type: 'json-value' as const,
@@ -3294,7 +3283,16 @@ describe('doGenerate', () => {
   });
 
   it('should pass serviceTier provider option in generate requests', async () => {
-    prepareJsonFixtureResponse('bedrock-text');
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
 
     await model.doGenerate({
       prompt: TEST_PROMPT,
@@ -3317,7 +3315,6 @@ describe('doGenerate', () => {
     ).toBeUndefined();
   });
 
->>>>>>> fd0f09713 (Backport: fix(provider/amazon-bedrock): fix Anthropic reasoning behavior related to Opus 4.7 (#14602))
   it('maps maxReasoningEffort for Nova without thinking (generate)', async () => {
     server.urls[novaGenerateUrl].response = {
       type: 'json-value',
