@@ -52,7 +52,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   onPreliminaryToolResult,
   onToolExecutionStart,
   onToolExecutionEnd,
-  executeToolInTelemetryContext = async ({ execute }) => execute(),
+  executeToolInTelemetryContext = async ({ execute }) => await execute(),
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;

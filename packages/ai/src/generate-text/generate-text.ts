@@ -1086,23 +1086,24 @@ async function executeTools<TOOLS extends ToolSet>({
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
-    toolCalls.map(async toolCall =>
-      executeToolCall({
-        toolCall,
-        tools,
-        telemetry,
-        callId,
-        messages,
-        abortSignal,
-        timeout,
-        toolsContext,
-        stepNumber,
-        provider,
-        modelId,
-        onToolExecutionStart,
-        onToolExecutionEnd,
-        executeToolInTelemetryContext,
-      }),
+    toolCalls.map(
+      async toolCall =>
+        await executeToolCall({
+          toolCall,
+          tools,
+          telemetry,
+          callId,
+          messages,
+          abortSignal,
+          timeout,
+          toolsContext,
+          stepNumber,
+          provider,
+          modelId,
+          onToolExecutionStart,
+          onToolExecutionEnd,
+          executeToolInTelemetryContext,
+        }),
     ),
   );
 
