@@ -517,3 +517,13 @@ console.log(result.usage.inputTokenDetails.cacheWriteTokens);
 ```
 
 If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.providerMetadata?.anthropic?.usage`.
+
+## Google Provider
+
+### Renamed Types, Classes, and Functions: `GenerativeAI` Affix Removed
+
+Every type, class, and function in `@ai-sdk/google` that contained `GoogleGenerativeAI` has been renamed to use simply `Google` — for example, `createGoogleGenerativeAI` → `createGoogle` and `GoogleGenerativeAIProvider` → `GoogleProvider`.
+
+The old names still work as deprecated aliases, but you should migrate to the new names, if you currently reference them.
+
+The main entry point the `google` constant, remains unchanged, so if that's all you use from the provider, no changes are required.
