@@ -73,7 +73,7 @@ export const googleLanguageModelOptions = lazySchema(() =>
        *
        * This is useful when the JSON Schema contains elements that are
        * not supported by the OpenAPI schema version that
-       * Google Generative AI uses. You can use this to disable
+       * Google uses. You can use this to disable
        * structured outputs if you need to.
        */
       structuredOutputs: z.boolean().optional(),

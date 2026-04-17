@@ -121,7 +121,7 @@ export interface GoogleProviderSettings {
 }
 
 /**
- * Create a Google Generative AI provider instance.
+ * Create a Google provider instance.
  */
 export function createGoogle(
   options: GoogleProviderSettings = {},
