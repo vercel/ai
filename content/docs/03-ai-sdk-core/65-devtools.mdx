@@ -37,10 +37,10 @@ pnpm add @ai-sdk/devtools
 Register `DevToolsTelemetry` globally so it captures all AI SDK calls:
 
 ```ts
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
-registerTelemetryIntegration(DevToolsTelemetry());
+registerTelemetry(DevToolsTelemetry());
 ```
 
 Telemetry is enabled automatically once an integration is registered — no per-call configuration is needed:

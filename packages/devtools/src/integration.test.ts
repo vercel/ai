@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { TelemetryIntegration } from 'ai';
+import type { Telemetry } from 'ai';
 import { DevToolsTelemetry } from './integration.js';
 
 const mockCreateRun = vi.fn();
@@ -17,8 +17,8 @@ vi.mock('./db.js', () => ({
 type Listener<T> = (event: T) => PromiseLike<void> | void;
 
 type TestIntegration = {
-  [K in keyof TelemetryIntegration]: K extends 'executeTool'
-    ? TelemetryIntegration[K]
+  [K in keyof Telemetry]: K extends 'executeTool'
+    ? Telemetry[K]
     : Listener<Record<string, unknown>>;
 };
 

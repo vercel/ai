@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import { GenAIOpenTelemetryIntegration } from '@ai-sdk/otel';
-import { generateText, registerTelemetryIntegration, tool } from 'ai';
+import { GenAIOpenTelemetry } from '@ai-sdk/otel';
+import { generateText, registerTelemetry, tool } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
@@ -15,7 +15,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new GenAIOpenTelemetryIntegration());
+registerTelemetry(new GenAIOpenTelemetry());
 
 run(async () => {
   const result = await generateText({
