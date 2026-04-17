@@ -26,7 +26,7 @@ import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { validateToolContext } from './validate-tool-context';
 
-/**s
+/**
  * Executes a single tool call and manages its lifecycle callbacks.
  *
  * This function handles the complete tool execution flow:
