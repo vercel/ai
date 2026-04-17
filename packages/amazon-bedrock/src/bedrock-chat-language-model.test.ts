@@ -1936,6 +1936,10 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
+          "id": "0",
+          "type": "reasoning-start",
+        },
+        {
           "delta": "",
           "id": "0",
           "providerMetadata": {
