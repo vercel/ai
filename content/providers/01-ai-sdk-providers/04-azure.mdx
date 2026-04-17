@@ -73,7 +73,7 @@ You can use the following optional settings to customize the OpenAI provider ins
   Either this or `resourceName` can be used.
   When a baseURL is provided, the resourceName is ignored.
 
-  With a baseURL, the resolved URL is `{baseURL}/v1{path}`.
+  With a baseURL, the resolved URL is `{baseURL}{path}` — no `/v1` segment is appended and no `api-version` query parameter is added.
 
 - **headers** _Record&lt;string,string&gt;_
 
