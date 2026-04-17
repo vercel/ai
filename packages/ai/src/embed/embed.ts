@@ -197,7 +197,7 @@ export async function embed({
         return {
           embedding,
           usage,
-          warnings: modelResponse.warnings,
+          warnings: modelResponse.warnings ?? [],
           providerMetadata: modelResponse.providerMetadata,
           response: modelResponse.response,
         };

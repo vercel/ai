@@ -357,4 +357,16 @@ describe('logWarnings', () => {
       expect(mockConsoleWarn).not.toHaveBeenCalled();
     });
   });
+  describe('when warnings is undefined', () => {
+    it('should not throw and should not log', () => {
+      logWarnings({
+        warnings: undefined as any,
+        provider: 'test-provider',
+        model: 'test-model',
+      });
+
+      expect(mockConsoleWarn).not.toHaveBeenCalled();
+      expect(mockConsoleInfo).not.toHaveBeenCalled();
+    });
+  });
 });
