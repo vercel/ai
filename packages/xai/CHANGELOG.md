@@ -1,5 +1,13 @@
 # @ai-sdk/xai
 
+## 2.0.68
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+- Updated dependencies [5543cd1]
+  - @ai-sdk/openai-compatible@1.0.36
+
 ## 2.0.67
 
 ### Patch Changes

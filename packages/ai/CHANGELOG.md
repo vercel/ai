@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.179
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+
 ## 5.0.178
 
 ### Patch Changes

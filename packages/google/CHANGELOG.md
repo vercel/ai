@@ -1,5 +1,12 @@
 # @ai-sdk/google
 
+## 2.0.70
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+- 6eeeb6f: fix(google): use VALIDATED function calling mode when any tool has strict:true
+
 ## 2.0.69
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/fal
 
+## 1.0.30
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+
 ## 1.0.29
 
 ### Patch Changes

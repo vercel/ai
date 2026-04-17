@@ -1,5 +1,11 @@
 # @ai-sdk/elevenlabs
 
+## 1.0.26
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+
 ## 1.0.25
 
 ### Patch Changes

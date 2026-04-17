@@ -1,5 +1,11 @@
 # @ai-sdk/assemblyai
 
+## 1.0.27
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+
 ## 1.0.26
 
 ### Patch Changes

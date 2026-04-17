@@ -1,5 +1,12 @@
 # @ai-sdk/anthropic
 
+## 2.0.77
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+- e1ed246: fix(anthropic): use default thinking budget when unspecified
+
 ## 2.0.76
 
 ### Patch Changes
