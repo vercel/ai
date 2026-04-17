@@ -248,7 +248,7 @@ export const xaiResponsesUsageSchema = z.object({
     .optional(),
   num_sources_used: z.number().optional(),
   num_server_side_tools_used: z.number().optional(),
-  cost_in_usd_ticks: z.number().optional(),
+  cost_in_usd_ticks: z.number().nullish(),
 });
 
 export const xaiResponsesResponseSchema = z.object({
