@@ -86,8 +86,8 @@ export class ToolLoopAgent<
     const {
       experimental_onStart: _settingsOnStart,
       experimental_onStepStart: _settingsOnStepStart,
-      experimental_onToolCallStart: _settingsOnToolCallStart,
-      experimental_onToolCallFinish: _settingsOnToolCallFinish,
+      experimental_onToolExecutionStart: _settingsOnToolExecutionStart,
+      experimental_onToolExecutionEnd: _settingsOnToolExecutionEnd,
       onStepFinish: _settingsOnStepFinish,
       onFinish: _settingsOnFinish,
       ...settingsWithoutCallbacks
@@ -140,8 +140,8 @@ export class ToolLoopAgent<
     timeout,
     experimental_onStart,
     experimental_onStepStart,
-    experimental_onToolCallStart,
-    experimental_onToolCallFinish,
+    experimental_onToolExecutionStart,
+    experimental_onToolExecutionEnd,
     onStepFinish,
     onFinish,
     ...options
@@ -165,13 +165,13 @@ export class ToolLoopAgent<
           | ToolLoopAgentOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onToolCallStart: mergeCallbacks(
-        this.settings.experimental_onToolCallStart,
-        experimental_onToolCallStart,
+      experimental_onToolExecutionStart: mergeCallbacks(
+        this.settings.experimental_onToolExecutionStart,
+        experimental_onToolExecutionStart,
       ),
-      experimental_onToolCallFinish: mergeCallbacks(
-        this.settings.experimental_onToolCallFinish,
-        experimental_onToolCallFinish,
+      experimental_onToolExecutionEnd: mergeCallbacks(
+        this.settings.experimental_onToolExecutionEnd,
+        experimental_onToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
       onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
@@ -192,8 +192,8 @@ export class ToolLoopAgent<
     experimental_transform,
     experimental_onStart,
     experimental_onStepStart,
-    experimental_onToolCallStart,
-    experimental_onToolCallFinish,
+    experimental_onToolExecutionStart,
+    experimental_onToolExecutionEnd,
     onStepFinish,
     onFinish,
     ...options
@@ -218,13 +218,13 @@ export class ToolLoopAgent<
           | ToolLoopAgentOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
           | undefined,
       ),
-      experimental_onToolCallStart: mergeCallbacks(
-        this.settings.experimental_onToolCallStart,
-        experimental_onToolCallStart,
+      experimental_onToolExecutionStart: mergeCallbacks(
+        this.settings.experimental_onToolExecutionStart,
+        experimental_onToolExecutionStart,
       ),
-      experimental_onToolCallFinish: mergeCallbacks(
-        this.settings.experimental_onToolCallFinish,
-        experimental_onToolCallFinish,
+      experimental_onToolExecutionEnd: mergeCallbacks(
+        this.settings.experimental_onToolExecutionEnd,
+        experimental_onToolExecutionEnd,
       ),
       onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
       onFinish: mergeCallbacks(this.settings.onFinish, onFinish),

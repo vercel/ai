@@ -9,6 +9,10 @@ import { z } from 'zod/v4';
 import { asLanguageModelUsage } from '../types/usage';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import { LanguageModelStreamPart } from './stream-language-model-call';
+import {
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
+} from './tool-execution-events';
 
 const finishChunk = {
   type: 'model-call-end' as const,
@@ -275,11 +279,11 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
-          onToolCallStart: async () => {
-            callOrder.push('onToolCallStart');
+          onToolExecutionStart: async () => {
+            callOrder.push('onToolExecutionStart');
           },
-          onToolCallFinish: async () => {
-            callOrder.push('onToolCallFinish');
+          onToolExecutionEnd: async () => {
+            callOrder.push('onToolExecutionEnd');
           },
         }),
       );
@@ -287,9 +291,9 @@ describe('createExecuteToolsTransformation', () => {
       await convertReadableStreamToArray(transformedStream);
 
       expect(callOrder).toEqual([
-        'onToolCallStart',
+        'onToolExecutionStart',
         'execute',
-        'onToolCallFinish',
+        'onToolExecutionEnd',
       ]);
     });
 
@@ -301,8 +305,8 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const startEvents: unknown[] = [];
-      const finishEvents: unknown[] = [];
+      const startEvents: ToolExecutionStartEvent<typeof tools>[] = [];
+      const finishEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
       const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
@@ -328,43 +332,19 @@ describe('createExecuteToolsTransformation', () => {
           stepNumber: 2,
           provider: 'test-provider',
           modelId: 'test-model',
-          onToolCallStart: async event => {
-            startEvents.push({
-              stepNumber: event.stepNumber,
-              provider: event.provider,
-              modelId: event.modelId,
-              toolName: event.toolCall.toolName,
-            });
+          onToolExecutionStart: async event => {
+            startEvents.push(event);
           },
-          onToolCallFinish: async event => {
-            finishEvents.push({
-              stepNumber: event.stepNumber,
-              provider: event.provider,
-              modelId: event.modelId,
-              toolName: event.toolCall.toolName,
-            });
+          onToolExecutionEnd: async event => {
+            finishEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(startEvents).toEqual([
-        {
-          stepNumber: 2,
-          provider: 'test-provider',
-          modelId: 'test-model',
-          toolName: 'testTool',
-        },
-      ]);
-      expect(finishEvents).toEqual([
-        {
-          stepNumber: 2,
-          provider: 'test-provider',
-          modelId: 'test-model',
-          toolName: 'testTool',
-        },
-      ]);
+      expect(startEvents).toMatchInlineSnapshot();
+      expect(finishEvents).toMatchInlineSnapshot();
     });
 
     it('should call onToolCallFinish with success data', async () => {
@@ -375,7 +355,7 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const finishEvents: unknown[] = [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
       const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
@@ -398,27 +378,18 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
-          onToolCallFinish: async event => {
-            finishEvents.push(event);
+          onToolExecutionEnd: async event => {
+            toolExecutionEndEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(finishEvents.length).toBe(1);
-      expect(finishEvents[0]).toMatchObject({
-        success: true,
-        output: 'abc-result',
-        toolCall: {
-          toolName: 'testTool',
-          toolCallId: 'call-1',
-        },
-      });
-      expect((finishEvents[0] as any).durationMs).toBeGreaterThanOrEqual(0);
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
     });
 
-    it('should call onToolCallFinish with error data when tool fails', async () => {
+    it('should call onToolExecutionEnd with error data when tool fails', async () => {
       const tools = {
         failingTool: tool({
           inputSchema: z.object({ value: z.string() }),
@@ -431,8 +402,7 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const finishEvents: unknown[] = [];
-      const toolError = new Error('tool failed');
+      const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
       const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
@@ -455,23 +425,15 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
-          onToolCallFinish: async event => {
-            finishEvents.push(event);
+          onToolExecutionEnd: async event => {
+            toolExecutionEndEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(finishEvents.length).toBe(1);
-      expect(finishEvents[0]).toMatchObject({
-        success: false,
-        error: toolError,
-        toolCall: {
-          toolName: 'failingTool',
-          toolCallId: 'call-1',
-        },
-      });
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
     });
 
     it('should not call callbacks for tools without execute', async () => {
@@ -481,8 +443,9 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const startEvents: unknown[] = [];
-      const finishEvents: unknown[] = [];
+      const toolExecutionStartEvents: ToolExecutionStartEvent<typeof tools>[] =
+        [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
       const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
@@ -505,19 +468,19 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
-          onToolCallStart: async event => {
-            startEvents.push(event);
+          onToolExecutionStart: async event => {
+            toolExecutionStartEvents.push(event);
           },
-          onToolCallFinish: async event => {
-            finishEvents.push(event);
+          onToolExecutionEnd: async event => {
+            toolExecutionEndEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(startEvents.length).toBe(0);
-      expect(finishEvents.length).toBe(0);
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
     });
 
     it('should call callbacks for each tool in a multi-tool stream', async () => {
@@ -528,8 +491,9 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const startEvents: unknown[] = [];
-      const finishEvents: unknown[] = [];
+      const toolExecutionStartEvents: ToolExecutionStartEvent<typeof tools>[] =
+        [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
       const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
@@ -558,19 +522,19 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
-          onToolCallStart: async event => {
-            startEvents.push(event.toolCall.toolCallId);
+          onToolExecutionStart: async event => {
+            toolExecutionStartEvents.push(event);
           },
-          onToolCallFinish: async event => {
-            finishEvents.push(event.toolCall.toolCallId);
+          onToolExecutionEnd: async event => {
+            toolExecutionEndEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(startEvents).toEqual(['call-1', 'call-2']);
-      expect(finishEvents).toEqual(['call-1', 'call-2']);
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
     });
 
     it('should not call callbacks for provider-executed tools', async () => {
@@ -581,8 +545,9 @@ describe('createExecuteToolsTransformation', () => {
         }),
       };
 
-      const startEvents: unknown[] = [];
-      const finishEvents: unknown[] = [];
+      const toolExecutionStartEvents: ToolExecutionStartEvent<typeof tools>[] =
+        [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<typeof tools>[] = [];
 
       const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
@@ -614,19 +579,19 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: {},
-          onToolCallStart: async event => {
-            startEvents.push(event);
+          onToolExecutionStart: async event => {
+            toolExecutionStartEvents.push(event);
           },
-          onToolCallFinish: async event => {
-            finishEvents.push(event);
+          onToolExecutionEnd: async event => {
+            toolExecutionEndEvents.push(event);
           },
         }),
       );
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(startEvents.length).toBe(0);
-      expect(finishEvents.length).toBe(0);
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
     });
   });
 

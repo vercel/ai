@@ -15,8 +15,6 @@ import type {
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  OnToolCallFinishEvent,
-  OnToolCallStartEvent,
 } from '../generate-text/core-events';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
@@ -32,6 +30,10 @@ import { LanguageModel, ToolChoice } from '../types/language-model';
 import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { AgentCallParameters } from './agent';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from '../generate-text/tool-execution-events';
 
 export type ToolLoopAgentOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
@@ -44,14 +46,6 @@ export type ToolLoopAgentOnStepStartCallback<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
 > = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
-
-export type ToolLoopAgentOnToolCallStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-> = Callback<OnToolCallStartEvent<TOOLS>>;
-
-export type ToolLoopAgentOnToolCallFinishCallback<
-  TOOLS extends ToolSet = ToolSet,
-> = Callback<OnToolCallFinishEvent<TOOLS>>;
 
 export type ToolLoopAgentOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
@@ -164,14 +158,14 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called before each tool execution begins.
      */
-    experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<
+    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
       NoInfer<TOOLS>
     >;
 
     /**
      * Callback that is called after each tool execution completes.
      */
-    experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<
+    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
       NoInfer<TOOLS>
     >;
 
