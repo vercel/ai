@@ -1920,6 +1920,10 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
+          "id": "0",
+          "type": "reasoning-start",
+        },
+        {
           "delta": "",
           "id": "0",
           "providerMetadata": {
@@ -4263,6 +4267,43 @@ describe('doGenerate', () => {
       foo: 'bar',
       custom: 42,
       thinking: { type: 'enabled', budget_tokens: 1234 },
+    });
+  });
+
+  it('should forward display in adaptive reasoningConfig to thinking', async () => {
+    server.urls[anthropicGenerateUrl].response = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const anthropicModel = new BedrockChatLanguageModel(anthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+    });
+
+    await anthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'adaptive',
+            display: 'summarized',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+      type: 'adaptive',
+      display: 'summarized',
     });
   });
 
