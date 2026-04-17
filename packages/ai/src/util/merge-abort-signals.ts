@@ -1,19 +1,22 @@
 /**
- * Merges multiple AbortSignals into a single AbortSignal.
- * The returned signal will abort when any of the input signals abort,
- * with the same reason as the first signal to abort.
+ * Merges multiple abort sources into a single `AbortSignal`.
+ * The returned signal will abort when any input signal aborts or when any
+ * numeric timeout elapses, using the reason from the first source to abort.
  *
- * @param signals - The AbortSignals to merge. Null and undefined values are filtered out.
- * @returns An AbortSignal that aborts when any of the input signals abort,
- *          or undefined if no valid signals are provided.
+ * @param signals - Abort signals or timeout durations in milliseconds.
+ * `null` and `undefined` values are ignored.
+ * @returns An `AbortSignal` that aborts when any valid source aborts,
+ * or `undefined` if no valid sources are provided.
  */
 export function mergeAbortSignals(
-  ...signals: (AbortSignal | null | undefined)[]
+  ...signals: (AbortSignal | null | undefined | number)[]
 ): AbortSignal | undefined {
   // TODO use filterNullable
-  const validSignals = signals.filter(
-    (signal): signal is AbortSignal => signal != null,
-  );
+  const validSignals = signals
+    .filter((signal): signal is AbortSignal => signal != null)
+    .map(signal =>
+      signal instanceof AbortSignal ? signal : AbortSignal.timeout(signal),
+    );
 
   return validSignals.length === 0
     ? undefined

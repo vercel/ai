@@ -93,6 +93,32 @@ describe('mergeAbortSignals', () => {
     expect(merged).toBeUndefined();
   });
 
+  it('should create a timeout signal from numeric input', async () => {
+    const merged = mergeAbortSignals(10);
+
+    expect(merged).toBeInstanceOf(AbortSignal);
+    expect(merged!.aborted).toBe(false);
+
+    await new Promise<void>(resolve => {
+      merged!.addEventListener('abort', () => resolve(), { once: true });
+    });
+
+    expect(merged!.aborted).toBe(true);
+    expect(merged!.reason).toBeInstanceOf(DOMException);
+    expect((merged!.reason as DOMException).name).toBe('TimeoutError');
+  });
+
+  it('should preserve the first abort reason when mixing signals and timeouts', () => {
+    const controller = new AbortController();
+    const reason = new Error('manual abort reason');
+    const merged = mergeAbortSignals(controller.signal, 100);
+
+    controller.abort(reason);
+
+    expect(merged!.aborted).toBe(true);
+    expect(merged!.reason).toBe(reason);
+  });
+
   it('should filter out null and undefined signals', () => {
     const controller = new AbortController();
     const reason = new Error('abort reason');
