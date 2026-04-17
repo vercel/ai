@@ -117,13 +117,26 @@ export const bedrockProviderOptions = z.object({
         ])
         .optional(),
       budgetTokens: z.number().optional(),
-      maxReasoningEffort: z.enum(['low', 'medium', 'high', 'max']).optional(),
+      maxReasoningEffort: z
+        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+      display: z.enum(['omitted', 'summarized']).optional(),
     })
     .optional(),
   /**
    * Anthropic beta features to enable
    */
   anthropicBeta: z.array(z.string()).optional(),
+  /**
+   * Service tier for the request.
+   * @see https://docs.aws.amazon.com/bedrock/latest/userguide/service-tiers-inference.html
+   *
+   * - 'reserved': Uses provisioned throughput capacity
+   * - 'priority': Prioritizes low-latency inference when capacity is available
+   * - 'default': Standard on-demand tier
+   * - 'flex': Lower-cost tier for flexible latency workloads
+   */
+  serviceTier: z.enum(['reserved', 'priority', 'default', 'flex']).optional(),
 });
 
 export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;
