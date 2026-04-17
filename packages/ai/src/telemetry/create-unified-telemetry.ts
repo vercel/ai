@@ -65,8 +65,8 @@ export function createUnifiedTelemetry({
   return {
     onStart: mergeTelemetryCallback('onStart'),
     onStepStart: mergeTelemetryCallback('onStepStart'),
-    onToolCallStart: mergeTelemetryCallback('onToolCallStart'),
-    onToolCallFinish: mergeTelemetryCallback('onToolCallFinish'),
+    onToolExecutionStart: mergeTelemetryCallback('onToolExecutionStart'),
+    onToolExecutionEnd: mergeTelemetryCallback('onToolExecutionEnd'),
     onChunk: mergeTelemetryCallback('onChunk'),
     onStepFinish: mergeTelemetryCallback('onStepFinish'),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),

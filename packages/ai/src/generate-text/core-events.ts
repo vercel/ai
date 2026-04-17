@@ -14,7 +14,6 @@ import type { Output } from './output';
 import type { StepResult } from './step-result';
 import type { StopCondition } from './stop-condition';
 import { TextStreamPart } from './stream-text-result';
-import type { TypedToolCall } from './tool-call';
 
 /**
  * Common model information used across callback events.
@@ -218,87 +217,6 @@ export interface OnStepStartEvent<
    */
   readonly toolsContext: InferToolSetContext<TOOLS>;
 }
-
-/**
- * Event passed to the `onToolCallStart` callback.
- *
- * Called when a tool execution begins, before the tool's `execute` function is invoked.
- */
-export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
-  /** Unique identifier for this generation call, used to correlate events. */
-  readonly callId: string;
-
-  /** Zero-based index of the current step where this tool call occurs. */
-  readonly stepNumber: number | undefined;
-
-  /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string | undefined;
-
-  /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string | undefined;
-
-  /** The full tool call object. */
-  readonly toolCall: TypedToolCall<TOOLS>;
-
-  /** The conversation messages available at tool execution time. */
-  readonly messages: Array<ModelMessage>;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
-  /** User-defined context object flowing through the generation. */
-  readonly context: InferToolSetContext<TOOLS>;
-}
-
-/**
- * Event passed to the `onToolCallFinish` callback.
- *
- * Called when a tool execution completes, either successfully or with an error.
- * Uses a discriminated union on the `success` field.
- */
-export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
-  /** Unique identifier for this generation call, used to correlate events. */
-  readonly callId: string;
-
-  /** Zero-based index of the current step where this tool call occurred. */
-  readonly stepNumber: number | undefined;
-
-  /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string | undefined;
-
-  /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string | undefined;
-
-  /** The full tool call object. */
-  readonly toolCall: TypedToolCall<TOOLS>;
-
-  /** The conversation messages available at tool execution time. */
-  readonly messages: Array<ModelMessage>;
-
-  /** Execution time of the tool call in milliseconds. */
-  readonly durationMs: number;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
-  /** User-defined context object flowing through the generation. */
-  readonly context: InferToolSetContext<TOOLS>;
-} & (
-  | {
-      /** Indicates the tool call succeeded. */
-      readonly success: true;
-      /** The tool's return value. */
-      readonly output: unknown;
-      readonly error?: never;
-    }
-  | {
-      /** Indicates the tool call failed. */
-      readonly success: false;
-      readonly output?: never;
-      /** The error that occurred during tool execution. */
-      readonly error: unknown;
-    }
-);
 
 /**
  * Event passed to the `onChunk` callback.

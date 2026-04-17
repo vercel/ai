@@ -172,7 +172,7 @@ class MyIntegration implements TelemetryIntegration {
     );
   }
 
-  async onToolCallFinish(event) {
+  async onToolExecutionEnd(event) {
     if (event.success) {
       console.log(
         `Tool "${event.toolCall.toolName}" took ${event.durationMs}ms`,
@@ -209,13 +209,13 @@ export function myIntegration(): TelemetryIntegration {
         'Called when a step (LLM call) begins, before the provider is called.',
     },
     {
-      name: 'onToolCallStart',
-      type: '(event: OnToolCallStartEvent) => void | PromiseLike<void>',
+      name: 'onToolExecutionStart',
+      type: '(event: ToolExecutionStartEvent) => void | PromiseLike<void>',
       description: "Called when a tool's execute function is about to run.",
     },
     {
-      name: 'onToolCallFinish',
-      type: '(event: OnToolCallFinishEvent) => void | PromiseLike<void>',
+      name: 'onToolExecutionEnd',
+      type: '(event: ToolExecutionEndEvent) => void | PromiseLike<void>',
       description: "Called when a tool's execute function completes or errors.",
     },
     {
