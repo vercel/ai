@@ -4,11 +4,13 @@ import {
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
 import type {
+  Arrayable,
   Context,
   InferToolSetContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
+  asArray,
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
@@ -37,7 +39,7 @@ import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import {
   LanguageModel,
   LanguageModelRequestMetadata,
@@ -48,7 +50,6 @@ import {
   asLanguageModelUsage,
   LanguageModelUsage,
 } from '../types/usage';
-import { asArray } from '../util/as-array';
 import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
@@ -58,7 +59,6 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
-import { ContextParameter } from './context-parameter';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -85,13 +85,14 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
+import { ToolsContextParameter } from './tools-context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -114,9 +115,9 @@ const originalGenerateCallId = createIdGenerator({
  */
 export type GenerateTextOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<OnStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
+> = Callback<OnStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onStepStart` option.
@@ -129,9 +130,9 @@ export type GenerateTextOnStartCallback<
  */
 export type GenerateTextOnStepStartCallback<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-> = Callback<OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT>>;
+> = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
  * Callback that is set using the `experimental_onToolCallStart` option.
@@ -171,8 +172,8 @@ export type GenerateTextOnToolCallFinishCallback<
  */
 export type GenerateTextOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
-> = Callback<OnStepFinishEvent<TOOLS, USER_CONTEXT>>;
+  RUNTIME_CONTEXT extends Context = Context,
+> = Callback<OnStepFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Callback that is set using the `onFinish` option.
@@ -185,8 +186,8 @@ export type GenerateTextOnStepFinishCallback<
  */
 export type GenerateTextOnFinishCallback<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
-> = Callback<OnFinishEvent<TOOLS, USER_CONTEXT>>;
+  RUNTIME_CONTEXT extends Context = Context,
+> = Callback<OnFinishEvent<TOOLS, RUNTIME_CONTEXT>>;
 
 /**
  * Generate a text and call tools for a given prompt using a language model.
@@ -228,11 +229,11 @@ export type GenerateTextOnFinishCallback<
  * @param timeout - An optional timeout in milliseconds. The call will be aborted if it takes longer than the specified timeout.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
- * @param context - User-defined runtime context that flows through the entire generation lifecycle.
+ * @param runtimeContext - User-defined runtime context that flows through the entire generation lifecycle.
  *
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
- * Receives step number, messages (in ModelMessage format), tools, and context.
+ * Receives step number, messages (in ModelMessage format), tools, and runtimeContext.
  * @param experimental_onToolCallStart - Callback invoked before each tool execution begins.
  * Receives tool name, call ID, input, and context.
  * @param experimental_onToolCallFinish - Callback invoked after each tool execution completes.
@@ -245,7 +246,7 @@ export type GenerateTextOnFinishCallback<
  */
 export async function generateText<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string>,
 >({
   model: modelArg,
@@ -265,11 +266,11 @@ export async function generateText<
   experimental_telemetry: telemetry,
   providerOptions,
   activeTools,
-  experimental_prepareStep,
-  prepareStep = experimental_prepareStep,
+  prepareStep,
   experimental_repairToolCall: repairToolCall,
   experimental_download: download,
-  context: contextArg,
+  runtimeContext = {} as RUNTIME_CONTEXT,
+  toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
     generateId = originalGenerateId,
@@ -285,7 +286,7 @@ export async function generateText<
 }: LanguageModelCallOptions &
   RequestOptions<TOOLS> &
   Prompt &
-  ContextParameter<TOOLS, USER_CONTEXT> & {
+  ToolsContextParameter<TOOLS> & {
     /**
      * The language model to use.
      */
@@ -302,14 +303,12 @@ export async function generateText<
      *
      * @default isStepCount(1)
      */
-    stopWhen?:
-      | StopCondition<NoInfer<TOOLS>, USER_CONTEXT>
-      | Array<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>;
+    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
      * Optional telemetry configuration (experimental).
      */
-    experimental_telemetry?: TelemetrySettings;
+    experimental_telemetry?: TelemetryOptions;
 
     /**
      * Additional provider-specific options. They are passed through
@@ -317,6 +316,12 @@ export async function generateText<
      * functionality that can be fully encapsulated in the provider.
      */
     providerOptions?: ProviderOptions;
+
+    /**
+     * Runtime context. Treat runtime context as immutable.
+     * If you need to mutate runtime context, update it in `prepareStep`.
+     */
+    runtimeContext?: RUNTIME_CONTEXT;
 
     /**
      * Limits the tools that are available for the model to call without
@@ -341,7 +346,7 @@ export async function generateText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
+    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
 
     /**
      * Custom download function to use for URLs.
@@ -351,17 +356,9 @@ export async function generateText<
     experimental_download?: DownloadFunction | undefined;
 
     /**
-     * @deprecated Use `prepareStep` instead.
-     */
-    experimental_prepareStep?: PrepareStepFunction<
-      NoInfer<TOOLS>,
-      USER_CONTEXT
-    >;
-
-    /**
      * Optional function that you can use to provide different settings for a step.
      */
-    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, USER_CONTEXT>;
+    prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
@@ -374,7 +371,7 @@ export async function generateText<
      */
     experimental_onStart?: GenerateTextOnStartCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>,
+      NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
     >;
 
@@ -384,7 +381,7 @@ export async function generateText<
      */
     experimental_onStepStart?: GenerateTextOnStepStartCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>,
+      NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
     >;
 
@@ -407,7 +404,7 @@ export async function generateText<
      */
     onStepFinish?: GenerateTextOnStepFinishCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>
+      NoInfer<RUNTIME_CONTEXT>
     >;
 
     /**
@@ -415,7 +412,7 @@ export async function generateText<
      */
     onFinish?: GenerateTextOnFinishCallback<
       NoInfer<TOOLS>,
-      NoInfer<USER_CONTEXT>
+      NoInfer<RUNTIME_CONTEXT>
     >;
 
     /**
@@ -447,11 +444,7 @@ export async function generateText<
       generateId?: IdGenerator;
       generateCallId?: IdGenerator;
     };
-  }): Promise<GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>> {
-  // cast to prevent type errors below
-  let context: InferToolSetContext<TOOLS> & USER_CONTEXT = (contextArg ??
-    {}) as InferToolSetContext<TOOLS> & USER_CONTEXT;
-
+  }): Promise<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>> {
   const model = resolveLanguageModel(modelArg);
   const stopConditions = asArray(stopWhen);
 
@@ -516,17 +509,18 @@ export async function generateText<
       providerOptions,
       stopWhen,
       output,
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
-      context,
+      runtimeContext,
+      toolsContext,
     },
     callbacks: [
       onStart,
       unifiedTelemetry.onStart as
         | undefined
-        | GenerateTextOnStartCallback<TOOLS, USER_CONTEXT, OUTPUT>,
+        | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
     ],
   });
 
@@ -555,7 +549,7 @@ export async function generateText<
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
         timeout,
-        context,
+        toolsContext,
         stepNumber: 0,
         provider: model.provider,
         modelId: model.modelId,
@@ -636,7 +630,8 @@ export async function generateText<
     };
     let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
     let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
-    const steps: GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>['steps'] = [];
+    const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
+      [];
 
     // Track provider-executed tool calls that support deferred results
     // (e.g., code_execution in programmatic tool calling scenarios).
@@ -658,7 +653,8 @@ export async function generateText<
           steps,
           stepNumber: steps.length,
           messages: stepInputMessages,
-          context,
+          runtimeContext,
+          toolsContext,
         });
 
         const stepModel = resolveLanguageModel(
@@ -675,7 +671,8 @@ export async function generateText<
           provider: stepModel.provider.split('.')[0],
         });
 
-        context = prepareStepResult?.context ?? context;
+        runtimeContext = prepareStepResult?.runtimeContext ?? runtimeContext;
+        toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
 
         const stepActiveTools = filterActiveTools({
           tools,
@@ -699,36 +696,35 @@ export async function generateText<
           prepareStepResult?.providerOptions,
         );
 
-        const onStepStartEvent = {
-          callId,
-          stepNumber: steps.length,
-          provider: stepModel.provider,
-          modelId: stepModel.modelId,
-          system: stepSystem,
-          messages: stepMessages,
-          tools,
-          toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-          activeTools: prepareStepResult?.activeTools ?? activeTools,
-          steps: [...steps],
-          providerOptions: stepProviderOptions,
-          timeout,
-          headers,
-          stopWhen,
-          output,
-          functionId: telemetry?.functionId,
-          context,
-          promptMessages,
-          stepTools,
-          stepToolChoice,
-        };
-
         await notify({
-          event: onStepStartEvent,
+          event: {
+            callId,
+            stepNumber: steps.length,
+            provider: stepModel.provider,
+            modelId: stepModel.modelId,
+            system: stepSystem,
+            messages: stepMessages,
+            tools,
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            activeTools: prepareStepResult?.activeTools ?? activeTools,
+            steps: [...steps],
+            providerOptions: stepProviderOptions,
+            timeout,
+            headers,
+            stopWhen,
+            output,
+            functionId: telemetry?.functionId,
+            runtimeContext,
+            promptMessages,
+            stepTools,
+            stepToolChoice,
+            toolsContext,
+          },
           callbacks: [
             onStepStart,
             unifiedTelemetry.onStepStart as
               | undefined
-              | GenerateTextOnStepStartCallback<TOOLS, USER_CONTEXT, OUTPUT>,
+              | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
           ],
         });
 
@@ -797,7 +793,7 @@ export async function generateText<
               toolCallId: toolCall.toolCallId,
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
-              context,
+              context: runtimeContext,
             });
           }
 
@@ -807,7 +803,7 @@ export async function generateText<
               toolNeedsApproval,
               toolCall,
               messages: stepInputMessages,
-              context,
+              toolsContext,
             })
           ) {
             toolApprovalRequests[toolCall.toolCallId] = {
@@ -856,7 +852,7 @@ export async function generateText<
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
               timeout,
-              context,
+              toolsContext,
               stepNumber: steps.length,
               provider: stepModel.provider,
               modelId: stepModel.modelId,
@@ -952,14 +948,14 @@ export async function generateText<
 
         const stepNumber = steps.length;
 
-        const currentStepResult: StepResult<TOOLS, USER_CONTEXT> =
+        const currentStepResult: StepResult<TOOLS, RUNTIME_CONTEXT> =
           new DefaultStepResult({
             callId,
             stepNumber,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             functionId: telemetry?.functionId,
-            context,
+            runtimeContext,
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
             rawFinishReason: currentModelResponse.finishReason.raw,
@@ -968,6 +964,7 @@ export async function generateText<
             providerMetadata: currentModelResponse.providerMetadata,
             request: stepRequest,
             response: stepResponse,
+            toolsContext,
           });
 
         logWarnings({
@@ -984,7 +981,7 @@ export async function generateText<
             onStepFinish,
             unifiedTelemetry.onStepFinish as
               | undefined
-              | GenerateTextOnStepFinishCallback<TOOLS, USER_CONTEXT>,
+              | GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>,
           ],
         });
       } finally {
@@ -1023,7 +1020,7 @@ export async function generateText<
       stepNumber: lastStep.stepNumber,
       model: lastStep.model,
       functionId: lastStep.functionId,
-      context: lastStep.context,
+      runtimeContext: lastStep.runtimeContext,
       finishReason: lastStep.finishReason,
       rawFinishReason: lastStep.rawFinishReason,
       usage: lastStep.usage,
@@ -1045,6 +1042,7 @@ export async function generateText<
       providerMetadata: lastStep.providerMetadata,
       steps,
       totalUsage,
+      toolsContext,
     };
 
     await notify({
@@ -1053,7 +1051,7 @@ export async function generateText<
         onFinish,
         unifiedTelemetry.onFinish as
           | undefined
-          | GenerateTextOnFinishCallback<TOOLS, USER_CONTEXT>,
+          | GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>,
       ],
     });
 
@@ -1082,10 +1080,7 @@ export async function generateText<
   }
 }
 
-async function executeTools<
-  TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
->({
+async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
   tools,
   telemetry,
@@ -1093,7 +1088,7 @@ async function executeTools<
   messages,
   abortSignal,
   timeout,
-  context,
+  toolsContext,
   stepNumber,
   provider,
   modelId,
@@ -1103,12 +1098,12 @@ async function executeTools<
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
-  telemetry: TelemetrySettings | undefined;
+  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
   stepNumber: number;
   provider: string;
   modelId: string;
@@ -1126,7 +1121,7 @@ async function executeTools<
         messages,
         abortSignal,
         timeout,
-        context,
+        toolsContext,
         stepNumber,
         provider,
         modelId,
@@ -1144,15 +1139,15 @@ async function executeTools<
 
 class DefaultGenerateTextResult<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context,
+  RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
-> implements GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT> {
-  readonly steps: GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>['steps'];
+> implements GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+  readonly steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
   readonly totalUsage: LanguageModelUsage;
   private readonly _output: InferCompleteOutput<OUTPUT> | undefined;
 
   constructor(options: {
-    steps: GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>['steps'];
+    steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'];
     output: InferCompleteOutput<OUTPUT> | undefined;
     totalUsage: LanguageModelUsage;
   }) {

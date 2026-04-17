@@ -24,7 +24,6 @@ run(async () => {
     model: myCustomProvider('gemini-2.5-flash'),
     prompt: 'Say hello in 5 words',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'custom-provider-demo',
     },
   });

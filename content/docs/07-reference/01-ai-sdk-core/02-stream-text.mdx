@@ -480,19 +480,19 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_telemetry',
-      type: 'TelemetrySettings',
+      type: 'TelemetryOptions',
       isOptional: true,
       description: 'Telemetry configuration. Experimental feature.',
       properties: [
         {
-          type: 'TelemetrySettings',
+          type: 'TelemetryOptions',
           parameters: [
             {
               name: 'isEnabled',
               type: 'boolean',
               isOptional: true,
               description:
-                'Enable or disable telemetry. Disabled by default while experimental.',
+                'Enable or disable telemetry. Enabled by default. Set to `false` to opt out.',
             },
             {
               name: 'recordInputs',
@@ -638,11 +638,17 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The messages that will be sent to the model for the current step.',
                     },
                     {
-                      name: 'context',
+                      name: 'runtimeContext',
                       type: 'CONTEXT',
                       isOptional: true,
                       description:
-                        'The context passed via the `context` setting.',
+                        'The shared runtime context passed via the `runtimeContext` setting.',
+                    },
+                    {
+                      name: 'toolsContext',
+                      type: 'InferToolSetContext<TOOLS>',
+                      description:
+                        'The per-tool context map passed via the `toolsContext` setting.',
                     },
                   ],
                 },
@@ -691,11 +697,17 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Optionally override the full set of messages sent to the model for this step.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               isOptional: true,
               description:
-                'Context that is passed into tool execution. Changing the context will affect the context in this step and all subsequent steps.',
+                'Shared runtime context. Changing it will affect this step and all subsequent steps.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map. Changing it will affect tool-specific context in this step and all subsequent steps.',
             },
             {
               name: 'providerOptions',
@@ -709,11 +721,17 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'context',
+      name: 'runtimeContext',
       type: 'CONTEXT',
       isOptional: true,
       description:
-        'User-defined context object passed to `prepareStep`, tool execution, and lifecycle callbacks.',
+        'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'Per-tool context map keyed by tool name. Required when at least one tool defines `contextSchema`; not accepted when no tools need context.',
     },
     {
       name: 'experimental_download',
@@ -1775,10 +1793,10 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               description:
-                'The final state of the user-defined context object when the stream is aborted.',
+                'The final state of the user-defined runtime context object when the stream is aborted.',
             },
           ],
         },
@@ -1941,10 +1959,16 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               description:
-                'User-defined context object that flows through the entire generation lifecycle.',
+                'User-defined shared runtime context object that flows through the entire generation lifecycle.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map passed via `toolsContext`, keyed by tool name.',
             },
           ],
         },
@@ -2047,10 +2071,16 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               description:
-                'User-defined context object. May be updated from prepareStep between steps.',
+                'User-defined shared runtime context object. May be updated from prepareStep between steps.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map. May be updated from prepareStep between steps.',
             },
           ],
         },
@@ -2105,7 +2135,7 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'User-defined context object flowing through the generation.',
+                'Tool-specific context object for the tool call that is about to execute.',
             },
           ],
         },
@@ -2166,7 +2196,7 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'User-defined context object flowing through the generation.',
+                'Tool-specific context object for the tool call that just completed.',
             },
             {
               name: 'success',

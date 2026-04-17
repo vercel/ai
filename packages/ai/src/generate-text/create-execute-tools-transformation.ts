@@ -1,4 +1,4 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import {
   IdGenerator,
   InferToolSetContext,
@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/request-options';
 import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { executeToolCall } from './execute-tool-call';
 import { isToolApprovalNeeded } from './is-tool-approval-needed';
 import { LanguageModelStreamPart } from './stream-language-model-call';
@@ -14,20 +14,17 @@ import {
   StreamTextOnToolCallFinishCallback,
   StreamTextOnToolCallStartCallback,
 } from './stream-text';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { TypedToolCall } from './tool-call';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 
-export function createExecuteToolsTransformation<
-  TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
->({
+export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   tools,
   telemetry,
   callId,
   messages,
   abortSignal,
   timeout,
-  context,
+  toolsContext,
   toolNeedsApproval,
   generateId,
   stepNumber,
@@ -38,13 +35,13 @@ export function createExecuteToolsTransformation<
   executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
-  telemetry: TelemetrySettings | undefined;
+  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
-  toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>;
+  toolsContext: InferToolSetContext<TOOLS>;
+  toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
@@ -97,7 +94,7 @@ export function createExecuteToolsTransformation<
               toolCall: chunk,
               toolNeedsApproval,
               messages,
-              context,
+              toolsContext,
             })
           ) {
             controller.enqueue({
@@ -131,7 +128,7 @@ export function createExecuteToolsTransformation<
                   messages,
                   abortSignal,
                   timeout,
-                  context,
+                  toolsContext,
                   stepNumber,
                   provider,
                   modelId,

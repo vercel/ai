@@ -9,7 +9,7 @@ exports[`options.experimental_onFinish > should send correct event information 1
     0.3,
   ],
   "functionId": "test-function",
-  "isEnabled": undefined,
+  "isEnabled": true,
   "modelId": "mock-model-id",
   "operationId": "ai.embed",
   "provider": "mock-provider",
@@ -35,7 +35,7 @@ exports[`options.experimental_onStart > should send correct event information 1`
   "headers": {
     "user-agent": "ai/0.0.0-test",
   },
-  "isEnabled": undefined,
+  "isEnabled": true,
   "maxRetries": 2,
   "modelId": "mock-model-id",
   "operationId": "ai.embed",

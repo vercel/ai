@@ -1,5 +1,27 @@
 # @ai-sdk/groq
 
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- f807e45: Extract shared `StreamingToolCallTracker` class into `@ai-sdk/provider-utils` to deduplicate streaming tool call handling across OpenAI-compatible providers. Also adds missing `generateId()` fallback for `toolCallId` in Alibaba's `doGenerate` path and ensures all providers finalize unfinished tool calls during stream flush.
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
 ## 4.0.0-beta.25
 
 ### Patch Changes

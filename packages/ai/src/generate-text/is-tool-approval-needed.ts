@@ -1,5 +1,5 @@
 import {
-  Context,
+  InferToolContext,
   InferToolInput,
   InferToolSetContext,
   ModelMessage,
@@ -13,15 +13,12 @@ import { TypedToolCall } from './tool-call';
  * approval settings. User-defined approval settings take precedence over tool-defined settings.
  * If no approval settings are provided, the tool call does not require approval.
  */
-export async function isToolApprovalNeeded<
-  TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
->({
+export async function isToolApprovalNeeded<TOOLS extends ToolSet>({
   tools,
   toolCall,
   toolNeedsApproval,
   messages,
-  context,
+  toolsContext,
 }: {
   tools: TOOLS | undefined;
 
@@ -30,16 +27,19 @@ export async function isToolApprovalNeeded<
    *
    * This configuration takes precedence over tool-defined approval settings.
    */
-  toolNeedsApproval:
-    | ToolNeedsApprovalConfiguration<TOOLS, USER_CONTEXT>
-    | undefined;
+  toolNeedsApproval: ToolNeedsApprovalConfiguration<TOOLS> | undefined;
 
   toolCall: TypedToolCall<TOOLS>; // assuming tool call is valid
   messages: ModelMessage[];
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
 }) {
-  // assume that the input has been validated early and matches the tool's input schema
+  // assume that the input has been validated and matches the tool's input schema
   const input = toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>;
+  // assume that the tool context has been validated and matches the tool's context schema
+  const context = toolsContext?.[
+    toolCall.toolName as keyof InferToolSetContext<TOOLS>
+  ] as InferToolContext<NoInfer<TOOLS[keyof TOOLS]>>;
+
   const options = { toolCallId: toolCall.toolCallId, messages, context };
 
   // user-defined tool approval

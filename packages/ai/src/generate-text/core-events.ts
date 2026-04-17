@@ -1,4 +1,5 @@
 import type {
+  Arrayable,
   Context,
   InferToolSetContext,
   ModelMessage,
@@ -32,7 +33,7 @@ export interface CallbackModelInfo {
  */
 export interface OnStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
 > {
   /** Unique identifier for this generation call, used to correlate events. */
@@ -104,15 +105,12 @@ export interface OnStartEvent<
    * Condition(s) for stopping the generation.
    * When the condition is an array, any of the conditions can be met to stop.
    */
-  readonly stopWhen:
-    | StopCondition<NoInfer<TOOLS>, USER_CONTEXT>
-    | Array<StopCondition<NoInfer<TOOLS>, USER_CONTEXT>>
-    | undefined;
+  readonly stopWhen: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
@@ -125,10 +123,14 @@ export interface OnStartEvent<
   readonly functionId: string | undefined;
 
   /**
-   * User-defined context object that flows through the entire generation lifecycle.
-   * Can be accessed and modified in `prepareStep` and tool `execute` functions.
+   * Tool context.
    */
-  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  readonly toolsContext: InferToolSetContext<TOOLS>;
+
+  /**
+   * User-defined runtime context.
+   */
+  readonly runtimeContext: RUNTIME_CONTEXT;
 }
 
 /**
@@ -139,7 +141,7 @@ export interface OnStartEvent<
  */
 export interface OnStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
 > {
   /** Unique identifier for this generation call, used to correlate events. */
@@ -180,7 +182,7 @@ export interface OnStepStartEvent<
   readonly activeTools: Array<keyof TOOLS> | undefined;
 
   /** Array of results from previous steps (empty for first step). */
-  readonly steps: ReadonlyArray<StepResult<TOOLS, USER_CONTEXT>>;
+  readonly steps: ReadonlyArray<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 
   /** Additional provider-specific options for this step. */
   readonly providerOptions: ProviderOptions | undefined;
@@ -198,10 +200,7 @@ export interface OnStepStartEvent<
    * Condition(s) for stopping the generation.
    * When the condition is an array, any of the conditions can be met to stop.
    */
-  readonly stopWhen:
-    | StopCondition<TOOLS, USER_CONTEXT>
-    | Array<StopCondition<TOOLS, USER_CONTEXT>>
-    | undefined;
+  readonly stopWhen: Arrayable<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
 
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
@@ -210,9 +209,14 @@ export interface OnStepStartEvent<
   readonly functionId: string | undefined;
 
   /**
-   * User-defined context object. May be updated from `prepareStep` between steps.
+   * Runtime context. May be updated from `prepareStep` between steps.
    */
-  readonly context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  readonly runtimeContext: RUNTIME_CONTEXT;
+
+  /**
+   * Tool context. May be updated from `prepareStep` between steps.
+   */
+  readonly toolsContext: InferToolSetContext<TOOLS>;
 }
 
 /**
@@ -322,8 +326,8 @@ export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
  */
 export type OnStepFinishEvent<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
-> = StepResult<TOOLS, USER_CONTEXT>;
+  RUNTIME_CONTEXT extends Context = Context,
+> = StepResult<TOOLS, RUNTIME_CONTEXT>;
 
 /**
  * Event passed to the `onFinish` callback.
@@ -333,22 +337,13 @@ export type OnStepFinishEvent<
  */
 export type OnFinishEvent<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends Context = Context,
-> = StepResult<TOOLS, USER_CONTEXT> & {
+  RUNTIME_CONTEXT extends Context = Context,
+> = StepResult<TOOLS, RUNTIME_CONTEXT> & {
   /** Array containing results from all steps in the generation. */
-  readonly steps: StepResult<TOOLS, USER_CONTEXT>[];
+  readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
 
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;
-
-  /**
-   * The final state of the user-defined context object.
-   *
-   * Experimental (can break in patch releases).
-   *
-   * @default undefined
-   */
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;

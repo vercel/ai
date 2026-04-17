@@ -19,7 +19,7 @@ import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
@@ -171,7 +171,7 @@ export async function generateObject<
        * Optional telemetry configuration (experimental).
        */
 
-      experimental_telemetry?: TelemetrySettings;
+      experimental_telemetry?: TelemetryOptions;
 
       /**
        * Custom download function to use for URLs.
@@ -309,7 +309,7 @@ export async function generateObject<
       schema: jsonSchema as Record<string, unknown> | undefined,
       schemaName,
       schemaDescription,
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,

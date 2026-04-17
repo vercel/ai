@@ -1538,13 +1538,12 @@ on how to integrate reasoning into your chatbot.
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
-The cache creation input tokens are then returned in the `providerMetadata` object
-for `generateText`, again under the `anthropic` property.
-When you use `streamText`, the response contains a promise
-that resolves to the metadata. Alternatively you can receive it in the
-`onFinish` callback.
+Cache read and cache write (creation) token counts are returned on the standard
+`usage` object for both `generateText` and `streamText`. You can access them at
+`result.usage.inputTokenDetails.cacheReadTokens` and
+`result.usage.inputTokenDetails.cacheWriteTokens`.
 
-```ts highlight="8,18-20,29-30"
+```ts highlight="8,18-20,29-32"
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
@@ -1571,8 +1570,11 @@ const result = await generateText({
 });
 
 console.log(result.text);
-console.log(result.providerMetadata?.anthropic);
-// e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
+console.log('Cache read tokens:', result.usage.inputTokenDetails.cacheReadTokens);
+console.log(
+  'Cache write tokens:',
+  result.usage.inputTokenDetails.cacheWriteTokens,
+);
 ```
 
 You can also use cache control on system messages by providing multiple system messages at the head of your messages array:

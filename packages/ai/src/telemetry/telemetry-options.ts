@@ -1,11 +1,13 @@
+import type { Arrayable } from '@ai-sdk/provider-utils';
 import type { TelemetryIntegration } from './telemetry-integration';
 
 /**
  * Telemetry configuration.
  */
-export type TelemetrySettings = {
+export type TelemetryOptions = {
   /**
-   * Enable or disable telemetry. Disabled by default while experimental.
+   * Enable or disable telemetry. Enabled by default when a telemetry
+   * integration is registered. Set to `false` to opt out.
    */
   isEnabled?: boolean;
 
@@ -36,5 +38,5 @@ export type TelemetrySettings = {
    * When provided, these integrations will take precedence over the globally registered
    * integrations for this call.
    */
-  integrations?: TelemetryIntegration | TelemetryIntegration[];
+  integrations?: Arrayable<TelemetryIntegration>;
 };

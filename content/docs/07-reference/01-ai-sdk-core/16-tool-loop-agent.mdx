@@ -74,7 +74,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
       description:
-        'Condition(s) for ending the agent loop. Default: isStepCount(20).',
+        'Condition(s) for ending the agent loop. Default: isStepCount(20). Use `isLoopFinished()` to let the agent run until all tool calls have completed, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
     },
     {
       name: 'activeTools',
@@ -247,10 +247,16 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               description:
-                'User-defined context object that flows through the entire generation lifecycle.',
+                'User-defined shared runtime context object that flows through the entire generation lifecycle.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map passed via `toolsContext`, keyed by tool name.',
             },
           ],
         },
@@ -353,10 +359,16 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'context',
+              name: 'runtimeContext',
               type: 'CONTEXT',
               description:
-                'User-defined context object. May be updated from prepareStep between steps.',
+                'User-defined shared runtime context object. May be updated from prepareStep between steps.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map. May be updated from prepareStep between steps.',
             },
           ],
         },
@@ -411,7 +423,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'User-defined context object flowing through the generation.',
+                'Tool-specific context object for the tool call that is about to execute.',
             },
           ],
         },
@@ -472,7 +484,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               name: 'context',
               type: 'CONTEXT',
               description:
-                'User-defined context object flowing through the generation.',
+                'Tool-specific context object for the tool call that just completed.',
             },
             {
               name: 'success',
@@ -508,18 +520,24 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'ToolLoopAgentOnFinishCallback',
       isOptional: true,
       description:
-        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, context, and functionId. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, `toolsContext`, and functionId. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
-      name: 'context',
+      name: 'runtimeContext',
       type: 'CONTEXT',
       isOptional: true,
       description:
-        'User-defined context object passed to `prepareStep`, tool execution, and lifecycle callbacks.',
+        'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'Per-tool context map keyed by tool name. Required when at least one tool defines `contextSchema`; not accepted when no tools need context.',
     },
     {
       name: 'experimental_telemetry',
-      type: 'TelemetrySettings',
+      type: 'TelemetryOptions',
       isOptional: true,
       description: 'Experimental: Optional telemetry configuration.',
     },

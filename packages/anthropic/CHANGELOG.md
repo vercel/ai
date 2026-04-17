@@ -1,5 +1,44 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 4.0.0-beta.33
+
+### Major Changes
+
+- 832f86f: fix(anthropic): remove cacheCreationInputTokens from providerMetadata
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- ad0b376: fix(provider/anthropic): stop adding `fine-grained-tool-streaming-2025-05-14` beta for `claude-opus-4-7`
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
 ## 4.0.0-beta.29
 
 ### Patch Changes

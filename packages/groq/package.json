@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/groq",
-  "version": "4.0.0-beta.25",
+  "version": "4.0.0-beta.28",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

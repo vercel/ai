@@ -1,5 +1,68 @@
 # ai
 
+## 7.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/gateway@4.0.0-beta.60
+
+## 7.0.0-beta.107
+
+### Patch Changes
+
+- 350ea38: refactoring: introduce Arrayable type
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/gateway@4.0.0-beta.59
+
+## 7.0.0-beta.106
+
+### Patch Changes
+
+- Updated dependencies [03dc15c]
+  - @ai-sdk/gateway@4.0.0-beta.58
+
+## 7.0.0-beta.105
+
+### Patch Changes
+
+- 33d099c: fix(ai): omit reasoning-start/end when sendReasoning is false
+
+## 7.0.0-beta.104
+
+### Patch Changes
+
+- 2a74d43: Remove the deprecated `experimental_prepareStep` option from `generateText`.
+
+  Use `prepareStep` instead.
+
+## 7.0.0-beta.103
+
+### Patch Changes
+
+- 382d53b: refactoring: rename context to runtimeContext
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+- c3d4019: chore(ai): rename 'TelemetrySettings' to 'TelemetryOptions'
+- 083947b: feat(ai): separate toolsContext from context
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/gateway@4.0.0-beta.57
+
+## 7.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [0d8f107]
+  - @ai-sdk/gateway@4.0.0-beta.56
+
+## 7.0.0-beta.101
+
+### Patch Changes
+
+- 4873966: chore(ai): allow general usage of `logWarnings` and emit them via Node API when available
+
 ## 7.0.0-beta.100
 
 ### Patch Changes

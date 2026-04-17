@@ -82,7 +82,7 @@ export interface ObjectOnStartEvent {
   /** Optional description of the schema. */
   readonly schemaDescription: string | undefined;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */

@@ -67,9 +67,9 @@ export async function register() {
 }
 ```
 
-Then enable telemetry where you call the AI SDK:
+Once the integration is registered, telemetry is emitted automatically for your AI SDK calls:
 
-```ts filename="route.ts" highlight="8"
+```ts filename="route.ts"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -79,7 +79,6 @@ export async function POST(req: Request) {
   const { text } = await generateText({
     model: openai('gpt-5'),
     prompt,
-    experimental_telemetry: { isEnabled: true },
   });
 
   return new Response(JSON.stringify({ text }), {
@@ -122,11 +121,9 @@ sdk.start();
 init();
 registerTelemetryIntegration(new OpenTelemetryIntegration());
 
-// Make an AI SDK call with telemetry enabled
 const result = await generateText({
   model: openai('gpt-5'),
   prompt: 'What is MLflow?',
-  experimental_telemetry: { isEnabled: true },
 });
 
 console.log(result.text);
@@ -139,7 +136,7 @@ npx tsx main.ts
 
 ## Streaming
 
-Streaming is supported. As with `generateText`, set `experimental_telemetry.isEnabled` to `true`.
+Streaming is supported. Like `generateText`, traces are captured automatically once the integration is registered.
 
 ```ts
 import { streamText } from 'ai';
@@ -148,7 +145,6 @@ import { openai } from '@ai-sdk/openai';
 const stream = await streamText({
   model: openai('gpt-5'),
   prompt: 'Explain vector databases in one paragraph.',
-  experimental_telemetry: { isEnabled: true },
 });
 
 for await (const part of stream.textStream) {

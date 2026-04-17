@@ -98,15 +98,14 @@ import { DevToolsTelemetry } from '@ai-sdk/devtools';
 registerTelemetryIntegration(DevToolsTelemetry());
 ```
 
-Then enable [telemetry](/docs/ai-sdk-core/telemetry) on your AI SDK calls:
+Once an integration is registered, [telemetry](/docs/ai-sdk-core/telemetry) is enabled automatically for all your AI SDK calls:
 
-```ts highlight="5"
+```ts
 import { generateText } from 'ai';
 
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What cities are in the United States?',
-  experimental_telemetry: { isEnabled: true },
 });
 ```
 

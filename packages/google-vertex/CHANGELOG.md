@@ -1,5 +1,69 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/openai-compatible@3.0.0-beta.29
+  - @ai-sdk/anthropic@4.0.0-beta.35
+  - @ai-sdk/google@4.0.0-beta.43
+
+## 5.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/anthropic@4.0.0-beta.34
+  - @ai-sdk/google@4.0.0-beta.42
+  - @ai-sdk/openai-compatible@3.0.0-beta.28
+
+## 5.0.0-beta.54
+
+### Major Changes
+
+- 832f86f: fix(anthropic): remove cacheCreationInputTokens from providerMetadata
+
+### Patch Changes
+
+- Updated dependencies [832f86f]
+  - @ai-sdk/anthropic@4.0.0-beta.33
+
+## 5.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [ad0b376]
+  - @ai-sdk/anthropic@4.0.0-beta.32
+
+## 5.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/anthropic@4.0.0-beta.31
+  - @ai-sdk/google@4.0.0-beta.41
+  - @ai-sdk/openai-compatible@3.0.0-beta.27
+
+## 5.0.0-beta.51
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [0d8f107]
+  - @ai-sdk/anthropic@4.0.0-beta.30
+
+## 5.0.0-beta.50
+
+### Patch Changes
+
+- 55f0938: chore(provider/google): update available models
+- Updated dependencies [55f0938]
+  - @ai-sdk/google@4.0.0-beta.40
+
 ## 5.0.0-beta.49
 
 ### Patch Changes
