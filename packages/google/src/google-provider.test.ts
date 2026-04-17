@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createGoogleGenerativeAI } from './google-provider';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
-import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
-import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
-import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
+import { createGoogle } from './google-provider';
+import { GoogleLanguageModel } from './google-language-model';
+import { GoogleEmbeddingModel } from './google-embedding-model';
+import { GoogleImageModel } from './google-image-model';
+import { GoogleVideoModel } from './google-video-model';
 
 // Mock the imported modules using a partial mock to preserve original exports
 vi.mock('@ai-sdk/provider-utils', async importOriginal => {
@@ -16,18 +16,18 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
   };
 });
 
-vi.mock('./google-generative-ai-language-model', () => ({
-  GoogleGenerativeAILanguageModel: vi.fn(),
+vi.mock('./google-language-model', () => ({
+  GoogleLanguageModel: vi.fn(),
 }));
 
-vi.mock('./google-generative-ai-embedding-model', () => ({
-  GoogleGenerativeAIEmbeddingModel: vi.fn(),
+vi.mock('./google-embedding-model', () => ({
+  GoogleEmbeddingModel: vi.fn(),
 }));
-vi.mock('./google-generative-ai-image-model', () => ({
-  GoogleGenerativeAIImageModel: vi.fn(),
+vi.mock('./google-image-model', () => ({
+  GoogleImageModel: vi.fn(),
 }));
-vi.mock('./google-generative-ai-video-model', () => ({
-  GoogleGenerativeAIVideoModel: vi.fn(),
+vi.mock('./google-video-model', () => ({
+  GoogleVideoModel: vi.fn(),
 }));
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -38,12 +38,12 @@ describe('google-provider', () => {
   });
 
   it('should create a language model with default settings', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
     });
     provider('gemini-pro');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
       expect.objectContaining({
         provider: 'google.generative-ai',
@@ -55,21 +55,13 @@ describe('google-provider', () => {
     );
   });
 
-  it('should throw an error when using new keyword', () => {
-    const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
-
-    expect(() => new (provider as any)('gemini-pro')).toThrow(
-      'The Google Generative AI model function cannot be called with the new keyword.',
-    );
-  });
-
   it('should create an embedding model with correct settings', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
     });
     provider.embeddingModel('embedding-001');
 
-    expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledWith(
+    expect(GoogleEmbeddingModel).toHaveBeenCalledWith(
       'embedding-001',
       expect.objectContaining({
         provider: 'google.generative-ai',
@@ -81,20 +73,20 @@ describe('google-provider', () => {
 
   it('should pass custom headers to the model constructor', () => {
     const customHeaders = { 'Custom-Header': 'custom-value' };
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
       headers: customHeaders,
     });
     provider('gemini-pro');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         headers: expect.any(Function),
       }),
     );
 
-    const options = (GoogleGenerativeAILanguageModel as any).mock.calls[0][1];
+    const options = (GoogleLanguageModel as any).mock.calls[0][1];
     const headers = options.headers();
     expect(headers).toEqual({
       'x-goog-api-key': 'test-api-key',
@@ -105,13 +97,13 @@ describe('google-provider', () => {
 
   it('should pass custom generateId function to the model constructor', () => {
     const customGenerateId = () => 'custom-id';
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
       generateId: customGenerateId,
     });
     provider('gemini-pro');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         generateId: customGenerateId,
@@ -120,12 +112,12 @@ describe('google-provider', () => {
   });
 
   it('should use chat method to create a model', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
     });
     provider.chat('gemini-pro');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
       expect.any(Object),
     );
@@ -133,13 +125,13 @@ describe('google-provider', () => {
 
   it('should use custom baseURL when provided', () => {
     const customBaseURL = 'https://custom-endpoint.example.com';
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
       baseURL: customBaseURL,
     });
     provider('gemini-pro');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
       expect.objectContaining({
         baseURL: customBaseURL,
@@ -148,12 +140,12 @@ describe('google-provider', () => {
   });
 
   it('should create an image model with default settings', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
     });
     provider.image('imagen-3.0-generate-002');
 
-    expect(GoogleGenerativeAIImageModel).toHaveBeenCalledWith(
+    expect(GoogleImageModel).toHaveBeenCalledWith(
       'imagen-3.0-generate-002',
       {},
       expect.objectContaining({
@@ -165,7 +157,7 @@ describe('google-provider', () => {
   });
 
   it('should create an image model with custom maxImagesPerCall', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
     });
     const imageSettings = {
@@ -173,7 +165,7 @@ describe('google-provider', () => {
     };
     provider.image('imagen-3.0-generate-002', imageSettings);
 
-    expect(GoogleGenerativeAIImageModel).toHaveBeenCalledWith(
+    expect(GoogleImageModel).toHaveBeenCalledWith(
       'imagen-3.0-generate-002',
       imageSettings,
       expect.objectContaining({
@@ -185,7 +177,7 @@ describe('google-provider', () => {
   });
 
   it('should support deprecated methods', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
     });
 
@@ -193,17 +185,17 @@ describe('google-provider', () => {
     provider.embedding('embedding-001');
     provider.embeddingModel('embedding-001');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledTimes(1);
-    expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledTimes(2);
+    expect(GoogleLanguageModel).toHaveBeenCalledTimes(1);
+    expect(GoogleEmbeddingModel).toHaveBeenCalledTimes(2);
   });
 
   it('should include YouTube URLs in supportedUrls', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
     });
     provider('gemini-pro');
 
-    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
+    const call = vi.mocked(GoogleLanguageModel).mock.calls[0];
     const supportedUrlsFunction = call[1].supportedUrls;
 
     expect(supportedUrlsFunction).toBeDefined();
@@ -279,14 +271,14 @@ describe('google provider - custom provider name', () => {
   });
 
   it('should use custom provider name when specified', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       name: 'my-gemini-proxy',
       apiKey: 'test-api-key',
     });
 
     provider('gemini-pro');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
       expect.objectContaining({
         provider: 'my-gemini-proxy',
@@ -295,13 +287,13 @@ describe('google provider - custom provider name', () => {
   });
 
   it('should default to google.generative-ai when name not specified', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
     });
 
     provider('gemini-pro');
 
-    expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
+    expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
       expect.objectContaining({
         provider: 'google.generative-ai',
@@ -316,12 +308,12 @@ describe('google provider - video', () => {
   });
 
   it('should create a video model with default settings', () => {
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
     });
     provider.video('veo-3.1-generate-preview');
 
-    expect(GoogleGenerativeAIVideoModel).toHaveBeenCalledWith(
+    expect(GoogleVideoModel).toHaveBeenCalledWith(
       'veo-3.1-generate-preview',
       expect.objectContaining({
         provider: 'google.generative-ai',
@@ -334,13 +326,13 @@ describe('google provider - video', () => {
 
   it('should use custom baseURL for video model when provided', () => {
     const customBaseURL = 'https://custom-endpoint.example.com';
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
       baseURL: customBaseURL,
     });
     provider.video('veo-3.1-generate');
 
-    expect(GoogleGenerativeAIVideoModel).toHaveBeenCalledWith(
+    expect(GoogleVideoModel).toHaveBeenCalledWith(
       'veo-3.1-generate',
       expect.objectContaining({
         baseURL: customBaseURL,
@@ -350,13 +342,13 @@ describe('google provider - video', () => {
 
   it('should pass custom generateId to video model', () => {
     const customGenerateId = () => 'custom-video-id';
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
       generateId: customGenerateId,
     });
     provider.video('veo-3.1-generate-preview');
 
-    expect(GoogleGenerativeAIVideoModel).toHaveBeenCalledWith(
+    expect(GoogleVideoModel).toHaveBeenCalledWith(
       'veo-3.1-generate-preview',
       expect.objectContaining({
         generateId: customGenerateId,

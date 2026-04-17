@@ -174,6 +174,38 @@ This applies to all AI SDK functions that accept `experimental_telemetry`, inclu
 
 If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetryIntegration` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
 
+### Telemetry: `experimental_telemetry` Renamed to `telemetry`
+
+The telemetry option has graduated out of experimental status and has been renamed to `telemetry`. The old name `experimental_telemetry` continues to work as a deprecated alias in AI SDK 7 and will be removed in a future major release.
+
+```tsx filename="AI SDK 6"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: {
+    functionId: 'story-agent',
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  telemetry: {
+    functionId: 'story-agent',
+  },
+});
+```
+
+This applies to all AI SDK functions and agents that accept telemetry configuration, including `generateText`, `streamText`, `generateObject`, `streamObject`, `embed`, `embedMany`, `rerank`, `ToolLoopAgent`, and `WorkflowAgent`.
+
+No behavior changes beyond the rename. You can migrate incrementally — mixed usage of `telemetry` and `experimental_telemetry` in the same codebase is supported during the deprecation window.
+
 ### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 
 In AI SDK 7, the tool callback option previously exposed as `experimental_context` has been renamed to `context` and is now stable.
@@ -517,3 +549,13 @@ console.log(result.usage.inputTokenDetails.cacheWriteTokens);
 ```
 
 If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.providerMetadata?.anthropic?.usage`.
+
+## Google Provider
+
+### Renamed Types, Classes, and Functions: `GenerativeAI` Affix Removed
+
+Every type, class, and function in `@ai-sdk/google` that contained `GoogleGenerativeAI` has been renamed to use simply `Google` — for example, `createGoogleGenerativeAI` → `createGoogle` and `GoogleGenerativeAIProvider` → `GoogleProvider`.
+
+The old names still work as deprecated aliases, but you should migrate to the new names, if you currently reference them.
+
+The main entry point the `google` constant, remains unchanged, so if that's all you use from the provider, no changes are required.

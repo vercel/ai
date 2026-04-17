@@ -2518,7 +2518,7 @@ describe('WorkflowAgent', () => {
 
       expect(streamTextIterator).toHaveBeenCalledWith(
         expect.objectContaining({
-          experimental_telemetry: TelemetryOptions,
+          telemetry: TelemetryOptions,
         }),
       );
     });
@@ -2555,7 +2555,7 @@ describe('WorkflowAgent', () => {
 
       expect(streamTextIterator).toHaveBeenCalledWith(
         expect.objectContaining({
-          experimental_telemetry: streamTelemetry,
+          telemetry: streamTelemetry,
         }),
       );
     });

@@ -3002,7 +3002,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_telemetry: {
+          telemetry: {
             integrations: {
               onStart: async () => {
                 events.push('onStart');
@@ -3096,7 +3096,7 @@ describe('ToolLoopAgent', () => {
           onFinish: async () => {
             events.push('agent-onFinish');
           },
-          experimental_telemetry: {
+          telemetry: {
             integrations: {
               onStart: async () => {
                 events.push('integration-onStart');
@@ -3132,7 +3132,7 @@ describe('ToolLoopAgent', () => {
               finishReason: { unified: 'stop' as const, raw: 'stop' },
             }),
           }),
-          experimental_telemetry: {
+          telemetry: {
             integrations: {
               onStart: async () => {
                 throw new Error('integration error');
@@ -3234,7 +3234,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
-          experimental_telemetry: {
+          telemetry: {
             integrations: {
               onStart: async () => {
                 events.push('onStart');
@@ -3350,7 +3350,7 @@ describe('ToolLoopAgent', () => {
           onFinish: async () => {
             events.push('agent-onFinish');
           },
-          experimental_telemetry: {
+          telemetry: {
             integrations: {
               onStart: async () => {
                 events.push('integration-onStart');
@@ -3397,7 +3397,7 @@ describe('ToolLoopAgent', () => {
               ]),
             }),
           }),
-          experimental_telemetry: {
+          telemetry: {
             integrations: {
               onStart: async () => {
                 throw new Error('integration error');
