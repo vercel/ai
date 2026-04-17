@@ -1,7 +1,7 @@
 ---
-"@ai-sdk/devtools": patch
-"@ai-sdk/workflow": patch
-"ai": patch
+"@ai-sdk/devtools": major
+"@ai-sdk/workflow": major
+"ai": major
 ---
 
 feat(ai): make experimental_telemetry stable
