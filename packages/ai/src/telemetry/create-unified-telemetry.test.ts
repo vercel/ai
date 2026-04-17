@@ -4,6 +4,13 @@ import type { Telemetry } from './telemetry';
 import { registerTelemetry } from './telemetry-registry';
 
 const dummyEvent = {} as any;
+const augmentedDummyEvent = {
+  ...dummyEvent,
+  isEnabled: true,
+  recordInputs: undefined,
+  recordOutputs: undefined,
+  functionId: undefined,
+};
 
 beforeEach(() => {
   globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
@@ -44,7 +51,7 @@ describe('createUnifiedTelemetry', () => {
 
     await telemetry.onStart!(dummyEvent);
 
-    expect(integration.onStart).toHaveBeenCalledWith(dummyEvent);
+    expect(integration.onStart).toHaveBeenCalledWith(augmentedDummyEvent);
   });
 
   it('accepts an array of integrations', () => {
@@ -81,8 +88,8 @@ describe('createUnifiedTelemetry', () => {
 
     await telemetry.onStart!(dummyEvent);
 
-    expect(onStart1).toHaveBeenCalledWith(dummyEvent);
-    expect(onStart2).toHaveBeenCalledWith(dummyEvent);
+    expect(onStart1).toHaveBeenCalledWith(augmentedDummyEvent);
+    expect(onStart2).toHaveBeenCalledWith(augmentedDummyEvent);
   });
 
   it('skips integrations that do not implement the method', async () => {
@@ -109,8 +116,8 @@ describe('createUnifiedTelemetry', () => {
 
     await telemetry.onStart!(dummyEvent);
 
-    expect(onStart1).toHaveBeenCalledWith(dummyEvent);
-    expect(onStart2).toHaveBeenCalledWith(dummyEvent);
+    expect(onStart1).toHaveBeenCalledWith(augmentedDummyEvent);
+    expect(onStart2).toHaveBeenCalledWith(augmentedDummyEvent);
   });
 
   it('swallows sync errors thrown by integrations', async () => {
@@ -201,7 +208,7 @@ describe('createUnifiedTelemetry', () => {
       const telemetry = createUnifiedTelemetry({});
       await telemetry.onStart!(dummyEvent);
 
-      expect(onStart).toHaveBeenCalledWith(dummyEvent);
+      expect(onStart).toHaveBeenCalledWith(augmentedDummyEvent);
     });
 
     it('uses only local integrations when provided, ignoring global', async () => {
@@ -216,7 +223,7 @@ describe('createUnifiedTelemetry', () => {
       await telemetry.onStart!(dummyEvent);
 
       expect(globalOnStart).not.toHaveBeenCalled();
-      expect(localOnStart).toHaveBeenCalledWith(dummyEvent);
+      expect(localOnStart).toHaveBeenCalledWith(augmentedDummyEvent);
     });
 
     it('uses only local integration array when provided, ignoring global', async () => {
@@ -237,8 +244,8 @@ describe('createUnifiedTelemetry', () => {
       await telemetry.onStart!(dummyEvent);
 
       expect(globalOnStart).not.toHaveBeenCalled();
-      expect(localOnStart1).toHaveBeenCalledWith(dummyEvent);
-      expect(localOnStart2).toHaveBeenCalledWith(dummyEvent);
+      expect(localOnStart1).toHaveBeenCalledWith(augmentedDummyEvent);
+      expect(localOnStart2).toHaveBeenCalledWith(augmentedDummyEvent);
     });
 
     it('global integrations still work for calls without local integrations', async () => {
