@@ -1,5 +1,4 @@
 import {
-  InferToolContext,
   InferToolInput,
   InferToolSetContext,
   ModelMessage,
@@ -34,24 +33,24 @@ export async function isToolApprovalNeeded<TOOLS extends ToolSet>({
   messages: ModelMessage[];
   toolsContext: InferToolSetContext<TOOLS>;
 }) {
+  const toolName = toolCall.toolName;
+  const tool = tools?.[toolName];
+
+  const options = {
+    toolCallId: toolCall.toolCallId,
+    messages,
+    context: await validateToolContext({
+      toolName,
+      context: toolsContext?.[toolName as keyof InferToolSetContext<TOOLS>],
+      contextSchema: tool?.contextSchema,
+    }),
+  };
+
   // assume that the input has been validated and matches the tool's input schema
   const input = toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>;
-  const tool = tools?.[toolCall.toolName];
-  const contextValue = toolsContext?.[
-    toolCall.toolName as keyof InferToolSetContext<TOOLS>
-  ] as unknown;
-  const context = await validateToolContext<
-    InferToolContext<NoInfer<TOOLS[keyof TOOLS]>>
-  >({
-    toolName: toolCall.toolName,
-    context: contextValue,
-    contextSchema: tool?.contextSchema,
-  });
-
-  const options = { toolCallId: toolCall.toolCallId, messages, context };
 
   // user-defined tool approval
-  const userDefinedToolNeedsApproval = toolNeedsApproval?.[toolCall.toolName];
+  const userDefinedToolNeedsApproval = toolNeedsApproval?.[toolName];
   if (userDefinedToolNeedsApproval != null) {
     return typeof userDefinedToolNeedsApproval === 'boolean'
       ? userDefinedToolNeedsApproval
