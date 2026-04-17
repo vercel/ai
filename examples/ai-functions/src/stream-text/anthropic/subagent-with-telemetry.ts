@@ -14,8 +14,10 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(DevToolsTelemetry());
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(
+  new OpenTelemetryIntegration(),
+  DevToolsTelemetry(),
+);
 
 const weatherAgent = new ToolLoopAgent({
   model: anthropic('claude-sonnet-4-5-20250929'),

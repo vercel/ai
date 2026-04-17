@@ -1,6 +1,6 @@
 import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
 import { Output } from '../generate-text/output';
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/request-options';
 import { InferUIMessageChunk } from '../ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
@@ -44,9 +44,7 @@ export async function createAgentUIStream<
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
   options?: CALL_OPTIONS;
-  experimental_transform?:
-    | StreamTextTransform<TOOLS>
-    | Array<StreamTextTransform<TOOLS>>;
+  experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
   onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS>;
   // TODO `originalMessages` is part of this for bc, omit in v7
 } & UIMessageStreamOptions<

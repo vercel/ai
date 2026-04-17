@@ -5,8 +5,6 @@ export type {
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  OnToolCallFinishEvent,
-  OnToolCallStartEvent,
 } from './core-events';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export {
@@ -15,8 +13,6 @@ export {
   type GenerateTextOnStartCallback,
   type GenerateTextOnStepFinishCallback,
   type GenerateTextOnStepStartCallback,
-  type GenerateTextOnToolCallFinishCallback,
-  type GenerateTextOnToolCallStartCallback,
 } from './generate-text';
 export type { GenerateTextResult } from './generate-text-result';
 export {
@@ -58,8 +54,6 @@ export {
   type StreamTextOnStartCallback,
   type StreamTextOnStepFinishCallback,
   type StreamTextOnStepStartCallback,
-  type StreamTextOnToolCallFinishCallback,
-  type StreamTextOnToolCallStartCallback,
   type StreamTextTransform,
 } from './stream-text';
 export type {
@@ -67,7 +61,6 @@ export type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from './stream-text-result';
-export type { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type {
   DynamicToolCall,
@@ -80,6 +73,13 @@ export type {
   StaticToolError,
   TypedToolError,
 } from './tool-error';
+export type {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
+} from './tool-execution-events';
+export type { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 export type {
   StaticToolOutputDenied,
   TypedToolOutputDenied,

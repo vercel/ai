@@ -4,11 +4,13 @@ import {
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
 import type {
+  Arrayable,
   Context,
   InferToolSetContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
+  asArray,
   createIdGenerator,
   getErrorMessage,
   IdGenerator,
@@ -48,7 +50,6 @@ import {
   asLanguageModelUsage,
   LanguageModelUsage,
 } from '../types/usage';
-import { asArray } from '../util/as-array';
 import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
@@ -63,8 +64,6 @@ import type {
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  OnToolCallFinishEvent,
-  OnToolCallStartEvent,
 } from './core-events';
 import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
@@ -92,6 +91,10 @@ import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configurat
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
 import { ToolsContextParameter } from './tools-context-parameter';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from './tool-execution-events';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -132,34 +135,6 @@ export type GenerateTextOnStepStartCallback<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
 > = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
-
-/**
- * Callback that is set using the `experimental_onToolCallStart` option.
- *
- * Called when a tool execution begins, before the tool's `execute` function is invoked.
- * Use this for logging tool invocations, tracking tool usage, or pre-execution validation.
- *
- * @param event - The event object containing tool call information.
- */
-export type GenerateTextOnToolCallStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-> = Callback<OnToolCallStartEvent<TOOLS>>;
-
-/**
- * Callback that is set using the `experimental_onToolCallFinish` option.
- *
- * Called when a tool execution completes, either successfully or with an error.
- * Use this for logging tool results, tracking execution time, or error handling.
- *
- * The event uses a discriminated union on the `success` field:
- * - When `success: true`: `output` contains the tool result, `error` is never present.
- * - When `success: false`: `error` contains the error, `output` is never present.
- *
- * @param event - The event object containing tool call result information.
- */
-export type GenerateTextOnToolCallFinishCallback<
-  TOOLS extends ToolSet = ToolSet,
-> = Callback<OnToolCallFinishEvent<TOOLS>>;
 
 /**
  * Callback that is set using the `onStepFinish` option.
@@ -233,9 +208,9 @@ export type GenerateTextOnFinishCallback<
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
  * Receives step number, messages (in ModelMessage format), tools, and runtimeContext.
- * @param experimental_onToolCallStart - Callback invoked before each tool execution begins.
+ * @param experimental_onToolExecutionStart - Callback invoked before each tool execution begins.
  * Receives tool name, call ID, input, and context.
- * @param experimental_onToolCallFinish - Callback invoked after each tool execution completes.
+ * @param experimental_onToolExecutionEnd - Callback invoked after each tool execution completes.
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onFinish - Callback that is called when all steps are finished and the response is complete.
@@ -259,8 +234,7 @@ export async function generateText<
   timeout,
   headers,
   stopWhen = isStepCount(1),
-  experimental_output,
-  output = experimental_output,
+  output,
   toolNeedsApproval,
   experimental_telemetry,
   telemetry = experimental_telemetry,
@@ -278,8 +252,8 @@ export async function generateText<
   } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
-  experimental_onToolCallStart: onToolCallStart,
-  experimental_onToolCallFinish: onToolCallFinish,
+  experimental_onToolExecutionStart: onToolExecutionStart,
+  experimental_onToolExecutionEnd: onToolExecutionEnd,
   onStepFinish,
   onFinish,
   ...settings
@@ -303,9 +277,7 @@ export async function generateText<
      *
      * @default isStepCount(1)
      */
-    stopWhen?:
-      | StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>
-      | Array<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
+    stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
      * Optional telemetry configuration.
@@ -342,13 +314,6 @@ export async function generateText<
      * Optional specification for parsing structured outputs from the LLM response.
      */
     output?: OUTPUT;
-
-    /**
-     * Optional specification for parsing structured outputs from the LLM response.
-     *
-     * @deprecated Use `output` instead.
-     */
-    experimental_output?: OUTPUT;
 
     /**
      * Optional tool approval configuration.
@@ -397,14 +362,14 @@ export async function generateText<
     /**
      * Callback that is called right before a tool's execute function runs.
      */
-    experimental_onToolCallStart?: GenerateTextOnToolCallStartCallback<
+    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
       NoInfer<TOOLS>
     >;
 
     /**
      * Callback that is called right after a tool's execute function completes (or errors).
      */
-    experimental_onToolCallFinish?: GenerateTextOnToolCallFinishCallback<
+    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
       NoInfer<TOOLS>
     >;
 
@@ -562,24 +527,24 @@ export async function generateText<
         stepNumber: 0,
         provider: model.provider,
         modelId: model.modelId,
-        onToolCallStart: event =>
+        onToolExecutionStart: event =>
           notify({
             event,
             callbacks: [
-              onToolCallStart,
-              unifiedTelemetry.onToolCallStart as
+              onToolExecutionStart,
+              unifiedTelemetry.onToolExecutionStart as
                 | undefined
-                | GenerateTextOnToolCallStartCallback<TOOLS>,
+                | OnToolExecutionStartCallback<TOOLS>,
             ],
           }),
-        onToolCallFinish: event =>
+        onToolExecutionEnd: event =>
           notify({
             event,
             callbacks: [
-              onToolCallFinish,
-              unifiedTelemetry.onToolCallFinish as
+              onToolExecutionEnd,
+              unifiedTelemetry.onToolExecutionEnd as
                 | undefined
-                | GenerateTextOnToolCallFinishCallback<TOOLS>,
+                | OnToolExecutionEndCallback<TOOLS>,
             ],
           }),
         executeToolInTelemetryContext: unifiedTelemetry.executeTool,
@@ -865,24 +830,24 @@ export async function generateText<
               stepNumber: steps.length,
               provider: stepModel.provider,
               modelId: stepModel.modelId,
-              onToolCallStart: event =>
+              onToolExecutionStart: event =>
                 notify({
                   event,
                   callbacks: [
-                    onToolCallStart,
-                    unifiedTelemetry.onToolCallStart as
+                    onToolExecutionStart,
+                    unifiedTelemetry.onToolExecutionStart as
                       | undefined
-                      | GenerateTextOnToolCallStartCallback<TOOLS>,
+                      | OnToolExecutionStartCallback<TOOLS>,
                   ],
                 }),
-              onToolCallFinish: event =>
+              onToolExecutionEnd: event =>
                 notify({
                   event,
                   callbacks: [
-                    onToolCallFinish,
-                    unifiedTelemetry.onToolCallFinish as
+                    onToolExecutionEnd,
+                    unifiedTelemetry.onToolExecutionEnd as
                       | undefined
-                      | GenerateTextOnToolCallFinishCallback<TOOLS>,
+                      | OnToolExecutionEndCallback<TOOLS>,
                   ],
                 }),
               executeToolInTelemetryContext: unifiedTelemetry.executeTool,
@@ -1101,8 +1066,8 @@ async function executeTools<TOOLS extends ToolSet>({
   stepNumber,
   provider,
   modelId,
-  onToolCallStart,
-  onToolCallFinish,
+  onToolExecutionStart,
+  onToolExecutionEnd,
   executeToolInTelemetryContext,
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
@@ -1116,8 +1081,8 @@ async function executeTools<TOOLS extends ToolSet>({
   stepNumber: number;
   provider: string;
   modelId: string;
-  onToolCallStart?: GenerateTextOnToolCallStartCallback<TOOLS>;
-  onToolCallFinish?: GenerateTextOnToolCallFinishCallback<TOOLS>;
+  onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
+  onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
@@ -1134,8 +1099,8 @@ async function executeTools<TOOLS extends ToolSet>({
         stepNumber,
         provider,
         modelId,
-        onToolCallStart,
-        onToolCallFinish,
+        onToolExecutionStart,
+        onToolExecutionEnd,
         executeToolInTelemetryContext,
       }),
     ),
@@ -1243,10 +1208,6 @@ class DefaultGenerateTextResult<
 
   get usage() {
     return this.finalStep.usage;
-  }
-
-  get experimental_output() {
-    return this.output;
   }
 
   get output() {

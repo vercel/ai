@@ -1,3 +1,5 @@
+export { asArray } from './as-array';
+export type { Arrayable } from './as-array';
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export { convertImageModelFileToDataUri } from './convert-image-model-file-to-data-uri';
@@ -12,6 +14,7 @@ export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
 export * from './extract-response-headers';
 export * from './fetch-function';
+export { filterNullable } from './filter-nullable';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
@@ -63,6 +66,11 @@ export {
   type ValidationResult,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
+export {
+  StreamingToolCallTracker,
+  type StreamingToolCallDelta,
+  type StreamingToolCallTrackerOptions,
+} from './streaming-tool-call-tracker';
 export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';

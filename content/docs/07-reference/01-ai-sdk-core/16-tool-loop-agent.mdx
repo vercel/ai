@@ -74,7 +74,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'StopCondition | StopCondition[]',
       isOptional: true,
       description:
-        'Condition(s) for ending the agent loop. Default: isStepCount(20).',
+        'Condition(s) for ending the agent loop. Default: isStepCount(20). Use `isLoopFinished()` to let the agent run until all tool calls have completed, but beware of potential runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.',
     },
     {
       name: 'activeTools',
@@ -375,14 +375,14 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: 'ToolLoopAgentOnToolCallStartCallback',
+      name: 'experimental_onToolExecutionStart',
+      type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallStartEvent',
+          type: 'ToolExecutionStartEvent',
           parameters: [
             {
               name: 'stepNumber',
@@ -430,14 +430,14 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: 'ToolLoopAgentOnToolCallFinishCallback',
+      name: 'experimental_onToolExecutionEnd',
+      type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
         "Callback that is called right after a tool's execute function completes (or errors). Uses a discriminated union on the `success` field: when `success: true`, `output` contains the tool result; when `success: false`, `error` contains the error. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallFinishEvent',
+          type: 'ToolExecutionEndEvent',
           parameters: [
             {
               name: 'stepNumber',
@@ -718,15 +718,15 @@ const result = await agent.generate({
         'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: 'ToolLoopAgentOnToolCallStartCallback',
+      name: 'experimental_onToolExecutionStart',
+      type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: 'ToolLoopAgentOnToolCallFinishCallback',
+      name: 'experimental_onToolExecutionEnd',
+      type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
         "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
@@ -821,15 +821,15 @@ for await (const chunk of stream.textStream) {
         'Callback that is called when a step (LLM call) begins, before the provider is called. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).',
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: 'ToolLoopAgentOnToolCallStartCallback',
+      name: 'experimental_onToolExecutionStart',
+      type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: 'ToolLoopAgentOnToolCallFinishCallback',
+      name: 'experimental_onToolExecutionEnd',
+      type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
         "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",

@@ -1,4 +1,4 @@
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { Arrayable, ToolSet } from '@ai-sdk/provider-utils';
 import {
   IdGenerator,
   InferToolSetContext,
@@ -10,11 +10,11 @@ import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { executeToolCall } from './execute-tool-call';
 import { isToolApprovalNeeded } from './is-tool-approval-needed';
 import { LanguageModelStreamPart } from './stream-language-model-call';
-import {
-  StreamTextOnToolCallFinishCallback,
-  StreamTextOnToolCallStartCallback,
-} from './stream-text';
 import { TypedToolCall } from './tool-call';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from './tool-execution-events';
 import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 
 export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
@@ -30,8 +30,8 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   stepNumber,
   provider,
   modelId,
-  onToolCallStart,
-  onToolCallFinish,
+  onToolExecutionStart,
+  onToolExecutionEnd,
   executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
@@ -46,12 +46,8 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   stepNumber?: number;
   provider?: string;
   modelId?: string;
-  onToolCallStart?:
-    | StreamTextOnToolCallStartCallback<TOOLS>
-    | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
-  onToolCallFinish?:
-    | StreamTextOnToolCallFinishCallback<TOOLS>
-    | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+  onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
+  onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
 }): TransformStream<
   LanguageModelStreamPart<TOOLS>,
@@ -132,8 +128,8 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
                   stepNumber,
                   provider,
                   modelId,
-                  onToolCallStart,
-                  onToolCallFinish,
+                  onToolExecutionStart,
+                  onToolExecutionEnd,
                   executeToolInTelemetryContext,
                   onPreliminaryToolResult: result => {
                     controller.enqueue(result);

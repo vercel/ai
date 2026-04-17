@@ -1,5 +1,48 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - ai@7.0.0-beta.108
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - ai@7.0.0-beta.107
+
+## 1.0.0-beta.21
+
+### Patch Changes
+
+- fbea042: refactor: replace duplicate `filterTools`/`filterToolSet` with shared `experimental_filterActiveTools` from `ai`
+
+## 1.0.0-beta.20
+
+### Patch Changes
+
+- ai@7.0.0-beta.106
+
+## 1.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [33d099c]
+  - ai@7.0.0-beta.105
+
+## 1.0.0-beta.18
+
+### Patch Changes
+
+- eba685c: Remove `maxSteps` option from `WorkflowAgent`. Use `stopWhen` with stop conditions like `isStepCount()` instead.
+- Updated dependencies [2a74d43]
+  - ai@7.0.0-beta.104
+
 ## 1.0.0-beta.17
 
 ### Patch Changes
