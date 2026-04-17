@@ -369,6 +369,156 @@ describe('user messages', () => {
       }),
     ).rejects.toThrow('media type: video/mp4');
   });
+
+  it('should convert messages with image file parts using provider reference', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: { anthropic: 'file-img-12345' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'file',
+                  file_id: 'file-img-12345',
+                },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+  });
+
+  it('should convert messages with PDF file parts using provider reference', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: { anthropic: 'file-pdf-12345' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'file',
+                  file_id: 'file-pdf-12345',
+                },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+  });
+
+  it('should convert messages with text/plain file parts using provider reference', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              data: { anthropic: 'file-txt-12345' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'file',
+                  file_id: 'file-txt-12345',
+                },
+                cache_control: undefined,
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['files-api-2025-04-14']),
+    });
+  });
+
+  it('should throw when provider reference does not contain anthropic key', async () => {
+    await expect(
+      convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: { openai: 'file-xyz' },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      }),
+    ).rejects.toThrow(
+      "No provider reference found for provider 'anthropic'. Available providers: openai",
+    );
+  });
 });
 
 describe('tool messages', () => {
@@ -539,7 +689,7 @@ describe('tool messages', () => {
                     text: 'Image generated successfully',
                   },
                   {
-                    type: 'image-data',
+                    type: 'file-data',
                     data: 'AAECAw==',
                     mediaType: 'image/png',
                   },
@@ -754,6 +904,7 @@ describe('tool messages', () => {
                   {
                     type: 'file-url',
                     url: 'https://example.com/document.pdf',
+                    mediaType: 'application/pdf',
                   },
                 ],
               },
@@ -812,8 +963,9 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'image-url',
+                    type: 'file-url',
                     url: 'https://example.com/image.png',
+                    mediaType: 'image/png',
                   },
                 ],
               },

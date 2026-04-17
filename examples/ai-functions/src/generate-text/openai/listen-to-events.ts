@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import * as z from 'zod';
 
 async function main() {
@@ -19,7 +19,7 @@ async function main() {
         },
       }),
     },
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
     experimental_onStart: event => {
       console.log('\n--- onStart ---');
       console.log('Provider:', event.provider);
@@ -31,13 +31,13 @@ async function main() {
       console.log('Step:', event.stepNumber);
       console.log('Message count:', event.messages.length);
     },
-    experimental_onToolCallStart: event => {
-      console.log('\n--- onToolCallStart ---');
+    experimental_onToolExecutionStart: event => {
+      console.log('\n--- onToolExecutionStart ---');
       console.log('Tool:', event.toolCall.toolName);
       console.log('Input:', JSON.stringify(event.toolCall.input));
     },
-    experimental_onToolCallFinish: event => {
-      console.log('\n--- onToolCallFinish ---');
+    experimental_onToolExecutionEnd: event => {
+      console.log('\n--- onToolExecutionEnd ---');
       console.log('Tool:', event.toolCall.toolName);
       console.log('Duration:', event.durationMs, 'ms');
       console.log('Success:', event.success);

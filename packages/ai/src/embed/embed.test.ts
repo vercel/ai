@@ -3,7 +3,6 @@ import assert from 'node:assert';
 import { beforeEach, describe, expect, it, vi, vitest } from 'vitest';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
-import { MockTracer } from '../test/mock-tracer';
 import { Embedding, EmbeddingModelUsage, Warning } from '../types';
 import { embed } from './embed';
 import type { EmbedOnStartEvent, EmbedOnFinishEvent } from './embed-events';
@@ -223,63 +222,6 @@ describe('logWarnings', () => {
   });
 });
 
-describe('telemetry', () => {
-  let tracer: MockTracer;
-
-  beforeEach(() => {
-    tracer = new MockTracer();
-  });
-
-  it('should not record any telemetry data when not explicitly enabled', async () => {
-    await embed({
-      model: new MockEmbeddingModelV4({
-        doEmbed: mockEmbed([testValue], [dummyEmbedding]),
-      }),
-      value: testValue,
-      experimental_telemetry: { tracer },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should record telemetry data when enabled', async () => {
-    await embed({
-      model: new MockEmbeddingModelV4({
-        doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
-      }),
-      value: testValue,
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
-        tracer,
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should not record telemetry inputs / outputs when disabled', async () => {
-    await embed({
-      model: new MockEmbeddingModelV4({
-        doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
-      }),
-      value: testValue,
-      experimental_telemetry: {
-        isEnabled: true,
-        recordInputs: false,
-        recordOutputs: false,
-        tracer,
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-});
-
 describe('options.experimental_onStart', () => {
   it('should send correct event information', async () => {
     let startEvent!: EmbedOnStartEvent;
@@ -289,9 +231,8 @@ describe('options.experimental_onStart', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_telemetry: {
+      telemetry: {
         functionId: 'test-function',
-        metadata: { customKey: 'customValue' },
       },
       _internal: {
         generateCallId: () => 'test-call-id',
@@ -312,12 +253,11 @@ describe('options.experimental_onStart', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding]),
       }),
       value: testValue,
-      experimental_telemetry: {
+      telemetry: {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: true,
         functionId: 'embed-fn',
-        metadata: { key: 'val' },
       },
       experimental_onStart: async event => {
         startEvent = event;
@@ -328,7 +268,31 @@ describe('options.experimental_onStart', () => {
     expect(startEvent.recordInputs).toBe(false);
     expect(startEvent.recordOutputs).toBe(true);
     expect(startEvent.functionId).toBe('embed-fn');
-    expect(startEvent.metadata).toEqual({ key: 'val' });
+  });
+
+  it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+    let startEvent!: EmbedOnStartEvent;
+
+    await embed({
+      model: new MockEmbeddingModelV4({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding]),
+      }),
+      value: testValue,
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: true,
+        functionId: 'embed-fn-deprecated',
+      },
+      experimental_onStart: async event => {
+        startEvent = event;
+      },
+    });
+
+    expect(startEvent.isEnabled).toBe(true);
+    expect(startEvent.recordInputs).toBe(false);
+    expect(startEvent.recordOutputs).toBe(true);
+    expect(startEvent.functionId).toBe('embed-fn-deprecated');
   });
 
   it('should include model information', async () => {
@@ -416,9 +380,8 @@ describe('options.experimental_onFinish', () => {
         doEmbed: mockEmbed([testValue], [dummyEmbedding], { tokens: 10 }),
       }),
       value: testValue,
-      experimental_telemetry: {
+      telemetry: {
         functionId: 'test-function',
-        metadata: { customKey: 'customValue' },
       },
       _internal: {
         generateCallId: () => 'test-call-id',

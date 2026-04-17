@@ -38,17 +38,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 10.11.0
 
       - name: Setup Node.js 22
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -62,6 +62,9 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm i
+
+      - name: Delete pre.json if it exists
+        run: rm -f .changeset/pre.json
 
       - name: Version Packages
         run: pnpm changeset version --snapshot ${SHORT_SHA}

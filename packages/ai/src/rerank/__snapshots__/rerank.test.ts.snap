@@ -9,10 +9,7 @@ exports[`rerank > options.experimental_onFinish > should send correct event info
     "cloudy day in the mountains",
   ],
   "functionId": "test-function",
-  "isEnabled": undefined,
-  "metadata": {
-    "customKey": "customValue",
-  },
+  "isEnabled": true,
   "modelId": "mock-model-id",
   "operationId": "ai.rerank",
   "provider": "mock-provider",
@@ -63,7 +60,6 @@ exports[`rerank > options.experimental_onFinish > should send correct event info
 
 exports[`rerank > options.experimental_onStart > should send correct event information 1`] = `
 {
-  "abortSignal": undefined,
   "callId": "test-call-id",
   "documents": [
     "sunny day at the beach",
@@ -72,11 +68,8 @@ exports[`rerank > options.experimental_onStart > should send correct event infor
   ],
   "functionId": "test-function",
   "headers": undefined,
-  "isEnabled": undefined,
+  "isEnabled": true,
   "maxRetries": 2,
-  "metadata": {
-    "customKey": "customValue",
-  },
   "modelId": "mock-model-id",
   "operationId": "ai.rerank",
   "provider": "mock-provider",

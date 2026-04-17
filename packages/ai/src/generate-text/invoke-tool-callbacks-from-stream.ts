@@ -1,20 +1,23 @@
-import { UglyTransformedStreamTextPart } from './create-stream-text-part-transform';
-import { ToolSet } from './tool-set';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { ModelMessage } from '@ai-sdk/provider-utils';
+import { LanguageModelStreamPart } from './stream-language-model-call';
 
-export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
+export function invokeToolCallbacksFromStream<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+>({
   stream,
   tools,
   stepInputMessages,
   abortSignal,
-  experimental_context,
+  runtimeContext,
 }: {
-  stream: ReadableStream<UglyTransformedStreamTextPart<TOOLS>>;
+  stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   stepInputMessages: Array<ModelMessage>;
   abortSignal: AbortSignal | undefined;
-  experimental_context: unknown;
-}): ReadableStream<UglyTransformedStreamTextPart<TOOLS>> {
+  runtimeContext: RUNTIME_CONTEXT;
+}): ReadableStream<LanguageModelStreamPart<TOOLS>> {
   if (tools == null) return stream;
 
   const ongoingToolCallToolNames: Record<string, string> = {};
@@ -34,7 +37,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                experimental_context,
+                context: runtimeContext,
               });
             }
 
@@ -51,7 +54,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
                 toolCallId: chunk.id,
                 messages: stepInputMessages,
                 abortSignal,
-                experimental_context,
+                context: runtimeContext,
               });
             }
 
@@ -70,7 +73,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
                 toolCallId: chunk.toolCallId,
                 messages: stepInputMessages,
                 abortSignal,
-                experimental_context,
+                context: runtimeContext,
               });
             }
           }

@@ -1,9 +1,14 @@
 import {
   LanguageModelV4CallOptions,
+  SharedV4ProviderReference,
   SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { ToolNameMapping, validateTypes } from '@ai-sdk/provider-utils';
+import {
+  resolveProviderReference,
+  ToolNameMapping,
+  validateTypes,
+} from '@ai-sdk/provider-utils';
 import { codeInterpreterArgsSchema } from '../tool/code-interpreter';
 import { fileSearchArgsSchema } from '../tool/file-search';
 import { imageGenerationArgsSchema } from '../tool/image-generation';
@@ -360,7 +365,7 @@ function mapShellEnvironment(environment: {
       };
       skills?: Array<{
         type: string;
-        skillId?: string;
+        providerReference?: SharedV4ProviderReference;
         version?: string;
         name?: string;
         description?: string;
@@ -404,7 +409,7 @@ function mapShellSkills(
   skills:
     | Array<{
         type: string;
-        skillId?: string;
+        providerReference?: SharedV4ProviderReference;
         version?: string;
         name?: string;
         description?: string;
@@ -416,8 +421,11 @@ function mapShellSkills(
     skill.type === 'skillReference'
       ? {
           type: 'skill_reference' as const,
-          skill_id: skill.skillId!,
-          version: skill.version,
+          skill_id: resolveProviderReference({
+            reference: skill.providerReference ?? {},
+            provider: 'openai',
+          }),
+          version: skill.version ?? 'latest',
         }
       : {
           type: 'inline' as const,

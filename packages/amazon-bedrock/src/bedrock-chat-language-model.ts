@@ -25,6 +25,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { getModelCapabilities } from '@ai-sdk/anthropic/internal';
 import { z } from 'zod/v4';
@@ -48,7 +51,7 @@ import { isMistralModel, normalizeToolCallId } from './normalize-tool-call-id';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
 };
@@ -56,6 +59,20 @@ type BedrockChatConfig = {
 export class BedrockChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
+
+  static [WORKFLOW_SERIALIZE](model: BedrockChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: BedrockChatConfig;
+  }) {
+    return new BedrockChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(
     readonly modelId: BedrockChatModelId,
@@ -157,9 +174,12 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
 
+    const { supportsStructuredOutput: modelSupportsStructuredOutput } =
+      getModelCapabilities(this.modelId);
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
-      isThinkingEnabled &&
+      (modelSupportsStructuredOutput || isThinkingEnabled) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null;
 
@@ -210,6 +230,10 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
         : undefined;
+    const thinkingDisplay =
+      thinkingType === 'adaptive'
+        ? bedrockOptions.reasoningConfig?.display
+        : undefined;
     const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingEnabled;
 
     const inferenceConfig = {
@@ -239,6 +263,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
           ...bedrockOptions.additionalModelRequestFields,
           thinking: {
             type: 'adaptive',
+            ...(thinkingDisplay != null && { display: thinkingDisplay }),
           },
         };
       }
@@ -383,6 +408,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
     const {
       reasoningConfig: _,
       additionalModelRequestFields: __,
+      serviceTier: ___,
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
@@ -401,6 +427,11 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
         }),
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
+        }),
+        ...(bedrockOptions.serviceTier != null && {
+          serviceTier: {
+            type: bedrockOptions.serviceTier,
+          },
         }),
         ...filteredBedrockOptions,
         ...(toolConfig.tools !== undefined && toolConfig.tools.length > 0
@@ -422,7 +453,10 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
   }: {
     headers: Record<string, string | undefined> | undefined;
   }) {
-    return combineHeaders(await resolve(this.config.headers), headers);
+    return combineHeaders(
+      this.config.headers ? await resolve(this.config.headers) : undefined,
+      headers,
+    );
   }
 
   async doGenerate(
@@ -456,7 +490,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
     // map response content to content array
     for (const part of response.output.message.content) {
       // text
-      if (part.text) {
+      if (part.text != null) {
         content.push({ type: 'text', text: part.text });
       }
 
@@ -860,6 +894,13 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
                 'signature' in reasoningContent &&
                 reasoningContent.signature
               ) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),
@@ -871,6 +912,13 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
                   },
                 });
               } else if ('data' in reasoningContent && reasoningContent.data) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),

@@ -309,7 +309,7 @@ You can also combine gateway-specific options (like routing and fallbacks) with 
 
 ```ts
 import type { AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
-import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -319,7 +319,7 @@ const result = await generateText({
     // Gateway-specific: control routing
     gateway: {
       order: ['vertex', 'anthropic'],
-    } satisfies GatewayLanguageModelOptions,
+    } satisfies GatewayProviderOptions,
     // Provider-specific: enable reasoning
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 12000 },

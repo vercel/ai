@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -36,7 +36,7 @@ const imageAnalysisTool = tool({
       type: 'content',
       value: [
         {
-          type: 'image-data',
+          type: 'file-data',
           mediaType: 'image/png',
           data: output.base64Image!,
         },
@@ -55,7 +55,7 @@ run(async () => {
     tools: {
       analyzeImage: imageAnalysisTool,
     },
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
     prompt: `Whats in this image?`,
   });
 

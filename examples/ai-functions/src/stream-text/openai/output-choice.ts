@@ -1,5 +1,5 @@
 import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { Output, stepCountIs, streamText } from 'ai';
+import { Output, isStepCount, streamText } from 'ai';
 import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 
@@ -14,7 +14,7 @@ run(async () => {
     tools: {
       weather: weatherTool,
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     output: Output.choice({
       options: [
         'winter jacket',

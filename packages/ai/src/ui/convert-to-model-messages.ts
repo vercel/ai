@@ -8,7 +8,7 @@ import {
   ToolApprovalResponse,
   ToolResultPart,
 } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
 import {
@@ -114,7 +114,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   type: 'file' as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
-                  data: part.url,
+                  data: part.providerReference ?? part.url,
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),
@@ -176,7 +176,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   type: 'file' as const,
                   mediaType: part.mediaType,
                   filename: part.filename,
-                  data: part.url,
+                  data: part.providerReference ?? part.url,
                   ...(part.providerMetadata != null
                     ? { providerOptions: part.providerMetadata }
                     : {}),

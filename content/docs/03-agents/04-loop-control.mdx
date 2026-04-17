@@ -16,7 +16,7 @@ The AI SDK provides built-in loop control through two parameters: `stopWhen` for
 
 ## Stop Conditions
 
-The `stopWhen` parameter controls when to stop execution when there are tool results in the last step. By default, agents stop after 20 steps using `stepCountIs(20)`.
+The `stopWhen` parameter controls when to stop execution when there are tool results in the last step. By default, agents stop after 20 steps using `isStepCount(20)`. This default is a safety measure to prevent runaway loops that could result in excessive API calls and costs.
 
 When you provide `stopWhen`, the agent continues executing after tool calls until a stopping condition is met. When the condition is an array, execution stops when any of the conditions are met.
 
@@ -24,8 +24,14 @@ When you provide `stopWhen`, the agent continues executing after tool calls unti
 
 The AI SDK provides several built-in stopping conditions:
 
+- `isStepCount(count)` — stops after a specified number of steps
+- `hasToolCall(...toolNames)` — stops when any of the specified tools is called
+- `isLoopFinished()` — never triggers, letting the loop run until the agent is naturally finished
+
+### Run Up to a Maximum Number of Steps
+
 ```ts
-import { ToolLoopAgent, stepCountIs } from 'ai';
+import { ToolLoopAgent, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
@@ -33,7 +39,7 @@ const agent = new ToolLoopAgent({
   tools: {
     // your tools
   },
-  stopWhen: stepCountIs(20), // Default state: stop after 20 steps maximum
+  stopWhen: isStepCount(50), // Increasing the default of 20 to 50.
 });
 
 const result = await agent.generate({
@@ -41,12 +47,39 @@ const result = await agent.generate({
 });
 ```
 
+### Run Until Finished
+
+If you want the agent to run until the model naturally stops making tool calls, use `isLoopFinished()`. This removes the default step limit:
+
+```ts
+import { ToolLoopAgent, isLoopFinished } from 'ai';
+__PROVIDER_IMPORT__;
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    // your tools
+  },
+  stopWhen: isLoopFinished(), // No maximum step limit.
+});
+
+const result = await agent.generate({
+  prompt: 'Analyze this dataset and create a summary report',
+});
+```
+
+<Note>
+  Use `isLoopFinished()` with caution. Without a step limit, the agent could
+  potentially run indefinitely or incur significant costs if the model keeps
+  making tool calls.
+</Note>
+
 ### Combine Multiple Conditions
 
 Combine multiple stopping conditions. The loop stops when it meets any condition:
 
 ```ts
-import { ToolLoopAgent, stepCountIs, hasToolCall } from 'ai';
+import { ToolLoopAgent, isStepCount, hasToolCall } from 'ai';
 __PROVIDER_IMPORT__;
 
 const agent = new ToolLoopAgent({
@@ -55,8 +88,8 @@ const agent = new ToolLoopAgent({
     // your tools
   },
   stopWhen: [
-    stepCountIs(20), // Maximum 20 steps
-    hasToolCall('someTool'), // Stop after calling 'someTool'
+    isStepCount(20), // Maximum 20 steps
+    hasToolCall('someTool', 'done'), // Stop after calling either tool
   ],
 });
 

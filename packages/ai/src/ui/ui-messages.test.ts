@@ -36,7 +36,7 @@ describe('isCustomContentUIPart', () => {
     expect(
       isCustomContentUIPart({
         type: 'custom',
-        kind: 'test-provider-compaction',
+        kind: 'test-provider.compaction',
         providerMetadata: {
           openai: { itemId: 'cmp_123' },
         },
@@ -48,7 +48,7 @@ describe('isCustomContentUIPart', () => {
     expect(
       isCustomContentUIPart({
         type: 'custom',
-        kind: 'openai-compaction',
+        kind: 'openai.compaction',
       }),
     ).toBe(true);
   });

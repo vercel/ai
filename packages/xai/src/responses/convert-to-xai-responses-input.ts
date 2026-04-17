@@ -3,7 +3,11 @@ import {
   LanguageModelV4Message,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  isProviderReference,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
 import {
   XaiResponsesInput,
   XaiResponsesUserMessageContentPart,
@@ -42,7 +46,15 @@ export async function convertToXaiResponsesInput({
             }
 
             case 'file': {
-              if (block.mediaType.startsWith('image/')) {
+              if (isProviderReference(block.data)) {
+                contentParts.push({
+                  type: 'input_file',
+                  file_id: resolveProviderReference({
+                    reference: block.data,
+                    provider: 'xai',
+                  }),
+                });
+              } else if (block.mediaType.startsWith('image/')) {
                 const mediaType =
                   block.mediaType === 'image/*'
                     ? 'image/jpeg'
@@ -123,7 +135,48 @@ export async function convertToXaiResponsesInput({
               break;
             }
 
-            case 'reasoning':
+            case 'reasoning': {
+              const itemId =
+                typeof part.providerOptions?.xai?.itemId === 'string'
+                  ? part.providerOptions.xai.itemId
+                  : undefined;
+              const encryptedContent =
+                typeof part.providerOptions?.xai?.reasoningEncryptedContent ===
+                'string'
+                  ? part.providerOptions.xai.reasoningEncryptedContent
+                  : undefined;
+
+              if (itemId != null || encryptedContent != null) {
+                const summaryParts: Array<{
+                  type: 'summary_text';
+                  text: string;
+                }> = [];
+                if (part.text.length > 0) {
+                  summaryParts.push({
+                    type: 'summary_text',
+                    text: part.text,
+                  });
+                }
+
+                input.push({
+                  type: 'reasoning',
+                  id: itemId ?? '',
+                  summary: summaryParts,
+                  status: 'completed',
+                  ...(encryptedContent != null && {
+                    encrypted_content: encryptedContent,
+                  }),
+                });
+              } else {
+                inputWarnings.push({
+                  type: 'other',
+                  message:
+                    'Reasoning parts without itemId or encrypted content cannot be sent back to xAI. Skipping.',
+                });
+              }
+              break;
+            }
+
             case 'reasoning-file':
             case 'custom':
             case 'file': {

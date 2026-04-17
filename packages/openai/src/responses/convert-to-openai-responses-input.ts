@@ -7,8 +7,10 @@ import {
 import {
   convertToBase64,
   isNonNullable,
+  isProviderReference,
   parseJSON,
   parseProviderOptions,
+  resolveProviderReference,
   ToolNameMapping,
   validateTypes,
 } from '@ai-sdk/provider-utils';
@@ -34,9 +36,15 @@ import {
   toolSearchOutputSchema,
 } from '../tool/tool-search';
 
+function serializeToolCallArguments(input: unknown): string {
+  return JSON.stringify(input === undefined ? {} : input);
+}
+
 /**
- * Check if a string is a file ID based on the given prefixes
- * Returns false if prefixes is undefined (disables file ID detection)
+ * This is soft-deprecated. Use provider references instead. Kept for backward compatibility
+ * with the `fileIdPrefixes` option.
+ *
+ * TODO: remove in v8
  */
 function isFileId(data: string, prefixes?: readonly string[]): boolean {
   if (!prefixes) return false;
@@ -60,6 +68,7 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
+  /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
@@ -113,6 +122,28 @@ export async function convertToOpenAIResponsesInput({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  const fileId = resolveProviderReference({
+                    reference: part.data,
+                    provider: providerOptionsName,
+                  });
+
+                  if (part.mediaType.startsWith('image/')) {
+                    return {
+                      type: 'input_image',
+                      file_id: fileId,
+                      detail:
+                        part.providerOptions?.[providerOptionsName]
+                          ?.imageDetail,
+                    };
+                  }
+
+                  return {
+                    type: 'input_file',
+                    file_id: fileId,
+                  };
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -335,7 +366,7 @@ export async function convertToOpenAIResponsesInput({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: resolvedToolName,
-                arguments: JSON.stringify(part.input),
+                arguments: serializeToolCallArguments(part.input),
                 id,
               });
               break;
@@ -546,7 +577,7 @@ export async function convertToOpenAIResponsesInput({
             }
 
             case 'custom': {
-              if (part.kind === 'openai-compaction') {
+              if (part.kind === 'openai.compaction') {
                 const providerOpts =
                   part.providerOptions?.[providerOptionsName];
                 const id = providerOpts?.itemId as string | undefined;
@@ -724,21 +755,28 @@ export async function convertToOpenAIResponsesInput({
                     switch (item.type) {
                       case 'text':
                         return { type: 'input_text' as const, text: item.text };
-                      case 'image-data':
-                        return {
-                          type: 'input_image' as const,
-                          image_url: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                      case 'image-url':
-                        return {
-                          type: 'input_image' as const,
-                          image_url: item.url,
-                        };
                       case 'file-data':
+                        if (item.mediaType.startsWith('image/')) {
+                          return {
+                            type: 'input_image' as const,
+                            image_url: `data:${item.mediaType};base64,${item.data}`,
+                          };
+                        }
                         return {
                           type: 'input_file' as const,
                           filename: item.filename ?? 'data',
                           file_data: `data:${item.mediaType};base64,${item.data}`,
+                        };
+                      case 'file-url':
+                        if (item.mediaType.startsWith('image/')) {
+                          return {
+                            type: 'input_image' as const,
+                            image_url: item.url,
+                          };
+                        }
+                        return {
+                          type: 'input_file' as const,
+                          file_url: item.url,
                         };
                       default:
                         warnings.push({
@@ -782,25 +820,30 @@ export async function convertToOpenAIResponsesInput({
                       return { type: 'input_text' as const, text: item.text };
                     }
 
-                    case 'image-data': {
-                      return {
-                        type: 'input_image' as const,
-                        image_url: `data:${item.mediaType};base64,${item.data}`,
-                      };
-                    }
-
-                    case 'image-url': {
-                      return {
-                        type: 'input_image' as const,
-                        image_url: item.url,
-                      };
-                    }
-
                     case 'file-data': {
+                      if (item.mediaType.startsWith('image/')) {
+                        return {
+                          type: 'input_image' as const,
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        };
+                      }
                       return {
                         type: 'input_file' as const,
                         filename: item.filename ?? 'data',
                         file_data: `data:${item.mediaType};base64,${item.data}`,
+                      };
+                    }
+
+                    case 'file-url': {
+                      if (item.mediaType.startsWith('image/')) {
+                        return {
+                          type: 'input_image' as const,
+                          image_url: item.url,
+                        };
+                      }
+                      return {
+                        type: 'input_file' as const,
+                        file_url: item.url,
                       };
                     }
 

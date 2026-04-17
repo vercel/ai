@@ -101,7 +101,7 @@ Image models are used to generate image outputs from text prompts.
 - **Model specification**
   - `ImageModelV4` - [`packages/provider/src/image-model/v4/image-model-v4.ts`](packages/provider/src/image-model/v4/image-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`OpenAIImageModel`](packages/openai/src/image/openai-image-model.ts), [`GoogleGenerativeAIImageModel`](packages/google/src/google-generative-ai-image-model.ts)
+  - [`OpenAIImageModel`](packages/openai/src/image/openai-image-model.ts), [`GoogleImageModel`](packages/google/src/google-image-model.ts)
 
 ```mermaid
 classDiagram

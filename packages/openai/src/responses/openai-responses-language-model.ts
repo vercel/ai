@@ -25,6 +25,9 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -106,6 +109,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: OpenAIResponsesModelId;
 
   private readonly config: OpenAIConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIResponsesModelId;
+    config: OpenAIConfig;
+  }) {
+    return new OpenAIResponsesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {
     this.modelId = modelId;
@@ -494,7 +511,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -996,7 +1013,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         case 'compaction': {
           content.push({
             type: 'custom',
-            kind: 'openai-compaction',
+            kind: 'openai.compaction',
             providerMetadata: {
               [providerOptionsName]: {
                 type: 'compaction',
@@ -1063,7 +1080,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         path: '/responses',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         stream: true,
@@ -1815,7 +1832,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               } else if (value.item.type === 'compaction') {
                 controller.enqueue({
                   type: 'custom',
-                  kind: 'openai-compaction',
+                  kind: 'openai.compaction',
                   providerMetadata: {
                     [providerOptionsName]: {
                       type: 'compaction',
@@ -2044,6 +2061,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
+            } else if (isResponseFailedChunk(value)) {
+              const incompleteReason =
+                value.response.incomplete_details?.reason;
+              finishReason = {
+                unified: incompleteReason
+                  ? mapOpenAIResponseFinishReason({
+                      finishReason: incompleteReason,
+                      hasFunctionCall,
+                    })
+                  : 'error',
+                raw: incompleteReason ?? 'error',
+              };
+              usage = value.response.usage ?? undefined;
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
@@ -2161,6 +2191,12 @@ function isResponseFinishedChunk(
   return (
     chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
   );
+}
+
+function isResponseFailedChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.failed' } {
+  return chunk.type === 'response.failed';
 }
 
 function isResponseCreatedChunk(

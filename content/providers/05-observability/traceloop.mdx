@@ -22,17 +22,25 @@ OTEL_EXPORTER_OTLP_ENDPOINT=https://api.traceloop.com
 OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your API Key>"
 ```
 
-You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
+Install `@ai-sdk/otel` and register the `OpenTelemetry` in your `instrumentation.ts` file:
 
-```typescript highlight="7-13"
-import { openai } from '@ai-sdk/openai';
+```typescript filename="instrumentation.ts"
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+
+registerTelemetry(new OpenTelemetry());
+```
+
+You can then use the `telemetry` option to enable telemetry on supported AI SDK function calls:
+
+```typescript highlight="7-12"
 import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'What is 2 + 2?',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     metadata: {
       query: 'weather',
       location: 'San Francisco',

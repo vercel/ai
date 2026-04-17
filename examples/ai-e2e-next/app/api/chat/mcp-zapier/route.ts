@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, stepCountIs, streamText } from 'ai';
+import { convertToModelMessages, isStepCount, streamText } from 'ai';
 import { createMCPClient } from '@ai-sdk/mcp';
 
 export const maxDuration = 30;
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       onFinish: async () => {
         await mcpClient.close();
       },
-      stopWhen: stepCountIs(10),
+      stopWhen: isStepCount(10),
     });
 
     return result.toUIMessageStreamResponse();

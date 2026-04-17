@@ -127,7 +127,7 @@ describe('toResponseMessages', () => {
       content: [
         {
           type: 'custom',
-          kind: 'mock-provider-compaction',
+          kind: 'mock-provider.compaction',
           providerMetadata: {
             openai: {
               itemId: 'cmp_123',
@@ -144,7 +144,7 @@ describe('toResponseMessages', () => {
         content: [
           {
             type: 'custom',
-            kind: 'mock-provider-compaction',
+            kind: 'mock-provider.compaction',
             providerOptions: {
               openai: {
                 itemId: 'cmp_123',
@@ -969,6 +969,132 @@ describe('toResponseMessages', () => {
         ]
       `);
     });
+  });
+
+  it('should sanitize invalid tool call with non-object input to empty object', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: '{ city: San Francisco, }',
+          dynamic: true,
+          invalid: true,
+          error: new Error('JSON parsing failed'),
+        },
+        {
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: '{ city: San Francisco, }',
+          error: 'Invalid input for tool weather: JSON parsing failed',
+          dynamic: true,
+        },
+      ],
+      tools: {
+        weather: tool({
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "input": {},
+              "providerExecuted": undefined,
+              "providerOptions": undefined,
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "error-text",
+                "value": "Invalid input for tool weather: JSON parsing failed",
+              },
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
+  });
+
+  it('should preserve valid object input on invalid tool call', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { cities: 'San Francisco' },
+          dynamic: true,
+          invalid: true,
+          error: new Error('Type validation failed'),
+        },
+        {
+          type: 'tool-error',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { cities: 'San Francisco' },
+          error: 'Invalid input for tool weather: Type validation failed',
+          dynamic: true,
+        },
+      ],
+      tools: {
+        weather: tool({
+          description: 'Get weather',
+          inputSchema: z.object({ city: z.string() }),
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "input": {
+                "cities": "San Francisco",
+              },
+              "providerExecuted": undefined,
+              "providerOptions": undefined,
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "output": {
+                "type": "error-text",
+                "value": "Invalid input for tool weather: Type validation failed",
+              },
+              "toolCallId": "call-1",
+              "toolName": "weather",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
   });
 
   it('should include provider metadata in the text parts', async () => {

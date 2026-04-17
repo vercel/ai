@@ -8650,7 +8650,7 @@ describe('processUIMessageStream', () => {
         { type: 'start', messageId: 'msg-123' },
         {
           type: 'custom',
-          kind: 'test-provider-compaction',
+          kind: 'test-provider.compaction',
           providerMetadata: { openai: { itemId: 'cmp_123' } },
         },
         { type: 'finish' },
@@ -8676,7 +8676,7 @@ describe('processUIMessageStream', () => {
       expect(state!.message.parts).toEqual([
         {
           type: 'custom',
-          kind: 'test-provider-compaction',
+          kind: 'test-provider.compaction',
           providerMetadata: {
             openai: {
               itemId: 'cmp_123',

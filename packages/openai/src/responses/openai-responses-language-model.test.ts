@@ -203,13 +203,12 @@ const nonReasoningModelIds = openaiResponsesModelIds.filter(
     ),
 );
 
-function createModel(modelId: string, fileIdPrefixes?: readonly string[]) {
+function createModel(modelId: string) {
   return new OpenAIResponsesLanguageModel(modelId, {
     provider: 'openai',
     url: ({ path }) => `https://api.openai.com/v1${path}`,
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
-    fileIdPrefixes,
   });
 }
 
@@ -7141,8 +7140,8 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
               {
                 "finishReason": {
-                  "raw": undefined,
-                  "unified": "other",
+                  "raw": "error",
+                  "unified": "error",
                 },
                 "providerMetadata": {
                   "openai": {
@@ -7167,6 +7166,78 @@ describe('OpenAIResponsesLanguageModel', () => {
               },
             ]
           `);
+      });
+
+      it('should expose raw finish reason from response.failed incomplete details', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_failed_with_reason","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+            `data:{"type":"error","sequence_number":1,"error":{"type":"server_error","code":"server_error","message":"response failed","param":null}}\n\n`,
+            `data:{"type":"response.failed","sequence_number":2,"response":{"error":{"code":"server_error","message":"response failed"},"incomplete_details":{"reason":"max_output_tokens"},"usage":null,"service_tier":null}}\n\n`,
+          ],
+        };
+
+        const { stream } = await createModel('gpt-4o-mini').doStream({
+          prompt: TEST_PROMPT,
+          includeRawChunks: false,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(events).toMatchInlineSnapshot(`
+          [
+            {
+              "type": "stream-start",
+              "warnings": [],
+            },
+            {
+              "id": "resp_failed_with_reason",
+              "modelId": "gpt-4o-2024-07-18",
+              "timestamp": 2025-03-06T13:50:19.000Z,
+              "type": "response-metadata",
+            },
+            {
+              "error": {
+                "error": {
+                  "code": "server_error",
+                  "message": "response failed",
+                  "param": null,
+                  "type": "server_error",
+                },
+                "sequence_number": 1,
+                "type": "error",
+              },
+              "type": "error",
+            },
+            {
+              "finishReason": {
+                "raw": "max_output_tokens",
+                "unified": "length",
+              },
+              "providerMetadata": {
+                "openai": {
+                  "responseId": "resp_failed_with_reason",
+                },
+              },
+              "type": "finish",
+              "usage": {
+                "inputTokens": {
+                  "cacheRead": undefined,
+                  "cacheWrite": undefined,
+                  "noCache": undefined,
+                  "total": undefined,
+                },
+                "outputTokens": {
+                  "reasoning": undefined,
+                  "text": undefined,
+                  "total": undefined,
+                },
+                "raw": undefined,
+              },
+            },
+          ]
+        `);
       });
     });
 
@@ -8215,156 +8286,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
       });
-    });
-  });
-
-  describe('fileIdPrefixes configuration', () => {
-    const TEST_PROMPT_WITH_FILE: LanguageModelV4Prompt = [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Analyze this image' },
-          {
-            type: 'file',
-            mediaType: 'image/jpeg',
-            data: 'file-abc123',
-          },
-        ],
-      },
-    ];
-
-    beforeEach(() => {
-      server.urls['https://api.openai.com/v1/responses'].response = {
-        type: 'json-value',
-        body: {
-          id: 'resp_test',
-          object: 'response',
-          created_at: 1741257730,
-          status: 'completed',
-          model: 'gpt-4o',
-          output: [
-            {
-              id: 'msg_test',
-              type: 'message',
-              status: 'completed',
-              role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'I can see the image.',
-                  annotations: [],
-                },
-              ],
-            },
-          ],
-          usage: {
-            input_tokens: 10,
-            output_tokens: 5,
-            total_tokens: 15,
-          },
-          incomplete_details: null,
-        },
-      };
-    });
-
-    it('should pass fileIdPrefixes to convertToOpenAIResponsesMessages', async () => {
-      const model = createModel('gpt-4o', ['file-']);
-
-      await model.doGenerate({
-        prompt: TEST_PROMPT_WITH_FILE,
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.input).toEqual([
-        {
-          role: 'user',
-          content: [
-            { type: 'input_text', text: 'Analyze this image' },
-            { type: 'input_image', file_id: 'file-abc123' },
-          ],
-        },
-      ]);
-    });
-
-    it('should handle multiple file ID prefixes', async () => {
-      const model = createModel('gpt-4o', ['file-', 'custom-']);
-
-      await model.doGenerate({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: 'Compare these images' },
-              {
-                type: 'file',
-                mediaType: 'image/jpeg',
-                data: 'file-abc123',
-              },
-              {
-                type: 'file',
-                mediaType: 'image/jpeg',
-                data: 'custom-xyz789',
-              },
-            ],
-          },
-        ],
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.input).toEqual([
-        {
-          role: 'user',
-          content: [
-            { type: 'input_text', text: 'Compare these images' },
-            { type: 'input_image', file_id: 'file-abc123' },
-            { type: 'input_image', file_id: 'custom-xyz789' },
-          ],
-        },
-      ]);
-    });
-
-    it('should fall back to base64 when fileIdPrefixes is undefined', async () => {
-      const model = createModel('gpt-4o'); // no fileIdPrefixes
-
-      await model.doGenerate({
-        prompt: TEST_PROMPT_WITH_FILE,
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.input).toEqual([
-        {
-          role: 'user',
-          content: [
-            { type: 'input_text', text: 'Analyze this image' },
-            {
-              type: 'input_image',
-              image_url: 'data:image/jpeg;base64,file-abc123',
-            },
-          ],
-        },
-      ]);
-    });
-
-    it('should fall back to base64 when prefix does not match', async () => {
-      const model = createModel('gpt-4o', ['other-']);
-
-      await model.doGenerate({
-        prompt: TEST_PROMPT_WITH_FILE,
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.input).toEqual([
-        {
-          role: 'user',
-          content: [
-            { type: 'input_text', text: 'Analyze this image' },
-            {
-              type: 'input_image',
-              image_url: 'data:image/jpeg;base64,file-abc123',
-            },
-          ],
-        },
-      ]);
     });
   });
 

@@ -1,4 +1,3 @@
-import type { JSONValue } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { Embedding, ProviderMetadata } from '../types';
 import type { EmbeddingModelUsage } from '../types/usage';
@@ -28,16 +27,13 @@ export interface EmbedOnStartEvent {
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
@@ -48,9 +44,6 @@ export interface EmbedOnStartEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -92,7 +85,7 @@ export interface EmbedOnFinishEvent {
     | Array<{ headers?: Record<string, string>; body?: unknown } | undefined>
     | undefined;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
@@ -103,7 +96,73 @@ export interface EmbedOnFinishEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
+}
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
+/**
+ * Event fired when an individual embedding model call (inner operation doEmbed) begins.
+ *
+ * For `embed`, there is one call. For `embedMany`, there may be multiple
+ * calls when values are chunked.
+ */
+export interface EmbedStartEvent {
+  /** Unique identifier for this embed call, used to correlate events. */
+  readonly callId: string;
+
+  /** Unique identifier for this individual doEmbed invocation, used to correlate start/finish within parallel chunks. */
+  readonly embedCallId: string;
+
+  /** Identifies the inner operation (e.g. 'ai.embed.doEmbed' or 'ai.embedMany.doEmbed'). */
+  readonly operationId: string;
+
+  /** The provider identifier. */
+  readonly provider: string;
+
+  /** The specific model identifier. */
+  readonly modelId: string;
+
+  /** The values being embedded in this particular model call. */
+  readonly values: Array<string>;
+
+  /** Whether telemetry is enabled. Defaults to `true`. */
+  readonly isEnabled: boolean | undefined;
+
+  /** Whether to record inputs in telemetry. Enabled by default. */
+  readonly recordInputs: boolean | undefined;
+
+  /** Whether to record outputs in telemetry. Enabled by default. */
+  readonly recordOutputs: boolean | undefined;
+
+  /** Identifier from telemetry settings for grouping related operations. */
+  readonly functionId: string | undefined;
+}
+
+/**
+ * Event fired when an individual embedding model call (doEmbed) completes.
+ *
+ * Contains the embeddings, usage, and any warnings from the model response.
+ */
+export interface EmbedFinishEvent {
+  /** Unique identifier for this embed call, used to correlate events. */
+  readonly callId: string;
+
+  /** Unique identifier for this individual doEmbed invocation, used to correlate start/finish within parallel chunks. */
+  readonly embedCallId: string;
+
+  /** Identifies the inner operation (e.g. 'ai.embed.doEmbed' or 'ai.embedMany.doEmbed'). */
+  readonly operationId: string;
+
+  /** The provider identifier. */
+  readonly provider: string;
+
+  /** The specific model identifier. */
+  readonly modelId: string;
+
+  /** The values that were embedded in this particular model call. */
+  readonly values: Array<string>;
+
+  /** The resulting embeddings from the model call. */
+  readonly embeddings: Array<Embedding>;
+
+  /** Token usage for this model call. */
+  readonly usage: EmbeddingModelUsage;
 }

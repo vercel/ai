@@ -4,8 +4,6 @@ import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
 import { rerank } from './rerank';
 import type { RerankOnStartEvent, RerankOnFinishEvent } from './rerank-events';
 import { RerankResult } from './rerank-result';
-import { MockTracer } from '../test/mock-tracer';
-
 describe('rerank', () => {
   describe('rerank with string documents', () => {
     let result: RerankResult<string>;
@@ -347,174 +345,6 @@ describe('rerank', () => {
     });
   });
 
-  describe('telemetry', () => {
-    let tracer: MockTracer;
-
-    const model = new MockRerankingModelV4({
-      doRerank: async options => {
-        return {
-          ranking: [
-            { index: 2, relevanceScore: 0.9 },
-            { index: 0, relevanceScore: 0.8 },
-            { index: 1, relevanceScore: 0.7 },
-          ],
-          providerMetadata: {
-            aProvider: {
-              someResponseKey: 'someResponseValue',
-            },
-          },
-          response: {
-            headers: {
-              'content-type': 'application/json',
-            },
-            body: {
-              id: '123',
-            },
-          },
-        };
-      },
-    });
-
-    beforeEach(() => {
-      tracer = new MockTracer();
-    });
-
-    it('should not record any telemetry data when not explicitly enabled', async () => {
-      await rerank({
-        model,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        topN: 3,
-      });
-
-      expect(tracer.jsonSpans).toMatchInlineSnapshot(`[]`);
-    });
-
-    it('should record telemetry data when enabled (single call path)', async () => {
-      await rerank({
-        model,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        topN: 3,
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'test-function-id',
-          metadata: {
-            test1: 'value1',
-            test2: false,
-          },
-          tracer,
-        },
-      });
-
-      expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-        [
-          {
-            "attributes": {
-              "ai.documents": [
-                ""sunny day at the beach"",
-                ""rainy day in the city"",
-                ""cloudy day in the mountains"",
-              ],
-              "ai.model.id": "mock-model-id",
-              "ai.model.provider": "mock-provider",
-              "ai.operationId": "ai.rerank",
-              "ai.settings.maxRetries": 2,
-              "ai.telemetry.functionId": "test-function-id",
-              "ai.telemetry.metadata.test1": "value1",
-              "ai.telemetry.metadata.test2": false,
-              "operation.name": "ai.rerank test-function-id",
-              "resource.name": "test-function-id",
-            },
-            "events": [],
-            "name": "ai.rerank",
-          },
-          {
-            "attributes": {
-              "ai.documents": [
-                ""sunny day at the beach"",
-                ""rainy day in the city"",
-                ""cloudy day in the mountains"",
-              ],
-              "ai.model.id": "mock-model-id",
-              "ai.model.provider": "mock-provider",
-              "ai.operationId": "ai.rerank.doRerank",
-              "ai.ranking": [
-                "{"index":2,"relevanceScore":0.9}",
-                "{"index":0,"relevanceScore":0.8}",
-                "{"index":1,"relevanceScore":0.7}",
-              ],
-              "ai.ranking.type": "text",
-              "ai.settings.maxRetries": 2,
-              "ai.telemetry.functionId": "test-function-id",
-              "ai.telemetry.metadata.test1": "value1",
-              "ai.telemetry.metadata.test2": false,
-              "operation.name": "ai.rerank.doRerank test-function-id",
-              "resource.name": "test-function-id",
-            },
-            "events": [],
-            "name": "ai.rerank.doRerank",
-          },
-        ]
-      `);
-    });
-
-    it('should not record telemetry inputs / outputs when disabled', async () => {
-      await rerank({
-        model,
-        documents: [
-          'sunny day at the beach',
-          'rainy day in the city',
-          'cloudy day in the mountains',
-        ],
-        query: 'rainy day',
-        topN: 3,
-        experimental_telemetry: {
-          isEnabled: true,
-          recordInputs: false,
-          recordOutputs: false,
-          tracer,
-        },
-      });
-
-      expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-        [
-          {
-            "attributes": {
-              "ai.model.id": "mock-model-id",
-              "ai.model.provider": "mock-provider",
-              "ai.operationId": "ai.rerank",
-              "ai.settings.maxRetries": 2,
-              "operation.name": "ai.rerank",
-            },
-            "events": [],
-            "name": "ai.rerank",
-          },
-          {
-            "attributes": {
-              "ai.model.id": "mock-model-id",
-              "ai.model.provider": "mock-provider",
-              "ai.operationId": "ai.rerank.doRerank",
-              "ai.ranking.type": "text",
-              "ai.settings.maxRetries": 2,
-              "operation.name": "ai.rerank.doRerank",
-            },
-            "events": [],
-            "name": "ai.rerank.doRerank",
-          },
-        ]
-      `);
-    });
-  });
-
   describe('options.experimental_onStart', () => {
     const mockModel = new MockRerankingModelV4({
       doRerank: async () => ({
@@ -544,9 +374,8 @@ describe('rerank', () => {
         ],
         query: 'rainy day',
         topN: 3,
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateCallId: () => 'test-call-id',
@@ -570,12 +399,11 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_telemetry: {
+        telemetry: {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: true,
           functionId: 'rerank-fn',
-          metadata: { key: 'val' },
         },
         experimental_onStart: async event => {
           startEvent = event;
@@ -586,7 +414,34 @@ describe('rerank', () => {
       expect(startEvent.recordInputs).toBe(false);
       expect(startEvent.recordOutputs).toBe(true);
       expect(startEvent.functionId).toBe('rerank-fn');
-      expect(startEvent.metadata).toEqual({ key: 'val' });
+    });
+
+    it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+      let startEvent!: RerankOnStartEvent;
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: false,
+          recordOutputs: true,
+          functionId: 'rerank-fn-deprecated',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent.isEnabled).toBe(true);
+      expect(startEvent.recordInputs).toBe(false);
+      expect(startEvent.recordOutputs).toBe(true);
+      expect(startEvent.functionId).toBe('rerank-fn-deprecated');
     });
 
     it('should include model information', async () => {
@@ -717,9 +572,8 @@ describe('rerank', () => {
         ],
         query: 'rainy day',
         topN: 3,
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateCallId: () => 'test-call-id',

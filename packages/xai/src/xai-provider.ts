@@ -1,5 +1,6 @@
 import {
   type Experimental_VideoModelV4,
+  FilesV4,
   ImageModelV4,
   LanguageModelV4,
   NoSuchModelError,
@@ -20,6 +21,7 @@ import { XaiResponsesLanguageModel } from './responses/xai-responses-language-mo
 import { XaiResponsesModelId } from './responses/xai-responses-options';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
+import { XaiFiles } from './files/xai-files';
 import { XaiVideoModel } from './xai-video-model';
 import { XaiVideoModelId } from './xai-video-settings';
 
@@ -60,6 +62,11 @@ export interface XaiProvider extends ProviderV4 {
    * Creates an Xai video model for video generation.
    */
   videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Returns the xAI files interface for uploading files.
+   */
+  files(): FilesV4;
 
   /**
    * Server-side agentic tools for use with the responses API.
@@ -150,6 +157,14 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
+  const createFiles = () =>
+    new XaiFiles({
+      provider: 'xai.files',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = (modelId: XaiResponsesModelId) =>
     createResponsesLanguageModel(modelId);
 
@@ -165,6 +180,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.image = createImageModel;
   provider.videoModel = createVideoModel;
   provider.video = createVideoModel;
+  provider.files = createFiles;
   provider.tools = xaiTools;
 
   return provider;

@@ -1,5 +1,6 @@
 import { JSONValue } from '../../json-value/json-value';
 import { SharedV4ProviderOptions } from '../../shared/v4/shared-v4-provider-options';
+import { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provider-reference';
 import { LanguageModelV4DataContent } from './language-model-v4-data-content';
 
 /**
@@ -99,7 +100,7 @@ export interface LanguageModelV4ReasoningFilePart {
   type: 'reasoning-file';
 
   /**
-   * File data. Can be a Uint8Array, base64 encoded data as a string or a URL.
+   * File data. Can be a Uint8Array or base64 encoded data as a string.
    */
   data: LanguageModelV4DataContent;
 
@@ -126,9 +127,9 @@ export interface LanguageModelV4CustomPart {
   type: 'custom';
 
   /**
-   * The kind of custom content, in the format `{provider}-{provider-type}`.
+   * The kind of custom content, in the format `{provider}.{provider-type}`.
    */
-  kind: string;
+  kind: `${string}.${string}`;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -150,9 +151,10 @@ export interface LanguageModelV4FilePart {
   filename?: string;
 
   /**
-   * File data. Can be a Uint8Array, base64 encoded data as a string or a URL.
+   * File data. Can be a Uint8Array, base64 encoded data as a string, a URL,
+   * or a provider reference mapping provider names to provider-specific file IDs.
    */
-  data: LanguageModelV4DataContent;
+  data: LanguageModelV4DataContent | SharedV4ProviderReference;
 
   /**
    * IANA media type of the file.
@@ -373,40 +375,6 @@ export type LanguageModelV4ToolResultOutput =
             url: string;
 
             /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV4ProviderOptions;
-          }
-        | {
-            type: 'file-id';
-
-            /**
-             * ID of the file.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
-             */
-            fileId: string | Record<string, string>;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV4ProviderOptions;
-          }
-        | {
-            /**
-             * Images that are referenced using base64 encoded data.
-             */
-            type: 'image-data';
-
-            /**
-             * Base-64 encoded image data.
-             */
-            data: string;
-
-            /**
              * IANA media type.
              * @see https://www.iana.org/assignments/media-types/media-types.xhtml
              */
@@ -418,36 +386,13 @@ export type LanguageModelV4ToolResultOutput =
             providerOptions?: SharedV4ProviderOptions;
           }
         | {
-            /**
-             * Images that are referenced using a URL.
-             */
-            type: 'image-url';
+            type: 'file-reference';
 
             /**
-             * URL of the image.
+             * Provider-specific references for the file.
+             * The key is the provider name, e.g. 'openai' or 'anthropic'.
              */
-            url: string;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV4ProviderOptions;
-          }
-        | {
-            /**
-             * Images that are referenced using a provider file id.
-             */
-            type: 'image-file-id';
-
-            /**
-             * Image that is referenced using a provider file id.
-             *
-             * If you use multiple providers, you need to
-             * specify the provider specific ids using
-             * the Record option. The key is the provider
-             * name, e.g. 'openai' or 'anthropic'.
-             */
-            fileId: string | Record<string, string>;
+            providerReference: SharedV4ProviderReference;
 
             /**
              * Provider-specific options.

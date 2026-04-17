@@ -4,7 +4,7 @@ import {
   streamText,
   createUIMessageStream,
   convertToModelMessages,
-  stepCountIs,
+  isStepCount,
 } from 'ai';
 import { processToolCalls } from './utils';
 import { tools } from './tools';
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
         model: openai('gpt-4o'),
         messages: await convertToModelMessages(processedMessages),
         tools,
-        stopWhen: stepCountIs(20),
+        stopWhen: isStepCount(20),
       });
 
       writer.merge(

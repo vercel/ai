@@ -1,4 +1,4 @@
-import type { JSONObject, JSONValue } from '@ai-sdk/provider';
+import type { JSONObject } from '@ai-sdk/provider';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
 import type { ProviderMetadata } from '../types';
 import type { Warning } from '../types/warning';
@@ -31,17 +31,13 @@ export interface RerankOnStartEvent {
 
   /** Maximum number of retries for failed requests. */
   readonly maxRetries: number;
-
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** Additional HTTP headers sent with the request. */
   readonly headers: Record<string, string | undefined> | undefined;
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
@@ -52,9 +48,6 @@ export interface RerankOnStartEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
-
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
 }
 
 /**
@@ -103,7 +96,7 @@ export interface RerankOnFinishEvent {
     body?: unknown;
   };
 
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
@@ -114,7 +107,70 @@ export interface RerankOnFinishEvent {
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
+}
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
+/**
+ * Event fired when an individual reranking model call (inner doRerank) begins.
+ */
+export interface RerankStartEvent {
+  /** Unique identifier for this rerank call, used to correlate events. */
+  readonly callId: string;
+
+  /** Identifies the inner operation ('ai.rerank.doRerank'). */
+  readonly operationId: string;
+
+  /** The provider identifier. */
+  readonly provider: string;
+
+  /** The specific model identifier. */
+  readonly modelId: string;
+
+  /** The documents being reranked. */
+  readonly documents: Array<JSONObject | string>;
+
+  /** The type of documents ('text' or 'object'). */
+  readonly documentsType: string;
+
+  /** The query to rerank against. */
+  readonly query: string;
+
+  /** Number of top documents to return. */
+  readonly topN: number | undefined;
+
+  /** Whether telemetry is enabled. Defaults to `true`. */
+  readonly isEnabled: boolean | undefined;
+
+  /** Whether to record inputs in telemetry. Enabled by default. */
+  readonly recordInputs: boolean | undefined;
+
+  /** Whether to record outputs in telemetry. Enabled by default. */
+  readonly recordOutputs: boolean | undefined;
+
+  /** Identifier from telemetry settings for grouping related operations. */
+  readonly functionId: string | undefined;
+}
+
+/**
+ * Event fired when an individual reranking model call (doRerank) completes.
+ *
+ * Contains the ranking results from the model response.
+ */
+export interface RerankFinishEvent {
+  /** Unique identifier for this rerank call, used to correlate events. */
+  readonly callId: string;
+
+  /** Identifies the inner operation ('ai.rerank.doRerank'). */
+  readonly operationId: string;
+
+  /** The provider identifier. */
+  readonly provider: string;
+
+  /** The specific model identifier. */
+  readonly modelId: string;
+
+  /** The type of documents ('text' or 'object'). */
+  readonly documentsType: string;
+
+  /** The ranking results from the model. */
+  readonly ranking: Array<{ index: number; relevanceScore: number }>;
 }
