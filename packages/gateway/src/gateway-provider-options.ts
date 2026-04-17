@@ -100,6 +100,19 @@ const gatewayProviderOptions = lazySchema(() =>
           byok: z.record(z.string(), z.number().int().min(1000)).optional(),
         })
         .optional(),
+      /**
+       * Automatic prompt caching strategy.
+       *
+       * - `'auto'`: Let AI Gateway handle caching automatically. For providers that
+       *   require explicit cache markers (Anthropic, MiniMax), AI Gateway adds a
+       *   `cache_control` breakpoint at the end of static content. For providers
+       *   with implicit caching (OpenAI, Google, DeepSeek), no modification is needed.
+       *
+       * When not set, requests pass through without modification.
+       *
+       * See https://vercel.com/docs/ai-gateway/models-and-providers/automatic-caching
+       */
+      caching: z.literal('auto').optional(),
     }),
   ),
 );

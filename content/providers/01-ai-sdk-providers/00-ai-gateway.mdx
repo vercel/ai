@@ -851,6 +851,14 @@ The following gateway provider options are available:
 
   For full details, see [Provider Timeouts](https://vercel.com/docs/ai-gateway/models-and-providers/provider-timeouts).
 
+- **caching** _'auto'_
+
+  Automatic prompt caching strategy. When set to `'auto'`, AI Gateway handles caching automatically based on the provider. For providers that require explicit cache markers (Anthropic, MiniMax), AI Gateway adds a `cache_control` breakpoint at the end of static content. For providers with implicit caching (OpenAI, Google, DeepSeek), no modification is needed.
+
+  When not set, requests pass through without modification.
+
+  For full details, see [Automatic Caching](https://vercel.com/docs/ai-gateway/models-and-providers/automatic-caching).
+
 You can combine these options to have fine-grained control over routing and tracking:
 
 ```ts
