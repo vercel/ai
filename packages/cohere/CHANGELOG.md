@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 2.0.26
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+
 ## 2.0.25
 
 ### Patch Changes

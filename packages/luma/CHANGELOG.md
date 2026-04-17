@@ -1,5 +1,11 @@
 # @ai-sdk/luma
 
+## 1.0.25
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+
 ## 1.0.24
 
 ### Patch Changes

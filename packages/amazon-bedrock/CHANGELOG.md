@@ -1,5 +1,14 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.96
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+- Updated dependencies [5543cd1]
+- Updated dependencies [e1ed246]
+  - @ai-sdk/anthropic@2.0.77
+
 ## 3.0.95
 
 ### Patch Changes

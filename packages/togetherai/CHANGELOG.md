@@ -1,5 +1,13 @@
 # @ai-sdk/togetherai
 
+## 1.0.39
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+- Updated dependencies [5543cd1]
+  - @ai-sdk/openai-compatible@1.0.36
+
 ## 1.0.38
 
 ### Patch Changes

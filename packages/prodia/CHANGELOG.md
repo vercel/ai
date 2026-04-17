@@ -1,5 +1,11 @@
 # @ai-sdk/prodia
 
+## 0.0.7
+
+### Patch Changes
+
+- 5543cd1: Add AI Gateway hint to provider READMEs
+
 ## 0.0.6
 
 ### Patch Changes
