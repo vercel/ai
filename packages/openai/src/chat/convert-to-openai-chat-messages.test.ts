@@ -547,7 +547,7 @@ describe('tool calls', () => {
     expect(result.messages).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "role": "assistant",
           "tool_calls": [
             {
