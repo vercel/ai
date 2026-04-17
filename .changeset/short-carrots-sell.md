@@ -1,7 +1,7 @@
 ---
-"@ai-sdk/devtools": patch
-"@ai-sdk/otel": patch
-"ai": patch
+"@ai-sdk/devtools": major
+"@ai-sdk/otel": major
+"ai": major
 ---
 
 feat(ai): remove telemetry data from the user-facing event data
