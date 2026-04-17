@@ -1,6 +1,5 @@
 import type {
   Arrayable,
-  InferToolContext,
   InferToolInput,
   InferToolSetContext,
   ToolSet,
@@ -25,6 +24,7 @@ import {
 } from './tool-execution-events';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
+import { validateToolContext } from './validate-tool-context';
 
 /**
  * Executes a single tool call and manages its lifecycle callbacks.
@@ -81,9 +81,11 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     return undefined;
   }
 
-  // TODO validate the context type against the tool context schema
-  const context: InferToolContext<typeof tool> =
-    toolsContext?.[toolName as keyof typeof toolsContext];
+  const context = await validateToolContext({
+    toolName,
+    context: toolsContext?.[toolName as keyof typeof toolsContext],
+    contextSchema: tool.contextSchema,
+  });
 
   const baseCallbackEvent = {
     callId,

@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import { LanguageModelStreamPart } from './stream-language-model-call';
@@ -781,6 +782,57 @@ describe('createExecuteToolsTransformation', () => {
   });
 
   describe('tool execution error handling', () => {
+    it('should throw TypeValidationError before approval callbacks run', async () => {
+      const tools = {
+        guardedTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          contextSchema: z.object({ apiKey: z.string() }),
+          needsApproval: true,
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+
+      const transformedStream = convertArrayToReadableStream<
+        LanguageModelStreamPart<typeof tools>
+      >([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'guardedTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]).pipeThrough(
+        createExecuteToolsTransformation({
+          generateId: mockId({ prefix: 'id' }),
+          tools,
+          telemetry: undefined,
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          timeout: undefined,
+          toolsContext: {
+            guardedTool: { apiKey: 123 } as any,
+          },
+        }),
+      );
+
+      try {
+        await convertReadableStreamToArray(transformedStream);
+        expect.unreachable('expected stream consumption to throw');
+      } catch (error) {
+        expect(TypeValidationError.isInstance(error)).toBe(true);
+
+        if (TypeValidationError.isInstance(error)) {
+          expect(error.value).toEqual({ apiKey: 123 });
+          expect(error.context).toEqual({
+            field: 'tool context',
+            entityName: 'guardedTool',
+          });
+        }
+      }
+    });
+
     it('should handle error thrown in async tool execution', async () => {
       const tools = {
         failingTool: tool({

@@ -1,6 +1,7 @@
 import { tool } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
+import { TypeValidationError } from '../error';
 import { executeToolCall } from './execute-tool-call';
 import { TypedToolCall } from './tool-call';
 import { TypedToolResult } from './tool-result';
@@ -103,6 +104,38 @@ describe('executeToolCall', () => {
         type: 'tool-result',
         providerMetadata: { custom: { key: 'value' } },
       });
+    });
+
+    it('should throw TypeValidationError when tool context fails validation', async () => {
+      try {
+        await executeToolCall({
+          toolCall: createToolCall(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              contextSchema: z.object({ key1: z.string() }),
+              execute: async ({ value }) => `${value}-result`,
+            }),
+          },
+          telemetry: undefined,
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          toolsContext: { testTool: { key1: 1 } as any },
+        });
+
+        expect.unreachable('expected executeToolCall to throw');
+      } catch (error) {
+        expect(TypeValidationError.isInstance(error)).toBe(true);
+
+        if (TypeValidationError.isInstance(error)) {
+          expect(error.value).toEqual({ key1: 1 });
+          expect(error.context).toEqual({
+            field: 'tool context',
+            entityName: 'testTool',
+          });
+        }
+      }
     });
   });
 

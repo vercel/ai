@@ -1,6 +1,7 @@
 import { tool } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
+import { TypeValidationError } from '../error';
 import { isToolApprovalNeeded } from './is-tool-approval-needed';
 
 describe('isToolApprovalNeeded', () => {
@@ -120,5 +121,49 @@ describe('isToolApprovalNeeded', () => {
         messages: [...messages],
       },
     );
+  });
+
+  it('throws TypeValidationError before invoking approval callbacks', async () => {
+    const userDefinedNeedsApproval = vi.fn(() => true);
+
+    try {
+      await isToolApprovalNeeded({
+        tools: {
+          weather: tool({
+            inputSchema: z.object({ city: z.string() }),
+            contextSchema: z.object({ apiKey: z.string() }),
+            needsApproval: vi.fn(() => true),
+          }),
+        },
+        toolNeedsApproval: {
+          weather: userDefinedNeedsApproval,
+        },
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { city: 'Berlin' },
+          dynamic: false,
+        },
+        messages: [...messages],
+        toolsContext: {
+          weather: { apiKey: 123 } as any,
+        },
+      });
+
+      expect.unreachable('expected isToolApprovalNeeded to throw');
+    } catch (error) {
+      expect(userDefinedNeedsApproval).not.toHaveBeenCalled();
+
+      expect(TypeValidationError.isInstance(error)).toBe(true);
+
+      if (TypeValidationError.isInstance(error)) {
+        expect(error.value).toEqual({ apiKey: 123 });
+        expect(error.context).toEqual({
+          field: 'tool context',
+          entityName: 'weather',
+        });
+      }
+    }
   });
 });
