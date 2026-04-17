@@ -102,10 +102,8 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV4 {
             : convertUint8ArrayToBase64(options.image.data);
 
         instance.image = {
-          inlineData: {
-            mimeType: options.image.mediaType || 'image/png',
-            data: base64Data,
-          },
+          bytesBase64Encoded: base64Data,
+          mimeType: options.image.mediaType || 'image/png',
         };
       }
     }
@@ -114,10 +112,8 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV4 {
       instance.referenceImages = googleOptions.referenceImages.map(refImg => {
         if (refImg.bytesBase64Encoded) {
           return {
-            inlineData: {
-              mimeType: 'image/png',
-              data: refImg.bytesBase64Encoded,
-            },
+            bytesBase64Encoded: refImg.bytesBase64Encoded,
+            mimeType: 'image/png',
           };
         } else if (refImg.gcsUri) {
           return {
