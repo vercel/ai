@@ -1,5 +1,4 @@
 import type {
-  InferToolContext,
   InferToolInput,
   InferToolSetContext,
   ToolSet,
@@ -85,10 +84,9 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     return undefined;
   }
 
-  const contextValue = toolsContext?.[toolName as keyof typeof toolsContext];
-  const context = await validateToolContext<InferToolContext<typeof tool>>({
+  const context = await validateToolContext({
     toolName,
-    context: contextValue,
+    context: toolsContext?.[toolName as keyof typeof toolsContext],
     contextSchema: tool.contextSchema,
   });
 
