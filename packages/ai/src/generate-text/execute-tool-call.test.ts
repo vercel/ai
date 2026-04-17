@@ -1,6 +1,7 @@
 import { tool } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
+import { TypeValidationError } from '../error';
 import { executeToolCall } from './execute-tool-call';
 import { TypedToolCall } from './tool-call';
 import { TypedToolResult } from './tool-result';
@@ -100,6 +101,37 @@ describe('executeToolCall', () => {
         type: 'tool-result',
         providerMetadata: { custom: { key: 'value' } },
       });
+    });
+
+    it('should throw TypeValidationError when tool context fails validation', async () => {
+      try {
+        await executeToolCall({
+          toolCall: createToolCall(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              contextSchema: z.object({ key1: z.string() }),
+              execute: async ({ value }) => `${value}-result`,
+            }),
+          },
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          toolsContext: { testTool: { key1: 1 } as any },
+        });
+
+        expect.unreachable('expected executeToolCall to throw');
+      } catch (error) {
+        expect(TypeValidationError.isInstance(error)).toBe(true);
+
+        if (TypeValidationError.isInstance(error)) {
+          expect(error.value).toEqual({ key1: 1 });
+          expect(error.context).toEqual({
+            field: 'tool context',
+            entityName: 'testTool',
+          });
+        }
+      }
     });
   });
 
@@ -707,6 +739,46 @@ describe('executeToolCall', () => {
         toolCallId: 'my-call-id',
         execute: expect.any(Function),
       });
+    });
+
+    it('should measure only the inner execute duration when wrapped in telemetry context', async () => {
+      const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
+      const executeToolInTelemetryContext: <T>(params: {
+        callId: string;
+        toolCallId: string;
+        execute: () => PromiseLike<T>;
+      }) => Promise<T> = vi.fn(async ({ execute }) => {
+        now(); // simulate wrapper overhead before the tool runs
+        const result = await execute();
+        now(); // simulate wrapper overhead after the tool runs
+        return result;
+      });
+
+      mockNow
+        .mockReturnValueOnce(1000)
+        .mockReturnValueOnce(2000)
+        .mockReturnValueOnce(2300)
+        .mockReturnValueOnce(5000);
+
+      await executeToolCall({
+        toolCall: createToolCall({ toolCallId: 'my-call-id' }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolsContext: {},
+        executeToolInTelemetryContext,
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+      });
+
+      expect(toolExecutionEndEvents[0].durationMs).toBe(300);
     });
 
     it('should execute the tool directly when executeToolInTelemetryContext is not provided', async () => {

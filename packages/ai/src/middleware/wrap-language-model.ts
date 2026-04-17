@@ -82,27 +82,32 @@ const doWrap = ({
       params: LanguageModelV4CallOptions,
     ): Promise<LanguageModelV4GenerateResult> {
       const transformedParams = await doTransform({ params, type: 'generate' });
-      const doGenerate = async () => model.doGenerate(transformedParams);
-      const doStream = async () => model.doStream(transformedParams);
+      const doGenerate = async () => await model.doGenerate(transformedParams);
+      const doStream = async () => await model.doStream(transformedParams);
       return wrapGenerate
-        ? wrapGenerate({
+        ? await wrapGenerate({
             doGenerate,
             doStream,
             params: transformedParams,
             model,
           })
-        : doGenerate();
+        : await doGenerate();
     },
 
     async doStream(
       params: LanguageModelV4CallOptions,
     ): Promise<LanguageModelV4StreamResult> {
       const transformedParams = await doTransform({ params, type: 'stream' });
-      const doGenerate = async () => model.doGenerate(transformedParams);
-      const doStream = async () => model.doStream(transformedParams);
+      const doGenerate = async () => await model.doGenerate(transformedParams);
+      const doStream = async () => await model.doStream(transformedParams);
       return wrapStream
-        ? wrapStream({ doGenerate, doStream, params: transformedParams, model })
-        : doStream();
+        ? await wrapStream({
+            doGenerate,
+            doStream,
+            params: transformedParams,
+            model,
+          })
+        : await doStream();
     },
   };
 };

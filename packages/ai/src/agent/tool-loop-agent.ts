@@ -177,7 +177,7 @@ export class ToolLoopAgent<
       onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
     };
 
-    return generate({
+    return await generate({
       ...preparedCall,
       ...callbackArgs,
     } as unknown as Parameters<typeof generate>[0]);
@@ -230,7 +230,7 @@ export class ToolLoopAgent<
       onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
     };
 
-    return stream({
+    return await stream({
       ...preparedCall,
       ...callbackArgs,
     } as unknown as Parameters<typeof stream>[0]);

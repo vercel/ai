@@ -117,7 +117,10 @@ export const amazonBedrockLanguageModelOptions = z.object({
         ])
         .optional(),
       budgetTokens: z.number().optional(),
-      maxReasoningEffort: z.enum(['low', 'medium', 'high', 'max']).optional(),
+      maxReasoningEffort: z
+        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+      display: z.enum(['omitted', 'summarized']).optional(),
     })
     .optional(),
   /**

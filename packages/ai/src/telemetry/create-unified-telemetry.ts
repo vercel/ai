@@ -129,7 +129,7 @@ export function createUnifiedTelemetry({
               execute = () =>
                 executeWrapper({ ...args, execute: innerExecute });
             }
-            return execute();
+            return await execute();
           }
         : undefined,
   };

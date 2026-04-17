@@ -123,6 +123,9 @@
       "path": "../../packages/valibot"
     },
     {
+      "path": "../../packages/voyage"
+    },
+    {
       "path": "../../packages/xai"
     }
   ]
