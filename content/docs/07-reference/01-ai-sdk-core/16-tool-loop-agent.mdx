@@ -241,12 +241,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -353,12 +347,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'Settings for controlling what data is included in step results.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'runtimeContext',
               type: 'CONTEXT',
               description:
@@ -412,12 +400,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
               name: 'abortSignal',
               type: 'AbortSignal | undefined',
               description: 'Signal for cancelling the operation.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
             {
               name: 'context',
@@ -475,12 +457,6 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
                 'The wall-clock duration of the tool execution in milliseconds.',
             },
             {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
-            {
               name: 'context',
               type: 'CONTEXT',
               description:
@@ -520,7 +496,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'ToolLoopAgentOnFinishCallback',
       isOptional: true,
       description:
-        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, `toolsContext`, and functionId. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
+        'Callback that is called when all agent steps are finished and the response is complete. Receives step results, total usage, shared `runtimeContext`, and `toolsContext`. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first).',
     },
     {
       name: 'runtimeContext',
