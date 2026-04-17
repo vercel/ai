@@ -4271,7 +4271,7 @@ describe('doGenerate', () => {
   });
 
   it('should forward display in adaptive reasoningConfig to thinking', async () => {
-    server.urls[newerAnthropicGenerateUrl].response = {
+    server.urls[anthropicGenerateUrl].response = {
       type: 'json-value' as const,
       body: {
         output: {
@@ -4282,7 +4282,13 @@ describe('doGenerate', () => {
       },
     };
 
-    await newerAnthropicModel.doGenerate({
+    const anthropicModel = new BedrockChatLanguageModel(anthropicModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+    });
+
+    await anthropicModel.doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
         bedrock: {
