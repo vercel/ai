@@ -125,6 +125,19 @@ import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 registerTelemetryIntegration(new OpenTelemetryIntegration());
 ```
 
+You can also register multiple integrations in a single call by passing them as additional arguments. They all receive the same lifecycle events:
+
+```ts
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { DevToolsTelemetry } from '@ai-sdk/devtools';
+
+registerTelemetryIntegration(
+  new OpenTelemetryIntegration(),
+  DevToolsTelemetry(),
+);
+```
+
 ### Per-call integrations
 
 You can also pass one or more integrations to individual `generateText` or `streamText` calls. When per-call integrations are provided, they replace the globally registered integrations for that call:
