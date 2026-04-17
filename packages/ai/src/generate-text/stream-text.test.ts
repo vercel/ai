@@ -8392,7 +8392,6 @@ describe('streamText', () => {
           },
           stopWhen: isStepCount(3),
           _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
           },
@@ -10409,7 +10408,6 @@ describe('streamText', () => {
           },
           stopWhen: isStepCount(3),
           _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
             generateCallId: () => 'test-telemetry-call-id',
           },
@@ -11572,7 +11570,6 @@ describe('streamText', () => {
             },
           ],
           _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
             generateId: () => 'test-call-id',
             generateCallId: () => 'test-telemetry-call-id',
           },
@@ -13542,9 +13539,6 @@ describe('streamText', () => {
         },
         toolChoice: 'required',
         prompt: 'test-input',
-        _internal: {
-          now: mockValues(0, 100, 500),
-        },
       });
 
       await result.consumeStream();
@@ -13757,9 +13751,6 @@ describe('streamText', () => {
         },
         toolChoice: 'required',
         prompt: 'test-input',
-        _internal: {
-          now: mockValues(0, 100, 500),
-        },
       });
 
       expect(

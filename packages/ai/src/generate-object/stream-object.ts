@@ -16,11 +16,11 @@ import {
 import { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
+import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
-import { RequestOptions } from '../prompt/request-options';
-import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { Prompt } from '../prompt/prompt';
+import { RequestOptions } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
@@ -49,18 +49,18 @@ import type { Callback } from '../util/callback';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
-import { now as originalNow } from '../util/now';
+import { now } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
+import { getOutputStrategy, OutputStrategy } from './output-strategy';
+import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
+import { RepairTextFunction } from './repair-text';
+import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import type {
   ObjectOnFinishEvent,
   ObjectOnStartEvent,
   ObjectOnStepFinishEvent,
   ObjectOnStepStartEvent,
 } from './structured-output-events';
-import { getOutputStrategy, OutputStrategy } from './output-strategy';
-import { parseAndValidateObjectResultWithRepair } from './parse-and-validate-object-result';
-import { RepairTextFunction } from './repair-text';
-import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
@@ -285,7 +285,6 @@ export function streamObject<
       _internal?: {
         generateId?: () => string;
         currentDate?: () => Date;
-        now?: () => number;
       };
     },
 ): StreamObjectResult<
@@ -324,7 +323,6 @@ export function streamObject<
     _internal: {
       generateId = originalGenerateId,
       currentDate = () => new Date(),
-      now = originalNow,
     } = {},
     ...settings
   } = options;
@@ -375,7 +373,6 @@ export function streamObject<
     download,
     generateId,
     currentDate,
-    now,
   });
 }
 
@@ -427,7 +424,6 @@ class DefaultStreamObjectResult<
     download,
     generateId,
     currentDate,
-    now,
   }: {
     model: LanguageModel;
     telemetry: TelemetryOptions | undefined;
@@ -451,7 +447,6 @@ class DefaultStreamObjectResult<
     download: DownloadFunction | undefined;
     generateId: () => string;
     currentDate: () => Date;
-    now: () => number;
   }) {
     const model = resolveLanguageModel(modelArg);
 

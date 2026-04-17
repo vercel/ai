@@ -78,7 +78,7 @@ import { DownloadFunction } from '../util/download/download-function';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { notify } from '../util/notify';
-import { now as originalNow } from '../util/now';
+import { now } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
@@ -120,14 +120,14 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
-import { ToolOutput } from './tool-output';
-import { StaticToolOutputDenied } from './tool-output-denied';
-import { ToolsContextParameter } from './tools-context-parameter';
 import {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
+import { ToolOutput } from './tool-output';
+import { StaticToolOutputDenied } from './tool-output-denied';
+import { ToolsContextParameter } from './tools-context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -336,7 +336,6 @@ export function streamText<
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include: include,
   _internal: {
-    now = originalNow,
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
   } = {},
@@ -530,7 +529,6 @@ export function streamText<
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
-      now?: () => number;
       generateId?: IdGenerator;
       generateCallId?: IdGenerator;
     };
@@ -585,7 +583,6 @@ export function streamText<
     onStepStart,
     onToolExecutionStart,
     onToolExecutionEnd,
-    now,
     generateId,
     generateCallId,
     download,
@@ -758,7 +755,6 @@ class DefaultStreamTextResult<
     providerOptions,
     prepareStep,
     includeRawChunks,
-    now,
     generateId,
     generateCallId,
     timeout,
@@ -807,7 +803,6 @@ class DefaultStreamTextResult<
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
       | undefined;
     includeRawChunks: boolean;
-    now: () => number;
     generateId: () => string;
     generateCallId: () => string;
     timeout: TimeoutConfiguration<TOOLS> | undefined;
