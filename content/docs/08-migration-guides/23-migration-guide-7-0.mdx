@@ -259,6 +259,38 @@ Potential breaking issues:
 - If at least one tool declares `contextSchema`, `toolsContext` becomes required and only includes the tools that actually declare contextual data.
 - If you were relying on every tool callback seeing the same full runtime object, move shared step data to `runtimeContext`, or explicitly provide the needed per-tool data in each tool's `toolsContext` entry.
 
+### Structured Outputs: Remove Deprecated `experimental_output` Option and Result
+
+The deprecated `experimental_output` option has been removed in AI SDK 7. Replace all remaining usages with `output`.
+
+The deprecated `generateText()` result property `experimental_output` has also been removed. Read `result.output` instead.
+
+This name was deprecated in AI SDK 6, so if you already migrated to `output`, no changes are needed. Otherwise, update both the call options and any result access:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  experimental_output: Output.object({
+    schema: recipeSchema,
+  }),
+  prompt: 'Generate a recipe.',
+});
+
+console.log(result.experimental_output);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  output: Output.object({
+    schema: recipeSchema,
+  }),
+  prompt: 'Generate a recipe.',
+});
+
+console.log(result.output);
+```
+
 ### Tools: Remove Deprecated `experimental_activeTools` Option
 
 The deprecated `experimental_activeTools` option has been removed in AI SDK 7. Replace all remaining usages with `activeTools`.

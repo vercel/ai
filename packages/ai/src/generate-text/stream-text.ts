@@ -315,8 +315,7 @@ export function streamText<
   timeout,
   headers,
   stopWhen = isStepCount(1),
-  experimental_output,
-  output = experimental_output,
+  output,
   toolNeedsApproval,
   experimental_telemetry: telemetry,
   prepareStep,
@@ -396,13 +395,6 @@ export function streamText<
      * Optional specification for parsing structured outputs from the LLM response.
      */
     output?: OUTPUT;
-
-    /**
-     * Optional specification for parsing structured outputs from the LLM response.
-     *
-     * @deprecated Use `output` instead.
-     */
-    experimental_output?: OUTPUT;
 
     /**
      * Optional tool approval configuration.
