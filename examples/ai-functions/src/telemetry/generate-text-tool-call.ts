@@ -1,12 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool, registerTelemetry } from 'ai';
-import { OpenTelemetry, GenAIOpenTelemetry } from '@ai-sdk/otel';
+import { GenAIOpenTelemetry } from '@ai-sdk/otel';
+import { generateText, registerTelemetry, tool } from 'ai';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { run } from '../lib/run';
 
 const sdk = new NodeSDK({
@@ -33,7 +33,7 @@ run(async () => {
     },
     prompt:
       'What is the weather in San Francisco and what attractions should I visit?',
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'my-awesome-function',
     },
   });

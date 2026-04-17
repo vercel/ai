@@ -38,7 +38,7 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @param maxParallelCalls - Maximum number of concurrent requests. Default: Infinity.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -54,7 +54,8 @@ export async function embedMany({
   abortSignal,
   headers,
   providerOptions,
-  experimental_telemetry: telemetry,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
   experimental_onStart: onStart,
   experimental_onFinish: onFinish,
   _internal: { generateCallId = originalGenerateCallId } = {},
@@ -88,7 +89,14 @@ export async function embedMany({
   headers?: Record<string, string>;
 
   /**
-   * Optional telemetry configuration (experimental).
+   * Optional telemetry configuration.
+   */
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Optional telemetry configuration.
+   *
+   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
   experimental_telemetry?: TelemetryOptions;
 

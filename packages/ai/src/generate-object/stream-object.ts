@@ -164,7 +164,7 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * - 'enum': The output is an enum.
  * - 'no-schema': The output is not a schema.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -230,9 +230,15 @@ export function streamObject<
       experimental_repairText?: RepairTextFunction;
 
       /**
-       * Optional telemetry configuration (experimental).
+       * Optional telemetry configuration.
        */
+      telemetry?: TelemetryOptions;
 
+      /**
+       * Optional telemetry configuration.
+       *
+       * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+       */
       experimental_telemetry?: TelemetryOptions;
 
       /**
@@ -311,7 +317,8 @@ export function streamObject<
     abortSignal,
     headers,
     experimental_repairText: repairText,
-    experimental_telemetry: telemetry,
+    experimental_telemetry,
+    telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
     experimental_onStart: onStart,

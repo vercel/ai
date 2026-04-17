@@ -174,6 +174,38 @@ This applies to all AI SDK functions that accept `experimental_telemetry`, inclu
 
 If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetry` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
 
+### Telemetry: `experimental_telemetry` Renamed to `telemetry`
+
+The telemetry option has graduated out of experimental status and has been renamed to `telemetry`. The old name `experimental_telemetry` continues to work as a deprecated alias in AI SDK 7 and will be removed in a future major release.
+
+```tsx filename="AI SDK 6"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: {
+    functionId: 'story-agent',
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  telemetry: {
+    functionId: 'story-agent',
+  },
+});
+```
+
+This applies to all AI SDK functions and agents that accept telemetry configuration, including `generateText`, `streamText`, `generateObject`, `streamObject`, `embed`, `embedMany`, `rerank`, `ToolLoopAgent`, and `WorkflowAgent`.
+
+No behavior changes beyond the rename. You can migrate incrementally — mixed usage of `telemetry` and `experimental_telemetry` in the same codebase is supported during the deprecation window.
+
 ### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 
 In AI SDK 7, the tool callback option previously exposed as `experimental_context` has been renamed to `context` and is now stable.
@@ -258,6 +290,38 @@ Potential breaking issues:
 - If you have helper types or wrappers that assumed `experimental_context` or `context` was `unknown`, update them to accept a generic `CONTEXT` type.
 - If at least one tool declares `contextSchema`, `toolsContext` becomes required and only includes the tools that actually declare contextual data.
 - If you were relying on every tool callback seeing the same full runtime object, move shared step data to `runtimeContext`, or explicitly provide the needed per-tool data in each tool's `toolsContext` entry.
+
+### Structured Outputs: Remove Deprecated `experimental_output` Option and Result
+
+The deprecated `experimental_output` option has been removed in AI SDK 7. Replace all remaining usages with `output`.
+
+The deprecated `generateText()` result property `experimental_output` has also been removed. Read `result.output` instead.
+
+This name was deprecated in AI SDK 6, so if you already migrated to `output`, no changes are needed. Otherwise, update both the call options and any result access:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  experimental_output: Output.object({
+    schema: recipeSchema,
+  }),
+  prompt: 'Generate a recipe.',
+});
+
+console.log(result.experimental_output);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  output: Output.object({
+    schema: recipeSchema,
+  }),
+  prompt: 'Generate a recipe.',
+});
+
+console.log(result.output);
+```
 
 ### Tools: Remove Deprecated `experimental_activeTools` Option
 
@@ -453,3 +517,35 @@ const mcpClient = await createMCPClient({
 ```
 
 If the MCP server you use does not issue redirects, no changes are needed — the new default is more secure.
+
+## Anthropic Provider
+
+### `providerMetadata.anthropic.cacheCreationInputTokens` Removed
+
+The Anthropic-specific `cacheCreationInputTokens` field on `providerMetadata.anthropic` has been removed from the responses of `generateText` and `streamText` (as well as the `@ai-sdk/google-vertex/anthropic` sub-provider). This duplicated information that is already available on the standard, provider-agnostic `usage` object.
+
+Use `result.usage.inputTokenDetails.cacheWriteTokens` to read the number of tokens written to the cache, and `result.usage.inputTokenDetails.cacheReadTokens` to read the number of tokens served from the cache:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: [
+    /* ... messages with cacheControl ... */
+  ],
+});
+
+console.log(result.providerMetadata?.anthropic?.cacheCreationInputTokens);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: [
+    /* ... messages with cacheControl ... */
+  ],
+});
+
+console.log(result.usage.inputTokenDetails.cacheWriteTokens);
+```
+
+If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.providerMetadata?.anthropic?.usage`.

@@ -33,7 +33,7 @@ run(async () => {
       }),
     }),
     prompt: 'Generate a lasagna recipe.',
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'my-awesome-function',
     },
   });

@@ -334,10 +334,10 @@ export async function agentOnStepStartE2e() {
 }
 
 // ============================================================================
-// GAP tests — experimental_onToolCallStart
+// GAP tests — experimental_onToolExecutionStart
 // ============================================================================
 
-export async function agentOnToolCallStartE2e() {
+export async function agentonToolExecutionStartE2e() {
   'use workflow';
   const calls: string[] = [];
   const agent = new WorkflowAgent({
@@ -356,14 +356,14 @@ export async function agentOnToolCallStartE2e() {
         execute: echoStep,
       },
     },
-    experimental_onToolCallStart: async () => {
+    experimental_onToolExecutionStart: async () => {
       calls.push('constructor');
     },
   } as any);
   await agent.stream({
     messages: [{ role: 'user', content: 'test' }],
     writable: getWritable(),
-    experimental_onToolCallStart: async () => {
+    experimental_onToolExecutionStart: async () => {
       calls.push('method');
     },
   } as any);
@@ -371,10 +371,10 @@ export async function agentOnToolCallStartE2e() {
 }
 
 // ============================================================================
-// GAP tests — experimental_onToolCallFinish
+// GAP tests — experimental_onToolExecutionEnd
 // ============================================================================
 
-export async function agentOnToolCallFinishE2e() {
+export async function agentonToolExecutionEndE2e() {
   'use workflow';
   const calls: string[] = [];
   let capturedEvent: any = null;
@@ -394,14 +394,14 @@ export async function agentOnToolCallFinishE2e() {
         execute: addNumbers,
       },
     },
-    experimental_onToolCallFinish: async () => {
+    experimental_onToolExecutionEnd: async () => {
       calls.push('constructor');
     },
   } as any);
   await agent.stream({
     messages: [{ role: 'user', content: 'test' }],
     writable: getWritable(),
-    experimental_onToolCallFinish: async (event: any) => {
+    experimental_onToolExecutionEnd: async (event: any) => {
       calls.push('method');
       capturedEvent = {
         toolName: event?.toolCall?.toolName,

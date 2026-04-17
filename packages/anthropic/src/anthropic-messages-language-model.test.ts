@@ -1378,7 +1378,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(result.providerMetadata).toMatchInlineSnapshot(`
         {
           "anthropic": {
-            "cacheCreationInputTokens": null,
             "container": null,
             "contextManagement": null,
             "iterations": null,
@@ -1839,7 +1838,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           "providerMetadata": {
             "anthropic": {
-              "cacheCreationInputTokens": 10,
               "container": null,
               "contextManagement": null,
               "iterations": null,
@@ -2003,7 +2001,6 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
           "providerMetadata": {
             "anthropic": {
-              "cacheCreationInputTokens": 10,
               "container": null,
               "contextManagement": null,
               "iterations": null,
@@ -5641,6 +5638,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "tools": [
               {
                 "description": "Respond with a JSON object.",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -5698,7 +5696,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": 0,
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
@@ -5796,6 +5793,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "tools": [
               {
                 "description": "Respond with a JSON object.",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -5853,7 +5851,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": 0,
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
@@ -5966,6 +5963,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             "tools": [
               {
                 "description": "Get the weather in a location",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -5983,6 +5981,7 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               {
                 "description": "Respond with a JSON object.",
+                "eager_input_streaming": true,
                 "input_schema": {
                   "$schema": "http://json-schema.org/draft-07/schema#",
                   "additionalProperties": false,
@@ -6053,7 +6052,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "providerMetadata": {
                   "anthropic": {
-                    "cacheCreationInputTokens": 0,
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
@@ -6263,7 +6261,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -6403,7 +6400,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -6500,7 +6496,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -6583,7 +6578,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -7079,7 +7073,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": null,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -7241,7 +7234,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
         {
-          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14",
           "anthropic-version": "2023-06-01",
           "content-type": "application/json",
           "custom-provider-header": "provider-header-value",
@@ -7251,7 +7243,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       `);
     });
 
-    it('should merge custom anthropic-beta header with fine-grained-tool-streaming beta', async () => {
+    it('should merge custom anthropic-beta headers without legacy fine-grained-tool-streaming beta', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -7277,8 +7269,96 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(
         server.calls[0].requestHeaders['anthropic-beta'],
       ).toMatchInlineSnapshot(
-        `"fine-grained-tool-streaming-2025-05-14,config-beta1,config-beta2,request-beta1,request-beta2"`,
+        `"config-beta1,config-beta2,request-beta1,request-beta2"`,
       );
+    });
+
+    it('should default to per-tool eager_input_streaming on streaming requests and not send the legacy beta header', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({ apiKey: 'test-api-key' });
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.tools[0].eager_input_streaming).toBe(true);
+      expect(server.calls[0].requestHeaders['anthropic-beta']).toBeUndefined();
+    });
+
+    it('should not add eager_input_streaming when toolStreaming is explicitly false', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":1,"output_tokens":1}}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":1}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const provider = createAnthropic({ apiKey: 'test-api-key' });
+      await provider('claude-3-haiku-20240307').doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: { anthropic: { toolStreaming: false } },
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.tools[0].eager_input_streaming).toBeUndefined();
+    });
+
+    it('should not default eager_input_streaming on non-streaming (generate) calls', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'json-value',
+        body: {
+          id: 'msg_1',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'ok' }],
+          model: 'claude-3-haiku-20240307',
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 1, output_tokens: 1 },
+        },
+      };
+
+      const provider = createAnthropic({ apiKey: 'test-api-key' });
+      await provider('claude-3-haiku-20240307').doGenerate({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get weather',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+      });
+
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.tools[0].eager_input_streaming).toBeUndefined();
     });
 
     it('should include providerOptions.anthropic.anthropicBeta in anthropic-beta header', async () => {
@@ -7367,7 +7447,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": 10,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -7459,7 +7538,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": 10,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -7557,7 +7635,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
             "providerMetadata": {
               "anthropic": {
-                "cacheCreationInputTokens": 10,
                 "container": null,
                 "contextManagement": null,
                 "iterations": null,
@@ -7675,7 +7752,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": null,
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
@@ -7739,7 +7815,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": null,
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
@@ -7990,7 +8065,6 @@ describe('AnthropicMessagesLanguageModel', () => {
               },
               "providerMetadata": {
                 "anthropic": {
-                  "cacheCreationInputTokens": null,
                   "container": null,
                   "contextManagement": null,
                   "iterations": null,
@@ -8198,7 +8272,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "providerMetadata": {
                   "anthropic": {
-                    "cacheCreationInputTokens": null,
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,
@@ -8305,7 +8378,6 @@ describe('AnthropicMessagesLanguageModel', () => {
                 },
                 "providerMetadata": {
                   "anthropic": {
-                    "cacheCreationInputTokens": 0,
                     "container": null,
                     "contextManagement": null,
                     "iterations": null,

@@ -297,7 +297,7 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     context: {},
     toolsContext: {},
     ...overrides,
-  } as Parameters<NonNullable<Telemetry['onToolCallStart']>>[0];
+  } as Parameters<NonNullable<Telemetry['onToolExecutionStart']>>[0];
 }
 
 function makeToolCallFinishEvent(
@@ -329,13 +329,13 @@ function makeToolCallFinishEvent(
       ...base,
       success: true as const,
       output: { result: 'ok' },
-    } as Parameters<NonNullable<Telemetry['onToolCallFinish']>>[0];
+    } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
   }
   return {
     ...base,
     success: false as const,
     error: new Error('tool failed'),
-  } as Parameters<NonNullable<Telemetry['onToolCallFinish']>>[0];
+  } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
 }
 
 describe('GenAIOpenTelemetry', () => {
@@ -628,11 +628,11 @@ describe('GenAIOpenTelemetry', () => {
     });
   });
 
-  describe('onToolCallStart / onToolCallFinish', () => {
+  describe('onToolExecutionStart / onToolExecutionEnd', () => {
     it('creates an execute_tool span with correct attributes', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onToolCallStart!(makeToolCallStartEvent());
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
 
       expect(tracer.spans).toHaveLength(3);
       expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
@@ -654,8 +654,8 @@ describe('GenAIOpenTelemetry', () => {
     it('sets gen_ai.tool.call.result on success', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onToolCallStart!(makeToolCallStartEvent());
-      integration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
 
       expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
         {
@@ -678,8 +678,8 @@ describe('GenAIOpenTelemetry', () => {
     it('records error on tool failure', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onToolCallStart!(makeToolCallStartEvent());
-      integration.onToolCallFinish!(makeToolCallFinishEvent(false));
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(false));
 
       const toolSpan = tracer.spans[2];
       expect({
@@ -910,8 +910,8 @@ describe('GenAIOpenTelemetry', () => {
       integration.onStart!(makeOnStartEvent());
 
       integration.onStepStart!(makeStepStartEvent());
-      integration.onToolCallStart!(makeToolCallStartEvent());
-      integration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       integration.onStepFinish!(
         makeStepFinishEvent({ finishReason: 'tool-calls' }),
       );
@@ -1005,8 +1005,8 @@ describe('GenAIOpenTelemetry', () => {
       integration.onStart!(makeOnStartEvent());
 
       integration.onStepStart!(makeStepStartEvent());
-      integration.onToolCallStart!(makeToolCallStartEvent());
-      integration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       integration.onStepFinish!(
         makeStepFinishEvent({ finishReason: 'tool-calls' }),
       );
@@ -1101,8 +1101,8 @@ describe('GenAIOpenTelemetry', () => {
     it('does not use ai.* attribute prefix anywhere', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onToolCallStart!(makeToolCallStartEvent());
-      integration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      integration.onToolExecutionStart!(makeToolCallStartEvent());
+      integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       integration.onStepFinish!(makeStepFinishEvent());
       integration.onFinish!(makeFinishEvent());
 

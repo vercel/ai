@@ -1144,7 +1144,7 @@ describe('generateObject', () => {
           prompt: 'test-prompt',
           temperature: 0.5,
           maxOutputTokens: 100,
-          experimental_telemetry: {
+          telemetry: {
             functionId: 'test-function',
           },
           experimental_onStart: event => {
@@ -1198,6 +1198,33 @@ describe('generateObject', () => {
             "topP": undefined,
           }
         `);
+      });
+
+      it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+        const model = new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          },
+        });
+
+        let startEvent: any;
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'deprecated-fn',
+          },
+          experimental_onStart: event => {
+            startEvent = event;
+          },
+        });
+
+        expect(startEvent.isEnabled).toBe(true);
+        expect(startEvent.functionId).toBe('deprecated-fn');
       });
     });
 

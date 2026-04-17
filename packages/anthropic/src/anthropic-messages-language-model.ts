@@ -719,10 +719,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       betas.add('fast-mode-2026-02-01');
     }
 
-    // only when streaming: enable fine-grained tool streaming
-    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
-      betas.add('fine-grained-tool-streaming-2025-05-14');
-    }
+    const defaultEagerInputStreaming =
+      stream && (anthropicOptions?.toolStreaming ?? true);
 
     const {
       tools: anthropicTools,
@@ -738,6 +736,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
             cacheControlValidator,
             supportsStructuredOutput: false,
             supportsStrictTools,
+            defaultEagerInputStreaming,
           }
         : {
             tools: tools ?? [],
@@ -746,6 +745,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
             cacheControlValidator,
             supportsStructuredOutput,
             supportsStrictTools,
+            defaultEagerInputStreaming,
           },
     );
 
@@ -1303,8 +1303,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       providerMetadata: (() => {
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
-          cacheCreationInputTokens:
-            response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
 
           iterations: response.usage.iterations
@@ -1425,7 +1423,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       | AnthropicMessageMetadata['contextManagement']
       | null = null;
     let rawUsage: JSONObject | undefined = undefined;
-    let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
@@ -2145,9 +2142,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
                 ...(value.message.usage as JSONObject),
               };
 
-              cacheCreationInputTokens =
-                value.message.usage.cache_creation_input_tokens ?? null;
-
               if (value.message.container != null) {
                 container = {
                   expiresAt: value.message.container.expires_at,
@@ -2245,8 +2239,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
               if (value.usage.cache_creation_input_tokens != null) {
                 usage.cache_creation_input_tokens =
                   value.usage.cache_creation_input_tokens;
-                cacheCreationInputTokens =
-                  value.usage.cache_creation_input_tokens;
               }
               if (value.usage.iterations != null) {
                 usage.iterations = value.usage.iterations;
@@ -2292,7 +2284,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
             case 'message_stop': {
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
-                cacheCreationInputTokens,
                 stopSequence,
                 iterations: usage.iterations
                   ? usage.iterations.map(iter => ({

@@ -129,7 +129,7 @@ async function main() {
     model: openai('gpt-4o'),
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'my-awesome-function',
       metadata: {
         something: 'custom',
@@ -179,7 +179,7 @@ for (let i = 0; i < 3; i++) {
     model: openai('gpt-3.5-turbo'),
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
-    experimental_telemetry: {
+    telemetry: {
       functionId: `holiday-tradition-${i}`,
       metadata: {
         langfuseTraceId: parentTraceId,
@@ -218,7 +218,7 @@ const fetchedPrompt = await langfuse.getPrompt('my-prompt');
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: fetchedPrompt.prompt,
-  experimental_telemetry: {
+  telemetry: {
     metadata: {
       langfusePrompt: fetchedPrompt.toJSON(),
     },
@@ -236,7 +236,7 @@ All of the `metadata` fields are automatically captured by the exporter. You can
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: {
+  telemetry: {
     functionId: 'my-awesome-function', // Trace name
     metadata: {
       langfuseTraceId: 'trace-123', // Langfuse trace

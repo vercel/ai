@@ -30,6 +30,26 @@ describe('registerTelemetry', () => {
       integration2,
     ]);
   });
+
+  it('adds multiple integrations passed in a single call', () => {
+    const integration1: TelemetryIntegration = { onStart: vi.fn() };
+    const integration2: TelemetryIntegration = { onFinish: vi.fn() };
+    const integration3: TelemetryIntegration = { onError: vi.fn() };
+
+    registerTelemetryIntegration(integration1, integration2, integration3);
+
+    expect(getGlobalTelemetryIntegrations()).toEqual([
+      integration1,
+      integration2,
+      integration3,
+    ]);
+  });
+
+  it('is a no-op when called with no integrations', () => {
+    registerTelemetryIntegration();
+
+    expect(getGlobalTelemetryIntegrations()).toEqual([]);
+  });
 });
 
 describe('getGlobalTelemetryIntegrations', () => {

@@ -99,7 +99,7 @@ function getOperationType(operationId: string): OperationType {
  * registerTelemetry(DevToolsTelemetry());
  * ```
  *
- * Telemetry is enabled by default — no need to set `experimental_telemetry`
+ * Telemetry is enabled by default — no need to set `telemetry`
  * unless you want to configure `functionId`, `recordInputs`, or `recordOutputs`.
  */
 export function DevToolsTelemetry(): Telemetry {

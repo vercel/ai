@@ -7,8 +7,7 @@ import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
 
-registerTelemetry(DevToolsTelemetry());
-registerTelemetry(new OpenTelemetry());
+registerTelemetry(new OpenTelemetry(), DevToolsTelemetry());
 
 const sdk = new NodeSDK({
   spanProcessors: [new LangfuseSpanProcessor()],
@@ -37,7 +36,7 @@ run(async () => {
         }),
       },
     },
-    experimental_telemetry: {
+    telemetry: {
       functionId: `cook-recipe`,
     },
   });

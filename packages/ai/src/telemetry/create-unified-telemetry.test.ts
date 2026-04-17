@@ -15,8 +15,8 @@ describe('createUnifiedTelemetry', () => {
 
     expect(telemetry.onStart).toBeDefined();
     expect(telemetry.onStepStart).toBeDefined();
-    expect(telemetry.onToolCallStart).toBeDefined();
-    expect(telemetry.onToolCallFinish).toBeDefined();
+    expect(telemetry.onToolExecutionStart).toBeDefined();
+    expect(telemetry.onToolExecutionEnd).toBeDefined();
     expect(telemetry.onChunk).toBeDefined();
     expect(telemetry.onStepFinish).toBeDefined();
     expect(telemetry.onObjectStepStart).toBeDefined();
@@ -60,7 +60,7 @@ describe('createUnifiedTelemetry', () => {
     });
 
     await expect(
-      telemetry.onToolCallStart!(dummyEvent),
+      telemetry.onToolExecutionStart!(dummyEvent),
     ).resolves.toBeUndefined();
     await expect(telemetry.onEmbedFinish!(dummyEvent)).resolves.toBeUndefined();
   });
@@ -123,8 +123,8 @@ describe('createUnifiedTelemetry', () => {
     const integration: Telemetry = {
       onStart: vi.fn(),
       onStepStart: vi.fn(),
-      onToolCallStart: vi.fn(),
-      onToolCallFinish: vi.fn(),
+      onToolExecutionStart: vi.fn(),
+      onToolExecutionEnd: vi.fn(),
       onChunk: vi.fn(),
       onStepFinish: vi.fn(),
       onObjectStepStart: vi.fn(),
@@ -141,8 +141,8 @@ describe('createUnifiedTelemetry', () => {
 
     await telemetry.onStart!(dummyEvent);
     await telemetry.onStepStart!(dummyEvent);
-    await telemetry.onToolCallStart!(dummyEvent);
-    await telemetry.onToolCallFinish!(dummyEvent);
+    await telemetry.onToolExecutionStart!(dummyEvent);
+    await telemetry.onToolExecutionEnd!(dummyEvent);
     await telemetry.onChunk!(dummyEvent);
     await telemetry.onStepFinish!(dummyEvent);
     await telemetry.onObjectStepStart!(dummyEvent);
@@ -156,8 +156,8 @@ describe('createUnifiedTelemetry', () => {
 
     expect(integration.onStart).toHaveBeenCalledOnce();
     expect(integration.onStepStart).toHaveBeenCalledOnce();
-    expect(integration.onToolCallStart).toHaveBeenCalledOnce();
-    expect(integration.onToolCallFinish).toHaveBeenCalledOnce();
+    expect(integration.onToolExecutionStart).toHaveBeenCalledOnce();
+    expect(integration.onToolExecutionEnd).toHaveBeenCalledOnce();
     expect(integration.onChunk).toHaveBeenCalledOnce();
     expect(integration.onStepFinish).toHaveBeenCalledOnce();
     expect(integration.onObjectStepStart).toHaveBeenCalledOnce();

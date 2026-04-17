@@ -17,9 +17,11 @@ import type {
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  OnToolCallFinishEvent,
-  OnToolCallStartEvent,
 } from '../generate-text/core-events';
+import type {
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
+} from '../generate-text/tool-execution-events';
 import type {
   RerankFinishEvent,
   RerankOnFinishEvent,
@@ -59,7 +61,7 @@ export interface Telemetry {
    * Called when a tool execution begins, before the tool's `execute` function
    * is invoked. Use this to create tool-level spans or log tool invocations.
    */
-  onToolCallStart?: Callback<OnToolCallStartEvent>;
+  onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
 
   /**
    * Called when a tool execution completes, either successfully or with an error.
@@ -68,7 +70,7 @@ export interface Telemetry {
    *
    * The event includes execution duration (`durationMs`) for performance tracking.
    */
-  onToolCallFinish?: Callback<OnToolCallFinishEvent>;
+  onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
 
   /**
    * Called for each chunk received during streaming.

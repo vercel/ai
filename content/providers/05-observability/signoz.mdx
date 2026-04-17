@@ -96,7 +96,7 @@ const result = await generateText({
 You can also control whether you want to record the input values and the output values for the function. By default, both are enabled. You can disable them by setting the `recordInputs` and `recordOutputs` options to `false`.
 
 ```jsx
-experimental_telemetry: { recordInputs: false, recordOutputs: false }
+telemetry: { recordInputs: false, recordOutputs: false }
 ```
 
 Disabling the recording of inputs and outputs can be useful for privacy, data transfer, and performance reasons. You might, for example, want to disable recording inputs if they contain sensitive information.
@@ -113,7 +113,7 @@ const result = await generateText({
     something: 'custom',
     someOtherThing: 'other-value',
   },
-  experimental_telemetry: {
+  telemetry: {
     functionId: 'my-awesome-function',
   },
 });

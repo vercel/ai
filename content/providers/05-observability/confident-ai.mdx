@@ -42,7 +42,7 @@ registerTelemetry(new OpenTelemetry());
 
 ## Tracing Your Application
 
-You can now pass the `tracer` object into the `experimental_telemetry` field of any AI SDK call to get your traces on the Confident AI platform.
+You can now pass the `tracer` object into the `telemetry` field of any AI SDK call to get your traces on the Confident AI platform.
 
 Here are some of the examples on how to trace various AI SDK functions using Confident AI's tracer:
 
@@ -59,7 +59,7 @@ const tracer = configureAiSdkTracing();
 const { text } = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What are LLMs?',
-  experimental_telemetry: {
+  telemetry: {
     integrations: new OpenTelemetry({ tracer }),
   },
 });
@@ -78,7 +78,7 @@ const tracer = configureAiSdkTracing();
 const result = streamText({
   model: openai('gpt-4o'),
   prompt: 'Invent a new holiday and describe its traditions.',
-  experimental_telemetry: {
+  telemetry: {
     integrations: new OpenTelemetry({ tracer }),
   },
 });
@@ -115,7 +115,7 @@ const result = await generateText({
   },
   stopWhen: isStepCount(5),
   prompt: 'What is the weather in San Francisco?',
-  experimental_telemetry: {
+  telemetry: {
     integrations: new OpenTelemetry({ tracer }),
   },
 });
@@ -142,7 +142,7 @@ const { object } = await generateObject({
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
-  experimental_telemetry: {
+  telemetry: {
     integrations: new OpenTelemetry({ tracer }),
   },
 });

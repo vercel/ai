@@ -2,19 +2,18 @@ import { tool } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
 import { executeToolCall } from './execute-tool-call';
-import {
-  GenerateTextOnToolCallFinishCallback,
-  GenerateTextOnToolCallStartCallback,
-} from './generate-text';
 import { TypedToolCall } from './tool-call';
 import { TypedToolResult } from './tool-result';
+import {
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
+} from './tool-execution-events';
 
+// mock now function
 vi.mock('../util/now', () => ({
   now: vi.fn(),
 }));
-
 import { now } from '../util/now';
-
 const mockNow = vi.mocked(now);
 
 describe('executeToolCall', () => {
@@ -165,11 +164,9 @@ describe('executeToolCall', () => {
     });
   });
 
-  describe('onToolCallStart callback', () => {
+  describe('onToolExecutionStart callback', () => {
     it('should be called with correct data before execution', async () => {
-      const startEvents: Parameters<
-        GenerateTextOnToolCallStartCallback<any>
-      >[0][] = [];
+      const toolExecutionStartEvents: ToolExecutionStartEvent<any>[] = [];
       const executionOrder: string[] = [];
 
       await executeToolCall({
@@ -194,13 +191,13 @@ describe('executeToolCall', () => {
         stepNumber: 2,
         provider: 'test-provider',
         modelId: 'test-model',
-        onToolCallStart: async event => {
-          executionOrder.push('onToolCallStart');
-          startEvents.push(event);
+        onToolExecutionStart: async event => {
+          executionOrder.push('onToolExecutionStart');
+          toolExecutionStartEvents.push(event);
         },
       });
 
-      expect(startEvents).toMatchInlineSnapshot(`
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
         [
           {
             "callId": "test-telemetry-call-id",
@@ -229,7 +226,7 @@ describe('executeToolCall', () => {
           },
         ]
       `);
-      expect(executionOrder).toEqual(['onToolCallStart', 'execute']);
+      expect(executionOrder).toEqual(['onToolExecutionStart', 'execute']);
     });
 
     it('should not break execution when callback throws', async () => {
@@ -246,7 +243,7 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
-        onToolCallStart: async () => {
+        onToolExecutionStart: async () => {
           throw new Error('callback error');
         },
       });
@@ -258,11 +255,9 @@ describe('executeToolCall', () => {
     });
   });
 
-  describe('onToolCallFinish callback', () => {
+  describe('onToolExecutionEnd callback', () => {
     it('should be called with success data when tool succeeds', async () => {
-      const finishEvents: Parameters<
-        GenerateTextOnToolCallFinishCallback<any>
-      >[0][] = [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
 
       mockNow.mockReturnValueOnce(1000).mockReturnValueOnce(1050);
 
@@ -285,12 +280,12 @@ describe('executeToolCall', () => {
         stepNumber: 3,
         provider: 'test-provider',
         modelId: 'test-model',
-        onToolCallFinish: async event => {
-          finishEvents.push(event);
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
       });
 
-      expect(finishEvents).toMatchInlineSnapshot(`
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
         [
           {
             "callId": "test-telemetry-call-id",
@@ -325,9 +320,7 @@ describe('executeToolCall', () => {
     });
 
     it('should be called with error data when tool fails', async () => {
-      const finishEvents: Parameters<
-        GenerateTextOnToolCallFinishCallback<any>
-      >[0][] = [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
       const toolError = new Error('execution failed');
 
       mockNow.mockReturnValueOnce(2000).mockReturnValueOnce(2100);
@@ -353,12 +346,12 @@ describe('executeToolCall', () => {
         stepNumber: 1,
         provider: 'provider-1',
         modelId: 'model-1',
-        onToolCallFinish: async event => {
-          finishEvents.push(event);
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
       });
 
-      expect(finishEvents).toMatchInlineSnapshot(`
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
         [
           {
             "callId": "test-telemetry-call-id",
@@ -401,7 +394,7 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
-        onToolCallFinish: async () => {
+        onToolExecutionEnd: async () => {
           throw new Error('callback error');
         },
       });
@@ -430,7 +423,7 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
-        onToolCallFinish: async () => {
+        onToolExecutionEnd: async () => {
           throw new Error('callback error');
         },
       });
@@ -444,9 +437,7 @@ describe('executeToolCall', () => {
 
   describe('durationMs calculation', () => {
     it('should calculate correct duration on success', async () => {
-      const finishEvents: Parameters<
-        GenerateTextOnToolCallFinishCallback<any>
-      >[0][] = [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
 
       mockNow.mockReturnValueOnce(5000).mockReturnValueOnce(5250);
 
@@ -463,18 +454,16 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
-        onToolCallFinish: async event => {
-          finishEvents.push(event);
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
       });
 
-      expect(finishEvents[0].durationMs).toBe(250);
+      expect(toolExecutionEndEvents[0].durationMs).toBe(250);
     });
 
     it('should calculate correct duration on error', async () => {
-      const finishEvents: Parameters<
-        GenerateTextOnToolCallFinishCallback<any>
-      >[0][] = [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
 
       mockNow.mockReturnValueOnce(1000).mockReturnValueOnce(1500);
 
@@ -493,12 +482,12 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
-        onToolCallFinish: async event => {
-          finishEvents.push(event);
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
       });
 
-      expect(finishEvents[0].durationMs).toBe(500);
+      expect(toolExecutionEndEvents[0].durationMs).toBe(500);
     });
   });
 
@@ -600,10 +589,10 @@ describe('executeToolCall', () => {
         stepNumber: 2,
         provider: 'test-provider',
         modelId: 'test-model',
-        onToolCallStart: async event => {
+        onToolExecutionStart: async event => {
           startEvents.push(event);
         },
-        onToolCallFinish: async event => {
+        onToolExecutionEnd: async event => {
           finishEvents.push(event);
         },
       });
@@ -674,7 +663,7 @@ describe('executeToolCall', () => {
 
     it('should notify finish callback with error payload', async () => {
       const toolError = new Error('test error');
-      const finishEvents: any[] = [];
+      const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
 
       await executeToolCall({
         toolCall: createToolCall(),
@@ -691,18 +680,36 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
-        onToolCallFinish: async event => {
-          finishEvents.push(event);
+        onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
       });
 
-      expect(finishEvents).toHaveLength(1);
-      expect(finishEvents[0]).toMatchObject({
-        callId: 'test-telemetry-call-id',
-        success: false,
-        error: toolError,
-      });
-      expect(finishEvents[0].durationMs).toEqual(expect.any(Number));
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0,
+            "error": [Error: test error],
+            "functionId": undefined,
+            "messages": [],
+            "modelId": undefined,
+            "provider": undefined,
+            "stepNumber": undefined,
+            "success": false,
+            "toolCall": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should execute the tool inside the executeToolInTelemetryContext wrapper when provided', async () => {
@@ -1028,7 +1035,7 @@ describe('executeToolCall', () => {
   });
 
   describe('array callbacks', () => {
-    it('should call all onToolCallStart listeners in an array', async () => {
+    it('should call all onToolExecutionStart listeners in an array', async () => {
       const calls: string[] = [];
 
       await executeToolCall({
@@ -1044,7 +1051,7 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
-        onToolCallStart: [
+        onToolExecutionStart: [
           async () => {
             calls.push('first');
           },
@@ -1057,7 +1064,7 @@ describe('executeToolCall', () => {
       expect(calls).toEqual(['first', 'second']);
     });
 
-    it('should call all onToolCallFinish listeners in an array', async () => {
+    it('should call all onToolExecutionEnd listeners in an array', async () => {
       const calls: string[] = [];
 
       await executeToolCall({
@@ -1073,7 +1080,7 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
-        onToolCallFinish: [
+        onToolExecutionEnd: [
           async () => {
             calls.push('first');
           },
@@ -1084,41 +1091,6 @@ describe('executeToolCall', () => {
       });
 
       expect(calls).toEqual(['first', 'second']);
-    });
-
-    it('should skip undefined/null entries in callback arrays', async () => {
-      const calls: string[] = [];
-
-      await executeToolCall({
-        toolCall: createToolCall(),
-        tools: {
-          testTool: tool({
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          }),
-        },
-        telemetry: undefined,
-        callId: 'test-telemetry-call-id',
-        messages: [],
-        abortSignal: undefined,
-        toolsContext: {},
-        onToolCallStart: [
-          undefined,
-          async () => {
-            calls.push('start');
-          },
-          null,
-        ],
-        onToolCallFinish: [
-          null,
-          async () => {
-            calls.push('finish');
-          },
-          undefined,
-        ],
-      });
-
-      expect(calls).toEqual(['start', 'finish']);
     });
 
     it('should not break when one listener in the array throws', async () => {
@@ -1137,7 +1109,7 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolsContext: {},
-        onToolCallStart: [
+        onToolExecutionStart: [
           async () => {
             throw new Error('listener error');
           },
@@ -1145,7 +1117,7 @@ describe('executeToolCall', () => {
             calls.push('second-start');
           },
         ],
-        onToolCallFinish: [
+        onToolExecutionEnd: [
           async () => {
             throw new Error('listener error');
           },
