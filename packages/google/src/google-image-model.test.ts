@@ -381,7 +381,7 @@ describe('GoogleImageModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow(
-        'Google Generative AI does not support image editing with Imagen models. ' +
+        'Google Gemini API does not support image editing with Imagen models. ' +
           'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
       );
     });
@@ -403,7 +403,7 @@ describe('GoogleImageModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow(
-        'Google Generative AI does not support image editing with masks. ' +
+        'Google Gemini API does not support image editing with masks. ' +
           'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
       );
     });

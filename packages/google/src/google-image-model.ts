@@ -109,14 +109,14 @@ export class GoogleImageModel implements ImageModelV4 {
     // Imagen API endpoints do not support image editing
     if (files != null && files.length > 0) {
       throw new Error(
-        'Google Generative AI does not support image editing with Imagen models. ' +
+        'Google Gemini API does not support image editing with Imagen models. ' +
           'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
       );
     }
 
     if (mask != null) {
       throw new Error(
-        'Google Generative AI does not support image editing with masks. ' +
+        'Google Gemini API does not support image editing with masks. ' +
           'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
       );
     }

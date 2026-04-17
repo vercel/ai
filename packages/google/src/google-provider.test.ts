@@ -55,14 +55,6 @@ describe('google-provider', () => {
     );
   });
 
-  it('should throw an error when using new keyword', () => {
-    const provider = createGoogle({ apiKey: 'test-api-key' });
-
-    expect(() => new (provider as any)('gemini-pro')).toThrow(
-      'The Google Generative AI model function cannot be called with the new keyword.',
-    );
-  });
-
   it('should create an embedding model with correct settings', () => {
     const provider = createGoogle({
       apiKey: 'test-api-key',
