@@ -3,8 +3,8 @@ import type {
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { TypedToolCall } from './tool-call';
 import { Callback } from '../util/callback';
+import type { TypedToolCall } from './tool-call';
 
 /**
  * Event passed to the `onToolExecutionStart` callback.
