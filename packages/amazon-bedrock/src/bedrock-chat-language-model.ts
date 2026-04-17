@@ -180,7 +180,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
         : undefined;
+<<<<<<< HEAD
     const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingRequested;
+=======
+    const thinkingDisplay =
+      thinkingType === 'adaptive'
+        ? bedrockOptions.reasoningConfig?.display
+        : undefined;
+    const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingEnabled;
+>>>>>>> fd0f09713 (Backport: fix(provider/amazon-bedrock): fix Anthropic reasoning behavior related to Opus 4.7 (#14602))
 
     const inferenceConfig = {
       ...(maxOutputTokens != null && { maxTokens: maxOutputTokens }),
@@ -209,6 +217,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           ...bedrockOptions.additionalModelRequestFields,
           thinking: {
             type: 'adaptive',
+            ...(thinkingDisplay != null && { display: thinkingDisplay }),
           },
         };
       }
@@ -755,6 +764,13 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                 'signature' in reasoningContent &&
                 reasoningContent.signature
               ) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),
@@ -766,6 +782,13 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                   },
                 });
               } else if ('data' in reasoningContent && reasoningContent.data) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),
