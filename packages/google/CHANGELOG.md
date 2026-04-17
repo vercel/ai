@@ -1,5 +1,16 @@
 # @ai-sdk/google
 
+## 4.0.0-beta.45
+
+### Major Changes
+
+- a3757d7: chore(provider/google): remove useless GenerativeAI affix from types and classes for consistency
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
 ## 4.0.0-beta.44
 
 ### Patch Changes
