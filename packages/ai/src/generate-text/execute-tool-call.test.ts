@@ -204,7 +204,6 @@ describe('executeToolCall', () => {
             "context": {
               "key1": "value1",
             },
-            "functionId": "test-function",
             "messages": [
               {
                 "content": "test message",
@@ -293,7 +292,6 @@ describe('executeToolCall', () => {
               "key1": "value1",
             },
             "durationMs": 50,
-            "functionId": "test-function",
             "messages": [
               {
                 "content": "test message",
@@ -360,7 +358,6 @@ describe('executeToolCall', () => {
             },
             "durationMs": 100,
             "error": [Error: execution failed],
-            "functionId": "test-function",
             "messages": [],
             "modelId": "model-1",
             "provider": "provider-1",
@@ -604,7 +601,6 @@ describe('executeToolCall', () => {
             "context": {
               "key1": "value1",
             },
-            "functionId": "test-function",
             "messages": [
               {
                 "content": "hello",
@@ -635,7 +631,6 @@ describe('executeToolCall', () => {
               "key1": "value1",
             },
             "durationMs": 0,
-            "functionId": "test-function",
             "messages": [
               {
                 "content": "hello",
@@ -692,7 +687,6 @@ describe('executeToolCall', () => {
             "context": undefined,
             "durationMs": 0,
             "error": [Error: test error],
-            "functionId": undefined,
             "messages": [],
             "modelId": undefined,
             "provider": undefined,

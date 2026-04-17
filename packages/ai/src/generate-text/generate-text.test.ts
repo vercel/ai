@@ -1657,7 +1657,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "test-input",
@@ -1726,7 +1725,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -1751,7 +1749,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -1922,7 +1919,6 @@ describe('generateText', () => {
             "context": {
               "context": "test",
             },
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -1987,7 +1983,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -2056,7 +2051,6 @@ describe('generateText', () => {
             "context": undefined,
             "durationMs": 0,
             "error": [Error: tool execution failed],
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -2225,7 +2219,6 @@ describe('generateText', () => {
               "context": "test",
             },
             "durationMs": 0,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -2298,7 +2291,6 @@ describe('generateText', () => {
             },
             "durationMs": 0,
             "error": [Error: Tool execution failed],
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -2476,7 +2468,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -2501,7 +2492,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -2560,7 +2550,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -2588,7 +2577,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "messages": [
               {
                 "content": "prompt",
@@ -2726,7 +2714,6 @@ describe('generateText', () => {
           "dynamicToolResults": [],
           "files": [],
           "finishReason": "stop",
-          "functionId": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -2840,7 +2827,6 @@ describe('generateText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -3369,7 +3355,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3448,7 +3433,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3600,7 +3584,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3679,7 +3662,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -4070,7 +4052,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -4169,7 +4150,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -7336,7 +7316,6 @@ describe('generateText', () => {
                 },
               ],
               "finishReason": "tool-calls",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",

@@ -1159,11 +1159,9 @@ describe('generateObject', () => {
           {
             "callId": "test-call-id",
             "frequencyPenalty": undefined,
-            "functionId": "test-function",
             "headers": {
               "user-agent": "ai/0.0.0-test",
             },
-            "isEnabled": true,
             "maxOutputTokens": 100,
             "maxRetries": 2,
             "messages": undefined,
@@ -1174,8 +1172,6 @@ describe('generateObject', () => {
             "prompt": "test-prompt",
             "provider": "test-provider",
             "providerOptions": undefined,
-            "recordInputs": undefined,
-            "recordOutputs": undefined,
             "schema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "additionalProperties": false,

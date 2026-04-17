@@ -8,8 +8,6 @@ exports[`rerank > options.experimental_onFinish > should send correct event info
     "rainy day in the city",
     "cloudy day in the mountains",
   ],
-  "functionId": "test-function",
-  "isEnabled": true,
   "modelId": "mock-model-id",
   "operationId": "ai.rerank",
   "provider": "mock-provider",
@@ -36,8 +34,6 @@ exports[`rerank > options.experimental_onFinish > should send correct event info
       "score": 0.7,
     },
   ],
-  "recordInputs": undefined,
-  "recordOutputs": undefined,
   "response": {
     "body": {
       "id": "123",
@@ -66,17 +62,13 @@ exports[`rerank > options.experimental_onStart > should send correct event infor
     "rainy day in the city",
     "cloudy day in the mountains",
   ],
-  "functionId": "test-function",
   "headers": undefined,
-  "isEnabled": true,
   "maxRetries": 2,
   "modelId": "mock-model-id",
   "operationId": "ai.rerank",
   "provider": "mock-provider",
   "providerOptions": undefined,
   "query": "rainy day",
-  "recordInputs": undefined,
-  "recordOutputs": undefined,
   "topN": 3,
 }
 `;
