@@ -26,8 +26,8 @@ export {
   type ToolCallRepairFunction,
   type WorkflowAgentOnStartCallback,
   type WorkflowAgentOnStepStartCallback,
-  type WorkflowAgentonToolExecutionStartCallback,
-  type WorkflowAgentonToolExecutionEndCallback,
+  type WorkflowAgentOnToolExecutionStartCallback,
+  type WorkflowAgentOnToolExecutionEndCallback,
 } from './workflow-agent.js';
 
 export {
