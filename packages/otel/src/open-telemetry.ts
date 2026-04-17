@@ -31,7 +31,7 @@ import type {
   RerankOnFinishEvent,
   RerankOnStartEvent,
   RerankStartEvent,
-  TelemetryIntegration,
+  Telemetry,
   TelemetryOptions,
   ToolSet,
 } from 'ai';
@@ -132,7 +132,7 @@ interface CallState {
   settings: Record<string, unknown>;
 }
 
-export class OpenTelemetryIntegration implements TelemetryIntegration {
+export class OpenTelemetry implements Telemetry {
   private readonly callStates = new Map<string, CallState>();
 
   /**

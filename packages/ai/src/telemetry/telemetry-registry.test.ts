@@ -1,29 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { TelemetryIntegration } from './telemetry-integration';
+import type { Telemetry } from './telemetry';
 import {
-  registerTelemetryIntegration,
+  registerTelemetry,
   getGlobalTelemetryIntegrations,
-} from './telemetry-integration-registry';
+} from './telemetry-registry';
 
 beforeEach(() => {
   globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
 });
 
-describe('registerTelemetryIntegration', () => {
+describe('registerTelemetry', () => {
   it('adds an integration to the global registry', () => {
-    const integration: TelemetryIntegration = { onStart: vi.fn() };
+    const integration: Telemetry = { onStart: vi.fn() };
 
-    registerTelemetryIntegration(integration);
+    registerTelemetry(integration);
 
     expect(getGlobalTelemetryIntegrations()).toEqual([integration]);
   });
 
   it('adds multiple integrations in registration order', () => {
-    const integration1: TelemetryIntegration = { onStart: vi.fn() };
-    const integration2: TelemetryIntegration = { onFinish: vi.fn() };
+    const integration1: Telemetry = { onStart: vi.fn() };
+    const integration2: Telemetry = { onFinish: vi.fn() };
 
-    registerTelemetryIntegration(integration1);
-    registerTelemetryIntegration(integration2);
+    registerTelemetry(integration1);
+    registerTelemetry(integration2);
 
     expect(getGlobalTelemetryIntegrations()).toEqual([
       integration1,
@@ -32,11 +32,11 @@ describe('registerTelemetryIntegration', () => {
   });
 
   it('adds multiple integrations passed in a single call', () => {
-    const integration1: TelemetryIntegration = { onStart: vi.fn() };
-    const integration2: TelemetryIntegration = { onFinish: vi.fn() };
-    const integration3: TelemetryIntegration = { onError: vi.fn() };
+    const integration1: Telemetry = { onStart: vi.fn() };
+    const integration2: Telemetry = { onFinish: vi.fn() };
+    const integration3: Telemetry = { onError: vi.fn() };
 
-    registerTelemetryIntegration(integration1, integration2, integration3);
+    registerTelemetry(integration1, integration2, integration3);
 
     expect(getGlobalTelemetryIntegrations()).toEqual([
       integration1,
@@ -46,7 +46,7 @@ describe('registerTelemetryIntegration', () => {
   });
 
   it('is a no-op when called with no integrations', () => {
-    registerTelemetryIntegration();
+    registerTelemetry();
 
     expect(getGlobalTelemetryIntegrations()).toEqual([]);
   });

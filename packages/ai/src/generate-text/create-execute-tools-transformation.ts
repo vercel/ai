@@ -5,7 +5,7 @@ import {
   ModelMessage,
 } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/request-options';
-import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
+import type { Telemetry } from '../telemetry/telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { executeToolCall } from './execute-tool-call';
 import { isToolApprovalNeeded } from './is-tool-approval-needed';
@@ -48,7 +48,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   modelId?: string;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
-  executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
+  executeToolInTelemetryContext?: Telemetry['executeTool'];
 }): TransformStream<
   LanguageModelStreamPart<TOOLS>,
   LanguageModelStreamPart<TOOLS>

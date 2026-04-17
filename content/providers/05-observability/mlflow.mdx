@@ -53,14 +53,14 @@ Install the Vercel OpenTelemetry integration:
 pnpm i @opentelemetry/api @vercel/otel @ai-sdk/otel
 ```
 
-Create `instrumentation.ts` in your project root and register the `OpenTelemetryIntegration` alongside your OTel provider setup:
+Create `instrumentation.ts` in your project root and register the `OpenTelemetry` alongside your OTel provider setup:
 
 ```ts filename="instrumentation.ts"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 export async function register() {
   registerOTel({ serviceName: 'next-app' });
@@ -99,8 +99,8 @@ For other Node.js frameworks, wire up the OpenTelemetry Node SDK and OTLP export
 
 ```ts filename="main.ts"
 import { init } from 'mlflow-tracing';
-import { registerTelemetryIntegration, generateText } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry, generateText } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { openai } from '@ai-sdk/openai';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
@@ -119,7 +119,7 @@ const sdk = new NodeSDK({
 
 sdk.start();
 init();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 const result = await generateText({
   model: openai('gpt-5'),

@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`OpenTelemetryIntegration integration with embed > should not record telemetry inputs / outputs when disabled 1`] = `
+exports[`OpenTelemetry integration with embed > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {
     "attributes": {
@@ -31,7 +31,7 @@ exports[`OpenTelemetryIntegration integration with embed > should not record tel
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with embed > should record telemetry data when enabled 1`] = `
+exports[`OpenTelemetry integration with embed > should record telemetry data when enabled 1`] = `
 [
   {
     "attributes": {
@@ -74,7 +74,7 @@ exports[`OpenTelemetryIntegration integration with embed > should record telemet
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with embed > should record telemetry data when isEnabled is not explicitly set 1`] = `
+exports[`OpenTelemetry integration with embed > should record telemetry data when isEnabled is not explicitly set 1`] = `
 [
   {
     "attributes": {
@@ -113,7 +113,7 @@ exports[`OpenTelemetryIntegration integration with embed > should record telemet
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with embedMany > should not record telemetry inputs / outputs when disabled 1`] = `
+exports[`OpenTelemetry integration with embedMany > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {
     "attributes": {
@@ -144,7 +144,7 @@ exports[`OpenTelemetryIntegration integration with embedMany > should not record
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with embedMany > should record telemetry data when enabled (multiple calls path) 1`] = `
+exports[`OpenTelemetry integration with embedMany > should record telemetry data when enabled (multiple calls path) 1`] = `
 [
   {
     "attributes": {
@@ -218,7 +218,7 @@ exports[`OpenTelemetryIntegration integration with embedMany > should record tel
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with embedMany > should record telemetry data when enabled (single call path) 1`] = `
+exports[`OpenTelemetry integration with embedMany > should record telemetry data when enabled (single call path) 1`] = `
 [
   {
     "attributes": {
@@ -273,7 +273,7 @@ exports[`OpenTelemetryIntegration integration with embedMany > should record tel
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with embedMany > should record telemetry data when isEnabled is not explicitly set 1`] = `
+exports[`OpenTelemetry integration with embedMany > should record telemetry data when isEnabled is not explicitly set 1`] = `
 [
   {
     "attributes": {
@@ -324,7 +324,7 @@ exports[`OpenTelemetryIntegration integration with embedMany > should record tel
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with generateObject > should not record telemetry inputs / outputs when disabled 1`] = `
+exports[`OpenTelemetry integration with generateObject > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {
     "attributes": {
@@ -374,7 +374,7 @@ exports[`OpenTelemetryIntegration integration with generateObject > should not r
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with generateObject > should record telemetry data when enabled 1`] = `
+exports[`OpenTelemetry integration with generateObject > should record telemetry data when enabled 1`] = `
 [
   {
     "attributes": {
@@ -456,7 +456,7 @@ exports[`OpenTelemetryIntegration integration with generateObject > should recor
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with generateObject > should record telemetry data when isEnabled is not explicitly set 1`] = `
+exports[`OpenTelemetry integration with generateObject > should record telemetry data when isEnabled is not explicitly set 1`] = `
 [
   {
     "attributes": {
@@ -511,7 +511,7 @@ exports[`OpenTelemetryIntegration integration with generateObject > should recor
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with generateText > should not record telemetry inputs / outputs when disabled 1`] = `
+exports[`OpenTelemetry integration with generateText > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {
     "attributes": {
@@ -574,7 +574,7 @@ exports[`OpenTelemetryIntegration integration with generateText > should not rec
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with generateText > should record telemetry data when enabled 1`] = `
+exports[`OpenTelemetry integration with generateText > should record telemetry data when enabled 1`] = `
 [
   {
     "attributes": {
@@ -670,7 +670,7 @@ exports[`OpenTelemetryIntegration integration with generateText > should record 
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with generateText > should record telemetry data when isEnabled is not explicitly set 1`] = `
+exports[`OpenTelemetry integration with generateText > should record telemetry data when isEnabled is not explicitly set 1`] = `
 [
   {
     "attributes": {
@@ -728,7 +728,7 @@ exports[`OpenTelemetryIntegration integration with generateText > should record 
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamObject > should not record telemetry inputs / outputs when disabled 1`] = `
+exports[`OpenTelemetry integration with streamObject > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {
     "attributes": {
@@ -784,7 +784,7 @@ exports[`OpenTelemetryIntegration integration with streamObject > should not rec
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamObject > should record telemetry data when enabled 1`] = `
+exports[`OpenTelemetry integration with streamObject > should record telemetry data when enabled 1`] = `
 [
   {
     "attributes": {
@@ -872,7 +872,7 @@ exports[`OpenTelemetryIntegration integration with streamObject > should record 
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamObject > should record telemetry data when isEnabled is not explicitly set 1`] = `
+exports[`OpenTelemetry integration with streamObject > should record telemetry data when isEnabled is not explicitly set 1`] = `
 [
   {
     "attributes": {
@@ -933,7 +933,7 @@ exports[`OpenTelemetryIntegration integration with streamObject > should record 
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamText > should not record telemetry inputs / outputs when disabled 1`] = `
+exports[`OpenTelemetry integration with streamText > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {
     "attributes": {
@@ -1011,7 +1011,7 @@ exports[`OpenTelemetryIntegration integration with streamText > should not recor
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamText > should record successful tool call 1`] = `
+exports[`OpenTelemetry integration with streamText > should record successful tool call 1`] = `
 [
   {
     "attributes": {
@@ -1101,7 +1101,7 @@ exports[`OpenTelemetryIntegration integration with streamText > should record su
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamText > should record telemetry data when enabled 1`] = `
+exports[`OpenTelemetry integration with streamText > should record telemetry data when enabled 1`] = `
 [
   {
     "attributes": {
@@ -1212,7 +1212,7 @@ exports[`OpenTelemetryIntegration integration with streamText > should record te
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamText > should record telemetry data when isEnabled is not explicitly set 1`] = `
+exports[`OpenTelemetry integration with streamText > should record telemetry data when isEnabled is not explicitly set 1`] = `
 [
   {
     "attributes": {
@@ -1287,7 +1287,7 @@ exports[`OpenTelemetryIntegration integration with streamText > should record te
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamText stopWhen (2 steps) > should record telemetry data for each step 1`] = `
+exports[`OpenTelemetry integration with streamText stopWhen (2 steps) > should record telemetry data for each step 1`] = `
 [
   {
     "attributes": {
@@ -1439,7 +1439,7 @@ exports[`OpenTelemetryIntegration integration with streamText stopWhen (2 steps)
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamText transform > telemetry should record transformed data when enabled 1`] = `
+exports[`OpenTelemetry integration with streamText transform > telemetry should record transformed data when enabled 1`] = `
 [
   {
     "attributes": {
