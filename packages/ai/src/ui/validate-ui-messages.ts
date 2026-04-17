@@ -417,6 +417,18 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
 
             // TODO support dynamic tools
             if (!tool) {
+              // Skip validation for tool parts in terminal states when the tool
+              // schema is no longer registered (e.g., MCP server disconnected).
+              // These tools have already executed and their results are stored.
+              const terminalStates = [
+                'output-available',
+                'output-error',
+                'output-denied',
+              ];
+              if (terminalStates.includes(toolPart.state)) {
+                continue;
+              }
+
               return {
                 success: false,
                 error: new TypeValidationError({
