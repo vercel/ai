@@ -6,6 +6,8 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
+import { TypeValidationError } from '../error';
+import { InvalidToolContextError } from '../error/invalid-tool-context-error';
 import { asLanguageModelUsage } from '../types/usage';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import { LanguageModelStreamPart } from './stream-language-model-call';
@@ -631,6 +633,57 @@ describe('createExecuteToolsTransformation', () => {
   });
 
   describe('tool execution error handling', () => {
+    it('should throw InvalidToolContextError before approval callbacks run', async () => {
+      const tools = {
+        guardedTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          contextSchema: z.object({ apiKey: z.string() }),
+          needsApproval: true,
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+
+      const transformedStream = convertArrayToReadableStream<
+        LanguageModelStreamPart<typeof tools>
+      >([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'guardedTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]).pipeThrough(
+        createExecuteToolsTransformation({
+          generateId: mockId({ prefix: 'id' }),
+          tools,
+          telemetry: undefined,
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          timeout: undefined,
+          toolsContext: {
+            guardedTool: { apiKey: 123 } as any,
+          },
+        }),
+      );
+
+      try {
+        await convertReadableStreamToArray(transformedStream);
+        expect.unreachable('expected stream consumption to throw');
+      } catch (error) {
+        expect(InvalidToolContextError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          toolName: 'guardedTool',
+          toolContext: { apiKey: 123 },
+        });
+
+        if (InvalidToolContextError.isInstance(error)) {
+          expect(TypeValidationError.isInstance(error.cause)).toBe(true);
+        }
+      }
+    });
+
     it('should handle error thrown in async tool execution', async () => {
       const tools = {
         failingTool: tool({

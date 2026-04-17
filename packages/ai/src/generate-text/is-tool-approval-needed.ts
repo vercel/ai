@@ -5,6 +5,7 @@ import {
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
+import { validateToolContext } from './validate-tool-context';
 import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 import { TypedToolCall } from './tool-call';
 
@@ -35,10 +36,17 @@ export async function isToolApprovalNeeded<TOOLS extends ToolSet>({
 }) {
   // assume that the input has been validated and matches the tool's input schema
   const input = toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>;
-  // assume that the tool context has been validated and matches the tool's context schema
-  const context = toolsContext?.[
+  const tool = tools?.[toolCall.toolName];
+  const contextValue = toolsContext?.[
     toolCall.toolName as keyof InferToolSetContext<TOOLS>
-  ] as InferToolContext<NoInfer<TOOLS[keyof TOOLS]>>;
+  ] as unknown;
+  const context = await validateToolContext<
+    InferToolContext<NoInfer<TOOLS[keyof TOOLS]>>
+  >({
+    toolName: toolCall.toolName,
+    context: contextValue,
+    contextSchema: tool?.contextSchema,
+  });
 
   const options = { toolCallId: toolCall.toolCallId, messages, context };
 
@@ -51,7 +59,6 @@ export async function isToolApprovalNeeded<TOOLS extends ToolSet>({
   }
 
   // tool-defined approval
-  const tool = tools?.[toolCall.toolName];
   return tool?.needsApproval == null
     ? false
     : typeof tool.needsApproval === 'boolean'

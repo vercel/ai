@@ -20,6 +20,7 @@ import {
   GenerateTextOnToolCallFinishCallback,
   GenerateTextOnToolCallStartCallback,
 } from './generate-text';
+import { validateToolContext } from './validate-tool-context';
 import { TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
 import { ToolOutput } from './tool-output';
@@ -84,9 +85,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     return undefined;
   }
 
-  // TODO validate the context type against the tool context schema
-  const context: InferToolContext<typeof tool> =
-    toolsContext?.[toolName as keyof typeof toolsContext];
+  const contextValue = toolsContext?.[toolName as keyof typeof toolsContext];
+  const context = await validateToolContext<InferToolContext<typeof tool>>({
+    toolName,
+    context: contextValue,
+    contextSchema: tool.contextSchema,
+  });
 
   const baseCallbackEvent = {
     callId,

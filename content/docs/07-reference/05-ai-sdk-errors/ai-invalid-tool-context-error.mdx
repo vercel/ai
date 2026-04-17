@@ -1,0 +1,27 @@
+---
+title: AI_InvalidToolContextError
+description: Learn how to fix AI_InvalidToolContextError
+---
+
+# AI_InvalidToolContextError
+
+This error occurs when a tool's `toolsContext` entry does not match the tool's `contextSchema`.
+
+## Properties
+
+- `toolName`: The name of the tool with invalid context
+- `toolContext`: The invalid tool context value
+- `message`: The error message
+- `cause`: The underlying validation error
+
+## Checking for this Error
+
+You can check if an error is an instance of `AI_InvalidToolContextError` using:
+
+```typescript
+import { InvalidToolContextError } from 'ai';
+
+if (InvalidToolContextError.isInstance(error)) {
+  // Handle the error
+}
+```

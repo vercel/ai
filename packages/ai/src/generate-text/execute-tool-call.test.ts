@@ -1,6 +1,8 @@
 import { tool } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
+import { TypeValidationError } from '../error';
+import { InvalidToolContextError } from '../error/invalid-tool-context-error';
 import { executeToolCall } from './execute-tool-call';
 import {
   GenerateTextOnToolCallFinishCallback,
@@ -104,6 +106,38 @@ describe('executeToolCall', () => {
         type: 'tool-result',
         providerMetadata: { custom: { key: 'value' } },
       });
+    });
+
+    it('should throw InvalidToolContextError when tool context fails validation', async () => {
+      try {
+        await executeToolCall({
+          toolCall: createToolCall(),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              contextSchema: z.object({ key1: z.string() }),
+              execute: async ({ value }) => `${value}-result`,
+            }),
+          },
+          telemetry: undefined,
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          abortSignal: undefined,
+          toolsContext: { testTool: { key1: 1 } as any },
+        });
+
+        expect.unreachable('expected executeToolCall to throw');
+      } catch (error) {
+        expect(InvalidToolContextError.isInstance(error)).toBe(true);
+        expect(error).toMatchObject({
+          toolName: 'testTool',
+          toolContext: { key1: 1 },
+        });
+
+        if (InvalidToolContextError.isInstance(error)) {
+          expect(TypeValidationError.isInstance(error.cause)).toBe(true);
+        }
+      }
     });
   });
 
