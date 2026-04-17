@@ -862,7 +862,7 @@ class DefaultStreamTextResult<
     this.tools = tools;
 
     const unifiedTelemetry = createUnifiedTelemetry({
-      integrations: telemetry?.integrations,
+      telemetry,
     });
 
     // promise to ensure that the step has been fully processed by the event processor
@@ -1084,7 +1084,6 @@ class DefaultStreamTextResult<
               stepNumber: recordedSteps.length,
               provider: model.provider,
               modelId: model.modelId,
-              ...callbackTelemetryProps,
               runtimeContext,
               toolsContext,
               content: recordedContent,
@@ -1166,7 +1165,6 @@ class DefaultStreamTextResult<
               toolsContext: finalStep.toolsContext,
               stepNumber: finalStep.stepNumber,
               model: finalStep.model,
-              functionId: finalStep.functionId,
               runtimeContext: finalStep.runtimeContext,
               finishReason: finalStep.finishReason,
               rawFinishReason: finalStep.rawFinishReason,
@@ -1304,15 +1302,6 @@ class DefaultStreamTextResult<
     const self = this;
 
     const callId = generateCallId();
-    const callbackTelemetryProps = {
-      functionId: telemetry?.functionId,
-    };
-    const onStartTelemetryProps = {
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
-    };
 
     (async () => {
       const initialPrompt = await standardizePrompt({
@@ -1348,7 +1337,6 @@ class DefaultStreamTextResult<
           providerOptions,
           stopWhen,
           output,
-          ...onStartTelemetryProps,
           runtimeContext,
           toolsContext,
         },
@@ -1621,7 +1609,6 @@ class DefaultStreamTextResult<
                     headers,
                     stopWhen,
                     output,
-                    ...callbackTelemetryProps,
                     runtimeContext,
                     toolsContext,
                     promptMessages,

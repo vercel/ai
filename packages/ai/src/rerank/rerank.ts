@@ -127,7 +127,7 @@ export async function rerank<VALUE extends JSONObject | string>({
   const callId = generateCallId();
 
   const unifiedTelemetry = createUnifiedTelemetry({
-    integrations: telemetry?.integrations,
+    telemetry,
   });
 
   if (documents.length === 0) {
@@ -143,10 +143,6 @@ export async function rerank<VALUE extends JSONObject | string>({
         maxRetries: maxRetriesArg ?? 2,
         headers,
         providerOptions,
-        isEnabled: telemetry?.isEnabled ?? true,
-        recordInputs: telemetry?.recordInputs,
-        recordOutputs: telemetry?.recordOutputs,
-        functionId: telemetry?.functionId,
       },
       callbacks: [onStart, unifiedTelemetry.onStart],
     });
@@ -166,10 +162,6 @@ export async function rerank<VALUE extends JSONObject | string>({
           timestamp: new Date(),
           modelId: model.modelId,
         },
-        isEnabled: telemetry?.isEnabled ?? true,
-        recordInputs: telemetry?.recordInputs,
-        recordOutputs: telemetry?.recordOutputs,
-        functionId: telemetry?.functionId,
       },
       callbacks: [onFinish, unifiedTelemetry.onFinish],
     });
@@ -207,10 +199,6 @@ export async function rerank<VALUE extends JSONObject | string>({
       maxRetries,
       headers,
       providerOptions,
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
     },
     callbacks: [onStart, unifiedTelemetry.onStart],
   });
@@ -228,10 +216,6 @@ export async function rerank<VALUE extends JSONObject | string>({
             documentsType: documentsToSend.type,
             query,
             topN,
-            isEnabled: telemetry?.isEnabled ?? true,
-            recordInputs: telemetry?.recordInputs,
-            recordOutputs: telemetry?.recordOutputs,
-            functionId: telemetry?.functionId,
           },
           callbacks: [unifiedTelemetry.onRerankStart],
         });
@@ -296,10 +280,6 @@ export async function rerank<VALUE extends JSONObject | string>({
           headers: response?.headers,
           body: response?.body,
         },
-        isEnabled: telemetry?.isEnabled ?? true,
-        recordInputs: telemetry?.recordInputs,
-        recordOutputs: telemetry?.recordOutputs,
-        functionId: telemetry?.functionId,
       },
       callbacks: [onFinish, unifiedTelemetry.onFinish],
     });

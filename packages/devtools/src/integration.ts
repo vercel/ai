@@ -199,7 +199,12 @@ export function DevToolsTelemetry(): Telemetry {
         return;
       }
 
-      const startEvent = event as OnStartEvent<ToolSet> | ObjectOnStartEvent;
+      const startEvent = event as (
+        | OnStartEvent<ToolSet>
+        | ObjectOnStartEvent
+      ) & {
+        functionId?: string | undefined;
+      };
 
       const parentInfo = resolveParentInfo();
 

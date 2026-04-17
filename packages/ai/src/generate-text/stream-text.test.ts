@@ -5613,8 +5613,8 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(startEvent.isEnabled).toBe(true);
-      expect(startEvent.functionId).toBe('deprecated-fn');
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('functionId');
     });
 
     it('should pass runtimeContext', async () => {
@@ -6074,7 +6074,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should expose functionId from telemetry', async () => {
+    it('should not expose telemetry metadata in onStepStart', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];
@@ -6093,7 +6093,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(stepStartEvent.functionId).toBe('test-function');
+      expect(stepStartEvent).not.toHaveProperty('functionId');
     });
 
     it('should pass updated toolsContext from prepareStep', async () => {

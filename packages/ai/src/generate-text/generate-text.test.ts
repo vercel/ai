@@ -895,8 +895,8 @@ describe('generateText', () => {
         },
       });
 
-      expect(startEvent.isEnabled).toBe(true);
-      expect(startEvent.functionId).toBe('deprecated-fn');
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('functionId');
     });
 
     it('should send correct information with system and messages', async () => {

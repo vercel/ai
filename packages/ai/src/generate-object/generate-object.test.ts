@@ -1223,8 +1223,8 @@ describe('generateObject', () => {
           },
         });
 
-        expect(startEvent.isEnabled).toBe(true);
-        expect(startEvent.functionId).toBe('deprecated-fn');
+        expect(startEvent).not.toHaveProperty('isEnabled');
+        expect(startEvent).not.toHaveProperty('functionId');
       });
     });
 

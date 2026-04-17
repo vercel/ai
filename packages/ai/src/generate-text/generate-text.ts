@@ -453,7 +453,7 @@ export async function generateText<
   const callId = generateCallId();
 
   const unifiedTelemetry = createUnifiedTelemetry({
-    integrations: telemetry?.integrations,
+    telemetry,
   });
 
   await notify({
@@ -483,10 +483,6 @@ export async function generateText<
       providerOptions,
       stopWhen,
       output,
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
       runtimeContext,
       toolsContext,
     },
@@ -687,7 +683,6 @@ export async function generateText<
             headers,
             stopWhen,
             output,
-            functionId: telemetry?.functionId,
             runtimeContext,
             promptMessages,
             stepTools,
@@ -928,7 +923,6 @@ export async function generateText<
             stepNumber,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
-            functionId: telemetry?.functionId,
             runtimeContext,
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
@@ -993,7 +987,6 @@ export async function generateText<
       callId,
       stepNumber: lastStep.stepNumber,
       model: lastStep.model,
-      functionId: lastStep.functionId,
       runtimeContext: lastStep.runtimeContext,
       finishReason: lastStep.finishReason,
       rawFinishReason: lastStep.rawFinishReason,

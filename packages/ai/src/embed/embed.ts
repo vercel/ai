@@ -132,7 +132,7 @@ export async function embed({
   const callId = generateCallId();
 
   const unifiedTelemetry = createUnifiedTelemetry({
-    integrations: telemetry?.integrations,
+    telemetry,
   });
 
   await notify({
@@ -145,10 +145,6 @@ export async function embed({
       maxRetries,
       headers: headersWithUserAgent,
       providerOptions,
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
     },
     callbacks: [onStart, unifiedTelemetry.onStart],
   });
@@ -166,10 +162,6 @@ export async function embed({
             provider: model.provider,
             modelId: model.modelId,
             values: [value],
-            isEnabled: telemetry?.isEnabled ?? true,
-            recordInputs: telemetry?.recordInputs,
-            recordOutputs: telemetry?.recordOutputs,
-            functionId: telemetry?.functionId,
           },
           callbacks: [unifiedTelemetry.onEmbedStart],
         });
@@ -221,10 +213,6 @@ export async function embed({
         warnings,
         providerMetadata,
         response,
-        isEnabled: telemetry?.isEnabled ?? true,
-        recordInputs: telemetry?.recordInputs,
-        recordOutputs: telemetry?.recordOutputs,
-        functionId: telemetry?.functionId,
       },
       callbacks: [onFinish, unifiedTelemetry.onFinish],
     });

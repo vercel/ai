@@ -32,18 +32,6 @@ export interface EmbedOnStartEvent {
 
   /** Additional provider-specific options. */
   readonly providerOptions: ProviderOptions | undefined;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 }
 
 /**
@@ -84,18 +72,6 @@ export interface EmbedOnFinishEvent {
     | { headers?: Record<string, string>; body?: unknown }
     | Array<{ headers?: Record<string, string>; body?: unknown } | undefined>
     | undefined;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 }
 
 /**
@@ -122,18 +98,6 @@ export interface EmbedStartEvent {
 
   /** The values being embedded in this particular model call. */
   readonly values: Array<string>;
-
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 }
 
 /**

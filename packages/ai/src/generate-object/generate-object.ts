@@ -287,7 +287,7 @@ export async function generateObject<
   );
 
   const unifiedTelemetry = createUnifiedTelemetry({
-    integrations: telemetry?.integrations,
+    telemetry,
   });
 
   const jsonSchema = await outputStrategy.jsonSchema();
@@ -316,10 +316,6 @@ export async function generateObject<
       schema: jsonSchema as Record<string, unknown> | undefined,
       schemaName,
       schemaDescription,
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
     },
     callbacks: [onStart, unifiedTelemetry.onStart],
   });
@@ -346,7 +342,6 @@ export async function generateObject<
         modelId: model.modelId,
         providerOptions,
         headers: headersWithUserAgent,
-        functionId: telemetry?.functionId,
         promptMessages,
       },
       callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
@@ -415,7 +410,6 @@ export async function generateObject<
       request,
       response,
       providerMetadata: resultProviderMetadata,
-      functionId: telemetry?.functionId,
     };
 
     await notify({
@@ -446,7 +440,6 @@ export async function generateObject<
         request,
         response,
         providerMetadata: resultProviderMetadata,
-        functionId: telemetry?.functionId,
       },
       callbacks: [onFinish, unifiedTelemetry.onFinish],
     });

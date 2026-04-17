@@ -148,7 +148,7 @@ export async function embedMany({
   const callId = generateCallId();
 
   const unifiedTelemetry = createUnifiedTelemetry({
-    integrations: telemetry?.integrations,
+    telemetry,
   });
 
   await notify({
@@ -161,10 +161,6 @@ export async function embedMany({
       maxRetries,
       headers: headersWithUserAgent,
       providerOptions,
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
     },
     callbacks: [onStart, unifiedTelemetry.onStart],
   });
@@ -188,10 +184,6 @@ export async function embedMany({
               provider: model.provider,
               modelId: model.modelId,
               values,
-              isEnabled: telemetry?.isEnabled ?? true,
-              recordInputs: telemetry?.recordInputs,
-              recordOutputs: telemetry?.recordOutputs,
-              functionId: telemetry?.functionId,
             },
             callbacks: [unifiedTelemetry.onEmbedStart],
           });
@@ -247,10 +239,6 @@ export async function embedMany({
           warnings,
           providerMetadata,
           response: [response],
-          isEnabled: telemetry?.isEnabled ?? true,
-          recordInputs: telemetry?.recordInputs,
-          recordOutputs: telemetry?.recordOutputs,
-          functionId: telemetry?.functionId,
         },
         callbacks: [onFinish, unifiedTelemetry.onFinish],
       });
@@ -298,10 +286,6 @@ export async function embedMany({
                 provider: model.provider,
                 modelId: model.modelId,
                 values: chunk,
-                isEnabled: telemetry?.isEnabled ?? true,
-                recordInputs: telemetry?.recordInputs,
-                recordOutputs: telemetry?.recordOutputs,
-                functionId: telemetry?.functionId,
               },
               callbacks: [unifiedTelemetry.onEmbedStart],
             });
@@ -381,10 +365,6 @@ export async function embedMany({
         warnings,
         providerMetadata,
         response: responses,
-        isEnabled: telemetry?.isEnabled ?? true,
-        recordInputs: telemetry?.recordInputs,
-        recordOutputs: telemetry?.recordOutputs,
-        functionId: telemetry?.functionId,
       },
       callbacks: [onFinish, unifiedTelemetry.onFinish],
     });

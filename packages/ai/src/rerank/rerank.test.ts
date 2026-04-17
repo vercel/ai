@@ -410,10 +410,10 @@ describe('rerank', () => {
         },
       });
 
-      expect(startEvent.isEnabled).toBe(true);
-      expect(startEvent.recordInputs).toBe(false);
-      expect(startEvent.recordOutputs).toBe(true);
-      expect(startEvent.functionId).toBe('rerank-fn');
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('recordInputs');
+      expect(startEvent).not.toHaveProperty('recordOutputs');
+      expect(startEvent).not.toHaveProperty('functionId');
     });
 
     it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
@@ -438,10 +438,10 @@ describe('rerank', () => {
         },
       });
 
-      expect(startEvent.isEnabled).toBe(true);
-      expect(startEvent.recordInputs).toBe(false);
-      expect(startEvent.recordOutputs).toBe(true);
-      expect(startEvent.functionId).toBe('rerank-fn-deprecated');
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('recordInputs');
+      expect(startEvent).not.toHaveProperty('recordOutputs');
+      expect(startEvent).not.toHaveProperty('functionId');
     });
 
     it('should include model information', async () => {

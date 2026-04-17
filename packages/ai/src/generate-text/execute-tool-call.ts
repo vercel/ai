@@ -41,7 +41,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
   toolsContext,
-  telemetry,
+  telemetry: _telemetry,
   callId,
   messages,
   abortSignal,
@@ -92,7 +92,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     modelId,
     toolCall,
     messages,
-    functionId: telemetry?.functionId,
     context, // TODO rename to toolContext
   };
 

@@ -38,7 +38,9 @@ describe('createUnifiedTelemetry', () => {
       onStart: vi.fn(),
     };
 
-    const telemetry = createUnifiedTelemetry({ integrations: integration });
+    const telemetry = createUnifiedTelemetry({
+      telemetry: { integrations: integration },
+    });
 
     await telemetry.onStart!(dummyEvent);
 
@@ -47,7 +49,9 @@ describe('createUnifiedTelemetry', () => {
 
   it('accepts an array of integrations', () => {
     const telemetry = createUnifiedTelemetry({
-      integrations: [{ onStart: vi.fn() }, { onFinish: vi.fn() }],
+      telemetry: {
+        integrations: [{ onStart: vi.fn() }, { onFinish: vi.fn() }],
+      },
     });
 
     expect(telemetry.onStart).toBeDefined();
@@ -56,7 +60,7 @@ describe('createUnifiedTelemetry', () => {
 
   it('returns no-op listeners for methods that no integration implements', async () => {
     const telemetry = createUnifiedTelemetry({
-      integrations: [{ onStart: vi.fn() }],
+      telemetry: { integrations: [{ onStart: vi.fn() }] },
     });
 
     await expect(
@@ -70,7 +74,9 @@ describe('createUnifiedTelemetry', () => {
     const onStart2 = vi.fn();
 
     const telemetry = createUnifiedTelemetry({
-      integrations: [{ onStart: onStart1 }, { onStart: onStart2 }],
+      telemetry: {
+        integrations: [{ onStart: onStart1 }, { onStart: onStart2 }],
+      },
     });
 
     await telemetry.onStart!(dummyEvent);
@@ -83,7 +89,7 @@ describe('createUnifiedTelemetry', () => {
     const onStart = vi.fn();
 
     const telemetry = createUnifiedTelemetry({
-      integrations: [{ onStart }, {}],
+      telemetry: { integrations: [{ onStart }, {}] },
     });
 
     await telemetry.onStart!(dummyEvent);
@@ -96,7 +102,9 @@ describe('createUnifiedTelemetry', () => {
     const onStart2 = vi.fn();
 
     const telemetry = createUnifiedTelemetry({
-      integrations: [{ onStart: onStart1 }, { onStart: onStart2 }],
+      telemetry: {
+        integrations: [{ onStart: onStart1 }, { onStart: onStart2 }],
+      },
     });
 
     await telemetry.onStart!(dummyEvent);
@@ -107,13 +115,15 @@ describe('createUnifiedTelemetry', () => {
 
   it('swallows sync errors thrown by integrations', async () => {
     const telemetry = createUnifiedTelemetry({
-      integrations: [
-        {
-          onStart: () => {
-            throw new Error('sync boom');
+      telemetry: {
+        integrations: [
+          {
+            onStart: () => {
+              throw new Error('sync boom');
+            },
           },
-        },
-      ],
+        ],
+      },
     });
 
     await expect(telemetry.onStart!(dummyEvent)).resolves.toBeUndefined();
@@ -137,7 +147,9 @@ describe('createUnifiedTelemetry', () => {
       onError: vi.fn(),
     };
 
-    const telemetry = createUnifiedTelemetry({ integrations: integration });
+    const telemetry = createUnifiedTelemetry({
+      telemetry: { integrations: integration },
+    });
 
     await telemetry.onStart!(dummyEvent);
     await telemetry.onStepStart!(dummyEvent);
@@ -171,7 +183,9 @@ describe('createUnifiedTelemetry', () => {
   });
 
   it('handles an empty array of integrations', async () => {
-    const telemetry = createUnifiedTelemetry({ integrations: [] });
+    const telemetry = createUnifiedTelemetry({
+      telemetry: { integrations: [] },
+    });
 
     expect(telemetry.onStart).toBeDefined();
     expect(telemetry.onFinish).toBeDefined();
@@ -197,7 +211,7 @@ describe('createUnifiedTelemetry', () => {
       registerTelemetry({ onStart: globalOnStart });
 
       const telemetry = createUnifiedTelemetry({
-        integrations: { onStart: localOnStart },
+        telemetry: { integrations: { onStart: localOnStart } },
       });
       await telemetry.onStart!(dummyEvent);
 
@@ -213,7 +227,12 @@ describe('createUnifiedTelemetry', () => {
       registerTelemetry({ onStart: globalOnStart });
 
       const telemetry = createUnifiedTelemetry({
-        integrations: [{ onStart: localOnStart1 }, { onStart: localOnStart2 }],
+        telemetry: {
+          integrations: [
+            { onStart: localOnStart1 },
+            { onStart: localOnStart2 },
+          ],
+        },
       });
       await telemetry.onStart!(dummyEvent);
 
@@ -229,7 +248,7 @@ describe('createUnifiedTelemetry', () => {
       registerTelemetry({ onStart: globalOnStart });
 
       const withLocal = createUnifiedTelemetry({
-        integrations: { onStart: localOnStart },
+        telemetry: { integrations: { onStart: localOnStart } },
       });
       const withoutLocal = createUnifiedTelemetry({});
 
@@ -270,7 +289,9 @@ describe('createUnifiedTelemetry', () => {
       }
 
       const instance = new MyIntegration();
-      const telemetry = createUnifiedTelemetry({ integrations: instance });
+      const telemetry = createUnifiedTelemetry({
+        telemetry: { integrations: instance },
+      });
 
       await telemetry.onStart!(dummyEvent);
 
@@ -291,7 +312,9 @@ describe('createUnifiedTelemetry', () => {
       }
 
       const instance = new DevToolsTelemetry();
-      const telemetry = createUnifiedTelemetry({ integrations: [instance] });
+      const telemetry = createUnifiedTelemetry({
+        telemetry: { integrations: [instance] },
+      });
 
       await telemetry.onStart!(dummyEvent);
       await telemetry.onFinish!(dummyEvent);
@@ -303,7 +326,7 @@ describe('createUnifiedTelemetry', () => {
   describe('executeTool', () => {
     it('returns undefined when no integrations implement executeTool', () => {
       const telemetry = createUnifiedTelemetry({
-        integrations: { onStart: vi.fn() },
+        telemetry: { integrations: { onStart: vi.fn() } },
       });
 
       expect(telemetry.executeTool).toBeUndefined();
@@ -318,7 +341,7 @@ describe('createUnifiedTelemetry', () => {
       };
 
       const telemetry = createUnifiedTelemetry({
-        integrations: { executeTool: wrapper },
+        telemetry: { integrations: { executeTool: wrapper } },
       });
 
       await expect(
@@ -346,12 +369,14 @@ describe('createUnifiedTelemetry', () => {
       });
 
       const telemetry = createUnifiedTelemetry({
-        integrations: {
-          executeTool: async ({ execute }) => {
-            callOrder.push('local-before');
-            const result = await execute();
-            callOrder.push('local-after');
-            return result;
+        telemetry: {
+          integrations: {
+            executeTool: async ({ execute }) => {
+              callOrder.push('local-before');
+              const result = await execute();
+              callOrder.push('local-after');
+              return result;
+            },
           },
         },
       });
@@ -413,7 +438,9 @@ describe('createUnifiedTelemetry', () => {
       }
 
       const integration = new ExecuteToolIntegration();
-      const telemetry = createUnifiedTelemetry({ integrations: integration });
+      const telemetry = createUnifiedTelemetry({
+        telemetry: { integrations: integration },
+      });
 
       await telemetry.executeTool!({
         callId: 'call-1',

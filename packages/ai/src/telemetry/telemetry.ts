@@ -30,6 +30,45 @@ import type {
 } from '../rerank/rerank-events';
 import type { Callback } from '../util/callback';
 
+type TelemetryMetadata = {
+  readonly isEnabled: boolean | undefined;
+  readonly recordInputs: boolean | undefined;
+  readonly recordOutputs: boolean | undefined;
+  readonly functionId: string | undefined;
+};
+
+export type TelemetryEvent<EVENT> = EVENT & TelemetryMetadata;
+
+type OperationStartEvent =
+  | OnStartEvent
+  | ObjectOnStartEvent
+  | EmbedOnStartEvent
+  | RerankOnStartEvent;
+
+type OperationFinishEvent =
+  | OnFinishEvent<ToolSet>
+  | ObjectOnFinishEvent<unknown>
+  | EmbedOnFinishEvent
+  | RerankOnFinishEvent;
+
+export interface TelemetryDispatcher {
+  onStart?: Callback<OperationStartEvent>;
+  onStepStart?: Callback<OnStepStartEvent>;
+  onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
+  onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
+  onChunk?: Callback<OnChunkEvent>;
+  onStepFinish?: Callback<OnStepFinishEvent>;
+  onObjectStepStart?: Callback<ObjectOnStepStartEvent>;
+  onObjectStepFinish?: Callback<ObjectOnStepFinishEvent>;
+  onEmbedStart?: Callback<EmbedStartEvent>;
+  onEmbedFinish?: Callback<EmbedFinishEvent>;
+  onRerankStart?: Callback<RerankStartEvent>;
+  onRerankFinish?: Callback<RerankFinishEvent>;
+  onFinish?: Callback<OperationFinishEvent>;
+  onError?: Callback<unknown>;
+  executeTool?: Telemetry['executeTool'];
+}
+
 /**
  * Implement this interface to create custom telemetry integrations.
  * Methods can be sync or return a PromiseLike.
@@ -42,9 +81,7 @@ export interface Telemetry {
    *
    * Use the `operationId` field to distinguish between operation types.
    */
-  onStart?: Callback<
-    OnStartEvent | ObjectOnStartEvent | EmbedOnStartEvent | RerankOnStartEvent
-  >;
+  onStart?: Callback<TelemetryEvent<OperationStartEvent>>;
 
   /**
    * Called when an individual step (single LLM invocation) begins.
@@ -55,13 +92,13 @@ export interface Telemetry {
    * The event includes the step number, accumulated previous step results,
    * and the messages that will be sent to the model.
    */
-  onStepStart?: Callback<OnStepStartEvent>;
+  onStepStart?: Callback<TelemetryEvent<OnStepStartEvent>>;
 
   /**
    * Called when a tool execution begins, before the tool's `execute` function
    * is invoked. Use this to create tool-level spans or log tool invocations.
    */
-  onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
+  onToolExecutionStart?: Callback<TelemetryEvent<ToolExecutionStartEvent>>;
 
   /**
    * Called when a tool execution completes, either successfully or with an error.
@@ -70,7 +107,7 @@ export interface Telemetry {
    *
    * The event includes execution duration (`durationMs`) for performance tracking.
    */
-  onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
+  onToolExecutionEnd?: Callback<TelemetryEvent<ToolExecutionEndEvent>>;
 
   /**
    * Called for each chunk received during streaming.
@@ -84,7 +121,7 @@ export interface Telemetry {
    * and results, usage statistics, finish reason, and optional request/response
    * bodies.
    */
-  onStepFinish?: Callback<OnStepFinishEvent>;
+  onStepFinish?: Callback<TelemetryEvent<OnStepFinishEvent>>;
 
   /**
    * Called when an object generation step (single LLM invocation) begins.
@@ -92,7 +129,7 @@ export interface Telemetry {
    *
    * @deprecated
    */
-  onObjectStepStart?: Callback<ObjectOnStepStartEvent>;
+  onObjectStepStart?: Callback<TelemetryEvent<ObjectOnStepStartEvent>>;
 
   /**
    * Called when an object generation step (single LLM invocation) completes,
@@ -100,32 +137,32 @@ export interface Telemetry {
    *
    * @deprecated
    */
-  onObjectStepFinish?: Callback<ObjectOnStepFinishEvent>;
+  onObjectStepFinish?: Callback<TelemetryEvent<ObjectOnStepFinishEvent>>;
 
   /**
    * Called when an individual embedding model call (doEmbed) begins.
    * For `embed`, there is one call. For `embedMany`, there may be multiple
    * calls when values are chunked.
    */
-  onEmbedStart?: Callback<EmbedStartEvent>;
+  onEmbedStart?: Callback<TelemetryEvent<EmbedStartEvent>>;
 
   /**
    * Called when an individual embedding model call (doEmbed) completes.
    * Contains the embeddings, usage, and any warnings from the model response.
    */
-  onEmbedFinish?: Callback<EmbedFinishEvent>;
+  onEmbedFinish?: Callback<TelemetryEvent<EmbedFinishEvent>>;
 
   /**
    * Called when an individual reranking model call (doRerank) begins.
    * There is one call per `rerank` invocation.
    */
-  onRerankStart?: Callback<RerankStartEvent>;
+  onRerankStart?: Callback<TelemetryEvent<RerankStartEvent>>;
 
   /**
    * Called when an individual reranking model call (doRerank) completes.
    * Contains the ranking results from the model response.
    */
-  onRerankFinish?: Callback<RerankFinishEvent>;
+  onRerankFinish?: Callback<TelemetryEvent<RerankFinishEvent>>;
 
   /**
    * Called when an operation completes. Fired for text generation
@@ -134,12 +171,7 @@ export interface Telemetry {
    *
    * Use the event shape or `operationId` to distinguish between operation types.
    */
-  onFinish?: Callback<
-    | OnFinishEvent<ToolSet>
-    | ObjectOnFinishEvent<unknown>
-    | EmbedOnFinishEvent
-    | RerankOnFinishEvent
-  >;
+  onFinish?: Callback<TelemetryEvent<OperationFinishEvent>>;
 
   /**
    * Called when an unrecoverable error occurs during the generation lifecycle.

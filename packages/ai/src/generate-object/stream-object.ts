@@ -470,7 +470,7 @@ class DefaultStreamObjectResult<
     const callSettings = prepareLanguageModelCallOptions(settings);
 
     const unifiedTelemetry = createUnifiedTelemetry({
-      integrations: telemetry?.integrations,
+      telemetry,
     });
 
     const self = this;
@@ -525,10 +525,6 @@ class DefaultStreamObjectResult<
           schema: jsonSchema as Record<string, unknown> | undefined,
           schemaName,
           schemaDescription,
-          isEnabled: telemetry?.isEnabled ?? true,
-          recordInputs: telemetry?.recordInputs,
-          recordOutputs: telemetry?.recordOutputs,
-          functionId: telemetry?.functionId,
         },
         callbacks: [onStart, unifiedTelemetry.onStart],
       });
@@ -567,7 +563,6 @@ class DefaultStreamObjectResult<
           modelId: model.modelId,
           providerOptions,
           headers,
-          functionId: telemetry?.functionId,
           promptMessages: callOptions.prompt,
         },
         callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
@@ -784,7 +779,6 @@ class DefaultStreamObjectResult<
                       headers: response?.headers,
                     },
                     providerMetadata,
-                    functionId: telemetry?.functionId,
                   },
                   callbacks: [
                     onStepFinish,
@@ -807,7 +801,6 @@ class DefaultStreamObjectResult<
                       headers: response?.headers,
                     },
                     providerMetadata,
-                    functionId: telemetry?.functionId,
                   },
                   callbacks: [onFinish, unifiedTelemetry.onFinish],
                 });
