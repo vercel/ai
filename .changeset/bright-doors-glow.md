@@ -7,7 +7,6 @@
 '@ai-sdk/azure': patch
 '@ai-sdk/baseten': patch
 '@ai-sdk/black-forest-labs': patch
-'@ai-sdk/bytedance': patch
 '@ai-sdk/cerebras': patch
 '@ai-sdk/codemod': patch
 '@ai-sdk/cohere': patch
