@@ -41,7 +41,6 @@ run(async () => {
       },
     },
     experimental_telemetry: {
-      isEnabled: true,
       functionId: `cook-recipe`,
     },
   });

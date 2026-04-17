@@ -20,10 +20,9 @@ run(async () => {
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
     },
-    context: {
+    runtimeContext: {
       something: 'custom',
       someOtherThing: 'other-value',
     },

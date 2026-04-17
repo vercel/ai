@@ -352,6 +352,95 @@ describe('ToolLoopAgent', () => {
           'x-custom': 'value',
         });
       });
+
+      it('should honor toolNeedsApproval in generate', async () => {
+        let modelCallCount = 0;
+        const execute = vi.fn(async () => 'tool-result');
+
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => {
+              modelCallCount++;
+
+              if (modelCallCount === 1) {
+                return {
+                  content: [
+                    {
+                      type: 'tool-call' as const,
+                      toolCallType: 'function' as const,
+                      toolCallId: 'call-1',
+                      toolName: 'testTool',
+                      input: '{ "value": "test" }',
+                    },
+                  ],
+                  finishReason: {
+                    unified: 'tool-calls' as const,
+                    raw: undefined,
+                  },
+                  usage: {
+                    cachedInputTokens: undefined,
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
+                  },
+                  warnings: [],
+                };
+              }
+
+              return {
+                content: [{ type: 'text' as const, text: 'done' }],
+                finishReason: { unified: 'stop' as const, raw: 'stop' },
+                usage: {
+                  cachedInputTokens: undefined,
+                  inputTokens: {
+                    total: 3,
+                    noCache: 3,
+                    cacheRead: undefined,
+                    cacheWrite: undefined,
+                  },
+                  outputTokens: {
+                    total: 10,
+                    text: 10,
+                    reasoning: undefined,
+                  },
+                },
+                warnings: [],
+              };
+            },
+          }),
+          tools: {
+            testTool: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute,
+            }),
+          },
+          toolNeedsApproval: {
+            testTool: true,
+          },
+        });
+
+        const result = await agent.generate({ prompt: 'test' });
+
+        expect(modelCallCount).toBe(1);
+        expect(execute).not.toHaveBeenCalled();
+        expect(result.response.messages).toMatchObject([
+          {
+            role: 'assistant',
+            content: [
+              { type: 'tool-call', toolCallId: 'call-1', toolName: 'testTool' },
+              { type: 'tool-approval-request', toolCallId: 'call-1' },
+            ],
+          },
+        ]);
+      });
     });
   });
 
@@ -543,6 +632,117 @@ describe('ToolLoopAgent', () => {
       ]
     `);
     });
+
+    it('should honor toolNeedsApproval in stream', async () => {
+      let modelCallCount = 0;
+      const execute = vi.fn(async () => 'tool-result');
+
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            modelCallCount++;
+
+            if (modelCallCount === 1) {
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  {
+                    type: 'response-metadata',
+                    id: 'id-0',
+                    modelId: 'mock-model-id',
+                    timestamp: new Date(0),
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-1',
+                    toolName: 'testTool',
+                    input: '{ "value": "test" }',
+                  },
+                  {
+                    type: 'finish',
+                    finishReason: {
+                      unified: 'tool-calls' as const,
+                      raw: undefined,
+                    },
+                    usage: {
+                      inputTokens: {
+                        total: 3,
+                        noCache: 3,
+                        cacheRead: undefined,
+                        cacheWrite: undefined,
+                      },
+                      outputTokens: {
+                        total: 10,
+                        text: 10,
+                        reasoning: undefined,
+                      },
+                    },
+                    providerMetadata: {},
+                  },
+                ]),
+              };
+            }
+
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-1',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'done' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop' as const, raw: 'stop' },
+                  usage: {
+                    inputTokens: {
+                      total: 3,
+                      noCache: 3,
+                      cacheRead: undefined,
+                      cacheWrite: undefined,
+                    },
+                    outputTokens: {
+                      total: 10,
+                      text: 10,
+                      reasoning: undefined,
+                    },
+                  },
+                  providerMetadata: {},
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          }),
+        },
+        toolNeedsApproval: {
+          testTool: true,
+        },
+      });
+
+      const result = await agent.stream({ prompt: 'test' });
+      await result.consumeStream();
+
+      expect(modelCallCount).toBe(1);
+      expect(execute).not.toHaveBeenCalled();
+      expect((await result.response).messages).toMatchObject([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool-call', toolCallId: 'call-1', toolName: 'testTool' },
+            { type: 'tool-approval-request', toolCallId: 'call-1' },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('experimental_onStart', () => {
@@ -715,7 +915,7 @@ describe('ToolLoopAgent', () => {
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
           maxOutputTokens: 500,
-          context: { userId: 'test-user' },
+          runtimeContext: { userId: 'test-user' },
         });
 
         await agent.generate({
@@ -733,17 +933,17 @@ describe('ToolLoopAgent', () => {
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
-          context: startEvent.context,
+          runtimeContext: startEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
-            "context": {
-              "userId": "test-user",
-            },
             "maxOutputTokens": 500,
             "messages": undefined,
             "modelId": "mock-model-id",
             "prompt": "Hello, world!",
             "provider": "mock-provider",
+            "runtimeContext": {
+              "userId": "test-user",
+            },
             "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
@@ -898,7 +1098,7 @@ describe('ToolLoopAgent', () => {
           instructions: 'You are a helpful assistant',
           temperature: 0.7,
           maxOutputTokens: 500,
-          context: { userId: 'test-user' },
+          runtimeContext: { userId: 'test-user' },
         });
 
         const result = await agent.stream({
@@ -918,17 +1118,17 @@ describe('ToolLoopAgent', () => {
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
-          context: startEvent.context,
+          runtimeContext: startEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
-            "context": {
-              "userId": "test-user",
-            },
             "maxOutputTokens": 500,
             "messages": undefined,
             "modelId": "mock-model-id",
             "prompt": "Hello, world!",
             "provider": "mock-provider",
+            "runtimeContext": {
+              "userId": "test-user",
+            },
             "system": "You are a helpful assistant",
             "temperature": 0.7,
           }
@@ -1102,7 +1302,7 @@ describe('ToolLoopAgent', () => {
         const agent = new ToolLoopAgent({
           model: mockModel,
           instructions: 'You are a helpful assistant',
-          context: { userId: 'test-user' },
+          runtimeContext: { userId: 'test-user' },
         });
 
         await agent.generate({
@@ -1119,15 +1319,15 @@ describe('ToolLoopAgent', () => {
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
-          context: stepStartEvent.context,
+          runtimeContext: stepStartEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
-            "context": {
-              "userId": "test-user",
-            },
             "messagesLength": 1,
             "modelId": "mock-model-id",
             "provider": "mock-provider",
+            "runtimeContext": {
+              "userId": "test-user",
+            },
             "stepNumber": 0,
             "steps": [],
             "system": "You are a helpful assistant",
@@ -1256,7 +1456,7 @@ describe('ToolLoopAgent', () => {
         const agent = new ToolLoopAgent({
           model: mockModel,
           instructions: 'You are a helpful assistant',
-          context: { userId: 'test-user' },
+          runtimeContext: { userId: 'test-user' },
         });
 
         const result = await agent.stream({
@@ -1275,15 +1475,15 @@ describe('ToolLoopAgent', () => {
           system: stepStartEvent.system,
           messagesLength: stepStartEvent.messages.length,
           steps: stepStartEvent.steps,
-          context: stepStartEvent.context,
+          runtimeContext: stepStartEvent.runtimeContext,
         }).toMatchInlineSnapshot(`
           {
-            "context": {
-              "userId": "test-user",
-            },
             "messagesLength": 1,
             "modelId": "mock-model-id",
             "provider": "mock-provider",
+            "runtimeContext": {
+              "userId": "test-user",
+            },
             "stepNumber": 0,
             "steps": [],
             "system": "You are a helpful assistant",

@@ -99,14 +99,8 @@ function getOperationType(operationId: string): OperationType {
  * registerTelemetryIntegration(DevToolsTelemetry());
  * ```
  *
- * Then enable telemetry on your AI SDK calls:
- * ```ts
- * const result = await generateText({
- *   model: openai('gpt-4o'),
- *   prompt: 'Hello!',
- *   experimental_telemetry: { isEnabled: true },
- * });
- * ```
+ * Telemetry is enabled by default — no need to set `experimental_telemetry`
+ * unless you want to configure `functionId`, `recordInputs`, or `recordOutputs`.
  */
 export function DevToolsTelemetry(): TelemetryIntegration {
   if (process.env.NODE_ENV === 'production') {

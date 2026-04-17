@@ -1,5 +1,23 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.23
+
+### Patch Changes
+
+- 350ea38: refactoring: introduce Arrayable type
+
+## 5.0.0-beta.22
+
+### Patch Changes
+
+- 083947b: feat(ai): separate toolsContext from context
+
+## 5.0.0-beta.21
+
+### Patch Changes
+
+- add1126: refactoring: executeTool uses tool as parameter
+
 ## 5.0.0-beta.20
 
 ### Patch Changes

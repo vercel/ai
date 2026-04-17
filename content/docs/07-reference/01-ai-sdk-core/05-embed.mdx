@@ -69,19 +69,19 @@ const { embedding } = await embed({
     },
     {
       name: 'experimental_telemetry',
-      type: 'TelemetrySettings',
+      type: 'TelemetryOptions',
       isOptional: true,
       description: 'Telemetry configuration. Experimental feature.',
       properties: [
         {
-          type: 'TelemetrySettings',
+          type: 'TelemetryOptions',
           parameters: [
             {
               name: 'isEnabled',
               type: 'boolean',
               isOptional: true,
               description:
-                'Enable or disable telemetry. Disabled by default while experimental.',
+                'Enable or disable telemetry. Enabled by default. Set to `false` to opt out.',
             },
             {
               name: 'recordInputs',

@@ -6,7 +6,7 @@ import {
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { EmbeddingModel } from '../types';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
@@ -88,7 +88,7 @@ export async function embed({
   /**
    * Optional telemetry configuration (experimental).
    */
-  experimental_telemetry?: TelemetrySettings;
+  experimental_telemetry?: TelemetryOptions;
 
   /**
    * Callback that is called when the embed operation begins,
@@ -137,7 +137,7 @@ export async function embed({
       maxRetries,
       headers: headersWithUserAgent,
       providerOptions,
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
@@ -158,7 +158,7 @@ export async function embed({
             provider: model.provider,
             modelId: model.modelId,
             values: [value],
-            isEnabled: telemetry?.isEnabled,
+            isEnabled: telemetry?.isEnabled ?? true,
             recordInputs: telemetry?.recordInputs,
             recordOutputs: telemetry?.recordOutputs,
             functionId: telemetry?.functionId,
@@ -213,7 +213,7 @@ export async function embed({
         warnings,
         providerMetadata,
         response,
-        isEnabled: telemetry?.isEnabled,
+        isEnabled: telemetry?.isEnabled ?? true,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,

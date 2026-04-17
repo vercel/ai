@@ -1,8 +1,8 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
-import { run } from '../../lib/run';
 import { printFullStream } from '../../lib/print-full-stream';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
@@ -14,10 +14,10 @@ run(async () => {
           location: z.string().describe('The location to get the weather for'),
         }),
         contextSchema: z.object({
-          weatherApiKey: z.string().describe('The API key for the weather API'),
+          apiKey: z.string().describe('The API key for the weather API'),
         }),
-        execute: async ({ location }, { context: { weatherApiKey } }) => {
-          console.log('weather tool api key:', weatherApiKey);
+        execute: async ({ location }, { context: { apiKey } }) => {
+          console.log('weather tool api key:', apiKey);
 
           return {
             location,
@@ -33,12 +33,11 @@ run(async () => {
             .describe('The mathematical expression to calculate'),
         }),
         contextSchema: z.object({
-          calculatorApiKey: z
-            .string()
-            .describe('The API key for the calculator API'),
+          apiKey: z.string().describe('The API key for the calculator API'),
         }),
-        execute: async ({ expression }, { context: { calculatorApiKey } }) => {
-          console.log('calculator tool api key:', calculatorApiKey);
+        execute: async ({ expression }, { context: { apiKey } }) => {
+          console.log('calculator tool api key:', apiKey);
+
           return {
             expression,
             result: eval(expression),
@@ -46,13 +45,12 @@ run(async () => {
         },
       }),
     },
-    context: {
-      weatherApiKey: 'weather-123',
-      calculatorApiKey: 'calculator-456',
-      somethingElse: 'other-context',
+    toolsContext: {
+      weather: { apiKey: 'weather-123' },
+      calculator: { apiKey: 'calculator-456' },
     },
-    prepareStep: async ({ context }) => {
-      console.log('prepareStep context:', context);
+    prepareStep: async ({ toolsContext }) => {
+      console.log('prepareStep toolsContext:', toolsContext);
       return {};
     },
     prompt: 'What is the weather in San Francisco?',

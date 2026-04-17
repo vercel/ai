@@ -92,18 +92,15 @@ This is because Laminar depends on OpenTelemetry, which uses some Node.js-specif
 
 ### Tracing AI SDK calls
 
-Then, enable telemetry on your AI SDK calls:
+Once the integration is registered, telemetry is captured automatically on every AI SDK call:
 
-```javascript highlight="7"
+```javascript
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'What is Laminar flow?',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
@@ -209,18 +206,15 @@ Read more in Laminar [docs](https://docs.lmnr.ai/tracing/introduction).
 
 ### Tracing AI SDK calls
 
-Then, enable telemetry on your AI SDK calls:
+Once the integration is registered, telemetry is captured automatically on every AI SDK call:
 
-```javascript highlight="7"
+```javascript
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'What is Laminar flow?',
-  experimental_telemetry: {
-    isEnabled: true,
-  },
 });
 ```
 
@@ -269,7 +263,6 @@ const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
   experimental_telemetry: {
-    isEnabled: true,
     functionId: 'poem-writer',
   },
 });
@@ -319,7 +312,6 @@ const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
   experimental_telemetry: {
-    isEnabled: true,
     metadata: {
       'my-key': 'my-value',
       'another-key': 'another-value',
@@ -341,7 +333,6 @@ const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
   experimental_telemetry: {
-    isEnabled: true,
     metadata: {
       tags: ['fallback-model', 'api-handler'],
     },
@@ -359,7 +350,6 @@ const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
   experimental_telemetry: {
-    isEnabled: true,
     metadata: {
       sessionId: 'session-123',
       userId: 'user-123',

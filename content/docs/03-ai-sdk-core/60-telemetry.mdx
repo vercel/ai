@@ -37,39 +37,54 @@ For Next.js applications, place this in your `instrumentation.ts` file alongside
 
 For Node.js applications (without Next.js), register the integration at the top level of your entry file.
 
-### Step 2: Enable telemetry on individual calls
+### Step 2: Enabling Telemetry
 
-Use the `experimental_telemetry` option to enable telemetry on specific function calls:
+Once a telemetry integration is registered, all AI SDK calls emit telemetry events by default.
+You can still pass `experimental_telemetry` to attach metadata (like `functionId`) or to opt out of a specific call:
 
-```ts highlight="4"
+```ts highlight="4-6"
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: { isEnabled: true },
+  experimental_telemetry: {
+    functionId: `story-agent`,
+  },
 });
 ```
 
-When telemetry is enabled, you can also control if you want to record the input values and the output values for the function.
-By default, both are enabled. You can disable them by setting the `recordInputs` and `recordOutputs` options to `false`.
+By default, both inputs and outputs are recorded. You can disable them by setting the `recordInputs` and `recordOutputs` options to `false`.
 
 Disabling the recording of inputs and outputs can be useful for privacy, data transfer, and performance reasons.
 You might for example want to disable recording inputs if they contain sensitive information.
 
-## Telemetry Metadata
+### Opting out
 
-You can provide a `functionId` to identify the function that the telemetry data is for,
-and `context` to include additional information in the telemetry data.
+Telemetry is opt-out. To disable telemetry for a specific call, set `isEnabled: false`:
 
-```ts highlight="6-10"
+```ts
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
-  context: {
+  experimental_telemetry: { isEnabled: false },
+});
+```
+
+To disable telemetry globally, do not register any telemetry integrations via the `registerTelemetryIntegration()` function.
+
+## Telemetry Metadata
+
+You can provide a `functionId` to identify the function that the telemetry data is for,
+and `runtimeContext` to include additional information in the telemetry data.
+
+```ts highlight="4-10"
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a short story about a cat.',
+  runtimeContext: {
     something: 'custom',
     someOtherThing: 'other-value',
-  }
+  },
   experimental_telemetry: {
-    isEnabled: true,
     functionId: 'my-awesome-function',
   },
 });
@@ -122,7 +137,6 @@ const result = streamText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
   experimental_telemetry: {
-    isEnabled: true,
     integrations: [DevToolsTelemetry()],
   },
 });
@@ -132,7 +146,6 @@ You can combine multiple integrations — they all receive the same lifecycle ev
 
 ```ts
 experimental_telemetry: {
-  isEnabled: true,
   integrations: [DevToolsTelemetry(), customLogger()],
 },
 ```
@@ -516,7 +529,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.response.providerMetadata`: provider specific metadata returned with the generation response
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.settings.context.*`: the context that was passed in through the `context` option
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
 
@@ -553,7 +566,7 @@ Many spans that use embedding models (`ai.embed`, `ai.embed.doEmbed`, `ai.embedM
 - `ai.request.headers.*`: the request headers that were passed in through `headers`
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.settings.context.*`: the context that was passed in through the `context` option
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
 - `ai.usage.tokens`: the number of tokens that were used
 - `resource.name`: the functionId that was set through `telemetry.functionId`
 
