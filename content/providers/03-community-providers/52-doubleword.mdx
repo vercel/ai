@@ -48,7 +48,7 @@ The provider uses the `DOUBLEWORD_API_KEY` environment variable by default. You 
 
 ## Language Models
 
-You can create language models using any model ID configured in your Doubleword control layer:
+You can create language models using any model ID configured in your Doubleword control layer. See the [available models](https://docs.doubleword.ai/inference-api/models) for a full list, or visit the [Doubleword console](https://doubleword.ai) for detailed model cards.
 
 ```ts
 import { doubleword } from '@doubleword/vercel-ai';
@@ -56,7 +56,7 @@ import { doubleword } from '@doubleword/vercel-ai';
 const model = doubleword('Qwen/Qwen3.5-35B-A3B-FP8');
 ```
 
-Doubleword routes requests to the appropriate inference provider based on your configured routing rules.
+Doubleword routes requests to the appropriate inference provider based on your configured routing rules. Feature support (tool calling, multimodal input, etc.) depends on the underlying model.
 
 ## Embedding Models
 
