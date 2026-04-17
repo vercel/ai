@@ -194,6 +194,10 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
         : undefined;
+    const thinkingDisplay =
+      thinkingType === 'adaptive'
+        ? bedrockOptions.reasoningConfig?.display
+        : undefined;
     const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingEnabled;
 
     const inferenceConfig = {
@@ -223,6 +227,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
           ...bedrockOptions.additionalModelRequestFields,
           thinking: {
             type: 'adaptive',
+            ...(thinkingDisplay != null && { display: thinkingDisplay }),
           },
         };
       }
@@ -851,6 +856,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                 'signature' in reasoningContent &&
                 reasoningContent.signature
               ) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),
@@ -862,6 +874,13 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
                   },
                 });
               } else if ('data' in reasoningContent && reasoningContent.data) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
                 controller.enqueue({
                   type: 'reasoning-delta',
                   id: String(blockIndex),
