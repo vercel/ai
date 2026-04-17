@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.25
+
+### Patch Changes
+
+- eea8d98: refactoring: rename tool execution events
+
 ## 5.0.0-beta.24
 
 ### Patch Changes
