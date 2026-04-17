@@ -10,6 +10,7 @@
 export function mergeAbortSignals(
   ...signals: (AbortSignal | null | undefined)[]
 ): AbortSignal | undefined {
+  // TODO use filterNullable
   const validSignals = signals.filter(
     (signal): signal is AbortSignal => signal != null,
   );
