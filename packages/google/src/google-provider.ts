@@ -124,6 +124,30 @@ export interface GoogleGenerativeAIProviderSettings {
   name?: string;
 }
 
+export function supportsExternalFileUrls(
+  modelId: GoogleGenerativeAIModelId,
+): boolean {
+  const id = modelId.toLowerCase();
+
+  if (id.startsWith('gemini-2.5-')) {
+    return true;
+  }
+
+  if (id.startsWith('gemini-3')) {
+    return true;
+  }
+
+  if (
+    id === 'gemini-pro-latest' ||
+    id === 'gemini-flash-latest' ||
+    id === 'gemini-flash-lite-latest'
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Create a Google Generative AI provider instance.
  */
@@ -155,8 +179,8 @@ export function createGoogleGenerativeAI(
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
-      supportedUrls: () => ({
-        '*': [
+      supportedUrls: () => {
+        const patterns = [
           // Google Generative Language "files" endpoint
           // e.g. https://generativelanguage.googleapis.com/v1beta/files/...
           new RegExp(`^${baseURL}/files/.*$`),
@@ -165,8 +189,15 @@ export function createGoogleGenerativeAI(
             `^https://(?:www\\.)?youtube\\.com/watch\\?v=[\\w-]+(?:&[\\w=&.-]*)?$`,
           ),
           new RegExp(`^https://youtu\\.be/[\\w-]+(?:\\?[\\w=&.-]*)?$`),
-        ],
-      }),
+        ];
+
+        if (supportsExternalFileUrls(modelId)) {
+          // External HTTPS and signed URLs (Gemini 2.5+ / 3.x)
+          patterns.push(/^https:\/\/.+/);
+        }
+
+        return { '*': patterns };
+      },
       fetch: options.fetch,
     });
 

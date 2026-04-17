@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createGoogleGenerativeAI } from './google-provider';
+import {
+  createGoogleGenerativeAI,
+  supportsExternalFileUrls,
+} from './google-provider';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { GoogleGenerativeAIImageModel } from './google-generative-ai-image-model';
@@ -201,7 +204,7 @@ describe('google-provider', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
     });
-    provider('gemini-pro');
+    provider('gemini-2.0-flash');
 
     const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
     const supportedUrlsFunction = call[1].supportedUrls;
@@ -270,6 +273,29 @@ describe('google-provider', () => {
         ],
       }
     `);
+  });
+
+  it('should support external HTTPS URLs for Gemini 2.5+ models', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+    provider('gemini-2.5-pro');
+
+    const call = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls[0];
+    const supportedUrlsFunction = call[1].supportedUrls;
+
+    expect(supportedUrlsFunction).toBeDefined();
+
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+    const patterns = supportedUrls['*'];
+
+    expect(patterns).toBeDefined();
+    expect(Array.isArray(patterns)).toBe(true);
+
+    const externalUrl = 'https://example.com/photo.jpg';
+    expect(patterns.some((pattern: RegExp) => pattern.test(externalUrl))).toBe(
+      true,
+    );
   });
 });
 
@@ -362,5 +388,34 @@ describe('google provider - video', () => {
         generateId: customGenerateId,
       }),
     );
+  });
+});
+
+describe('supportsExternalFileUrls', () => {
+  it('should return true for Gemini 2.5 models', () => {
+    expect(supportsExternalFileUrls('gemini-2.5-pro')).toBe(true);
+    expect(supportsExternalFileUrls('gemini-2.5-flash')).toBe(true);
+    expect(supportsExternalFileUrls('gemini-2.5-flash-image')).toBe(true);
+  });
+
+  it('should return true for Gemini 3.x models', () => {
+    expect(supportsExternalFileUrls('gemini-3-pro-preview')).toBe(true);
+    expect(supportsExternalFileUrls('gemini-3.1-pro-preview')).toBe(true);
+    expect(supportsExternalFileUrls('gemini-3.1-flash-image-preview')).toBe(
+      true,
+    );
+  });
+
+  it('should return true for latest aliases', () => {
+    expect(supportsExternalFileUrls('gemini-pro-latest')).toBe(true);
+    expect(supportsExternalFileUrls('gemini-flash-latest')).toBe(true);
+    expect(supportsExternalFileUrls('gemini-flash-lite-latest')).toBe(true);
+  });
+
+  it('should return false for Gemini 2.0 models and others', () => {
+    expect(supportsExternalFileUrls('gemini-2.0-flash')).toBe(false);
+    expect(supportsExternalFileUrls('gemini-2.0-flash-lite')).toBe(false);
+    expect(supportsExternalFileUrls('gemma-3-4b-it')).toBe(false);
+    expect(supportsExternalFileUrls('custom-model-id')).toBe(false);
   });
 });
