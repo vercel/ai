@@ -1,5 +1,5 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import 'dotenv/config';
 import fs from 'fs';
 import { run } from '../../lib/run';
@@ -34,7 +34,7 @@ run(async () => {
               typeof output === 'string'
                 ? { type: 'text', text: output }
                 : {
-                    type: 'image-data',
+                    type: 'file-data',
                     data: output.data,
                     mediaType: 'image/png',
                   },
@@ -45,7 +45,7 @@ run(async () => {
     },
     prompt:
       'How can I switch to dark mode? Take a look at the screen and tell me.',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('Response:', result.text);

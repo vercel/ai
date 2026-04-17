@@ -1,5 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, tool } from 'ai';
+import { generateText, tool, registerTelemetryIntegration } from 'ai';
+import {
+  OpenTelemetryIntegration,
+  GenAIOpenTelemetryIntegration,
+} from '@ai-sdk/otel';
 import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
@@ -14,6 +18,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+registerTelemetryIntegration(new GenAIOpenTelemetryIntegration());
 
 run(async () => {
   const result = await generateText({
@@ -25,15 +30,14 @@ run(async () => {
         inputSchema: z.object({ city: z.string() }),
       }),
     },
+    runtimeContext: {
+      something: 'custom',
+      someOtherThing: 'other-value',
+    },
     prompt:
       'What is the weather in San Francisco and what attractions should I visit?',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
-      metadata: {
-        something: 'custom',
-        someOtherThing: 'other-value',
-      },
     },
   });
 

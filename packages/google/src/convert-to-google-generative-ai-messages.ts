@@ -2,7 +2,11 @@ import {
   LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  isProviderReference,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
 import {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
@@ -67,7 +71,6 @@ function appendToolResultParts(
         responseTextParts.push(contentPart.text as string);
         break;
       }
-      case 'image-data':
       case 'file-data': {
         functionResponseParts.push({
           inlineData: {
@@ -77,7 +80,6 @@ function appendToolResultParts(
         });
         break;
       }
-      case 'image-url':
       case 'file-url': {
         const functionResponsePart = convertUrlToolResultPart(
           contentPart.url as string,
@@ -140,18 +142,22 @@ function appendLegacyToolResultParts(
           },
         });
         break;
-      case 'image-data':
-        parts.push(
-          {
-            inlineData: {
-              mimeType: String(contentPart.mediaType),
-              data: String(contentPart.data),
+      case 'file-data':
+        if ((contentPart.mediaType as string).startsWith('image/')) {
+          parts.push(
+            {
+              inlineData: {
+                mimeType: contentPart.mediaType as string,
+                data: contentPart.data as string,
+              },
             },
-          },
-          {
-            text: 'Tool executed successfully and returned this image as a response',
-          },
-        );
+            {
+              text: 'Tool executed successfully and returned this image as a response',
+            },
+          );
+        } else {
+          parts.push({ text: JSON.stringify(contentPart) });
+        }
         break;
       default:
         parts.push({ text: JSON.stringify(contentPart) });
@@ -203,25 +209,40 @@ export function convertToGoogleGenerativeAIMessages(
             }
 
             case 'file': {
-              // default to image/jpeg for unknown image/* types
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
-              parts.push(
-                part.data instanceof URL
-                  ? {
-                      fileData: {
-                        mimeType: mediaType,
-                        fileUri: part.data.toString(),
-                      },
-                    }
-                  : {
-                      inlineData: {
-                        mimeType: mediaType,
-                        data: convertToBase64(part.data),
-                      },
-                    },
-              );
+              if (part.data instanceof URL) {
+                parts.push({
+                  fileData: {
+                    mimeType: mediaType,
+                    fileUri: part.data.toString(),
+                  },
+                });
+              } else if (isProviderReference(part.data)) {
+                if (providerOptionsName === 'vertex') {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
+                parts.push({
+                  fileData: {
+                    mimeType: mediaType,
+                    fileUri: resolveProviderReference({
+                      reference: part.data,
+                      provider: 'google',
+                    }),
+                  },
+                });
+              } else {
+                parts.push({
+                  inlineData: {
+                    mimeType: mediaType,
+                    data: convertToBase64(part.data),
+                  },
+                });
+              }
 
               break;
             }
@@ -295,6 +316,28 @@ export function convertToGoogleGenerativeAIMessages(
                     });
                   }
 
+                  if (isProviderReference(part.data)) {
+                    if (providerOptionsName === 'vertex') {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'file parts with provider references',
+                      });
+                    }
+
+                    return {
+                      fileData: {
+                        mimeType: part.mediaType,
+                        fileUri: resolveProviderReference({
+                          reference: part.data,
+                          provider: 'google',
+                        }),
+                      },
+                      ...(providerOpts?.thought === true
+                        ? { thought: true }
+                        : {}),
+                      thoughtSignature,
+                    };
+                  }
+
                   return {
                     inlineData: {
                       mimeType: part.mediaType,
@@ -308,6 +351,29 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'tool-call': {
+                  const serverToolCallId =
+                    providerOpts?.serverToolCallId != null
+                      ? String(providerOpts.serverToolCallId)
+                      : undefined;
+                  const serverToolType =
+                    providerOpts?.serverToolType != null
+                      ? String(providerOpts.serverToolType)
+                      : undefined;
+
+                  if (serverToolCallId && serverToolType) {
+                    return {
+                      toolCall: {
+                        toolType: serverToolType,
+                        args:
+                          typeof part.input === 'string'
+                            ? JSON.parse(part.input)
+                            : part.input,
+                        id: serverToolCallId,
+                      },
+                      thoughtSignature,
+                    };
+                  }
+
                   return {
                     functionCall: {
                       name: part.toolName,
@@ -316,10 +382,36 @@ export function convertToGoogleGenerativeAIMessages(
                     thoughtSignature,
                   };
                 }
+
+                case 'tool-result': {
+                  const serverToolCallId =
+                    providerOpts?.serverToolCallId != null
+                      ? String(providerOpts.serverToolCallId)
+                      : undefined;
+                  const serverToolType =
+                    providerOpts?.serverToolType != null
+                      ? String(providerOpts.serverToolType)
+                      : undefined;
+
+                  if (serverToolCallId && serverToolType) {
+                    return {
+                      toolResponse: {
+                        toolType: serverToolType,
+                        response:
+                          part.output.type === 'json' ? part.output.value : {},
+                        id: serverToolCallId,
+                      },
+                      thoughtSignature,
+                    };
+                  }
+
+                  return undefined;
+                }
               }
             })
             .filter(part => part !== undefined),
         });
+
         break;
       }
 
@@ -332,6 +424,44 @@ export function convertToGoogleGenerativeAIMessages(
           if (part.type === 'tool-approval-response') {
             continue;
           }
+
+          const partProviderOpts =
+            part.providerOptions?.[providerOptionsName] ??
+            (providerOptionsName !== 'google'
+              ? part.providerOptions?.google
+              : part.providerOptions?.vertex);
+          const serverToolCallId =
+            partProviderOpts?.serverToolCallId != null
+              ? String(partProviderOpts.serverToolCallId)
+              : undefined;
+          const serverToolType =
+            partProviderOpts?.serverToolType != null
+              ? String(partProviderOpts.serverToolType)
+              : undefined;
+
+          if (serverToolCallId && serverToolType) {
+            const serverThoughtSignature =
+              partProviderOpts?.thoughtSignature != null
+                ? String(partProviderOpts.thoughtSignature)
+                : undefined;
+
+            if (contents.length > 0) {
+              const lastContent = contents[contents.length - 1];
+              if (lastContent.role === 'model') {
+                lastContent.parts.push({
+                  toolResponse: {
+                    toolType: serverToolType,
+                    response:
+                      part.output.type === 'json' ? part.output.value : {},
+                    id: serverToolCallId,
+                  },
+                  thoughtSignature: serverThoughtSignature,
+                });
+                continue;
+              }
+            }
+          }
+
           const output = part.output;
 
           if (output.type === 'content') {

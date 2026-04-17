@@ -19,7 +19,7 @@ import { z } from 'zod/v4';
 import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../error/verify-no-object-generated-error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
-import { MockTracer } from '../test/mock-tracer';
+import { asLanguageModelUsage } from '../types/usage';
 import { generateObject } from './generate-object';
 
 vi.mock('../version', () => {
@@ -1019,100 +1019,6 @@ describe('generateObject', () => {
     });
   });
 
-  describe('telemetry', () => {
-    let tracer: MockTracer;
-
-    beforeEach(() => {
-      tracer = new MockTracer();
-    });
-
-    it('should not record any telemetry data when not explicitly enabled', async () => {
-      await generateObject({
-        model: new MockLanguageModelV4({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
-          }),
-        }),
-        schema: z.object({ content: z.string() }),
-        prompt: 'prompt',
-      });
-
-      assert.deepStrictEqual(tracer.jsonSpans, []);
-    });
-
-    it('should record telemetry data when enabled', async () => {
-      await generateObject({
-        model: new MockLanguageModelV4({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
-            response: {
-              id: 'test-id-from-model',
-              timestamp: new Date(10000),
-              modelId: 'test-response-model-id',
-            },
-            providerMetadata: {
-              testProvider: {
-                testKey: 'testValue',
-              },
-            },
-          }),
-        }),
-        schema: z.object({ content: z.string() }),
-        schemaName: 'test-name',
-        schemaDescription: 'test description',
-        prompt: 'prompt',
-        topK: 0.1,
-        topP: 0.2,
-        frequencyPenalty: 0.3,
-        presencePenalty: 0.4,
-        temperature: 0.5,
-        headers: {
-          header1: 'value1',
-          header2: 'value2',
-        },
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'test-function-id',
-          metadata: {
-            test1: 'value1',
-            test2: false,
-          },
-          tracer,
-        },
-      });
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should not record telemetry inputs / outputs when disabled', async () => {
-      await generateObject({
-        model: new MockLanguageModelV4({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
-            response: {
-              id: 'test-id-from-model',
-              timestamp: new Date(10000),
-              modelId: 'test-response-model-id',
-            },
-          }),
-        }),
-        schema: z.object({ content: z.string() }),
-        prompt: 'prompt',
-        experimental_telemetry: {
-          isEnabled: true,
-          recordInputs: false,
-          recordOutputs: false,
-          tracer,
-        },
-      });
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-  });
-
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
@@ -1186,6 +1092,452 @@ describe('generateObject', () => {
           "content": "Hello, world!",
         }
       `);
+    });
+  });
+
+  describe('callbacks', () => {
+    describe('experimental_onStart', () => {
+      it('should call onStart before the model call', async () => {
+        const events: string[] = [];
+
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => {
+            events.push('doGenerate');
+            return {
+              ...dummyResponseValues,
+              content: [
+                { type: 'text', text: '{ "content": "Hello, world!" }' },
+              ],
+            };
+          },
+        });
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStart: () => {
+            events.push('onStart');
+          },
+        });
+
+        expect(events).toEqual(['onStart', 'doGenerate']);
+      });
+
+      it('should send correct information with text prompt', async () => {
+        const model = new MockLanguageModelV4({
+          provider: 'test-provider',
+          modelId: 'test-model',
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          },
+        });
+
+        let startEvent: any;
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          schemaName: 'test-schema',
+          schemaDescription: 'A test schema',
+          prompt: 'test-prompt',
+          temperature: 0.5,
+          maxOutputTokens: 100,
+          experimental_telemetry: {
+            functionId: 'test-function',
+          },
+          experimental_onStart: event => {
+            startEvent = event;
+          },
+          _internal: {
+            generateId: () => 'test-call-id',
+          },
+        });
+
+        expect(startEvent).toMatchInlineSnapshot(`
+          {
+            "callId": "test-call-id",
+            "frequencyPenalty": undefined,
+            "functionId": "test-function",
+            "headers": {
+              "user-agent": "ai/0.0.0-test",
+            },
+            "isEnabled": true,
+            "maxOutputTokens": 100,
+            "maxRetries": 2,
+            "messages": undefined,
+            "modelId": "test-model",
+            "operationId": "ai.generateObject",
+            "output": "object",
+            "presencePenalty": undefined,
+            "prompt": "test-prompt",
+            "provider": "test-provider",
+            "providerOptions": undefined,
+            "recordInputs": undefined,
+            "recordOutputs": undefined,
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "content",
+              ],
+              "type": "object",
+            },
+            "schemaDescription": "A test schema",
+            "schemaName": "test-schema",
+            "seed": undefined,
+            "system": undefined,
+            "temperature": 0.5,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
+      });
+    });
+
+    describe('experimental_onStepStart', () => {
+      it('should call onStepStart before the model call', async () => {
+        const events: string[] = [];
+
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => {
+            events.push('doGenerate');
+            return {
+              ...dummyResponseValues,
+              content: [
+                { type: 'text', text: '{ "content": "Hello, world!" }' },
+              ],
+            };
+          },
+        });
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStepStart: () => {
+            events.push('onStepStart');
+          },
+        });
+
+        expect(events).toEqual(['onStepStart', 'doGenerate']);
+      });
+
+      it('should provide stepNumber 0 and model info', async () => {
+        const model = new MockLanguageModelV4({
+          provider: 'test-provider',
+          modelId: 'test-model',
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          },
+        });
+
+        let stepStartEvent: any;
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStepStart: event => {
+            stepStartEvent = event;
+          },
+        });
+
+        expect(stepStartEvent.stepNumber).toBe(0);
+        expect(stepStartEvent.provider).toBe('test-provider');
+        expect(stepStartEvent.modelId).toBe('test-model');
+        expect(stepStartEvent.callId).toBeDefined();
+        expect(stepStartEvent.promptMessages).toBeDefined();
+      });
+    });
+
+    describe('onStepFinish', () => {
+      it('should call onStepFinish after the model call with raw result', async () => {
+        const events: string[] = [];
+
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => {
+            events.push('doGenerate');
+            return {
+              ...dummyResponseValues,
+              content: [
+                { type: 'text', text: '{ "content": "Hello, world!" }' },
+              ],
+            };
+          },
+        });
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onStepFinish: () => {
+            events.push('onStepFinish');
+          },
+        });
+
+        expect(events).toEqual(['doGenerate', 'onStepFinish']);
+      });
+
+      it('should provide the raw objectText and usage', async () => {
+        const model = new MockLanguageModelV4({
+          provider: 'test-provider',
+          modelId: 'test-model',
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          },
+        });
+
+        let stepFinishEvent: any;
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onStepFinish: event => {
+            stepFinishEvent = event;
+          },
+        });
+
+        expect(stepFinishEvent.stepNumber).toBe(0);
+        expect(stepFinishEvent.provider).toBe('test-provider');
+        expect(stepFinishEvent.modelId).toBe('test-model');
+        expect(stepFinishEvent.objectText).toBe(
+          '{ "content": "Hello, world!" }',
+        );
+        expect(stepFinishEvent.finishReason).toBe('stop');
+        expect(stepFinishEvent.usage).toEqual(
+          asLanguageModelUsage(dummyResponseValues.usage),
+        );
+        expect(stepFinishEvent.callId).toBeDefined();
+      });
+
+      it('should include reasoning in step finish event', async () => {
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              { type: 'reasoning', text: 'thinking...' },
+              { type: 'text', text: '{ "content": "Hello" }' },
+            ],
+          }),
+        });
+
+        let stepFinishEvent: any;
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onStepFinish: event => {
+            stepFinishEvent = event;
+          },
+        });
+
+        expect(stepFinishEvent.reasoning).toBe('thinking...');
+      });
+    });
+
+    describe('onFinish', () => {
+      it('should call onFinish after parsing with the typed object', async () => {
+        const events: string[] = [];
+
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => {
+            events.push('doGenerate');
+            return {
+              ...dummyResponseValues,
+              content: [
+                { type: 'text', text: '{ "content": "Hello, world!" }' },
+              ],
+            };
+          },
+        });
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onFinish: () => {
+            events.push('onFinish');
+          },
+        });
+
+        expect(events).toEqual(['doGenerate', 'onFinish']);
+      });
+
+      it('should provide the parsed object and metadata', async () => {
+        const model = new MockLanguageModelV4({
+          provider: 'test-provider',
+          modelId: 'test-model',
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+            providerMetadata: { test: { key: 'value' } },
+          },
+        });
+
+        let finishEvent: any;
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onFinish: event => {
+            finishEvent = event;
+          },
+        });
+
+        expect(finishEvent.object).toEqual({ content: 'Hello, world!' });
+        expect(finishEvent.finishReason).toBe('stop');
+        expect(finishEvent.usage).toEqual(
+          asLanguageModelUsage(dummyResponseValues.usage),
+        );
+        expect(finishEvent.providerMetadata).toEqual({
+          test: { key: 'value' },
+        });
+        expect(finishEvent.callId).toBeDefined();
+      });
+
+      it('should include reasoning in finish event', async () => {
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            content: [
+              { type: 'reasoning', text: 'thinking...' },
+              { type: 'text', text: '{ "content": "Hello" }' },
+            ],
+          }),
+        });
+
+        let finishEvent: any;
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          onFinish: event => {
+            finishEvent = event;
+          },
+        });
+
+        expect(finishEvent.reasoning).toBe('thinking...');
+      });
+    });
+
+    describe('callback ordering', () => {
+      it('should fire callbacks in order: onStart -> onStepStart -> onStepFinish -> onFinish', async () => {
+        const events: string[] = [];
+
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => {
+            events.push('doGenerate');
+            return {
+              ...dummyResponseValues,
+              content: [
+                { type: 'text', text: '{ "content": "Hello, world!" }' },
+              ],
+            };
+          },
+        });
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStart: () => {
+            events.push('onStart');
+          },
+          experimental_onStepStart: () => {
+            events.push('onStepStart');
+          },
+          onStepFinish: () => {
+            events.push('onStepFinish');
+          },
+          onFinish: () => {
+            events.push('onFinish');
+          },
+        });
+
+        expect(events).toEqual([
+          'onStart',
+          'onStepStart',
+          'doGenerate',
+          'onStepFinish',
+          'onFinish',
+        ]);
+      });
+
+      it('should correlate all events with the same callId', async () => {
+        const callIds: string[] = [];
+
+        const model = new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          },
+        });
+
+        await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStart: event => {
+            callIds.push(event.callId);
+          },
+          experimental_onStepStart: event => {
+            callIds.push(event.callId);
+          },
+          onStepFinish: event => {
+            callIds.push(event.callId);
+          },
+          onFinish: event => {
+            callIds.push(event.callId);
+          },
+        });
+
+        expect(callIds).toHaveLength(4);
+        expect(new Set(callIds).size).toBe(1);
+      });
+    });
+
+    describe('error handling in callbacks', () => {
+      it('should not break the generation when a callback throws', async () => {
+        const model = new MockLanguageModelV4({
+          doGenerate: {
+            ...dummyResponseValues,
+            content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
+          },
+        });
+
+        const result = await generateObject({
+          model,
+          schema: z.object({ content: z.string() }),
+          prompt: 'prompt',
+          experimental_onStart: () => {
+            throw new Error('onStart error');
+          },
+          experimental_onStepStart: () => {
+            throw new Error('onStepStart error');
+          },
+          onStepFinish: () => {
+            throw new Error('onStepFinish error');
+          },
+          onFinish: () => {
+            throw new Error('onFinish error');
+          },
+        });
+
+        expect(result.object).toEqual({ content: 'Hello, world!' });
+      });
     });
   });
 });

@@ -1,5 +1,5 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { stepCountIs, streamText } from 'ai';
+import { isStepCount, streamText } from 'ai';
 import 'dotenv/config';
 import { run } from '../../lib/run';
 
@@ -31,7 +31,7 @@ This is a sample README file for testing the text editor tool.
       }),
     },
     prompt: 'Update my README file to mention that this project uses AI SDK.',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   for await (const part of result.fullStream) {

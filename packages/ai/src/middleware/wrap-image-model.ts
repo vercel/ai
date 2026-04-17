@@ -3,10 +3,11 @@ import {
   ImageModelV3,
   ImageModelV4,
   ImageModelV4CallOptions,
+  ImageModelV4Result,
 } from '@ai-sdk/provider';
+import { asArray } from '@ai-sdk/provider-utils';
 import { asImageModelV4 } from '../model/as-image-model-v4';
 import { ImageModelMiddleware } from '../types';
-import { asArray } from '../util/as-array';
 
 /**
  * Wraps an ImageModelV4 instance with middleware functionality.
@@ -77,7 +78,7 @@ const doWrap = ({
     maxImagesPerCall,
     async doGenerate(
       params: ImageModelV4CallOptions,
-    ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
+    ): Promise<ImageModelV4Result> {
       const transformedParams = await doTransform({ params });
       const doGenerate = async () => model.doGenerate(transformedParams);
       return wrapGenerate

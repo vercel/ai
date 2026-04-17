@@ -22,7 +22,11 @@ export type GoogleGenerativeAIContent = {
 
 export type GoogleGenerativeAIContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | { inlineData: { mimeType: string; data: string } }
+  | {
+      inlineData: { mimeType: string; data: string };
+      thought?: boolean;
+      thoughtSignature?: string;
+    }
   | { functionCall: { name: string; args: unknown }; thoughtSignature?: string }
   | {
       functionResponse: {
@@ -31,7 +35,27 @@ export type GoogleGenerativeAIContentPart =
         parts?: Array<GoogleGenerativeAIFunctionResponsePart>;
       };
     }
-  | { fileData: { mimeType: string; fileUri: string } };
+  | {
+      fileData: { mimeType: string; fileUri: string };
+      thought?: boolean;
+      thoughtSignature?: string;
+    }
+  | {
+      toolCall: {
+        toolType: string;
+        args?: unknown;
+        id: string;
+      };
+      thoughtSignature?: string;
+    }
+  | {
+      toolResponse: {
+        toolType: string;
+        response?: unknown;
+        id: string;
+      };
+      thoughtSignature?: string;
+    };
 
 export type GoogleGenerativeAIFunctionResponsePart = {
   inlineData: { mimeType: string; data: string };
@@ -54,4 +78,5 @@ export interface GoogleGenerativeAIProviderMetadata {
   safetyRatings: GoogleGenerativeAISafetyRating[] | null;
   usageMetadata: GoogleGenerativeAIUsageMetadata | null;
   finishMessage: string | null;
+  serviceTier: string | null;
 }

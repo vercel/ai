@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToModelMessages, stepCountIs, streamText } from 'ai';
+import { convertToModelMessages, isStepCount, streamText } from 'ai';
 import { z } from 'zod';
 
 export default defineLazyEventHandler(async () => {
@@ -13,7 +13,7 @@ export default defineLazyEventHandler(async () => {
     const result = streamText({
       model: openai('gpt-4o'),
       messages: await convertToModelMessages(messages),
-      stopWhen: stepCountIs(5), // multi-steps for server-side tools
+      stopWhen: isStepCount(5), // multi-steps for server-side tools
       tools: {
         // server-side tool with execute function:
         getWeatherInformation: {

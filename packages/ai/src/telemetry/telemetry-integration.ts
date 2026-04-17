@@ -1,3 +1,16 @@
+import type { ToolSet } from '@ai-sdk/provider-utils';
+import type {
+  EmbedFinishEvent,
+  EmbedOnFinishEvent,
+  EmbedOnStartEvent,
+  EmbedStartEvent,
+} from '../embed/embed-events';
+import type {
+  ObjectOnFinishEvent,
+  ObjectOnStartEvent,
+  ObjectOnStepFinishEvent,
+  ObjectOnStepStartEvent,
+} from '../generate-object/structured-output-events';
 import type {
   OnChunkEvent,
   OnFinishEvent,
@@ -7,21 +20,13 @@ import type {
   OnToolCallFinishEvent,
   OnToolCallStartEvent,
 } from '../generate-text/core-events';
-import type { Output } from '../generate-text/output';
-import type { ToolSet } from '../generate-text/tool-set';
 import type {
-  EmbedOnStartEvent,
-  EmbedOnFinishEvent,
-  EmbedStartEvent,
-  EmbedFinishEvent,
-} from '../embed/embed-events';
-import type {
-  RerankOnStartEvent,
-  RerankOnFinishEvent,
-  RerankStartEvent,
   RerankFinishEvent,
+  RerankOnFinishEvent,
+  RerankOnStartEvent,
+  RerankStartEvent,
 } from '../rerank/rerank-events';
-import { Listener } from '../util/notify';
+import type { Callback } from '../util/callback';
 
 /**
  * Implement this interface to create custom telemetry integrations.
@@ -29,13 +34,14 @@ import { Listener } from '../util/notify';
  */
 export interface TelemetryIntegration {
   /**
-   * Called when an operation begins. Fired for both text generation
-   * (generateText/streamText) and embedding (embed/embedMany) operations.
+   * Called when an operation begins. Fired for text generation
+   * (generateText/streamText), object generation (generateObject/streamObject),
+   * embedding (embed/embedMany), and reranking operations.
    *
    * Use the `operationId` field to distinguish between operation types.
    */
-  onStart?: Listener<
-    OnStartEvent<ToolSet, Output> | EmbedOnStartEvent | RerankOnStartEvent
+  onStart?: Callback<
+    OnStartEvent | ObjectOnStartEvent | EmbedOnStartEvent | RerankOnStartEvent
   >;
 
   /**
@@ -47,13 +53,13 @@ export interface TelemetryIntegration {
    * The event includes the step number, accumulated previous step results,
    * and the messages that will be sent to the model.
    */
-  onStepStart?: Listener<OnStepStartEvent<ToolSet, Output>>;
+  onStepStart?: Callback<OnStepStartEvent>;
 
   /**
    * Called when a tool execution begins, before the tool's `execute` function
    * is invoked. Use this to create tool-level spans or log tool invocations.
    */
-  onToolCallStart?: Listener<OnToolCallStartEvent<ToolSet>>;
+  onToolCallStart?: Callback<OnToolCallStartEvent>;
 
   /**
    * Called when a tool execution completes, either successfully or with an error.
@@ -62,13 +68,13 @@ export interface TelemetryIntegration {
    *
    * The event includes execution duration (`durationMs`) for performance tracking.
    */
-  onToolCallFinish?: Listener<OnToolCallFinishEvent<ToolSet>>;
+  onToolCallFinish?: Callback<OnToolCallFinishEvent>;
 
   /**
    * Called for each chunk received during streaming.
    * Only relevant for `streamText` — not called during `generateText`.
    */
-  onChunk?: Listener<OnChunkEvent>;
+  onChunk?: Callback<OnChunkEvent>;
 
   /**
    * Called when an individual step (single LLM invocation) completes.
@@ -76,41 +82,61 @@ export interface TelemetryIntegration {
    * and results, usage statistics, finish reason, and optional request/response
    * bodies.
    */
-  onStepFinish?: Listener<OnStepFinishEvent<ToolSet>>;
+  onStepFinish?: Callback<OnStepFinishEvent>;
+
+  /**
+   * Called when an object generation step (single LLM invocation) begins.
+   * For generateObject/streamObject there is always exactly one step.
+   *
+   * @deprecated
+   */
+  onObjectStepStart?: Callback<ObjectOnStepStartEvent>;
+
+  /**
+   * Called when an object generation step (single LLM invocation) completes,
+   * with the raw result before JSON parsing and schema validation.
+   *
+   * @deprecated
+   */
+  onObjectStepFinish?: Callback<ObjectOnStepFinishEvent>;
 
   /**
    * Called when an individual embedding model call (doEmbed) begins.
    * For `embed`, there is one call. For `embedMany`, there may be multiple
    * calls when values are chunked.
    */
-  onEmbedStart?: Listener<EmbedStartEvent>;
+  onEmbedStart?: Callback<EmbedStartEvent>;
 
   /**
    * Called when an individual embedding model call (doEmbed) completes.
    * Contains the embeddings, usage, and any warnings from the model response.
    */
-  onEmbedFinish?: Listener<EmbedFinishEvent>;
+  onEmbedFinish?: Callback<EmbedFinishEvent>;
 
   /**
    * Called when an individual reranking model call (doRerank) begins.
    * There is one call per `rerank` invocation.
    */
-  onRerankStart?: Listener<RerankStartEvent>;
+  onRerankStart?: Callback<RerankStartEvent>;
 
   /**
    * Called when an individual reranking model call (doRerank) completes.
    * Contains the ranking results from the model response.
    */
-  onRerankFinish?: Listener<RerankFinishEvent>;
+  onRerankFinish?: Callback<RerankFinishEvent>;
 
   /**
-   * Called when an operation completes. Fired for both text generation
-   * (generateText/streamText) and embedding (embed/embedMany) operations.
+   * Called when an operation completes. Fired for text generation
+   * (generateText/streamText), object generation (generateObject/streamObject),
+   * embedding (embed/embedMany), and reranking operations.
    *
    * Use the event shape or `operationId` to distinguish between operation types.
    */
-  onFinish?: Listener<
-    OnFinishEvent<ToolSet> | EmbedOnFinishEvent | RerankOnFinishEvent
+  onFinish?: Callback<
+    | OnFinishEvent<ToolSet>
+    | ObjectOnFinishEvent<unknown>
+    | EmbedOnFinishEvent
+    | RerankOnFinishEvent
   >;
 
   /**
@@ -120,18 +146,18 @@ export interface TelemetryIntegration {
    *
    * Use this to record error details on telemetry spans and set error status.
    */
-  onError?: Listener<unknown>;
+  onError?: Callback<unknown>;
 
   /**
    * Optionally runs the tool execute function in a telemetry-integration-specific context. This enables
    * nested traces — e.g. when a tool's `execute` function calls `generateText`,
    * the inner call's spans become children of the tool span.
    *
-   * @param params.callId - The call ID of the tool call.
-   * @param params.toolCallId - The tool call ID.
-   * @param params.execute - The function to execute.
+   * @param options.callId - The call ID of the tool call.
+   * @param options.toolCallId - The tool call ID.
+   * @param options.execute - The function to execute.
    */
-  executeTool?: <T>(params: {
+  executeTool?: <T>(options: {
     callId: string;
     toolCallId: string;
     execute: () => PromiseLike<T>;

@@ -1,5 +1,10 @@
 import { LanguageModelV4Usage } from '@ai-sdk/provider';
 
+export type GoogleGenerativeAITokenDetail = {
+  modality: string;
+  tokenCount: number;
+};
+
 export type GoogleGenerativeAIUsageMetadata = {
   promptTokenCount?: number | null;
   candidatesTokenCount?: number | null;
@@ -7,6 +12,8 @@ export type GoogleGenerativeAIUsageMetadata = {
   cachedContentTokenCount?: number | null;
   thoughtsTokenCount?: number | null;
   trafficType?: string | null;
+  promptTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
+  candidatesTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
 };
 
 export function convertGoogleGenerativeAIUsage(

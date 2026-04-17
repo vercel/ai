@@ -2,7 +2,8 @@ import { openai } from '@ai-sdk/openai';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import { Output, streamText } from 'ai';
+import { Output, streamText, registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { z } from 'zod';
 import { run } from '../lib/run';
 
@@ -12,6 +13,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 run(async () => {
   const result = streamText({
@@ -31,13 +33,12 @@ run(async () => {
       }),
     }),
     prompt: 'Generate a lasagna recipe.',
+    runtimeContext: {
+      something: 'custom',
+      someOtherThing: 'other-value',
+    },
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
-      metadata: {
-        something: 'custom',
-        someOtherThing: 'other-value',
-      },
     },
   });
 

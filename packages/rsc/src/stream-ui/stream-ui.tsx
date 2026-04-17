@@ -10,22 +10,24 @@ import {
   safeParseJSON,
 } from '@ai-sdk/provider-utils';
 import {
-  CallSettings,
   CallWarning,
   FinishReason,
   InvalidToolInputError,
   LanguageModelUsage,
+  LanguageModelCallOptions,
   NoSuchToolError,
   Prompt,
+  RequestOptions,
   Schema,
   ToolChoice,
 } from 'ai';
 import {
   asLanguageModelUsage,
   convertToLanguageModelPrompt,
-  prepareCallSettings,
+  prepareLanguageModelCallOptions,
   prepareRetries,
-  prepareToolsAndToolChoice,
+  prepareToolChoice,
+  prepareTools,
   standardizePrompt,
 } from 'ai/internal';
 import { ReactNode } from 'react';
@@ -110,7 +112,8 @@ export async function streamUI<
   providerOptions,
   onFinish,
   ...settings
-}: CallSettings &
+}: LanguageModelCallOptions &
+  Omit<RequestOptions, 'timeout'> &
   Prompt & {
     /**
      * The language model to use.
@@ -270,18 +273,23 @@ export async function streamUI<
     prompt,
     messages,
   } as Prompt);
+  const languageModelTools = await prepareTools({
+    tools: tools,
+  });
+  const languageModelToolChoice = prepareToolChoice({
+    toolChoice,
+  });
+
   const result = await retry(async () =>
     model.doStream({
-      ...prepareCallSettings(settings),
-      ...prepareToolsAndToolChoice({
-        tools: tools as any,
-        toolChoice,
-        activeTools: undefined,
-      }),
+      ...prepareLanguageModelCallOptions(settings),
+      tools: languageModelTools,
+      toolChoice: languageModelToolChoice,
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         supportedUrls: await model.supportedUrls,
         download: undefined,
+        provider: model.provider.split('.')[0],
       }),
       providerOptions,
       abortSignal,

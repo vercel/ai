@@ -1,12 +1,12 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { generateText, Output, stepCountIs, tool } from 'ai';
+import { generateText, Output, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
     model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
-    stopWhen: stepCountIs(20),
+    stopWhen: isStepCount(20),
     output: Output.array({
       element: z.object({
         location: z.string(),

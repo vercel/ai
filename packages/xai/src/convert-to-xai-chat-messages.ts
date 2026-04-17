@@ -3,7 +3,11 @@ import {
   LanguageModelV4Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  isProviderReference,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
 import { XaiChatPrompt } from './xai-chat-prompt';
 
 export function convertToXaiChatMessages(prompt: LanguageModelV4Prompt): {
@@ -34,6 +38,18 @@ export function convertToXaiChatMessages(prompt: LanguageModelV4Prompt): {
                 return { type: 'text', text: part.text };
               }
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  return {
+                    type: 'file',
+                    file: {
+                      file_id: resolveProviderReference({
+                        reference: part.data,
+                        provider: 'xai',
+                      }),
+                    },
+                  };
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'

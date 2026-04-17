@@ -31,6 +31,10 @@ import {
   postJsonToApi,
   Resolvable,
   resolve,
+  resolveProviderReference,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import { AnthropicMessageMetadata } from './anthropic-message-metadata';
@@ -119,7 +123,7 @@ function createCitationSource(
 type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
   transformRequestBody?: (
@@ -148,6 +152,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
 
   private readonly config: AnthropicMessagesConfig;
   private readonly generateId: () => string;
+
+  static [WORKFLOW_SERIALIZE](model: AnthropicMessagesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: AnthropicMessagesModelId;
+    config: AnthropicMessagesConfig;
+  }) {
+    return new AnthropicMessagesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(
     modelId: AnthropicMessagesModelId,
@@ -275,8 +293,39 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       maxOutputTokens: maxOutputTokensForModel,
       supportsStructuredOutput: modelSupportsStructuredOutput,
       supportsAdaptiveThinking,
+      rejectsSamplingParameters,
+      supportsXhighEffort,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
+
+    if (rejectsSamplingParameters) {
+      if (temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${this.modelId} and will be ignored`,
+        });
+        temperature = undefined;
+      }
+      if (topK != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${this.modelId} and will be ignored`,
+        });
+        topK = undefined;
+      }
+      if (topP != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${this.modelId} and will be ignored`,
+        });
+        topP = undefined;
+      }
+    }
+
+    const isAnthropicModel = isKnownModel || this.modelId.startsWith('claude-');
 
     const supportsStructuredOutput =
       (this.config.supportsNativeStructuredOutput ?? true) &&
@@ -346,20 +395,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
      * Map top-level `reasoning` to Anthropic thinking/effort when provider
      * options don't already specify them. Provider options always take precedence.
      */
-    if (
-      isCustomReasoning(reasoning) &&
-      anthropicOptions?.thinking == null &&
-      anthropicOptions?.effort == null
-    ) {
+    if (isCustomReasoning(reasoning) && anthropicOptions?.effort == null) {
       const reasoningConfig = resolveAnthropicReasoningConfig({
         reasoning,
         supportsAdaptiveThinking,
+        supportsXhighEffort,
         maxOutputTokensForModel,
         warnings,
       });
       if (reasoningConfig != null) {
-        anthropicOptions.thinking = reasoningConfig.thinking;
-        if (reasoningConfig.effort != null) {
+        if (anthropicOptions.thinking == null) {
+          anthropicOptions.thinking = reasoningConfig.thinking;
+        }
+        if (
+          reasoningConfig.effort != null &&
+          anthropicOptions.thinking?.type !== 'disabled'
+        ) {
           anthropicOptions.effort = reasoningConfig.effort;
         }
       }
@@ -371,6 +422,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
     let thinkingBudget =
       thinkingType === 'enabled'
         ? anthropicOptions?.thinking?.budgetTokens
+        : undefined;
+    const thinkingDisplay =
+      thinkingType === 'adaptive'
+        ? anthropicOptions?.thinking?.display
         : undefined;
 
     const maxTokens = maxOutputTokens ?? maxOutputTokensForModel;
@@ -391,15 +446,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
         thinking: {
           type: thinkingType,
           ...(thinkingBudget != null && { budget_tokens: thinkingBudget }),
+          ...(thinkingDisplay != null && { display: thinkingDisplay }),
         },
       }),
       ...((anthropicOptions?.effort ||
+        anthropicOptions?.taskBudget ||
         (useStructuredOutput &&
           responseFormat?.type === 'json' &&
           responseFormat.schema != null)) && {
         output_config: {
           ...(anthropicOptions?.effort && {
             effort: anthropicOptions.effort,
+          }),
+          ...(anthropicOptions?.taskBudget && {
+            task_budget: {
+              type: anthropicOptions.taskBudget.type,
+              total: anthropicOptions.taskBudget.total,
+              ...(anthropicOptions.taskBudget.remaining != null && {
+                remaining: anthropicOptions.taskBudget.remaining,
+              }),
+            },
           }),
           ...(useStructuredOutput &&
             responseFormat?.type === 'json' &&
@@ -413,6 +479,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       }),
       ...(anthropicOptions?.speed && {
         speed: anthropicOptions.speed,
+      }),
+      ...(anthropicOptions?.inferenceGeo && {
+        inference_geo: anthropicOptions.inferenceGeo,
       }),
       ...(anthropicOptions?.cacheControl && {
         cache_control: anthropicOptions.cacheControl,
@@ -448,7 +517,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
                 id: anthropicOptions.container.id,
                 skills: anthropicOptions.container.skills.map(skill => ({
                   type: skill.type,
-                  skill_id: skill.skillId,
+                  skill_id:
+                    skill.type === 'custom'
+                      ? resolveProviderReference({
+                          reference: skill.providerReference,
+                          provider: 'anthropic',
+                        })
+                      : skill.skillId,
                   version: skill.version,
                 })),
               } satisfies AnthropicContainer)
@@ -564,8 +639,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       // adjust max tokens to account for thinking:
       baseArgs.max_tokens = maxTokens + (thinkingBudget ?? 0);
     } else {
-      // Only check temperature/topP mutual exclusivity when thinking is not enabled
-      if (topP != null && temperature != null) {
+      // Only check temperature/topP mutual exclusivity for known Anthropic models
+      // when thinking is not enabled. Non-Anthropic models using the Anthropic-compatible
+      // API (e.g. Minimax) may require both parameters to be set.
+      if (isAnthropicModel && topP != null && temperature != null) {
         warnings.push({
           type: 'unsupported',
           feature: 'topP',
@@ -634,14 +711,16 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       betas.add('effort-2025-11-24');
     }
 
+    if (anthropicOptions?.taskBudget) {
+      betas.add('task-budgets-2026-03-13');
+    }
+
     if (anthropicOptions?.speed === 'fast') {
       betas.add('fast-mode-2026-02-01');
     }
 
-    // only when streaming: enable fine-grained tool streaming
-    if (stream && (anthropicOptions?.toolStreaming ?? true)) {
-      betas.add('fine-grained-tool-streaming-2025-05-14');
-    }
+    const defaultEagerInputStreaming =
+      stream && (anthropicOptions?.toolStreaming ?? true);
 
     const {
       tools: anthropicTools,
@@ -657,6 +736,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
             cacheControlValidator,
             supportsStructuredOutput: false,
             supportsStrictTools,
+            defaultEagerInputStreaming,
           }
         : {
             tools: tools ?? [],
@@ -665,6 +745,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
             cacheControlValidator,
             supportsStructuredOutput,
             supportsStrictTools,
+            defaultEagerInputStreaming,
           },
     );
 
@@ -700,7 +781,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
     headers: Record<string, string | undefined> | undefined;
   }) {
     return combineHeaders(
-      await resolve(this.config.headers),
+      this.config.headers ? await resolve(this.config.headers) : undefined,
       headers,
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
     );
@@ -709,9 +790,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   private async getBetasFromHeaders(
     requestHeaders: Record<string, string | undefined> | undefined,
   ) {
-    const configHeaders = await resolve(this.config.headers);
+    const configHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
 
-    const configBetaHeader = configHeaders['anthropic-beta'] ?? '';
+    const configBetaHeader = configHeaders?.['anthropic-beta'] ?? '';
     const requestBetaHeader = requestHeaders?.['anthropic-beta'] ?? '';
 
     return new Set(
@@ -1220,8 +1303,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       providerMetadata: (() => {
         const anthropicMetadata = {
           usage: response.usage as JSONObject,
-          cacheCreationInputTokens:
-            response.usage.cache_creation_input_tokens ?? null,
           stopSequence: response.stop_sequence ?? null,
 
           iterations: response.usage.iterations
@@ -1265,6 +1346,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
+    'use step';
+
     const {
       args: body,
       warnings,
@@ -1340,7 +1423,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
       | AnthropicMessageMetadata['contextManagement']
       | null = null;
     let rawUsage: JSONObject | undefined = undefined;
-    let cacheCreationInputTokens: number | null = null;
     let stopSequence: string | null = null;
     let container: AnthropicMessageMetadata['container'] | null = null;
     let isJsonResponseFromTool = false;
@@ -2060,9 +2142,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
                 ...(value.message.usage as JSONObject),
               };
 
-              cacheCreationInputTokens =
-                value.message.usage.cache_creation_input_tokens ?? null;
-
               if (value.message.container != null) {
                 container = {
                   expiresAt: value.message.container.expires_at,
@@ -2160,8 +2239,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
               if (value.usage.cache_creation_input_tokens != null) {
                 usage.cache_creation_input_tokens =
                   value.usage.cache_creation_input_tokens;
-                cacheCreationInputTokens =
-                  value.usage.cache_creation_input_tokens;
               }
               if (value.usage.iterations != null) {
                 usage.iterations = value.usage.iterations;
@@ -2207,7 +2284,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
             case 'message_stop': {
               const anthropicMetadata = {
                 usage: (rawUsage as JSONObject) ?? null,
-                cacheCreationInputTokens,
                 stopSequence,
                 iterations: usage.iterations
                   ? usage.iterations.map(iter => ({
@@ -2307,9 +2383,20 @@ export function getModelCapabilities(modelId: string): {
   maxOutputTokens: number;
   supportsStructuredOutput: boolean;
   supportsAdaptiveThinking: boolean;
+  rejectsSamplingParameters: boolean;
+  supportsXhighEffort: boolean;
   isKnownModel: boolean;
 } {
-  if (
+  if (modelId.includes('claude-opus-4-7')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      isKnownModel: true,
+    };
+  } else if (
     modelId.includes('claude-sonnet-4-6') ||
     modelId.includes('claude-opus-4-6')
   ) {
@@ -2317,6 +2404,8 @@ export function getModelCapabilities(modelId: string): {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
       supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
       isKnownModel: true,
     };
   } else if (
@@ -2328,6 +2417,8 @@ export function getModelCapabilities(modelId: string): {
       maxOutputTokens: 64000,
       supportsStructuredOutput: true,
       supportsAdaptiveThinking: false,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
@@ -2335,6 +2426,8 @@ export function getModelCapabilities(modelId: string): {
       maxOutputTokens: 32000,
       supportsStructuredOutput: true,
       supportsAdaptiveThinking: false,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-sonnet-4-')) {
@@ -2342,6 +2435,8 @@ export function getModelCapabilities(modelId: string): {
       maxOutputTokens: 64000,
       supportsStructuredOutput: false,
       supportsAdaptiveThinking: false,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
@@ -2349,6 +2444,8 @@ export function getModelCapabilities(modelId: string): {
       maxOutputTokens: 32000,
       supportsStructuredOutput: false,
       supportsAdaptiveThinking: false,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
@@ -2356,6 +2453,8 @@ export function getModelCapabilities(modelId: string): {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
       supportsAdaptiveThinking: false,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
       isKnownModel: true,
     };
   } else {
@@ -2363,6 +2462,8 @@ export function getModelCapabilities(modelId: string): {
       maxOutputTokens: 4096,
       supportsStructuredOutput: false,
       supportsAdaptiveThinking: false,
+      rejectsSamplingParameters: false,
+      supportsXhighEffort: false,
       isKnownModel: false,
     };
   }
@@ -2396,11 +2497,13 @@ function hasWebTool20260209WithoutCodeExecution(
 function resolveAnthropicReasoningConfig({
   reasoning,
   supportsAdaptiveThinking,
+  supportsXhighEffort,
   maxOutputTokensForModel,
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
   supportsAdaptiveThinking: boolean;
+  supportsXhighEffort: boolean;
   maxOutputTokensForModel: number;
   warnings: SharedV4Warning[];
 }): Pick<AnthropicLanguageModelOptions, 'thinking' | 'effort'> | undefined {
@@ -2420,7 +2523,7 @@ function resolveAnthropicReasoningConfig({
         low: 'low' as const,
         medium: 'medium' as const,
         high: 'high' as const,
-        xhigh: 'max' as const,
+        xhigh: supportsXhighEffort ? ('xhigh' as const) : ('max' as const),
       },
       warnings,
     });

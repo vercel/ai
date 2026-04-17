@@ -3,7 +3,6 @@
 exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should expose container information as provider metadata 1`] = `
 {
   "anthropic": {
-    "cacheCreationInputTokens": 0,
     "container": {
       "expiresAt": "2025-10-20T11:48:47.798310Z",
       "id": "container_011CUJKA7aVjWm5XJL9ozHGS",
@@ -40,7 +39,6 @@ exports[`AnthropicMessagesLanguageModel > doGenerate > agent skills > should exp
 exports[`AnthropicMessagesLanguageModel > doGenerate > code execution 20250825 > should expose container information as provider metadata 1`] = `
 {
   "anthropic": {
-    "cacheCreationInputTokens": 0,
     "container": {
       "expiresAt": "2025-10-14T10:28:40.590791Z",
       "id": "container_011CU6rVteVhydYXRyNs6G1M",
@@ -291,7 +289,6 @@ Both files have been exported and are ready for download!",
   },
   "providerMetadata": {
     "anthropic": {
-      "cacheCreationInputTokens": 0,
       "container": {
         "expiresAt": "2025-10-20T15:10:44.950231Z",
         "id": "container_011CUJar2mdkMcv7daEVAQw2",
@@ -5224,7 +5221,6 @@ The presentation has",
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": {
           "expiresAt": "2025-10-20T12:27:25.107823Z",
           "id": "container_011CUJNGs88jcQ8KEiZguEUo",
@@ -10300,7 +10296,6 @@ Both",
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": {
           "expiresAt": "2025-10-20T15:14:00.777587Z",
           "id": "container_011CUJb5Pk4kFWskBpuCjwXj",
@@ -10358,7 +10353,7 @@ Both",
   },
   {
     "error": [AI_JSONParseError: JSON parsing failed: Text: .
-Error message: Unexpected end of JSON input],
+Error message: SyntaxError: Unexpected end of JSON input],
     "type": "error",
   },
 ]
@@ -11624,7 +11619,6 @@ The Fibonacci sequence starts with 0, ",
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": {
           "expiresAt": "2025-10-14T10:02:00.044495Z",
           "id": "container_011CU6pTr2hLT47seQ5Xs4yj",
@@ -12943,7 +12937,6 @@ The Fibonacci sequence starts with 0, ",
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": {
           "expiresAt": "2025-10-14T10:02:00.044495Z",
           "id": "container_011CU6pTr2hLT47seQ5Xs4yj",
@@ -13598,7 +13591,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > json schema response format
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
         "iterations": null,
@@ -13721,7 +13713,6 @@ It simply echoed back",
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
         "iterations": null,
@@ -14623,7 +14614,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": {
           "expiresAt": "2025-12-20T05:33:35.789626Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -14717,7 +14707,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:37.969567Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -14797,7 +14786,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:39.648288Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -14877,7 +14865,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:41.431511Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -14957,7 +14944,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:43.145757Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -15037,7 +15023,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:44.839216Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -15117,7 +15102,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:46.531362Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -15197,7 +15181,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:48.294455Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -15277,7 +15260,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:49.977349Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -15357,7 +15339,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:51.565949Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -15437,7 +15418,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:53.308898Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -15517,7 +15497,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:55.035858Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -15597,7 +15576,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:56.857745Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -15677,7 +15655,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > programmatic tool calling >
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": null,
         "container": {
           "expiresAt": "2025-12-20T05:33:58.450677Z",
           "id": "container_011CWHPPTDTn1XufeRB9uHeH",
@@ -16196,7 +16173,6 @@ The",
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
         "iterations": null,
@@ -16420,7 +16396,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
         "iterations": null,
@@ -16533,7 +16508,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > bm25 var
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
         "iterations": null,
@@ -16753,7 +16727,6 @@ exports[`AnthropicMessagesLanguageModel > doStream > tool search tool > regex va
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
         "iterations": null,
@@ -16895,7 +16868,6 @@ The weather in",
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
         "iterations": null,
@@ -17216,7 +17188,6 @@ This domain is for use in documentation examples without needing permission. Avo
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": {
           "expiresAt": "2026-03-03T19:38:14.861782Z",
           "id": "container_011CYgdezfe66pcmCprMd28x",
@@ -17648,7 +17619,6 @@ The page also discusses",
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
         "iterations": null,
@@ -18591,7 +18561,6 @@ The main tech story today appears to be Apple's significant",
     },
     "providerMetadata": {
       "anthropic": {
-        "cacheCreationInputTokens": 0,
         "container": null,
         "contextManagement": null,
         "iterations": null,

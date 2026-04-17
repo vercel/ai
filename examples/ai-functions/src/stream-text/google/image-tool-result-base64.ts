@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { run } from '../../lib/run';
@@ -32,7 +32,7 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'image-data',
+            type: 'file-data',
             mediaType: 'image/png',
             data: output.imageData,
           },
@@ -48,7 +48,7 @@ run(async () => {
     tools: {
       readImage,
     },
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
   });
 
   for await (const part of result.fullStream) {

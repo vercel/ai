@@ -1,4 +1,5 @@
 export type { GatewayModelId } from './gateway-language-model-settings';
+export type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 export type { GatewayVideoModelId } from './gateway-video-model-settings';
 export type {
   GatewayLanguageModelEntry,
@@ -10,6 +11,10 @@ export type {
   GatewaySpendReportRow,
   GatewaySpendReportResponse,
 } from './gateway-spend-report';
+export type {
+  GatewayGenerationInfoParams,
+  GatewayGenerationInfo,
+} from './gateway-generation-info';
 export type { GatewayLanguageModelEntry as GatewayModelEntry } from './gateway-model-entry';
 export {
   createGatewayProvider,

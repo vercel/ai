@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
 import { tool } from '@ai-sdk/provider-utils';
 import { ChatInit } from './chat';
-import { ToolSet } from '../generate-text/tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import { InferUITools, UIDataTypes, UIMessage, UITools } from './ui-messages';
 import { describe, it, expectTypeOf } from 'vitest';
 

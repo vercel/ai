@@ -16,7 +16,7 @@ import {
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
 import {
-  type XaiVideoModelOptions,
+  type XaiParsedVideoModelOptions,
   xaiVideoModelOptionsSchema,
 } from './xai-video-options';
 import type { XaiVideoModelId } from './xai-video-settings';
@@ -36,6 +36,27 @@ const RESOLUTION_MAP: Record<string, string> = {
   '854x480': '480p',
   '640x480': '480p',
 };
+
+function resolveVideoMode(
+  options: XaiParsedVideoModelOptions | undefined,
+): XaiParsedVideoModelOptions['mode'] | undefined {
+  if (options?.mode != null) {
+    return options.mode;
+  }
+
+  if (options?.videoUrl != null) {
+    return 'edit-video';
+  }
+
+  if (
+    options?.referenceImageUrls != null &&
+    options.referenceImageUrls.length > 0
+  ) {
+    return 'reference-to-video';
+  }
+
+  return undefined;
+}
 
 export class XaiVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
@@ -60,9 +81,13 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       provider: 'xai',
       providerOptions: options.providerOptions,
       schema: xaiVideoModelOptionsSchema,
-    })) as XaiVideoModelOptions | undefined;
+    })) as XaiParsedVideoModelOptions | undefined;
 
-    const isEdit = xaiOptions?.videoUrl != null;
+    const effectiveMode = resolveVideoMode(xaiOptions);
+
+    const isEdit = effectiveMode === 'edit-video';
+    const isExtension = effectiveMode === 'extend-video';
+    const hasReferenceImages = effectiveMode === 'reference-to-video';
 
     if (options.fps != null) {
       warnings.push({
@@ -90,6 +115,7 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
+    // Edit mode: duration, aspectRatio, resolution not supported
     if (isEdit && options.duration != null) {
       warnings.push({
         type: 'unsupported',
@@ -117,22 +143,46 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       });
     }
 
+    // Extension mode: aspectRatio and resolution not supported
+    if (isExtension && options.aspectRatio != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details: 'xAI video extension does not support custom aspect ratio.',
+      });
+    }
+
+    if (
+      isExtension &&
+      (xaiOptions?.resolution != null || options.resolution != null)
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'resolution',
+        details: 'xAI video extension does not support custom resolution.',
+      });
+    }
+
     const body: Record<string, unknown> = {
       model: this.modelId,
       prompt: options.prompt,
     };
 
-    if (!isEdit && options.duration != null) {
+    const allowDuration = !isEdit;
+    const allowAspectRatio = !isEdit && !isExtension;
+    const allowResolution = !isEdit && !isExtension;
+
+    if (allowDuration && options.duration != null) {
       body.duration = options.duration;
     }
 
-    if (!isEdit && options.aspectRatio != null) {
+    if (allowAspectRatio && options.aspectRatio != null) {
       body.aspect_ratio = options.aspectRatio;
     }
 
-    if (!isEdit && xaiOptions?.resolution != null) {
+    if (allowResolution && xaiOptions?.resolution != null) {
       body.resolution = xaiOptions.resolution;
-    } else if (!isEdit && options.resolution != null) {
+    } else if (allowResolution && options.resolution != null) {
       const mapped = RESOLUTION_MAP[options.resolution];
       if (mapped != null) {
         body.resolution = mapped;
@@ -147,12 +197,17 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
-    // Video editing: pass source video URL (nested object like image)
-    if (xaiOptions?.videoUrl != null) {
-      body.video = { url: xaiOptions.videoUrl };
+    // Video editing: pass source video URL (nested object)
+    if (isEdit) {
+      body.video = { url: xaiOptions!.videoUrl };
     }
 
-    // Image-to-video: convert SDK image to nested image object
+    // Video extension: pass source video URL (nested object)
+    if (isExtension) {
+      body.video = { url: xaiOptions!.videoUrl };
+    }
+
+    // Convert SDK image input to the nested xAI request image object
     if (options.image != null) {
       if (options.image.type === 'url') {
         body.image = { url: options.image.url };
@@ -167,14 +222,23 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
       }
     }
 
+    // Reference images for R2V (reference-to-video) generation
+    if (hasReferenceImages) {
+      body.reference_images = xaiOptions!.referenceImageUrls!.map(url => ({
+        url,
+      }));
+    }
+
     if (xaiOptions != null) {
       for (const [key, value] of Object.entries(xaiOptions)) {
         if (
           ![
+            'mode',
             'pollIntervalMs',
             'pollTimeoutMs',
             'resolution',
             'videoUrl',
+            'referenceImageUrls',
           ].includes(key)
         ) {
           body[key] = value;
@@ -184,9 +248,19 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
-    // Step 1: Create video generation/edit request
+    // Determine endpoint based on mode
+    let endpoint: string;
+    if (isEdit) {
+      endpoint = `${baseURL}/videos/edits`;
+    } else if (isExtension) {
+      endpoint = `${baseURL}/videos/extensions`;
+    } else {
+      endpoint = `${baseURL}/videos/generations`;
+    }
+
+    // Step 1: Create video generation/edit/extension request
     const { value: createResponse } = await postJsonToApi({
-      url: `${baseURL}/videos/${isEdit ? 'edits' : 'generations'}`,
+      url: endpoint,
       headers: combineHeaders(this.config.headers(), options.headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
@@ -279,6 +353,9 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
               ...(statusResponse.usage?.cost_in_usd_ticks != null
                 ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
                 : {}),
+              ...(statusResponse.progress != null
+                ? { progress: statusResponse.progress }
+                : {}),
             },
           },
         };
@@ -288,6 +365,13 @@ export class XaiVideoModel implements Experimental_VideoModelV4 {
         throw new AISDKError({
           name: 'XAI_VIDEO_GENERATION_EXPIRED',
           message: 'Video generation request expired.',
+        });
+      }
+
+      if (statusResponse.status === 'failed') {
+        throw new AISDKError({
+          name: 'XAI_VIDEO_GENERATION_FAILED',
+          message: 'Video generation failed.',
         });
       }
 
@@ -313,6 +397,13 @@ const xaiVideoStatusResponseSchema = z.object({
   usage: z
     .object({
       cost_in_usd_ticks: z.number().nullish(),
+    })
+    .nullish(),
+  progress: z.number().nullish(),
+  error: z
+    .object({
+      code: z.string().nullish(),
+      message: z.string().nullish(),
     })
     .nullish(),
 });

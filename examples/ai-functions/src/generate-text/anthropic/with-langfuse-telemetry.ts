@@ -1,5 +1,6 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount, registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
@@ -10,6 +11,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 run(async () => {
   const myCustomProvider = createAnthropic({
@@ -34,15 +36,9 @@ run(async () => {
       },
     },
     reasoning: 'medium',
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'anthropic-custom-provider-demo',
-      metadata: {
-        environment: 'demo',
-        endpoint_type: 'my-anthropic-proxy',
-        cost_tracking: 'enabled',
-      },
     },
   });
 

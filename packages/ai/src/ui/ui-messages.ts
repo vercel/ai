@@ -3,9 +3,10 @@ import {
   InferToolOutput,
   Tool,
   ToolCall,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
-import { ToolSet } from '../generate-text';
 import { ProviderMetadata } from '../types/provider-metadata';
+import { ProviderReference } from '../types/provider-reference';
 import { DeepPartial } from '../util/deep-partial';
 import { ValueOf } from '../util/value-of';
 
@@ -195,6 +196,13 @@ export type FileUIPart = {
    * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
    */
   url: string;
+
+  /**
+   * Provider reference for files uploaded via `uploadFile`.
+   * Maps provider names to provider-specific file identifiers.
+   * When present, takes precedence over `url` in model messages.
+   */
+  providerReference?: ProviderReference;
 
   /**
    * The provider metadata.
@@ -539,11 +547,6 @@ export function isToolUIPart<TOOLS extends UITools>(
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
   return isStaticToolUIPart(part) || isDynamicToolUIPart(part);
 }
-
-/**
- * @deprecated Use isToolUIPart instead.
- */
-export const isToolOrDynamicToolUIPart = isToolUIPart;
 
 /**
  * Returns the name of the static tool.

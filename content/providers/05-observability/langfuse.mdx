@@ -16,13 +16,13 @@ description: Monitor, evaluate and debug your AI SDK application with Langfuse
 ## Setup
 
 The AI SDK supports tracing via OpenTelemetry. With the `LangfuseSpanProcessor` you can collect these traces in Langfuse.
-While telemetry is experimental ([docs](/docs/ai-sdk-core/telemetry#enabling-telemetry)), you can enable it by setting `experimental_telemetry` on each request that you want to trace.
 
-```ts highlight="4"
+Install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` in your `instrumentation.ts` file. Once registered, telemetry is emitted automatically for every AI SDK call:
+
+```ts
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: { isEnabled: true },
 });
 ```
 
@@ -70,14 +70,18 @@ Next.js has support for OpenTelemetry instrumentation on the framework level. Le
 Install dependencies:
 
 ```bash
-npm install @langfuse/otel @langfuse/tracing @opentelemetry/sdk-trace-node
+npm install @langfuse/otel @langfuse/tracing @opentelemetry/sdk-trace-node @ai-sdk/otel
 ```
 
 Add `LangfuseSpanProcessor` to your instrumentation using a manual OpenTelemetry setup via `NodeTracerProvider`:
 
 ```ts filename="instrumentation.ts"
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor, ShouldExportSpan } from '@langfuse/otel';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 // Optional: filter out Next.js infra spans
 const shouldExportSpan: ShouldExportSpan = span => {
@@ -101,14 +105,15 @@ tracerProvider.register();
 Install dependencies:
 
 ```bash
-npm install ai @ai-sdk/openai @langfuse/otel @opentelemetry/sdk-node
+npm install ai @ai-sdk/openai @langfuse/otel @opentelemetry/sdk-node @ai-sdk/otel
 ```
 
 Add `LangfuseSpanProcessor` to your OpenTelemetry setup:
 
-```ts highlight="3-4, 6-8"
+```ts highlight="3-6, 8-10, 13"
 import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+import { registerTelemetryIntegration, generateText } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 
@@ -117,6 +122,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 async function main() {
   const result = await generateText({
@@ -124,7 +130,6 @@ async function main() {
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
       metadata: {
         something: 'custom',
@@ -175,7 +180,6 @@ for (let i = 0; i < 3; i++) {
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: `holiday-tradition-${i}`,
       metadata: {
         langfuseTraceId: parentTraceId,
@@ -215,7 +219,6 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: fetchedPrompt.prompt,
   experimental_telemetry: {
-    isEnabled: true,
     metadata: {
       langfusePrompt: fetchedPrompt.toJSON(),
     },
@@ -229,12 +232,11 @@ The resulting generation will have the prompt linked to the trace in Langfuse. L
 
 All of the `metadata` fields are automatically captured by the exporter. You can also pass custom trace attributes to e.g. track users or sessions.
 
-```ts highlight="6-12"
+```ts highlight="5-11"
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
   experimental_telemetry: {
-    isEnabled: true,
     functionId: 'my-awesome-function', // Trace name
     metadata: {
       langfuseTraceId: 'trace-123', // Langfuse trace
@@ -250,7 +252,7 @@ const result = await generateText({
 ## Troubleshooting
 
 - If you deploy on Vercel, Vercel's OpenTelemetry Collector is only available on Pro and Enterprise Plans ([docs](https://vercel.com/docs/observability/otel-overview)).
-- You need to be on `"ai": "^3.3.0"` to use the telemetry feature. In case of any issues, please update to the latest version.
+- You need to be on `"ai": "^7.0.0"` and install `@ai-sdk/otel` to use the telemetry feature. In case of any issues, please update to the latest version.
 - On Next.js, make sure that you only have a single instrumentation file.
 - If you use Sentry, make sure to either:
   - set `skipOpenTelemetrySetup: true` in Sentry.init

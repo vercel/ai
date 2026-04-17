@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-
+import { generateText, registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
@@ -12,6 +12,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
+registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 run(async () => {
   const result = await generateText({
@@ -19,12 +20,11 @@ run(async () => {
     maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
-      metadata: {
-        something: 'custom',
-        someOtherThing: 'other-value',
-      },
+    },
+    runtimeContext: {
+      something: 'custom',
+      someOtherThing: 'other-value',
     },
   });
 

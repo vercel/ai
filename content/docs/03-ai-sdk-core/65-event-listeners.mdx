@@ -250,15 +250,16 @@ const result = await generateText({
         'Identifier from telemetry settings for grouping related operations.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata passed to the generation.',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
+      description:
+        'User-defined shared runtime context object that flows through the generation lifecycle.',
     },
     {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
-        'User-defined context object that flows through the entire generation lifecycle.',
+        'Per-tool context map passed via `toolsContext`, keyed by tool name.',
     },
   ]}
 />
@@ -364,15 +365,16 @@ const result = await generateText({
         'Identifier from telemetry settings for grouping related operations.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
+      description:
+        'User-defined shared runtime context object. May be updated from prepareStep between steps.',
     },
     {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
-        'User-defined context object. May be updated from prepareStep between steps.',
+        'Per-tool context map. May be updated from prepareStep between steps.',
     },
   ]}
 />
@@ -456,15 +458,10 @@ const result = await generateText({
         'Identifier from telemetry settings for grouping related operations.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'context',
+      type: 'CONTEXT',
       description:
-        'User-defined context object flowing through the generation.',
+        'Tool-specific context object for the tool call that is about to execute.',
     },
   ]}
 />
@@ -559,15 +556,10 @@ const result = await generateText({
         'Identifier from telemetry settings for grouping related operations.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
-    {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'context',
+      type: 'CONTEXT',
       description:
-        'User-defined context object flowing through the generation.',
+        'Tool-specific context object for the tool call that just completed.',
     },
     {
       name: 'success',
@@ -713,15 +705,16 @@ const result = await generateText({
         'Identifier from telemetry settings for grouping related operations.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
+      description:
+        'User-defined shared runtime context object flowing through the generation.',
     },
     {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
       description:
-        'User-defined context object flowing through the generation.',
+        'Per-tool context map for the generation step.',
     },
     {
       name: 'providerMetadata',
@@ -866,14 +859,16 @@ const result = await generateText({
         'Identifier from telemetry settings for grouping related operations.',
     },
     {
-      name: 'metadata',
-      type: 'Record<string, unknown> | undefined',
-      description: 'Additional metadata from telemetry settings.',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
+      description:
+        'The final state of the user-defined shared runtime context object.',
     },
     {
-      name: 'experimental_context',
-      type: 'unknown',
-      description: 'The final state of the user-defined context object.',
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'The final state of the per-tool context map passed via `toolsContext`.',
     },
     {
       name: 'providerMetadata',
@@ -952,11 +947,6 @@ const result = await embed({
       description:
         'Identifier from telemetry settings for grouping related operations.',
     },
-    {
-      name: 'metadata',
-      type: 'Record<string, JSONValue> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
   ]}
 />
 
@@ -1032,11 +1022,6 @@ const result = await embedMany({
       type: 'string | undefined',
       description:
         'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, JSONValue> | undefined',
-      description: 'Additional metadata from telemetry settings.',
     },
   ]}
 />
@@ -1119,11 +1104,6 @@ const result = await rerank({
       description:
         'Identifier from telemetry settings for grouping related operations.',
     },
-    {
-      name: 'metadata',
-      type: 'Record<string, JSONValue> | undefined',
-      description: 'Additional metadata from telemetry settings.',
-    },
   ]}
 />
 
@@ -1198,11 +1178,6 @@ const result = await rerank({
       type: 'string | undefined',
       description:
         'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
-      name: 'metadata',
-      type: 'Record<string, JSONValue> | undefined',
-      description: 'Additional metadata from telemetry settings.',
     },
   ]}
 />

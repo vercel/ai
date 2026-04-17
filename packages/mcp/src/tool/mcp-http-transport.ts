@@ -1,5 +1,6 @@
 import {
   EventSourceParserStream,
+  FetchFunction,
   withUserAgentSuffix,
   getRuntimeEnvironmentUserAgent,
 } from '@ai-sdk/provider-utils';
@@ -31,6 +32,7 @@ export class HttpMCPTransport implements MCPTransport {
   private sessionId?: string;
   private inboundSseConnection?: { close: () => void };
   private redirectMode: RequestRedirect;
+  private fetchFn: FetchFunction;
 
   // Inbound SSE resumption and reconnection state
   private lastInboundEventId?: string;
@@ -51,16 +53,19 @@ export class HttpMCPTransport implements MCPTransport {
     headers,
     authProvider,
     redirect = 'error',
+    fetch: fetchFn,
   }: {
     url: string;
     headers?: Record<string, string>;
     authProvider?: OAuthClientProvider;
     redirect?: 'follow' | 'error';
+    fetch?: FetchFunction;
   }) {
     this.url = new URL(url);
     this.headers = headers;
     this.authProvider = authProvider;
     this.redirectMode = redirect;
+    this.fetchFn = fetchFn ?? globalThis.fetch;
   }
 
   private async commonHeaders(
@@ -111,7 +116,7 @@ export class HttpMCPTransport implements MCPTransport {
         !this.abortController.signal.aborted
       ) {
         const headers = await this.commonHeaders({});
-        await fetch(this.url, {
+        await this.fetchFn(this.url.href, {
           method: 'DELETE',
           headers,
           signal: this.abortController.signal,
@@ -140,7 +145,7 @@ export class HttpMCPTransport implements MCPTransport {
           redirect: this.redirectMode,
         } satisfies RequestInit;
 
-        const response = await fetch(this.url, init);
+        const response = await this.fetchFn(this.url.href, init);
 
         const sessionId = response.headers.get('mcp-session-id');
         if (sessionId) {
@@ -153,6 +158,7 @@ export class HttpMCPTransport implements MCPTransport {
             const result = await auth(this.authProvider, {
               serverUrl: this.url,
               resourceMetadataUrl: this.resourceMetadataUrl,
+              fetchFn: this.fetchFn,
             });
             if (result !== 'AUTHORIZED') {
               const error = new UnauthorizedError();
@@ -314,7 +320,7 @@ export class HttpMCPTransport implements MCPTransport {
         headers['last-event-id'] = resumeToken;
       }
 
-      const response = await fetch(this.url.href, {
+      const response = await this.fetchFn(this.url.href, {
         method: 'GET',
         headers,
         signal: this.abortController?.signal,
@@ -332,6 +338,7 @@ export class HttpMCPTransport implements MCPTransport {
           const result = await auth(this.authProvider, {
             serverUrl: this.url,
             resourceMetadataUrl: this.resourceMetadataUrl,
+            fetchFn: this.fetchFn,
           });
           if (result !== 'AUTHORIZED') {
             const error = new UnauthorizedError();

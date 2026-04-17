@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import * as z from 'zod';
 
 async function main() {
@@ -19,7 +19,7 @@ async function main() {
         },
       }),
     },
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
     experimental_onStart: event => {
       console.log('\n--- onStart ---');
       console.log('Provider:', event.provider);

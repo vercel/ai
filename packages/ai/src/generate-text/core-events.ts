@@ -1,18 +1,30 @@
-import type { JSONValue, LanguageModelV4ToolChoice } from '@ai-sdk/provider';
 import type {
+  Arrayable,
+  Context,
+  InferToolSetContext,
   ModelMessage,
   ProviderOptions,
   SystemModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
-import type { TimeoutConfiguration } from '../prompt/call-settings';
+import type { TimeoutConfiguration } from '../prompt/request-options';
 import type { ToolChoice } from '../types/language-model';
 import type { LanguageModelUsage } from '../types/usage';
 import type { Output } from './output';
 import type { StepResult } from './step-result';
 import type { StopCondition } from './stop-condition';
-import type { TypedToolCall } from './tool-call';
-import type { ToolSet } from './tool-set';
 import { TextStreamPart } from './stream-text-result';
+import type { TypedToolCall } from './tool-call';
+
+/**
+ * Common model information used across callback events.
+ */
+export interface CallbackModelInfo {
+  /** The provider identifier (e.g., 'openai', 'anthropic'). */
+  readonly provider: string;
+  /** The specific model identifier (e.g., 'gpt-4o'). */
+  readonly modelId: string;
+}
 
 /**
  * Event passed to the `onStart` callback.
@@ -21,8 +33,8 @@ import { TextStreamPart } from './stream-text-result';
  */
 export interface OnStartEvent<
   TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-  INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
@@ -79,7 +91,7 @@ export interface OnStartEvent<
 
   /**
    * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs, toolMs, and per-tool overrides via tools.
    */
   readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
@@ -93,23 +105,12 @@ export interface OnStartEvent<
    * Condition(s) for stopping the generation.
    * When the condition is an array, any of the conditions can be met to stop.
    */
-  readonly stopWhen:
-    | StopCondition<TOOLS>
-    | Array<StopCondition<TOOLS>>
-    | undefined;
+  readonly stopWhen: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
-  /**
-   * Settings for controlling what data is included in step results.
-   */
-  readonly include: INCLUDE | undefined;
-
-  /** Whether telemetry is enabled. */
+  /** Whether telemetry is enabled. Defaults to `true`. */
   readonly isEnabled: boolean | undefined;
 
   /** Whether to record inputs in telemetry. Enabled by default. */
@@ -121,14 +122,15 @@ export interface OnStartEvent<
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, JSONValue> | undefined;
+  /**
+   * Tool context.
+   */
+  readonly toolsContext: InferToolSetContext<TOOLS>;
 
   /**
-   * User-defined context object that flows through the entire generation lifecycle.
-   * Can be accessed and modified in `prepareStep` and tool `execute` functions.
+   * User-defined runtime context.
    */
-  readonly experimental_context: unknown;
+  readonly runtimeContext: RUNTIME_CONTEXT;
 }
 
 /**
@@ -139,8 +141,8 @@ export interface OnStartEvent<
  */
 export interface OnStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
-  INCLUDE = { requestBody?: boolean; responseBody?: boolean },
 > {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
@@ -174,20 +176,20 @@ export interface OnStepStartEvent<
   readonly tools: TOOLS | undefined;
 
   /** The tool choice configuration for this step. */
-  readonly toolChoice: LanguageModelV4ToolChoice | undefined;
+  readonly toolChoice: ToolChoice<NoInfer<TOOLS>> | undefined;
 
   /** Limits which tools are available for this step. */
   readonly activeTools: Array<keyof TOOLS> | undefined;
 
   /** Array of results from previous steps (empty for first step). */
-  readonly steps: ReadonlyArray<StepResult<TOOLS>>;
+  readonly steps: ReadonlyArray<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 
   /** Additional provider-specific options for this step. */
   readonly providerOptions: ProviderOptions | undefined;
 
   /**
    * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs.
+   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs, toolMs, and per-tool overrides via tools.
    */
   readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
 
@@ -198,32 +200,23 @@ export interface OnStepStartEvent<
    * Condition(s) for stopping the generation.
    * When the condition is an array, any of the conditions can be met to stop.
    */
-  readonly stopWhen:
-    | StopCondition<TOOLS>
-    | Array<StopCondition<TOOLS>>
-    | undefined;
+  readonly stopWhen: Arrayable<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
 
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Abort signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
-  /**
-   * Settings for controlling what data is included in step results.
-   */
-  readonly include: INCLUDE | undefined;
-
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
+  /**
+   * Runtime context. May be updated from `prepareStep` between steps.
+   */
+  readonly runtimeContext: RUNTIME_CONTEXT;
 
   /**
-   * User-defined context object. May be updated from `prepareStep` between steps.
+   * Tool context. May be updated from `prepareStep` between steps.
    */
-  readonly experimental_context: unknown;
+  readonly toolsContext: InferToolSetContext<TOOLS>;
 }
 
 /**
@@ -250,17 +243,11 @@ export interface OnToolCallStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** The conversation messages available at tool execution time. */
   readonly messages: Array<ModelMessage>;
 
-  /** Signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
-
   /** User-defined context object flowing through the generation. */
-  readonly experimental_context: unknown;
+  readonly context: InferToolSetContext<TOOLS>;
 }
 
 /**
@@ -288,20 +275,14 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
   /** The conversation messages available at tool execution time. */
   readonly messages: Array<ModelMessage>;
 
-  /** Signal for cancelling the operation. */
-  readonly abortSignal: AbortSignal | undefined;
-
   /** Execution time of the tool call in milliseconds. */
   readonly durationMs: number;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
 
-  /** Additional metadata from telemetry settings. */
-  readonly metadata: Record<string, unknown> | undefined;
-
   /** User-defined context object flowing through the generation. */
-  readonly experimental_context: unknown;
+  readonly context: InferToolSetContext<TOOLS>;
 } & (
   | {
       /** Indicates the tool call succeeded. */
@@ -328,20 +309,7 @@ export type OnToolCallFinishEvent<TOOLS extends ToolSet = ToolSet> = {
  */
 export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
   readonly chunk:
-    | Extract<
-        TextStreamPart<TOOLS>,
-        {
-          type:
-            | 'text-delta'
-            | 'reasoning-delta'
-            | 'source'
-            | 'tool-call'
-            | 'tool-input-start'
-            | 'tool-input-delta'
-            | 'tool-result'
-            | 'raw';
-        }
-      >
+    | TextStreamPart<TOOLS>
     | {
         readonly type: 'ai.stream.firstChunk' | 'ai.stream.finish';
         readonly callId: string;
@@ -356,8 +324,10 @@ export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
  * Called when a step (LLM call) completes.
  * Includes the StepResult for that step along with the call identifier.
  */
-export type OnStepFinishEvent<TOOLS extends ToolSet = ToolSet> =
-  StepResult<TOOLS>;
+export type OnStepFinishEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = StepResult<TOOLS, RUNTIME_CONTEXT>;
 
 /**
  * Event passed to the `onFinish` callback.
@@ -365,26 +335,16 @@ export type OnStepFinishEvent<TOOLS extends ToolSet = ToolSet> =
  * Called when the entire generation completes (all steps finished).
  * Includes the final step's result along with aggregated data from all steps.
  */
-export type OnFinishEvent<TOOLS extends ToolSet = ToolSet> =
-  StepResult<TOOLS> & {
-    /** Array containing results from all steps in the generation. */
-    readonly steps: StepResult<TOOLS>[];
+export type OnFinishEvent<
+  TOOLS extends ToolSet = ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = StepResult<TOOLS, RUNTIME_CONTEXT> & {
+  /** Array containing results from all steps in the generation. */
+  readonly steps: StepResult<TOOLS, RUNTIME_CONTEXT>[];
 
-    /** Aggregated token usage across all steps. */
-    readonly totalUsage: LanguageModelUsage;
+  /** Aggregated token usage across all steps. */
+  readonly totalUsage: LanguageModelUsage;
 
-    /**
-     * The final state of the user-defined context object.
-     *
-     * Experimental (can break in patch releases).
-     *
-     * @default undefined
-     */
-    experimental_context: unknown;
-
-    /** Identifier from telemetry settings for grouping related operations. */
-    readonly functionId: string | undefined;
-
-    /** Additional metadata from telemetry settings. */
-    readonly metadata: Record<string, unknown> | undefined;
-  };
+  /** Identifier from telemetry settings for grouping related operations. */
+  readonly functionId: string | undefined;
+};

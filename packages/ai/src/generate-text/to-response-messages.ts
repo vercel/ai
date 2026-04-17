@@ -6,7 +6,7 @@ import {
 } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { ContentPart } from './content-part';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Converts the result of a `generateText` or `streamText` call to a list of response messages.
@@ -83,7 +83,8 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           type: 'tool-call',
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          input: part.input,
+          input:
+            part.invalid && typeof part.input !== 'object' ? {} : part.input,
           providerExecuted: part.providerExecuted,
           providerOptions: part.providerMetadata,
         });

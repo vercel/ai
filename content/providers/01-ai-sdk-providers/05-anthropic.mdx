@@ -122,13 +122,21 @@ The following optional provider options are available for Anthropic models:
   If you are experiencing issues with the model handling requests involving
   reasoning content, you can set this to `false` to omit them from the request.
 
-- `effort` _"high" | "medium" | "low"_
+- `effort` _"low" | "medium" | "high" | "xhigh" | "max"_
 
   Optional. See [Effort section](#effort) for more details.
+
+- `taskBudget` _object_
+
+  Optional. See [Task Budgets section](#task-budgets) for more details.
 
 - `speed` _"fast" | "standard"_
 
   Optional. See [Fast Mode section](#fast-mode) for more details.
+
+- `inferenceGeo` _"us" | "global"_
+
+  Optional. See [Data Residency section](#data-residency) for more details.
 
 - `thinking` _object_
 
@@ -183,7 +191,7 @@ const result = streamText({
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT).
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7` additionally supports `xhigh` for maximum reasoning effort.
 
 ```ts highlight="8-10"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
@@ -223,6 +231,67 @@ const { text } = await generateText({
 ```
 
 The `speed` option accepts `'fast'` or `'standard'` (default behavior).
+
+### Task Budgets
+
+`claude-opus-4-7` supports a `taskBudget` option that informs the model of the total token budget available for an agentic turn. The model uses this information to prioritize work, plan ahead, and wind down gracefully as the budget is consumed.
+
+Task budgets are advisory — they do not enforce a hard token limit. The model will attempt to stay within budget, but actual usage may vary.
+
+```ts highlight="8-13"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-7'),
+  prompt: 'Research the pros and cons of Rust vs Go for building CLI tools.',
+  providerOptions: {
+    anthropic: {
+      taskBudget: {
+        type: 'tokens',
+        total: 400000,
+      },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+For long-running agents that compact and restart context, you can carry the remaining budget forward using the `remaining` field:
+
+```ts
+taskBudget: {
+  type: 'tokens',
+  total: 400000,
+  remaining: 215000, // budget left after prior compacted-away contexts
+}
+```
+
+The `taskBudget` object accepts:
+
+- `type` _"tokens"_ - Budget type. Currently only `"tokens"` is supported.
+- `total` _number_ - Total task budget for the agentic turn. Minimum 20,000.
+- `remaining` _number_ - Budget left after prior compacted-away contexts. Must be between 0 and `total`. Defaults to `total` if omitted.
+
+### Data Residency
+
+Anthropic supports an [`inferenceGeo` option](https://platform.claude.com/docs/en/build-with-claude/data-residency) that controls where model inference runs for a request.
+
+```ts highlight="8-10"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: anthropic('claude-opus-4-6'),
+  prompt: 'Summarize the key points of this document.',
+  providerOptions: {
+    anthropic: {
+      inferenceGeo: 'us',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` (default, any available geography).
 
 ### Reasoning
 
@@ -266,6 +335,31 @@ const { text } = await generateText({
   },
 });
 ```
+
+##### Thinking Display (Opus 4.7+)
+
+Starting with `claude-opus-4-7`, thinking content is omitted from the response by default — thinking blocks are present in the stream but their text is empty. To receive reasoning output, set `display: 'summarized'`:
+
+```ts highlight="5"
+const { text, reasoningText } = await generateText({
+  model: anthropic('claude-opus-4-7'),
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'adaptive', display: 'summarized' },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+  prompt: 'How many people will live in the world in 2040?',
+});
+
+console.log(reasoningText); // reasoning text (empty without display: 'summarized')
+console.log(text);
+```
+
+<Note>
+  If you stream reasoning to users with `claude-opus-4-7`, the default `"omitted"` display will
+  cause a long pause before output begins. Set `display: "summarized"` to restore visible
+  progress during thinking.
+</Note>
 
 #### Budget-Based Thinking
 
@@ -490,13 +584,12 @@ For more details, see [Anthropic's Context Management documentation](https://doc
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
-The cache creation input tokens are then returned in the `providerMetadata` object
-for `generateText`, again under the `anthropic` property.
-When you use `streamText`, the response contains a promise
-that resolves to the metadata. Alternatively you can receive it in the
-`onFinish` callback.
+Cache read and cache write (creation) token counts are returned on the standard
+`usage` object for both `generateText` and `streamText`. You can access them at
+`result.usage.inputTokenDetails.cacheReadTokens` and
+`result.usage.inputTokenDetails.cacheWriteTokens`.
 
-```ts highlight="8,18-20,29-30"
+```ts highlight="8,18-20,29-32"
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
@@ -523,8 +616,11 @@ const result = await generateText({
 });
 
 console.log(result.text);
-console.log(result.providerMetadata?.anthropic);
-// e.g. { cacheCreationInputTokens: 2118 }
+console.log('Cache read tokens:', result.usage.inputTokenDetails.cacheReadTokens);
+console.log(
+  'Cache write tokens:',
+  result.usage.inputTokenDetails.cacheWriteTokens,
+);
 ```
 
 You can also use cache control on system messages by providing multiple system messages at the head of your messages array:
@@ -1161,12 +1257,12 @@ import {
   anthropic,
   forwardAnthropicContainerIdFromLastStep,
 } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
   model: anthropic('claude-sonnet-4-5'),
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   prompt:
     'Get the weather for Tokyo, Sydney, and London, then calculate the average temperature.',
   tools: {
@@ -1351,6 +1447,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model               | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search          | Tool Search         | Compaction          |
 | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-opus-4-7`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-6`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-4-6` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |
 | `claude-opus-4-5`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |                     |

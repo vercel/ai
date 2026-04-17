@@ -1,5 +1,5 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { stepCountIs, streamText, ToolCallPart, ToolResultPart } from 'ai';
+import { isStepCount, streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
 import { run } from '../../lib/run';
 
@@ -23,7 +23,7 @@ run(async () => {
       }),
     },
     prompt: 'List the files in my home directory.',
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
   });
 
   let fullResponse = '';

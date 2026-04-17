@@ -6,7 +6,6 @@ import {
 import {
   FetchFunction,
   generateId,
-  loadApiKey,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { OpenResponsesLanguageModel } from './responses/open-responses-language-model';
@@ -65,6 +64,7 @@ export function createOpenResponses(
   const createResponsesModel = (modelId: string) => {
     return new OpenResponsesLanguageModel(modelId, {
       provider: `${providerName}.responses`,
+      providerOptionsName: providerName,
       headers: getHeaders,
       url: options.url,
       fetch: options.fetch,

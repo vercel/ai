@@ -1,5 +1,5 @@
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -14,7 +14,7 @@ run(async () => {
 
             The noteId is "d10aa585-982b-4bd9-984e-420f9b3717f7".
             Remember, you may need to search for the right tools to perform editor operations.`,
-    stopWhen: stepCountIs(20),
+    stopWhen: isStepCount(20),
     onStepFinish: step => {
       stepNumber++;
       console.log(`\n========== STEP ${stepNumber} ==========`);

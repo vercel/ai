@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { streamText, stepCountIs } from 'ai';
+import { streamText, isStepCount } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -20,7 +20,7 @@ run(async () => {
       }),
     },
     prompt: 'How many users are older than 25? Use SQL to find out.',
-    stopWhen: stepCountIs(3),
+    stopWhen: isStepCount(3),
   });
 
   for await (const chunk of result.fullStream) {

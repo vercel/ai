@@ -1,5 +1,5 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -34,7 +34,7 @@ run(async () => {
             type: 'content',
             value: [
               {
-                type: 'image-data',
+                type: 'file-data',
                 data: Buffer.from(output.bytes).toString('base64'),
                 mediaType: 'image/jpeg',
               },
@@ -43,7 +43,7 @@ run(async () => {
         },
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log(result.text);

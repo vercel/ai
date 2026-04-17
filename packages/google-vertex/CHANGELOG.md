@@ -1,5 +1,319 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/openai-compatible@3.0.0-beta.29
+  - @ai-sdk/anthropic@4.0.0-beta.35
+  - @ai-sdk/google@4.0.0-beta.43
+
+## 5.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/anthropic@4.0.0-beta.34
+  - @ai-sdk/google@4.0.0-beta.42
+  - @ai-sdk/openai-compatible@3.0.0-beta.28
+
+## 5.0.0-beta.54
+
+### Major Changes
+
+- 832f86f: fix(anthropic): remove cacheCreationInputTokens from providerMetadata
+
+### Patch Changes
+
+- Updated dependencies [832f86f]
+  - @ai-sdk/anthropic@4.0.0-beta.33
+
+## 5.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [ad0b376]
+  - @ai-sdk/anthropic@4.0.0-beta.32
+
+## 5.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/anthropic@4.0.0-beta.31
+  - @ai-sdk/google@4.0.0-beta.41
+  - @ai-sdk/openai-compatible@3.0.0-beta.27
+
+## 5.0.0-beta.51
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [0d8f107]
+  - @ai-sdk/anthropic@4.0.0-beta.30
+
+## 5.0.0-beta.50
+
+### Patch Changes
+
+- 55f0938: chore(provider/google): update available models
+- Updated dependencies [55f0938]
+  - @ai-sdk/google@4.0.0-beta.40
+
+## 5.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+  - @ai-sdk/anthropic@4.0.0-beta.29
+  - @ai-sdk/google@4.0.0-beta.39
+  - @ai-sdk/openai-compatible@3.0.0-beta.26
+
+## 5.0.0-beta.48
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/anthropic@4.0.0-beta.28
+  - @ai-sdk/google@4.0.0-beta.38
+  - @ai-sdk/openai-compatible@3.0.0-beta.25
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 5.0.0-beta.47
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/anthropic@4.0.0-beta.27
+  - @ai-sdk/google@4.0.0-beta.37
+  - @ai-sdk/openai-compatible@3.0.0-beta.24
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 5.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [9a0a618]
+  - @ai-sdk/google@4.0.0-beta.36
+
+## 5.0.0-beta.45
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/openai-compatible@3.0.0-beta.23
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+  - @ai-sdk/anthropic@4.0.0-beta.26
+  - @ai-sdk/google@4.0.0-beta.35
+
+## 5.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [5b7e7c2]
+  - @ai-sdk/google@4.0.0-beta.34
+
+## 5.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [09bd27b]
+  - @ai-sdk/anthropic@4.0.0-beta.25
+
+## 5.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+  - @ai-sdk/anthropic@4.0.0-beta.24
+  - @ai-sdk/google@4.0.0-beta.33
+  - @ai-sdk/openai-compatible@3.0.0-beta.22
+
+## 5.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [5036db8]
+  - @ai-sdk/google@4.0.0-beta.32
+
+## 5.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/anthropic@4.0.0-beta.23
+  - @ai-sdk/google@4.0.0-beta.31
+  - @ai-sdk/openai-compatible@3.0.0-beta.21
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 5.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/anthropic@4.0.0-beta.22
+  - @ai-sdk/google@4.0.0-beta.30
+  - @ai-sdk/openai-compatible@3.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 5.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/anthropic@4.0.0-beta.21
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/openai-compatible@3.0.0-beta.19
+  - @ai-sdk/google@4.0.0-beta.29
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 5.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+  - @ai-sdk/anthropic@4.0.0-beta.20
+  - @ai-sdk/google@4.0.0-beta.28
+  - @ai-sdk/openai-compatible@3.0.0-beta.18
+
+## 5.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [816ff67]
+  - @ai-sdk/openai-compatible@3.0.0-beta.17
+
+## 5.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+  - @ai-sdk/google@4.0.0-beta.27
+  - @ai-sdk/anthropic@4.0.0-beta.19
+  - @ai-sdk/openai-compatible@3.0.0-beta.16
+
+## 5.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [a05109d]
+  - @ai-sdk/google@4.0.0-beta.26
+
+## 5.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+  - @ai-sdk/openai-compatible@3.0.0-beta.15
+  - @ai-sdk/anthropic@4.0.0-beta.18
+  - @ai-sdk/google@4.0.0-beta.25
+
+## 5.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [55db546]
+  - @ai-sdk/google@4.0.0-beta.24
+
+## 5.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.14
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/anthropic@4.0.0-beta.17
+  - @ai-sdk/provider@4.0.0-beta.6
+  - @ai-sdk/google@4.0.0-beta.23
+
+## 5.0.0-beta.30
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/anthropic@4.0.0-beta.16
+  - @ai-sdk/google@4.0.0-beta.22
+  - @ai-sdk/openai-compatible@3.0.0-beta.13
+
+## 5.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [f57c702]
+  - @ai-sdk/anthropic@4.0.0-beta.15
+
+## 5.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+  - @ai-sdk/anthropic@4.0.0-beta.14
+  - @ai-sdk/google@4.0.0-beta.21
+  - @ai-sdk/openai-compatible@3.0.0-beta.12
+
+## 5.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/anthropic@4.0.0-beta.13
+  - @ai-sdk/google@4.0.0-beta.20
+  - @ai-sdk/openai-compatible@3.0.0-beta.11
+
+## 5.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [01fa606]
+  - @ai-sdk/google@4.0.0-beta.19
+
+## 5.0.0-beta.25
+
+### Patch Changes
+
+- a34b997: feat (provider/google-vertex): add support for maas models
+
+## 5.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [9715ec7]
+  - @ai-sdk/google@4.0.0-beta.18
+
 ## 5.0.0-beta.23
 
 ### Patch Changes

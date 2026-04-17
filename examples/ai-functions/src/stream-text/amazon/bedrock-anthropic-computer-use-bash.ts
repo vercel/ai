@@ -1,5 +1,5 @@
 import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
-import { stepCountIs, streamText } from 'ai';
+import { isStepCount, streamText } from 'ai';
 import 'dotenv/config';
 import { run } from '../../lib/run';
 
@@ -23,7 +23,7 @@ README.md     build         data          node_modules  package.json  src       
       }),
     },
     prompt: 'List the files in my directory.',
-    stopWhen: stepCountIs(2),
+    stopWhen: isStepCount(2),
   });
 
   for await (const part of result.fullStream) {

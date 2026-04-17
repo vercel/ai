@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { run } from '../../lib/run';
@@ -33,8 +33,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'image-url',
+            type: 'file-url',
             url: output.imageUrl,
+            mediaType: 'image/png',
           },
         ],
       };
@@ -48,7 +49,7 @@ run(async () => {
     tools: {
       readImage,
     },
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
   });
 
   console.log(`Assistant response : ${JSON.stringify(result.text, null, 2)}`);

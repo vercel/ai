@@ -12,7 +12,6 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-2.5-flash'
   | 'gemini-2.5-flash-image'
   | 'gemini-2.5-flash-lite'
-  | 'gemini-2.5-flash-lite-preview-09-2025'
   | 'gemini-2.5-flash-preview-tts'
   | 'gemini-2.5-pro-preview-tts'
   | 'gemini-2.5-flash-native-audio-latest'
@@ -26,6 +25,7 @@ export type GoogleGenerativeAIModelId =
   | 'gemini-3.1-pro-preview-customtools'
   | 'gemini-3.1-flash-image-preview'
   | 'gemini-3.1-flash-lite-preview'
+  | 'gemini-3.1-flash-tts-preview'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
@@ -188,6 +188,23 @@ export const googleLanguageModelOptions = lazySchema(() =>
             .optional(),
         })
         .optional(),
+
+      /**
+       * Optional. When set to true, function call arguments will be streamed
+       * incrementally via partialArgs in streaming responses. Only supported
+       * on the Vertex AI API (not the Gemini API) and only for Gemini 3+
+       * models.
+       *
+       * @default false
+       *
+       * https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling#streaming-fc
+       */
+      streamFunctionCallArguments: z.boolean().optional(),
+
+      /**
+       * Optional. The service tier to use for the request.
+       */
+      serviceTier: z.enum(['standard', 'flex', 'priority']).optional(),
     }),
   ),
 );
@@ -195,3 +212,10 @@ export const googleLanguageModelOptions = lazySchema(() =>
 export type GoogleLanguageModelOptions = InferSchema<
   typeof googleLanguageModelOptions
 >;
+
+// Vertex API requires another service tier format.
+export const VertexServiceTierMap = {
+  standard: 'SERVICE_TIER_STANDARD',
+  flex: 'SERVICE_TIER_FLEX',
+  priority: 'SERVICE_TIER_PRIORITY',
+} as const;

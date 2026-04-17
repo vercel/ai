@@ -2,7 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import {
   generateText,
   ModelMessage,
-  stepCountIs,
+  isStepCount,
   ToolApprovalResponse,
 } from 'ai';
 import * as readline from 'node:readline/promises';
@@ -46,7 +46,7 @@ run(async () => {
         }),
       },
       messages,
-      stopWhen: stepCountIs(5),
+      stopWhen: isStepCount(5),
       system:
         'You have access to a shell tool that can execute commands on the local filesystem. ' +
         'Use the shell tool when you need to perform file operations or run commands. ' +

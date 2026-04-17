@@ -1,20 +1,29 @@
-import { executeTool, ModelMessage } from '@ai-sdk/provider-utils';
-import { notify } from '../util/notify';
+import type {
+  InferToolContext,
+  InferToolInput,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import {
+  executeTool,
+  isExecutableTool,
+  ModelMessage,
+} from '@ai-sdk/provider-utils';
 import {
   getToolTimeoutMs,
   TimeoutConfiguration,
-} from '../prompt/call-settings';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+} from '../prompt/request-options';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
+import { notify } from '../util/notify';
 import { now } from '../util/now';
 import {
   GenerateTextOnToolCallFinishCallback,
   GenerateTextOnToolCallStartCallback,
 } from './generate-text';
 import { TypedToolCall } from './tool-call';
-import { ToolOutput } from './tool-output';
-import { ToolSet } from './tool-set';
-import { TypedToolResult } from './tool-result';
 import { TypedToolError } from './tool-error';
+import { ToolOutput } from './tool-output';
+import { TypedToolResult } from './tool-result';
 
 /**
  * Executes a single tool call and manages its lifecycle callbacks.
@@ -30,12 +39,12 @@ import { TypedToolError } from './tool-error';
 export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
+  toolsContext,
   telemetry,
   callId,
   messages,
   abortSignal,
   timeout,
-  experimental_context,
   stepNumber,
   provider,
   modelId,
@@ -46,12 +55,12 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
-  telemetry: TelemetrySettings | undefined;
+  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
+  toolsContext: InferToolSetContext<TOOLS>;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_context: unknown;
   stepNumber?: number;
   provider?: string;
   modelId?: string;
@@ -71,9 +80,13 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const { toolName, toolCallId, input } = toolCall;
   const tool = tools?.[toolName];
 
-  if (tool?.execute == null) {
+  if (!isExecutableTool(tool)) {
     return undefined;
   }
+
+  // TODO validate the context type against the tool context schema
+  const context: InferToolContext<typeof tool> =
+    toolsContext?.[toolName as keyof typeof toolsContext];
 
   const baseCallbackEvent = {
     callId,
@@ -82,10 +95,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
     modelId,
     toolCall,
     messages,
-    abortSignal,
     functionId: telemetry?.functionId,
-    metadata: telemetry?.metadata as Record<string, unknown> | undefined,
-    experimental_context,
+    context, // TODO rename to toolContext
   };
 
   let output: unknown;
@@ -114,13 +125,13 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       toolCallId,
       execute: async () => {
         const stream = executeTool({
-          execute: tool.execute!.bind(tool),
-          input,
+          tool,
+          input: input as InferToolInput<typeof tool>,
           options: {
             toolCallId,
             messages,
             abortSignal: toolAbortSignal,
-            experimental_context,
+            context,
           },
         });
 

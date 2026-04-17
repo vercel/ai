@@ -22,7 +22,7 @@ The `tools` parameter of `generateText` and `streamText` is an object that has t
 
 ```ts highlight="6-17"
 import { z } from 'zod';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const result = await generateText({
@@ -39,7 +39,7 @@ const result = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -107,7 +107,14 @@ tool({
 
 ## Tool Execution Approval
 
-By default, tools with an `execute` function run automatically as the model calls them. You can require approval before execution by setting `needsApproval`:
+By default, tools with an `execute` function run automatically as the model calls them. You can require approval before execution in two ways:
+
+- Set `needsApproval` on an individual tool to define its default approval behavior
+- Set `toolNeedsApproval` on `generateText` or `streamText` to configure approval for specific tools at call time
+
+Use `needsApproval` when the tool should usually require approval wherever it is used. Use `toolNeedsApproval` when approval depends on the specific request or runtime context. If both are provided, `toolNeedsApproval` takes precedence.
+
+### Tool-Level Approval with `needsApproval`
 
 ```ts highlight="13"
 import { tool } from 'ai';
@@ -125,20 +132,37 @@ const runCommand = tool({
 });
 ```
 
+### Call-Level Approval with `toolNeedsApproval`
+
+```ts highlight="8-10"
+const result = await generateText({
+  model: __MODEL__,
+  tools: { runCommand },
+  toolNeedsApproval: {
+    runCommand: true,
+  },
+  prompt: 'Remove the most recent file in the downloads folder',
+});
+```
+
+`toolNeedsApproval` can also be a function per tool, which lets you decide dynamically based on the tool input and runtime options such as `toolCallId`, `messages`, and `context`.
+
 This is useful for tools that perform sensitive operations like executing commands, processing payments, modifying data, and more potentially dangerous actions.
 
 ### How It Works
 
 When a tool requires approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
 
+The approval requirement can come from either tool-level `needsApproval` or call-level `toolNeedsApproval`.
+
 Here's the complete flow:
 
-1. Call `generateText` with a tool that has `needsApproval: true`
-2. Model generates a tool call
-3. `generateText` returns with `tool-approval-request` parts in `result.content`
-4. Your app requests an approval and collects the user's decision
+1. Call `generateText` or `streamText` with approval configured via `needsApproval` or `toolNeedsApproval`
+2. The model generates a tool call
+3. The call returns `tool-approval-request` parts in `result.content`
+4. Your app requests approval and collects the user's decision
 5. Add a `tool-approval-response` to the messages array
-6. Call `generateText` again with the updated messages
+6. Call `generateText` or `streamText` again with the updated messages
 7. If approved, the tool runs and returns a result. If denied, the model sees the denial and responds accordingly.
 
 ### Handling Approval Requests
@@ -190,12 +214,18 @@ for (const part of result.content) {
 messages.push({ role: 'tool', content: approvals });
 ```
 
-Then call `generateText` again with the updated messages. If approved, the tool executes. If denied, the model receives the denial and can respond accordingly.
+Then call `generateText` or `streamText` again with the updated messages. If approved, the tool executes. If denied, the model receives the denial and can respond accordingly.
 
 <Note>
   When a tool execution is denied, consider adding a system instruction like
   "When a tool execution is not approved, do not retry it" to prevent the model
   from attempting the same call again.
+</Note>
+
+<Note>
+  Provider-executed tools are executed provider-side without considering the tool
+  approval setting. `needsApproval` and `toolNeedsApproval` only control tools
+  that the AI SDK executes locally.
 </Note>
 
 ### Dynamic Approval
@@ -218,6 +248,8 @@ const paymentTool = tool({
 
 In this example, only transactions over $1000 require approval. Smaller transactions execute automatically.
 
+You can use the same function shape in `toolNeedsApproval` when you want that decision to be defined at call time instead of on the tool itself.
+
 ### Tool Execution Approval with useChat
 
 When using `useChat`, the approval flow is handled through UI state. See [Chatbot Tool Usage](/docs/ai-sdk-ui/chatbot-tool-usage#tool-execution-approval) for details on handling approvals in your UI with `addToolApprovalResponse`.
@@ -225,6 +257,14 @@ When using `useChat`, the approval flow is handled through UI state. See [Chatbo
 ## Multi-Step Calls (using stopWhen)
 
 With the `stopWhen` setting, you can enable multi-step calls in `generateText` and `streamText`. When `stopWhen` is set and the model generates a tool call, the AI SDK will trigger a new generation passing in the tool result until there are no further tool calls or the stopping condition is met.
+
+The AI SDK provides several built-in stopping conditions:
+
+- `isStepCount(count)` — stops after a specified number of steps (default: `isStepCount(20)`)
+- `hasToolCall(...toolNames)` — stops when any of the specified tools is called
+- `isLoopFinished()` — never triggers, letting the loop run until naturally finished
+
+You can also combine multiple conditions in an array or create custom conditions. See [Loop Control](/docs/agents/loop-control) for more details.
 
 <Note>
   The `stopWhen` conditions are only evaluated when the last step contains tool
@@ -251,7 +291,7 @@ In the following example, there are two steps:
 
 ```ts highlight="18-19"
 import { z } from 'zod';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 const { text, steps } = await generateText({
@@ -268,7 +308,7 @@ const { text, steps } = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5), // stop after a maximum of 5 steps if tools were called
+  stopWhen: isStepCount(5), // stop after a maximum of 5 steps if tools were called
   prompt: 'What is the weather in San Francisco?',
 });
 ```
@@ -289,7 +329,7 @@ __PROVIDER_IMPORT__;
 
 const { steps } = await generateText({
   model: __MODEL__,
-  stopWhen: stepCountIs(10),
+  stopWhen: isStepCount(10),
   // ...
 });
 
@@ -368,7 +408,8 @@ It is called with the following parameters:
 - `stepNumber`: The number of the step that is being executed.
 - `steps`: The steps that have been executed so far.
 - `messages`: The messages that will be sent to the model for the current step.
-- `experimental_context`: The context passed via the `experimental_context` setting (experimental).
+- `runtimeContext`: The runtime context passed via the `runtimeContext` setting.
+- `toolsContext`: The per-tool context map passed via the `toolsContext` setting.
 
 You can use it to provide different settings for a step, including modifying the input messages.
 
@@ -686,26 +727,101 @@ const result = await generateText({
 });
 ```
 
-### Context (experimental)
+### Runtime Context
 
-You can pass in arbitrary context from `generateText` or `streamText` via the `experimental_context` setting.
-This context is available in the `experimental_context` tool execution option.
+You can pass in arbitrary runtime context from `generateText` or `streamText` via the `runtimeContext` setting.
+This runtime context is available in `prepareStep`.
+
+To avoid confusion with prompt context or retrieved context, the docs refer to this feature as runtime context.
+
+This is useful for values like tenant information, feature flags, session data, or other server-side state that should influence step preparation without being embedded into the prompt.
+
+Tool execution context is now separate. If a tool needs server-side values such as API keys, pass them via `toolsContext`, keyed by tool name. Each tool then receives only its own typed `context` value based on its `contextSchema`.
+
+At a high level:
+
+- Pass shared step-level state through `runtimeContext`
+- Read or update it in `prepareStep`
+- Pass per-tool values through `toolsContext`
+- Declare each tool's expected tool context with `contextSchema`
+- Access the tool's typed context in `execute` together with other execution metadata such as `toolCallId`, `messages`, and `abortSignal`
 
 ```ts
-const result = await generateText({
-  // ...
+import { openai } from '@ai-sdk/openai';
+import { streamText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = streamText({
+  model: openai('gpt-5-mini'),
   tools: {
-    someTool: tool({
-      // ...
-      execute: async (input, { experimental_context: context }) => {
-        const typedContext = context as { example: string }; // or use type validation library
-        // ...
+    weather: tool({
+      description: 'Get the weather in a location',
+      inputSchema: z.object({
+        location: z.string().describe('The location to get the weather for'),
+      }),
+      contextSchema: z.object({
+        weatherApiKey: z.string().describe('The API key for the weather API'),
+      }),
+      execute: async (
+        { location },
+        { toolCallId, messages, abortSignal, context },
+      ) => {
+        const { weatherApiKey } = context;
+
+        console.log('tool call:', toolCallId);
+        console.log('messages available to tool:', messages.length);
+        console.log('abortable:', abortSignal != null);
+        console.log('weather tool api key:', weatherApiKey);
+
+        return {
+          location,
+          temperature: 72 + Math.floor(Math.random() * 21) - 10,
+        };
       },
     }),
   },
-  experimental_context: { example: '123' },
+  runtimeContext: {
+    somethingElse: 'other-context',
+  },
+  toolsContext: {
+    weather: {
+      weatherApiKey: 'weather-123',
+    },
+  },
+  prepareStep: async ({ runtimeContext, toolsContext }) => {
+    console.log('prepareStep runtimeContext:', runtimeContext);
+    console.log('prepareStep toolsContext:', toolsContext);
+
+    return {
+      // You can keep the runtimeContext unchanged or return a new one
+      // to affect the current and subsequent steps.
+      runtimeContext,
+    };
+  },
+  prompt: 'What is the weather in San Francisco?',
 });
 ```
+
+In this example, `prepareStep` receives the full runtime context object:
+
+```ts
+{
+  somethingElse: string;
+}
+```
+
+`prepareStep` also receives the per-tool `toolsContext` map:
+
+```ts
+{
+  weather: {
+    weatherApiKey: string;
+  };
+}
+```
+
+The `weather` tool then receives only its own typed `context` based on its `contextSchema`. In this case, `execute` can access `weatherApiKey`, while the shared step-level `runtimeContext` remains separate.
+
 
 ## Tool Input Lifecycle Hooks
 
@@ -1031,7 +1147,7 @@ const { text } = await generateText({
   and Google (Gemini 3 models).
 </Note>
 
-For Google, use base64 media parts (`image-data` / `file-data`) or base64
+For Google, use base64 media parts (`file-data`) or base64
 `data:` URLs in URL-style parts. Remote HTTP(S) URLs in tool-result URL parts
 are not supported.
 
