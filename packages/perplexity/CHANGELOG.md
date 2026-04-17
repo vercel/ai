@@ -1,5 +1,12 @@
 # @ai-sdk/perplexity
 
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
 ## 4.0.0-beta.27
 
 ### Patch Changes
