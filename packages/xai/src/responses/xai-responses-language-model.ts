@@ -700,7 +700,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
               if (response.usage) {
                 usage = convertXaiResponsesUsage(response.usage);
-                costInUsdTicks = response.usage.cost_in_usd_ticks;
+                costInUsdTicks = response.usage.cost_in_usd_ticks ?? undefined;
               }
 
               if (event.type === 'response.incomplete') {
