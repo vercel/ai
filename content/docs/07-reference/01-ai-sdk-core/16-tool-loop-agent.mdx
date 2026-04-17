@@ -376,7 +376,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onToolExecutionStart',
-      type: 'ToolLoopAgentonToolExecutionStartCallback',
+      type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
@@ -431,7 +431,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
     },
     {
       name: 'experimental_onToolExecutionEnd',
-      type: 'ToolLoopAgentonToolExecutionEndCallback',
+      type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
         "Callback that is called right after a tool's execute function completes (or errors). Uses a discriminated union on the `success` field: when `success: true`, `output` contains the tool result; when `success: false`, `error` contains the error. If also specified in `generate()` or `stream()`, both callbacks are called (constructor first). Experimental (can break in patch releases).",
@@ -719,14 +719,14 @@ const result = await agent.generate({
     },
     {
       name: 'experimental_onToolExecutionStart',
-      type: 'ToolLoopAgentonToolExecutionStartCallback',
+      type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
       name: 'experimental_onToolExecutionEnd',
-      type: 'ToolLoopAgentonToolExecutionEndCallback',
+      type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
         "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
@@ -822,14 +822,14 @@ for await (const chunk of stream.textStream) {
     },
     {
       name: 'experimental_onToolExecutionStart',
-      type: 'ToolLoopAgentonToolExecutionStartCallback',
+      type: 'OnToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
     },
     {
       name: 'experimental_onToolExecutionEnd',
-      type: 'ToolLoopAgentonToolExecutionEndCallback',
+      type: 'OnToolExecutionEndCallback',
       isOptional: true,
       description:
         "Callback that is called right after a tool's execute function completes (or errors). If also specified in the constructor, both callbacks are called (constructor first). Experimental (can break in patch releases).",
