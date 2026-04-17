@@ -22,7 +22,6 @@
 '@ai-sdk/groq': patch
 '@ai-sdk/huggingface': patch
 '@ai-sdk/hume': patch
-'@ai-sdk/klingai': patch
 '@ai-sdk/lmnt': patch
 '@ai-sdk/luma': patch
 '@ai-sdk/mistral': patch
