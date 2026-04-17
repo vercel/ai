@@ -1276,9 +1276,7 @@ export class WorkflowAgent<TBaseTools extends ToolSet = ToolSet> {
 
     const effectiveAbortSignal = mergeAbortSignals(
       options.abortSignal ?? effectiveGenerationSettings.abortSignal,
-      options.timeout != null
-        ? AbortSignal.timeout(options.timeout)
-        : undefined,
+      options.timeout,
     );
 
     // Merge generation settings: constructor defaults < prepareCall < stream options

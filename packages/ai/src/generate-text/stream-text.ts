@@ -562,7 +562,7 @@ export function streamText<
     maxRetries,
     abortSignal: mergeAbortSignals(
       abortSignal,
-      totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
+      totalTimeoutMs,
       stepAbortController?.signal,
       chunkAbortController?.signal,
     ),
