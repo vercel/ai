@@ -1,6 +1,7 @@
 import type {
   Arrayable,
   Context,
+  IdGenerator,
   InferToolSetContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -200,6 +201,14 @@ export type ToolLoopAgentSettings<
     experimental_download?: DownloadFunction | undefined;
 
     /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      generateId?: IdGenerator;
+      generateCallId?: IdGenerator;
+    };
+
+    /**
      * The schema for the call options.
      */
     callOptionsSchema?: FlexibleSchema<CALL_OPTIONS>;
@@ -244,6 +253,7 @@ export type ToolLoopAgentSettings<
           | 'providerOptions'
           | 'experimental_download'
           | 'runtimeContext'
+          | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
       Pick<
@@ -272,6 +282,7 @@ export type ToolLoopAgentSettings<
         | 'providerOptions'
         | 'experimental_download'
         | 'runtimeContext'
+        | '_internal'
       > &
         Omit<Prompt, 'system'> & {
           toolsContext: InferToolSetContext<TOOLS>;

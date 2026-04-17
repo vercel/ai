@@ -1,6 +1,9 @@
 import { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { tool } from '@ai-sdk/provider-utils';
-import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
+import {
+  convertArrayToReadableStream,
+  mockId,
+} from '@ai-sdk/provider-utils/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -15,7 +18,26 @@ import {
   ToolExecutionStartEvent,
 } from '../generate-text/tool-execution-events';
 
+// mock now function
+vi.mock('../util/now', () => ({
+  now: vi.fn(),
+}));
+import { now } from '../util/now';
+const mockNow = vi.mocked(now);
+
+const testSettings = {
+  _internal: {
+    generateId: mockId({ prefix: 'id' }),
+    generateCallId: mockId({ prefix: 'call' }),
+  },
+};
+
 describe('ToolLoopAgent', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockNow.mockReturnValue(0);
+  });
+
   describe('generate', () => {
     let doGenerateOptions: LanguageModelV4CallOptions | undefined;
     let mockModel: MockLanguageModelV4;
@@ -1936,6 +1958,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
+          ...testSettings,
         });
 
         await agent.generate({
@@ -1947,7 +1970,7 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "callId": "call-yukj14m2O83KLVL68mxSKc8R",
+            "callId": "call-0",
             "context": undefined,
             "functionId": undefined,
             "messages": [
@@ -2147,6 +2170,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
+          ...testSettings,
         });
 
         const result = await agent.stream({
@@ -2160,7 +2184,7 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "callId": "call-FeWmyBghKgZuSFB0erSrB2pe",
+            "callId": "call-1",
             "context": undefined,
             "functionId": undefined,
             "messages": [
@@ -2369,6 +2393,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
+          ...testSettings,
         });
 
         await agent.generate({
@@ -2380,9 +2405,9 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "callId": "call-EHTFr7YZnap0EO9iZcjdRJyf",
+            "callId": "call-2",
             "context": undefined,
-            "durationMs": 0.008541999999977179,
+            "durationMs": 0,
             "functionId": undefined,
             "messages": [
               {
@@ -2583,6 +2608,7 @@ describe('ToolLoopAgent', () => {
                 `${value}-result`,
             }),
           },
+          ...testSettings,
         });
 
         const result = await agent.stream({
@@ -2596,9 +2622,9 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "callId": "call-ErPhfs41PL269KvTUNXbqeKD",
+            "callId": "call-3",
             "context": undefined,
-            "durationMs": 0.014791999999999916,
+            "durationMs": 0,
             "functionId": undefined,
             "messages": [
               {
