@@ -1,5 +1,14 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.41
+
+### Patch Changes
+
+- ed60b47: fix(provider/amazon-bedrock): fix Anthropic reasoning behavior related to Opus 4.7
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/anthropic@4.0.0-beta.37
+
 ## 5.0.0-beta.40
 
 ### Patch Changes

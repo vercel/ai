@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.26
+
+### Patch Changes
+
+- 2e98477: fix: retain stack traces on async errors
+
 ## 5.0.0-beta.25
 
 ### Patch Changes
