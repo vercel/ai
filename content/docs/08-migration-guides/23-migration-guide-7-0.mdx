@@ -259,6 +259,38 @@ Potential breaking issues:
 - If at least one tool declares `contextSchema`, `toolsContext` becomes required and only includes the tools that actually declare contextual data.
 - If you were relying on every tool callback seeing the same full runtime object, move shared step data to `runtimeContext`, or explicitly provide the needed per-tool data in each tool's `toolsContext` entry.
 
+### Structured Outputs: Remove Deprecated `experimental_output` Option and Result
+
+The deprecated `experimental_output` option has been removed in AI SDK 7. Replace all remaining usages with `output`.
+
+The deprecated `generateText()` result property `experimental_output` has also been removed. Read `result.output` instead.
+
+This name was deprecated in AI SDK 6, so if you already migrated to `output`, no changes are needed. Otherwise, update both the call options and any result access:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  experimental_output: Output.object({
+    schema: recipeSchema,
+  }),
+  prompt: 'Generate a recipe.',
+});
+
+console.log(result.experimental_output);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  output: Output.object({
+    schema: recipeSchema,
+  }),
+  prompt: 'Generate a recipe.',
+});
+
+console.log(result.output);
+```
+
 ### Tools: Remove Deprecated `experimental_activeTools` Option
 
 The deprecated `experimental_activeTools` option has been removed in AI SDK 7. Replace all remaining usages with `activeTools`.
@@ -453,3 +485,35 @@ const mcpClient = await createMCPClient({
 ```
 
 If the MCP server you use does not issue redirects, no changes are needed — the new default is more secure.
+
+## Anthropic Provider
+
+### `providerMetadata.anthropic.cacheCreationInputTokens` Removed
+
+The Anthropic-specific `cacheCreationInputTokens` field on `providerMetadata.anthropic` has been removed from the responses of `generateText` and `streamText` (as well as the `@ai-sdk/google-vertex/anthropic` sub-provider). This duplicated information that is already available on the standard, provider-agnostic `usage` object.
+
+Use `result.usage.inputTokenDetails.cacheWriteTokens` to read the number of tokens written to the cache, and `result.usage.inputTokenDetails.cacheReadTokens` to read the number of tokens served from the cache:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: [
+    /* ... messages with cacheControl ... */
+  ],
+});
+
+console.log(result.providerMetadata?.anthropic?.cacheCreationInputTokens);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: [
+    /* ... messages with cacheControl ... */
+  ],
+});
+
+console.log(result.usage.inputTokenDetails.cacheWriteTokens);
+```
+
+If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.providerMetadata?.anthropic?.usage`.

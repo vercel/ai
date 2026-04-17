@@ -1,15 +1,15 @@
 import type { TelemetryIntegration } from './telemetry-integration';
 
 /**
- * Registers a telemetry integration globally.
+ * Registers one or more telemetry integrations globally.
  */
 export function registerTelemetryIntegration(
-  integration: TelemetryIntegration,
+  ...integrations: TelemetryIntegration[]
 ): void {
   if (!globalThis.AI_SDK_TELEMETRY_INTEGRATIONS) {
     globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [];
   }
-  globalThis.AI_SDK_TELEMETRY_INTEGRATIONS.push(integration);
+  globalThis.AI_SDK_TELEMETRY_INTEGRATIONS.push(...integrations);
 }
 
 export function getGlobalTelemetryIntegrations(): TelemetryIntegration[] {

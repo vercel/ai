@@ -1,4 +1,4 @@
-import { asArray } from './as-array';
+import { Arrayable, asArray } from '@ai-sdk/provider-utils';
 import type { Callback } from './callback';
 
 /**
@@ -7,12 +7,11 @@ import type { Callback } from './callback';
  */
 export async function notify<EVENT>(options: {
   event: EVENT;
-  callbacks?: Callback<EVENT> | Array<Callback<EVENT> | undefined | null>;
+  callbacks?: Arrayable<Callback<EVENT> | undefined | null>;
 }): Promise<void> {
   for (const callback of asArray(options.callbacks)) {
-    if (callback == null) continue;
     try {
-      await callback(options.event);
+      await callback?.(options.event);
     } catch {}
   }
 }

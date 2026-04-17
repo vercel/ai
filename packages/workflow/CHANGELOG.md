@@ -1,5 +1,32 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.24
+
+### Patch Changes
+
+- eea8d98: refactoring: rename tool execution events
+- Updated dependencies [ec98264]
+- Updated dependencies [eea8d98]
+- Updated dependencies [75ef93e]
+  - ai@7.0.0-beta.109
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+
+## 1.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - ai@7.0.0-beta.108
+
+## 1.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - ai@7.0.0-beta.107
+
 ## 1.0.0-beta.21
 
 ### Patch Changes

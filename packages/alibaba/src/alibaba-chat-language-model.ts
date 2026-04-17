@@ -4,7 +4,6 @@ import {
   prepareTools,
 } from '@ai-sdk/openai-compatible/internal';
 import {
-  InvalidResponseDataError,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
   type LanguageModelV4Content,
@@ -21,12 +20,12 @@ import {
   generateId,
   type InferSchema,
   isCustomReasoning,
-  isParsableJson,
   mapReasoningToProviderBudget,
   parseProviderOptions,
   postJsonToApi,
   type ParseResult,
   serializeModelOptions,
+  StreamingToolCallTracker,
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -222,7 +221,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
       for (const toolCall of choice.message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallId: toolCall.id,
+          toolCallId: toolCall.id ?? generateId(),
           toolName: toolCall.function.name,
           input: toolCall.function.arguments!,
         });
@@ -281,13 +280,7 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
     let activeText = false;
     let activeReasoningId: string | null = null;
 
-    // Track tool calls for accumulation across chunks
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: { name: string; arguments: string };
-      hasFinished: boolean;
-    }> = [];
+    const toolCallTracker = new StreamingToolCallTracker({ generateId });
 
     return {
       stream: response.pipeThrough(
@@ -400,106 +393,10 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index ?? toolCalls.length;
-
-                // New tool call - first chunk with id and name
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  // Send initial delta if arguments started
-                  if (toolCall.function.arguments.length > 0) {
-                    controller.enqueue({
-                      type: 'tool-input-delta',
-                      id: toolCall.id,
-                      delta: toolCall.function.arguments,
-                    });
-                  }
-
-                  // Check if already complete (some providers send full tool call at once)
-                  if (isParsableJson(toolCall.function.arguments)) {
-                    controller.enqueue({
-                      type: 'tool-input-end',
-                      id: toolCall.id,
-                    });
-
-                    controller.enqueue({
-                      type: 'tool-call',
-                      toolCallId: toolCall.id,
-                      toolName: toolCall.function.name,
-                      input: toolCall.function.arguments,
-                    });
-
-                    toolCall.hasFinished = true;
-                  }
-
-                  continue;
-                }
-
-                // Existing tool call - accumulate arguments
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                // Append arguments if not null (skip arguments: null chunks)
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function.arguments +=
-                    toolCallDelta.function.arguments;
-
-                  controller.enqueue({
-                    type: 'tool-input-delta',
-                    id: toolCall.id,
-                    delta: toolCallDelta.function.arguments,
-                  });
-                }
-
-                // Check if tool call is now complete
-                if (isParsableJson(toolCall.function.arguments)) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id,
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                  });
-
-                  toolCall.hasFinished = true;
-                }
+                toolCallTracker.processDelta(
+                  toolCallDelta,
+                  controller.enqueue.bind(controller),
+                );
               }
             }
 
@@ -523,6 +420,8 @@ export class AlibabaLanguageModel implements LanguageModelV4 {
             if (activeText) {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
+
+            toolCallTracker.flush(controller.enqueue.bind(controller));
 
             controller.enqueue({
               type: 'finish',
