@@ -686,7 +686,31 @@ describe('executeToolCall', () => {
         },
       });
 
-      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0,
+            "error": [Error: test error],
+            "functionId": undefined,
+            "messages": [],
+            "modelId": undefined,
+            "provider": undefined,
+            "stepNumber": undefined,
+            "success": false,
+            "toolCall": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should execute the tool inside the executeToolInTelemetryContext wrapper when provided', async () => {

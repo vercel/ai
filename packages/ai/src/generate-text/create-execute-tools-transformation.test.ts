@@ -343,8 +343,55 @@ describe('createExecuteToolsTransformation', () => {
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(startEvents).toMatchInlineSnapshot();
-      expect(finishEvents).toMatchInlineSnapshot();
+      expect(startEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "value": "test",
+            },
+            "functionId": undefined,
+            "messages": [],
+            "modelId": "test-model",
+            "provider": "test-provider",
+            "stepNumber": 2,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
+      expect(finishEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "value": "test",
+            },
+            "durationMs": 0.01783299999999599,
+            "functionId": undefined,
+            "messages": [],
+            "modelId": "test-model",
+            "output": "test-result",
+            "provider": "test-provider",
+            "stepNumber": 2,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should call onToolExecutionEnd with success data', async () => {
@@ -386,7 +433,30 @@ describe('createExecuteToolsTransformation', () => {
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0.01979199999999537,
+            "functionId": undefined,
+            "messages": [],
+            "modelId": undefined,
+            "output": "abc-result",
+            "provider": undefined,
+            "stepNumber": undefined,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "abc",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should call onToolExecutionEnd with error data when tool fails', async () => {
@@ -433,7 +503,30 @@ describe('createExecuteToolsTransformation', () => {
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0.02637499999997317,
+            "error": [Error: tool failed],
+            "functionId": undefined,
+            "messages": [],
+            "modelId": undefined,
+            "provider": undefined,
+            "stepNumber": undefined,
+            "success": false,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "failingTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should not call callbacks for tools without execute', async () => {
@@ -479,8 +572,8 @@ describe('createExecuteToolsTransformation', () => {
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
-      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`[]`);
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`[]`);
     });
 
     it('should call callbacks for each tool in a multi-tool stream', async () => {
@@ -533,8 +626,88 @@ describe('createExecuteToolsTransformation', () => {
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
-      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [],
+            "modelId": undefined,
+            "provider": undefined,
+            "stepNumber": undefined,
+            "toolCall": {
+              "input": {
+                "value": "a",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [],
+            "modelId": undefined,
+            "provider": undefined,
+            "stepNumber": undefined,
+            "toolCall": {
+              "input": {
+                "value": "b",
+              },
+              "toolCallId": "call-2",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0.017667000000017197,
+            "functionId": undefined,
+            "messages": [],
+            "modelId": undefined,
+            "output": "a-result",
+            "provider": undefined,
+            "stepNumber": undefined,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "a",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0.02208300000000918,
+            "functionId": undefined,
+            "messages": [],
+            "modelId": undefined,
+            "output": "b-result",
+            "provider": undefined,
+            "stepNumber": undefined,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "b",
+              },
+              "toolCallId": "call-2",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should not call callbacks for provider-executed tools', async () => {
@@ -590,8 +763,8 @@ describe('createExecuteToolsTransformation', () => {
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
-      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`[]`);
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`[]`);
     });
   });
 

@@ -1947,15 +1947,29 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "messagesLength": 1,
+            "callId": "call-1Dlj9xQ95LFvIezCKgG8sYYd",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "test",
+                "role": "user",
+              },
+            ],
             "modelId": "mock-model-id",
             "provider": "mock-provider",
             "stepNumber": 0,
-            "toolCallId": "call-1",
-            "toolCallInput": {
-              "value": "test",
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
             },
-            "toolCallName": "testTool",
           }
         `);
       });
@@ -2146,12 +2160,29 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "messagesLength": 1,
-            "toolCallId": "call-1",
-            "toolCallInput": {
-              "value": "test",
+            "callId": "call-ElMGF84aHPF7sEA1MCdQspRH",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "test",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
             },
-            "toolCallName": "testTool",
           }
         `);
       });
@@ -2349,17 +2380,32 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "messagesLength": 1,
+            "callId": "call-hyZ1s2879wfp2vBJsziBnpVm",
+            "context": undefined,
+            "durationMs": 0.009417000000041753,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "test",
+                "role": "user",
+              },
+            ],
             "modelId": "mock-model-id",
             "output": "hello-result",
             "provider": "mock-provider",
             "stepNumber": 0,
             "success": true,
-            "toolCallId": "call-1",
-            "toolCallInput": {
-              "value": "hello",
+            "toolCall": {
+              "input": {
+                "value": "hello",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
             },
-            "toolCallName": "testTool",
           }
         `);
       });
@@ -2550,14 +2596,32 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "messagesLength": 1,
+            "callId": "call-sqdyzfDyXWHGPU3hW9nRw3Fd",
+            "context": undefined,
+            "durationMs": 0.020040999999991982,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "test",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
             "output": "hello-result",
+            "provider": "mock-provider",
+            "stepNumber": 0,
             "success": true,
-            "toolCallId": "call-1",
-            "toolCallInput": {
-              "value": "hello",
+            "toolCall": {
+              "input": {
+                "value": "hello",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-call",
             },
-            "toolCallName": "testTool",
           }
         `);
       });

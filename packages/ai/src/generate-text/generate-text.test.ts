@@ -1626,7 +1626,35 @@ describe('generateText', () => {
         },
       });
 
-      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "test-input",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "test-arg",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should be called once per tool call in a multi-tool step', async () => {
@@ -1661,13 +1689,66 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
         experimental_onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
         },
+        ...defaultSettings(),
       });
 
-      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "call-bIONpbEEcnMxkKBH3a9JuVlV",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "test-input",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "a",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+          {
+            "callId": "call-bIONpbEEcnMxkKBH3a9JuVlV",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "test-input",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "b",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-2",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should be called before tool execution', async () => {
@@ -1772,7 +1853,7 @@ describe('generateText', () => {
         },
       });
 
-      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`[]`);
     });
 
     it('should pass context', async () => {
@@ -1868,13 +1949,44 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
         experimental_onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
+        ...defaultSettings(),
       });
 
-      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "output": "test-arg-result",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "test-arg",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should be called with error data when tool execution fails', async () => {
@@ -1905,13 +2017,44 @@ describe('generateText', () => {
             },
           }),
         },
-        prompt: 'test-input',
         experimental_onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
+        ...defaultSettings(),
       });
 
-      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0,
+            "error": [Error: tool execution failed],
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": false,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should have a positive durationMs', async () => {
@@ -2292,7 +2435,6 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        prompt: 'test-input',
         stopWhen: isStepCount(4),
         experimental_onToolExecutionStart: async event => {
           toolExecutionStartEvents.push(event);
@@ -2300,10 +2442,181 @@ describe('generateText', () => {
         experimental_onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
+        ...defaultSettings(),
       });
 
-      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
-      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "step0",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "step0",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "step0-result",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 1,
+            "toolCall": {
+              "input": {
+                "value": "step1",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-2",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "output": "step0-result",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "step0",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "durationMs": 0,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "step0",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "step0-result",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "output": "step1-result",
+            "provider": "mock-provider",
+            "stepNumber": 1,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "step1",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-2",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -8889,7 +9202,16 @@ describe('generateText', () => {
         },
       });
 
-      expect(events).toMatchInlineSnapshot();
+      expect(events).toMatchInlineSnapshot(`
+        [
+          "onStart",
+          "onStepStart",
+          "onToolExecutionStart",
+          "onToolExecutionEnd",
+          "onStepFinish",
+          "onFinish",
+        ]
+      `);
     });
 
     it('should call globally registered integration listeners', async () => {

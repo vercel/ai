@@ -6232,7 +6232,35 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(toolExecutionStartEvents).toMatchInlineSnapshot();
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "test-input",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "test-arg",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should be called once per tool call in a multi-tool step', async () => {
@@ -6285,7 +6313,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(toolExecutionStartEvents.length).toMatchInlineSnapshot();
+      expect(toolExecutionStartEvents.length).toMatchInlineSnapshot(`2`);
     });
 
     it('should be called before tool execution', async () => {
@@ -6553,7 +6581,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(toolExecutionEndEvents.length).toMatchInlineSnapshot();
+      expect(toolExecutionEndEvents.length).toMatchInlineSnapshot(`1`);
     });
 
     it('should be called with error data when tool execution fails', async () => {
@@ -6870,17 +6898,49 @@ describe('streamText', () => {
             },
           }),
         },
-        prompt: 'test-input',
         toolsContext: { tool1: { context: 'test' } },
         experimental_onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
-        onError: () => {},
+        ...defaultSettings(),
       });
 
       await result.consumeStream();
 
-      expect(toolExecutionEndEvents).toMatchInlineSnapshot();
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "durationMs": 0,
+            "error": [Error: Tool execution failed],
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": false,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
   });
 
@@ -7032,8 +7092,8 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(toolExecutionStartEvents.length).toMatchInlineSnapshot();
-      expect(toolExecutionEndEvents.length).toMatchInlineSnapshot();
+      expect(toolExecutionStartEvents.length).toMatchInlineSnapshot(`2`);
+      expect(toolExecutionEndEvents.length).toMatchInlineSnapshot(`2`);
     });
   });
 
@@ -23254,7 +23314,16 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(events).toMatchInlineSnapshot();
+      expect(events).toMatchInlineSnapshot(`
+        [
+          "onStart",
+          "onStepStart",
+          "onToolExecutionStart",
+          "onToolExecutionEnd",
+          "onStepFinish",
+          "onFinish",
+        ]
+      `);
     });
 
     it('should call globally registered integration listeners', async () => {
