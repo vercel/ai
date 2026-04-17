@@ -30,7 +30,7 @@ async function main() {
     prompt: 'What is the weather in San Francisco?',
   });
 
-  throw new Error('Expected InvalidToolContextError to be thrown.');
+  throw new Error('Expected TypeValidationError to be thrown.');
 }
 
 main().catch(error => {

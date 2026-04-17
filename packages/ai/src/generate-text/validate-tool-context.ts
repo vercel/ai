@@ -1,5 +1,4 @@
-import { type FlexibleSchema, safeValidateTypes } from '@ai-sdk/provider-utils';
-import { InvalidToolContextError } from '../error/invalid-tool-context-error';
+import { type FlexibleSchema, validateTypes } from '@ai-sdk/provider-utils';
 
 /**
  * Validates a tool context value against the tool's optional context schema.
@@ -8,7 +7,7 @@ import { InvalidToolContextError } from '../error/invalid-tool-context-error';
  * Otherwise, the context is validated and normalized through the schema before
  * being passed into tool execution and approval hooks.
  *
- * @throws {InvalidToolContextError} When the provided tool context does not match
+ * @throws {TypeValidationError} When the provided tool context does not match
  * the tool's declared `contextSchema`.
  */
 export async function validateToolContext<CONTEXT>({
@@ -24,18 +23,12 @@ export async function validateToolContext<CONTEXT>({
     return context as CONTEXT;
   }
 
-  const contextValidationResult = await safeValidateTypes({
+  return await validateTypes({
     value: context,
     schema: contextSchema,
+    context: {
+      field: 'tool context',
+      entityName: toolName,
+    },
   });
-
-  if (!contextValidationResult.success) {
-    throw new InvalidToolContextError({
-      toolName,
-      toolContext: context,
-      cause: contextValidationResult.error,
-    });
-  }
-
-  return contextValidationResult.value;
 }

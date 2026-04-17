@@ -7,7 +7,6 @@ import {
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
-import { InvalidToolContextError } from '../error/invalid-tool-context-error';
 import { asLanguageModelUsage } from '../types/usage';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import { LanguageModelStreamPart } from './stream-language-model-call';
@@ -633,7 +632,7 @@ describe('createExecuteToolsTransformation', () => {
   });
 
   describe('tool execution error handling', () => {
-    it('should throw InvalidToolContextError before approval callbacks run', async () => {
+    it('should throw TypeValidationError before approval callbacks run', async () => {
       const tools = {
         guardedTool: tool({
           inputSchema: z.object({ value: z.string() }),
@@ -672,14 +671,14 @@ describe('createExecuteToolsTransformation', () => {
         await convertReadableStreamToArray(transformedStream);
         expect.unreachable('expected stream consumption to throw');
       } catch (error) {
-        expect(InvalidToolContextError.isInstance(error)).toBe(true);
-        expect(error).toMatchObject({
-          toolName: 'guardedTool',
-          toolContext: { apiKey: 123 },
-        });
+        expect(TypeValidationError.isInstance(error)).toBe(true);
 
-        if (InvalidToolContextError.isInstance(error)) {
-          expect(TypeValidationError.isInstance(error.cause)).toBe(true);
+        if (TypeValidationError.isInstance(error)) {
+          expect(error.value).toEqual({ apiKey: 123 });
+          expect(error.context).toEqual({
+            field: 'tool context',
+            entityName: 'guardedTool',
+          });
         }
       }
     });

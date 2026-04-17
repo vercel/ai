@@ -2,7 +2,6 @@ import { tool } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as z from 'zod/v4';
 import { TypeValidationError } from '../error';
-import { InvalidToolContextError } from '../error/invalid-tool-context-error';
 import { executeToolCall } from './execute-tool-call';
 import {
   GenerateTextOnToolCallFinishCallback,
@@ -108,7 +107,7 @@ describe('executeToolCall', () => {
       });
     });
 
-    it('should throw InvalidToolContextError when tool context fails validation', async () => {
+    it('should throw TypeValidationError when tool context fails validation', async () => {
       try {
         await executeToolCall({
           toolCall: createToolCall(),
@@ -128,14 +127,14 @@ describe('executeToolCall', () => {
 
         expect.unreachable('expected executeToolCall to throw');
       } catch (error) {
-        expect(InvalidToolContextError.isInstance(error)).toBe(true);
-        expect(error).toMatchObject({
-          toolName: 'testTool',
-          toolContext: { key1: 1 },
-        });
+        expect(TypeValidationError.isInstance(error)).toBe(true);
 
-        if (InvalidToolContextError.isInstance(error)) {
-          expect(TypeValidationError.isInstance(error.cause)).toBe(true);
+        if (TypeValidationError.isInstance(error)) {
+          expect(error.value).toEqual({ key1: 1 });
+          expect(error.context).toEqual({
+            field: 'tool context',
+            entityName: 'testTool',
+          });
         }
       }
     });

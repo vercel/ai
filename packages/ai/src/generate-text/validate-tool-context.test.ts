@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
-import { InvalidToolContextError } from '../error/invalid-tool-context-error';
 import { validateToolContext } from './validate-tool-context';
 
 describe('validateToolContext', () => {
@@ -27,7 +26,7 @@ describe('validateToolContext', () => {
     expect(result).toEqual({ apiKey: 'secret' });
   });
 
-  it('throws InvalidToolContextError when the context schema validation fails', async () => {
+  it('throws TypeValidationError when the context schema validation fails', async () => {
     try {
       await validateToolContext<{ apiKey: string }>({
         toolName: 'weather',
@@ -37,14 +36,14 @@ describe('validateToolContext', () => {
 
       expect.unreachable('expected validateToolContext to throw');
     } catch (error) {
-      expect(InvalidToolContextError.isInstance(error)).toBe(true);
-      expect(error).toMatchObject({
-        toolName: 'weather',
-        toolContext: { apiKey: 123 },
-      });
+      expect(TypeValidationError.isInstance(error)).toBe(true);
 
-      if (InvalidToolContextError.isInstance(error)) {
-        expect(TypeValidationError.isInstance(error.cause)).toBe(true);
+      if (TypeValidationError.isInstance(error)) {
+        expect(error.value).toEqual({ apiKey: 123 });
+        expect(error.context).toEqual({
+          field: 'tool context',
+          entityName: 'weather',
+        });
       }
     }
   });
