@@ -4,7 +4,7 @@ import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { asLanguageModelUsage } from '../types/usage';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
@@ -13,6 +13,13 @@ import {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
+
+// mock now function
+vi.mock('../util/now', () => ({
+  now: vi.fn(),
+}));
+import { now } from '../util/now';
+const mockNow = vi.mocked(now);
 
 const finishChunk = {
   type: 'model-call-end' as const,
@@ -34,6 +41,11 @@ const finishChunk = {
 };
 
 describe('createExecuteToolsTransformation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockNow.mockReturnValue(0);
+  });
+
   it('should handle async tool execution', async () => {
     const tools = {
       syncTool: tool({
@@ -373,7 +385,7 @@ describe('createExecuteToolsTransformation', () => {
             "context": {
               "value": "test",
             },
-            "durationMs": 0.01783299999999599,
+            "durationMs": 0,
             "functionId": undefined,
             "messages": [],
             "modelId": "test-model",
@@ -438,7 +450,7 @@ describe('createExecuteToolsTransformation', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "durationMs": 0.01979199999999537,
+            "durationMs": 0,
             "functionId": undefined,
             "messages": [],
             "modelId": undefined,
@@ -508,7 +520,7 @@ describe('createExecuteToolsTransformation', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "durationMs": 0.02637499999997317,
+            "durationMs": 0,
             "error": [Error: tool failed],
             "functionId": undefined,
             "messages": [],
@@ -669,7 +681,7 @@ describe('createExecuteToolsTransformation', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "durationMs": 0.017667000000017197,
+            "durationMs": 0,
             "functionId": undefined,
             "messages": [],
             "modelId": undefined,
@@ -689,7 +701,7 @@ describe('createExecuteToolsTransformation', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "durationMs": 0.02208300000000918,
+            "durationMs": 0,
             "functionId": undefined,
             "messages": [],
             "modelId": undefined,

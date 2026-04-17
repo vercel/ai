@@ -1947,7 +1947,7 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "callId": "call-1Dlj9xQ95LFvIezCKgG8sYYd",
+            "callId": "call-yukj14m2O83KLVL68mxSKc8R",
             "context": undefined,
             "functionId": undefined,
             "messages": [
@@ -2160,7 +2160,7 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "callId": "call-ElMGF84aHPF7sEA1MCdQspRH",
+            "callId": "call-FeWmyBghKgZuSFB0erSrB2pe",
             "context": undefined,
             "functionId": undefined,
             "messages": [
@@ -2380,9 +2380,9 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "callId": "call-hyZ1s2879wfp2vBJsziBnpVm",
+            "callId": "call-EHTFr7YZnap0EO9iZcjdRJyf",
             "context": undefined,
-            "durationMs": 0.009417000000041753,
+            "durationMs": 0.008541999999977179,
             "functionId": undefined,
             "messages": [
               {
@@ -2596,9 +2596,9 @@ describe('ToolLoopAgent', () => {
 
         expect(event).toMatchInlineSnapshot(`
           {
-            "callId": "call-sqdyzfDyXWHGPU3hW9nRw3Fd",
+            "callId": "call-ErPhfs41PL269KvTUNXbqeKD",
             "context": undefined,
-            "durationMs": 0.020040999999991982,
+            "durationMs": 0.014791999999999916,
             "functionId": undefined,
             "messages": [
               {

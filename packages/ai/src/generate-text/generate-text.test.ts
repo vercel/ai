@@ -1698,12 +1698,12 @@ describe('generateText', () => {
       expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
         [
           {
-            "callId": "call-bIONpbEEcnMxkKBH3a9JuVlV",
+            "callId": "test-telemetry-call-id",
             "context": undefined,
             "functionId": undefined,
             "messages": [
               {
-                "content": "test-input",
+                "content": "prompt",
                 "role": "user",
               },
             ],
@@ -1723,12 +1723,12 @@ describe('generateText', () => {
             },
           },
           {
-            "callId": "call-bIONpbEEcnMxkKBH3a9JuVlV",
+            "callId": "test-telemetry-call-id",
             "context": undefined,
             "functionId": undefined,
             "messages": [
               {
-                "content": "test-input",
+                "content": "prompt",
                 "role": "user",
               },
             ],

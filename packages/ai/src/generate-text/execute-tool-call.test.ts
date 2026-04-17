@@ -4,17 +4,16 @@ import * as z from 'zod/v4';
 import { executeToolCall } from './execute-tool-call';
 import { TypedToolCall } from './tool-call';
 import { TypedToolResult } from './tool-result';
-
-vi.mock('../util/now', () => ({
-  now: vi.fn(),
-}));
-
-import { now } from '../util/now';
 import {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
 } from './tool-execution-events';
 
+// mock now function
+vi.mock('../util/now', () => ({
+  now: vi.fn(),
+}));
+import { now } from '../util/now';
 const mockNow = vi.mocked(now);
 
 describe('executeToolCall', () => {
