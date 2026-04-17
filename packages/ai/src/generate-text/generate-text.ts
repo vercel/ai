@@ -428,7 +428,7 @@ export async function generateText<
     stepTimeoutMs != null ? new AbortController() : undefined;
   const mergedAbortSignal = mergeAbortSignals(
     abortSignal,
-    totalTimeoutMs != null ? AbortSignal.timeout(totalTimeoutMs) : undefined,
+    totalTimeoutMs,
     stepAbortController?.signal,
   );
 
