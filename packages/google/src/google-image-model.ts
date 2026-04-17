@@ -23,13 +23,13 @@ import {
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import {
-  GoogleGenerativeAIImageModelId,
-  GoogleGenerativeAIImageSettings,
-} from './google-generative-ai-image-settings';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
-import type { GoogleLanguageModelOptions } from './google-generative-ai-options';
+  GoogleImageModelId,
+  GoogleImageSettings,
+} from './google-image-settings';
+import { GoogleLanguageModel } from './google-language-model';
+import type { GoogleLanguageModelOptions } from './google-options';
 
-interface GoogleGenerativeAIImageModelConfig {
+interface GoogleImageModelConfig {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -40,10 +40,10 @@ interface GoogleGenerativeAIImageModelConfig {
   };
 }
 
-export class GoogleGenerativeAIImageModel implements ImageModelV4 {
+export class GoogleImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
-  static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAIImageModel) {
+  static [WORKFLOW_SERIALIZE](model: GoogleImageModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -52,13 +52,9 @@ export class GoogleGenerativeAIImageModel implements ImageModelV4 {
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
-    config: GoogleGenerativeAIImageModelConfig;
+    config: GoogleImageModelConfig;
   }) {
-    return new GoogleGenerativeAIImageModel(
-      options.modelId,
-      {},
-      options.config,
-    );
+    return new GoogleImageModel(options.modelId, {}, options.config);
   }
 
   get maxImagesPerCall(): number {
@@ -78,9 +74,9 @@ export class GoogleGenerativeAIImageModel implements ImageModelV4 {
   }
 
   constructor(
-    readonly modelId: GoogleGenerativeAIImageModelId,
-    private readonly settings: GoogleGenerativeAIImageSettings,
-    private readonly config: GoogleGenerativeAIImageModelConfig,
+    readonly modelId: GoogleImageModelId,
+    private readonly settings: GoogleImageSettings,
+    private readonly config: GoogleImageModelConfig,
   ) {}
 
   async doGenerate(
@@ -113,14 +109,14 @@ export class GoogleGenerativeAIImageModel implements ImageModelV4 {
     // Imagen API endpoints do not support image editing
     if (files != null && files.length > 0) {
       throw new Error(
-        'Google Generative AI does not support image editing with Imagen models. ' +
+        'Google Gemini API does not support image editing with Imagen models. ' +
           'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
       );
     }
 
     if (mask != null) {
       throw new Error(
-        'Google Generative AI does not support image editing with masks. ' +
+        'Google Gemini API does not support image editing with masks. ' +
           'Use Google Vertex AI (@ai-sdk/google-vertex) for image editing capabilities.',
       );
     }
@@ -282,7 +278,7 @@ export class GoogleGenerativeAIImageModel implements ImageModelV4 {
     ];
 
     // Instantiate language model
-    const languageModel = new GoogleGenerativeAILanguageModel(this.modelId, {
+    const languageModel = new GoogleLanguageModel(this.modelId, {
       provider: this.config.provider,
       baseURL: this.config.baseURL,
       headers: this.config.headers ?? {},

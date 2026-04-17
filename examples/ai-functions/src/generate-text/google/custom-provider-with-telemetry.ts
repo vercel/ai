@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGoogle } from '@ai-sdk/google';
 import { generateText, registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 
@@ -16,7 +16,7 @@ sdk.start();
 registerTelemetry(new OpenTelemetry());
 
 run(async () => {
-  const myCustomProvider = createGoogleGenerativeAI({
+  const myCustomProvider = createGoogle({
     name: 'my-custom-provider',
   });
 

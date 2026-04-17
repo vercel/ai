@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GoogleGenerativeAIFiles } from './google-generative-ai-files';
+import { GoogleFiles } from './google-files';
 
 const defaultFileResource = {
   name: 'files/abc123',
@@ -83,7 +83,7 @@ function createMockFiles({
     return new Response('Not found', { status: 404 });
   });
 
-  const files = new GoogleGenerativeAIFiles({
+  const files = new GoogleFiles({
     provider: 'google.generative-ai',
     baseURL: 'https://generativelanguage.googleapis.com/v1beta',
     headers: () => ({ 'x-goog-api-key': 'test-api-key' }),
@@ -93,7 +93,7 @@ function createMockFiles({
   return { files, fetchFn };
 }
 
-describe('GoogleGenerativeAIFiles', () => {
+describe('GoogleFiles', () => {
   describe('constructor', () => {
     it('should expose correct provider and specification version', () => {
       const { files } = createMockFiles();
@@ -388,7 +388,7 @@ describe('GoogleGenerativeAIFiles', () => {
           });
         });
 
-        const files = new GoogleGenerativeAIFiles({
+        const files = new GoogleFiles({
           provider: 'google.generative-ai',
           baseURL: 'https://generativelanguage.googleapis.com/v1beta',
           headers: () => ({ 'x-goog-api-key': 'test-api-key' }),
@@ -430,7 +430,7 @@ describe('GoogleGenerativeAIFiles', () => {
           });
         });
 
-        const files = new GoogleGenerativeAIFiles({
+        const files = new GoogleFiles({
           provider: 'google.generative-ai',
           baseURL: 'https://generativelanguage.googleapis.com/v1beta',
           headers: () => ({ 'x-goog-api-key': 'test-api-key' }),
@@ -538,7 +538,7 @@ describe('GoogleGenerativeAIFiles', () => {
           return new Response('Not found', { status: 404 });
         });
 
-        const files = new GoogleGenerativeAIFiles({
+        const files = new GoogleFiles({
           provider: 'google.generative-ai',
           baseURL: 'https://generativelanguage.googleapis.com/v1beta',
           headers: () => ({ 'x-goog-api-key': 'test-api-key' }),

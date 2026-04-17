@@ -34,24 +34,24 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import {
-  convertGoogleGenerativeAIUsage,
-  GoogleGenerativeAIUsageMetadata,
-} from './convert-google-generative-ai-usage';
+  convertGoogleUsage,
+  GoogleUsageMetadata,
+} from './convert-google-usage';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
-import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
+import { convertToGoogleMessages } from './convert-to-google-messages';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
-  GoogleGenerativeAIModelId,
+  GoogleModelId,
   googleLanguageModelOptions,
   VertexServiceTierMap,
-} from './google-generative-ai-options';
-import { GoogleGenerativeAIProviderMetadata } from './google-generative-ai-prompt';
+} from './google-options';
+import { GoogleProviderMetadata } from './google-prompt';
 import { prepareTools } from './google-prepare-tools';
 import { GoogleJSONAccumulator, PartialArg } from './google-json-accumulator';
-import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
+import { mapGoogleFinishReason } from './map-google-finish-reason';
 
-type GoogleGenerativeAIConfig = {
+type GoogleConfig = {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -64,15 +64,15 @@ type GoogleGenerativeAIConfig = {
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
 };
 
-export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
+export class GoogleLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
-  readonly modelId: GoogleGenerativeAIModelId;
+  readonly modelId: GoogleModelId;
 
-  private readonly config: GoogleGenerativeAIConfig;
+  private readonly config: GoogleConfig;
   private readonly generateId: () => string;
 
-  static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAILanguageModel) {
+  static [WORKFLOW_SERIALIZE](model: GoogleLanguageModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -81,15 +81,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
-    config: GoogleGenerativeAIConfig;
+    config: GoogleConfig;
   }) {
-    return new GoogleGenerativeAILanguageModel(options.modelId, options.config);
+    return new GoogleLanguageModel(options.modelId, options.config);
   }
 
-  constructor(
-    modelId: GoogleGenerativeAIModelId,
-    config: GoogleGenerativeAIConfig,
-  ) {
+  constructor(modelId: GoogleModelId, config: GoogleConfig) {
     this.modelId = modelId;
     this.config = config;
     this.generateId = config.generateId ?? generateId;
@@ -179,14 +176,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
     const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
 
-    const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
-      prompt,
-      {
-        isGemmaModel,
-        providerOptionsName,
-        supportsFunctionResponseParts,
-      },
-    );
+    const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
+      isGemmaModel,
+      providerOptionsName,
+      supportsFunctionResponseParts,
+    });
 
     const {
       tools: googleTools,
@@ -469,7 +463,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
     return {
       content,
       finishReason: {
-        unified: mapGoogleGenerativeAIFinishReason({
+        unified: mapGoogleFinishReason({
           finishReason: candidate.finishReason,
           // Only count client-executed tool calls for finish reason determination.
           hasToolCalls: content.some(
@@ -478,7 +472,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
         }),
         raw: candidate.finishReason ?? undefined,
       },
-      usage: convertGoogleGenerativeAIUsage(usageMetadata),
+      usage: convertGoogleUsage(usageMetadata),
       warnings,
       providerMetadata: {
         [providerOptionsName]: {
@@ -489,7 +483,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
           usageMetadata: usageMetadata ?? null,
           finishMessage: candidate.finishMessage ?? null,
           serviceTier: response.serviceTier ?? null,
-        } satisfies GoogleGenerativeAIProviderMetadata,
+        } satisfies GoogleProviderMetadata,
       },
       request: { body: args },
       response: {
@@ -529,7 +523,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
       unified: 'other',
       raw: undefined,
     };
-    let usage: GoogleGenerativeAIUsageMetadata | undefined = undefined;
+    let usage: GoogleUsageMetadata | undefined = undefined;
     let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
@@ -965,7 +959,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
 
             if (candidate.finishReason != null) {
               finishReason = {
-                unified: mapGoogleGenerativeAIFinishReason({
+                unified: mapGoogleFinishReason({
                   finishReason: candidate.finishReason,
                   hasToolCalls,
                 }),
@@ -981,7 +975,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
                   usageMetadata: usageMetadata ?? null,
                   finishMessage: candidate.finishMessage ?? null,
                   serviceTier,
-                } satisfies GoogleGenerativeAIProviderMetadata,
+                } satisfies GoogleProviderMetadata,
               };
             }
           },
@@ -1003,7 +997,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV4 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: convertGoogleGenerativeAIUsage(usage),
+              usage: convertGoogleUsage(usage),
               providerMetadata,
             });
           },
