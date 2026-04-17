@@ -44,13 +44,13 @@ const result = await generateText({
         'Called when a step (LLM call) begins, before the provider is called.',
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: '(event: OnToolCallStartEvent) => void | Promise<void>',
+      name: 'experimental_onToolExecutionStart',
+      type: '(event: ToolExecutionStartEvent) => void | Promise<void>',
       description: "Called when a tool's execute function is about to run.",
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: '(event: OnToolCallFinishEvent) => void | Promise<void>',
+      name: 'experimental_onToolExecutionEnd',
+      type: '(event: ToolExecutionEndEvent) => void | Promise<void>',
       description: "Called when a tool's execute function completes or errors.",
     },
     {
@@ -379,7 +379,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onToolCallStart`
+#### `experimental_onToolExecutionStart`
 
 Called before a tool's `execute` function runs.
 
@@ -388,7 +388,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolCallStart: event => {
+  experimental_onToolExecutionStart: event => {
     console.log('Tool:', event.toolCall.toolName);
     console.log('Input:', event.toolCall.input);
   },
@@ -466,7 +466,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onToolCallFinish`
+#### `experimental_onToolExecutionEnd`
 
 Called after a tool's `execute` function completes or errors. Uses a discriminated union on the `success` field.
 
@@ -475,7 +475,7 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolCallFinish: event => {
+  experimental_onToolExecutionEnd: event => {
     console.log('Tool:', event.toolCall.toolName);
     console.log('Duration:', event.durationMs, 'ms');
 
@@ -1225,10 +1225,10 @@ const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
   tools: { getWeather },
-  experimental_onToolCallStart: event => {
+  experimental_onToolExecutionStart: event => {
     console.log(`Tool "${event.toolCall.toolName}" starting...`);
   },
-  experimental_onToolCallFinish: event => {
+  experimental_onToolExecutionEnd: event => {
     if (event.success) {
       console.log(
         `Tool "${event.toolCall.toolName}" completed in ${event.durationMs}ms`,
