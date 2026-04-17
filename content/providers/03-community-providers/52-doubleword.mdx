@@ -162,8 +162,14 @@ await doubleword.close();
 
 The interface is identical to the real-time provider — only streaming is not supported (batch results return all at once).
 
+## End-to-End Examples
+
+- [`examples/tool-calling/`](https://github.com/doublewordai/vercel-doubleword/tree/main/examples/tool-calling) — minimal tool-calling agent with a calculator tool
+- [`examples/async-agents-research/`](https://github.com/doublewordai/vercel-doubleword/tree/main/examples/async-agents-research) — recursive multi-agent research orchestrator that spawns parallel sub-agents, searches the web, reads pages, and compiles a report — all LLM calls batched via `createDoublewordBatch`
+
 ## Additional Resources
 
 - [Doubleword Provider on GitHub](https://github.com/doublewordai/vercel-doubleword)
 - [Doubleword Documentation](https://docs.doubleword.ai)
+- [Available Models](https://docs.doubleword.ai/inference-api/models)
 - [`autobatcher` on npm](https://www.npmjs.com/package/autobatcher) — the batching engine
