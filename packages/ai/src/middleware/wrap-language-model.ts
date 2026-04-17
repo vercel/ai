@@ -6,9 +6,9 @@ import {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamResult,
 } from '@ai-sdk/provider';
+import { asArray } from '@ai-sdk/provider-utils';
 import { asLanguageModelV4 } from '../model/as-language-model-v4';
 import { LanguageModelMiddleware } from '../types';
-import { asArray } from '../util/as-array';
 
 /**
  * Wraps a LanguageModelV4 instance with middleware functionality.

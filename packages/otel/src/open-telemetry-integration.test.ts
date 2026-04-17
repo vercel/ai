@@ -151,7 +151,6 @@ function telemetryFields() {
     recordInputs: undefined,
     recordOutputs: undefined,
     functionId: undefined,
-    metadata: undefined,
   };
 }
 
@@ -186,7 +185,8 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     include: undefined,
     ...telemetryFields(),
-    context: undefined,
+    runtimeContext: {},
+    toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onStart']>>[0];
 }
@@ -211,11 +211,11 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     include: undefined,
     functionId: undefined,
-    metadata: undefined,
-    context: undefined,
+    runtimeContext: {},
     promptMessages: undefined,
     stepTools: undefined,
     stepToolChoice: undefined,
+    toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onStepStart']>>[0];
 }
@@ -226,8 +226,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     stepNumber: 0,
     model,
     functionId: undefined,
-    metadata: undefined,
-    context: {},
+    runtimeContext: {},
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
     reasoning: [],
@@ -267,6 +266,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
       messages: [],
     },
     providerMetadata: undefined,
+    toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onStepFinish']>>[0];
 }
@@ -310,8 +310,8 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     messages: [],
     abortSignal: undefined,
     functionId: undefined,
-    metadata: undefined,
-    context: undefined,
+    context: {},
+    toolsContext: {},
     ...overrides,
   } as Parameters<NonNullable<TelemetryIntegration['onToolCallStart']>>[0];
 }
@@ -335,8 +335,8 @@ function makeToolCallFinishEvent(
     abortSignal: undefined,
     durationMs: 42,
     functionId: undefined,
-    metadata: undefined,
-    context: undefined,
+    context: {},
+    toolsContext: {},
     ...overrides,
   };
 
@@ -414,10 +414,10 @@ describe('OpenTelemetryIntegration', () => {
       expect(tracer.startSpan).not.toHaveBeenCalled();
     });
 
-    it('does not create a span when isEnabled is undefined', () => {
+    it('should create a span when isEnabled is not defined explicitly', () => {
       otelIntegration.onStart?.(makeOnStartEvent({ isEnabled: undefined }));
 
-      expect(tracer.startSpan).not.toHaveBeenCalled();
+      expect(tracer.startSpan).toHaveBeenCalled();
     });
 
     it('uses a tracer configured for the call id', () => {
@@ -1234,17 +1234,17 @@ describe('OpenTelemetryIntegration', () => {
     });
   });
 
-  describe('metadata in telemetry', () => {
-    it('includes metadata as telemetry attributes', () => {
+  describe('context in telemetry', () => {
+    it('includes context as telemetry attributes', () => {
       otelIntegration.onStart!(
         makeOnStartEvent({
-          metadata: { userId: 'user-123', sessionId: 'sess-456' },
+          runtimeContext: { userId: 'user-123', sessionId: 'sess-456' },
         }),
       );
 
       const attrs = getStartSpanAttributes(tracer, 0);
-      expect(attrs['ai.telemetry.metadata.userId']).toBe('user-123');
-      expect(attrs['ai.telemetry.metadata.sessionId']).toBe('sess-456');
+      expect(attrs['ai.settings.context.userId']).toBe('user-123');
+      expect(attrs['ai.settings.context.sessionId']).toBe('sess-456');
     });
   });
 });
@@ -1303,12 +1303,17 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     await generateText({
       model: new MockLanguageModelV4({
         doGenerate: async ({}) => ({
           ...integrationDummyResponseValues,
           content: [{ type: 'text', text: 'Hello, world!' }],
+          response: {
+            id: 'test-id-default-enabled',
+            timestamp: new Date(10000),
+            modelId: 'mock-model-id',
+          },
         }),
       }),
       prompt: 'prompt',
@@ -1344,6 +1349,10 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       frequencyPenalty: 0.3,
       presencePenalty: 0.4,
       temperature: 0.5,
+      runtimeContext: {
+        test1: 'value1',
+        test2: false,
+      },
       stopSequences: ['stop'],
       headers: {
         header1: 'value1',
@@ -1352,10 +1361,6 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: new OpenTelemetryIntegration({ tracer }),
       },
     });
@@ -1825,10 +1830,13 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     const result = streamText({
       model: createStreamTestModel(),
       prompt: 'test-input',
+      experimental_telemetry: {
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
       _internal: {
         now: mockValues(0, 100, 500),
       },
@@ -1849,6 +1857,10 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       presencePenalty: 0.4,
       temperature: 0.5,
       stopSequences: ['stop'],
+      runtimeContext: {
+        test1: 'value1',
+        test2: false,
+      },
       headers: {
         header1: 'value1',
         header2: 'value2',
@@ -1856,10 +1868,6 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: new OpenTelemetryIntegration({ tracer }),
       },
       _internal: { now: mockValues(0, 100, 500) },
@@ -2232,7 +2240,7 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     await rerank({
       model: rerankModel,
       documents: [
@@ -2240,11 +2248,55 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
         'rainy day in the city',
         'cloudy day in the mountains',
       ],
+      experimental_telemetry: {
+        integrations: new OpenTelemetryIntegration({ tracer }),
+      },
       query: 'rainy day',
       topN: 3,
     });
 
-    expect(tracer.jsonSpans).toMatchInlineSnapshot(`[]`);
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.documents": [
+              ""sunny day at the beach"",
+              ""rainy day in the city"",
+              ""cloudy day in the mountains"",
+            ],
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.rerank",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.rerank",
+          },
+          "events": [],
+          "name": "ai.rerank",
+        },
+        {
+          "attributes": {
+            "ai.documents": [
+              ""sunny day at the beach"",
+              ""rainy day in the city"",
+              ""cloudy day in the mountains"",
+            ],
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.rerank.doRerank",
+            "ai.ranking": [
+              "{"index":2,"relevanceScore":0.9}",
+              "{"index":0,"relevanceScore":0.8}",
+              "{"index":1,"relevanceScore":0.7}",
+            ],
+            "ai.ranking.type": "text",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.rerank.doRerank",
+          },
+          "events": [],
+          "name": "ai.rerank.doRerank",
+        },
+      ]
+    `);
   });
 
   it('should record telemetry data when enabled (single call path)', async () => {
@@ -2260,10 +2312,6 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
@@ -2282,8 +2330,6 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
             "ai.operationId": "ai.rerank",
             "ai.settings.maxRetries": 2,
             "ai.telemetry.functionId": "test-function-id",
-            "ai.telemetry.metadata.test1": "value1",
-            "ai.telemetry.metadata.test2": false,
             "operation.name": "ai.rerank test-function-id",
             "resource.name": "test-function-id",
           },
@@ -2308,8 +2354,6 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
             "ai.ranking.type": "text",
             "ai.settings.maxRetries": 2,
             "ai.telemetry.functionId": "test-function-id",
-            "ai.telemetry.metadata.test1": "value1",
-            "ai.telemetry.metadata.test2": false,
             "operation.name": "ai.rerank.doRerank test-function-id",
             "resource.name": "test-function-id",
           },
@@ -2399,7 +2443,7 @@ describe('OpenTelemetryIntegration integration with embed', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     await embed({
       model: new MockEmbeddingModelV4({
         doEmbed: mockEmbedSingle([embedTestValue], [embedDummyEmbedding]),
@@ -2424,10 +2468,6 @@ describe('OpenTelemetryIntegration integration with embed', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
@@ -2494,7 +2534,7 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     await embedMany({
       model: new MockEmbeddingModelV4({
         maxEmbeddingsPerCall: 5,
@@ -2540,10 +2580,6 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
@@ -2563,10 +2599,6 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: [new OpenTelemetryIntegration({ tracer })],
       },
     });
@@ -2670,7 +2702,7 @@ describe('OpenTelemetryIntegration integration with generateObject', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     await generateObject({
       model: new MockLanguageModelV4({
         doGenerate: async () => ({
@@ -2722,10 +2754,6 @@ describe('OpenTelemetryIntegration integration with generateObject', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: new OpenTelemetryIntegration({ tracer }),
       },
     });
@@ -2820,7 +2848,7 @@ describe('OpenTelemetryIntegration integration with streamObject', () => {
     tracer = new IntegrationMockTracer();
   });
 
-  it('should not record any telemetry data when not explicitly enabled', async () => {
+  it('should record telemetry data when isEnabled is not explicitly set', async () => {
     const result = streamObject({
       model: new MockLanguageModelV4({
         doStream: async () => ({
@@ -2906,10 +2934,6 @@ describe('OpenTelemetryIntegration integration with streamObject', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
         integrations: new OpenTelemetryIntegration({ tracer }),
       },
       _internal: { now: () => 0 },

@@ -33,13 +33,12 @@ run(async () => {
       }),
     }),
     prompt: 'Generate a lasagna recipe.',
+    runtimeContext: {
+      something: 'custom',
+      someOtherThing: 'other-value',
+    },
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'my-awesome-function',
-      metadata: {
-        something: 'custom',
-        someOtherThing: 'other-value',
-      },
     },
   });
 

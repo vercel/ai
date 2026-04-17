@@ -24,13 +24,7 @@ run(async () => {
     model: myCustomProvider('claude-sonnet-4-20250514'),
     prompt: 'Say hello in 5 words',
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'anthropic-custom-provider-demo',
-      metadata: {
-        environment: 'demo',
-        endpoint_type: 'my-anthropic-proxy',
-        cost_tracking: 'enabled',
-      },
     },
   });
 

@@ -1,9 +1,5 @@
-import { asArray } from './as-array';
-
-/**
- * A callback function that can be used to notify listeners.
- */
-export type Listener<EVENT> = (event: EVENT) => PromiseLike<void> | void;
+import { Arrayable, asArray } from '@ai-sdk/provider-utils';
+import type { Callback } from './callback';
 
 /**
  * Notifies all provided callbacks with the given event.
@@ -11,12 +7,11 @@ export type Listener<EVENT> = (event: EVENT) => PromiseLike<void> | void;
  */
 export async function notify<EVENT>(options: {
   event: EVENT;
-  callbacks?: Listener<EVENT> | Array<Listener<EVENT> | undefined | null>;
+  callbacks?: Arrayable<Callback<EVENT> | undefined | null>;
 }): Promise<void> {
   for (const callback of asArray(options.callbacks)) {
-    if (callback == null) continue;
     try {
-      await callback(options.event);
-    } catch (_ignored) {}
+      await callback?.(options.event);
+    } catch {}
   }
 }

@@ -15,9 +15,6 @@ export default createTransformer((fileInfo, api, options, context) => {
     EmbeddingTokenUsage: 'EmbeddingModelUsage',
   };
 
-  // Set to keep track of already imported new names to avoid duplicates
-  const importedNewNames = new Set<string>();
-
   // Replace imports at ImportDeclaration level
   root
     .find(j.ImportDeclaration)

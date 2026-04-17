@@ -261,7 +261,13 @@ export function createBedrockAnthropic(
         }`,
 
       transformRequestBody: (args, betas) => {
-        const { model, stream, tool_choice, tools, ...rest } = args;
+        const {
+          model: _model,
+          stream: _stream,
+          tool_choice,
+          tools,
+          ...rest
+        } = args;
 
         const transformedToolChoice =
           tool_choice != null

@@ -8,10 +8,11 @@ export async function POST(req: Request) {
     model: openai('gpt-5-mini'),
     maxOutputTokens: 100,
     prompt,
+    runtimeContext: {
+      example: 'value',
+    },
     experimental_telemetry: {
-      isEnabled: true,
       functionId: 'example-function-id',
-      metadata: { example: 'value' },
     },
   });
 

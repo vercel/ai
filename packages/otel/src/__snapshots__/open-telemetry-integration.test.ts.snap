@@ -1,7 +1,5 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`OpenTelemetryIntegration integration with embed > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
-
 exports[`OpenTelemetryIntegration integration with embed > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {
@@ -44,8 +42,6 @@ exports[`OpenTelemetryIntegration integration with embed > should record telemet
       "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.settings.maxRetries": 2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.tokens": 10,
       "ai.value": ""sunny day at the beach"",
       "operation.name": "ai.embed test-function-id",
@@ -65,8 +61,6 @@ exports[`OpenTelemetryIntegration integration with embed > should record telemet
       "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.settings.maxRetries": 2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.tokens": 10,
       "ai.values": [
         ""sunny day at the beach"",
@@ -80,7 +74,44 @@ exports[`OpenTelemetryIntegration integration with embed > should record telemet
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with embedMany > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+exports[`OpenTelemetryIntegration integration with embed > should record telemetry data when isEnabled is not explicitly set 1`] = `
+[
+  {
+    "attributes": {
+      "ai.embedding": "[0.1,0.2,0.3]",
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embed",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.tokens": NaN,
+      "ai.value": ""sunny day at the beach"",
+      "operation.name": "ai.embed",
+    },
+    "events": [],
+    "name": "ai.embed",
+  },
+  {
+    "attributes": {
+      "ai.embeddings": [
+        "[0.1,0.2,0.3]",
+      ],
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embed.doEmbed",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.tokens": NaN,
+      "ai.values": [
+        ""sunny day at the beach"",
+      ],
+      "operation.name": "ai.embed.doEmbed",
+    },
+    "events": [],
+    "name": "ai.embed.doEmbed",
+  },
+]
+`;
 
 exports[`OpenTelemetryIntegration integration with embedMany > should not record telemetry inputs / outputs when disabled 1`] = `
 [
@@ -128,8 +159,6 @@ exports[`OpenTelemetryIntegration integration with embedMany > should record tel
       "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.settings.maxRetries": 2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.tokens": 30,
       "ai.values": [
         ""sunny day at the beach"",
@@ -154,8 +183,6 @@ exports[`OpenTelemetryIntegration integration with embedMany > should record tel
       "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.settings.maxRetries": 2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.tokens": 10,
       "ai.values": [
         ""sunny day at the beach"",
@@ -178,8 +205,6 @@ exports[`OpenTelemetryIntegration integration with embedMany > should record tel
       "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.settings.maxRetries": 2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.tokens": 20,
       "ai.values": [
         ""snowy night in the mountains"",
@@ -208,8 +233,6 @@ exports[`OpenTelemetryIntegration integration with embedMany > should record tel
       "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.settings.maxRetries": 2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.tokens": 10,
       "ai.values": [
         ""sunny day at the beach"",
@@ -235,8 +258,6 @@ exports[`OpenTelemetryIntegration integration with embedMany > should record tel
       "ai.request.headers.user-agent": "ai/0.0.0-test",
       "ai.settings.maxRetries": 2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.tokens": 10,
       "ai.values": [
         ""sunny day at the beach"",
@@ -252,7 +273,56 @@ exports[`OpenTelemetryIntegration integration with embedMany > should record tel
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with generateObject > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+exports[`OpenTelemetryIntegration integration with embedMany > should record telemetry data when isEnabled is not explicitly set 1`] = `
+[
+  {
+    "attributes": {
+      "ai.embeddings": [
+        "[0.1,0.2,0.3]",
+        "[0.4,0.5,0.6]",
+        "[0.7,0.8,0.9]",
+      ],
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embedMany",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.tokens": NaN,
+      "ai.values": [
+        ""sunny day at the beach"",
+        ""rainy afternoon in the city"",
+        ""snowy night in the mountains"",
+      ],
+      "operation.name": "ai.embedMany",
+    },
+    "events": [],
+    "name": "ai.embedMany",
+  },
+  {
+    "attributes": {
+      "ai.embeddings": [
+        "[0.1,0.2,0.3]",
+        "[0.4,0.5,0.6]",
+        "[0.7,0.8,0.9]",
+      ],
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.embedMany.doEmbed",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.tokens": NaN,
+      "ai.values": [
+        ""sunny day at the beach"",
+        ""rainy afternoon in the city"",
+        ""snowy night in the mountains"",
+      ],
+      "operation.name": "ai.embedMany.doEmbed",
+    },
+    "events": [],
+    "name": "ai.embedMany.doEmbed",
+  },
+]
+`;
 
 exports[`OpenTelemetryIntegration integration with generateObject > should not record telemetry inputs / outputs when disabled 1`] = `
 [
@@ -329,8 +399,6 @@ exports[`OpenTelemetryIntegration integration with generateObject > should recor
       "ai.settings.topK": 0.1,
       "ai.settings.topP": 0.2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.inputTokens": 10,
       "ai.usage.outputTokens": 20,
       "ai.usage.totalTokens": 30,
@@ -362,8 +430,6 @@ exports[`OpenTelemetryIntegration integration with generateObject > should recor
       "ai.settings.topK": 0.1,
       "ai.settings.topP": 0.2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.inputTokens": 10,
       "ai.usage.outputTokens": 20,
       "ai.usage.totalTokens": 30,
@@ -390,7 +456,60 @@ exports[`OpenTelemetryIntegration integration with generateObject > should recor
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with generateText > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+exports[`OpenTelemetryIntegration integration with generateObject > should record telemetry data when isEnabled is not explicitly set 1`] = `
+[
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.generateObject",
+      "ai.prompt": "{"prompt":"prompt"}",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.response.finishReason": "stop",
+      "ai.response.object": "{"content":"Hello, world!"}",
+      "ai.schema": "{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}",
+      "ai.settings.maxRetries": 2,
+      "ai.settings.output": "object",
+      "ai.usage.inputTokens": 10,
+      "ai.usage.outputTokens": 20,
+      "ai.usage.totalTokens": 30,
+      "operation.name": "ai.generateObject",
+    },
+    "events": [],
+    "name": "ai.generateObject",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.generateObject.doGenerate",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"prompt"}]}]",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.response.finishReason": "stop",
+      "ai.response.id": "id-1",
+      "ai.response.model": "m-1",
+      "ai.response.object": "{"content":"Hello, world!"}",
+      "ai.response.timestamp": "1970-01-01T00:00:00.123Z",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokens": 10,
+      "ai.usage.outputTokens": 20,
+      "ai.usage.totalTokens": 30,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.response.id": "id-1",
+      "gen_ai.response.model": "m-1",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 10,
+      "gen_ai.usage.output_tokens": 20,
+      "operation.name": "ai.generateObject.doGenerate",
+    },
+    "events": [],
+    "name": "ai.generateObject.doGenerate",
+  },
+]
+`;
 
 exports[`OpenTelemetryIntegration integration with generateText > should not record telemetry inputs / outputs when disabled 1`] = `
 [
@@ -469,6 +588,8 @@ exports[`OpenTelemetryIntegration integration with generateText > should record 
       "ai.response.finishReason": "stop",
       "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
       "ai.response.text": "Hello, world!",
+      "ai.settings.context.test1": "value1",
+      "ai.settings.context.test2": false,
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.maxRetries": 2,
       "ai.settings.presencePenalty": 0.4,
@@ -479,8 +600,6 @@ exports[`OpenTelemetryIntegration integration with generateText > should record 
       "ai.settings.topK": 0.1,
       "ai.settings.topP": 0.2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokenDetails.textTokens": 10,
@@ -508,6 +627,8 @@ exports[`OpenTelemetryIntegration integration with generateText > should record 
       "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:10.000Z",
+      "ai.settings.context.test1": "value1",
+      "ai.settings.context.test2": false,
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.maxRetries": 2,
       "ai.settings.presencePenalty": 0.4,
@@ -518,8 +639,6 @@ exports[`OpenTelemetryIntegration integration with generateText > should record 
       "ai.settings.topK": 0.1,
       "ai.settings.topP": 0.2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokenDetails.textTokens": 10,
@@ -551,7 +670,63 @@ exports[`OpenTelemetryIntegration integration with generateText > should record 
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamObject > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+exports[`OpenTelemetryIntegration integration with generateText > should record telemetry data when isEnabled is not explicitly set 1`] = `
+[
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.generateText",
+      "ai.prompt": "{"prompt":"prompt"}",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.response.finishReason": "stop",
+      "ai.response.text": "Hello, world!",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "operation.name": "ai.generateText",
+    },
+    "events": [],
+    "name": "ai.generateText",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.generateText.doGenerate",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"prompt"}]}]",
+      "ai.prompt.toolChoice": "{"type":"auto"}",
+      "ai.request.headers.user-agent": "ai/0.0.0-test",
+      "ai.response.finishReason": "stop",
+      "ai.response.id": "test-id-default-enabled",
+      "ai.response.model": "mock-model-id",
+      "ai.response.text": "Hello, world!",
+      "ai.response.timestamp": "1970-01-01T00:00:10.000Z",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.response.id": "test-id-default-enabled",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
+      "operation.name": "ai.generateText.doGenerate",
+    },
+    "events": [],
+    "name": "ai.generateText.doGenerate",
+  },
+]
+`;
 
 exports[`OpenTelemetryIntegration integration with streamObject > should not record telemetry inputs / outputs when disabled 1`] = `
 [
@@ -633,8 +808,6 @@ exports[`OpenTelemetryIntegration integration with streamObject > should record 
       "ai.settings.topK": 0.1,
       "ai.settings.topP": 0.2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
@@ -666,8 +839,6 @@ exports[`OpenTelemetryIntegration integration with streamObject > should record 
       "ai.settings.topP": 0.2,
       "ai.stream.msToFirstChunk": 0,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokens": 10,
       "ai.usage.totalTokens": 13,
@@ -701,7 +872,66 @@ exports[`OpenTelemetryIntegration integration with streamObject > should record 
 ]
 `;
 
-exports[`OpenTelemetryIntegration integration with streamText > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
+exports[`OpenTelemetryIntegration integration with streamObject > should record telemetry data when isEnabled is not explicitly set 1`] = `
+[
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamObject",
+      "ai.prompt": "{"prompt":"prompt"}",
+      "ai.response.finishReason": "stop",
+      "ai.response.object": "{"content":"Hello, world!"}",
+      "ai.schema": "{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}",
+      "ai.settings.maxRetries": 2,
+      "ai.settings.output": "object",
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "operation.name": "ai.streamObject",
+    },
+    "events": [],
+    "name": "ai.streamObject",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamObject.doStream",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"prompt"}]}]",
+      "ai.response.finishReason": "stop",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
+      "ai.response.object": "{"content":"Hello, world!"}",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+      "ai.settings.maxRetries": 2,
+      "ai.stream.msToFirstChunk": 0,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
+      "operation.name": "ai.streamObject.doStream",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.stream.msToFirstChunk": 0,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+    ],
+    "name": "ai.streamObject.doStream",
+  },
+]
+`;
 
 exports[`OpenTelemetryIntegration integration with streamText > should not record telemetry inputs / outputs when disabled 1`] = `
 [
@@ -884,6 +1114,8 @@ exports[`OpenTelemetryIntegration integration with streamText > should record te
       "ai.response.finishReason": "stop",
       "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
       "ai.response.text": "Hello, world!",
+      "ai.settings.context.test1": "value1",
+      "ai.settings.context.test2": false,
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.maxRetries": 2,
       "ai.settings.presencePenalty": 0.4,
@@ -894,8 +1126,6 @@ exports[`OpenTelemetryIntegration integration with streamText > should record te
       "ai.settings.topK": 0.1,
       "ai.settings.topP": 0.2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokenDetails.textTokens": 10,
@@ -925,6 +1155,8 @@ exports[`OpenTelemetryIntegration integration with streamText > should record te
       "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
       "ai.response.text": "Hello, world!",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+      "ai.settings.context.test1": "value1",
+      "ai.settings.context.test2": false,
       "ai.settings.frequencyPenalty": 0.3,
       "ai.settings.maxRetries": 2,
       "ai.settings.presencePenalty": 0.4,
@@ -935,8 +1167,6 @@ exports[`OpenTelemetryIntegration integration with streamText > should record te
       "ai.settings.topK": 0.1,
       "ai.settings.topP": 0.2,
       "ai.telemetry.functionId": "test-function-id",
-      "ai.telemetry.metadata.test1": "value1",
-      "ai.telemetry.metadata.test2": false,
       "ai.usage.inputTokenDetails.noCacheTokens": 3,
       "ai.usage.inputTokens": 3,
       "ai.usage.outputTokenDetails.textTokens": 10,
@@ -961,6 +1191,81 @@ exports[`OpenTelemetryIntegration integration with streamText > should record te
       "gen_ai.usage.output_tokens": 10,
       "operation.name": "ai.streamText.doStream test-function-id",
       "resource.name": "test-function-id",
+    },
+    "events": [
+      {
+        "attributes": {
+          "ai.response.msToFirstChunk": 100,
+        },
+        "name": "ai.stream.firstChunk",
+      },
+      {
+        "attributes": {
+          "ai.response.avgOutputTokensPerSecond": 20,
+          "ai.response.msToFinish": 500,
+        },
+        "name": "ai.stream.finish",
+      },
+    ],
+    "name": "ai.streamText.doStream",
+  },
+]
+`;
+
+exports[`OpenTelemetryIntegration integration with streamText > should record telemetry data when isEnabled is not explicitly set 1`] = `
+[
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText",
+      "ai.prompt": "{"prompt":"test-input"}",
+      "ai.response.finishReason": "stop",
+      "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
+      "ai.response.text": "Hello, world!",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "operation.name": "ai.streamText",
+    },
+    "events": [],
+    "name": "ai.streamText",
+  },
+  {
+    "attributes": {
+      "ai.model.id": "mock-model-id",
+      "ai.model.provider": "mock-provider",
+      "ai.operationId": "ai.streamText.doStream",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
+      "ai.prompt.toolChoice": "{"type":"auto"}",
+      "ai.response.avgOutputTokensPerSecond": 20,
+      "ai.response.finishReason": "stop",
+      "ai.response.id": "id-0",
+      "ai.response.model": "mock-model-id",
+      "ai.response.msToFinish": 500,
+      "ai.response.msToFirstChunk": 100,
+      "ai.response.providerMetadata": "{"testProvider":{"testKey":"testValue"}}",
+      "ai.response.text": "Hello, world!",
+      "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
+      "ai.settings.maxRetries": 2,
+      "ai.usage.inputTokenDetails.noCacheTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokenDetails.textTokens": 10,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
+      "gen_ai.request.model": "mock-model-id",
+      "gen_ai.response.finish_reasons": [
+        "stop",
+      ],
+      "gen_ai.response.id": "id-0",
+      "gen_ai.response.model": "mock-model-id",
+      "gen_ai.system": "mock-provider",
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
+      "operation.name": "ai.streamText.doStream",
     },
     "events": [
       {

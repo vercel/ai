@@ -14,14 +14,14 @@ import { validateUIMessages } from './validate-ui-messages';
 export type DirectChatTransportOptions<
   CALL_OPTIONS,
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context,
+  RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
   UI_MESSAGE extends UIMessage<unknown, never, InferUITools<TOOLS>>,
 > = {
   /**
    * The agent to use for generating responses.
    */
-  agent: Agent<CALL_OPTIONS, TOOLS, USER_CONTEXT, OUTPUT>;
+  agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
 
   /**
    * Options to pass to the agent when calling it.
@@ -50,7 +50,7 @@ export type DirectChatTransportOptions<
 export class DirectChatTransport<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   UI_MESSAGE extends UIMessage<unknown, never, InferUITools<TOOLS>> = UIMessage<
     unknown,
@@ -58,7 +58,7 @@ export class DirectChatTransport<
     InferUITools<TOOLS>
   >,
 > implements ChatTransport<UI_MESSAGE> {
-  private readonly agent: Agent<CALL_OPTIONS, TOOLS, USER_CONTEXT, OUTPUT>;
+  private readonly agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   private readonly agentOptions: CALL_OPTIONS | undefined;
   private readonly uiMessageStreamOptions: Omit<
     UIMessageStreamOptions<UI_MESSAGE>,
@@ -72,7 +72,7 @@ export class DirectChatTransport<
   }: DirectChatTransportOptions<
     CALL_OPTIONS,
     TOOLS,
-    USER_CONTEXT,
+    RUNTIME_CONTEXT,
     OUTPUT,
     UI_MESSAGE
   >) {
@@ -106,7 +106,7 @@ export class DirectChatTransport<
         ? { options: this.agentOptions }
         : {}),
     } as Parameters<
-      Agent<CALL_OPTIONS, TOOLS, USER_CONTEXT, OUTPUT>['stream']
+      Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>['stream']
     >[0]);
 
     // Return the UI message stream

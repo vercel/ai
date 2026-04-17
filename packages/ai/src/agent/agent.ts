@@ -1,10 +1,11 @@
+import type { Arrayable } from '@ai-sdk/provider-utils';
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
 import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
 import type { Context, ToolSet } from '@ai-sdk/provider-utils';
-import { TimeoutConfiguration } from '../prompt/call-settings';
+import { TimeoutConfiguration } from '../prompt/request-options';
 import type {
   ToolLoopAgentOnFinishCallback,
   ToolLoopAgentOnStartCallback,
@@ -20,7 +21,7 @@ import type {
 export type AgentCallParameters<
   CALL_OPTIONS,
   TOOLS extends ToolSet = {},
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
 > = ([CALL_OPTIONS] extends [never]
   ? { options?: never }
   : { options: CALL_OPTIONS }) &
@@ -69,14 +70,14 @@ export type AgentCallParameters<
     /**
      * Callback that is called when the agent operation begins, before any LLM calls.
      */
-    experimental_onStart?: ToolLoopAgentOnStartCallback<TOOLS, USER_CONTEXT>;
+    experimental_onStart?: ToolLoopAgentOnStartCallback<TOOLS, RUNTIME_CONTEXT>;
 
     /**
      * Callback that is called when a step (LLM call) begins, before the provider is called.
      */
     experimental_onStepStart?: ToolLoopAgentOnStepStartCallback<
       TOOLS,
-      USER_CONTEXT
+      RUNTIME_CONTEXT
     >;
 
     /**
@@ -92,12 +93,12 @@ export type AgentCallParameters<
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
-    onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS, USER_CONTEXT>;
+    onStepFinish?: ToolLoopAgentOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
 
     /**
      * Callback that is called when all steps are finished and the response is complete.
      */
-    onFinish?: ToolLoopAgentOnFinishCallback<TOOLS, USER_CONTEXT>;
+    onFinish?: ToolLoopAgentOnFinishCallback<TOOLS, RUNTIME_CONTEXT>;
   };
 
 /**
@@ -106,16 +107,14 @@ export type AgentCallParameters<
 export type AgentStreamParameters<
   CALL_OPTIONS,
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
-> = AgentCallParameters<CALL_OPTIONS, TOOLS, USER_CONTEXT> & {
+  RUNTIME_CONTEXT extends Context = Context,
+> = AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT> & {
   /**
    * Optional stream transformations.
    * They are applied in the order they are provided.
    * The stream transformations must maintain the stream structure for streamText to work correctly.
    */
-  experimental_transform?:
-    | StreamTextTransform<TOOLS>
-    | Array<StreamTextTransform<TOOLS>>;
+  experimental_transform?: Arrayable<StreamTextTransform<TOOLS>>;
 };
 
 /**
@@ -128,7 +127,7 @@ export type AgentStreamParameters<
 export interface Agent<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
-  USER_CONTEXT extends Context = Context,
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
 > {
   /**
@@ -151,13 +150,13 @@ export interface Agent<
    * Generates an output from the agent (non-streaming).
    */
   generate(
-    options: AgentCallParameters<CALL_OPTIONS, TOOLS, USER_CONTEXT>,
-  ): PromiseLike<GenerateTextResult<TOOLS, USER_CONTEXT, OUTPUT>>;
+    options: AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>,
+  ): PromiseLike<GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
   /**
    * Streams an output from the agent (streaming).
    */
   stream(
-    options: AgentStreamParameters<CALL_OPTIONS, TOOLS, USER_CONTEXT>,
-  ): PromiseLike<StreamTextResult<TOOLS, USER_CONTEXT, OUTPUT>>;
+    options: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>,
+  ): PromiseLike<StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 }

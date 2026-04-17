@@ -33,7 +33,7 @@ import type {
   RerankOnStartEvent,
   RerankStartEvent,
   TelemetryIntegration,
-  TelemetrySettings,
+  TelemetryOptions,
   ToolSet,
 } from 'ai';
 import {
@@ -63,13 +63,13 @@ function recordSpanError(span: Span, error: unknown): void {
 }
 
 function shouldRecord(
-  telemetry: TelemetrySettings | undefined,
-): telemetry is TelemetrySettings {
-  return telemetry?.isEnabled === true;
+  telemetry: TelemetryOptions | undefined,
+): telemetry is TelemetryOptions {
+  return telemetry?.isEnabled !== false;
 }
 
 function selectAttributes(
-  telemetry: TelemetrySettings | undefined,
+  telemetry: TelemetryOptions | undefined,
   attributes: Record<
     string,
     | AttributeValue
@@ -117,9 +117,9 @@ function selectAttributes(
 
 interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
-  USER_CONTEXT extends AISDKContext = AISDKContext,
+  RUNTIME_CONTEXT extends AISDKContext = AISDKContext,
   OUTPUT extends Output = Output,
-> extends OnStepStartEvent<TOOLS, USER_CONTEXT, OUTPUT> {
+> extends OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
   readonly stepToolChoice?: unknown;
@@ -127,7 +127,7 @@ interface OtelStepStartEvent<
 
 interface CallState {
   operationId: string;
-  telemetry: TelemetrySettings | undefined;
+  telemetry: TelemetryOptions | undefined;
   rootSpan: Span | undefined;
   rootContext: OpenTelemetryContext | undefined;
   stepSpan: Span | undefined;
@@ -186,7 +186,7 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
       | EmbedOnStartEvent
       | RerankOnStartEvent,
   ): void {
-    if (event.isEnabled !== true) return;
+    if (event.isEnabled === false) return;
 
     if (
       event.operationId === 'ai.embed' ||
@@ -213,12 +213,11 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
   }
 
   private onGenerateStart(event: OnStartEvent): void {
-    const telemetry: TelemetrySettings = {
+    const telemetry: TelemetryOptions = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {
@@ -292,12 +291,11 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
   }
 
   private onObjectOperationStart(event: ObjectOnStartEvent): void {
-    const telemetry: TelemetrySettings = {
+    const telemetry: TelemetryOptions = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {
@@ -451,12 +449,11 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
   }
 
   private onEmbedOperationStart(event: EmbedOnStartEvent): void {
-    const telemetry: TelemetrySettings = {
+    const telemetry: TelemetryOptions = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {
@@ -593,7 +590,7 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
             },
           }),
         );
-      } catch (_ignored) {
+      } catch {
         // JSON.stringify might fail for non-serializable results
       }
     } else {
@@ -805,12 +802,11 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
   }
 
   private onRerankOperationStart(event: RerankOnStartEvent): void {
-    const telemetry: TelemetrySettings = {
+    const telemetry: TelemetryOptions = {
       isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
-      metadata: event.metadata,
     };
 
     const settings: Record<string, unknown> = {

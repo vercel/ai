@@ -203,7 +203,7 @@ describe('GatewayProvider', () => {
       // Verify headers function
       const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
-      const headers = await config.headers();
+      const headers = await resolve(config.headers);
 
       expect(headers).toEqual({
         authorization: 'Bearer test-api-key',
@@ -225,7 +225,7 @@ describe('GatewayProvider', () => {
 
       const constructorCall = vi.mocked(GatewayLanguageModel).mock.calls[0];
       const config = constructorCall[1];
-      const headers = await config.headers();
+      const headers = (await resolve(config.headers))!;
 
       expect(headers).toEqual({
         authorization: 'Bearer mock-oidc-token',
@@ -571,7 +571,7 @@ describe('GatewayProvider', () => {
       // Check that GatewayFetchMetadata was instantiated with the default baseURL
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v3/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
         }),
       );
     });
@@ -594,7 +594,7 @@ describe('GatewayProvider', () => {
 
       const config = getGatewayImageModelInternalConfig(model);
       expect(config.provider).toBe('gateway');
-      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v3/ai');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
     });
 
     it('should expose videoModel on the default provider and construct model', () => {
@@ -607,7 +607,7 @@ describe('GatewayProvider', () => {
 
       const config = getGatewayVideoModelInternalConfig(model);
       expect(config.provider).toBe('gateway');
-      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v3/ai');
+      expect(config.baseURL).toBe('https://ai-gateway.vercel.sh/v4/ai');
     });
 
     it('should override default baseURL when provided', async () => {
@@ -657,7 +657,7 @@ describe('GatewayProvider', () => {
 
       // Get the headers function that was passed to GatewayFetchMetadata
       const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
-      const headers = await resolve(config.headers());
+      const headers = (await resolve(config.headers))!;
 
       // Verify that the API key was used in the Authorization header
       expect(headers['authorization']).toBe(`Bearer ${testApiKey}`);
@@ -1148,7 +1148,7 @@ describe('GatewayProvider', () => {
       expect(credits).toEqual({ balance: '150.50', total_used: '75.25' });
       expect(GatewayFetchMetadata).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v3/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
           headers: expect.any(Function),
           fetch: undefined,
         }),
@@ -1163,7 +1163,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should work with custom baseURL', async () => {
-      const customBaseURL = 'https://custom-gateway.example.com/v3/ai';
+      const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
       const provider = createGatewayProvider({
         apiKey: 'test-key',
         baseURL: customBaseURL,
@@ -1211,7 +1211,7 @@ describe('GatewayProvider', () => {
       await provider.getCredits();
 
       const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
-      const headers = await config.headers();
+      const headers = (await resolve(config.headers))!;
 
       expect(headers).toEqual({
         authorization: 'Bearer test-key',
@@ -1247,7 +1247,7 @@ describe('GatewayProvider', () => {
       expect(report).toEqual(mockResults);
       expect(GatewaySpendReport).toHaveBeenCalledWith(
         expect.objectContaining({
-          baseURL: 'https://ai-gateway.vercel.sh/v3/ai',
+          baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
           headers: expect.any(Function),
           fetch: undefined,
         }),
@@ -1281,7 +1281,7 @@ describe('GatewayProvider', () => {
     });
 
     it('should work with custom baseURL', async () => {
-      const customBaseURL = 'https://custom-gateway.example.com/v3/ai';
+      const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
       const provider = createGatewayProvider({
         apiKey: 'test-key',
         baseURL: customBaseURL,

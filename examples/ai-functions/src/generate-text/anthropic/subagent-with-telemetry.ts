@@ -34,7 +34,6 @@ const weatherAgent = new ToolLoopAgent({
           model: anthropic('claude-sonnet-4-5-20250929'),
           prompt: `You are a weather expert. Provide a brief weather report for ${city} including temperature, conditions, and a fun fact about the climate.`,
           experimental_telemetry: {
-            isEnabled: true,
             functionId: `weather-subagent-${city.toLowerCase()}`,
           },
         });
@@ -43,11 +42,7 @@ const weatherAgent = new ToolLoopAgent({
     },
   },
   experimental_telemetry: {
-    isEnabled: true,
     functionId: 'weather-comparison-agent',
-    metadata: {
-      environment: 'demo',
-    },
   },
 });
 

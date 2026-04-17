@@ -19,6 +19,26 @@ An example upgrade command would be:
 pnpm install ai@latest @ai-sdk/react@latest @ai-sdk/openai@latest @ai-sdk/otel@latest
 ```
 
+## All Packages
+
+### ESM Only — CommonJS Support Removed
+
+All AI SDK packages are now ESM-only. The `require()` function is no longer supported.
+
+If your project uses CommonJS (`require()`), switch to ESM `import` syntax:
+
+```tsx filename="Before (CommonJS)"
+const { generateText } = require('ai');
+const { openai } = require('@ai-sdk/openai');
+```
+
+```tsx filename="After (ESM)"
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+```
+
+If your `package.json` does not already include `"type": "module"`, add it or rename your files to use the `.mjs` extension.
+
 ## AI SDK Core
 
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
@@ -56,6 +76,70 @@ For Node.js applications (without Next.js), register the integration at the top 
 
 This applies to all AI SDK functions that accept `experimental_telemetry`, including `generateText`, `streamText`, `ToolLoopAgent`, `embed`, `embedMany`, and `rerank`.
 
+### Telemetry: Enabled by Default When an Integration Is Registered
+
+In AI SDK 6, telemetry was opt-in — you had to set `experimental_telemetry: { isEnabled: true }` on every call to emit events. In AI SDK 7, telemetry is opt-out: once you register a telemetry integration (for example `OpenTelemetryIntegration` or `DevToolsTelemetry`), all AI SDK calls emit telemetry events by default.
+
+```tsx filename="AI SDK 6"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: { isEnabled: true },
+});
+```
+
+```tsx filename="AI SDK 7"
+import { generateText } from 'ai';
+import { registerTelemetryIntegration } from 'ai';
+import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+
+registerTelemetryIntegration(new OpenTelemetryIntegration());
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+});
+```
+
+You can safely remove `experimental_telemetry: { isEnabled: true }` from all of your calls. If you are already passing other fields like `functionId` or `integrations`, keep them — only `isEnabled: true` is redundant:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: {
+    isEnabled: true,
+    functionId: 'my-awesome-function',
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: {
+    functionId: 'my-awesome-function',
+  },
+});
+```
+
+To opt out of telemetry for a specific call, set `isEnabled: false`:
+
+```tsx
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: { isEnabled: false },
+});
+```
+
+To disable telemetry globally, do not register any telemetry integrations.
+
+This applies to all AI SDK functions that accept `experimental_telemetry`, including `generateText`, `streamText`, `ToolLoopAgent`, `embed`, `embedMany`, and `rerank`.
+
 ### Telemetry: `tracer` Property Removed from `experimental_telemetry`
 
 The `tracer` property on `experimental_telemetry` has been removed. If you were passing a custom OpenTelemetry `Tracer`, pass it to the `OpenTelemetryIntegration` constructor instead:
@@ -90,11 +174,18 @@ This applies to all AI SDK functions that accept `experimental_telemetry`, inclu
 
 If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetryIntegration` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
 
-### Tools: `experimental_context` Was Renamed to Stable `context`, and `context` Is Now Typed
+### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 
 In AI SDK 7, the tool callback option previously exposed as `experimental_context` has been renamed to `context` and is now stable.
 
-At the same time, tool callbacks are now generic over a `CONTEXT` type instead of treating `context` as an untyped value. In practice, this means `tool()` can infer the type of `context` from a tool's `contextSchema`.
+The bigger behavioral change is that AI SDK now separates:
+
+- tool-specific `context`, which is passed to tool callbacks from `toolsContext`
+- shared generation/agent runtime data, which flows through `runtimeContext`
+
+In AI SDK 6, tools often read from one generic runtime context object. In AI SDK 7, each tool gets its own scoped `context`, and you provide those values through `toolsContext`, keyed by tool name.
+
+`tool()` infers the type of a tool's `context` from its `contextSchema`, so each tool only sees the fields declared for that specific tool.
 
 In AI SDK 6, tool code often accessed `experimental_context` and had to cast it manually:
 
@@ -116,7 +207,7 @@ const weather = tool({
 });
 ```
 
-In AI SDK 7, rename `experimental_context` to `context` and declare the runtime context the tool expects with `contextSchema`. The `execute` callback, approval callback, and tool input lifecycle hooks then receive a typed `context` automatically:
+In AI SDK 7, rename `experimental_context` to `context`, declare the tool-specific context with `contextSchema`, and pass the per-tool values through `toolsContext`. The `execute` callback, approval callback, and tool input lifecycle hooks then receive a typed `context` automatically:
 
 ```tsx filename="AI SDK 7"
 const weather = tool({
@@ -124,25 +215,103 @@ const weather = tool({
     location: z.string(),
   }),
   contextSchema: z.object({
-    weatherApiKey: z.string(),
+    apiKey: z.string(),
   }),
   execute: async (
     { location },
-    { context: { weatherApiKey } },
+    { context: { apiKey } },
   ) => {
-    return getWeather(location, weatherApiKey);
+    return getWeather(location, apiKey);
+  },
+});
+
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  runtimeContext: {
+    requestId: 'req-123',
+  },
+  toolsContext: {
+    weather: {
+      apiKey: process.env.WEATHER_API_KEY!,
+    },
+  },
+  prepareStep: async ({ runtimeContext, toolsContext }) => {
+    console.log(runtimeContext.requestId);
+    console.log(toolsContext.weather.apiKey);
+
+    return {};
   },
 });
 ```
 
-`prepareStep` still receives the full runtime context object that you pass via `context`. `contextSchema` only narrows the view that an individual tool receives.
+Use `runtimeContext` for shared generation or agent state that should be visible in `prepareStep`, events, and step results. Tool callbacks no longer read from that shared object. A tool's `context` now comes from its own entry in `toolsContext`, so it is limited to the fields that tool declared in `contextSchema`.
 
 Potential breaking issues:
 
 - If you still destructure `experimental_context` in tool callbacks, rename it to `context`.
-- If a tool callback accesses fields that are not declared in its `contextSchema`, TypeScript will now report errors. Add those fields to the schema, or read the broader context in `prepareStep` instead.
+- If you were previously passing one shared runtime object for both orchestration and tools, split it into `runtimeContext` and `toolsContext`.
+- Move tool-specific values into `toolsContext` under the matching tool name.
+- Rename shared top-level `context` usage to `runtimeContext` in `generateText`, `streamText`, and `ToolLoopAgent`.
+- Rename `prepareStep` usage from `context` to `runtimeContext`.
+- If a tool callback accesses fields that are not declared in its `contextSchema`, TypeScript will now report errors. Add those fields to that tool's schema.
 - If you have helper types or wrappers that assumed `experimental_context` or `context` was `unknown`, update them to accept a generic `CONTEXT` type.
-- If you were relying on a tool callback seeing the entire runtime context object, that code may need to move to `prepareStep` or the tool's `contextSchema` may need to be expanded to include the required fields.
+- If at least one tool declares `contextSchema`, `toolsContext` becomes required and only includes the tools that actually declare contextual data.
+- If you were relying on every tool callback seeing the same full runtime object, move shared step data to `runtimeContext`, or explicitly provide the needed per-tool data in each tool's `toolsContext` entry.
+
+### Tools: Remove Deprecated `experimental_activeTools` Option
+
+The deprecated `experimental_activeTools` option has been removed in AI SDK 7. Replace all remaining usages with `activeTools`.
+
+This option was deprecated in AI SDK 5, so if you already migrated to `activeTools`, no changes are needed. Otherwise, update both `generateText` and `streamText` calls:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  experimental_activeTools: ['weather'],
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  activeTools: ['weather'],
+});
+```
+
+### Core: Remove Deprecated `experimental_prepareStep` Option
+
+The deprecated `experimental_prepareStep` option has been removed in AI SDK 7. Replace all remaining usages with `prepareStep`.
+
+This option was deprecated in AI SDK 5, so if you already migrated to `prepareStep`, no changes are needed. Otherwise, update `generateText` calls:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  experimental_prepareStep: ({ stepNumber }) => {
+    console.log('Preparing step', stepNumber);
+    return {
+      activeTools: ['weather'],
+    };
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  tools: { weather },
+  prepareStep: ({ stepNumber }) => {
+    console.log('Preparing step', stepNumber);
+    return {
+      activeTools: ['weather'],
+    };
+  },
+});
+```
 
 ### Tools: Remove Deprecated `ToolCallOptions` Type
 
@@ -192,23 +361,28 @@ if (isToolUIPart(part)) {
 
 The deprecated tool result content part of `{ type: 'media' }` has been removed in AI SDK 7.
 
-Use `{ type: 'image-data' }` for images and `{ type: 'file-data' }` for all other files.
+Use `{ type: 'file-data' }` for all inline file content, including images.
 
-### Tool Result Content: Migrate to `file-reference` / `image-file-reference`
+### Tool Result Content: Migrate Away From `image-*` and `*-id` Variants
 
-`ProviderReference` is a provider-to-file-ID map (for example `{ openai: 'file_123', anthropic: 'file_abc' }`) that lets the same logical file be reused across providers. New types `file-reference` and `image-file-reference` carry this object in tool outputs, and `file` parts can now also pass a `ProviderReference` as `data` instead of bytes/URL. Where supported, upload files to the provider first and reference them for inference.
+The `image-*` content part types and the `file-id` / `image-file-id` types are deprecated in AI SDK 7. Auto-migration is applied at runtime, so existing tool outputs continue to work without code changes. However, updating to the new types is recommended.
 
-Update tool output handling for multipart content to support:
+Images are just files with an image media type, so the general `file-*` types cover all cases:
 
-- `file-reference`
-- `image-file-reference`
+- `{ type: 'image-data', data, mediaType }` → `{ type: 'file-data', data, mediaType }` (same fields)
+- `{ type: 'image-url', url }` → `{ type: 'file-url', url, mediaType: 'image/jpeg' }` (add the appropriate `mediaType`)
+- `{ type: 'image-file-reference', providerReference }` → `{ type: 'file-reference', providerReference }`
 
-If you persist tool-result content, migrate stored payloads:
+`ProviderReference` is a provider-to-file-ID map (for example `{ openai: 'file_123', anthropic: 'file_abc' }`) that lets the same logical file be reused across providers. Where supported, upload files to the provider first and reference them for inference. The `file-id` / `image-file-id` types, which held a single ID, are replaced by `file-reference`:
 
-- `file-id` -> `file-reference`
-- `image-file-id` -> `image-file-reference`
+- `{ type: 'file-id', fileId }` → `{ type: 'file-reference', providerReference }`
+- `{ type: 'image-file-id', fileId }` → `{ type: 'file-reference', providerReference }` (skip the intermediate step)
 
-Update parsing/validation and discriminated unions accordingly.
+Note that `file-url` now requires a `mediaType` field so providers can correctly determine how to handle the file. Update parsing/validation and discriminated unions to use the replacement types:
+
+- `file-data` (replaces `image-data`)
+- `file-url` (replaces `image-url`) — now requires `mediaType`
+- `file-reference` (replaces `image-file-reference`, `file-id`, `image-file-id`)
 
 ### Message Parts: Handle New `reasoning-file` Content Type
 
@@ -225,6 +399,15 @@ The new top-level `reasoning` option is the provider-agnostic way to control rea
 When migrating to the top-level `reasoning` option, remove overlapping reasoning settings from `providerOptions`.
 
 If both are present, provider-specific reasoning settings in `providerOptions` take precedence, which can silently bypass your new top-level `reasoning` configuration.
+
+### Settings: `CallSettings` Renamed to `LanguageModelCallOptions` and `RequestOptions`
+
+`CallSettings` has been split into `LanguageModelCallOptions` (model-facing options) and `RequestOptions` (transport options). Replace usages in custom wrappers or helpers:
+
+- `CallSettings` → `LanguageModelCallOptions & Omit<RequestOptions, 'timeout'>` (note: `CallSettings` never included `timeout`)
+- `prepareCallSettings` → `prepareLanguageModelCallOptions`
+
+Both deprecated names remain available in AI SDK 7.
 
 ### Stop Condition Helper Rename: `stepCountIs` -> `isStepCount`
 
@@ -270,3 +453,35 @@ const mcpClient = await createMCPClient({
 ```
 
 If the MCP server you use does not issue redirects, no changes are needed — the new default is more secure.
+
+## Anthropic Provider
+
+### `providerMetadata.anthropic.cacheCreationInputTokens` Removed
+
+The Anthropic-specific `cacheCreationInputTokens` field on `providerMetadata.anthropic` has been removed from the responses of `generateText` and `streamText` (as well as the `@ai-sdk/google-vertex/anthropic` sub-provider). This duplicated information that is already available on the standard, provider-agnostic `usage` object.
+
+Use `result.usage.inputTokenDetails.cacheWriteTokens` to read the number of tokens written to the cache, and `result.usage.inputTokenDetails.cacheReadTokens` to read the number of tokens served from the cache:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: [
+    /* ... messages with cacheControl ... */
+  ],
+});
+
+console.log(result.providerMetadata?.anthropic?.cacheCreationInputTokens);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: [
+    /* ... messages with cacheControl ... */
+  ],
+});
+
+console.log(result.usage.inputTokenDetails.cacheWriteTokens);
+```
+
+If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.providerMetadata?.anthropic?.usage`.

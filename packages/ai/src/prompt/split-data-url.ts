@@ -8,7 +8,7 @@ export function splitDataUrl(dataUrl: string): {
       mediaType: header.split(';')[0].split(':')[1],
       base64Content,
     };
-  } catch (error) {
+  } catch {
     return {
       mediaType: undefined,
       base64Content: undefined,

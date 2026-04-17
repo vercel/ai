@@ -65,7 +65,9 @@ export class GatewayGenerationInfoFetcher {
 
       const { value } = await getFromApi({
         url: `${baseUrl.origin}/v1/generation?id=${encodeURIComponent(params.id)}`,
-        headers: await resolve(this.config.headers()),
+        headers: this.config.headers
+          ? await resolve(this.config.headers)
+          : undefined,
         successfulResponseHandler: createJsonResponseHandler(
           gatewayGenerationInfoResponseSchema,
         ),
