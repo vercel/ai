@@ -76,8 +76,8 @@ export class ToolLoopAgent<
       | 'instructions'
       | 'experimental_onStart'
       | 'experimental_onStepStart'
-      | 'experimental_onToolCallStart'
-      | 'experimental_onToolCallFinish'
+      | 'experimental_onToolExecutionStart'
+      | 'experimental_onToolExecutionEnd'
       | 'onStepFinish'
       | 'onFinish'
     > &

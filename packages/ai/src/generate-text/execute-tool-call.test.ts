@@ -165,7 +165,7 @@ describe('executeToolCall', () => {
     });
   });
 
-  describe('onToolCallStart callback', () => {
+  describe('onToolExecutionStart callback', () => {
     it('should be called with correct data before execution', async () => {
       const toolExecutionStartEvents: ToolExecutionStartEvent<any>[] = [];
       const executionOrder: string[] = [];
@@ -193,7 +193,7 @@ describe('executeToolCall', () => {
         provider: 'test-provider',
         modelId: 'test-model',
         onToolExecutionStart: async event => {
-          executionOrder.push('onToolCallStart');
+          executionOrder.push('onToolExecutionStart');
           toolExecutionStartEvents.push(event);
         },
       });
@@ -227,7 +227,7 @@ describe('executeToolCall', () => {
           },
         ]
       `);
-      expect(executionOrder).toEqual(['onToolCallStart', 'execute']);
+      expect(executionOrder).toEqual(['onToolExecutionStart', 'execute']);
     });
 
     it('should not break execution when callback throws', async () => {
@@ -256,7 +256,7 @@ describe('executeToolCall', () => {
     });
   });
 
-  describe('onToolCallFinish callback', () => {
+  describe('onToolExecutionEnd callback', () => {
     it('should be called with success data when tool succeeds', async () => {
       const toolExecutionEndEvents: ToolExecutionEndEvent<any>[] = [];
 
@@ -1012,7 +1012,7 @@ describe('executeToolCall', () => {
   });
 
   describe('array callbacks', () => {
-    it('should call all onToolCallStart listeners in an array', async () => {
+    it('should call all onToolExecutionStart listeners in an array', async () => {
       const calls: string[] = [];
 
       await executeToolCall({

@@ -38,7 +38,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
 }
 `;
 
-exports[`generateText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
+exports[`generateText > options.experimental_onToolExecutionStart > should be called with correct tool name, id, and input 1`] = `
 {
   "callId": "test-telemetry-call-id",
   "context": undefined,

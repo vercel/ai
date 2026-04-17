@@ -208,9 +208,9 @@ export type GenerateTextOnFinishCallback<
  * @param experimental_onStart - Callback invoked when generation begins, before any LLM calls.
  * @param experimental_onStepStart - Callback invoked when each step begins, before the provider is called.
  * Receives step number, messages (in ModelMessage format), tools, and runtimeContext.
- * @param experimental_onToolCallStart - Callback invoked before each tool execution begins.
+ * @param experimental_onToolExecutionStart - Callback invoked before each tool execution begins.
  * Receives tool name, call ID, input, and context.
- * @param experimental_onToolCallFinish - Callback invoked after each tool execution completes.
+ * @param experimental_onToolExecutionEnd - Callback invoked after each tool execution completes.
  * Uses a discriminated union: check `success` to determine if `output` or `error` is present.
  * @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
  * @param onFinish - Callback that is called when all steps are finished and the response is complete.

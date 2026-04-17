@@ -1787,7 +1787,7 @@ describe('ToolLoopAgent', () => {
     });
   });
 
-  describe('experimental_onToolCallStart', () => {
+  describe('experimental_onToolExecutionStart', () => {
     describe('generate', () => {
       const dummyResponseValues = {
         usage: {
@@ -1838,7 +1838,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolCallStart from constructor', async () => {
+      it('should call experimental_onToolExecutionStart from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -1864,7 +1864,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolCallStart from generate method', async () => {
+      it('should call experimental_onToolExecutionStart from generate method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2030,7 +2030,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolCallStart from constructor', async () => {
+      it('should call experimental_onToolExecutionStart from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2057,7 +2057,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolCallStart from stream method', async () => {
+      it('should call experimental_onToolExecutionStart from stream method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2158,7 +2158,7 @@ describe('ToolLoopAgent', () => {
     });
   });
 
-  describe('experimental_onToolCallFinish', () => {
+  describe('experimental_onToolExecutionEnd', () => {
     describe('generate', () => {
       const dummyResponseValues = {
         usage: {
@@ -2240,7 +2240,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolCallFinish from constructor', async () => {
+      it('should call experimental_onToolExecutionEnd from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2266,7 +2266,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolCallFinish from generate method', async () => {
+      it('should call experimental_onToolExecutionEnd from generate method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2434,7 +2434,7 @@ describe('ToolLoopAgent', () => {
         });
       }
 
-      it('should call experimental_onToolCallFinish from constructor', async () => {
+      it('should call experimental_onToolExecutionEnd from constructor', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({
@@ -2461,7 +2461,7 @@ describe('ToolLoopAgent', () => {
         `);
       });
 
-      it('should call experimental_onToolCallFinish from stream method', async () => {
+      it('should call experimental_onToolExecutionEnd from stream method', async () => {
         const calls: string[] = [];
 
         const agent = new ToolLoopAgent({

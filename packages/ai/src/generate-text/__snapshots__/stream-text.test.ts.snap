@@ -38,7 +38,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
 }
 `;
 
-exports[`streamText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
+exports[`streamText > options.experimental_onToolExecutionStart > should be called with correct tool name, id, and input 1`] = `
 {
   "callId": "test-telemetry-call-id",
   "context": undefined,

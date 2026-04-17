@@ -76,11 +76,11 @@ export type AgentCallParameters<CALL_OPTIONS, TOOLS extends ToolSet = {}> = ([
     /**
      * Callback that is called before each tool execution begins.
      */
-    experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<TOOLS>;
+    experimental_onToolExecutionStart?: ToolLoopAgentonToolExecutionStartCallback<TOOLS>;
     /**
      * Callback that is called after each tool execution completes.
      */
-    experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<TOOLS>;
+    experimental_onToolExecutionEnd?: ToolLoopAgentonToolExecutionEndCallback<TOOLS>;
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.
      */
@@ -164,8 +164,8 @@ Both `generate()` and `stream()` accept an `AgentCallParameters<CALL_OPTIONS, TO
 - `timeout` (optional): A timeout in milliseconds. Can be specified as a number or as an object with a `totalMs` property. The call will be aborted if it takes longer than the specified timeout. Can be used alongside `abortSignal`.
 - `experimental_onStart` (optional): Callback invoked when the agent operation begins, before any LLM calls. Experimental.
 - `experimental_onStepStart` (optional): Callback invoked when a step (LLM call) begins, before the provider is called. Experimental.
-- `experimental_onToolCallStart` (optional): Callback invoked right before a tool's execute function runs. Experimental.
-- `experimental_onToolCallFinish` (optional): Callback invoked right after a tool's execute function completes or errors. Experimental.
+- `experimental_onToolExecutionStart` (optional): Callback invoked right before a tool's execute function runs. Experimental.
+- `experimental_onToolExecutionEnd` (optional): Callback invoked right after a tool's execute function completes or errors. Experimental.
 - `onStepFinish` (optional): A callback invoked after each agent step (LLM/tool call) completes. Useful for tracking token usage or logging.
 - `onFinish` (optional): A callback invoked when all steps are finished and the response is complete.
 

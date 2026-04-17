@@ -88,7 +88,7 @@ export type ToolExecutionEndEvent<TOOLS extends ToolSet = ToolSet> = {
 );
 
 /**
- * Callback that is set using the `experimental_onToolCallStart` option.
+ * Callback that is set using the `experimental_onToolExecutionStart` option.
  *
  * Called when a tool execution begins, before the tool's `execute` function is invoked.
  * Use this for logging tool invocations, tracking tool usage, or pre-execution validation.
@@ -99,7 +99,7 @@ export type OnToolExecutionStartCallback<TOOLS extends ToolSet = ToolSet> =
   Callback<ToolExecutionStartEvent<TOOLS>>;
 
 /**
- * Callback that is set using the `experimental_onToolCallFinish` option.
+ * Callback that is set using the `experimental_onToolExecutionEnd` option.
  *
  * Called when a tool execution completes, either successfully or with an error.
  * Use this for logging tool results, tracking execution time, or error handling.

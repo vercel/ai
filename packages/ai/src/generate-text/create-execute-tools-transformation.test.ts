@@ -244,8 +244,8 @@ describe('createExecuteToolsTransformation', () => {
     expect(toolExecuted).toBe(false);
   });
 
-  describe('onToolCallStart and onToolCallFinish callbacks', () => {
-    it('should call onToolCallStart before tool execution and onToolCallFinish after', async () => {
+  describe('onToolExecutionStart and onToolExecutionEnd callbacks', () => {
+    it('should call onToolExecutionStart before tool execution and onToolExecutionEnd after', async () => {
       const tools = {
         testTool: tool({
           inputSchema: z.object({ value: z.string() }),
@@ -347,7 +347,7 @@ describe('createExecuteToolsTransformation', () => {
       expect(finishEvents).toMatchInlineSnapshot();
     });
 
-    it('should call onToolCallFinish with success data', async () => {
+    it('should call onToolExecutionEnd with success data', async () => {
       const tools = {
         testTool: tool({
           inputSchema: z.object({ value: z.string() }),
