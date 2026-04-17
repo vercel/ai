@@ -14,6 +14,7 @@ import {
   TimeoutConfiguration,
 } from '../prompt/request-options';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
+import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { notify } from '../util/notify';
 import { now } from '../util/now';
 import {
@@ -104,13 +105,10 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
 
   const toolTimeoutMs = getToolTimeoutMs<TOOLS>(timeout, toolName);
-
-  const toolAbortSignal =
-    toolTimeoutMs != null
-      ? abortSignal != null
-        ? AbortSignal.any([abortSignal, AbortSignal.timeout(toolTimeoutMs)])
-        : AbortSignal.timeout(toolTimeoutMs)
-      : abortSignal;
+  const toolAbortSignal = mergeAbortSignals(
+    abortSignal,
+    toolTimeoutMs != null ? AbortSignal.timeout(toolTimeoutMs) : undefined,
+  );
 
   const startTime = now();
 
