@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GoogleGenerativeAIVideoModel } from './google-generative-ai-video-model';
+import { GoogleVideoModel } from './google-video-model';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -60,7 +60,7 @@ function createMockModel({
 } = {}) {
   let pollCount = 0;
 
-  return new GoogleGenerativeAIVideoModel(modelId, {
+  return new GoogleVideoModel(modelId, {
     provider: 'google.generative-ai',
     baseURL: 'https://generativelanguage.googleapis.com/v1beta',
     headers: () => ({ 'x-goog-api-key': apiKey }),
@@ -128,7 +128,7 @@ function createMockModel({
   });
 }
 
-describe('GoogleGenerativeAIVideoModel', () => {
+describe('GoogleVideoModel', () => {
   describe('constructor', () => {
     it('should expose correct provider and model information', () => {
       const model = createMockModel();
@@ -541,25 +541,22 @@ describe('GoogleGenerativeAIVideoModel', () => {
 
   describe('Error Handling', () => {
     it('should throw error when no operation name is returned', async () => {
-      const model = new GoogleGenerativeAIVideoModel(
-        'veo-3.1-generate-preview',
-        {
-          provider: 'google.generative-ai',
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: () => ({ 'x-goog-api-key': 'test-key' }),
-          fetch: async () => {
-            return new Response(
-              JSON.stringify({
-                done: false,
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          },
+      const model = new GoogleVideoModel('veo-3.1-generate-preview', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({ 'x-goog-api-key': 'test-key' }),
+        fetch: async () => {
+          return new Response(
+            JSON.stringify({
+              done: false,
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
         },
-      );
+      });
 
       await expect(
         model.doGenerate({ ...defaultOptions }),
@@ -600,16 +597,30 @@ describe('GoogleGenerativeAIVideoModel', () => {
   describe('Polling Behavior', () => {
     it('should poll until operation is done', async () => {
       let pollCount = 0;
-      const model = new GoogleGenerativeAIVideoModel(
-        'veo-3.1-generate-preview',
-        {
-          provider: 'google.generative-ai',
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: () => ({ 'x-goog-api-key': 'test-key' }),
-          fetch: async url => {
-            const urlString = url.toString();
+      const model = new GoogleVideoModel('veo-3.1-generate-preview', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({ 'x-goog-api-key': 'test-key' }),
+        fetch: async url => {
+          const urlString = url.toString();
 
-            if (urlString.includes(':predictLongRunning')) {
+          if (urlString.includes(':predictLongRunning')) {
+            return new Response(
+              JSON.stringify({
+                name: 'operations/poll-test',
+                done: false,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
+
+          if (urlString.includes('operations/poll-test')) {
+            pollCount++;
+
+            if (pollCount < 3) {
               return new Response(
                 JSON.stringify({
                   name: 'operations/poll-test',
@@ -622,49 +633,32 @@ describe('GoogleGenerativeAIVideoModel', () => {
               );
             }
 
-            if (urlString.includes('operations/poll-test')) {
-              pollCount++;
-
-              if (pollCount < 3) {
-                return new Response(
-                  JSON.stringify({
-                    name: 'operations/poll-test',
-                    done: false,
-                  }),
-                  {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                  },
-                );
-              }
-
-              return new Response(
-                JSON.stringify({
-                  name: 'operations/poll-test',
-                  done: true,
-                  response: {
-                    generateVideoResponse: {
-                      generatedSamples: [
-                        {
-                          video: {
-                            uri: 'https://example.com/final-video.mp4',
-                          },
+            return new Response(
+              JSON.stringify({
+                name: 'operations/poll-test',
+                done: true,
+                response: {
+                  generateVideoResponse: {
+                    generatedSamples: [
+                      {
+                        video: {
+                          uri: 'https://example.com/final-video.mp4',
                         },
-                      ],
-                    },
+                      },
+                    ],
                   },
-                }),
-                {
-                  status: 200,
-                  headers: { 'Content-Type': 'application/json' },
                 },
-              );
-            }
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
 
-            return new Response('Not found', { status: 404 });
-          },
+          return new Response('Not found', { status: 404 });
         },
-      );
+      });
 
       const result = await model.doGenerate({ ...defaultOptions });
 
@@ -676,45 +670,42 @@ describe('GoogleGenerativeAIVideoModel', () => {
     });
 
     it('should timeout after pollTimeoutMs', async () => {
-      const model = new GoogleGenerativeAIVideoModel(
-        'veo-3.1-generate-preview',
-        {
-          provider: 'google.generative-ai',
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: () => ({ 'x-goog-api-key': 'test-key' }),
-          fetch: async url => {
-            const urlString = url.toString();
+      const model = new GoogleVideoModel('veo-3.1-generate-preview', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({ 'x-goog-api-key': 'test-key' }),
+        fetch: async url => {
+          const urlString = url.toString();
 
-            if (urlString.includes(':predictLongRunning')) {
-              return new Response(
-                JSON.stringify({
-                  name: 'operations/timeout-test',
-                  done: false,
-                }),
-                {
-                  status: 200,
-                  headers: { 'Content-Type': 'application/json' },
-                },
-              );
-            }
+          if (urlString.includes(':predictLongRunning')) {
+            return new Response(
+              JSON.stringify({
+                name: 'operations/timeout-test',
+                done: false,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
 
-            if (urlString.includes('operations/timeout-test')) {
-              return new Response(
-                JSON.stringify({
-                  name: 'operations/timeout-test',
-                  done: false,
-                }),
-                {
-                  status: 200,
-                  headers: { 'Content-Type': 'application/json' },
-                },
-              );
-            }
+          if (urlString.includes('operations/timeout-test')) {
+            return new Response(
+              JSON.stringify({
+                name: 'operations/timeout-test',
+                done: false,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
 
-            return new Response('Not found', { status: 404 });
-          },
+          return new Response('Not found', { status: 404 });
         },
-      );
+      });
 
       await expect(
         model.doGenerate({
@@ -734,46 +725,43 @@ describe('GoogleGenerativeAIVideoModel', () => {
     it('should respect abort signal', async () => {
       const abortController = new AbortController();
 
-      const model = new GoogleGenerativeAIVideoModel(
-        'veo-3.1-generate-preview',
-        {
-          provider: 'google.generative-ai',
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: () => ({ 'x-goog-api-key': 'test-key' }),
-          fetch: async url => {
-            const urlString = url.toString();
+      const model = new GoogleVideoModel('veo-3.1-generate-preview', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: () => ({ 'x-goog-api-key': 'test-key' }),
+        fetch: async url => {
+          const urlString = url.toString();
 
-            if (urlString.includes(':predictLongRunning')) {
-              return new Response(
-                JSON.stringify({
-                  name: 'operations/abort-test',
-                  done: false,
-                }),
-                {
-                  status: 200,
-                  headers: { 'Content-Type': 'application/json' },
-                },
-              );
-            }
+          if (urlString.includes(':predictLongRunning')) {
+            return new Response(
+              JSON.stringify({
+                name: 'operations/abort-test',
+                done: false,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
 
-            if (urlString.includes('operations/abort-test')) {
-              abortController.abort();
-              return new Response(
-                JSON.stringify({
-                  name: 'operations/abort-test',
-                  done: false,
-                }),
-                {
-                  status: 200,
-                  headers: { 'Content-Type': 'application/json' },
-                },
-              );
-            }
+          if (urlString.includes('operations/abort-test')) {
+            abortController.abort();
+            return new Response(
+              JSON.stringify({
+                name: 'operations/abort-test',
+                done: false,
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
 
-            return new Response('Not found', { status: 404 });
-          },
+          return new Response('Not found', { status: 404 });
         },
-      );
+      });
 
       await expect(
         model.doGenerate({

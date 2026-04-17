@@ -1,4 +1,4 @@
-export type GoogleGenerativeAIVideoModelId =
+export type GoogleVideoModelId =
   | 'veo-3.1-fast-generate-preview'
   | 'veo-3.1-generate-preview'
   | 'veo-3.1-generate'

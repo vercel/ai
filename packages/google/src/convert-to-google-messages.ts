@@ -8,11 +8,11 @@ import {
   resolveProviderReference,
 } from '@ai-sdk/provider-utils';
 import {
-  GoogleGenerativeAIContent,
-  GoogleGenerativeAIContentPart,
-  GoogleGenerativeAIFunctionResponsePart,
-  GoogleGenerativeAIPrompt,
-} from './google-generative-ai-prompt';
+  GoogleContent,
+  GoogleContentPart,
+  GoogleFunctionResponsePart,
+  GooglePrompt,
+} from './google-prompt';
 
 const dataUrlRegex = /^data:([^;,]+);base64,(.+)$/s;
 
@@ -32,7 +32,7 @@ function parseBase64DataUrl(
 
 function convertUrlToolResultPart(
   url: string,
-): GoogleGenerativeAIFunctionResponsePart | undefined {
+): GoogleFunctionResponsePart | undefined {
   // Per https://ai.google.dev/api/caching#FunctionResponsePart, only inline data is supported.
   // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart suggests that this
   // may be different for Vertex, but this needs to be confirmed and further tested for both APIs.
@@ -55,14 +55,14 @@ function convertUrlToolResultPart(
  * text). This format is supported by Gemini 3+ models.
  */
 function appendToolResultParts(
-  parts: GoogleGenerativeAIContentPart[],
+  parts: GoogleContentPart[],
   toolName: string,
   outputValue: Array<{
     type: string;
     [key: string]: unknown;
   }>,
 ): void {
-  const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
+  const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
 
   for (const contentPart of outputValue) {
@@ -122,7 +122,7 @@ function appendToolResultParts(
  * non-text content like images is sent as separate top-level inlineData parts.
  */
 function appendLegacyToolResultParts(
-  parts: GoogleGenerativeAIContentPart[],
+  parts: GoogleContentPart[],
   toolName: string,
   outputValue: Array<{
     type: string;
@@ -166,16 +166,16 @@ function appendLegacyToolResultParts(
   }
 }
 
-export function convertToGoogleGenerativeAIMessages(
+export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
     isGemmaModel?: boolean;
     providerOptionsName?: string;
     supportsFunctionResponseParts?: boolean;
   },
-): GoogleGenerativeAIPrompt {
+): GooglePrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
-  const contents: Array<GoogleGenerativeAIContent> = [];
+  const contents: Array<GoogleContent> = [];
   let systemMessagesAllowed = true;
   const isGemmaModel = options?.isGemmaModel ?? false;
   const providerOptionsName = options?.providerOptionsName ?? 'google';
@@ -199,7 +199,7 @@ export function convertToGoogleGenerativeAIMessages(
       case 'user': {
         systemMessagesAllowed = false;
 
-        const parts: GoogleGenerativeAIContentPart[] = [];
+        const parts: GoogleContentPart[] = [];
 
         for (const part of content) {
           switch (part.type) {
@@ -418,7 +418,7 @@ export function convertToGoogleGenerativeAIMessages(
       case 'tool': {
         systemMessagesAllowed = false;
 
-        const parts: GoogleGenerativeAIContentPart[] = [];
+        const parts: GoogleContentPart[] = [];
 
         for (const part of content) {
           if (part.type === 'tool-approval-response') {

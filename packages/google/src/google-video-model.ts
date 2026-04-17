@@ -19,7 +19,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
-import type { GoogleGenerativeAIVideoModelId } from './google-generative-ai-video-settings';
+import type { GoogleVideoModelId } from './google-video-settings';
 
 export type GoogleVideoModelOptions = {
   // Polling configuration
@@ -39,7 +39,7 @@ export type GoogleVideoModelOptions = {
   [key: string]: unknown; // For passthrough
 };
 
-interface GoogleGenerativeAIVideoModelConfig {
+interface GoogleVideoModelConfig {
   provider: string;
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
@@ -50,7 +50,7 @@ interface GoogleGenerativeAIVideoModelConfig {
   };
 }
 
-export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV4 {
+export class GoogleVideoModel implements Experimental_VideoModelV4 {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -63,8 +63,8 @@ export class GoogleGenerativeAIVideoModel implements Experimental_VideoModelV4 {
   }
 
   constructor(
-    readonly modelId: GoogleGenerativeAIVideoModelId,
-    private readonly config: GoogleGenerativeAIVideoModelConfig,
+    readonly modelId: GoogleVideoModelId,
+    private readonly config: GoogleVideoModelConfig,
   ) {}
 
   async doGenerate(

@@ -18,26 +18,26 @@ import {
 import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import {
-  GoogleGenerativeAIEmbeddingModelId,
+  GoogleEmbeddingModelId,
   googleEmbeddingModelOptions,
-} from './google-generative-ai-embedding-options';
+} from './google-embedding-options';
 
-type GoogleGenerativeAIEmbeddingConfig = {
+type GoogleEmbeddingConfig = {
   provider: string;
   baseURL: string;
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 };
 
-export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
+export class GoogleEmbeddingModel implements EmbeddingModelV4 {
   readonly specificationVersion = 'v4';
-  readonly modelId: GoogleGenerativeAIEmbeddingModelId;
+  readonly modelId: GoogleEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
-  private readonly config: GoogleGenerativeAIEmbeddingConfig;
+  private readonly config: GoogleEmbeddingConfig;
 
-  static [WORKFLOW_SERIALIZE](model: GoogleGenerativeAIEmbeddingModel) {
+  static [WORKFLOW_SERIALIZE](model: GoogleEmbeddingModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -46,21 +46,15 @@ export class GoogleGenerativeAIEmbeddingModel implements EmbeddingModelV4 {
 
   static [WORKFLOW_DESERIALIZE](options: {
     modelId: string;
-    config: GoogleGenerativeAIEmbeddingConfig;
+    config: GoogleEmbeddingConfig;
   }) {
-    return new GoogleGenerativeAIEmbeddingModel(
-      options.modelId,
-      options.config,
-    );
+    return new GoogleEmbeddingModel(options.modelId, options.config);
   }
 
   get provider(): string {
     return this.config.provider;
   }
-  constructor(
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-    config: GoogleGenerativeAIEmbeddingConfig,
-  ) {
+  constructor(modelId: GoogleEmbeddingModelId, config: GoogleEmbeddingConfig) {
     this.modelId = modelId;
     this.config = config;
   }

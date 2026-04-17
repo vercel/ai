@@ -1,6 +1,6 @@
 import { LanguageModelV4FinishReason } from '@ai-sdk/provider';
 
-export function mapGoogleGenerativeAIFinishReason({
+export function mapGoogleFinishReason({
   finishReason,
   hasToolCalls,
 }: {
