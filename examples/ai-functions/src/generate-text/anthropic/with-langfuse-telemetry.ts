@@ -37,7 +37,7 @@ run(async () => {
     },
     reasoning: 'medium',
     stopWhen: isStepCount(5),
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'anthropic-custom-provider-demo',
     },
   });

@@ -262,7 +262,7 @@ If you want to override the default span name, you can set the `functionId` insi
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
-  experimental_telemetry: {
+  telemetry: {
     functionId: 'poem-writer',
   },
 });
@@ -311,7 +311,7 @@ In Laminar, metadata is set on the trace level. Metadata contains key-value pair
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
-  experimental_telemetry: {
+  telemetry: {
     metadata: {
       'my-key': 'my-value',
       'another-key': 'another-value',
@@ -332,7 +332,7 @@ Tags can subsequently be used to filter traces in Laminar.
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
-  experimental_telemetry: {
+  telemetry: {
     metadata: {
       tags: ['fallback-model', 'api-handler'],
     },
@@ -349,7 +349,7 @@ reserved metadata keys.
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
-  experimental_telemetry: {
+  telemetry: {
     metadata: {
       sessionId: 'session-123',
       userId: 'user-123',

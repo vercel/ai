@@ -26,21 +26,21 @@ export type GoogleFilesUploadOptions = {
   [key: string]: unknown;
 };
 
-interface GoogleGenerativeAIFilesConfig {
+interface GoogleFilesConfig {
   provider: string;
   baseURL: string;
   headers: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 }
 
-export class GoogleGenerativeAIFiles implements FilesV4 {
+export class GoogleFiles implements FilesV4 {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
   }
 
-  constructor(private readonly config: GoogleGenerativeAIFilesConfig) {}
+  constructor(private readonly config: GoogleFilesConfig) {}
 
   async uploadFile(
     options: FilesV4UploadFileCallOptions,

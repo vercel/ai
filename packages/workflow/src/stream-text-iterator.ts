@@ -63,7 +63,7 @@ export async function* streamTextIterator({
   generationSettings,
   toolChoice,
   experimental_context,
-  experimental_telemetry,
+  telemetry,
   includeRawChunks = false,
   repairToolCall,
   responseFormat,
@@ -80,7 +80,7 @@ export async function* streamTextIterator({
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
   experimental_context?: unknown;
-  experimental_telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
@@ -261,7 +261,7 @@ export async function* streamTextIterator({
             ...currentGenerationSettings,
             toolChoice: currentToolChoice,
             includeRawChunks,
-            experimental_telemetry,
+            telemetry,
             repairToolCall,
             responseFormat,
           },

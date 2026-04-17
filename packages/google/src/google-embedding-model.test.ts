@@ -1,7 +1,7 @@
 import { EmbeddingModelV4Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
-import { createGoogleGenerativeAI } from './google-provider';
+import { GoogleEmbeddingModel } from './google-embedding-model';
+import { createGoogle } from './google-provider';
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
@@ -14,7 +14,7 @@ const dummyEmbeddings = [
 ];
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
-const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
+const provider = createGoogle({ apiKey: 'test-api-key' });
 const model = provider.embeddingModel('gemini-embedding-001');
 
 const URL =
@@ -24,7 +24,7 @@ const server = createTestServer({
   [URL]: {},
 });
 
-describe('GoogleGenerativeAIEmbeddingModel', () => {
+describe('GoogleEmbeddingModel', () => {
   function prepareBatchJsonResponse({
     embeddings = dummyEmbeddings,
     headers,
@@ -221,7 +221,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   it('should pass headers', async () => {
     prepareBatchJsonResponse();
 
-    const provider = createGoogleGenerativeAI({
+    const provider = createGoogle({
       apiKey: 'test-api-key',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
@@ -249,7 +249,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should throw an error if too many values are provided', async () => {
-    const model = new GoogleGenerativeAIEmbeddingModel('gemini-embedding-001', {
+    const model = new GoogleEmbeddingModel('gemini-embedding-001', {
       provider: 'google.generative-ai',
       baseURL: 'https://generativelanguage.googleapis.com/v1beta',
       headers: () => ({}),

@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export type GoogleGenerativeAIEmbeddingModelId =
+export type GoogleEmbeddingModelId =
   | 'gemini-embedding-001'
   | 'gemini-embedding-2-preview'
   | (string & {});

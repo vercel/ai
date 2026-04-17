@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGoogle } from '@ai-sdk/google';
 import { generateText, registerTelemetryIntegration } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
 
@@ -16,14 +16,14 @@ sdk.start();
 registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 run(async () => {
-  const myCustomProvider = createGoogleGenerativeAI({
+  const myCustomProvider = createGoogle({
     name: 'my-custom-provider',
   });
 
   await generateText({
     model: myCustomProvider('gemini-2.5-flash'),
     prompt: 'Say hello in 5 words',
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'custom-provider-demo',
     },
   });

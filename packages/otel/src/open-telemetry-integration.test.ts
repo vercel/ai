@@ -313,7 +313,7 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     context: {},
     toolsContext: {},
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onToolCallStart']>>[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onToolExecutionStart']>>[0];
 }
 
 function makeToolCallFinishEvent(
@@ -345,13 +345,13 @@ function makeToolCallFinishEvent(
       ...base,
       success: true as const,
       output: { result: 'ok' },
-    } as Parameters<NonNullable<TelemetryIntegration['onToolCallFinish']>>[0];
+    } as Parameters<NonNullable<TelemetryIntegration['onToolExecutionEnd']>>[0];
   }
   return {
     ...base,
     success: false as const,
     error: new Error('tool failed'),
-  } as Parameters<NonNullable<TelemetryIntegration['onToolCallFinish']>>[0];
+  } as Parameters<NonNullable<TelemetryIntegration['onToolExecutionEnd']>>[0];
 }
 
 function makeChunkEvent(
@@ -504,11 +504,11 @@ describe('OpenTelemetryIntegration', () => {
     });
   });
 
-  describe('onToolCallStart', () => {
+  describe('onToolExecutionStart', () => {
     it('creates a tool span as child of step span', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
 
       expect(tracer.startSpan).toHaveBeenCalledTimes(3);
       expect(tracer.spans).toHaveLength(3);
@@ -518,7 +518,7 @@ describe('OpenTelemetryIntegration', () => {
     it('sets tool call attributes', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
 
       const attrs = getStartSpanAttributes(tracer, 2);
       expect(attrs['ai.toolCall.name']).toBe('myTool');
@@ -528,7 +528,7 @@ describe('OpenTelemetryIntegration', () => {
     it('sets tool call args as output attribute', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
 
       const attrs = getStartSpanAttributes(tracer, 2);
       expect(attrs['ai.toolCall.args']).toBe(JSON.stringify({ query: 'test' }));
@@ -536,7 +536,7 @@ describe('OpenTelemetryIntegration', () => {
 
     it('does not create tool span without prior step span', () => {
       otelIntegration.onStart!(makeOnStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
 
       expect(tracer.spans).toHaveLength(1);
     });
@@ -545,7 +545,7 @@ describe('OpenTelemetryIntegration', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
 
-      otelIntegration.onToolCallStart!(
+      otelIntegration.onToolExecutionStart!(
         makeToolCallStartEvent({
           toolCall: {
             toolCallId: 'tool-1',
@@ -554,7 +554,7 @@ describe('OpenTelemetryIntegration', () => {
           },
         }),
       );
-      otelIntegration.onToolCallStart!(
+      otelIntegration.onToolExecutionStart!(
         makeToolCallStartEvent({
           toolCall: {
             toolCallId: 'tool-2',
@@ -570,12 +570,12 @@ describe('OpenTelemetryIntegration', () => {
     });
   });
 
-  describe('onToolCallFinish', () => {
+  describe('onToolExecutionEnd', () => {
     it('ends the tool span on success', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
-      otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
 
       const toolSpan = tracer.spans[2];
       expect(toolSpan.ended).toBe(true);
@@ -584,8 +584,8 @@ describe('OpenTelemetryIntegration', () => {
     it('sets result attribute on successful tool call', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
-      otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
 
       const toolSpan = tracer.spans[2];
       expect(toolSpan.setAttributes).toHaveBeenCalled();
@@ -594,8 +594,8 @@ describe('OpenTelemetryIntegration', () => {
     it('records error on failed tool call', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
-      otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(false));
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(false));
 
       const toolSpan = tracer.spans[2];
       expect(toolSpan.ended).toBe(true);
@@ -608,9 +608,9 @@ describe('OpenTelemetryIntegration', () => {
     it('does nothing for unknown tool call id', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
 
-      otelIntegration.onToolCallFinish!(
+      otelIntegration.onToolExecutionEnd!(
         makeToolCallFinishEvent(true, {
           toolCall: {
             toolCallId: 'unknown-tool',
@@ -627,10 +627,10 @@ describe('OpenTelemetryIntegration', () => {
     it('removes tool span from state after finishing', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
-      otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
 
-      otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
 
       expect(tracer.spans[2].end).toHaveBeenCalledTimes(1);
     });
@@ -1080,7 +1080,7 @@ describe('OpenTelemetryIntegration', () => {
     it('does not record tool call args when recordOutputs is false', () => {
       otelIntegration.onStart!(makeOnStartEvent({ recordOutputs: false }));
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
 
       const attrs = getStartSpanAttributes(tracer, 2);
       expect(attrs['ai.toolCall.args']).toBeUndefined();
@@ -1089,8 +1089,8 @@ describe('OpenTelemetryIntegration', () => {
     it('does not record tool call result when recordOutputs is false', () => {
       otelIntegration.onStart!(makeOnStartEvent({ recordOutputs: false }));
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
-      otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
 
       const toolSpan = tracer.spans[2];
       const setAttrsCalls = (toolSpan.setAttributes as ReturnType<typeof vi.fn>)
@@ -1107,8 +1107,8 @@ describe('OpenTelemetryIntegration', () => {
     it('creates correct span hierarchy for generateText with tool call', () => {
       otelIntegration.onStart!(makeOnStartEvent());
       otelIntegration.onStepStart!(makeStepStartEvent());
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
-      otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       otelIntegration.onStepFinish!(makeStepFinishEvent());
       otelIntegration.onFinish!(makeFinishEvent());
 
@@ -1126,8 +1126,8 @@ describe('OpenTelemetryIntegration', () => {
       otelIntegration.onStart!(makeOnStartEvent());
 
       otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
-      otelIntegration.onToolCallStart!(makeToolCallStartEvent());
-      otelIntegration.onToolCallFinish!(makeToolCallFinishEvent(true));
+      otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
+      otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 0 }));
 
       otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));

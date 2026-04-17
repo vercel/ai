@@ -38,34 +38,6 @@ exports[`streamText > options.experimental_onStart > should send correct informa
 }
 `;
 
-exports[`streamText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
-{
-  "callId": "test-telemetry-call-id",
-  "context": undefined,
-  "functionId": undefined,
-  "messages": [
-    {
-      "content": "test-input",
-      "role": "user",
-    },
-  ],
-  "modelId": "mock-model-id",
-  "provider": "mock-provider",
-  "stepNumber": 0,
-  "toolCall": {
-    "input": {
-      "value": "test-arg",
-    },
-    "providerExecuted": undefined,
-    "providerMetadata": undefined,
-    "title": undefined,
-    "toolCallId": "call-1",
-    "toolName": "tool1",
-    "type": "tool-call",
-  },
-}
-`;
-
 exports[`streamText > programmatic tool calling > 5 steps: code_execution triggers client tool across multiple turns (dice game fixture) > step inputs > should include all previous messages in step 5 prompt (final step) 1`] = `
 [
   {

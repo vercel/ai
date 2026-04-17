@@ -367,7 +367,7 @@ const result = await generateText({
 
 ### Tool execution lifecycle callbacks
 
-You can use `experimental_onToolCallStart` and `experimental_onToolCallFinish` to observe tool execution.
+You can use `experimental_onToolExecutionStart` and `experimental_onToolExecutionEnd` to observe tool execution.
 These callbacks are called right before and after each tool's `execute` function, giving you
 visibility into tool execution timing, inputs, outputs, and errors:
 
@@ -376,10 +376,10 @@ import { generateText } from 'ai';
 
 const result = await generateText({
   // ... model, tools, prompt
-  experimental_onToolCallStart({ toolName, toolCallId, input }) {
+  experimental_onToolExecutionStart({ toolName, toolCallId, input }) {
     console.log(`Calling tool: ${toolName}`, { toolCallId, input });
   },
-  experimental_onToolCallFinish({
+  experimental_onToolExecutionEnd({
     toolName,
     toolCallId,
     output,

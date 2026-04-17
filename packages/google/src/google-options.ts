@@ -1,7 +1,7 @@
 import { InferSchema, lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-export type GoogleGenerativeAIModelId =
+export type GoogleModelId =
   // Stable models
   // https://ai.google.dev/gemini-api/docs/models/gemini
   | 'gemini-2.0-flash'
@@ -73,7 +73,7 @@ export const googleLanguageModelOptions = lazySchema(() =>
        *
        * This is useful when the JSON Schema contains elements that are
        * not supported by the OpenAPI schema version that
-       * Google Generative AI uses. You can use this to disable
+       * Google uses. You can use this to disable
        * structured outputs if you need to.
        */
       structuredOutputs: z.boolean().optional(),

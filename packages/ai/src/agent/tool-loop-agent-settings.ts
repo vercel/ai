@@ -1,6 +1,7 @@
 import type {
   Arrayable,
   Context,
+  IdGenerator,
   InferToolSetContext,
   ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -15,8 +16,6 @@ import type {
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  OnToolCallFinishEvent,
-  OnToolCallStartEvent,
 } from '../generate-text/core-events';
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
@@ -32,6 +31,10 @@ import { LanguageModel, ToolChoice } from '../types/language-model';
 import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { AgentCallParameters } from './agent';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from '../generate-text/tool-execution-events';
 
 export type ToolLoopAgentOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
@@ -44,14 +47,6 @@ export type ToolLoopAgentOnStepStartCallback<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
 > = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
-
-export type ToolLoopAgentOnToolCallStartCallback<
-  TOOLS extends ToolSet = ToolSet,
-> = Callback<OnToolCallStartEvent<TOOLS>>;
-
-export type ToolLoopAgentOnToolCallFinishCallback<
-  TOOLS extends ToolSet = ToolSet,
-> = Callback<OnToolCallFinishEvent<TOOLS>>;
 
 export type ToolLoopAgentOnStepFinishCallback<
   TOOLS extends ToolSet = ToolSet,
@@ -105,7 +100,14 @@ export type ToolLoopAgentSettings<
     stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
-     * Optional telemetry configuration (experimental).
+     * Optional telemetry configuration.
+     */
+    telemetry?: TelemetryOptions;
+
+    /**
+     * Optional telemetry configuration.
+     *
+     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
     experimental_telemetry?: TelemetryOptions;
 
@@ -164,14 +166,14 @@ export type ToolLoopAgentSettings<
     /**
      * Callback that is called before each tool execution begins.
      */
-    experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<
+    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
       NoInfer<TOOLS>
     >;
 
     /**
      * Callback that is called after each tool execution completes.
      */
-    experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<
+    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<
       NoInfer<TOOLS>
     >;
 
@@ -204,6 +206,14 @@ export type ToolLoopAgentSettings<
      * By default, files are downloaded if the model does not support the URL for the given media type.
      */
     experimental_download?: DownloadFunction | undefined;
+
+    /**
+     * Internal. For test use only. May change without notice.
+     */
+    _internal?: {
+      generateId?: IdGenerator;
+      generateCallId?: IdGenerator;
+    };
 
     /**
      * The schema for the call options.
@@ -244,12 +254,14 @@ export type ToolLoopAgentSettings<
           | 'headers'
           | 'instructions'
           | 'stopWhen'
+          | 'telemetry'
           | 'experimental_telemetry'
           | 'activeTools'
           | 'toolNeedsApproval'
           | 'providerOptions'
           | 'experimental_download'
           | 'runtimeContext'
+          | '_internal'
         > & { toolsContext: InferToolSetContext<TOOLS> },
     ) => MaybePromiseLike<
       Pick<
@@ -272,12 +284,14 @@ export type ToolLoopAgentSettings<
         | 'headers'
         | 'instructions'
         | 'stopWhen'
+        | 'telemetry'
         | 'experimental_telemetry'
         | 'activeTools'
         | 'toolNeedsApproval'
         | 'providerOptions'
         | 'experimental_download'
         | 'runtimeContext'
+        | '_internal'
       > &
         Omit<Prompt, 'system'> & {
           toolsContext: InferToolSetContext<TOOLS>;

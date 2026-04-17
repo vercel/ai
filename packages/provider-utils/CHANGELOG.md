@@ -1,5 +1,17 @@
 # @ai-sdk/provider-utils
 
+## 5.0.0-beta.25
+
+### Patch Changes
+
+- eea8d98: refactoring: rename tool execution events
+
+## 5.0.0-beta.24
+
+### Patch Changes
+
+- f807e45: Extract shared `StreamingToolCallTracker` class into `@ai-sdk/provider-utils` to deduplicate streaming tool call handling across OpenAI-compatible providers. Also adds missing `generateId()` fallback for `toolCallId` in Alibaba's `doGenerate` path and ensures all providers finalize unfinished tool calls during stream flush.
+
 ## 5.0.0-beta.23
 
 ### Patch Changes

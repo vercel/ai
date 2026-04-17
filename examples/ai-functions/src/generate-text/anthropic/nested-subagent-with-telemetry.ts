@@ -10,8 +10,10 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
 import { z } from 'zod';
 
-registerTelemetryIntegration(DevToolsTelemetry());
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(
+  new OpenTelemetryIntegration(),
+  DevToolsTelemetry(),
+);
 
 const sdk = new NodeSDK({
   spanProcessors: [new LangfuseSpanProcessor()],
@@ -37,7 +39,7 @@ const createCityResearchAgent = (city: string) =>
           const forecastResult = await generateText({
             model: anthropic('claude-sonnet-4-5-20250929'),
             prompt: `Generate a realistic weather forecast for ${city} during ${season}. Include temperature in Celsius, humidity, wind speed, and a fun climate fact. Keep it to 2-3 sentences.`,
-            experimental_telemetry: {
+            telemetry: {
               functionId: `forecast-lookup-${city.toLowerCase()}`,
             },
           });
@@ -45,7 +47,7 @@ const createCityResearchAgent = (city: string) =>
         },
       },
     },
-    experimental_telemetry: {
+    telemetry: {
       functionId: `weather-subagent-${city.toLowerCase()}`,
     },
   });
@@ -70,7 +72,7 @@ const weatherAgent = new ToolLoopAgent({
       },
     },
   },
-  experimental_telemetry: {
+  telemetry: {
     functionId: 'weather-comparison-agent',
   },
 });

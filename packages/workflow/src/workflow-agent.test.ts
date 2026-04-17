@@ -2021,7 +2021,7 @@ describe('WorkflowAgent', () => {
       expect(onAbort).toHaveBeenCalledWith({ steps: [] });
     });
 
-    it('should pass stepNumber to onToolCallStart and use discriminated union in onToolCallFinish', async () => {
+    it('should pass stepNumber to onToolExecutionStart and use discriminated union in onToolExecutionEnd', async () => {
       const tools: ToolSet = {
         testTool: {
           description: 'A test tool',
@@ -2032,14 +2032,14 @@ describe('WorkflowAgent', () => {
 
       const mockModel = createMockModel();
 
-      const onToolCallStart = vi.fn();
-      const onToolCallFinish = vi.fn();
+      const onToolExecutionStart = vi.fn();
+      const onToolExecutionEnd = vi.fn();
 
       const agent = new WorkflowAgent({
         model: mockModel,
         tools,
-        experimental_onToolCallStart: onToolCallStart,
-        experimental_onToolCallFinish: onToolCallFinish,
+        experimental_onToolExecutionStart: onToolExecutionStart,
+        experimental_onToolExecutionEnd: onToolExecutionEnd,
       });
 
       const mockWritable = new WritableStream({
@@ -2079,8 +2079,8 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      // Verify onToolCallStart includes stepNumber
-      expect(onToolCallStart).toHaveBeenCalledWith(
+      // Verify onToolExecutionStart includes stepNumber
+      expect(onToolExecutionStart).toHaveBeenCalledWith(
         expect.objectContaining({
           stepNumber: 0,
           toolCall: expect.objectContaining({
@@ -2090,8 +2090,8 @@ describe('WorkflowAgent', () => {
         }),
       );
 
-      // Verify onToolCallFinish uses discriminated union with success: true
-      expect(onToolCallFinish).toHaveBeenCalledWith(
+      // Verify onToolExecutionEnd uses discriminated union with success: true
+      expect(onToolExecutionEnd).toHaveBeenCalledWith(
         expect.objectContaining({
           stepNumber: 0,
           success: true,
@@ -2105,7 +2105,7 @@ describe('WorkflowAgent', () => {
       );
     });
 
-    it('should pass success: false in onToolCallFinish when tool errors', async () => {
+    it('should pass success: false in onToolExecutionEnd when tool errors', async () => {
       const tools: ToolSet = {
         failTool: {
           description: 'A tool that fails',
@@ -2118,12 +2118,12 @@ describe('WorkflowAgent', () => {
 
       const mockModel = createMockModel();
 
-      const onToolCallFinish = vi.fn();
+      const onToolExecutionEnd = vi.fn();
 
       const agent = new WorkflowAgent({
         model: mockModel,
         tools,
-        experimental_onToolCallFinish: onToolCallFinish,
+        experimental_onToolExecutionEnd: onToolExecutionEnd,
       });
 
       const mockWritable = new WritableStream({
@@ -2163,8 +2163,8 @@ describe('WorkflowAgent', () => {
         writable: mockWritable,
       });
 
-      // Verify onToolCallFinish uses discriminated union with success: false
-      expect(onToolCallFinish).toHaveBeenCalledWith(
+      // Verify onToolExecutionEnd uses discriminated union with success: false
+      expect(onToolExecutionEnd).toHaveBeenCalledWith(
         expect.objectContaining({
           stepNumber: 0,
           success: false,
@@ -2518,7 +2518,7 @@ describe('WorkflowAgent', () => {
 
       expect(streamTextIterator).toHaveBeenCalledWith(
         expect.objectContaining({
-          experimental_telemetry: TelemetryOptions,
+          telemetry: TelemetryOptions,
         }),
       );
     });
@@ -2555,7 +2555,7 @@ describe('WorkflowAgent', () => {
 
       expect(streamTextIterator).toHaveBeenCalledWith(
         expect.objectContaining({
-          experimental_telemetry: streamTelemetry,
+          telemetry: streamTelemetry,
         }),
       );
     });
