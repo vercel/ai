@@ -136,7 +136,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default context passed into tool execution and lifecycle callbacks for every stream call. Per-call values override this default. Experimental (can break in patch releases).',
     },
     {
-      name: 'experimental_telemetry',
+      name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
       description:
@@ -474,7 +474,7 @@ const result = await agent.stream({
       description: 'Custom download function for fetching files/URLs.',
     },
     {
-      name: 'experimental_telemetry',
+      name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
       description: 'Per-call telemetry configuration.',

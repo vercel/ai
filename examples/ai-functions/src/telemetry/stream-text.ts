@@ -23,7 +23,7 @@ run(async () => {
       something: 'custom',
       someOtherThing: 'other-value',
     },
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'my-awesome-function',
     },
   });

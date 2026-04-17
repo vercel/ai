@@ -23,7 +23,7 @@ run(async () => {
   await generateText({
     model: myCustomProvider('gemini-2.5-flash'),
     prompt: 'Say hello in 5 words',
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'custom-provider-demo',
     },
   });

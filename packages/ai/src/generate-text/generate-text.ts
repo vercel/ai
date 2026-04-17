@@ -236,7 +236,8 @@ export async function generateText<
   stopWhen = isStepCount(1),
   output,
   toolNeedsApproval,
-  experimental_telemetry: telemetry,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
   providerOptions,
   activeTools,
   prepareStep,
@@ -279,7 +280,14 @@ export async function generateText<
     stopWhen?: Arrayable<StopCondition<NoInfer<TOOLS>, RUNTIME_CONTEXT>>;
 
     /**
-     * Optional telemetry configuration (experimental).
+     * Optional telemetry configuration.
+     */
+    telemetry?: TelemetryOptions;
+
+    /**
+     * Optional telemetry configuration.
+     *
+     * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
      */
     experimental_telemetry?: TelemetryOptions;
 

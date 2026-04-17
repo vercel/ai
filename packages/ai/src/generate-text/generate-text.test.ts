@@ -833,7 +833,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
         },
         _internal: {
@@ -871,6 +871,32 @@ describe('generateText', () => {
         userId: 'test-user',
         sessionId: '123',
       });
+    });
+
+    it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+      let startEvent!: Parameters<
+        GenerateTextOnStartCallback<any, any, any>
+      >[0];
+
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello!' }],
+            ...dummyResponseValues,
+          }),
+        }),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'deprecated-fn',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent.isEnabled).toBe(true);
+      expect(startEvent.functionId).toBe('deprecated-fn');
     });
 
     it('should send correct information with system and messages', async () => {
@@ -9178,7 +9204,7 @@ describe('generateText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_telemetry: {
+        telemetry: {
           integrations: {
             onStart: async () => {
               events.push('onStart');
@@ -9267,7 +9293,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_telemetry: {
+        telemetry: {
           integrations: {
             onStart: async () => {
               events.push('per-call');
@@ -9299,7 +9325,7 @@ describe('generateText', () => {
         onFinish: async () => {
           events.push('user-onFinish');
         },
-        experimental_telemetry: {
+        telemetry: {
           integrations: {
             onStart: async () => {
               events.push('integration-onStart');
@@ -9333,7 +9359,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_telemetry: {
+        telemetry: {
           integrations: {
             onStart: async () => {
               throw new Error('integration error');
@@ -9362,7 +9388,7 @@ describe('generateText', () => {
           }),
         }),
         prompt: 'test-input',
-        experimental_telemetry: {
+        telemetry: {
           integrations: [
             {
               onStart: async () => {

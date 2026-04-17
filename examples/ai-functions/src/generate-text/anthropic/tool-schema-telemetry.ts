@@ -42,7 +42,7 @@ run(async () => {
         }),
       },
     },
-    experimental_telemetry: {
+    telemetry: {
       functionId: `cook-recipe`,
     },
   });
