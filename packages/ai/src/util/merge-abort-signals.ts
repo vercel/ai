@@ -15,13 +15,9 @@ export function mergeAbortSignals(
     (signal): signal is AbortSignal => signal != null,
   );
 
-  if (validSignals.length === 0) {
-    return undefined;
-  }
-
-  if (validSignals.length === 1) {
-    return validSignals[0];
-  }
-
-  return AbortSignal.any(validSignals);
+  return validSignals.length === 0
+    ? undefined
+    : validSignals.length === 1
+      ? validSignals[0]
+      : AbortSignal.any(validSignals);
 }
