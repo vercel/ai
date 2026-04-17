@@ -11,6 +11,7 @@ export type GoogleGenerativeAIUsageMetadata = {
   totalTokenCount?: number | null;
   cachedContentTokenCount?: number | null;
   thoughtsTokenCount?: number | null;
+  toolUsePromptTokenCount?: number | null;
   trafficType?: string | null;
   promptTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
   candidatesTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
@@ -40,11 +41,18 @@ export function convertGoogleGenerativeAIUsage(
   const candidatesTokens = usage.candidatesTokenCount ?? 0;
   const cachedContentTokens = usage.cachedContentTokenCount ?? 0;
   const thoughtsTokens = usage.thoughtsTokenCount ?? 0;
+  // Tokens consumed by tool-use prompts (e.g. grounded search, URL context).
+  // Google bills these at the regular input rate but reports them as a
+  // separate field. Including them in `inputTokens.total` ensures consumers
+  // that compute cost from the standard usage shape match Google's billing.
+  // See https://ai.google.dev/api/generate-content#UsageMetadata.
+  const toolUsePromptTokens = usage.toolUsePromptTokenCount ?? 0;
+  const totalInputTokens = promptTokens + toolUsePromptTokens;
 
   return {
     inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cachedContentTokens,
+      total: totalInputTokens,
+      noCache: totalInputTokens - cachedContentTokens,
       cacheRead: cachedContentTokens,
       cacheWrite: undefined,
     },
