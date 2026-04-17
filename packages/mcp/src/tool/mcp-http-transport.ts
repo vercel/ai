@@ -74,7 +74,7 @@ export class HttpMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': this.protocolVersion ?? LATEST_PROTOCOL_VERSION,
     };
 
     if (this.sessionId) {

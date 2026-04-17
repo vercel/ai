@@ -289,6 +289,7 @@ class DefaultMCPClient implements MCPClient {
       }
 
       this.serverCapabilities = result.capabilities;
+      this.transport.protocolVersion = result.protocolVersion;
       this._serverInfo = result.serverInfo;
 
       // Complete initialization handshake:
