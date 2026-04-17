@@ -177,6 +177,45 @@ export async function POST(req: Request) {
 
 The `consumeStream` function is necessary for proper abort handling in UI message streams. It ensures that the stream is properly consumed even when aborted, preventing potential memory leaks or hanging connections.
 
+## Cancellation on Vercel
+
+When your route is deployed to Vercel and opts into [request cancellation](https://vercel.com/docs/functions/functions-api-reference#cancel-requests) (`"supportsCancellation": true` in `vercel.json`), a few properties of the cancellation contract are worth knowing when you use `onAbort`, `abortSignal` in tools, or read the `abort` stream part:
+
+- **`req.signal` fires when the client disconnects.** The AI SDK forwards this signal to the model provider and to your tools. Your handler keeps running after the signal fires; it is not killed mid-instruction.
+- **The response stream closes as soon as the signal fires.** Anything you log or write to the stream after that point will not reach the client.
+- **Work that must complete after the stream closes needs `waitUntil`.** Once the response stream closes, the function becomes eligible to be reaped. Callbacks like `onAbort` and `onFinish` run in-process, so either do your persistence inline before returning, or wrap it with `waitUntil` to guarantee completion.
+
+<Note type="warning">
+  The Vercel docs state this directly: "anything that must be completed in the
+  event of request cancellation should be put in a `waitUntil` or `after`
+  promise. If you don't, there is no guarantee that code will be executed after
+  the request is cancelled."
+</Note>
+
+```tsx highlight="2-3,12-16"
+import { consumeStream, streamText } from 'ai';
+import { waitUntil } from '@vercel/functions';
+__PROVIDER_IMPORT__;
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: __MODEL__,
+    messages,
+    abortSignal: req.signal,
+    onAbort: ({ steps }) => {
+      // Use waitUntil so the save survives the response stream closing.
+      waitUntil(savePartialConversation(steps));
+    },
+  });
+
+  return result.toUIMessageStreamResponse({ consumeSseStream: consumeStream });
+}
+```
+
+For tool-level cleanup (persisting progress inside a long-running tool `execute`), see [Cancellation on Vercel](/docs/ai-sdk-core/tools-and-tool-calling#cancellation-on-vercel) in the Tools guide.
+
 ## AI SDK RSC
 
 <Note type="warning">
