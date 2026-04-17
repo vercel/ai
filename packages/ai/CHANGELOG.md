@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.0-beta.110
+
+### Patch Changes
+
+- 72cb801: feat(ai): concurrent event notification
+
 ## 7.0.0-beta.109
 
 ### Patch Changes
