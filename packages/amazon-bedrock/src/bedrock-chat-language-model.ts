@@ -230,6 +230,10 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
         : undefined;
+    const thinkingDisplay =
+      thinkingType === 'adaptive'
+        ? bedrockOptions.reasoningConfig?.display
+        : undefined;
     const isAnthropicThinkingEnabled = isAnthropicModel && isThinkingEnabled;
 
     const inferenceConfig = {
@@ -259,6 +263,7 @@ export class BedrockChatLanguageModel implements LanguageModelV4 {
           ...bedrockOptions.additionalModelRequestFields,
           thinking: {
             type: 'adaptive',
+            ...(thinkingDisplay != null && { display: thinkingDisplay }),
           },
         };
       }

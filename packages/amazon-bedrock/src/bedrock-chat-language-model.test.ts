@@ -4286,6 +4286,37 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should forward display in adaptive reasoningConfig to thinking', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'adaptive',
+            display: 'summarized',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+      type: 'adaptive',
+      display: 'summarized',
+    });
+  });
+
   it('should pass serviceTier provider option in generate requests', async () => {
     prepareJsonFixtureResponse('bedrock-text');
 
