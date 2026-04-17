@@ -1,3 +1,5 @@
+import { filterNullable } from '@ai-sdk/provider-utils';
+
 /**
  * Merges multiple abort sources into a single `AbortSignal`.
  * The returned signal will abort when any input signal aborts or when any
@@ -11,12 +13,9 @@
 export function mergeAbortSignals(
   ...signals: (AbortSignal | null | undefined | number)[]
 ): AbortSignal | undefined {
-  // TODO use filterNullable
-  const validSignals = signals
-    .filter((signal): signal is AbortSignal => signal != null)
-    .map(signal =>
-      signal instanceof AbortSignal ? signal : AbortSignal.timeout(signal),
-    );
+  const validSignals = filterNullable(...signals).map(signal =>
+    signal instanceof AbortSignal ? signal : AbortSignal.timeout(signal),
+  );
 
   return validSignals.length === 0
     ? undefined
