@@ -14,7 +14,6 @@ import {
   getToolTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/request-options';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { notify } from '../util/notify';
 import { now } from '../util/now';
 import { TypedToolCall } from './tool-call';
@@ -41,7 +40,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
   toolsContext,
-  telemetry: _telemetry,
   callId,
   messages,
   abortSignal,
@@ -56,7 +54,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
-  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;

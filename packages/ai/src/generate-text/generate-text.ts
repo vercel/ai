@@ -514,7 +514,6 @@ export async function generateText<
           toolApproval => toolApproval.toolCall,
         ),
         tools: tools as TOOLS,
-        telemetry,
         callId,
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
@@ -816,7 +815,6 @@ export async function generateText<
                   toolApprovalRequests[toolCall.toolCallId] == null,
               ),
               tools,
-              telemetry,
               callId,
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
@@ -1050,7 +1048,6 @@ export async function generateText<
 async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
   tools,
-  telemetry,
   callId,
   messages,
   abortSignal,
@@ -1065,7 +1062,6 @@ async function executeTools<TOOLS extends ToolSet>({
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
-  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
@@ -1083,7 +1079,6 @@ async function executeTools<TOOLS extends ToolSet>({
       executeToolCall({
         toolCall,
         tools,
-        telemetry,
         callId,
         messages,
         abortSignal,

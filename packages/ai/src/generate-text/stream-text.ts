@@ -1399,7 +1399,6 @@ class DefaultStreamTextResult<
               const result = await executeToolCall({
                 toolCall: toolApproval.toolCall,
                 tools,
-                telemetry,
                 callId,
                 messages: initialMessages,
                 abortSignal,
@@ -1642,7 +1641,6 @@ class DefaultStreamTextResult<
           const streamWithToolResults = stream2.pipeThrough(
             createExecuteToolsTransformation({
               tools,
-              telemetry,
               callId,
               messages: stepInputMessages,
               abortSignal,
