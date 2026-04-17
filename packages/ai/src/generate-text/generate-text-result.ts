@@ -157,13 +157,6 @@ export interface GenerateTextResult<
   /**
    * The generated structured output. It uses the `output` specification.
    *
-   * @deprecated Use `output` instead.
-   */
-  readonly experimental_output: InferCompleteOutput<OUTPUT>;
-
-  /**
-   * The generated structured output. It uses the `output` specification.
-   *
    */
   readonly output: InferCompleteOutput<OUTPUT>;
 }
