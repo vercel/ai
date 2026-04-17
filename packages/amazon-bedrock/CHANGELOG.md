@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.97
+
+### Patch Changes
+
+- b446c83: fix(provider/amazon-bedrock): fix Anthropic reasoning behavior related to Opus 4.7
+
 ## 3.0.96
 
 ### Patch Changes
