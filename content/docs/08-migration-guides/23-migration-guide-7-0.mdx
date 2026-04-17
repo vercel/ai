@@ -43,7 +43,7 @@ If your `package.json` does not already include `"type": "module"`, add it or re
 
 ### Telemetry: OpenTelemetry Moved to `@ai-sdk/otel` — Explicit Registration Required
 
-OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetryIntegration` globally.
+OpenTelemetry span collection is no longer built into the `ai` package. To continue receiving OpenTelemetry traces, you must install the new `@ai-sdk/otel` package and register the `OpenTelemetry` instance globally.
 
 ```bash
 pnpm install @ai-sdk/otel
@@ -61,13 +61,13 @@ const result = await generateText({
 });
 ```
 
-Now, you must install `@ai-sdk/otel` and register the `OpenTelemetryIntegration` once at application startup. For Next.js, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup:
+Now, you must install `@ai-sdk/otel` and register the `OpenTelemetry` instance once at application startup. For Next.js, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup:
 
 ```tsx filename="instrumentation"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 // ... your OpenTelemetry provider setup (e.g. registerOTel, NodeTracerProvider)
 ```
@@ -78,7 +78,7 @@ This applies to all AI SDK functions that accept `experimental_telemetry`, inclu
 
 ### Telemetry: Enabled by Default When an Integration Is Registered
 
-In AI SDK 6, telemetry was opt-in — you had to set `experimental_telemetry: { isEnabled: true }` on every call to emit events. In AI SDK 7, telemetry is opt-out: once you register a telemetry integration (for example `OpenTelemetryIntegration` or `DevToolsTelemetry`), all AI SDK calls emit telemetry events by default.
+In AI SDK 6, telemetry was opt-in — you had to set `experimental_telemetry: { isEnabled: true }` on every call to emit events. In AI SDK 7, telemetry is opt-out: once you register a telemetry integration (for example `OpenTelemetry` or `DevToolsTelemetry`), all AI SDK calls emit telemetry events by default.
 
 ```tsx filename="AI SDK 6"
 import { generateText } from 'ai';
@@ -92,10 +92,10 @@ const result = await generateText({
 
 ```tsx filename="AI SDK 7"
 import { generateText } from 'ai';
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 const result = await generateText({
   model: yourModel,
@@ -142,7 +142,7 @@ This applies to all AI SDK functions that accept `experimental_telemetry`, inclu
 
 ### Telemetry: `tracer` Property Removed from `experimental_telemetry`
 
-The `tracer` property on `experimental_telemetry` has been removed. If you were passing a custom OpenTelemetry `Tracer`, pass it to the `OpenTelemetryIntegration` constructor instead:
+The `tracer` property on `experimental_telemetry` has been removed. If you were passing a custom OpenTelemetry `Tracer`, pass it to the `OpenTelemetry` constructor instead:
 
 ```tsx filename="AI SDK 6"
 import { generateText } from 'ai';
@@ -159,12 +159,12 @@ const result = await generateText({
 ```
 
 ```tsx filename="AI SDK 7"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { trace } from '@opentelemetry/api';
 
-registerTelemetryIntegration(
-  new OpenTelemetryIntegration({
+registerTelemetry(
+  new OpenTelemetry({
     tracer: trace.getTracer('my-app'),
   }),
 );
@@ -172,7 +172,39 @@ registerTelemetryIntegration(
 
 This applies to all AI SDK functions that accept `experimental_telemetry`, including `streamText`, `generateObject`, `streamObject`, `embed`, and `embedMany`.
 
-If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetryIntegration` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
+If you were not passing a custom `tracer` (relying on the default global tracer), no changes are needed — the `OpenTelemetry` is registered globally by default and uses `trace.getTracer('ai')` when no custom tracer is provided.
+
+### Telemetry: `experimental_telemetry` Renamed to `telemetry`
+
+The telemetry option has graduated out of experimental status and has been renamed to `telemetry`. The old name `experimental_telemetry` continues to work as a deprecated alias in AI SDK 7 and will be removed in a future major release.
+
+```tsx filename="AI SDK 6"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  experimental_telemetry: {
+    functionId: 'story-agent',
+  },
+});
+```
+
+```tsx filename="AI SDK 7"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: yourModel,
+  prompt: 'Hello',
+  telemetry: {
+    functionId: 'story-agent',
+  },
+});
+```
+
+This applies to all AI SDK functions and agents that accept telemetry configuration, including `generateText`, `streamText`, `generateObject`, `streamObject`, `embed`, `embedMany`, `rerank`, `ToolLoopAgent`, and `WorkflowAgent`.
+
+No behavior changes beyond the rename. You can migrate incrementally — mixed usage of `telemetry` and `experimental_telemetry` in the same codebase is supported during the deprecation window.
 
 ### Context: `experimental_context` Became Tool `context`, and Shared Runtime Data Moved to `runtimeContext`
 
@@ -258,6 +290,38 @@ Potential breaking issues:
 - If you have helper types or wrappers that assumed `experimental_context` or `context` was `unknown`, update them to accept a generic `CONTEXT` type.
 - If at least one tool declares `contextSchema`, `toolsContext` becomes required and only includes the tools that actually declare contextual data.
 - If you were relying on every tool callback seeing the same full runtime object, move shared step data to `runtimeContext`, or explicitly provide the needed per-tool data in each tool's `toolsContext` entry.
+
+### Structured Outputs: Remove Deprecated `experimental_output` Option and Result
+
+The deprecated `experimental_output` option has been removed in AI SDK 7. Replace all remaining usages with `output`.
+
+The deprecated `generateText()` result property `experimental_output` has also been removed. Read `result.output` instead.
+
+This name was deprecated in AI SDK 6, so if you already migrated to `output`, no changes are needed. Otherwise, update both the call options and any result access:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: yourModel,
+  experimental_output: Output.object({
+    schema: recipeSchema,
+  }),
+  prompt: 'Generate a recipe.',
+});
+
+console.log(result.experimental_output);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: yourModel,
+  output: Output.object({
+    schema: recipeSchema,
+  }),
+  prompt: 'Generate a recipe.',
+});
+
+console.log(result.output);
+```
 
 ### Tools: Remove Deprecated `experimental_activeTools` Option
 
@@ -453,3 +517,45 @@ const mcpClient = await createMCPClient({
 ```
 
 If the MCP server you use does not issue redirects, no changes are needed — the new default is more secure.
+
+## Anthropic Provider
+
+### `providerMetadata.anthropic.cacheCreationInputTokens` Removed
+
+The Anthropic-specific `cacheCreationInputTokens` field on `providerMetadata.anthropic` has been removed from the responses of `generateText` and `streamText` (as well as the `@ai-sdk/google-vertex/anthropic` sub-provider). This duplicated information that is already available on the standard, provider-agnostic `usage` object.
+
+Use `result.usage.inputTokenDetails.cacheWriteTokens` to read the number of tokens written to the cache, and `result.usage.inputTokenDetails.cacheReadTokens` to read the number of tokens served from the cache:
+
+```tsx filename="AI SDK 6"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: [
+    /* ... messages with cacheControl ... */
+  ],
+});
+
+console.log(result.providerMetadata?.anthropic?.cacheCreationInputTokens);
+```
+
+```tsx filename="AI SDK 7"
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  messages: [
+    /* ... messages with cacheControl ... */
+  ],
+});
+
+console.log(result.usage.inputTokenDetails.cacheWriteTokens);
+```
+
+If you need the raw Anthropic-shaped usage payload (including `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `service_tier`, etc.), it is still available unchanged at `result.providerMetadata?.anthropic?.usage`.
+
+## Google Provider
+
+### Renamed Types, Classes, and Functions: `GenerativeAI` Affix Removed
+
+Every type, class, and function in `@ai-sdk/google` that contained `GoogleGenerativeAI` has been renamed to use simply `Google` — for example, `createGoogleGenerativeAI` → `createGoogle` and `GoogleGenerativeAIProvider` → `GoogleProvider`.
+
+The old names still work as deprecated aliases, but you should migrate to the new names, if you currently reference them.
+
+The main entry point the `google` constant, remains unchanged, so if that's all you use from the provider, no changes are required.

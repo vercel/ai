@@ -1,5 +1,30 @@
 # @ai-sdk/alibaba
 
+## 2.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/openai-compatible@3.0.0-beta.30
+
+## 2.0.0-beta.31
+
+### Patch Changes
+
+- f807e45: Extract shared `StreamingToolCallTracker` class into `@ai-sdk/provider-utils` to deduplicate streaming tool call handling across OpenAI-compatible providers. Also adds missing `generateId()` fallback for `toolCallId` in Alibaba's `doGenerate` path and ensures all providers finalize unfinished tool calls during stream flush.
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/openai-compatible@3.0.0-beta.29
+
+## 2.0.0-beta.30
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/openai-compatible@3.0.0-beta.28
+
 ## 2.0.0-beta.29
 
 ### Patch Changes

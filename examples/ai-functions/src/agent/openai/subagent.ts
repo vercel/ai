@@ -2,13 +2,8 @@ import { openai } from '@ai-sdk/openai';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
-import {
-  ToolLoopAgent,
-  tool,
-  isStepCount,
-  registerTelemetryIntegration,
-} from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { ToolLoopAgent, tool, isStepCount, registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -18,7 +13,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   const childAgent = new ToolLoopAgent({
@@ -41,7 +36,7 @@ run(async () => {
       agentLevel: 'L2',
     },
     stopWhen: isStepCount(3),
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'child-agent',
     },
   });
@@ -70,7 +65,7 @@ run(async () => {
       agentLevel: 'L1',
     },
     stopWhen: isStepCount(3),
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'parent-agent',
     },
   });

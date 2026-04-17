@@ -64,14 +64,14 @@ In Next.js, Laminar initialization and the AI SDK telemetry integration should b
 export async function register() {
   // prevent this from running in the edge runtime
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { registerTelemetryIntegration } = await import('ai');
-    const { OpenTelemetryIntegration } = await import('@ai-sdk/otel');
+    const { registerTelemetry } = await import('ai');
+    const { OpenTelemetry } = await import('@ai-sdk/otel');
     const { Laminar, getTracer } = await import('@lmnr-ai/lmnr');
 
     Laminar.initialize({
       projectApiKey: process.env.LMNR_PROJECT_API_KEY,
     });
-    registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer: getTracer() }));
+    registerTelemetry(new OpenTelemetry({ tracer: getTracer() }));
   }
 }
 ```
@@ -141,14 +141,14 @@ import { registerOTel } from '@vercel/otel';
 export async function register() {
   registerOTel('my-service-name');
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { registerTelemetryIntegration } = await import('ai');
-    const { OpenTelemetryIntegration } = await import('@ai-sdk/otel');
+    const { registerTelemetry } = await import('ai');
+    const { OpenTelemetry } = await import('@ai-sdk/otel');
     const { Laminar } = await import('@lmnr-ai/lmnr');
     // Make sure to initialize Laminar **after** `@registerOTel`
     Laminar.initialize({
       projectApiKey: process.env.LMNR_PROJECT_API_KEY,
     });
-    registerTelemetryIntegration(new OpenTelemetryIntegration());
+    registerTelemetry(new OpenTelemetry());
   }
 }
 ```
@@ -167,8 +167,8 @@ This will ensure that
 ```javascript
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { registerTelemetryIntegration } = await import('ai');
-    const { OpenTelemetryIntegration } = await import('@ai-sdk/otel');
+    const { registerTelemetry } = await import('ai');
+    const { OpenTelemetry } = await import('@ai-sdk/otel');
     const Sentry = await import('@sentry/node');
     const { Laminar } = await import('@lmnr-ai/lmnr');
 
@@ -180,7 +180,7 @@ export async function register() {
     Laminar.initialize({
       projectApiKey: process.env.LMNR_PROJECT_API_KEY,
     });
-    registerTelemetryIntegration(new OpenTelemetryIntegration());
+    registerTelemetry(new OpenTelemetry());
   }
 }
 ```
@@ -192,12 +192,12 @@ export async function register() {
 Then, initialize tracing in your application:
 
 ```javascript
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { Laminar, getTracer } from '@lmnr-ai/lmnr';
 
 Laminar.initialize();
-registerTelemetryIntegration(new OpenTelemetryIntegration({ tracer: getTracer() }));
+registerTelemetry(new OpenTelemetry({ tracer: getTracer() }));
 ```
 
 This must be done once in your application, as early as possible, but _after_ other tracing libraries (e.g. `@sentry/node`) are initialized.
@@ -262,7 +262,7 @@ If you want to override the default span name, you can set the `functionId` insi
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
-  experimental_telemetry: {
+  telemetry: {
     functionId: 'poem-writer',
   },
 });
@@ -311,7 +311,7 @@ In Laminar, metadata is set on the trace level. Metadata contains key-value pair
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
-  experimental_telemetry: {
+  telemetry: {
     metadata: {
       'my-key': 'my-value',
       'another-key': 'another-value',
@@ -332,7 +332,7 @@ Tags can subsequently be used to filter traces in Laminar.
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
-  experimental_telemetry: {
+  telemetry: {
     metadata: {
       tags: ['fallback-model', 'api-handler'],
     },
@@ -349,7 +349,7 @@ reserved metadata keys.
 const { text } = await generateText({
   model: openai('gpt-4.1-nano'),
   prompt: `Write a poem about Laminar flow.`,
-  experimental_telemetry: {
+  telemetry: {
     metadata: {
       sessionId: 'session-123',
       userId: 'user-123',

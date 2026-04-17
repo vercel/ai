@@ -1,3 +1,3 @@
 export type { TelemetryOptions } from './telemetry-options';
-export type { TelemetryIntegration } from './telemetry-integration';
-export { registerTelemetryIntegration } from './telemetry-integration-registry';
+export type { Telemetry } from './telemetry';
+export { registerTelemetry } from './telemetry-registry';

@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "4.0.0-beta.34",
-    "ai": "7.0.0-beta.105",
+    "@ai-sdk/openai": "4.0.0-beta.37",
+    "ai": "7.0.0-beta.110",
     "dotenv": "16.4.5",
     "zod": "3.25.76"
   },

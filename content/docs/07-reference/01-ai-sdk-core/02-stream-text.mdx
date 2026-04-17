@@ -479,10 +479,10 @@ To see `streamText` in action, check out [these examples](#examples).
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
-      name: 'experimental_telemetry',
+      name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
-      description: 'Telemetry configuration. Experimental feature.',
+      description: 'Telemetry configuration.',
       properties: [
         {
           type: 'TelemetryOptions',
@@ -518,7 +518,7 @@ To see `streamText` in action, check out [these examples](#examples).
             {
               name: 'integrations',
               isOptional: true,
-              type: 'TelemetryIntegration | TelemetryIntegration[]',
+              type: 'Telemetry | Telemetry[]',
               description:
                 'Per-call telemetry integrations that receive lifecycle events. When provided, these replace any globally registered integrations for this call.',
             },
@@ -2087,14 +2087,14 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: '(event: OnToolCallStartEvent) => PromiseLike<void> | void',
+      name: 'experimental_onToolExecutionStart',
+      type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallStartEvent',
+          type: 'ToolExecutionStartEvent',
           parameters: [
             {
               name: 'stepNumber',
@@ -2142,14 +2142,14 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: '(event: OnToolCallFinishEvent) => PromiseLike<void> | void',
+      name: 'experimental_onToolExecutionEnd',
+      type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         "Callback that is called right after a tool's execute function completes (or errors). Uses a discriminated union on the `success` field: when `success: true`, `output` contains the tool result; when `success: false`, `error` contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallFinishEvent',
+          type: 'ToolExecutionEndEvent',
           parameters: [
             {
               name: 'stepNumber',

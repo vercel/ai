@@ -80,10 +80,10 @@ const { embeddings } = await embedMany({
         'Maximum number of concurrent requests to the provider. Default: Infinity.',
     },
     {
-      name: 'experimental_telemetry',
+      name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
-      description: 'Telemetry configuration. Experimental feature.',
+      description: 'Telemetry configuration.',
       properties: [
         {
           type: 'TelemetryOptions',
@@ -119,7 +119,7 @@ const { embeddings } = await embedMany({
             {
               name: 'integrations',
               isOptional: true,
-              type: 'TelemetryIntegration | TelemetryIntegration[]',
+              type: 'Telemetry | Telemetry[]',
               description:
                 'Per-call telemetry integrations that receive lifecycle events. When provided, these replace any globally registered integrations for this call.',
             },

@@ -1,4 +1,5 @@
-import type { TelemetryIntegration } from './telemetry-integration';
+import type { Arrayable } from '@ai-sdk/provider-utils';
+import type { Telemetry } from './telemetry';
 
 /**
  * Telemetry configuration.
@@ -37,5 +38,5 @@ export type TelemetryOptions = {
    * When provided, these integrations will take precedence over the globally registered
    * integrations for this call.
    */
-  integrations?: TelemetryIntegration | TelemetryIntegration[];
+  integrations?: Arrayable<Telemetry>;
 };

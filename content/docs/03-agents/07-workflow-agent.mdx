@@ -352,7 +352,6 @@ import { isLoopFinished } from "ai";
 
 const result = await agent.stream({
   messages,
-  maxSteps: 10,
   stopWhen: isLoopFinished(),
 });
 ```
@@ -435,11 +434,11 @@ const agent = new WorkflowAgent({
     console.log(`Step ${stepNumber} starting`);
   },
 
-  experimental_onToolCallStart({ toolCall }) {
+  experimental_onToolExecutionStart({ toolCall }) {
     console.log(`Calling tool: ${toolCall.toolName}`);
   },
 
-  experimental_onToolCallFinish({ toolCall, result, error }) {
+  experimental_onToolExecutionEnd({ toolCall, result, error }) {
     console.log(`Tool finished: ${toolCall.toolName}`);
   },
 

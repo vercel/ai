@@ -28,8 +28,8 @@ OTEL_EXPORTER_OTLP_HEADERS="x-api-key:<PATRONUS_API_KEY>"
 import { registerOTel } from '@vercel/otel';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
 export function register() {
   registerOTel({
@@ -47,7 +47,7 @@ export function register() {
   });
 }
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 ```
 
 <Note>
@@ -58,7 +58,7 @@ registerTelemetryIntegration(new OpenTelemetryIntegration());
 
 ### 2. Register the integration and enable telemetry
 
-Once you've installed `@ai-sdk/otel` and added `registerTelemetryIntegration` to your `instrumentation.ts`, telemetry is captured automatically. Pass `experimental_telemetry` to attach metadata:
+Once you've installed `@ai-sdk/otel` and added `registerTelemetry` to your `instrumentation.ts`, telemetry is captured automatically. Pass `telemetry` to attach metadata:
 
 ```ts
 import { generateText } from 'ai';
@@ -67,7 +67,7 @@ import { openai } from '@ai-sdk/openai';
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a haiku about spring.',
-  experimental_telemetry: {
+  telemetry: {
     functionId: 'spring-haiku', // span name
     metadata: {
       userId: 'user-123', // custom attrs surface in Patronus UI
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
       const answer = await generateText({
         model: openai('gpt-4o'),
         prompt: body.prompt,
-        experimental_telemetry: { functionId: 'chat' },
+        telemetry: { functionId: 'chat' },
       });
 
       /* 2️⃣ run Patronus evaluation inside the same trace */
