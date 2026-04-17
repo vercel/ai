@@ -10,6 +10,7 @@ import {
   SharedV4ProviderMetadata,
   SharedV4Warning,
 } from '@ai-sdk/provider';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import {
   delay,
   DelayedPromise,
@@ -54,11 +55,12 @@ import {
   StreamTextOnFinishCallback,
   StreamTextOnStartCallback,
   StreamTextOnStepStartCallback,
-  StreamTextOnToolCallFinishCallback,
-  StreamTextOnToolCallStartCallback,
 } from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from './tool-execution-events';
 
 const defaultSettings = () =>
   ({
@@ -6181,10 +6183,10 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onToolCallStart', () => {
+  describe('options.experimental_onToolExecutionStart', () => {
     it('should be called with correct tool name, id, and input', async () => {
-      const toolCallStartEvents: Parameters<
-        StreamTextOnToolCallStartCallback<any>
+      const toolExecutionStartEvents: Parameters<
+        OnToolExecutionStartCallback<any>
       >[0][] = [];
 
       const result = streamText({
@@ -6218,8 +6220,8 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallStart: async event => {
-          toolCallStartEvents.push(event);
+        experimental_onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
         },
         onError: () => {},
         _internal: {
@@ -6230,13 +6232,40 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(toolCallStartEvents.length).toBe(1);
-      expect(toolCallStartEvents[0]).toMatchSnapshot();
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "test-input",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "test-arg",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
 
     it('should be called once per tool call in a multi-tool step', async () => {
-      const toolCallStartEvents: Parameters<
-        StreamTextOnToolCallStartCallback<any>
+      const toolExecutionStartEvents: Parameters<
+        OnToolExecutionStartCallback<any>
       >[0][] = [];
 
       const result = streamText({
@@ -6276,17 +6305,15 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallStart: async event => {
-          toolCallStartEvents.push(event);
+        experimental_onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
         },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(toolCallStartEvents.length).toBe(2);
-      expect(toolCallStartEvents[0].toolCall.toolCallId).toBe('call-1');
-      expect(toolCallStartEvents[1].toolCall.toolCallId).toBe('call-2');
+      expect(toolExecutionStartEvents.length).toMatchInlineSnapshot(`2`);
     });
 
     it('should be called before tool execution', async () => {
@@ -6326,15 +6353,15 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallStart: async () => {
-          callOrder.push('onToolCallStart');
+        experimental_onToolExecutionStart: async () => {
+          callOrder.push('onToolExecutionStart');
         },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(callOrder.indexOf('onToolCallStart')).toBeLessThan(
+      expect(callOrder.indexOf('onToolExecutionStart')).toBeLessThan(
         callOrder.indexOf('execute'),
       );
     });
@@ -6371,7 +6398,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallStart: async () => {
+        experimental_onToolExecutionStart: async () => {
           throw new Error('callback error');
         },
         onError: () => {},
@@ -6385,8 +6412,8 @@ describe('streamText', () => {
     });
 
     it('should not fire for tools without execute', async () => {
-      const toolCallStartEvents: Parameters<
-        StreamTextOnToolCallStartCallback<any>
+      const toolExecutionStartEvents: Parameters<
+        OnToolExecutionStartCallback<any>
       >[0][] = [];
 
       const result = streamText({
@@ -6419,20 +6446,20 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallStart: async event => {
-          toolCallStartEvents.push(event);
+        experimental_onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
         },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(toolCallStartEvents.length).toBe(0);
+      expect(toolExecutionStartEvents.length).toBe(0);
     });
 
     it('should pass context', async () => {
-      const toolCallStartEvents: Parameters<
-        StreamTextOnToolCallStartCallback<any>
+      const toolExecutionStartEvents: Parameters<
+        OnToolExecutionStartCallback<any>
       >[0][] = [];
 
       const result = streamText({
@@ -6467,15 +6494,15 @@ describe('streamText', () => {
           }),
         },
         toolsContext: { tool1: { context: 'test' } },
-        experimental_onToolCallStart: async event => {
-          toolCallStartEvents.push(event);
+        experimental_onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
         },
         ...defaultSettings(),
       });
 
       await result.consumeStream();
 
-      expect(toolCallStartEvents).toMatchInlineSnapshot(`
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
         [
           {
             "callId": "test-telemetry-call-id",
@@ -6509,10 +6536,10 @@ describe('streamText', () => {
     });
   });
 
-  describe('options.experimental_onToolCallFinish', () => {
+  describe('options.experimental_onToolExecutionEnd', () => {
     it('should be called with correct data on success', async () => {
-      const toolCallFinishEvents: Parameters<
-        StreamTextOnToolCallFinishCallback<any>
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
       >[0][] = [];
 
       const result = streamText({
@@ -6546,28 +6573,20 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallFinish: async event => {
-          toolCallFinishEvents.push(event);
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].toolCall.toolName).toBe('tool1');
-      expect(toolCallFinishEvents[0].toolCall.toolCallId).toBe('call-1');
-      expect(toolCallFinishEvents[0].toolCall.input).toEqual({
-        value: 'test-arg',
-      });
-      expect(toolCallFinishEvents[0].success).toBe(true);
-      expect(toolCallFinishEvents[0].output).toBe('test-arg-result');
-      expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+      expect(toolExecutionEndEvents.length).toMatchInlineSnapshot(`1`);
     });
 
     it('should be called with error data when tool execution fails', async () => {
-      const toolCallFinishEvents: Parameters<
-        StreamTextOnToolCallFinishCallback<any>
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
       >[0][] = [];
       const toolError = new Error('tool execution failed');
 
@@ -6604,25 +6623,25 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallFinish: async event => {
-          toolCallFinishEvents.push(event);
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].toolCall.toolName).toBe('tool1');
-      expect(toolCallFinishEvents[0].toolCall.toolCallId).toBe('call-1');
-      expect(toolCallFinishEvents[0].success).toBe(false);
-      expect(toolCallFinishEvents[0].error).toBe(toolError);
-      expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+      expect(toolExecutionEndEvents.length).toBe(1);
+      expect(toolExecutionEndEvents[0].toolCall.toolName).toBe('tool1');
+      expect(toolExecutionEndEvents[0].toolCall.toolCallId).toBe('call-1');
+      expect(toolExecutionEndEvents[0].success).toBe(false);
+      expect(toolExecutionEndEvents[0].error).toBe(toolError);
+      expect(toolExecutionEndEvents[0].durationMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should have a positive durationMs', async () => {
-      const toolCallFinishEvents: Parameters<
-        StreamTextOnToolCallFinishCallback<any>
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
       >[0][] = [];
 
       const result = streamText({
@@ -6656,16 +6675,16 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallFinish: async event => {
-          toolCallFinishEvents.push(event);
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(toolCallFinishEvents[0].durationMs).toBeGreaterThanOrEqual(0);
-      expect(typeof toolCallFinishEvents[0].durationMs).toBe('number');
+      expect(toolExecutionEndEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+      expect(typeof toolExecutionEndEvents[0].durationMs).toBe('number');
     });
 
     it('should not break generation when callback throws', async () => {
@@ -6700,7 +6719,7 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallFinish: async () => {
+        experimental_onToolExecutionEnd: async () => {
           throw new Error('callback error');
         },
         onError: () => {},
@@ -6714,8 +6733,8 @@ describe('streamText', () => {
     });
 
     it('should not fire for tools without execute', async () => {
-      const toolCallFinishEvents: Parameters<
-        StreamTextOnToolCallFinishCallback<any>
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
       >[0][] = [];
 
       const result = streamText({
@@ -6748,20 +6767,20 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallFinish: async event => {
-          toolCallFinishEvents.push(event);
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(toolCallFinishEvents.length).toBe(0);
+      expect(toolExecutionEndEvents.length).toBe(0);
     });
 
     it('should pass context on success', async () => {
-      const toolCallFinishEvents: Parameters<
-        StreamTextOnToolCallFinishCallback<any>
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
       >[0][] = [];
 
       const result = streamText({
@@ -6796,15 +6815,15 @@ describe('streamText', () => {
           }),
         },
         toolsContext: { tool1: { context: 'test' } },
-        experimental_onToolCallFinish: async event => {
-          toolCallFinishEvents.push(event);
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
         ...defaultSettings(),
       });
 
       await result.consumeStream();
 
-      expect(toolCallFinishEvents).toMatchInlineSnapshot(`
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
         [
           {
             "callId": "test-telemetry-call-id",
@@ -6841,8 +6860,8 @@ describe('streamText', () => {
     });
 
     it('should pass context on error', async () => {
-      const toolCallFinishEvents: Parameters<
-        StreamTextOnToolCallFinishCallback<any>
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
       >[0][] = [];
       const toolError = new Error('Tool execution failed');
 
@@ -6879,26 +6898,53 @@ describe('streamText', () => {
             },
           }),
         },
-        prompt: 'test-input',
         toolsContext: { tool1: { context: 'test' } },
-        experimental_onToolCallFinish: async event => {
-          toolCallFinishEvents.push(event);
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
-        onError: () => {},
+        ...defaultSettings(),
       });
 
       await result.consumeStream();
 
-      expect(toolCallFinishEvents.length).toBe(1);
-      expect(toolCallFinishEvents[0].success).toBe(false);
-      expect(toolCallFinishEvents[0].error).toBe(toolError);
-      expect(toolCallFinishEvents[0].context).toEqual({
-        context: 'test',
-      });
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "durationMs": 0,
+            "error": [Error: Tool execution failed],
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": false,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
     });
   });
 
-  describe('options.experimental_onToolCallStart and experimental_onToolCallFinish ordering', () => {
+  describe('options.experimental_onToolExecutionStart and experimental_onToolExecutionEnd ordering', () => {
     it('should call start before finish', async () => {
       const callOrder: string[] = [];
 
@@ -6933,26 +6979,26 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_onToolCallStart: async () => {
-          callOrder.push('onToolCallStart');
+        experimental_onToolExecutionStart: async () => {
+          callOrder.push('onToolExecutionStart');
         },
-        experimental_onToolCallFinish: async () => {
-          callOrder.push('onToolCallFinish');
+        experimental_onToolExecutionEnd: async () => {
+          callOrder.push('onToolExecutionEnd');
         },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(callOrder).toEqual(['onToolCallStart', 'onToolCallFinish']);
+      expect(callOrder).toEqual(['onToolExecutionStart', 'onToolExecutionEnd']);
     });
 
     it('should fire tool call callbacks for each tool in a multi-step loop', async () => {
-      const toolCallStartEvents: Parameters<
-        StreamTextOnToolCallStartCallback<any>
+      const toolExecutionStartEvents: Parameters<
+        OnToolExecutionStartCallback<any>
       >[0][] = [];
-      const toolCallFinishEvents: Parameters<
-        StreamTextOnToolCallFinishCallback<any>
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
       >[0][] = [];
       let callCount = 0;
 
@@ -7035,27 +7081,19 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
         stopWhen: isStepCount(4),
-        experimental_onToolCallStart: async event => {
-          toolCallStartEvents.push(event);
+        experimental_onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
         },
-        experimental_onToolCallFinish: async event => {
-          toolCallFinishEvents.push(event);
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
         },
         onError: () => {},
       });
 
       await result.consumeStream();
 
-      expect(toolCallStartEvents.length).toBe(2);
-      expect(toolCallFinishEvents.length).toBe(2);
-
-      expect(toolCallStartEvents[0].toolCall.toolCallId).toBe('call-1');
-      expect(toolCallStartEvents[1].toolCall.toolCallId).toBe('call-2');
-
-      expect(toolCallFinishEvents[0].success).toBe(true);
-      expect(toolCallFinishEvents[0].output).toBe('step0-result');
-      expect(toolCallFinishEvents[1].success).toBe(true);
-      expect(toolCallFinishEvents[1].output).toBe('step1-result');
+      expect(toolExecutionStartEvents.length).toMatchInlineSnapshot(`2`);
+      expect(toolExecutionEndEvents.length).toMatchInlineSnapshot(`2`);
     });
   });
 
@@ -23258,11 +23296,11 @@ describe('streamText', () => {
             onStepStart: async () => {
               events.push('onStepStart');
             },
-            onToolCallStart: async () => {
-              events.push('onToolCallStart');
+            onToolExecutionStart: async () => {
+              events.push('onToolExecutionStart');
             },
-            onToolCallFinish: async () => {
-              events.push('onToolCallFinish');
+            onToolExecutionEnd: async () => {
+              events.push('onToolExecutionEnd');
             },
             onStepFinish: async () => {
               events.push('onStepFinish');
@@ -23276,14 +23314,16 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(events).toEqual([
-        'onStart',
-        'onStepStart',
-        'onToolCallStart',
-        'onToolCallFinish',
-        'onStepFinish',
-        'onFinish',
-      ]);
+      expect(events).toMatchInlineSnapshot(`
+        [
+          "onStart",
+          "onStepStart",
+          "onToolExecutionStart",
+          "onToolExecutionEnd",
+          "onStepFinish",
+          "onFinish",
+        ]
+      `);
     });
 
     it('should call globally registered integration listeners', async () => {

@@ -1,4 +1,5 @@
 import type {
+  Arrayable,
   InferToolInput,
   InferToolSetContext,
   ToolSet,
@@ -15,24 +16,24 @@ import {
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { notify } from '../util/notify';
 import { now } from '../util/now';
-import {
-  GenerateTextOnToolCallFinishCallback,
-  GenerateTextOnToolCallStartCallback,
-} from './generate-text';
-import { validateToolContext } from './validate-tool-context';
 import { TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from './tool-execution-events';
 import { ToolOutput } from './tool-output';
 import { TypedToolResult } from './tool-result';
+import { validateToolContext } from './validate-tool-context';
 
-/**
+/**s
  * Executes a single tool call and manages its lifecycle callbacks.
  *
  * This function handles the complete tool execution flow:
- * 1. Invokes `onToolCallStart` callback before execution
+ * 1. Invokes `onToolExecutionStart` callback before execution
  * 2. Executes the tool's `execute` function with proper context
  * 3. Handles streaming outputs via `onPreliminaryToolResult`
- * 4. Invokes `onToolCallFinish` callback with success or error result
+ * 4. Invokes `onToolExecutionEnd` callback with success or error result
  *
  * @returns The tool output (result or error), or undefined if the tool has no execute function.
  */
@@ -49,8 +50,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   provider,
   modelId,
   onPreliminaryToolResult,
-  onToolCallStart,
-  onToolCallFinish,
+  onToolExecutionStart,
+  onToolExecutionEnd,
   executeToolInTelemetryContext = async ({ execute }) => execute(),
 }: {
   toolCall: TypedToolCall<TOOLS>;
@@ -65,12 +66,8 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   provider?: string;
   modelId?: string;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
-  onToolCallStart?:
-    | GenerateTextOnToolCallStartCallback<TOOLS>
-    | Array<GenerateTextOnToolCallStartCallback<TOOLS> | undefined | null>;
-  onToolCallFinish?:
-    | GenerateTextOnToolCallFinishCallback<TOOLS>
-    | Array<GenerateTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
+  onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
+  onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: <T>(params: {
     callId: string;
     toolCallId: string;
@@ -103,7 +100,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
   let output: unknown;
 
-  await notify({ event: baseCallbackEvent, callbacks: onToolCallStart });
+  await notify({ event: baseCallbackEvent, callbacks: onToolExecutionStart });
 
   const toolTimeoutMs = getToolTimeoutMs<TOOLS>(timeout, toolName);
 
@@ -161,7 +158,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
         error,
         durationMs,
       },
-      callbacks: onToolCallFinish,
+      callbacks: onToolExecutionEnd,
     });
 
     return {
@@ -186,7 +183,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
       output,
       durationMs,
     },
-    callbacks: onToolCallFinish,
+    callbacks: onToolExecutionEnd,
   });
 
   return {

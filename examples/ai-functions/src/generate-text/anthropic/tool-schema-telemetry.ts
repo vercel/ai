@@ -10,8 +10,10 @@ import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
 
-registerTelemetryIntegration(DevToolsTelemetry());
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(
+  new OpenTelemetryIntegration(),
+  DevToolsTelemetry(),
+);
 
 const sdk = new NodeSDK({
   spanProcessors: [new LangfuseSpanProcessor()],

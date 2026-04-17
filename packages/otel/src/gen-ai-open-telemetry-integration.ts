@@ -25,8 +25,8 @@ import type {
   OnStartEvent,
   OnStepFinishEvent,
   OnStepStartEvent,
-  OnToolCallFinishEvent,
-  OnToolCallStartEvent,
+  ToolExecutionEndEvent,
+  ToolExecutionStartEvent,
   OutputInterface as Output,
   RerankFinishEvent,
   RerankOnFinishEvent,
@@ -540,7 +540,7 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
     state.stepContext = trace.setSpan(state.rootContext, state.stepSpan);
   }
 
-  onToolCallStart(event: OnToolCallStartEvent<ToolSet>): void {
+  onToolExecutionStart(event: ToolExecutionStartEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepContext) return;
 
@@ -571,7 +571,7 @@ export class GenAIOpenTelemetryIntegration implements TelemetryIntegration {
     });
   }
 
-  onToolCallFinish(event: OnToolCallFinishEvent<ToolSet>): void {
+  onToolExecutionEnd(event: ToolExecutionEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state) return;
 

@@ -14,6 +14,7 @@ export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
 export * from './extract-response-headers';
 export * from './fetch-function';
+export { filterNullable } from './filter-nullable';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
