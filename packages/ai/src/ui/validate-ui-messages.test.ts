@@ -1289,6 +1289,150 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should skip validation for tool parts in terminal states when tool schema is not found', async () => {
+      // Test output-available state
+      const messagesOutputAvailable = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-bar',
+                toolCallId: '1',
+                state: 'output-available',
+                input: { foo: 'bar' },
+                output: { result: 'success' },
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messagesOutputAvailable).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "input": {
+                  "foo": "bar",
+                },
+                "output": {
+                  "result": "success",
+                },
+                "providerExecuted": true,
+                "state": "output-available",
+                "toolCallId": "1",
+                "type": "tool-bar",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      // Test output-error state
+      const messagesOutputError = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-bar',
+                toolCallId: '1',
+                state: 'output-error',
+                input: { foo: 'bar' },
+                errorText: 'Tool execution failed',
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messagesOutputError).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "errorText": "Tool execution failed",
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "output-error",
+                "toolCallId": "1",
+                "type": "tool-bar",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+
+      // Test output-denied state
+      const messagesOutputDenied = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-bar',
+                toolCallId: '1',
+                state: 'output-denied',
+                input: { foo: 'bar' },
+                providerExecuted: true,
+                approval: {
+                  id: 'approval-1',
+                  approved: false,
+                  reason: 'Access denied',
+                },
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messagesOutputDenied).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "approval": {
+                  "approved": false,
+                  "id": "approval-1",
+                  "reason": "Access denied",
+                },
+                "input": {
+                  "foo": "bar",
+                },
+                "providerExecuted": true,
+                "state": "output-denied",
+                "toolCallId": "1",
+                "type": "tool-bar",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
     it('should throw error when tool input validation fails', async () => {
       await expect(
         validateUIMessages<TestMessage>({
