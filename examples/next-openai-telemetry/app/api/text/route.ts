@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     runtimeContext: {
       example: 'value',
     },
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'example-function-id',
     },
   });

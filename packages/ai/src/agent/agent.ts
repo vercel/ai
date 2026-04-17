@@ -1,18 +1,19 @@
-import type { Arrayable } from '@ai-sdk/provider-utils';
+import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
 import { ModelMessage } from '@ai-sdk/provider-utils';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
 import { StreamTextTransform } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from '../generate-text/tool-execution-events';
 import { TimeoutConfiguration } from '../prompt/request-options';
 import type {
   ToolLoopAgentOnFinishCallback,
   ToolLoopAgentOnStartCallback,
   ToolLoopAgentOnStepFinishCallback,
   ToolLoopAgentOnStepStartCallback,
-  ToolLoopAgentOnToolCallFinishCallback,
-  ToolLoopAgentOnToolCallStartCallback,
 } from './tool-loop-agent-settings';
 
 /**
@@ -83,12 +84,12 @@ export type AgentCallParameters<
     /**
      * Callback that is called before each tool execution begins.
      */
-    experimental_onToolCallStart?: ToolLoopAgentOnToolCallStartCallback<TOOLS>;
+    experimental_onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
 
     /**
      * Callback that is called after each tool execution completes.
      */
-    experimental_onToolCallFinish?: ToolLoopAgentOnToolCallFinishCallback<TOOLS>;
+    experimental_onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
 
     /**
      * Callback that is called when each step (LLM call) is finished, including intermediate steps.

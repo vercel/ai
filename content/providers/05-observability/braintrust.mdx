@@ -16,12 +16,12 @@ Braintrust natively supports OpenTelemetry and works out of the box with the AI 
 If you are using Next.js, use the Braintrust exporter with `@vercel/otel`:
 
 ```typescript filename="instrumentation"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 import { BraintrustExporter } from 'braintrust';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 export function register() {
   registerOTel({
@@ -87,8 +87,8 @@ Then, set up the OpenTelemetry SDK:
 
 ```typescript
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { registerTelemetryIntegration, generateText, tool, isStepCount } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry, generateText, tool, isStepCount } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { BraintrustSpanProcessor } from 'braintrust';
@@ -103,7 +103,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 async function main() {
   const result = await generateText({
@@ -132,7 +132,7 @@ async function main() {
       something: 'custom',
       someOtherThing: 'other-value',
     },
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'my-awesome-function',
     },
     stopWhen: isStepCount(10),
