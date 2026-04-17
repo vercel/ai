@@ -38,7 +38,7 @@ import {
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
+import type { Telemetry } from '../telemetry/telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import {
   LanguageModel,
@@ -1083,7 +1083,7 @@ async function executeTools<TOOLS extends ToolSet>({
   modelId: string;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
-  executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
+  executeToolInTelemetryContext?: Telemetry['executeTool'];
 }): Promise<Array<ToolOutput<TOOLS>>> {
   const toolOutputs = await Promise.all(
     toolCalls.map(async toolCall =>

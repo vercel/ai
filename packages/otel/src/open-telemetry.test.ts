@@ -29,7 +29,7 @@ import {
   streamText,
   rerank,
 } from 'ai';
-import type { Embedding, EmbeddingModelUsage, TelemetryIntegration } from 'ai';
+import type { Embedding, EmbeddingModelUsage, Telemetry } from 'ai';
 import {
   MockEmbeddingModelV4,
   MockLanguageModelV4,
@@ -37,7 +37,7 @@ import {
   mockValues,
 } from 'ai/test';
 import { MockTracer as IntegrationMockTracer } from './mock-tracer';
-import { OpenTelemetryIntegration } from './open-telemetry-integration';
+import { OpenTelemetry } from './open-telemetry';
 
 export function createResolvablePromise<T = any>(): {
   promise: Promise<T>;
@@ -188,7 +188,7 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
     runtimeContext: {},
     toolsContext: {},
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onStart']>>[0];
+  } as Parameters<NonNullable<Telemetry['onStart']>>[0];
 }
 
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
@@ -217,7 +217,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     stepToolChoice: undefined,
     toolsContext: {},
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onStepStart']>>[0];
+  } as Parameters<NonNullable<Telemetry['onStepStart']>>[0];
 }
 
 function makeStepFinishEvent(overrides?: Record<string, unknown>) {
@@ -268,7 +268,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     providerMetadata: undefined,
     toolsContext: {},
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onStepFinish']>>[0];
+  } as Parameters<NonNullable<Telemetry['onStepFinish']>>[0];
 }
 
 function makeFinishEvent(overrides?: Record<string, unknown>) {
@@ -292,7 +292,7 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
       },
     },
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onFinish']>>[0];
+  } as Parameters<NonNullable<Telemetry['onFinish']>>[0];
 }
 
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
@@ -313,7 +313,7 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
     context: {},
     toolsContext: {},
     ...overrides,
-  } as Parameters<NonNullable<TelemetryIntegration['onToolExecutionStart']>>[0];
+  } as Parameters<NonNullable<Telemetry['onToolExecutionStart']>>[0];
 }
 
 function makeToolCallFinishEvent(
@@ -345,31 +345,29 @@ function makeToolCallFinishEvent(
       ...base,
       success: true as const,
       output: { result: 'ok' },
-    } as Parameters<NonNullable<TelemetryIntegration['onToolExecutionEnd']>>[0];
+    } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
   }
   return {
     ...base,
     success: false as const,
     error: new Error('tool failed'),
-  } as Parameters<NonNullable<TelemetryIntegration['onToolExecutionEnd']>>[0];
+  } as Parameters<NonNullable<Telemetry['onToolExecutionEnd']>>[0];
 }
 
 function makeChunkEvent(
-  chunk: Parameters<NonNullable<TelemetryIntegration['onChunk']>>[0]['chunk'],
+  chunk: Parameters<NonNullable<Telemetry['onChunk']>>[0]['chunk'],
 ) {
-  return { chunk } as Parameters<
-    NonNullable<TelemetryIntegration['onChunk']>
-  >[0];
+  return { chunk } as Parameters<NonNullable<Telemetry['onChunk']>>[0];
 }
 
-describe('OpenTelemetryIntegration', () => {
+describe('OpenTelemetry', () => {
   let tracer: MockTracer;
-  let otelIntegration: TelemetryIntegration;
+  let otelIntegration: Telemetry;
 
   beforeEach(() => {
     tracer = createMockTracer();
     callId = `test-call-${++callIdCounter}`;
-    otelIntegration = new OpenTelemetryIntegration({ tracer });
+    otelIntegration = new OpenTelemetry({ tracer });
   });
 
   describe('onStart', () => {
@@ -422,7 +420,7 @@ describe('OpenTelemetryIntegration', () => {
 
     it('uses a tracer configured for the call id', () => {
       const configuredTracer = createMockTracer();
-      const configuredIntegration = new OpenTelemetryIntegration({
+      const configuredIntegration = new OpenTelemetry({
         tracer: configuredTracer,
       });
 
@@ -1296,7 +1294,7 @@ const integrationModelWithReasoning = new MockLanguageModelV4({
   },
 });
 
-describe('OpenTelemetryIntegration integration with generateText', () => {
+describe('OpenTelemetry integration with generateText', () => {
   let tracer: IntegrationMockTracer;
 
   beforeEach(() => {
@@ -1318,7 +1316,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       }),
       prompt: 'prompt',
       experimental_telemetry: {
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
     });
 
@@ -1361,7 +1359,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
     });
 
@@ -1398,7 +1396,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: {
         generateId: () => 'test-id',
@@ -1509,7 +1507,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: {
         generateId: () => 'test-id',
@@ -1574,7 +1572,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: {
         generateId: () => 'test-id',
@@ -1591,7 +1589,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
     });
 
@@ -1682,7 +1680,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
     });
 
@@ -1698,7 +1696,7 @@ describe('OpenTelemetryIntegration integration with generateText', () => {
   it('should execute subagent generateText inside executeToolCall context', async () => {
     let activeContext: string | undefined;
     let capturedContext: string | undefined;
-    const otelIntegration = new OpenTelemetryIntegration({ tracer });
+    const otelIntegration = new OpenTelemetry({ tracer });
 
     await generateText({
       model: new MockLanguageModelV4({
@@ -1823,7 +1821,7 @@ function createStreamTestModel({
   });
 }
 
-describe('OpenTelemetryIntegration integration with streamText', () => {
+describe('OpenTelemetry integration with streamText', () => {
   let tracer: IntegrationMockTracer;
 
   beforeEach(() => {
@@ -1835,7 +1833,7 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       model: createStreamTestModel(),
       prompt: 'test-input',
       experimental_telemetry: {
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: {
         now: mockValues(0, 100, 500),
@@ -1868,7 +1866,7 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: { now: mockValues(0, 100, 500) },
     });
@@ -1910,7 +1908,7 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: { now: mockValues(0, 100, 500) },
     });
@@ -1954,7 +1952,7 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: { now: mockValues(0, 100, 500) },
     });
@@ -2020,7 +2018,7 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: { now: mockValues(0, 100, 500) },
     });
@@ -2065,7 +2063,7 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: { now: mockValues(0, 100, 500) },
     });
@@ -2090,7 +2088,7 @@ describe('OpenTelemetryIntegration integration with streamText', () => {
   it('should execute subagent streamText inside executeToolCall context', async () => {
     let activeContext: string | undefined;
     let capturedContext: string | undefined;
-    const otelIntegration = new OpenTelemetryIntegration({ tracer });
+    const otelIntegration = new OpenTelemetry({ tracer });
 
     const result = streamText({
       model: createStreamTestModel({
@@ -2233,7 +2231,7 @@ const rerankModel = new MockRerankingModelV4({
   }),
 });
 
-describe('OpenTelemetryIntegration integration with rerank', () => {
+describe('OpenTelemetry integration with rerank', () => {
   let tracer: IntegrationMockTracer;
 
   beforeEach(() => {
@@ -2249,7 +2247,7 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
         'cloudy day in the mountains',
       ],
       experimental_telemetry: {
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       query: 'rainy day',
       topN: 3,
@@ -2312,7 +2310,7 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        integrations: [new OpenTelemetryIntegration({ tracer })],
+        integrations: [new OpenTelemetry({ tracer })],
       },
     });
 
@@ -2378,7 +2376,7 @@ describe('OpenTelemetryIntegration integration with rerank', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        integrations: [new OpenTelemetryIntegration({ tracer })],
+        integrations: [new OpenTelemetry({ tracer })],
       },
     });
 
@@ -2436,7 +2434,7 @@ function mockEmbedSingle(
   };
 }
 
-describe('OpenTelemetryIntegration integration with embed', () => {
+describe('OpenTelemetry integration with embed', () => {
   let tracer: IntegrationMockTracer;
 
   beforeEach(() => {
@@ -2450,7 +2448,7 @@ describe('OpenTelemetryIntegration integration with embed', () => {
       }),
       value: embedTestValue,
       experimental_telemetry: {
-        integrations: [new OpenTelemetryIntegration({ tracer })],
+        integrations: [new OpenTelemetry({ tracer })],
       },
     });
 
@@ -2468,7 +2466,7 @@ describe('OpenTelemetryIntegration integration with embed', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        integrations: [new OpenTelemetryIntegration({ tracer })],
+        integrations: [new OpenTelemetry({ tracer })],
       },
     });
 
@@ -2487,7 +2485,7 @@ describe('OpenTelemetryIntegration integration with embed', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        integrations: [new OpenTelemetryIntegration({ tracer })],
+        integrations: [new OpenTelemetry({ tracer })],
       },
     });
 
@@ -2527,7 +2525,7 @@ function mockEmbedMany(
   };
 }
 
-describe('OpenTelemetryIntegration integration with embedMany', () => {
+describe('OpenTelemetry integration with embedMany', () => {
   let tracer: IntegrationMockTracer;
 
   beforeEach(() => {
@@ -2542,7 +2540,7 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
       }),
       values: embedManyTestValues,
       experimental_telemetry: {
-        integrations: [new OpenTelemetryIntegration({ tracer })],
+        integrations: [new OpenTelemetry({ tracer })],
       },
     });
 
@@ -2580,7 +2578,7 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        integrations: [new OpenTelemetryIntegration({ tracer })],
+        integrations: [new OpenTelemetry({ tracer })],
       },
     });
 
@@ -2599,7 +2597,7 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        integrations: [new OpenTelemetryIntegration({ tracer })],
+        integrations: [new OpenTelemetry({ tracer })],
       },
     });
 
@@ -2619,7 +2617,7 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        integrations: [new OpenTelemetryIntegration({ tracer })],
+        integrations: [new OpenTelemetry({ tracer })],
       },
     });
 
@@ -2652,7 +2650,7 @@ describe('OpenTelemetryIntegration integration with embedMany', () => {
       values: embedManyTestValues,
       experimental_telemetry: {
         isEnabled: true,
-        integrations: [new OpenTelemetryIntegration({ tracer })],
+        integrations: [new OpenTelemetry({ tracer })],
       },
     });
 
@@ -2695,7 +2693,7 @@ const generateObjectDummyResponseValues = {
   warnings: [],
 };
 
-describe('OpenTelemetryIntegration integration with generateObject', () => {
+describe('OpenTelemetry integration with generateObject', () => {
   let tracer: IntegrationMockTracer;
 
   beforeEach(() => {
@@ -2713,7 +2711,7 @@ describe('OpenTelemetryIntegration integration with generateObject', () => {
       schema: z.object({ content: z.string() }),
       prompt: 'prompt',
       experimental_telemetry: {
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
     });
 
@@ -2754,7 +2752,7 @@ describe('OpenTelemetryIntegration integration with generateObject', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
     });
 
@@ -2780,7 +2778,7 @@ describe('OpenTelemetryIntegration integration with generateObject', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
     });
 
@@ -2841,7 +2839,7 @@ function createStreamObjectTestModel({
   });
 }
 
-describe('OpenTelemetryIntegration integration with streamObject', () => {
+describe('OpenTelemetry integration with streamObject', () => {
   let tracer: IntegrationMockTracer;
 
   beforeEach(() => {
@@ -2878,7 +2876,7 @@ describe('OpenTelemetryIntegration integration with streamObject', () => {
       schema: z.object({ content: z.string() }),
       prompt: 'prompt',
       experimental_telemetry: {
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: { now: () => 0 },
     });
@@ -2934,7 +2932,7 @@ describe('OpenTelemetryIntegration integration with streamObject', () => {
       experimental_telemetry: {
         isEnabled: true,
         functionId: 'test-function-id',
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: { now: () => 0 },
     });
@@ -2977,7 +2975,7 @@ describe('OpenTelemetryIntegration integration with streamObject', () => {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: false,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: { now: () => 0 },
     });
@@ -3051,7 +3049,7 @@ const streamTextTestUsage2: LanguageModelV4Usage = {
   },
 };
 
-describe('OpenTelemetryIntegration integration with streamText stopWhen (2 steps)', () => {
+describe('OpenTelemetry integration with streamText stopWhen (2 steps)', () => {
   it('should record telemetry data for each step', async () => {
     const tracer = new IntegrationMockTracer();
     let responseCount = 0;
@@ -3123,7 +3121,7 @@ describe('OpenTelemetryIntegration integration with streamText stopWhen (2 steps
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       stopWhen: isStepCount(3),
       _internal: {
@@ -3139,7 +3137,7 @@ describe('OpenTelemetryIntegration integration with streamText stopWhen (2 steps
   });
 });
 
-describe('OpenTelemetryIntegration integration with streamText stopWhen (2 steps with transformed tool results)', () => {
+describe('OpenTelemetry integration with streamText stopWhen (2 steps with transformed tool results)', () => {
   it('should record telemetry data for each step', async () => {
     const tracer = new IntegrationMockTracer();
 
@@ -3230,7 +3228,7 @@ describe('OpenTelemetryIntegration integration with streamText stopWhen (2 steps
       prompt: 'test-input',
       experimental_telemetry: {
         isEnabled: true,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       stopWhen: isStepCount(3),
       _internal: {
@@ -3396,7 +3394,7 @@ describe('OpenTelemetryIntegration integration with streamText stopWhen (2 steps
   });
 });
 
-describe('OpenTelemetryIntegration integration with streamText transform', () => {
+describe('OpenTelemetry integration with streamText transform', () => {
   it('telemetry should record transformed data when enabled', async () => {
     const tracer = new IntegrationMockTracer();
 
@@ -3468,7 +3466,7 @@ describe('OpenTelemetryIntegration integration with streamText transform', () =>
       experimental_transform: upperCaseTransform,
       experimental_telemetry: {
         isEnabled: true,
-        integrations: new OpenTelemetryIntegration({ tracer }),
+        integrations: new OpenTelemetry({ tracer }),
       },
       _internal: { now: mockValues(0, 100, 500) },
     });
