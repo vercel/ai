@@ -581,6 +581,59 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should not set reasoning_effort when reasoning is "provider-default"', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'provider-default',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+  });
+
+  it('should pass top-level reasoning as reasoning_effort', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'medium',
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'medium',
+    });
+  });
+
+  it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
+    prepareJsonFixtureResponse('openai-text');
+
+    const model = provider.chat('o4-mini');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'medium',
+      providerOptions: {
+        openai: { reasoningEffort: 'high' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'o4-mini',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'high',
+    });
+  });
+
   it('should pass reasoningEffort setting from provider metadata', async () => {
     prepareJsonFixtureResponse('openai-text');
 
@@ -1476,6 +1529,55 @@ describe('doGenerate', () => {
         messages: [{ role: 'user', content: 'Hello' }],
         max_completion_tokens: 1000,
       });
+    });
+
+    it('should allow temperature when top-level reasoning is none on gpt-5.1', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const model = provider.chat('gpt-5.1');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+        temperature: 0.5,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-5.1',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'none',
+        temperature: 0.5,
+      });
+
+      expect(result.warnings).toStrictEqual([]);
+    });
+
+    it('should still clear temperature when top-level reasoning is none on o4-mini', async () => {
+      prepareJsonFixtureResponse('openai-text');
+
+      const model = provider.chat('o4-mini');
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'none',
+        temperature: 0.5,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'o4-mini',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'none',
+      });
+
+      expect(result.warnings).toMatchInlineSnapshot(`
+        [
+          {
+            "details": "temperature is not supported for reasoning models",
+            "feature": "temperature",
+            "type": "unsupported",
+          },
+        ]
+      `);
     });
   });
 
@@ -3016,7 +3118,7 @@ describe('doStream', () => {
           },
           {
             "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+        Error message: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
             "type": "error",
           },
           {

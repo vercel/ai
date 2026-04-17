@@ -21,9 +21,13 @@ import {
   createToolNameMapping,
   generateId,
   InferSchema,
+  isCustomReasoning,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -67,6 +71,7 @@ import {
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import {
+  ResponsesCompactionProviderMetadata,
   ResponsesProviderMetadata,
   ResponsesReasoningProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,
@@ -105,6 +110,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
   private readonly config: OpenAIConfig;
 
+  static [WORKFLOW_SERIALIZE](model: OpenAIResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIResponsesModelId;
+    config: OpenAIConfig;
+  }) {
+    return new OpenAIResponsesLanguageModel(options.modelId, options.config);
+  }
+
   constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {
     this.modelId = modelId;
     this.config = config;
@@ -129,6 +148,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     frequencyPenalty,
     seed,
     prompt,
+    reasoning,
     providerOptions,
     tools,
     toolChoice,
@@ -174,6 +194,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       });
     }
 
+    const resolvedReasoningEffort =
+      openaiOptions?.reasoningEffort ??
+      (isCustomReasoning(reasoning) ? reasoning : undefined);
+
     const isReasoningModel =
       openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
 
@@ -199,10 +223,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         'openai.apply_patch': 'apply_patch',
         'openai.tool_search': 'tool_search',
       },
-      resolveProviderToolName: tool =>
-        tool.id === 'openai.custom'
-          ? (tool.args as { name?: string }).name
-          : undefined,
     });
 
     const customProviderToolNames = new Set<string>();
@@ -341,13 +361,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       top_logprobs: topLogprobs,
       truncation: openaiOptions?.truncation,
 
+      // context management (server-side compaction):
+      ...(openaiOptions?.contextManagement && {
+        context_management: openaiOptions.contextManagement.map(cm => ({
+          type: cm.type,
+          compact_threshold: cm.compactThreshold,
+        })),
+      }),
+
       // model-specific settings:
       ...(isReasoningModel &&
-        (openaiOptions?.reasoningEffort != null ||
+        (resolvedReasoningEffort != null ||
           openaiOptions?.reasoningSummary != null) && {
           reasoning: {
-            ...(openaiOptions?.reasoningEffort != null && {
-              effort: openaiOptions.reasoningEffort,
+            ...(resolvedReasoningEffort != null && {
+              effort: resolvedReasoningEffort,
             }),
             ...(openaiOptions?.reasoningSummary != null && {
               summary: openaiOptions.reasoningSummary,
@@ -363,7 +391,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
         !(
-          openaiOptions?.reasoningEffort === 'none' &&
+          resolvedReasoningEffort === 'none' &&
           modelCapabilities.supportsNonReasoningParameters
         )
       ) {
@@ -483,7 +511,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -981,6 +1009,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
           break;
         }
+
+        case 'compaction': {
+          content.push({
+            type: 'custom',
+            kind: 'openai.compaction',
+            providerMetadata: {
+              [providerOptionsName]: {
+                type: 'compaction',
+                itemId: part.id,
+                encryptedContent: part.encrypted_content,
+              } satisfies ResponsesCompactionProviderMetadata,
+            },
+          });
+          break;
+        }
       }
     }
 
@@ -1037,7 +1080,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         path: '/responses',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         stream: true,
@@ -1786,6 +1829,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 }
 
                 delete activeReasoning[value.item.id];
+              } else if (value.item.type === 'compaction') {
+                controller.enqueue({
+                  type: 'custom',
+                  kind: 'openai.compaction',
+                  providerMetadata: {
+                    [providerOptionsName]: {
+                      type: 'compaction',
+                      itemId: value.item.id,
+                      encryptedContent: value.item.encrypted_content,
+                    } satisfies ResponsesCompactionProviderMetadata,
+                  },
+                });
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
@@ -2006,6 +2061,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
+            } else if (isResponseFailedChunk(value)) {
+              const incompleteReason =
+                value.response.incomplete_details?.reason;
+              finishReason = {
+                unified: incompleteReason
+                  ? mapOpenAIResponseFinishReason({
+                      finishReason: incompleteReason,
+                      hasFunctionCall,
+                    })
+                  : 'error',
+                raw: incompleteReason ?? 'error',
+              };
+              usage = value.response.usage ?? undefined;
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
@@ -2123,6 +2191,12 @@ function isResponseFinishedChunk(
   return (
     chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
   );
+}
+
+function isResponseFailedChunk(
+  chunk: OpenAIResponsesChunk,
+): chunk is OpenAIResponsesChunk & { type: 'response.failed' } {
+  return chunk.type === 'response.failed';
 }
 
 function isResponseCreatedChunk(

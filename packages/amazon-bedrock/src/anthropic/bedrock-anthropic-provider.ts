@@ -47,6 +47,10 @@ const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
   text_editor_20250728: 'computer-use-2025-01-24',
   computer_20250124: 'computer-use-2025-01-24',
   computer_20241022: 'computer-use-2024-10-22',
+  tool_search_tool_regex_20251119: 'tool-search-tool-2025-10-19',
+  // BM25 is not currently supported on Bedrock, but including the beta flag
+  // so that Bedrock returns a more useful error message if it's used.
+  tool_search_tool_bm25_20251119: 'tool-search-tool-2025-10-19',
 };
 
 export interface BedrockAnthropicProvider extends ProviderV4 {
@@ -257,7 +261,13 @@ export function createBedrockAnthropic(
         }`,
 
       transformRequestBody: (args, betas) => {
-        const { model, stream, tool_choice, tools, ...rest } = args;
+        const {
+          model: _model,
+          stream: _stream,
+          tool_choice,
+          tools,
+          ...rest
+        } = args;
 
         const transformedToolChoice =
           tool_choice != null

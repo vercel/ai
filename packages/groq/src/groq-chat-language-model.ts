@@ -1,5 +1,4 @@
 import {
-  InvalidResponseDataError,
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
@@ -13,13 +12,18 @@ import {
 import {
   FetchFunction,
   ParseResult,
+  StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isParsableJson,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertGroqUsage } from './convert-groq-usage';
@@ -32,7 +36,7 @@ import { mapGroqFinishReason } from './map-groq-finish-reason';
 
 type GroqChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
@@ -47,6 +51,20 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
   };
 
   private readonly config: GroqChatConfig;
+
+  static [WORKFLOW_SERIALIZE](model: GroqChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: GroqChatModelId;
+    config: GroqChatConfig;
+  }) {
+    return new GroqChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: GroqChatModelId, config: GroqChatConfig) {
     this.modelId = modelId;
@@ -68,13 +86,11 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     stopSequences,
     responseFormat,
     seed,
-    stream,
+    reasoning,
     tools,
     toolChoice,
     providerOptions,
-  }: LanguageModelV4CallOptions & {
-    stream: boolean;
-  }) {
+  }: LanguageModelV4CallOptions) {
     const warnings: SharedV4Warning[] = [];
 
     const groqOptions = await parseProviderOptions({
@@ -145,7 +161,21 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
         // provider options:
         reasoning_format: groqOptions?.reasoningFormat,
-        reasoning_effort: groqOptions?.reasoningEffort,
+        reasoning_effort:
+          groqOptions?.reasoningEffort ??
+          (isCustomReasoning(reasoning) && reasoning !== 'none'
+            ? mapReasoningToProviderEffort({
+                reasoning,
+                effortMap: {
+                  minimal: 'low',
+                  low: 'low',
+                  medium: 'medium',
+                  high: 'high',
+                  xhigh: 'high',
+                },
+                warnings,
+              })
+            : undefined),
         service_tier: groqOptions?.serviceTier,
 
         // messages:
@@ -162,10 +192,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings } = await this.getArgs({
-      ...options,
-      stream: false,
-    });
+    const { args, warnings } = await this.getArgs(options);
 
     const body = JSON.stringify(args);
 
@@ -178,7 +205,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -238,20 +265,17 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings } = await this.getArgs({ ...options, stream: true });
+    const { args, warnings } = await this.getArgs(options);
 
-    const body = JSON.stringify({ ...args, stream: true });
+    const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-      },
+      headers: combineHeaders(this.config.headers?.(), options.headers),
+      body,
       failedResponseHandler: groqFailedResponseHandler,
       successfulResponseHandler:
         createEventSourceResponseHandler(groqChatChunkSchema),
@@ -259,15 +283,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-    }> = [];
+    const toolCallTracker = new StreamingToolCallTracker({
+      generateId,
+      typeValidation: 'required',
+    });
 
     let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
@@ -411,120 +430,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
-
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.type !== 'function') {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function' type.`,
-                    });
-                  }
-
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-
-                    // check if tool call is complete
-                    // (some providers send the full tool call in one chunk):
-                    if (isParsableJson(toolCall.function.arguments)) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
-
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
-                      });
-                      toolCall.hasFinished = true;
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
-
-                // check if tool call is complete
-                if (
-                  toolCall.function?.name != null &&
-                  toolCall.function?.arguments != null &&
-                  isParsableJson(toolCall.function.arguments)
-                ) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                  });
-                  toolCall.hasFinished = true;
-                }
+                toolCallTracker.processDelta(
+                  toolCallDelta,
+                  controller.enqueue.bind(controller),
+                );
               }
             }
           },
@@ -538,6 +447,8 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
+            toolCallTracker.flush(controller.enqueue.bind(controller));
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -547,7 +458,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
           },
         }),
       ),
-      request: { body },
+      request: { body: JSON.stringify(body) },
       response: { headers: responseHeaders },
     };
   }

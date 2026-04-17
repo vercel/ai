@@ -18,11 +18,16 @@ export function validateDownloadUrl(url: string): void {
     });
   }
 
-  // Only allow http and https protocols
+  // data: URLs are inline content, so they do not trigger a network fetch or SSRF risk.
+  if (parsed.protocol === 'data:') {
+    return;
+  }
+
+  // Only allow http and https network protocols
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new DownloadError({
       url,
-      message: `URL scheme must be http or https, got ${parsed.protocol}`,
+      message: `URL scheme must be http, https, or data, got ${parsed.protocol}`,
     });
   }
 

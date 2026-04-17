@@ -61,6 +61,7 @@ run(async () => {
   }
 
   console.log('Text:', result.text);
+  console.log('Finish reason:', result.finishReason);
   console.log('Tool Calls:', JSON.stringify(result.toolCalls, null, 2));
   console.log('Tool Results:', JSON.stringify(result.toolResults, null, 2));
 });

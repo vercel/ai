@@ -167,7 +167,7 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should convert messages with image parts using file_id', async () => {
+    it('should convert messages with image parts using file_id (deprecated)', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -185,6 +185,39 @@ describe('convertToOpenAIResponsesInput', () => {
         systemMessageMode: 'system',
         providerOptionsName: 'openai',
         fileIdPrefixes: ['file-'],
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_image',
+              file_id: 'file-12345',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert messages with image parts using provider reference', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: { openai: 'file-12345' },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -349,7 +382,7 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    it('should convert messages with PDF file parts using file_id', async () => {
+    it('should convert messages with PDF file parts using file_id (deprecated)', async () => {
       const result = await convertToOpenAIResponsesInput({
         prompt: [
           {
@@ -367,6 +400,39 @@ describe('convertToOpenAIResponsesInput', () => {
         systemMessageMode: 'system',
         providerOptionsName: 'openai',
         fileIdPrefixes: ['file-'],
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-12345',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should convert messages with PDF file parts using provider reference', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'application/pdf',
+                data: { openai: 'file-pdf-12345' },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
         store: true,
       });
 
@@ -477,8 +543,187 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
-    describe('Azure OpenAI file ID support', () => {
-      it('should convert image parts with assistant- prefix', async () => {
+    describe('provider reference support', () => {
+      it('should resolve provider reference for a different providerOptionsName', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { azure: 'assistant-img-abc123' },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'azure',
+          store: true,
+        });
+
+        expect(result.input).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_image',
+                file_id: 'assistant-img-abc123',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should resolve provider reference for PDF parts', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: { openai: 'file-pdf-abc123' },
+                },
+              ],
+            },
+          ],
+          toolNameMapping: testToolNameMapping,
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        });
+
+        expect(result.input).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_file',
+                file_id: 'file-pdf-abc123',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should handle multiple provider references in one message', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: { openai: 'file-img-abc123', anthropic: 'img-xyz' },
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: { openai: 'file-pdf-xyz789', google: 'doc-123' },
+                },
+              ],
+            },
+          ],
+          toolNameMapping: testToolNameMapping,
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        });
+
+        expect(result.input).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_image',
+                file_id: 'file-img-abc123',
+              },
+              {
+                type: 'input_file',
+                file_id: 'file-pdf-xyz789',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should throw when provider is not in the reference', async () => {
+        await expect(
+          convertToOpenAIResponsesInput({
+            prompt: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { anthropic: 'file-xyz' },
+                  },
+                ],
+              },
+            ],
+            toolNameMapping: testToolNameMapping,
+            systemMessageMode: 'system',
+            providerOptionsName: 'openai',
+            store: true,
+          }),
+        ).rejects.toThrow(
+          "No provider reference found for provider 'openai'. Available providers: anthropic",
+        );
+      });
+
+      it('should treat plain strings as base64 data', async () => {
+        const result = await convertToOpenAIResponsesInput({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: 'file-12345',
+                },
+                {
+                  type: 'file',
+                  mediaType: 'application/pdf',
+                  data: 'assistant-abc123',
+                  filename: 'test.pdf',
+                },
+              ],
+            },
+          ],
+          toolNameMapping: testToolNameMapping,
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        });
+
+        expect(result.input).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_image',
+                image_url: 'data:image/png;base64,file-12345',
+              },
+              {
+                type: 'input_file',
+                filename: 'test.pdf',
+                file_data: 'data:application/pdf;base64,assistant-abc123',
+              },
+            ],
+          },
+        ]);
+      });
+    });
+
+    describe('deprecated fileIdPrefixes support', () => {
+      it('should convert image parts with custom prefix', async () => {
         const result = await convertToOpenAIResponsesInput({
           toolNameMapping: testToolNameMapping,
           prompt: [
@@ -512,7 +757,7 @@ describe('convertToOpenAIResponsesInput', () => {
         ]);
       });
 
-      it('should convert PDF parts with assistant- prefix', async () => {
+      it('should convert PDF parts with custom prefix', async () => {
         const result = await convertToOpenAIResponsesInput({
           prompt: [
             {
@@ -588,9 +833,7 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]);
       });
-    });
 
-    describe('fileIdPrefixes undefined behavior', () => {
       it('should treat all file data as base64 when fileIdPrefixes is undefined', async () => {
         const result = await convertToOpenAIResponsesInput({
           prompt: [
@@ -600,12 +843,12 @@ describe('convertToOpenAIResponsesInput', () => {
                 {
                   type: 'file',
                   mediaType: 'image/png',
-                  data: 'file-12345', // Looks like file ID but should be treated as base64
+                  data: 'file-12345',
                 },
                 {
                   type: 'file',
                   mediaType: 'application/pdf',
-                  data: 'assistant-abc123', // Looks like file ID but should be treated as base64
+                  data: 'assistant-abc123',
                   filename: 'test.pdf',
                 },
               ],
@@ -614,7 +857,6 @@ describe('convertToOpenAIResponsesInput', () => {
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           providerOptionsName: 'openai',
-          // fileIdPrefixes intentionally omitted
           store: true,
         });
 
@@ -653,7 +895,7 @@ describe('convertToOpenAIResponsesInput', () => {
           toolNameMapping: testToolNameMapping,
           systemMessageMode: 'system',
           providerOptionsName: 'openai',
-          fileIdPrefixes: [], // Empty array should disable file ID detection
+          fileIdPrefixes: [],
           store: true,
         });
 
@@ -836,6 +1078,40 @@ describe('convertToOpenAIResponsesInput', () => {
           arguments: JSON.stringify({ query: 'weather in San Francisco' }),
         },
       ]);
+    });
+
+    it('should default missing tool call input to an empty object', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                input: undefined,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": "{}",
+            "call_id": "call_123",
+            "id": undefined,
+            "name": "search",
+            "type": "function_call",
+          },
+        ]
+      `);
     });
 
     it('should convert messages with tool call parts that have ids', async () => {
@@ -2089,7 +2365,7 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-data',
+                      type: 'file-data',
                       mediaType: 'image/png',
                       data: 'base64_data',
                     },
@@ -2135,8 +2411,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-url',
+                      type: 'file-url',
                       url: 'https://example.com/screenshot.png',
+                      mediaType: 'image/png',
                     },
                   ],
                 },
@@ -2214,6 +2491,108 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should convert single tool result part with multipart that contains file-url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/document.pdf',
+                      mediaType: 'application/pdf',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "file_url": "https://example.com/document.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should convert single tool result part with multipart with mixed content including file-url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'Here is the file you asked for:',
+                    },
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/test.pdf',
+                      mediaType: 'application/pdf',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_123",
+            "output": [
+              {
+                "text": "Here is the file you asked for:",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/test.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "function_call_output",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should convert single tool result part with multipart with mixed content (text, image, file)', async () => {
       const base64Data = 'AQIDBAU=';
       const result = await convertToOpenAIResponsesInput({
@@ -2234,7 +2613,7 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'The weather in San Francisco is 72°F',
                     },
                     {
-                      type: 'image-data',
+                      type: 'file-data',
                       mediaType: 'image/png',
                       data: 'base64_data',
                     },
@@ -3760,6 +4139,232 @@ describe('convertToOpenAIResponsesInput', () => {
     });
   });
 
+  describe('compaction', () => {
+    it('should convert compaction to item_reference when store is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_123',
+                    encryptedContent: 'encrypted_data_here',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "cmp_123",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+
+    it('should convert compaction to full compaction item when store is false', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_456',
+                    encryptedContent: 'encrypted_compaction_state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "encrypted_content": "encrypted_compaction_state",
+            "id": "cmp_456",
+            "type": "compaction",
+          },
+        ]
+      `);
+    });
+
+    it('should skip compaction when hasConversation is true', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_789',
+                    encryptedContent: 'encrypted_data',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "input_text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
+    });
+
+    it('should handle compaction alongside regular text content', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Here is my response.',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_001',
+                  },
+                },
+              },
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_001',
+                    encryptedContent: 'encrypted_state',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Here is my response.",
+                "type": "output_text",
+              },
+            ],
+            "id": "msg_001",
+            "role": "assistant",
+          },
+          {
+            "encrypted_content": "encrypted_state",
+            "id": "cmp_001",
+            "type": "compaction",
+          },
+        ]
+      `);
+    });
+
+    it('should handle compaction with store: true alongside other content', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Response text',
+                providerOptions: {
+                  openai: {
+                    itemId: 'msg_002',
+                  },
+                },
+              },
+              {
+                type: 'custom',
+                kind: 'openai.compaction',
+                providerOptions: {
+                  openai: {
+                    type: 'compaction',
+                    itemId: 'cmp_002',
+                    encryptedContent: 'encrypted_data',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_002",
+            "type": "item_reference",
+          },
+          {
+            "id": "cmp_002",
+            "type": "item_reference",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('custom tool calls', () => {
     const customProviderToolNames = new Set(['write_sql']);
 
@@ -3942,46 +4547,6 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
-    it('should convert aliased tool name to provider custom tool name', async () => {
-      const result = await convertToOpenAIResponsesInput({
-        toolNameMapping: {
-          toProviderToolName: name =>
-            name === 'alias_name' ? 'write_sql' : name,
-          toCustomToolName: name =>
-            name === 'write_sql' ? 'alias_name' : name,
-        },
-        prompt: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'tool-call',
-                toolCallId: 'call_custom_004',
-                toolName: 'alias_name',
-                input: 'SELECT 1',
-              },
-            ],
-          },
-        ],
-        systemMessageMode: 'system',
-        providerOptionsName: 'openai',
-        store: true,
-        customProviderToolNames,
-      });
-
-      expect(result.input).toMatchInlineSnapshot(`
-        [
-          {
-            "call_id": "call_custom_004",
-            "id": undefined,
-            "input": "SELECT 1",
-            "name": "write_sql",
-            "type": "custom_tool_call",
-          },
-        ]
-      `);
-    });
-
     it('should convert custom tool result content output', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4021,6 +4586,59 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should convert custom tool result content output with file-url', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_006',
+                toolName: 'write_sql',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'Here is the file:' },
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/test.pdf',
+                      mediaType: 'application/pdf',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "call_id": "call_custom_006",
+            "output": [
+              {
+                "text": "Here is the file:",
+                "type": "input_text",
+              },
+              {
+                "file_url": "https://example.com/test.pdf",
+                "type": "input_file",
+              },
+            ],
+            "type": "custom_tool_call_output",
+          },
+        ]
+      `);
+      expect(result.warnings).toEqual([]);
     });
 
     it('should not emit custom_tool_call when customProviderToolNames is not provided', async () => {

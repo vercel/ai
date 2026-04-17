@@ -1,12 +1,12 @@
 import { openai, OpenAILanguageModelResponsesOptions } from '@ai-sdk/openai';
-import { stepCountIs, streamText, tool } from 'ai';
+import { isStepCount, streamText, tool } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
     model: openai.responses('o3-mini'),
-    stopWhen: stepCountIs(10),
+    stopWhen: isStepCount(10),
     tools: {
       generateRandomText: tool({
         description: 'Generate a random text of a given length',
@@ -34,10 +34,10 @@ run(async () => {
     },
     system: `If you encounter a function call error, you should retry 3 times before giving up.`,
     prompt: `Generate two texts of 1024 characters each. Count the number of "a" in the first text, and the number of "b" in the second text.`,
+    reasoning: 'medium',
     providerOptions: {
       openai: {
         store: false,
-        reasoningEffort: 'medium',
         reasoningSummary: 'auto',
       } satisfies OpenAILanguageModelResponsesOptions,
     },

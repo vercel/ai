@@ -9,6 +9,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: google('gemini-3-pro-image-preview'),
     messages: await convertToModelMessages(messages),
+    reasoning: 'high',
     providerOptions: {
       google: {
         responseModalities: ['TEXT', 'IMAGE'],

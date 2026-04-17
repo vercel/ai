@@ -53,6 +53,19 @@ classDiagram
     OpenAILanguageModel ..|> LanguageModelV4 : implements
 ```
 
+#### Handling the `reasoning` Parameter
+
+The `reasoning` field on [`LanguageModelV4CallOptions`](packages/provider/src/language-model/v4/language-model-v4-call-options.ts) controls how much reasoning a model performs before responding. Possible values: `'provider-default'`, `'none'`, `'minimal'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`.
+
+Use `isCustomReasoning(reasoning)` from `@ai-sdk/provider-utils` to check whether the caller supplied a custom value (anything other than `undefined` or `'provider-default'`). If it returns `false`, no action is needed. If `true`:
+
+1. **`'none'`** — Disable reasoning. Only some providers support this; others should emit an unsupported warning.
+2. **Any other value** — Map it to the provider's native configuration using one of two strategies:
+   - **Effort mapping** (use `mapReasoningToProviderEffort`): Maps the spec enum to a provider-specific effort string via an `effortMap`. If the exact level has no provider equivalent, coerce to the next lower level; if there is no lower level, coerce to the next higher one. Emits a compatibility warning when coercion occurs, or an unsupported warning if no mapping exists at all.
+   - **Budget mapping** (use `mapReasoningToProviderBudget`): Maps the spec enum to an absolute token budget. Takes the model's maximum reasoning budget (or overall max output tokens if no separate reasoning limit exists), multiplies by a percentage for each level (defaults: minimal 2%, low 10%, medium 30%, high 60%, xhigh 90%), and clamps the result between `minReasoningBudget` (default 1024) and `maxReasoningBudget`. Custom percentages can be provided per provider.
+
+Providers that do **not** support reasoning configuration at the API level should emit an unsupported warning when `isCustomReasoning` returns `true`.
+
 ### Embedding Model (`EmbeddingModelV4`)
 
 Embedding models are used to convert text into numeric vectors for similarity and retrieval use cases.
@@ -88,7 +101,7 @@ Image models are used to generate image outputs from text prompts.
 - **Model specification**
   - `ImageModelV4` - [`packages/provider/src/image-model/v4/image-model-v4.ts`](packages/provider/src/image-model/v4/image-model-v4.ts)
 - **Provider implementations (examples)**
-  - [`OpenAIImageModel`](packages/openai/src/image/openai-image-model.ts), [`GoogleGenerativeAIImageModel`](packages/google/src/google-generative-ai-image-model.ts)
+  - [`OpenAIImageModel`](packages/openai/src/image/openai-image-model.ts), [`GoogleImageModel`](packages/google/src/google-image-model.ts)
 
 ```mermaid
 classDiagram

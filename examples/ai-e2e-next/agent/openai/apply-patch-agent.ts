@@ -23,9 +23,9 @@ export const openaiApplyPatchAgent = new ToolLoopAgent({
       execute: createApplyPatchExecutor(workspaceRoot),
     }),
   },
+  reasoning: 'medium',
   providerOptions: {
     openai: {
-      reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
     } satisfies OpenAILanguageModelResponsesOptions,
   },

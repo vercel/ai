@@ -27,7 +27,7 @@ Create a route handler that calls a model and then streams the responses in a cu
 
 ```tsx filename="app/api/stream/route.ts"
 import { tools } from '@/ai/tools'; // your tools
-import { stepCountIs, streamText } from 'ai';
+import { isStepCount, streamText } from 'ai';
 __PROVIDER_IMPORT__;
 
 export type StreamEvent =
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     prompt,
     model: __MODEL__,
     tools,
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   const transformStream = new TransformStream({

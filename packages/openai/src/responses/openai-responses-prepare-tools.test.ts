@@ -1,4 +1,4 @@
-import { ToolNameMapping } from '@ai-sdk/provider-utils';
+import { NoSuchProviderReferenceError } from '@ai-sdk/provider';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
@@ -877,7 +877,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare shell tool with containerAuto and skillReference skills', async () => {
+    it('should prepare shell tool with containerAuto and providerReference skills', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -890,7 +890,7 @@ describe('prepareResponsesTools', () => {
                 skills: [
                   {
                     type: 'skillReference',
-                    skillId: 'skill_abc',
+                    providerReference: { openai: 'skill_abc' },
                     version: '1.0.0',
                   },
                 ],
@@ -925,6 +925,91 @@ describe('prepareResponsesTools', () => {
           ],
         }
       `);
+    });
+
+    it('should default shell skillReference version to latest when omitted', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.shell',
+            name: 'shell',
+            args: {
+              environment: {
+                type: 'containerAuto',
+                skills: [
+                  {
+                    type: 'skillReference',
+                    providerReference: { openai: 'skill_abc' },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "environment": {
+                "file_ids": undefined,
+                "memory_limit": undefined,
+                "network_policy": undefined,
+                "skills": [
+                  {
+                    "skill_id": "skill_abc",
+                    "type": "skill_reference",
+                    "version": "latest",
+                  },
+                ],
+                "type": "container_auto",
+              },
+              "type": "shell",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should throw when a providerReference cannot be resolved for openai', async () => {
+      try {
+        await prepareResponsesTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'openai.shell',
+              name: 'shell',
+              args: {
+                environment: {
+                  type: 'containerAuto',
+                  skills: [
+                    {
+                      type: 'skillReference',
+                      providerReference: { anthropic: 'skill_abc' },
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+          toolChoice: undefined,
+        });
+
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(NoSuchProviderReferenceError.isInstance(error)).toBe(true);
+        expect((error as NoSuchProviderReferenceError).provider).toBe('openai');
+        expect((error as NoSuchProviderReferenceError).reference).toStrictEqual(
+          {
+            anthropic: 'skill_abc',
+          },
+        );
+      }
     });
 
     it('should prepare shell tool with containerAuto and inline skill', async () => {
@@ -1301,7 +1386,6 @@ describe('prepareResponsesTools', () => {
             id: 'openai.custom',
             name: 'write_sql',
             args: {
-              name: 'write_sql',
               description: 'Write a SQL SELECT query.',
               format: {
                 type: 'grammar',
@@ -1342,7 +1426,6 @@ describe('prepareResponsesTools', () => {
             id: 'openai.custom',
             name: 'generate_json',
             args: {
-              name: 'generate_json',
               format: {
                 type: 'grammar',
                 syntax: 'lark',
@@ -1393,7 +1476,6 @@ describe('prepareResponsesTools', () => {
             id: 'openai.custom',
             name: 'write_sql',
             args: {
-              name: 'write_sql',
               description: 'Write SQL.',
               format: {
                 type: 'grammar',
@@ -1439,52 +1521,17 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should map custom tool choice from sdk key to provider name', async () => {
+    it('should resolve custom tool choice using tool name', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
             type: 'provider',
             id: 'openai.custom',
-            name: 'alias_name',
-            args: {
-              name: 'write_sql',
-            },
-          },
-        ],
-        toolChoice: { type: 'tool', toolName: 'alias_name' },
-        toolNameMapping: {
-          toProviderToolName: name =>
-            name === 'alias_name' ? 'write_sql' : name,
-          toCustomToolName: name =>
-            name === 'write_sql' ? 'alias_name' : name,
-        },
-      });
-
-      expect(result.toolChoice).toStrictEqual({
-        type: 'custom',
-        name: 'write_sql',
-      });
-    });
-
-    it('should keep custom tool choice when provider name is given directly', async () => {
-      const result = await prepareResponsesTools({
-        tools: [
-          {
-            type: 'provider',
-            id: 'openai.custom',
-            name: 'alias_name',
-            args: {
-              name: 'write_sql',
-            },
+            name: 'write_sql',
+            args: {},
           },
         ],
         toolChoice: { type: 'tool', toolName: 'write_sql' },
-        toolNameMapping: {
-          toProviderToolName: name =>
-            name === 'alias_name' ? 'write_sql' : name,
-          toCustomToolName: name =>
-            name === 'write_sql' ? 'alias_name' : name,
-        },
       });
 
       expect(result.toolChoice).toStrictEqual({

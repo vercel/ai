@@ -6,6 +6,9 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { ElevenLabsConfig } from './elevenlabs-config';
@@ -41,6 +44,20 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: ElevenLabsTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: ElevenLabsTranscriptionModelId;
+    config: ElevenLabsTranscriptionModelConfig;
+  }) {
+    return new ElevenLabsTranscriptionModel(options.modelId, options.config);
   }
 
   constructor(
@@ -125,7 +142,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         path: '/v1/speech-to-text',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: elevenlabsFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

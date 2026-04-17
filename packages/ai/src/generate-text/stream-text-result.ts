@@ -1,3 +1,4 @@
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { IdGenerator } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'node:http';
 import {
@@ -23,7 +24,7 @@ import {
   InferElementOutput,
   InferPartialOutput,
 } from './output-utils';
-import { ReasoningOutput, ReasoningFileOutput } from './reasoning-output';
+import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
@@ -35,7 +36,6 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
 
 export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
@@ -108,6 +108,7 @@ export type ConsumeStreamOptions = {
  */
 export interface StreamTextResult<
   TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
 > {
   /**
@@ -237,7 +238,7 @@ export interface StreamTextResult<
    *
    * Automatically consumes the stream.
    */
-  readonly steps: PromiseLike<Array<StepResult<TOOLS>>>;
+  readonly steps: PromiseLike<Array<StepResult<TOOLS, RUNTIME_CONTEXT>>>;
 
   /**
    * Additional request information from the last step.
@@ -367,102 +368,170 @@ export interface StreamTextResult<
   toTextStreamResponse(init?: ResponseInit): Response;
 }
 
+export type TextStreamTextDeltaPart = {
+  type: 'text-delta';
+  id: string;
+  providerMetadata?: ProviderMetadata;
+  text: string;
+};
+
+export type TextStreamTextStartPart = {
+  type: 'text-start';
+  id: string;
+  providerMetadata?: ProviderMetadata;
+};
+
+export type TextStreamTextEndPart = {
+  type: 'text-end';
+  id: string;
+  providerMetadata?: ProviderMetadata;
+};
+
+export type TextStreamReasoningStartPart = {
+  type: 'reasoning-start';
+  id: string;
+  providerMetadata?: ProviderMetadata;
+};
+
+export type TextStreamReasoningEndPart = {
+  type: 'reasoning-end';
+  id: string;
+  providerMetadata?: ProviderMetadata;
+};
+
+export type TextStreamReasoningDeltaPart = {
+  type: 'reasoning-delta';
+  providerMetadata?: ProviderMetadata;
+  id: string;
+  text: string;
+};
+
+export type TextStreamCustomPart = {
+  type: 'custom';
+  kind: `${string}.${string}`;
+  providerMetadata?: ProviderMetadata;
+};
+
+export type TextStreamToolInputStartPart = {
+  type: 'tool-input-start';
+  id: string;
+  toolName: string;
+  providerMetadata?: ProviderMetadata;
+  providerExecuted?: boolean;
+  dynamic?: boolean;
+  title?: string;
+};
+
+export type TextStreamToolInputEndPart = {
+  type: 'tool-input-end';
+  id: string;
+  providerMetadata?: ProviderMetadata;
+};
+
+export type TextStreamToolInputDeltaPart = {
+  type: 'tool-input-delta';
+  id: string;
+  delta: string;
+  providerMetadata?: ProviderMetadata;
+};
+
+export type TextStreamSourcePart = { type: 'source' } & Source;
+
+export type TextStreamFilePart = {
+  type: 'file';
+  file: GeneratedFile;
+  providerMetadata?: ProviderMetadata;
+};
+
+export type TextStreamReasoningFilePart = {
+  type: 'reasoning-file';
+  file: GeneratedFile;
+  providerMetadata?: ProviderMetadata;
+};
+
+export type TextStreamToolCallPart<TOOLS extends ToolSet> = {
+  type: 'tool-call';
+} & TypedToolCall<TOOLS>;
+
+export type TextStreamToolResultPart<TOOLS extends ToolSet> = {
+  type: 'tool-result';
+} & TypedToolResult<TOOLS>;
+
+export type TextStreamToolErrorPart<TOOLS extends ToolSet> = {
+  type: 'tool-error';
+} & TypedToolError<TOOLS>;
+
+export type TextStreamToolOutputDeniedPart<TOOLS extends ToolSet> = {
+  type: 'tool-output-denied';
+} & StaticToolOutputDenied<TOOLS>;
+
+export type TextStreamToolApprovalRequestPart<TOOLS extends ToolSet> =
+  ToolApprovalRequestOutput<TOOLS>;
+
+export type TextStreamStartStepPart = {
+  type: 'start-step';
+  request: LanguageModelRequestMetadata;
+  warnings: CallWarning[];
+};
+
+export type TextStreamFinishStepPart = {
+  type: 'finish-step';
+  response: LanguageModelResponseMetadata;
+  usage: LanguageModelUsage;
+  finishReason: FinishReason;
+  rawFinishReason: string | undefined;
+  providerMetadata: ProviderMetadata | undefined;
+};
+
+export type TextStreamStartPart = {
+  type: 'start';
+};
+
+export type TextStreamFinishPart = {
+  type: 'finish';
+  finishReason: FinishReason;
+  rawFinishReason: string | undefined;
+  totalUsage: LanguageModelUsage;
+};
+
+export type TextStreamAbortPart = {
+  type: 'abort';
+  reason?: string;
+};
+
+export type TextStreamErrorPart = {
+  type: 'error';
+  error: unknown;
+};
+
+export type TextStreamRawPart = {
+  type: 'raw';
+  rawValue: unknown;
+};
+
 export type TextStreamPart<TOOLS extends ToolSet> =
-  | {
-      type: 'text-start';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'text-end';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'text-delta';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-      text: string;
-    }
-  | {
-      type: 'reasoning-start';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'reasoning-end';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'reasoning-delta';
-      providerMetadata?: ProviderMetadata;
-      id: string;
-      text: string;
-    }
-  | {
-      type: 'tool-input-start';
-      id: string;
-      toolName: string;
-      providerMetadata?: ProviderMetadata;
-      providerExecuted?: boolean;
-      dynamic?: boolean;
-      title?: string;
-    }
-  | {
-      type: 'tool-input-end';
-      id: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | {
-      type: 'tool-input-delta';
-      id: string;
-      delta: string;
-      providerMetadata?: ProviderMetadata;
-    }
-  | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile; providerMetadata?: ProviderMetadata }
-  | {
-      type: 'reasoning-file';
-      file: GeneratedFile;
-      providerMetadata?: ProviderMetadata;
-    }
-  | ({ type: 'tool-call' } & TypedToolCall<TOOLS>)
-  | ({ type: 'tool-result' } & TypedToolResult<TOOLS>)
-  | ({ type: 'tool-error' } & TypedToolError<TOOLS>)
-  | ({ type: 'tool-output-denied' } & StaticToolOutputDenied<TOOLS>)
-  | ToolApprovalRequestOutput<TOOLS>
-  | {
-      type: 'start-step';
-      request: LanguageModelRequestMetadata;
-      warnings: CallWarning[];
-    }
-  | {
-      type: 'finish-step';
-      response: LanguageModelResponseMetadata;
-      usage: LanguageModelUsage;
-      finishReason: FinishReason;
-      rawFinishReason: string | undefined;
-      providerMetadata: ProviderMetadata | undefined;
-    }
-  | {
-      type: 'start';
-    }
-  | {
-      type: 'finish';
-      finishReason: FinishReason;
-      rawFinishReason: string | undefined;
-      totalUsage: LanguageModelUsage;
-    }
-  | {
-      type: 'abort';
-      reason?: string;
-    }
-  | {
-      type: 'error';
-      error: unknown;
-    }
-  | {
-      type: 'raw';
-      rawValue: unknown;
-    };
+  | TextStreamTextStartPart
+  | TextStreamTextEndPart
+  | TextStreamTextDeltaPart
+  | TextStreamReasoningStartPart
+  | TextStreamReasoningEndPart
+  | TextStreamReasoningDeltaPart
+  | TextStreamCustomPart
+  | TextStreamToolInputStartPart
+  | TextStreamToolInputEndPart
+  | TextStreamToolInputDeltaPart
+  | TextStreamSourcePart
+  | TextStreamFilePart
+  | TextStreamReasoningFilePart
+  | TextStreamToolCallPart<TOOLS>
+  | TextStreamToolResultPart<TOOLS>
+  | TextStreamToolErrorPart<TOOLS>
+  | TextStreamToolOutputDeniedPart<TOOLS>
+  | TextStreamToolApprovalRequestPart<TOOLS>
+  | TextStreamStartStepPart
+  | TextStreamFinishStepPart
+  | TextStreamStartPart
+  | TextStreamFinishPart
+  | TextStreamAbortPart
+  | TextStreamErrorPart
+  | TextStreamRawPart;

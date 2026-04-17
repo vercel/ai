@@ -15,7 +15,7 @@ import { join } from 'path';
 export const maxDuration = 60;
 
 const documentCorpus = readFileSync(
-  join(process.cwd(), '../ai-functions/data/anthropic-compaction-data.txt'),
+  join(process.cwd(), '../ai-functions/data/compaction-data.txt'),
   'utf-8',
 );
 

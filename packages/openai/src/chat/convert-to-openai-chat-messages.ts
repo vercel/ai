@@ -4,7 +4,15 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  isProviderReference,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
+
+function serializeToolCallArguments(input: unknown): string {
+  return JSON.stringify(input === undefined ? {} : input);
+}
 
 export function convertToOpenAIChatMessages({
   prompt,
@@ -62,6 +70,18 @@ export function convertToOpenAIChatMessages({
                 return { type: 'text', text: part.text };
               }
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  return {
+                    type: 'file',
+                    file: {
+                      file_id: resolveProviderReference({
+                        reference: part.data,
+                        provider: 'openai',
+                      }),
+                    },
+                  };
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -76,7 +96,6 @@ export function convertToOpenAIChatMessages({
                           ? part.data.toString()
                           : `data:${mediaType};base64,${convertToBase64(part.data)}`,
 
-                      // OpenAI specific extension: image detail
                       detail: part.providerOptions?.openai?.imageDetail,
                     },
                   };
@@ -123,14 +142,10 @@ export function convertToOpenAIChatMessages({
 
                   return {
                     type: 'file',
-                    file:
-                      typeof part.data === 'string' &&
-                      part.data.startsWith('file-')
-                        ? { file_id: part.data }
-                        : {
-                            filename: part.filename ?? `part-${index}.pdf`,
-                            file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
-                          },
+                    file: {
+                      filename: part.filename ?? `part-${index}.pdf`,
+                      file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
+                    },
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
@@ -165,7 +180,7 @@ export function convertToOpenAIChatMessages({
                 type: 'function',
                 function: {
                   name: part.toolName,
-                  arguments: JSON.stringify(part.input),
+                  arguments: serializeToolCallArguments(part.input),
                 },
               });
               break;

@@ -3,7 +3,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { GroqChatPrompt } from './groq-api-types';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import { convertToBase64, isProviderReference } from '@ai-sdk/provider-utils';
 
 export function convertToGroqChatMessages(
   prompt: LanguageModelV4Prompt,
@@ -31,6 +31,12 @@ export function convertToGroqChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
                 if (!part.mediaType.startsWith('image/')) {
                   throw new UnsupportedFunctionalityError({
                     functionality: 'Non-image file content parts',

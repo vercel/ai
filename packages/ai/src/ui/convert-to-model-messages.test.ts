@@ -254,6 +254,39 @@ describe('convertToModelMessages', () => {
         },
       ]);
     });
+
+    it('should use providerReference as data for user file parts', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'user',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              url: 'data:application/pdf;base64,abc',
+              providerReference: { openai: 'file-abc123' },
+            },
+            { type: 'text', text: 'Summarize this' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              data: { openai: 'file-abc123' },
+            },
+            { type: 'text', text: 'Summarize this' },
+          ],
+        },
+      ]);
+    });
   });
 
   it('should not include filename for user file parts when not provided', async () => {
@@ -285,6 +318,42 @@ describe('convertToModelMessages', () => {
   });
 
   describe('assistant message', () => {
+    it('should convert custom assistant parts', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'custom',
+              kind: 'test-provider.compaction',
+              providerMetadata: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'test-provider.compaction',
+              providerOptions: {
+                openai: {
+                  itemId: 'cmp_123',
+                },
+              },
+            },
+          ],
+        },
+      ] satisfies ModelMessage[]);
+    });
+
     it('should convert a simple assistant text message', async () => {
       const result = await convertToModelMessages([
         {
@@ -470,6 +539,37 @@ describe('convertToModelMessages', () => {
               providerOptions: {
                 testProvider: { signature: 'test-signature' },
               },
+            },
+          ],
+        },
+      ] as unknown as ModelMessage[]);
+    });
+
+    it('should use providerReference as data for assistant file parts', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              url: 'data:application/pdf;base64,xyz',
+              providerReference: { anthropic: 'file-xyz789' },
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              filename: 'doc.pdf',
+              data: { anthropic: 'file-xyz789' },
             },
           ],
         },

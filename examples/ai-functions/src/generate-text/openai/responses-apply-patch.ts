@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, stepCountIs } from 'ai';
+import { generateText, isStepCount } from 'ai';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { createApplyPatchExecutor } from '../../lib/apply-patch-file-editor';
@@ -17,7 +17,7 @@ run(async () => {
       }),
     },
     prompt: `Create a markdown file with a shopping checklist of 5 entries.`,
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   console.log('\n=== Result ===');

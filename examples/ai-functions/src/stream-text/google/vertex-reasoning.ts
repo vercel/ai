@@ -8,10 +8,10 @@ run(async () => {
     model: vertex('gemini-2.5-flash'),
     prompt:
       "Describe the most unusual or striking architectural feature you've ever seen in a building or structure.",
+    reasoning: 'medium',
     providerOptions: {
       google: {
         thinkingConfig: {
-          thinkingBudget: 2048,
           includeThoughts: true,
         },
       } satisfies GoogleLanguageModelOptions,

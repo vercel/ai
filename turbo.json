@@ -72,9 +72,6 @@
         ".vinxi/**"
       ]
     },
-    "lint": {
-      "dependsOn": ["^lint"]
-    },
     "type-check": {
       "dependsOn": ["^build", "build"]
     },
@@ -94,7 +91,6 @@
       "cache": false,
       "persistent": true
     },
-    "prettier-check": {},
     "integration-test": {
       "dependsOn": ["^build", "build"]
     }

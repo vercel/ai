@@ -1,0 +1,69 @@
+{
+  "name": "@ai-sdk/otel",
+  "version": "1.0.0-beta.56",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "source": "./src/index.ts",
+  "files": [
+    "dist/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "del-cli dist *.tsbuildinfo",
+    "type-check": "tsc --build",
+    "test": "vitest --config vitest.node.config.js --run",
+    "test:watch": "vitest --config vitest.node.config.js"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "workspace:*",
+    "@opentelemetry/api": "1.9.0",
+    "ai": "workspace:*"
+  },
+  "devDependencies": {
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@types/node": "20.17.24",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "tsup": "^8",
+    "typescript": "5.8.3",
+    "zod": "3.25.76"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel/ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "opentelemetry",
+    "telemetry",
+    "tracing"
+  ]
+}

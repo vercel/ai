@@ -1,5 +1,5 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { z } from 'zod';
 import { run } from '../../lib/run';
 
@@ -17,7 +17,7 @@ run(async () => {
         execute: async ({ a, b }) => a * b,
       }),
     },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     onStepFinish: step => {
       stepNumber++;
       console.log(`\n${'='.repeat(60)}`);

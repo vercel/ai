@@ -1,7 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import {
   ModelMessage,
-  stepCountIs,
+  isStepCount,
   streamText,
   ToolApprovalResponse,
 } from 'ai';
@@ -56,7 +56,7 @@ run(async () => {
         }),
       },
       messages,
-      stopWhen: stepCountIs(10),
+      stopWhen: isStepCount(10),
     });
 
     // Stream text output

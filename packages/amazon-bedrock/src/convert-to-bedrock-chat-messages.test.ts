@@ -669,7 +669,7 @@ describe('assistant messages', () => {
     });
   });
 
-  it('should trim trailing whitespace from reasoning content when it is the last part', async () => {
+  it('should not trim reasoning text when a signature is present', async () => {
     const result = await convertToBedrockChatMessages([
       {
         role: 'user',
@@ -691,28 +691,263 @@ describe('assistant messages', () => {
       },
     ]);
 
-    expect(result).toEqual({
-      messages: [
-        {
-          role: 'user',
-          content: [{ text: 'Explain your reasoning' }],
-        },
-        {
-          role: 'assistant',
-          content: [
-            {
-              reasoningContent: {
-                reasoningText: {
-                  text: 'This is my reasoning with trailing space',
-                  signature: 'test-signature',
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Explain your reasoning",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "reasoningContent": {
+                  "reasoningText": {
+                    "signature": "test-signature",
+                    "text": "This is my reasoning with trailing space    ",
+                  },
                 },
               },
+            ],
+            "role": "assistant",
+          },
+        ],
+        "system": [],
+      }
+    `);
+  });
+
+  it('should trim trailing whitespace from reasoning content without signature when it is the last part', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'This is my reasoning with trailing space    ',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Explain your reasoning",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "reasoningContent": {
+                  "reasoningText": {
+                    "text": "This is my reasoning with trailing space",
+                  },
+                },
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        "system": [],
+      }
+    `);
+  });
+
+  it('should only trim last reasoning part when multiple reasoning parts have trailing spaces', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'First reasoning with trailing space    ',
+          },
+          {
+            type: 'reasoning',
+            text: 'Second reasoning with trailing space    ',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Explain your reasoning",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "reasoningContent": {
+                  "reasoningText": {
+                    "text": "First reasoning with trailing space    ",
+                  },
+                },
+              },
+              {
+                "reasoningContent": {
+                  "reasoningText": {
+                    "text": "Second reasoning with trailing space",
+                  },
+                },
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        "system": [],
+      }
+    `);
+  });
+
+  it('should preserve reasoning text with signature in multi-turn tool use', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'What is the weather?' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Let me check the weather API.\n',
+            providerOptions: {
+              bedrock: {
+                signature: 'sig-abc123',
+              } satisfies BedrockReasoningMetadata,
             },
-          ],
-        },
-      ],
-      system: [],
-    });
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            input: { city: 'SF' },
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'getWeather',
+            output: { type: 'text', value: 'Sunny, 72F' },
+          },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'The weather is sunny and warm.\n',
+            providerOptions: {
+              bedrock: {
+                signature: 'sig-def456',
+              } satisfies BedrockReasoningMetadata,
+            },
+          },
+          { type: 'text', text: 'It is sunny and 72F in SF.' },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "What is the weather?",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "reasoningContent": {
+                  "reasoningText": {
+                    "signature": "sig-abc123",
+                    "text": "Let me check the weather API.
+      ",
+                  },
+                },
+              },
+              {
+                "toolUse": {
+                  "input": {
+                    "city": "SF",
+                  },
+                  "name": "getWeather",
+                  "toolUseId": "call-1",
+                },
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "toolResult": {
+                  "content": [
+                    {
+                      "text": "Sunny, 72F",
+                    },
+                  ],
+                  "toolUseId": "call-1",
+                },
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "reasoningContent": {
+                  "reasoningText": {
+                    "signature": "sig-def456",
+                    "text": "The weather is sunny and warm.
+      ",
+                  },
+                },
+              },
+              {
+                "text": "It is sunny and 72F in SF.",
+              },
+            ],
+            "role": "assistant",
+          },
+        ],
+        "system": [],
+      }
+    `);
   });
 
   it('should handle a mix of text and reasoning content types', async () => {
@@ -802,6 +1037,70 @@ describe('assistant messages', () => {
       system: [],
     });
   });
+
+  it('should preserve empty text blocks when reasoning blocks are present', async () => {
+    const result = await convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Hello' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'thinking...',
+            providerOptions: {
+              bedrock: { signature: 'sig-1' },
+            },
+          },
+          { type: 'text', text: '' },
+          {
+            type: 'reasoning',
+            text: 'more thinking...',
+            providerOptions: {
+              bedrock: { signature: 'sig-2' },
+            },
+          },
+          { type: 'text', text: 'response text' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-123',
+            toolName: 'test',
+            input: {},
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Hello' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                reasoningText: { text: 'thinking...', signature: 'sig-1' },
+              },
+            },
+            { text: '' },
+            {
+              reasoningContent: {
+                reasoningText: { text: 'more thinking...', signature: 'sig-2' },
+              },
+            },
+            { text: 'response text' },
+            { toolUse: { toolUseId: 'call-123', name: 'test', input: {} } },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
 });
 
 describe('tool messages', () => {
@@ -849,7 +1148,7 @@ describe('tool messages', () => {
               type: 'content',
               value: [
                 {
-                  type: 'image-data',
+                  type: 'file-data',
                   data: 'base64data',
                   mediaType: 'image/jpeg',
                 },
@@ -894,7 +1193,7 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'image-data',
+                    type: 'file-data',
                     data: 'base64data',
                     mediaType: 'image/avif', // unsupported format
                   },
@@ -923,7 +1222,7 @@ describe('tool messages', () => {
                 type: 'content',
                 value: [
                   {
-                    type: 'image-data',
+                    type: 'file-data',
                     data: 'base64data',
                     mediaType: 'unsupported/mime-type',
                   },

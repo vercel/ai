@@ -12,9 +12,9 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai.responses('o3-mini'),
     messages: await convertToModelMessages(messages),
+    reasoning: 'low',
     providerOptions: {
       openai: {
-        reasoningEffort: 'low',
         reasoningSummary: 'auto',
       } satisfies OpenAILanguageModelResponsesOptions,
     },

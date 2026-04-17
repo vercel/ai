@@ -114,6 +114,11 @@ export const uiMessageChunkSchema = lazySchema(() =>
         providerMetadata: providerMetadataSchema.optional(),
       }),
       z.strictObject({
+        type: z.literal('custom'),
+        kind: z.string().transform(value => value as `${string}.${string}`),
+        providerMetadata: providerMetadataSchema.optional(),
+      }),
+      z.strictObject({
         type: z.literal('source-url'),
         sourceId: z.string(),
         url: z.string(),
@@ -230,6 +235,11 @@ export type UIMessageChunk<
   | {
       type: 'reasoning-end';
       id: string;
+      providerMetadata?: ProviderMetadata;
+    }
+  | {
+      type: 'custom';
+      kind: `${string}.${string}`;
       providerMetadata?: ProviderMetadata;
     }
   | {

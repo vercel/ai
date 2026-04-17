@@ -141,10 +141,24 @@ export function createFireworks(
           | undefined;
         const reasoningHistory = args.reasoningHistory as string | undefined;
 
-        const { thinking: _, reasoningHistory: __, ...rest } = args;
+        const {
+          thinking: _,
+          reasoningHistory: __,
+          reasoning_effort,
+          ...rest
+        } = args;
 
         return {
           ...rest,
+          ...(reasoning_effort != null && {
+            // Workaround since OpenAI spec allows for 5 reasoning levels, but Fireworks only supports 3 of them.
+            reasoning_effort:
+              reasoning_effort === 'minimal'
+                ? 'low'
+                : reasoning_effort === 'xhigh'
+                  ? 'high'
+                  : reasoning_effort,
+          }),
           ...(thinking && {
             thinking: {
               type: thinking.type,

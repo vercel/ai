@@ -9,7 +9,9 @@ import {
 import {
   convertBase64ToUint8Array,
   convertToBase64,
+  isProviderReference,
   parseProviderOptions,
+  resolveProviderReference,
   validateTypes,
   isNonNullable,
   ToolNameMapping,
@@ -183,7 +185,27 @@ export async function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'file': {
-                    if (part.mediaType.startsWith('image/')) {
+                    if (isProviderReference(part.data)) {
+                      const fileId = resolveProviderReference({
+                        reference: part.data,
+                        provider: 'anthropic',
+                      });
+                      betas.add('files-api-2025-04-14');
+
+                      if (part.mediaType.startsWith('image/')) {
+                        anthropicContent.push({
+                          type: 'image',
+                          source: { type: 'file', file_id: fileId },
+                          cache_control: cacheControl,
+                        });
+                      } else {
+                        anthropicContent.push({
+                          type: 'document',
+                          source: { type: 'file', file_id: fileId },
+                          cache_control: cacheControl,
+                        });
+                      }
+                    } else if (part.mediaType.startsWith('image/')) {
                       anthropicContent.push({
                         type: 'image',
                         source: isUrlData(part.data)
@@ -309,26 +331,16 @@ export async function convertToAnthropicMessagesPrompt({
                               type: 'text' as const,
                               text: contentPart.text,
                             };
-                          case 'image-data': {
-                            return {
-                              type: 'image' as const,
-                              source: {
-                                type: 'base64' as const,
-                                media_type: contentPart.mediaType,
-                                data: contentPart.data,
-                              },
-                            };
-                          }
-                          case 'image-url': {
-                            return {
-                              type: 'image' as const,
-                              source: {
-                                type: 'url' as const,
-                                url: contentPart.url,
-                              },
-                            };
-                          }
                           case 'file-url': {
+                            if (contentPart.mediaType.startsWith('image/')) {
+                              return {
+                                type: 'image' as const,
+                                source: {
+                                  type: 'url' as const,
+                                  url: contentPart.url,
+                                },
+                              };
+                            }
                             return {
                               type: 'document' as const,
                               source: {
@@ -338,6 +350,16 @@ export async function convertToAnthropicMessagesPrompt({
                             };
                           }
                           case 'file-data': {
+                            if (contentPart.mediaType.startsWith('image/')) {
+                              return {
+                                type: 'image' as const,
+                                source: {
+                                  type: 'base64' as const,
+                                  media_type: contentPart.mediaType,
+                                  data: contentPart.data,
+                                },
+                              };
+                            }
                             if (contentPart.mediaType === 'application/pdf') {
                               betas.add('pdfs-2024-09-25');
                               return {

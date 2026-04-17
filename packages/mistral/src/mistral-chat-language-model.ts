@@ -15,9 +15,14 @@ import {
   FetchFunction,
   generateId,
   injectJsonInstructionIntoMessages,
+  isCustomReasoning,
+  mapReasoningToProviderEffort,
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { convertMistralUsage, MistralUsage } from './convert-mistral-usage';
@@ -34,7 +39,7 @@ import { prepareTools } from './mistral-prepare-tools';
 type MistralChatConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   generateId?: () => string;
 };
@@ -46,6 +51,20 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
   private readonly config: MistralChatConfig;
   private readonly generateId: () => string;
+
+  static [WORKFLOW_SERIALIZE](model: MistralChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: MistralChatModelId;
+    config: MistralChatConfig;
+  }) {
+    return new MistralChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: MistralChatModelId, config: MistralChatConfig) {
     this.modelId = modelId;
@@ -69,6 +88,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
     topK,
     frequencyPenalty,
     presencePenalty,
+    reasoning,
     stopSequences,
     responseFormat,
     seed,
@@ -101,6 +121,37 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'stopSequences' });
     }
 
+    const supportsReasoningEffort =
+      this.modelId === 'mistral-small-latest' ||
+      this.modelId === 'mistral-small-2603';
+
+    let resolvedReasoningEffort: string | undefined;
+    if (supportsReasoningEffort) {
+      resolvedReasoningEffort =
+        options.reasoningEffort ??
+        (isCustomReasoning(reasoning)
+          ? reasoning === 'none'
+            ? 'none'
+            : mapReasoningToProviderEffort({
+                reasoning,
+                effortMap: {
+                  minimal: 'high',
+                  low: 'high',
+                  medium: 'high',
+                  high: 'high',
+                  xhigh: 'high',
+                },
+                warnings,
+              })
+          : undefined);
+    } else if (isCustomReasoning(reasoning)) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details: 'This model does not support reasoning configuration.',
+      });
+    }
+
     const structuredOutputs = options.structuredOutputs ?? true;
     const strictJsonSchema = options.strictJsonSchema ?? false;
 
@@ -125,6 +176,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       temperature,
       top_p: topP,
       random_seed: seed,
+      reasoning_effort: resolvedReasoningEffort,
 
       // response format:
       response_format:
@@ -183,7 +235,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -262,7 +314,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(

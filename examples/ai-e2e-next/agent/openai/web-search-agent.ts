@@ -14,9 +14,9 @@ export const openaiWebSearchAgent = new ToolLoopAgent({
       },
     }),
   },
+  reasoning: 'medium',
   providerOptions: {
     openai: {
-      reasoningEffort: 'medium',
       reasoningSummary: 'detailed',
       // store: false,
     } satisfies OpenAILanguageModelResponsesOptions,

@@ -1,10 +1,12 @@
-# AI SDK - Google Generative AI Provider
+# AI SDK - Google Provider
 
-The **[Google Generative AI provider](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Google Generative AI](https://ai.google/discover/generativeai/) APIs.
+The **[Google provider](https://ai-sdk.dev/providers/ai-sdk-providers/google)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [Google Generative AI](https://ai.google/discover/generativeai/) APIs.
+
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access Google (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
 ## Setup
 
-The Google Generative AI provider is available in the `@ai-sdk/google` module. You can install it with
+The Google provider is available in the `@ai-sdk/google` module. You can install it with
 
 ```bash
 npm i @ai-sdk/google
@@ -40,4 +42,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[Google Generative AI provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai)** for more information.
+Please check out the **[Google provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/google)** for more information.

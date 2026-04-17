@@ -1,10 +1,7 @@
-import { generateText, stepCountIs, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { run } from '../../lib/run';
 import { z } from 'zod';
-import {
-  openai,
-  type OpenAILanguageModelResponsesOptions,
-} from '@ai-sdk/openai';
+import { openai } from '@ai-sdk/openai';
 
 run(async () => {
   const readImage = tool({
@@ -31,8 +28,9 @@ run(async () => {
             text: output.description,
           },
           {
-            type: 'image-url',
+            type: 'file-url',
             url: output.imageUrl,
+            mediaType: 'image/png',
           },
         ],
       };
@@ -41,18 +39,14 @@ run(async () => {
 
   const result = await generateText({
     model: openai.responses('gpt-5-nano'),
-    providerOptions: {
-      openai: {
-        reasoningEffort: 'minimal',
-      } satisfies OpenAILanguageModelResponsesOptions,
-    },
+    reasoning: 'minimal',
     prompt:
       'Please read the image using the tool provided and return the summary of that image',
     tools: {
       readImage,
     },
 
-    stopWhen: stepCountIs(4),
+    stopWhen: isStepCount(4),
   });
 
   console.log(`Assistant response : ${JSON.stringify(result.text, null, 2)}`);

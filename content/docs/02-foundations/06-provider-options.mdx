@@ -21,6 +21,14 @@ const result = await generateText({
 
 Provider options are namespaced by the provider name (e.g. `openai`, `anthropic`) so you can even include options for multiple providers in the same call — only the options matching the active provider are used. See [Prompts: Provider Options](/docs/foundations/prompts#provider-options) for details on applying options at the message and message-part level.
 
+<Note>
+  For controlling reasoning effort, consider using the top-level [`reasoning`
+  parameter](/docs/ai-sdk-core/reasoning) instead of provider-specific options.
+  It provides a portable setting that works across all providers that support
+  reasoning. Use provider-specific options only when you need features like
+  exact token budgets.
+</Note>
+
 ## Common Provider Options
 
 The sections below cover the most frequently used provider options, focusing on reasoning and output control for OpenAI and Anthropic. For a complete reference, see the individual provider pages:
@@ -301,7 +309,7 @@ You can also combine gateway-specific options (like routing and fallbacks) with 
 
 ```ts
 import type { AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
-import type { GatewayLanguageModelOptions } from '@ai-sdk/gateway';
+import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -311,7 +319,7 @@ const result = await generateText({
     // Gateway-specific: control routing
     gateway: {
       order: ['vertex', 'anthropic'],
-    } satisfies GatewayLanguageModelOptions,
+    } satisfies GatewayProviderOptions,
     // Provider-specific: enable reasoning
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 12000 },

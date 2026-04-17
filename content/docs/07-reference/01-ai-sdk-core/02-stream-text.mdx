@@ -444,6 +444,13 @@ To see `streamText` in action, check out [these examples](#examples).
         'The seed (integer) to use for random sampling. If set and supported by the model, calls will generate deterministic results.',
     },
     {
+      name: 'reasoning',
+      type: "'provider-default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'",
+      isOptional: true,
+      description:
+        "Controls how much reasoning the model performs before generating a response. When omitted, the provider's default behavior is used. `'provider-default'` explicitly requests the provider's default. Providers that do not support reasoning will emit a warning. If reasoning-related `providerOptions` are also set, they take precedence and this parameter is ignored. See the [reasoning guide](/docs/ai-sdk-core/reasoning) for provider-specific mapping details.",
+    },
+    {
       name: 'maxRetries',
       type: 'number',
       isOptional: true,
@@ -459,10 +466,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'timeout',
-      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number }',
+      type: 'number | { totalMs?: number; stepMs?: number; chunkMs?: number; toolMs?: number; tools?: { [toolName]Ms?: number } }',
       isOptional: true,
       description:
-        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, and/or chunkMs properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call), useful for multi-step generations. chunkMs sets the timeout between stream chunks - the call will abort if no new chunk is received within this duration, useful for detecting stalled streams. Can be used alongside abortSignal.',
+        'Timeout in milliseconds. Can be specified as a number or as an object with totalMs, stepMs, chunkMs, toolMs, and/or tools properties. totalMs sets the total timeout for the entire call. stepMs sets the timeout for each individual step (LLM call). chunkMs sets the timeout between stream chunks - the call will abort if no new chunk is received within this duration. toolMs sets the default timeout for all tool executions. tools sets per-tool timeout overrides using the pattern {toolName}Ms (e.g. weatherMs, slowApiMs) that take precedence over toolMs - tool names are type-checked for autocomplete. If a tool takes longer than its timeout, it aborts and returns a tool-error so the model can respond or retry. Can be used alongside abortSignal.',
     },
     {
       name: 'headers',
@@ -472,20 +479,20 @@ To see `streamText` in action, check out [these examples](#examples).
         'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
     },
     {
-      name: 'experimental_telemetry',
-      type: 'TelemetrySettings',
+      name: 'telemetry',
+      type: 'TelemetryOptions',
       isOptional: true,
-      description: 'Telemetry configuration. Experimental feature.',
+      description: 'Telemetry configuration.',
       properties: [
         {
-          type: 'TelemetrySettings',
+          type: 'TelemetryOptions',
           parameters: [
             {
               name: 'isEnabled',
               type: 'boolean',
               isOptional: true,
               description:
-                'Enable or disable telemetry. Disabled by default while experimental.',
+                'Enable or disable telemetry. Enabled by default. Set to `false` to opt out.',
             },
             {
               name: 'recordInputs',
@@ -509,11 +516,11 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier for this function. Used to group telemetry data by function.',
             },
             {
-              name: 'metadata',
+              name: 'integrations',
               isOptional: true,
-              type: 'Record<string, string | number | boolean | Array<null | undefined | string> | Array<null | undefined | number> | Array<null | undefined | boolean>>',
+              type: 'Telemetry | Telemetry[]',
               description:
-                'Additional information to include in the telemetry data.',
+                'Per-call telemetry integrations that receive lifecycle events. When provided, these replace any globally registered integrations for this call.',
             },
           ],
         },
@@ -577,11 +584,18 @@ To see `streamText` in action, check out [these examples](#examples).
         'The tools that are currently active. All tools are active by default.',
     },
     {
+      name: 'toolNeedsApproval',
+      type: 'Record<TOOLNAME, boolean | ((input, options) => boolean | Promise<boolean>)>',
+      isOptional: true,
+      description:
+        "Per-tool approval configuration for this call. Each tool can be set to `true` / `false` or to a function that decides dynamically based on the tool input and options such as `toolCallId`, `messages`, and `context`. This setting takes precedence over a tool's `needsApproval` default.",
+    },
+    {
       name: 'stopWhen',
       type: 'StopCondition<TOOLS> | Array<StopCondition<TOOLS>>',
       isOptional: true,
       description:
-        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: stepCountIs(1).',
+        'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: isStepCount(1).',
     },
     {
       name: 'prepareStep',
@@ -624,11 +638,17 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The messages that will be sent to the model for the current step.',
                     },
                     {
-                      name: 'experimental_context',
-                      type: 'unknown',
+                      name: 'runtimeContext',
+                      type: 'CONTEXT',
                       isOptional: true,
                       description:
-                        'The context passed via the experimental_context setting (experimental).',
+                        'The shared runtime context passed via the `runtimeContext` setting.',
+                    },
+                    {
+                      name: 'toolsContext',
+                      type: 'InferToolSetContext<TOOLS>',
+                      description:
+                        'The per-tool context map passed via the `toolsContext` setting.',
                     },
                   ],
                 },
@@ -677,11 +697,17 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Optionally override the full set of messages sent to the model for this step.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
               isOptional: true,
               description:
-                'Context that is passed into tool execution. Experimental. Changing the context will affect the context in this step and all subsequent steps.',
+                'Shared runtime context. Changing it will affect this step and all subsequent steps.',
+            },
+            {
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
+              description:
+                'Per-tool context map. Changing it will affect tool-specific context in this step and all subsequent steps.',
             },
             {
               name: 'providerOptions',
@@ -695,11 +721,17 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_context',
-      type: 'unknown',
+      name: 'runtimeContext',
+      type: 'CONTEXT',
       isOptional: true,
       description:
-        'Context that is passed into tool execution. Experimental (can break in patch releases).',
+        'User-defined shared runtime context object passed to `prepareStep` and lifecycle callbacks.',
+    },
+    {
+      name: 'toolsContext',
+      type: 'InferToolSetContext<TOOLS>',
+      description:
+        'Per-tool context map keyed by tool name. Required when at least one tool defines `contextSchema`; not accepted when no tools need context.',
     },
     {
       name: 'experimental_download',
@@ -834,6 +866,30 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'source',
                       type: 'Source',
                       description: 'The source.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'custom'",
+                      description:
+                        'The type to identify the object as custom content.',
+                    },
+                    {
+                      name: 'kind',
+                      type: 'string',
+                      description:
+                        'The kind of custom content, in the format {provider}.{provider-type} (e.g. openai.compaction).',
+                    },
+                    {
+                      name: 'providerMetadata',
+                      type: 'ProviderMetadata',
+                      isOptional: true,
+                      description:
+                        'Optional provider metadata for the custom content.',
                     },
                   ],
                 },
@@ -1737,9 +1793,10 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Response information for every step. You can use this to get information about intermediate steps, such as the tool calls or the response headers.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
-              description: 'The experimental context.',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
+              description:
+                'The final state of the user-defined runtime context object when the stream is aborted.',
             },
           ],
         },
@@ -1902,15 +1959,16 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata passed to the generation.',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
+              description:
+                'User-defined shared runtime context object that flows through the entire generation lifecycle.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
               description:
-                'User-defined context object that flows through the entire generation lifecycle.',
+                'Per-tool context map passed via `toolsContext`, keyed by tool name.',
             },
           ],
         },
@@ -2013,29 +2071,30 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
+              name: 'runtimeContext',
+              type: 'CONTEXT',
+              description:
+                'User-defined shared runtime context object. May be updated from prepareStep between steps.',
             },
             {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'toolsContext',
+              type: 'InferToolSetContext<TOOLS>',
               description:
-                'User-defined context object. May be updated from prepareStep between steps.',
+                'Per-tool context map. May be updated from prepareStep between steps.',
             },
           ],
         },
       ],
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: '(event: OnToolCallStartEvent) => PromiseLike<void> | void',
+      name: 'experimental_onToolExecutionStart',
+      type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         "Callback that is called right before a tool's execute function runs. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallStartEvent',
+          type: 'ToolExecutionStartEvent',
           parameters: [
             {
               name: 'stepNumber',
@@ -2073,29 +2132,24 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'context',
+              type: 'CONTEXT',
               description:
-                'User-defined context object flowing through the generation.',
+                'Tool-specific context object for the tool call that is about to execute.',
             },
           ],
         },
       ],
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: '(event: OnToolCallFinishEvent) => PromiseLike<void> | void',
+      name: 'experimental_onToolExecutionEnd',
+      type: '(event: ToolExecutionEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         "Callback that is called right after a tool's execute function completes (or errors). Uses a discriminated union on the `success` field: when `success: true`, `output` contains the tool result; when `success: false`, `error` contains the error. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallFinishEvent',
+          type: 'ToolExecutionEndEvent',
           parameters: [
             {
               name: 'stepNumber',
@@ -2139,15 +2193,10 @@ To see `streamText` in action, check out [these examples](#examples).
                 'Identifier from telemetry settings for grouping related operations.',
             },
             {
-              name: 'metadata',
-              type: 'Record<string, unknown> | undefined',
-              description: 'Additional metadata from telemetry settings.',
-            },
-            {
-              name: 'experimental_context',
-              type: 'unknown',
+              name: 'context',
+              type: 'CONTEXT',
               description:
-                'User-defined context object flowing through the generation.',
+                'Tool-specific context object for the tool call that just completed.',
             },
             {
               name: 'success',
@@ -2970,6 +3019,29 @@ To see `streamText` in action, check out [these examples](#examples).
                   ],
                 },
               ],
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          description: 'Custom content part from ContentPart<TOOLS>',
+          parameters: [
+            {
+              name: 'type',
+              type: "'custom'",
+              description: 'The type to identify the object as custom content.',
+            },
+            {
+              name: 'kind',
+              type: 'string',
+              description:
+                'The kind of custom content, in the format {provider}.{provider-type} (e.g. openai.compaction).',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'ProviderMetadata',
+              isOptional: true,
+              description: 'Optional provider metadata for the custom content.',
             },
           ],
         },

@@ -16,6 +16,7 @@ export type { LanguageModelRequestMetadata } from './language-model-request-meta
 export type { LanguageModelResponseMetadata } from './language-model-response-metadata';
 export type { Provider } from './provider';
 export type { ProviderMetadata } from './provider-metadata';
+export type { ProviderReference } from './provider-reference';
 export type { RerankingModel } from './reranking-model';
 export type { SpeechModel } from './speech-model';
 export type { SpeechModelResponseMetadata } from './speech-model-response-metadata';

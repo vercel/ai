@@ -17,10 +17,10 @@ run(async () => {
   const result = await generateText({
     model: model,
     prompt: 'Explain the theory of relativity in simple terms.',
+    reasoning: 'low',
     providerOptions: {
       openai: {
         textVerbosity: 'low',
-        reasoningEffort: 'low',
       } satisfies OpenAILanguageModelChatOptions,
     },
   });

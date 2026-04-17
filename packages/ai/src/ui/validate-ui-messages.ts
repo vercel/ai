@@ -1,8 +1,7 @@
-import { TypeValidationContext, TypeValidationError } from '@ai-sdk/provider';
+import { TypeValidationError } from '@ai-sdk/provider';
 import {
   FlexibleSchema,
   lazySchema,
-  StandardSchemaV1,
   Tool,
   validateTypes,
   zodSchema,
@@ -39,6 +38,11 @@ const uiMessagesSchema = lazySchema(() =>
                   type: z.literal('reasoning'),
                   text: z.string(),
                   state: z.enum(['streaming', 'done']).optional(),
+                  providerMetadata: providerMetadataSchema.optional(),
+                }),
+                z.object({
+                  type: z.literal('custom'),
+                  kind: z.string(),
                   providerMetadata: providerMetadataSchema.optional(),
                 }),
                 z.object({

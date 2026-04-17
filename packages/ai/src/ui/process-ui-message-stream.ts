@@ -1,4 +1,3 @@
-import { TypeValidationContext } from '@ai-sdk/provider';
 import { FlexibleSchema, validateTypes } from '@ai-sdk/provider-utils';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import { ProviderMetadata } from '../types';
@@ -14,6 +13,7 @@ import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { UIDataTypesToSchemas } from './chat';
 import {
+  CustomContentUIPart,
   DataUIPart,
   DynamicToolUIPart,
   getStaticToolName,
@@ -396,6 +396,17 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
               delete state.activeTextParts[chunk.id];
+              write();
+              break;
+            }
+
+            case 'custom': {
+              const customPart: CustomContentUIPart = {
+                type: 'custom',
+                kind: chunk.kind,
+                providerMetadata: chunk.providerMetadata,
+              };
+              state.message.parts.push(customPart);
               write();
               break;
             }

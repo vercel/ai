@@ -8643,4 +8643,47 @@ describe('processUIMessageStream', () => {
       `);
     });
   });
+
+  describe('custom', () => {
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        {
+          type: 'custom',
+          kind: 'test-provider.compaction',
+          providerMetadata: { openai: { itemId: 'cmp_123' } },
+        },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should append custom parts to the message', async () => {
+      expect(state!.message.parts).toEqual([
+        {
+          type: 'custom',
+          kind: 'test-provider.compaction',
+          providerMetadata: {
+            openai: {
+              itemId: 'cmp_123',
+            },
+          },
+        },
+      ]);
+    });
+  });
 });

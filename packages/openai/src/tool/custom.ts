@@ -8,7 +8,6 @@ import { z } from 'zod/v4';
 export const customArgsSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      name: z.string(),
       description: z.string().optional(),
       format: z
         .union([
@@ -31,11 +30,6 @@ const customInputSchema = lazySchema(() => zodSchema(z.string()));
 export const customToolFactory = createProviderToolFactory<
   string,
   {
-    /**
-     * The name of the custom tool, used to identify it in the API.
-     */
-    name: string;
-
     /**
      * An optional description of what the tool does.
      */

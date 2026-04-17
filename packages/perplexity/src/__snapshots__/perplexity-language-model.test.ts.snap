@@ -64,6 +64,7 @@ These reflect post-2020 Census trends (873,965 in 2020), with population declini
   },
   "providerMetadata": {
     "perplexity": {
+      "cost": null,
       "images": null,
       "usage": {
         "citationTokens": null,
@@ -220,6 +221,7 @@ This holiday scales for individuals (home setups) or communities (pop-up parks),
   },
   "providerMetadata": {
     "perplexity": {
+      "cost": null,
       "images": null,
       "usage": {
         "citationTokens": null,
@@ -330,43 +332,43 @@ exports[`doStream > citations > should stream citations 1`] = `
     "type": "response-metadata",
   },
   {
-    "id": "id-60",
+    "id": "id-66",
     "sourceType": "url",
     "type": "source",
     "url": "https://populationstat.com/united-states/san-francisco",
   },
   {
-    "id": "id-61",
+    "id": "id-67",
     "sourceType": "url",
     "type": "source",
     "url": "https://en.wikipedia.org/wiki/San_Francisco",
   },
   {
-    "id": "id-62",
+    "id": "id-68",
     "sourceType": "url",
     "type": "source",
     "url": "https://fred.stlouisfed.org/graph/?g=4K5j",
   },
   {
-    "id": "id-63",
+    "id": "id-69",
     "sourceType": "url",
     "type": "source",
     "url": "https://www.california-demographics.com/cities_by_population",
   },
   {
-    "id": "id-64",
+    "id": "id-70",
     "sourceType": "url",
     "type": "source",
     "url": "https://worldpopulationreview.com/us-cities/california/san-francisco",
   },
   {
-    "id": "id-65",
+    "id": "id-71",
     "sourceType": "url",
     "type": "source",
     "url": "https://worldpopulationreview.com/us-counties/california/san-francisco-county",
   },
   {
-    "id": "id-66",
+    "id": "id-72",
     "sourceType": "url",
     "type": "source",
     "url": "https://www.worldometers.info/world-population/us-population/",
@@ -426,6 +428,7 @@ exports[`doStream > citations > should stream citations 1`] = `
     },
     "providerMetadata": {
       "perplexity": {
+        "cost": null,
         "images": null,
         "usage": {
           "citationTokens": null,
@@ -469,31 +472,31 @@ exports[`doStream > text > should stream text 1`] = `
     "type": "response-metadata",
   },
   {
-    "id": "id-55",
+    "id": "id-61",
     "sourceType": "url",
     "type": "source",
     "url": "https://www.modernchristmastrees.com/innovative-approaches-holiday-decor-modern-interior-design/",
   },
   {
-    "id": "id-56",
+    "id": "id-62",
     "sourceType": "url",
     "type": "source",
     "url": "https://camillestyles.com/design/modern-christmas-decorating-ideas/",
   },
   {
-    "id": "id-57",
+    "id": "id-63",
     "sourceType": "url",
     "type": "source",
     "url": "https://www.elledecor.com/design-decorate/interior-designers/advice/g2833/christmas-decorating-ideas/",
   },
   {
-    "id": "id-58",
+    "id": "id-64",
     "sourceType": "url",
     "type": "source",
     "url": "https://www.youtube.com/watch?v=GVxMMHAwzIU",
   },
   {
-    "id": "id-59",
+    "id": "id-65",
     "sourceType": "url",
     "type": "source",
     "url": "https://www.jjonesdesignco.com/blogs/modern-industrial-christmas-decor-joshuas-must-have-holiday-picks",
@@ -553,6 +556,7 @@ exports[`doStream > text > should stream text 1`] = `
     },
     "providerMetadata": {
       "perplexity": {
+        "cost": null,
         "images": null,
         "usage": {
           "citationTokens": null,

@@ -262,6 +262,79 @@ describe('validateUIMessages', () => {
     });
   });
 
+  describe('custom parts', () => {
+    it('should validate an assistant message with a custom part', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'custom',
+                kind: 'test-provider.compaction',
+                providerMetadata: {
+                  openai: { itemId: 'cmp_123' },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "kind": "test-provider.compaction",
+                "providerMetadata": {
+                  "openai": {
+                    "itemId": "cmp_123",
+                  },
+                },
+                "type": "custom",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+
+    it('should validate an assistant message with a custom part without providerMetadata', async () => {
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [{ type: 'custom', kind: 'openai.compaction' }],
+          },
+        ],
+      });
+
+      expectTypeOf(messages).toEqualTypeOf<Array<UIMessage>>();
+
+      expect(messages).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "parts": [
+              {
+                "kind": "openai.compaction",
+                "type": "custom",
+              },
+            ],
+            "role": "assistant",
+          },
+        ]
+      `);
+    });
+  });
+
   describe('reasoning parts', () => {
     it('should validate an assistant message with a reasoning part', async () => {
       const messages = await validateUIMessages({

@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
-  const { videos } = await withSpinner(
+  const { video } = await withSpinner(
     'Generating xAI video with grok-imagine-video...',
     () =>
       generateVideo({
@@ -21,5 +21,5 @@ run(async () => {
       }),
   );
 
-  await presentVideos(videos);
+  await presentVideos([video]);
 });
