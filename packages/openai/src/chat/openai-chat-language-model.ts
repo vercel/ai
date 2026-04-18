@@ -550,6 +550,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
             // Must be before the `choice?.delta == null` guard because OpenAI
             // sends usage in a chunk with empty choices (no delta).
             if (value.usage != null && !finishSent) {
+              // Close active text first to preserve event ordering: text-end before finish.
+              if (isActiveText) {
+                controller.enqueue({ type: 'text-end', id: '0' });
+                isActiveText = false;
+              }
               controller.enqueue({
                 type: 'finish',
                 finishReason,
