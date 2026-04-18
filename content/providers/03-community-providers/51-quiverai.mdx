@@ -68,7 +68,7 @@ import { quiverai } from 'quiverai-ai-provider';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: quiverai('arrow-preview'),
+  model: quiverai('arrow-1.1'),
   prompt: 'A red circle with a blue border',
 });
 
@@ -76,7 +76,7 @@ for await (const chunk of result.textStream) {
   process.stdout.write(chunk); // progressive SVG markup
 }
 
-console.log('Usage:', await result.usage);
+console.log('Credits:', (await result.experimental_providerMetadata)?.quiverai?.credits);
 ```
 
 ### Non-streaming
@@ -85,12 +85,13 @@ console.log('Usage:', await result.usage);
 import { quiverai } from 'quiverai-ai-provider';
 import { generateText } from 'ai';
 
-const { text, usage } = await generateText({
-  model: quiverai('arrow-preview'),
+const { text, experimental_providerMetadata } = await generateText({
+  model: quiverai('arrow-1.1'),
   prompt: 'A red circle with a blue border',
 });
 
 console.log(text); // complete SVG markup
+console.log(experimental_providerMetadata?.quiverai?.credits); // credits used
 ```
 
 ### Vectorization (image to SVG)
@@ -103,7 +104,7 @@ import { generateText } from 'ai';
 import { readFileSync } from 'node:fs';
 
 const { text } = await generateText({
-  model: quiverai('arrow-preview'),
+  model: quiverai('arrow-1.1'),
   messages: [
     {
       role: 'user',
@@ -123,9 +124,11 @@ console.log(text); // SVG markup of the vectorized image
 
 ### Model Capabilities
 
-| Model            | Text-to-SVG | Image-to-SVG | Streaming |
-| ---------------- | :---------: | :----------: | :-------: |
-| `arrow-preview`  |      +      |      +       |     +     |
+| Model          | Text-to-SVG | Image-to-SVG | Streaming |
+| -------------- | :---------: | :----------: | :-------: |
+| `arrow-1`      |      +      |      +       |     +     |
+| `arrow-1.1`    |      +      |      +       |     +     |
+| `arrow-1.1-max`|      +      |      +       |     +     |
 
 ## Image Models
 
@@ -139,7 +142,7 @@ import { generateImage } from 'ai';
 import { writeFileSync } from 'node:fs';
 
 const { images } = await generateImage({
-  model: quiverai.image('arrow-preview'),
+  model: quiverai.image('arrow-1.1'),
   prompt: 'A red circle with a blue border',
 });
 
@@ -158,7 +161,7 @@ import { generateImage } from 'ai';
 import { readFileSync } from 'node:fs';
 
 const { images } = await generateImage({
-  model: quiverai.image('arrow-preview'),
+  model: quiverai.image('arrow-1.1'),
   prompt: '',
   files: [
     {
@@ -188,7 +191,7 @@ import {
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: quiverai('arrow-preview'),
+  model: quiverai('arrow-1.1'),
   prompt: 'A minimalist logo for a coffee shop',
   providerOptions: {
     quiverai: {
@@ -200,29 +203,30 @@ const { text } = await generateText({
 });
 ```
 
-| Option            | Type      | Description                                                               |
-| ----------------- | --------- | ------------------------------------------------------------------------- |
-| `instructions`    | `string`  | Additional style/quality instructions appended to the prompt (text-to-SVG only). |
-| `temperature`     | `number`  | Controls randomness.                                                      |
-| `topP`            | `number`  | Nucleus sampling threshold.                                               |
-| `maxOutputTokens` | `number`  | Maximum tokens to generate.                                               |
-| `autoCrop`        | `boolean` | Auto-crop source image before vectorization.                              |
-| `targetSize`      | `number`  | Target output size in pixels (vectorization only).                        |
+| Option             | Type      | Description                                                               |
+| ------------------ | --------- | ------------------------------------------------------------------------- |
+| `instructions`     | `string`  | Additional style/quality instructions appended to the prompt (text-to-SVG only). |
+| `temperature`      | `number`  | Controls randomness.                                                      |
+| `topP`             | `number`  | Nucleus sampling threshold.                                               |
+| `presencePenalty`  | `number`  | Penalizes tokens already present in the output.                           |
+| `maxOutputTokens`  | `number`  | Maximum tokens to generate.                                               |
+| `autoCrop`         | `boolean` | Auto-crop source image before vectorization.                              |
+| `targetSize`       | `number`  | Target output size in pixels (vectorization only).                        |
 
-## Token Usage
+## Credits Billing
 
-QuiverAI returns `0` for all token counts (`inputTokens`, `outputTokens`, `totalTokens`). Pricing is a fixed cost per generation, not token-based.
+QuiverAI uses credits-based billing rather than token-based billing. Credits consumed per request are exposed via `providerMetadata.quiverai.credits`.
 
 ```ts
 const { images, providerMetadata } = await generateImage({
-  model: quiverai.image('arrow-preview'),
+  model: quiverai.image('arrow-1.1'),
   prompt: 'A red circle with a blue border',
 });
 
 console.log(providerMetadata?.quiverai);
 // {
 //   images: [{ mimeType: 'image/svg+xml' }],
-//   usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+//   credits: { used: 1 }
 // }
 ```
 
