@@ -125,10 +125,11 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       throw new Error('Black Forest Labs supports up to 10 input images.');
     }
 
+    const imageFieldPrefix = getImageFieldPrefix(this.modelId);
     const inputImagesObj: Record<string, string> = inputImages.reduce<
       Record<string, string>
     >((acc, img, index) => {
-      acc[`input_image${index === 0 ? '' : `_${index + 1}`}`] = img;
+      acc[`${imageFieldPrefix}${index === 0 ? '' : `_${index + 1}`}`] = img;
       return acc;
     }, {});
 
@@ -394,6 +395,29 @@ export const blackForestLabsImageModelOptionsSchema = lazySchema(() =>
 export type BlackForestLabsImageModelOptions = InferSchema<
   typeof blackForestLabsImageModelOptionsSchema
 >;
+
+/**
+ * Models that use the BFL Fill API (e.g. `/flux-pro-1.0-fill`) expect the
+ * input image field to be named `image` instead of the default `input_image`
+ * used by other BFL models. This set tracks all known fill model IDs so the
+ * SDK sends the correct field name.
+ *
+ * @see https://docs.bfl.ml/api/fill – BFL Fill API reference
+ */
+const BFL_FILL_MODEL_IDS: ReadonlySet<string> = new Set(['flux-pro-1.0-fill']);
+
+/**
+ * Returns the correct image field prefix for a given BFL model.
+ *
+ * - Fill models (`flux-pro-1.0-fill`) → `"image"`
+ * - All other models → `"input_image"`
+ *
+ * The prefix is used to build keys like `image`, `image_2`, … or
+ * `input_image`, `input_image_2`, … depending on the model.
+ */
+function getImageFieldPrefix(modelId: string): string {
+  return BFL_FILL_MODEL_IDS.has(modelId) ? 'image' : 'input_image';
+}
 
 function convertSizeToAspectRatio(
   size: string,
