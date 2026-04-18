@@ -12,6 +12,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-chat',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -43,6 +44,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-chat',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -92,6 +94,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-chat',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -150,6 +153,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-chat',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -216,6 +220,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-reasoner',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -251,7 +256,7 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
-    it('should filter out reasoning content from turns before the last user message', () => {
+    it('preserves reasoning on deepseek-reasoner for the assistant turn before the final user message', () => {
       const result = convertToDeepSeekChatMessages({
         prompt: [
           {
@@ -290,6 +295,7 @@ describe('convertToDeepSeekChatMessages', () => {
           },
         ],
         responseFormat: undefined,
+        modelId: 'deepseek-reasoner',
       });
 
       expect(result).toMatchInlineSnapshot(`
@@ -301,7 +307,7 @@ describe('convertToDeepSeekChatMessages', () => {
             },
             {
               "content": "",
-              "reasoning_content": undefined,
+              "reasoning_content": "I think the tool will return the correct value.",
               "role": "assistant",
               "tool_calls": [
                 {
@@ -327,6 +333,55 @@ describe('convertToDeepSeekChatMessages', () => {
           "warnings": [],
         }
       `);
+    });
+
+    it('omits reasoning_content for deepseek-chat in multi-turn history', () => {
+      const result = convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'I think the tool will return the correct value.',
+              },
+              {
+                type: 'tool-call',
+                input: { foo: 'bar123' },
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'quux',
+                toolName: 'thwomp',
+                output: { type: 'json', value: { oof: '321rab' } },
+              },
+            ],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Goodbye' }],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      expect(result.messages[1]).toMatchObject({
+        role: 'assistant',
+        content: '',
+        reasoning_content: undefined,
+      });
     });
   });
 });

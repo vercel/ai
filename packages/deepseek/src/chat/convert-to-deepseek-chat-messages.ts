@@ -4,19 +4,73 @@ import {
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import { DeepSeekChatPrompt } from './deepseek-chat-api-types';
+import { DeepSeekChatModelId } from './deepseek-chat-options';
+
+/**
+ * Only `deepseek-reasoner` should receive historical `reasoning_content` in the
+ * request body. For `deepseek-chat`, sending prior reasoning wastes tokens and
+ * can confuse the non-reasoning model. For `deepseek-reasoner`, only include
+ * reasoning on the assistant turn immediately before the latest user message
+ * (or any assistant after that user), to avoid DeepSeek API 400s when replaying
+ * long chains of thought.
+ */
+function shouldIncludeAssistantReasoningContent({
+  modelId,
+  messageIndex,
+  lastUserMessageIndex,
+  lastAssistantIndexBeforeLastUser,
+}: {
+  modelId: DeepSeekChatModelId;
+  messageIndex: number;
+  lastUserMessageIndex: number;
+  lastAssistantIndexBeforeLastUser: number;
+}): boolean {
+  if (modelId !== 'deepseek-reasoner') {
+    return false;
+  }
+
+  if (lastUserMessageIndex < 0) {
+    return true;
+  }
+
+  return (
+    messageIndex > lastUserMessageIndex ||
+    messageIndex === lastAssistantIndexBeforeLastUser
+  );
+}
 
 export function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
+  modelId,
 }: {
   prompt: LanguageModelV4Prompt;
   responseFormat: LanguageModelV4CallOptions['responseFormat'];
+  modelId: DeepSeekChatModelId;
 }): {
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV4Warning>;
 } {
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
+
+  let lastUserMessageIndex = -1;
+  for (let i = prompt.length - 1; i >= 0; i--) {
+    if (prompt[i].role === 'user') {
+      lastUserMessageIndex = i;
+      break;
+    }
+  }
+
+  let lastAssistantIndexBeforeLastUser = -1;
+  if (lastUserMessageIndex >= 0) {
+    for (let i = lastUserMessageIndex - 1; i >= 0; i--) {
+      if (prompt[i].role === 'assistant') {
+        lastAssistantIndexBeforeLastUser = i;
+        break;
+      }
+    }
+  }
 
   // Inject system message if response format is JSON
   if (responseFormat?.type === 'json') {
@@ -40,19 +94,8 @@ export function convertToDeepSeekChatMessages({
     }
   }
 
-  // TODO use findLastIndex once we use ES2023
-  let lastUserMessageIndex = -1;
-  for (let i = prompt.length - 1; i >= 0; i--) {
-    if (prompt[i].role === 'user') {
-      lastUserMessageIndex = i;
-      break;
-    }
-  }
-
-  let index = -1;
-  for (const { role, content } of prompt) {
-    index++;
-
+  for (let index = 0; index < prompt.length; index++) {
+    const { role, content } = prompt[index]!;
     switch (role) {
       case 'system': {
         messages.push({ role: 'system', content });
@@ -89,6 +132,13 @@ export function convertToDeepSeekChatMessages({
           function: { name: string; arguments: string };
         }> = [];
 
+        const attachReasoning = shouldIncludeAssistantReasoningContent({
+          modelId,
+          messageIndex: index,
+          lastUserMessageIndex,
+          lastAssistantIndexBeforeLastUser,
+        });
+
         for (const part of content) {
           switch (part.type) {
             case 'text': {
@@ -96,7 +146,7 @@ export function convertToDeepSeekChatMessages({
               break;
             }
             case 'reasoning': {
-              if (index <= lastUserMessageIndex) {
+              if (!attachReasoning) {
                 break;
               }
 

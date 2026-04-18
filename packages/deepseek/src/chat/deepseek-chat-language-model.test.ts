@@ -121,6 +121,91 @@ describe('DeepSeekChatLanguageModel', () => {
 
         expect(result).toMatchSnapshot();
       });
+
+      it('maps assistant reasoning in prompt history to reasoning_content in the request', async () => {
+        await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'What is 2+2?' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                { type: 'reasoning', text: 'Adding two and two gives four.' },
+                { type: 'text', text: 'The answer is 4.' },
+              ],
+            },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Thanks — explain briefly why.' },
+              ],
+            },
+          ],
+          providerOptions: {
+            deepseek: {
+              thinking: { type: 'enabled' },
+            } satisfies DeepSeekLanguageModelOptions,
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.messages).toEqual([
+          {
+            role: 'user',
+            content: 'What is 2+2?',
+          },
+          {
+            role: 'assistant',
+            content: 'The answer is 4.',
+            reasoning_content: 'Adding two and two gives four.',
+          },
+          {
+            role: 'user',
+            content: 'Thanks — explain briefly why.',
+          },
+        ]);
+      });
+
+      it('does not send reasoning_content for deepseek-chat when replaying assistant history', async () => {
+        await provider.chat('deepseek-chat').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'What is 2+2?' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                { type: 'reasoning', text: 'Adding two and two gives four.' },
+                { type: 'text', text: 'The answer is 4.' },
+              ],
+            },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: 'Thanks — explain briefly why.' },
+              ],
+            },
+          ],
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.messages[0]).toEqual({
+          role: 'user',
+          content: 'What is 2+2?',
+        });
+        expect(body.messages[1]).toMatchObject({
+          role: 'assistant',
+          content: 'The answer is 4.',
+        });
+        expect(body.messages[1].reasoning_content).toBeUndefined();
+        expect(body.messages[2]).toEqual({
+          role: 'user',
+          content: 'Thanks — explain briefly why.',
+        });
+      });
     });
 
     describe('top-level reasoning', () => {
