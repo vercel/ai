@@ -36,6 +36,10 @@ import {
   toolSearchOutputSchema,
 } from '../tool/tool-search';
 
+function serializeToolCallArguments(input: unknown): string {
+  return JSON.stringify(input === undefined ? {} : input);
+}
+
 /**
  * This is soft-deprecated. Use provider references instead. Kept for backward compatibility
  * with the `fileIdPrefixes` option.
@@ -362,7 +366,7 @@ export async function convertToOpenAIResponsesInput({
                 type: 'function_call',
                 call_id: part.toolCallId,
                 name: resolvedToolName,
-                arguments: JSON.stringify(part.input),
+                arguments: serializeToolCallArguments(part.input),
                 id,
               });
               break;
@@ -751,23 +755,25 @@ export async function convertToOpenAIResponsesInput({
                     switch (item.type) {
                       case 'text':
                         return { type: 'input_text' as const, text: item.text };
-                      case 'image-data':
-                        return {
-                          type: 'input_image' as const,
-                          image_url: `data:${item.mediaType};base64,${item.data}`,
-                        };
-                      case 'image-url':
-                        return {
-                          type: 'input_image' as const,
-                          image_url: item.url,
-                        };
                       case 'file-data':
+                        if (item.mediaType.startsWith('image/')) {
+                          return {
+                            type: 'input_image' as const,
+                            image_url: `data:${item.mediaType};base64,${item.data}`,
+                          };
+                        }
                         return {
                           type: 'input_file' as const,
                           filename: item.filename ?? 'data',
                           file_data: `data:${item.mediaType};base64,${item.data}`,
                         };
                       case 'file-url':
+                        if (item.mediaType.startsWith('image/')) {
+                          return {
+                            type: 'input_image' as const,
+                            image_url: item.url,
+                          };
+                        }
                         return {
                           type: 'input_file' as const,
                           file_url: item.url,
@@ -814,21 +820,13 @@ export async function convertToOpenAIResponsesInput({
                       return { type: 'input_text' as const, text: item.text };
                     }
 
-                    case 'image-data': {
-                      return {
-                        type: 'input_image' as const,
-                        image_url: `data:${item.mediaType};base64,${item.data}`,
-                      };
-                    }
-
-                    case 'image-url': {
-                      return {
-                        type: 'input_image' as const,
-                        image_url: item.url,
-                      };
-                    }
-
                     case 'file-data': {
+                      if (item.mediaType.startsWith('image/')) {
+                        return {
+                          type: 'input_image' as const,
+                          image_url: `data:${item.mediaType};base64,${item.data}`,
+                        };
+                      }
                       return {
                         type: 'input_file' as const,
                         filename: item.filename ?? 'data',
@@ -837,6 +835,12 @@ export async function convertToOpenAIResponsesInput({
                     }
 
                     case 'file-url': {
+                      if (item.mediaType.startsWith('image/')) {
+                        return {
+                          type: 'input_image' as const,
+                          image_url: item.url,
+                        };
+                      }
                       return {
                         type: 'input_file' as const,
                         file_url: item.url,

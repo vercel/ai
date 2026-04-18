@@ -1,58 +1,54 @@
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import type { Arrayable, ToolSet } from '@ai-sdk/provider-utils';
 import {
   IdGenerator,
   InferToolSetContext,
   ModelMessage,
 } from '@ai-sdk/provider-utils';
-import { TimeoutConfiguration } from '../prompt/call-settings';
-import type { TelemetryIntegration } from '../telemetry/telemetry-integration';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TimeoutConfiguration } from '../prompt/request-options';
+import type { Telemetry } from '../telemetry/telemetry';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { executeToolCall } from './execute-tool-call';
-import { isApprovalNeeded } from './is-approval-needed';
+import { isToolApprovalNeeded } from './is-tool-approval-needed';
 import { LanguageModelStreamPart } from './stream-language-model-call';
-import {
-  StreamTextOnToolCallFinishCallback,
-  StreamTextOnToolCallStartCallback,
-} from './stream-text';
 import { TypedToolCall } from './tool-call';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from './tool-execution-events';
+import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 
-export function createExecuteToolsTransformation<
-  TOOLS extends ToolSet,
-  USER_CONTEXT extends Context = Context,
->({
+export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   tools,
   telemetry,
   callId,
   messages,
   abortSignal,
   timeout,
-  context,
+  toolsContext,
+  toolNeedsApproval,
   generateId,
   stepNumber,
   provider,
   modelId,
-  onToolCallStart,
-  onToolCallFinish,
+  onToolExecutionStart,
+  onToolExecutionEnd,
   executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
-  telemetry: TelemetrySettings | undefined;
+  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  context: InferToolSetContext<TOOLS> & USER_CONTEXT;
+  toolsContext: InferToolSetContext<TOOLS>;
+  toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
   modelId?: string;
-  onToolCallStart?:
-    | StreamTextOnToolCallStartCallback<TOOLS>
-    | Array<StreamTextOnToolCallStartCallback<TOOLS> | undefined | null>;
-  onToolCallFinish?:
-    | StreamTextOnToolCallFinishCallback<TOOLS>
-    | Array<StreamTextOnToolCallFinishCallback<TOOLS> | undefined | null>;
-  executeToolInTelemetryContext?: TelemetryIntegration['executeTool'];
+  onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
+  onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
+  executeToolInTelemetryContext?: Telemetry['executeTool'];
 }): TransformStream<
   LanguageModelStreamPart<TOOLS>,
   LanguageModelStreamPart<TOOLS>
@@ -89,11 +85,12 @@ export function createExecuteToolsTransformation<
           }
 
           if (
-            await isApprovalNeeded({
-              tool,
+            await isToolApprovalNeeded({
+              tools,
               toolCall: chunk,
+              toolNeedsApproval,
               messages,
-              context,
+              toolsContext,
             })
           ) {
             controller.enqueue({
@@ -127,12 +124,12 @@ export function createExecuteToolsTransformation<
                   messages,
                   abortSignal,
                   timeout,
-                  context,
+                  toolsContext,
                   stepNumber,
                   provider,
                   modelId,
-                  onToolCallStart,
-                  onToolCallFinish,
+                  onToolExecutionStart,
+                  onToolExecutionEnd,
                   executeToolInTelemetryContext,
                   onPreliminaryToolResult: result => {
                     controller.enqueue(result);

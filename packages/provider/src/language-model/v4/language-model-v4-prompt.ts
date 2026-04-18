@@ -375,36 +375,6 @@ export type LanguageModelV4ToolResultOutput =
             url: string;
 
             /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV4ProviderOptions;
-          }
-        | {
-            type: 'file-reference';
-
-            /**
-             * Provider-specific references for the file.
-             * The key is the provider name, e.g. 'openai' or 'anthropic'.
-             */
-            providerReference: SharedV4ProviderReference;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV4ProviderOptions;
-          }
-        | {
-            /**
-             * Images that are referenced using base64 encoded data.
-             */
-            type: 'image-data';
-
-            /**
-             * Base-64 encoded image data.
-             */
-            data: string;
-
-            /**
              * IANA media type.
              * @see https://www.iana.org/assignments/media-types/media-types.xhtml
              */
@@ -416,29 +386,10 @@ export type LanguageModelV4ToolResultOutput =
             providerOptions?: SharedV4ProviderOptions;
           }
         | {
-            /**
-             * Images that are referenced using a URL.
-             */
-            type: 'image-url';
+            type: 'file-reference';
 
             /**
-             * URL of the image.
-             */
-            url: string;
-
-            /**
-             * Provider-specific options.
-             */
-            providerOptions?: SharedV4ProviderOptions;
-          }
-        | {
-            /**
-             * Images that are referenced using a provider reference.
-             */
-            type: 'image-file-reference';
-
-            /**
-             * Provider-specific references for the image file.
+             * Provider-specific references for the file.
              * The key is the provider name, e.g. 'openai' or 'anthropic'.
              */
             providerReference: SharedV4ProviderReference;

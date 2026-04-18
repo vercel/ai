@@ -27,92 +27,120 @@ pnpm install @ai-sdk/otel
 ```
 
 ```ts
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 ```
 
 For Next.js applications, place this in your `instrumentation.ts` file alongside your OpenTelemetry provider setup. See the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry) for more details on setting up the provider.
 
 For Node.js applications (without Next.js), register the integration at the top level of your entry file.
 
-### Step 2: Enable telemetry on individual calls
+### Step 2: Enabling Telemetry
 
-Use the `experimental_telemetry` option to enable telemetry on specific function calls:
+Once a telemetry integration is registered, all AI SDK calls emit telemetry events by default.
+You can still pass `telemetry` to attach metadata (like `functionId`) or to opt out of a specific call:
 
-```ts highlight="4"
+```ts highlight="4-6"
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: { isEnabled: true },
+  telemetry: {
+    functionId: `story-agent`,
+  },
 });
 ```
 
-When telemetry is enabled, you can also control if you want to record the input values and the output values for the function.
-By default, both are enabled. You can disable them by setting the `recordInputs` and `recordOutputs` options to `false`.
+By default, both inputs and outputs are recorded. You can disable them by setting the `recordInputs` and `recordOutputs` options to `false`.
 
 Disabling the recording of inputs and outputs can be useful for privacy, data transfer, and performance reasons.
 You might for example want to disable recording inputs if they contain sensitive information.
 
-## Telemetry Metadata
+### Opting out
 
-You can provide a `functionId` to identify the function that the telemetry data is for,
-and `metadata` to include additional information in the telemetry data.
+Telemetry is opt-out. To disable telemetry for a specific call, set `isEnabled: false`:
 
-```ts highlight="6-10"
+```ts
 const result = await generateText({
   model: __MODEL__,
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: { isEnabled: false },
+});
+```
+
+To disable telemetry globally, do not register any telemetry integrations via the `registerTelemetry()` function.
+
+## Telemetry Metadata
+
+You can provide a `functionId` to identify the function that the telemetry data is for,
+and `runtimeContext` to include additional information in the telemetry data.
+
+```ts highlight="4-10"
+const result = await generateText({
+  model: __MODEL__,
+  prompt: 'Write a short story about a cat.',
+  runtimeContext: {
+    something: 'custom',
+    someOtherThing: 'other-value',
+  },
+  telemetry: {
     functionId: 'my-awesome-function',
-    metadata: {
-      something: 'custom',
-      someOtherThing: 'other-value',
-    },
   },
 });
 ```
 
 ## Custom Tracer
 
-If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetryIntegration` constructor:
+If you want your traces to use a `TracerProvider` other than the one provided by the `@opentelemetry/api` singleton, pass a custom `Tracer` to the `OpenTelemetry` constructor:
 
 ```ts highlight="6-8"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
 const tracerProvider = new NodeTracerProvider();
-registerTelemetryIntegration(
-  new OpenTelemetryIntegration({
+registerTelemetry(
+  new OpenTelemetry({
     tracer: tracerProvider.getTracer('ai'),
   }),
 );
 ```
 
-The `GenAIOpenTelemetryIntegration` also accepts a custom `Tracer` in the same way.
+The `GenAIOpenTelemetry` also accepts a custom `Tracer` in the same way.
 
 ## Telemetry Integrations
 
-Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `TelemetryIntegration` once and register it globally or pass it via `experimental_telemetry.integrations`.
+Telemetry integrations let you hook into the generation lifecycle to build custom observability — logging, analytics, DevTools, or any other monitoring system. Instead of wiring up individual callbacks on every call, you implement a `Telemetry` once and register it globally or pass it via `telemetry.integrations`.
 
-The `GenAIOpenTelemetryIntegration` and `OpenTelemetryIntegration` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
+The `GenAIOpenTelemetry` and `OpenTelemetry` from `@ai-sdk/otel` are the built-in integrations for collecting OpenTelemetry spans (see [Enabling telemetry](#enabling-telemetry) above).
 
 ### Registering integrations globally
 
-Use `registerTelemetryIntegration` to register an integration once for all AI SDK calls:
+Use `registerTelemetry` to register an integration once for all AI SDK calls:
+
+```ts
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+
+registerTelemetry(new OpenTelemetry());
+```
+
+You can also register multiple integrations in a single call by passing them as additional arguments. They all receive the same lifecycle events:
 
 ```ts
 import { registerTelemetryIntegration } from 'ai';
 import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetryIntegration(
+  new OpenTelemetryIntegration(),
+  DevToolsTelemetry(),
+);
 ```
 
 ### Per-call integrations
 
-You can also pass one or more integrations to individual `generateText` or `streamText` calls. Per-call integrations run after any globally registered integrations:
+You can also pass one or more integrations to individual `generateText` or `streamText` calls. When per-call integrations are provided, they replace the globally registered integrations for that call:
 
 ```ts highlight="6-8"
 import { streamText } from 'ai';
@@ -121,8 +149,7 @@ import { DevToolsTelemetry } from '@ai-sdk/devtools';
 const result = streamText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     integrations: [DevToolsTelemetry()],
   },
 });
@@ -131,8 +158,7 @@ const result = streamText({
 You can combine multiple integrations — they all receive the same lifecycle events:
 
 ```ts
-experimental_telemetry: {
-  isEnabled: true,
+telemetry: {
   integrations: [DevToolsTelemetry(), customLogger()],
 },
 ```
@@ -141,13 +167,12 @@ Errors inside integrations are caught and do not break the generation flow.
 
 ### Building a custom integration
 
-Implement the `TelemetryIntegration` interface from the `ai` package. All methods are optional — implement only the lifecycle events you care about:
+Implement the `Telemetry` interface from the `ai` package. All methods are optional — implement only the lifecycle events you care about:
 
 ```ts
-import type { TelemetryIntegration } from 'ai';
-import { bindTelemetryIntegration } from 'ai';
+import type { Telemetry } from 'ai';
 
-class MyIntegration implements TelemetryIntegration {
+class MyIntegration implements Telemetry {
   async onStart(event) {
     console.log('Generation started:', event.model.modelId);
   }
@@ -160,7 +185,7 @@ class MyIntegration implements TelemetryIntegration {
     );
   }
 
-  async onToolCallFinish(event) {
+  async onToolExecutionEnd(event) {
     if (event.success) {
       console.log(
         `Tool "${event.toolCall.toolName}" took ${event.durationMs}ms`,
@@ -175,12 +200,10 @@ class MyIntegration implements TelemetryIntegration {
   }
 }
 
-export function myIntegration(): TelemetryIntegration {
-  return bindTelemetryIntegration(new MyIntegration());
+export function myIntegration(): Telemetry {
+  return new MyIntegration();
 }
 ```
-
-Use `bindTelemetryIntegration` for class-based integrations to ensure `this` is correctly bound when methods are extracted and called as callbacks.
 
 ### Available lifecycle methods
 
@@ -199,13 +222,13 @@ Use `bindTelemetryIntegration` for class-based integrations to ensure `this` is 
         'Called when a step (LLM call) begins, before the provider is called.',
     },
     {
-      name: 'onToolCallStart',
-      type: '(event: OnToolCallStartEvent) => void | PromiseLike<void>',
+      name: 'onToolExecutionStart',
+      type: '(event: ToolExecutionStartEvent) => void | PromiseLike<void>',
       description: "Called when a tool's execute function is about to run.",
     },
     {
-      name: 'onToolCallFinish',
-      type: '(event: OnToolCallFinishEvent) => void | PromiseLike<void>',
+      name: 'onToolExecutionEnd',
+      type: '(event: ToolExecutionEndEvent) => void | PromiseLike<void>',
       description: "Called when a tool's execute function completes or errors.",
     },
     {
@@ -227,12 +250,12 @@ The event types for each method are the same as the corresponding [event callbac
 ## Collected Data
 
 The `@ai-sdk/otel` package provides two integrations that emit different span formats.
-The `GenAIOpenTelemetryIntegration` follows the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and is the recommended integration.
-The `OpenTelemetryIntegration` emits legacy AI SDK-specific spans.
+The `GenAIOpenTelemetry` follows the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) and is the recommended integration.
+The `OpenTelemetry` integration emits legacy AI SDK-specific spans.
 
 ### GenAI Semantic Conventions
 
-The `GenAIOpenTelemetryIntegration` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
+The `GenAIOpenTelemetry` emits spans that follow the [OpenTelemetry Semantic Conventions for GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
 All attributes use the `gen_ai.*` prefix. Provider names are mapped to well-known values (e.g. `openai`, `anthropic`, `gcp.vertex_ai`).
 
 #### generateText / streamText
@@ -371,10 +394,10 @@ Tool call spans (`execute_tool {toolName}`) are nested under the step span and c
 - `gen_ai.tool.call.arguments`: the input arguments (stringified JSON, when `recordInputs` is enabled)
 - `gen_ai.tool.call.result`: the output result (stringified JSON, when `recordOutputs` is enabled). Only set when the tool call succeeds.
 
-### Legacy AI SDK Spans (`OpenTelemetryIntegration`)
+### Legacy AI SDK Spans (`OpenTelemetry`)
 
-The `OpenTelemetryIntegration` emits spans using AI SDK-specific `ai.*` prefixed attributes.
-This is the legacy format. Consider migrating to the `GenAIOpenTelemetryIntegration` for better compatibility with observability platforms.
+The `OpenTelemetry` integration emits spans using AI SDK-specific `ai.*` prefixed attributes.
+This is the legacy format. Consider migrating to the `GenAIOpenTelemetry` for better compatibility with observability platforms.
 
 #### generateText function
 
@@ -519,7 +542,7 @@ Many spans that use LLMs (`ai.generateText`, `ai.generateText.doGenerate`, `ai.s
 - `ai.response.providerMetadata`: provider specific metadata returned with the generation response
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.telemetry.metadata.*`: the metadata that was passed in through `telemetry.metadata`
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
 - `ai.usage.completionTokens`: the number of completion tokens that were used
 - `ai.usage.promptTokens`: the number of prompt tokens that were used
 
@@ -556,7 +579,7 @@ Many spans that use embedding models (`ai.embed`, `ai.embed.doEmbed`, `ai.embedM
 - `ai.request.headers.*`: the request headers that were passed in through `headers`
 - `ai.settings.maxRetries`: the maximum number of retries that were set
 - `ai.telemetry.functionId`: the functionId that was set through `telemetry.functionId`
-- `ai.telemetry.metadata.*`: the metadata that was passed in through `telemetry.metadata`
+- `ai.settings.runtimeContext.*`: the runtime context that was passed in through the `runtimeContext` option
 - `ai.usage.tokens`: the number of tokens that were used
 - `resource.name`: the functionId that was set through `telemetry.functionId`
 

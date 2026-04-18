@@ -135,11 +135,11 @@ const result = await generateText({
     console.log(`Step ${stepNumber} starting`, { model: model.modelId });
   },
 
-  experimental_onToolCallStart({ toolName, toolCallId, input }) {
+  experimental_onToolExecutionStart({ toolName, toolCallId, input }) {
     console.log(`Tool call starting: ${toolName}`, { toolCallId });
   },
 
-  experimental_onToolCallFinish({ toolName, durationMs, error }) {
+  experimental_onToolExecutionEnd({ toolName, durationMs, error }) {
     console.log(`Tool call finished: ${toolName} (${durationMs}ms)`, {
       success: !error,
     });
@@ -153,10 +153,10 @@ const result = await generateText({
 
 The available lifecycle callbacks are:
 
-- **`experimental_onStart`**: Called once when the `generateText` operation begins, before any LLM calls. Receives model info, prompt, settings, and telemetry metadata.
+- **`experimental_onStart`**: Called once when the `generateText` operation begins, before any LLM calls. Receives model info, prompt, settings, and `runtimeContext`.
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, prompt messages being sent, tools, and prior steps.
-- **`experimental_onToolCallStart`**: Called right before a tool's `execute` function runs. Receives the tool name, call ID, and input.
-- **`experimental_onToolCallFinish`**: Called right after a tool's `execute` function completes or errors. Receives the tool name, call ID, input, output (or undefined on error), error (or undefined on success), and `durationMs`.
+- **`experimental_onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool name, call ID, and input.
+- **`experimental_onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool name, call ID, input, output (or undefined on error), error (or undefined on success), and `durationMs`.
 - **`onStepFinish`**: Called after each step finishes. Now also includes `stepNumber` (zero-based index of the completed step).
 
 ## `streamText`
@@ -327,13 +327,13 @@ const result = streamText({
     console.log(`Step ${stepNumber} starting`, { model: model.modelId });
   },
 
-  experimental_onToolCallStart({ toolCall }) {
+  experimental_onToolExecutionStart({ toolCall }) {
     console.log(`Tool call starting: ${toolCall.toolName}`, {
       toolCallId: toolCall.toolCallId,
     });
   },
 
-  experimental_onToolCallFinish({ toolCall, durationMs, success, error }) {
+  experimental_onToolExecutionEnd({ toolCall, durationMs, success, error }) {
     console.log(`Tool call finished: ${toolCall.toolName} (${durationMs}ms)`, {
       success,
     });
@@ -347,10 +347,10 @@ const result = streamText({
 
 The available lifecycle callbacks are:
 
-- **`experimental_onStart`**: Called once when the `streamText` operation begins, before any LLM calls. Receives model info, prompt, settings, and telemetry metadata.
+- **`experimental_onStart`**: Called once when the `streamText` operation begins, before any LLM calls. Receives model info, prompt, settings, and `runtimeContext`.
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
-- **`experimental_onToolCallStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and runtime context.
-- **`experimental_onToolCallFinish`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `durationMs`, and a discriminated union with `success`/`output` or `success`/`error`.
+- **`experimental_onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object, messages, and the tool-specific context for that call.
+- **`experimental_onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call object, `durationMs`, and a discriminated union with `success`/`output` or `success`/`error`.
 - **`onStepFinish`**: Called after each step finishes. Receives the finish reason, usage, and other step details.
 
 ### `fullStream` property
@@ -604,7 +604,7 @@ const result = streamText({
 ## Sources
 
 Some providers such as [Perplexity](/providers/ai-sdk-providers/perplexity#sources) and
-[Google Generative AI](/providers/ai-sdk-providers/google-generative-ai#sources) include sources in the response.
+[Google](/providers/ai-sdk-providers/google#sources) include sources in the response.
 
 Currently sources are limited to web pages that ground the response.
 You can access them using the `sources` property of the result.

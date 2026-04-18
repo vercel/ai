@@ -1,10 +1,10 @@
 {
   "name": "@ai-sdk/mcp",
-  "version": "2.0.0-beta.24",
+  "version": "2.0.0-beta.33",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
@@ -32,14 +32,13 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./mcp-stdio": {
       "types": "./dist/mcp-stdio/index.d.ts",
-      "import": "./dist/mcp-stdio/index.mjs",
-      "module": "./dist/mcp-stdio/index.mjs",
-      "require": "./dist/mcp-stdio/index.js"
+      "import": "./dist/mcp-stdio/index.js",
+      "default": "./dist/mcp-stdio/index.js"
     }
   },
   "dependencies": {

@@ -17,6 +17,7 @@
     { "path": "packages/deepgram" },
     { "path": "packages/deepinfra" },
     { "path": "packages/deepseek" },
+    { "path": "packages/workflow" },
     { "path": "packages/elevenlabs" },
     { "path": "packages/fal" },
     { "path": "packages/fireworks" },
@@ -50,6 +51,7 @@
     { "path": "packages/togetherai" },
     { "path": "packages/valibot" },
     { "path": "packages/vercel" },
+    { "path": "packages/voyage" },
     { "path": "packages/vue" },
     { "path": "packages/xai" }
   ],

@@ -1,5 +1,155 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.58
+
+### Patch Changes
+
+- a3757d7: chore(provider/google): remove useless GenerativeAI affix from types and classes for consistency
+- Updated dependencies [a3757d7]
+- Updated dependencies [2e98477]
+- Updated dependencies [bfb756d]
+  - @ai-sdk/google@4.0.0-beta.45
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/openai-compatible@3.0.0-beta.31
+  - @ai-sdk/anthropic@4.0.0-beta.37
+
+## 5.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/anthropic@4.0.0-beta.36
+  - @ai-sdk/google@4.0.0-beta.44
+  - @ai-sdk/openai-compatible@3.0.0-beta.30
+
+## 5.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/openai-compatible@3.0.0-beta.29
+  - @ai-sdk/anthropic@4.0.0-beta.35
+  - @ai-sdk/google@4.0.0-beta.43
+
+## 5.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/anthropic@4.0.0-beta.34
+  - @ai-sdk/google@4.0.0-beta.42
+  - @ai-sdk/openai-compatible@3.0.0-beta.28
+
+## 5.0.0-beta.54
+
+### Major Changes
+
+- 832f86f: fix(anthropic): remove cacheCreationInputTokens from providerMetadata
+
+### Patch Changes
+
+- Updated dependencies [832f86f]
+  - @ai-sdk/anthropic@4.0.0-beta.33
+
+## 5.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [ad0b376]
+  - @ai-sdk/anthropic@4.0.0-beta.32
+
+## 5.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/anthropic@4.0.0-beta.31
+  - @ai-sdk/google@4.0.0-beta.41
+  - @ai-sdk/openai-compatible@3.0.0-beta.27
+
+## 5.0.0-beta.51
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [0d8f107]
+  - @ai-sdk/anthropic@4.0.0-beta.30
+
+## 5.0.0-beta.50
+
+### Patch Changes
+
+- 55f0938: chore(provider/google): update available models
+- Updated dependencies [55f0938]
+  - @ai-sdk/google@4.0.0-beta.40
+
+## 5.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+  - @ai-sdk/anthropic@4.0.0-beta.29
+  - @ai-sdk/google@4.0.0-beta.39
+  - @ai-sdk/openai-compatible@3.0.0-beta.26
+
+## 5.0.0-beta.48
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/anthropic@4.0.0-beta.28
+  - @ai-sdk/google@4.0.0-beta.38
+  - @ai-sdk/openai-compatible@3.0.0-beta.25
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 5.0.0-beta.47
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/anthropic@4.0.0-beta.27
+  - @ai-sdk/google@4.0.0-beta.37
+  - @ai-sdk/openai-compatible@3.0.0-beta.24
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 5.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [9a0a618]
+  - @ai-sdk/google@4.0.0-beta.36
+
+## 5.0.0-beta.45
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/openai-compatible@3.0.0-beta.23
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+  - @ai-sdk/anthropic@4.0.0-beta.26
+  - @ai-sdk/google@4.0.0-beta.35
+
 ## 5.0.0-beta.44
 
 ### Patch Changes

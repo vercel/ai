@@ -16,14 +16,15 @@ import {
 import { ServerResponse } from 'http';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings } from '../prompt/call-settings';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { prepareLanguageModelCallOptions } from '../prompt/prepare-language-model-call-options';
+import { RequestOptions } from '../prompt/request-options';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import {
@@ -44,10 +45,10 @@ import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
+import type { Callback } from '../util/callback';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { DownloadFunction } from '../util/download/download-function';
 import { notify } from '../util/notify';
-import type { Listener } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import type {
@@ -163,7 +164,7 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * - 'enum': The output is an enum.
  * - 'no-schema': The output is not a schema.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -182,7 +183,8 @@ export function streamObject<
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
 >(
-  options: Omit<CallSettings, 'stopSequences'> &
+  options: Omit<LanguageModelCallOptions, 'stopSequences'> &
+    Omit<RequestOptions, 'timeout'> &
     Prompt &
     (OUTPUT extends 'enum'
       ? {
@@ -228,10 +230,16 @@ export function streamObject<
       experimental_repairText?: RepairTextFunction;
 
       /**
-       * Optional telemetry configuration (experimental).
+       * Optional telemetry configuration.
        */
+      telemetry?: TelemetryOptions;
 
-      experimental_telemetry?: TelemetrySettings;
+      /**
+       * Optional telemetry configuration.
+       *
+       * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+       */
+      experimental_telemetry?: TelemetryOptions;
 
       /**
        * Custom download function to use for URLs.
@@ -251,19 +259,19 @@ export function streamObject<
        * Callback that is called when the streamObject operation begins,
        * before the LLM call is made.
        */
-      experimental_onStart?: Listener<ObjectOnStartEvent>;
+      experimental_onStart?: Callback<ObjectOnStartEvent>;
 
       /**
        * Callback that is called when the model call (step) begins,
        * before the provider is called.
        */
-      experimental_onStepStart?: Listener<ObjectOnStepStartEvent>;
+      experimental_onStepStart?: Callback<ObjectOnStepStartEvent>;
 
       /**
        * Callback that is called when the model streaming step completes,
        * with the raw accumulated text before final schema validation.
        */
-      onStepFinish?: Listener<ObjectOnStepFinishEvent>;
+      onStepFinish?: Callback<ObjectOnStepFinishEvent>;
 
       /**
        * Callback that is invoked when an error occurs during streaming.
@@ -275,7 +283,7 @@ export function streamObject<
       /**
        * Callback that is called when the LLM response and the final object validation are finished.
        */
-      onFinish?: Listener<ObjectOnFinishEvent<RESULT>>;
+      onFinish?: Callback<ObjectOnFinishEvent<RESULT>>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -309,7 +317,8 @@ export function streamObject<
     abortSignal,
     headers,
     experimental_repairText: repairText,
-    experimental_telemetry: telemetry,
+    experimental_telemetry,
+    telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
     experimental_onStart: onStart,
@@ -428,9 +437,9 @@ class DefaultStreamObjectResult<
     now,
   }: {
     model: LanguageModel;
-    telemetry: TelemetrySettings | undefined;
+    telemetry: TelemetryOptions | undefined;
     headers: Record<string, string | undefined> | undefined;
-    settings: Omit<CallSettings, 'abortSignal' | 'headers'>;
+    settings: LanguageModelCallOptions;
     maxRetries: number | undefined;
     abortSignal: AbortSignal | undefined;
     outputStrategy: OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM>;
@@ -441,11 +450,11 @@ class DefaultStreamObjectResult<
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
     repairText: RepairTextFunction | undefined;
-    onStart: Listener<ObjectOnStartEvent> | undefined;
-    onStepStart: Listener<ObjectOnStepStartEvent> | undefined;
-    onStepFinish: Listener<ObjectOnStepFinishEvent> | undefined;
+    onStart: Callback<ObjectOnStartEvent> | undefined;
+    onStepStart: Callback<ObjectOnStepStartEvent> | undefined;
+    onStepFinish: Callback<ObjectOnStepFinishEvent> | undefined;
     onError: StreamObjectOnErrorCallback;
-    onFinish: Listener<ObjectOnFinishEvent<RESULT>> | undefined;
+    onFinish: Callback<ObjectOnFinishEvent<RESULT>> | undefined;
     download: DownloadFunction | undefined;
     generateId: () => string;
     currentDate: () => Date;
@@ -458,10 +467,9 @@ class DefaultStreamObjectResult<
       abortSignal,
     });
 
-    const callSettings = prepareCallSettings(settings);
+    const callSettings = prepareLanguageModelCallOptions(settings);
 
-    const createGlobalTelemetry = getGlobalTelemetryIntegration();
-    const globalTelemetry = createGlobalTelemetry({
+    const unifiedTelemetry = createUnifiedTelemetry({
       integrations: telemetry?.integrations,
     });
 
@@ -509,7 +517,6 @@ class DefaultStreamObjectResult<
           maxRetries,
           headers,
           providerOptions,
-          abortSignal,
           output: outputStrategy.type as
             | 'object'
             | 'array'
@@ -518,13 +525,12 @@ class DefaultStreamObjectResult<
           schema: jsonSchema as Record<string, unknown> | undefined,
           schemaName,
           schemaDescription,
-          isEnabled: telemetry?.isEnabled,
+          isEnabled: telemetry?.isEnabled ?? true,
           recordInputs: telemetry?.recordInputs,
           recordOutputs: telemetry?.recordOutputs,
           functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata,
         },
-        callbacks: [onStart, globalTelemetry.onStart],
+        callbacks: [onStart, unifiedTelemetry.onStart],
       });
 
       const standardizedPrompt = await standardizePrompt({
@@ -540,7 +546,7 @@ class DefaultStreamObjectResult<
           name: schemaName,
           description: schemaDescription,
         },
-        ...prepareCallSettings(settings),
+        ...prepareLanguageModelCallOptions(settings),
         prompt: await convertToLanguageModelPrompt({
           prompt: standardizedPrompt,
           supportedUrls: await model.supportedUrls,
@@ -561,12 +567,10 @@ class DefaultStreamObjectResult<
           modelId: model.modelId,
           providerOptions,
           headers,
-          abortSignal,
           functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata as Record<string, unknown> | undefined,
           promptMessages: callOptions.prompt,
         },
-        callbacks: [onStepStart, globalTelemetry.onObjectStepStart],
+        callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
       });
 
       const transformer: Transformer<
@@ -781,11 +785,11 @@ class DefaultStreamObjectResult<
                     },
                     providerMetadata,
                     functionId: telemetry?.functionId,
-                    metadata: telemetry?.metadata as
-                      | Record<string, unknown>
-                      | undefined,
                   },
-                  callbacks: [onStepFinish, globalTelemetry.onObjectStepFinish],
+                  callbacks: [
+                    onStepFinish,
+                    unifiedTelemetry.onObjectStepFinish,
+                  ],
                 });
 
                 await notify({
@@ -804,11 +808,8 @@ class DefaultStreamObjectResult<
                     },
                     providerMetadata,
                     functionId: telemetry?.functionId,
-                    metadata: telemetry?.metadata as
-                      | Record<string, unknown>
-                      | undefined,
                   },
-                  callbacks: [onFinish, globalTelemetry.onFinish],
+                  callbacks: [onFinish, unifiedTelemetry.onFinish],
                 });
               } catch (error) {
                 controller.enqueue({ type: 'error', error });
@@ -820,7 +821,7 @@ class DefaultStreamObjectResult<
       stitchableStream.addStream(transformedStream);
     })()
       .catch(async error => {
-        await globalTelemetry.onError?.({ callId, error });
+        await unifiedTelemetry.onError?.({ callId, error });
 
         stitchableStream.addStream(
           new ReadableStream({

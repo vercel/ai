@@ -5,17 +5,17 @@ import {
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { getGlobalTelemetryIntegration } from '../telemetry/get-global-telemetry-integration';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import { Warning } from '../types/warning';
+import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
 import type { EmbedOnFinishEvent, EmbedOnStartEvent } from './embed-events';
 import { EmbedManyResult } from './embed-many-result';
 import { VERSION } from '../version';
-import type { Listener } from '../util/notify';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
@@ -38,7 +38,7 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @param maxParallelCalls - Maximum number of concurrent requests. Default: Infinity.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -54,7 +54,8 @@ export async function embedMany({
   abortSignal,
   headers,
   providerOptions,
-  experimental_telemetry: telemetry,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
   experimental_onStart: onStart,
   experimental_onFinish: onFinish,
   _internal: { generateCallId = originalGenerateCallId } = {},
@@ -88,9 +89,16 @@ export async function embedMany({
   headers?: Record<string, string>;
 
   /**
-   * Optional telemetry configuration (experimental).
+   * Optional telemetry configuration.
    */
-  experimental_telemetry?: TelemetrySettings;
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Optional telemetry configuration.
+   *
+   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+   */
+  experimental_telemetry?: TelemetryOptions;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -110,13 +118,13 @@ export async function embedMany({
    * Callback that is called when the embedMany operation begins,
    * before the embedding model is called.
    */
-  experimental_onStart?: Listener<EmbedOnStartEvent>;
+  experimental_onStart?: Callback<EmbedOnStartEvent>;
 
   /**
    * Callback that is called when the embedMany operation completes,
    * after all embedding model calls return.
    */
-  experimental_onFinish?: Listener<EmbedOnFinishEvent>;
+  experimental_onFinish?: Callback<EmbedOnFinishEvent>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -139,8 +147,7 @@ export async function embedMany({
 
   const callId = generateCallId();
 
-  const createGlobalTelemetry = getGlobalTelemetryIntegration();
-  const globalTelemetry = createGlobalTelemetry({
+  const unifiedTelemetry = createUnifiedTelemetry({
     integrations: telemetry?.integrations,
   });
 
@@ -152,16 +159,14 @@ export async function embedMany({
       modelId: model.modelId,
       value: values,
       maxRetries,
-      abortSignal,
       headers: headersWithUserAgent,
       providerOptions,
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
-      metadata: telemetry?.metadata,
     },
-    callbacks: [onStart, globalTelemetry.onStart],
+    callbacks: [onStart, unifiedTelemetry.onStart],
   });
 
   try {
@@ -183,13 +188,12 @@ export async function embedMany({
               provider: model.provider,
               modelId: model.modelId,
               values,
-              isEnabled: telemetry?.isEnabled,
+              isEnabled: telemetry?.isEnabled ?? true,
               recordInputs: telemetry?.recordInputs,
               recordOutputs: telemetry?.recordOutputs,
               functionId: telemetry?.functionId,
-              metadata: telemetry?.metadata,
             },
-            callbacks: [globalTelemetry.onEmbedStart],
+            callbacks: [unifiedTelemetry.onEmbedStart],
           });
 
           const modelResponse = await model.doEmbed({
@@ -213,7 +217,7 @@ export async function embedMany({
               embeddings,
               usage,
             },
-            callbacks: [globalTelemetry.onEmbedFinish],
+            callbacks: [unifiedTelemetry.onEmbedFinish],
           });
 
           return {
@@ -243,13 +247,12 @@ export async function embedMany({
           warnings,
           providerMetadata,
           response: [response],
-          isEnabled: telemetry?.isEnabled,
+          isEnabled: telemetry?.isEnabled ?? true,
           recordInputs: telemetry?.recordInputs,
           recordOutputs: telemetry?.recordOutputs,
           functionId: telemetry?.functionId,
-          metadata: telemetry?.metadata,
         },
-        callbacks: [onFinish, globalTelemetry.onFinish],
+        callbacks: [onFinish, unifiedTelemetry.onFinish],
       });
 
       return new DefaultEmbedManyResult({
@@ -295,13 +298,12 @@ export async function embedMany({
                 provider: model.provider,
                 modelId: model.modelId,
                 values: chunk,
-                isEnabled: telemetry?.isEnabled,
+                isEnabled: telemetry?.isEnabled ?? true,
                 recordInputs: telemetry?.recordInputs,
                 recordOutputs: telemetry?.recordOutputs,
                 functionId: telemetry?.functionId,
-                metadata: telemetry?.metadata,
               },
-              callbacks: [globalTelemetry.onEmbedStart],
+              callbacks: [unifiedTelemetry.onEmbedStart],
             });
 
             const modelResponse = await model.doEmbed({
@@ -325,7 +327,7 @@ export async function embedMany({
                 embeddings: chunkEmbeddings,
                 usage,
               },
-              callbacks: [globalTelemetry.onEmbedFinish],
+              callbacks: [unifiedTelemetry.onEmbedFinish],
             });
 
             return {
@@ -379,13 +381,12 @@ export async function embedMany({
         warnings,
         providerMetadata,
         response: responses,
-        isEnabled: telemetry?.isEnabled,
+        isEnabled: telemetry?.isEnabled ?? true,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,
-        metadata: telemetry?.metadata,
       },
-      callbacks: [onFinish, globalTelemetry.onFinish],
+      callbacks: [onFinish, unifiedTelemetry.onFinish],
     });
 
     return new DefaultEmbedManyResult({
@@ -397,7 +398,7 @@ export async function embedMany({
       responses,
     });
   } catch (error) {
-    await globalTelemetry.onError?.({ callId, error });
+    await unifiedTelemetry.onError?.({ callId, error });
     throw error;
   }
 }

@@ -1,8 +1,7 @@
-import { TypeValidationContext, TypeValidationError } from '@ai-sdk/provider';
+import { TypeValidationError } from '@ai-sdk/provider';
 import {
   FlexibleSchema,
   lazySchema,
-  StandardSchemaV1,
   Tool,
   validateTypes,
   zodSchema,
@@ -415,6 +414,15 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             >;
             const toolName = toolPart.type.slice(5);
             const tool = tools[toolName];
+
+            if (
+              !tool &&
+              (toolPart.state === 'output-available' ||
+                toolPart.state === 'output-error' ||
+                toolPart.state === 'output-denied')
+            ) {
+              continue;
+            }
 
             // TODO support dynamic tools
             if (!tool) {

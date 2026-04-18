@@ -361,7 +361,6 @@ describe('options.providerOptions', () => {
     });
 
     expect(model.doEmbed).toHaveBeenCalledWith({
-      abortSignal: undefined,
       headers: {
         'user-agent': 'ai/0.0.0-test',
       },
@@ -555,9 +554,8 @@ describe('options.experimental_onStart', () => {
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
       values: testValues,
-      experimental_telemetry: {
+      telemetry: {
         functionId: 'test-function',
-        metadata: { customKey: 'customValue' },
       },
       _internal: {
         generateCallId: () => 'test-call-id',
@@ -579,12 +577,11 @@ describe('options.experimental_onStart', () => {
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
       values: testValues,
-      experimental_telemetry: {
+      telemetry: {
         isEnabled: true,
         recordInputs: false,
         recordOutputs: true,
         functionId: 'embed-many-fn',
-        metadata: { key: 'val' },
       },
       experimental_onStart: async event => {
         startEvent = event;
@@ -595,7 +592,32 @@ describe('options.experimental_onStart', () => {
     expect(startEvent.recordInputs).toBe(false);
     expect(startEvent.recordOutputs).toBe(true);
     expect(startEvent.functionId).toBe('embed-many-fn');
-    expect(startEvent.metadata).toEqual({ key: 'val' });
+  });
+
+  it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+    let startEvent!: EmbedOnStartEvent;
+
+    await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 5,
+        doEmbed: mockEmbed(testValues, dummyEmbeddings),
+      }),
+      values: testValues,
+      experimental_telemetry: {
+        isEnabled: true,
+        recordInputs: false,
+        recordOutputs: true,
+        functionId: 'embed-many-fn-deprecated',
+      },
+      experimental_onStart: async event => {
+        startEvent = event;
+      },
+    });
+
+    expect(startEvent.isEnabled).toBe(true);
+    expect(startEvent.recordInputs).toBe(false);
+    expect(startEvent.recordOutputs).toBe(true);
+    expect(startEvent.functionId).toBe('embed-many-fn-deprecated');
   });
 
   it('should include model information', async () => {
@@ -688,9 +710,8 @@ describe('options.experimental_onFinish', () => {
         doEmbed: mockEmbed(testValues, dummyEmbeddings, { tokens: 10 }),
       }),
       values: testValues,
-      experimental_telemetry: {
+      telemetry: {
         functionId: 'test-function',
-        metadata: { customKey: 'customValue' },
       },
       _internal: {
         generateCallId: () => 'test-call-id',

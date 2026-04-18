@@ -7,6 +7,7 @@ export type BedrockChatModelId =
   | 'anthropic.claude-v2'
   | 'anthropic.claude-v2:1'
   | 'anthropic.claude-instant-v1'
+  | 'anthropic.claude-opus-4-7'
   | 'anthropic.claude-opus-4-6-v1'
   | 'anthropic.claude-sonnet-4-6-v1'
   | 'anthropic.claude-opus-4-5-20251101-v1:0'
@@ -54,6 +55,7 @@ export type BedrockChatModelId =
   | 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
   | 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
   | 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
+  | 'us.anthropic.claude-opus-4-7'
   | 'us.anthropic.claude-opus-4-6-v1'
   | 'us.anthropic.claude-sonnet-4-6-v1'
   | 'us.anthropic.claude-opus-4-5-20251101-v1:0'
@@ -115,7 +117,10 @@ export const amazonBedrockLanguageModelOptions = z.object({
         ])
         .optional(),
       budgetTokens: z.number().optional(),
-      maxReasoningEffort: z.enum(['low', 'medium', 'high', 'max']).optional(),
+      maxReasoningEffort: z
+        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+      display: z.enum(['omitted', 'summarized']).optional(),
     })
     .optional(),
   /**

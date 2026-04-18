@@ -11,6 +11,12 @@
       "rules": {
         "no-redeclare": "off"
       }
+    },
+    {
+      "files": ["examples/**", "**/*.test.ts"],
+      "rules": {
+        "no-unused-vars": "off"
+      }
     }
   ],
   "rules": {
@@ -64,7 +70,7 @@
     "no-unneeded-ternary": "off",
     "no-unsafe-finally": "off",
     "no-unused-expressions": "off",
-    "no-unused-vars": "off",
+    "no-unused-vars": "error",
     "no-use-before-define": "off",
     "no-useless-catch": "off",
     "no-useless-concat": "off",
