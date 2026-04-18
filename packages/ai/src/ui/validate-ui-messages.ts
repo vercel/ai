@@ -15,6 +15,10 @@ import {
   InferUIMessageTools,
   ToolUIPart,
   UIMessage,
+  UIMessagePart,
+  getStaticToolName,
+  isDynamicToolUIPart,
+  isToolUIPart,
 } from './ui-messages';
 
 const uiMessagesSchema = lazySchema(() =>
@@ -407,13 +411,80 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             });
           }
 
-          // Tool part validation
-          if (tools && part.type.startsWith('tool-')) {
-            const toolPart = part as ToolUIPart<
+          // Tool part validation (static `tool-*` parts and `dynamic-tool` parts)
+          const toolLikePart = part as UIMessagePart<
+            InferUIMessageData<UI_MESSAGE>,
+            InferUIMessageTools<UI_MESSAGE>
+          >;
+
+          if (tools && isToolUIPart(toolLikePart)) {
+            if (isDynamicToolUIPart(toolLikePart)) {
+              const dynamicPart = toolLikePart;
+
+              if (dynamicPart.toolCallId.length === 0) {
+                return {
+                  success: false,
+                  error: new TypeValidationError({
+                    value: dynamicPart.toolCallId,
+                    cause:
+                      'Tool call ID must not be empty for dynamic tool parts.',
+                    context: {
+                      field: `messages[${msgIdx}].parts[${partIdx}].toolCallId`,
+                      entityName: dynamicPart.toolName,
+                      entityId: dynamicPart.toolCallId,
+                    },
+                  }),
+                };
+              }
+
+              if (dynamicPart.toolName.length === 0) {
+                return {
+                  success: false,
+                  error: new TypeValidationError({
+                    value: dynamicPart.toolName,
+                    cause:
+                      'Tool name must not be empty for dynamic tool parts.',
+                    context: {
+                      field: `messages[${msgIdx}].parts[${partIdx}].toolName`,
+                      entityName: dynamicPart.toolName,
+                      entityId: dynamicPart.toolCallId,
+                    },
+                  }),
+                };
+              }
+
+              if (
+                dynamicPart.state === 'input-available' ||
+                dynamicPart.state === 'approval-requested' ||
+                dynamicPart.state === 'approval-responded' ||
+                dynamicPart.state === 'output-available' ||
+                dynamicPart.state === 'output-denied'
+              ) {
+                if (dynamicPart.input === undefined) {
+                  return {
+                    success: false,
+                    error: new TypeValidationError({
+                      value: dynamicPart.input,
+                      cause: `Input is required for dynamic tool part in state "${dynamicPart.state}".`,
+                      context: {
+                        field: `messages[${msgIdx}].parts[${partIdx}].input`,
+                        entityName: dynamicPart.toolName,
+                        entityId: dynamicPart.toolCallId,
+                      },
+                    }),
+                  };
+                }
+              }
+
+              continue;
+            }
+
+            const toolPart = toolLikePart as ToolUIPart<
               InferUIMessageTools<UI_MESSAGE>
             >;
-            const toolName = toolPart.type.slice(5);
-            const tool = tools[toolName];
+            const toolName = getStaticToolName(toolPart) as string;
+            const tool =
+              tools[toolName as keyof InferUIMessageTools<UI_MESSAGE> & string];
 
             if (
               !tool &&
@@ -424,7 +495,6 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
               continue;
             }
 
-            // TODO support dynamic tools
             if (!tool) {
               return {
                 success: false,
