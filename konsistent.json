@@ -58,16 +58,8 @@
           }
         },
         {
-          "if": {
-            "hasFile": "${providerId}-language-model.ts"
-          },
-          "must": {
-            "exportTypes": ["${providerId.toPascalCase()}LanguageModelOptions"]
-          }
-        },
-        {
           "for": {
-            "files": "${providerId}-{modelKind}-model.ts"
+            "files": "${providerId}-{modelKind:segments(1)}-model.ts"
           },
           "must": {
             "exportTypes": [
@@ -77,11 +69,11 @@
         },
         {
           "for": {
-            "files": "*/${providerId}-{modelKind}-model.ts"
+            "files": "${providerId}-{modelKind:segments(2)}-model.ts"
           },
           "must": {
             "exportTypes": [
-              "${providerId.toPascalCase()}${modelKind.toPascalCase()}ModelOptions"
+              "${providerId.toPascalCase()}${modelKind.toNthSegmentPascalCase(1)}Model${modelKind.toNthSegmentPascalCase(0)}Options"
             ]
           }
         }
