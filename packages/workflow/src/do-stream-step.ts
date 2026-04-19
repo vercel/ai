@@ -54,7 +54,7 @@ export interface DoStreamStepOptions {
   providerOptions?: ProviderOptions;
   toolChoice?: ToolChoice<ToolSet>;
   includeRawChunks?: boolean;
-  experimental_telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
 }

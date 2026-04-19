@@ -1,17 +1,13 @@
 import { anthropic } from '@ai-sdk/anthropic';
-import { registerTelemetryIntegration, streamText } from 'ai';
+import { registerTelemetry, streamText } from 'ai';
 import { z } from 'zod';
-import {
-  OpenTelemetryIntegration,
-  GenAIOpenTelemetryIntegration,
-} from '@ai-sdk/otel';
+import { OpenTelemetry, GenAIOpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { run } from '../../lib/run';
 
-registerTelemetryIntegration(DevToolsTelemetry());
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry(), DevToolsTelemetry());
 
 const sdk = new NodeSDK({
   spanProcessors: [new LangfuseSpanProcessor()],
@@ -40,7 +36,7 @@ run(async () => {
         }),
       },
     },
-    experimental_telemetry: {
+    telemetry: {
       functionId: `cook-recipe`,
     },
   });

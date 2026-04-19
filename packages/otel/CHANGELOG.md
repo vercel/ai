@@ -1,5 +1,45 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.57
+
+### Major Changes
+
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+
+### Patch Changes
+
+- Updated dependencies [f319fde]
+- Updated dependencies [1949571]
+- Updated dependencies [511902c]
+- Updated dependencies [6542d93]
+- Updated dependencies [2e98477]
+- Updated dependencies [876fd3e]
+- Updated dependencies [f32c750]
+  - ai@7.0.0-beta.111
+
+## 1.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [72cb801]
+  - ai@7.0.0-beta.110
+
+## 1.0.0-beta.55
+
+### Patch Changes
+
+- eea8d98: refactoring: rename tool execution events
+- Updated dependencies [ec98264]
+- Updated dependencies [eea8d98]
+- Updated dependencies [75ef93e]
+  - ai@7.0.0-beta.109
+
+## 1.0.0-beta.54
+
+### Patch Changes
+
+- ai@7.0.0-beta.108
+
 ## 1.0.0-beta.53
 
 ### Patch Changes

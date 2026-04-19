@@ -1,6 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateText, registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { generateText, registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
@@ -13,7 +13,7 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 run(async () => {
   const myCustomProvider = createAnthropic({
@@ -23,7 +23,7 @@ run(async () => {
   await generateText({
     model: myCustomProvider('claude-sonnet-4-20250514'),
     prompt: 'Say hello in 5 words',
-    experimental_telemetry: {
+    telemetry: {
       functionId: 'anthropic-custom-provider-demo',
     },
   });

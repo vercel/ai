@@ -1,15 +1,10 @@
-import {
-  gateway,
-  isStepCount,
-  registerTelemetryIntegration,
-  streamText,
-} from 'ai';
+import { gateway, isStepCount, registerTelemetry, streamText } from 'ai';
 import { tools } from './tools';
 import { DevToolsTelemetry } from '../../src';
 import { print } from './utils';
 import 'dotenv/config';
 
-registerTelemetryIntegration(DevToolsTelemetry());
+registerTelemetry(DevToolsTelemetry());
 
 const result = streamText({
   model: gateway('anthropic/claude-haiku-4.5'),

@@ -18,8 +18,8 @@ import {
   agentOnStartE2e,
   agentOnStepFinishE2e,
   agentOnStepStartE2e,
-  agentOnToolCallFinishE2e,
-  agentOnToolCallStartE2e,
+  agentonToolExecutionEndE2e,
+  agentonToolExecutionStartE2e,
   agentPrepareCallE2e,
   agentRepairToolCallE2e,
   agentTimeoutE2e,
@@ -186,18 +186,18 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
     });
   });
 
-  describe('experimental_onToolCallStart (GAP)', () => {
+  describe('experimental_onToolExecutionStart (GAP)', () => {
     it('completes but callbacks are not called (GAP)', async () => {
-      const run = await start(agentOnToolCallStartE2e, []);
+      const run = await start(agentonToolExecutionStartE2e, []);
       const rv = await run.returnValue;
       // GAP: when implemented, should be ['constructor', 'method']
       expect(rv.calls).toEqual([]);
     });
   });
 
-  describe('experimental_onToolCallFinish (GAP)', () => {
+  describe('experimental_onToolExecutionEnd (GAP)', () => {
     it('completes but callbacks are not called (GAP)', async () => {
-      const run = await start(agentOnToolCallFinishE2e, []);
+      const run = await start(agentonToolExecutionEndE2e, []);
       const rv = await run.returnValue;
       // GAP: when implemented, should be ['constructor', 'method']
       expect(rv.calls).toEqual([]);

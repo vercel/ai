@@ -28,7 +28,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  * @param providerOptions - Additional provider-specific options.
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
@@ -41,7 +41,8 @@ export async function rerank<VALUE extends JSONObject | string>({
   abortSignal,
   headers,
   providerOptions,
-  experimental_telemetry: telemetry,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
   experimental_onStart: onStart,
   experimental_onFinish: onFinish,
   _internal: { generateCallId = originalGenerateCallId } = {},
@@ -85,7 +86,14 @@ export async function rerank<VALUE extends JSONObject | string>({
   headers?: Record<string, string>;
 
   /**
-   * Optional telemetry configuration (experimental).
+   * Optional telemetry configuration.
+   */
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Optional telemetry configuration.
+   *
+   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
   experimental_telemetry?: TelemetryOptions;
 

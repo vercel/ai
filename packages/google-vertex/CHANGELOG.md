@@ -1,5 +1,38 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.58
+
+### Patch Changes
+
+- a3757d7: chore(provider/google): remove useless GenerativeAI affix from types and classes for consistency
+- Updated dependencies [a3757d7]
+- Updated dependencies [2e98477]
+- Updated dependencies [bfb756d]
+  - @ai-sdk/google@4.0.0-beta.45
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/openai-compatible@3.0.0-beta.31
+  - @ai-sdk/anthropic@4.0.0-beta.37
+
+## 5.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/anthropic@4.0.0-beta.36
+  - @ai-sdk/google@4.0.0-beta.44
+  - @ai-sdk/openai-compatible@3.0.0-beta.30
+
+## 5.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/openai-compatible@3.0.0-beta.29
+  - @ai-sdk/anthropic@4.0.0-beta.35
+  - @ai-sdk/google@4.0.0-beta.43
+
 ## 5.0.0-beta.55
 
 ### Patch Changes

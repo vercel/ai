@@ -1,5 +1,31 @@
 # @ai-sdk/xai
 
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- a0b0a0c: expose costInUsdTicks in responses provider metadata
+- Updated dependencies [2e98477]
+- Updated dependencies [bfb756d]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/openai-compatible@3.0.0-beta.31
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/openai-compatible@3.0.0-beta.30
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/openai-compatible@3.0.0-beta.29
+
 ## 4.0.0-beta.40
 
 ### Patch Changes

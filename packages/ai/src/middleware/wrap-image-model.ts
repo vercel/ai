@@ -80,14 +80,14 @@ const doWrap = ({
       params: ImageModelV4CallOptions,
     ): Promise<ImageModelV4Result> {
       const transformedParams = await doTransform({ params });
-      const doGenerate = async () => model.doGenerate(transformedParams);
+      const doGenerate = async () => await model.doGenerate(transformedParams);
       return wrapGenerate
-        ? wrapGenerate({
+        ? await wrapGenerate({
             doGenerate,
             params: transformedParams,
             model,
           })
-        : doGenerate();
+        : await doGenerate();
     },
   };
 };

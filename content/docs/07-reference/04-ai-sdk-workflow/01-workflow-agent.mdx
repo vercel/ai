@@ -136,7 +136,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
         'Default context passed into tool execution and lifecycle callbacks for every stream call. Per-call values override this default. Experimental (can break in patch releases).',
     },
     {
-      name: 'experimental_telemetry',
+      name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
       description:
@@ -201,14 +201,14 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: 'WorkflowAgentOnToolCallStartCallback',
+      name: 'experimental_onToolExecutionStart',
+      type: 'WorkflowAgentonToolExecutionStartCallback',
       isOptional: true,
       description:
         "Callback called right before a tool's execute function runs. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallStartEvent',
+          type: 'ToolExecutionStartEvent',
           parameters: [
             {
               name: 'toolCall',
@@ -225,14 +225,14 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: 'WorkflowAgentOnToolCallFinishCallback',
+      name: 'experimental_onToolExecutionEnd',
+      type: 'WorkflowAgentonToolExecutionEndCallback',
       isOptional: true,
       description:
         "Callback called right after a tool's execute function completes or errors. Uses a discriminated union: check `success` to determine whether `output` or `error` is available. If also specified in `stream()`, both callbacks fire (constructor first). Experimental (can break in patch releases).",
       properties: [
         {
-          type: 'OnToolCallFinishEvent',
+          type: 'ToolExecutionEndEvent',
           parameters: [
             {
               name: 'toolCall',
@@ -474,7 +474,7 @@ const result = await agent.stream({
       description: 'Custom download function for fetching files/URLs.',
     },
     {
-      name: 'experimental_telemetry',
+      name: 'telemetry',
       type: 'TelemetryOptions',
       isOptional: true,
       description: 'Per-call telemetry configuration.',
@@ -506,18 +506,18 @@ const result = await agent.stream({
         'Per-call onStepStart callback. If also specified in the constructor, both fire (constructor first). Experimental.',
     },
     {
-      name: 'experimental_onToolCallStart',
-      type: 'WorkflowAgentOnToolCallStartCallback',
+      name: 'experimental_onToolExecutionStart',
+      type: 'WorkflowAgentonToolExecutionStartCallback',
       isOptional: true,
       description:
-        'Per-call onToolCallStart callback. If also specified in the constructor, both fire (constructor first). Experimental.',
+        'Per-call onToolExecutionStart callback. If also specified in the constructor, both fire (constructor first). Experimental.',
     },
     {
-      name: 'experimental_onToolCallFinish',
-      type: 'WorkflowAgentOnToolCallFinishCallback',
+      name: 'experimental_onToolExecutionEnd',
+      type: 'WorkflowAgentonToolExecutionEndCallback',
       isOptional: true,
       description:
-        'Per-call onToolCallFinish callback. If also specified in the constructor, both fire (constructor first). Experimental.',
+        'Per-call onToolExecutionEnd callback. If also specified in the constructor, both fire (constructor first). Experimental.',
     },
     {
       name: 'onStepFinish',
