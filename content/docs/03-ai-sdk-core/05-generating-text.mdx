@@ -557,9 +557,18 @@ const stopWordTransform =
             finishReason: 'stop',
             rawFinishReason: 'stop',
             usage: {
-              completionTokens: NaN,
-              promptTokens: NaN,
+              inputTokens: NaN,
+              outputTokens: NaN,
               totalTokens: NaN,
+              inputTokenDetails: {
+                noCacheTokens: undefined,
+                cacheReadTokens: undefined,
+                cacheWriteTokens: undefined,
+              },
+              outputTokenDetails: {
+                textTokens: undefined,
+                reasoningTokens: undefined,
+              },
             },
             response: {
               id: 'response-id',
@@ -575,9 +584,18 @@ const stopWordTransform =
             finishReason: 'stop',
             rawFinishReason: 'stop',
             totalUsage: {
-              completionTokens: NaN,
-              promptTokens: NaN,
+              inputTokens: NaN,
+              outputTokens: NaN,
               totalTokens: NaN,
+              inputTokenDetails: {
+                noCacheTokens: undefined,
+                cacheReadTokens: undefined,
+                cacheWriteTokens: undefined,
+              },
+              outputTokenDetails: {
+                textTokens: undefined,
+                reasoningTokens: undefined,
+              },
             },
           });
 
