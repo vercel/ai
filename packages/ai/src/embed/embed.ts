@@ -6,7 +6,7 @@ import {
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { EmbeddingModel } from '../types';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
@@ -30,7 +30,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -45,7 +45,8 @@ export async function embed({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
-  experimental_telemetry: telemetry,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
   experimental_onStart: onStart,
   experimental_onFinish: onFinish,
   _internal: { generateCallId = originalGenerateCallId } = {},
@@ -86,9 +87,16 @@ export async function embed({
   providerOptions?: ProviderOptions;
 
   /**
-   * Optional telemetry configuration (experimental).
+   * Optional telemetry configuration.
    */
-  experimental_telemetry?: TelemetrySettings;
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Optional telemetry configuration.
+   *
+   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+   */
+  experimental_telemetry?: TelemetryOptions;
 
   /**
    * Callback that is called when the embed operation begins,
@@ -137,7 +145,7 @@ export async function embed({
       maxRetries,
       headers: headersWithUserAgent,
       providerOptions,
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
@@ -158,7 +166,7 @@ export async function embed({
             provider: model.provider,
             modelId: model.modelId,
             values: [value],
-            isEnabled: telemetry?.isEnabled,
+            isEnabled: telemetry?.isEnabled ?? true,
             recordInputs: telemetry?.recordInputs,
             recordOutputs: telemetry?.recordOutputs,
             functionId: telemetry?.functionId,
@@ -213,7 +221,7 @@ export async function embed({
         warnings,
         providerMetadata,
         response,
-        isEnabled: telemetry?.isEnabled,
+        isEnabled: telemetry?.isEnabled ?? true,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,

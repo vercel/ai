@@ -1,17 +1,16 @@
-import { asArray } from '../util/as-array';
+import type { Arrayable } from '@ai-sdk/provider-utils';
+import { asArray } from '@ai-sdk/provider-utils';
 import { Callback } from '../util/callback';
 import { mergeCallbacks } from '../util/merge-callbacks';
-import type { TelemetryIntegration } from './telemetry-integration';
-import { getGlobalTelemetryIntegrations } from './telemetry-integration-registry';
+import type { Telemetry } from './telemetry';
+import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 
 /**
- * The subset of `TelemetryIntegration` keys whose values are Callback callbacks.
+ * The subset of `Telemetry` keys whose values are Callback callbacks.
  * This excludes non-Callback properties such as `executeTool`.
  */
 type TelemetryCallbackKey = keyof {
-  [K in keyof TelemetryIntegration as TelemetryIntegration[K] extends
-    | Callback<any>
-    | undefined
+  [K in keyof Telemetry as Telemetry[K] extends Callback<any> | undefined
     ? K
     : never]: true;
 };
@@ -20,30 +19,34 @@ type TelemetryCallbackKey = keyof {
  * Resolves the event type accepted by a telemetry Callback key.
  * For example, `'onStepStart'` maps to `OnStepStartEvent`.
  */
-type TelemetryEvent<K extends TelemetryCallbackKey> =
-  TelemetryIntegration[K] extends Callback<infer EVENT> | undefined
-    ? EVENT
-    : never;
+type TelemetryEvent<K extends TelemetryCallbackKey> = Telemetry[K] extends
+  | Callback<infer EVENT>
+  | undefined
+  ? EVENT
+  : never;
 
 /**
  * Creates a unified telemetry target that sends telemetry events
- * to all registered global telemetry integrations and to
- * any per-call integrations passed to the function.
+ * to the resolved set of integrations.
  *
- * @param args.integrations - Optional per-call integrations to send telemetry events to.
+ * When per-call integrations are provided, they take precedence over the globally
+ * registered integrations for that call. When no per-call integrations are
+ * provided, the globally registered integrations are used.
  *
- * @returns A telemetry target that sends telemetry events to all registered global telemetry integrations and to
- * any per-call integrations passed to the function.
+ * @param args.integrations - Optional per-call integrations to onlysend telemetry events to.
+ *
+ * @returns A telemetry target that fans out lifecycle events to the resolved
+ * set of integrations.
  */
 export function createUnifiedTelemetry({
   integrations: localIntegrations,
 }: {
-  integrations?: TelemetryIntegration | Array<TelemetryIntegration>;
-}): TelemetryIntegration {
-  const integrations: Array<TelemetryIntegration> = [
-    ...getGlobalTelemetryIntegrations(),
-    ...asArray(localIntegrations),
-  ];
+  integrations?: Arrayable<Telemetry>;
+}): Telemetry {
+  const integrations: Array<Telemetry> =
+    localIntegrations != null
+      ? asArray(localIntegrations)
+      : getGlobalTelemetryIntegrations();
 
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
@@ -56,13 +59,13 @@ export function createUnifiedTelemetry({
 
   const executeWrappers = integrations
     .map(integration => integration.executeTool?.bind(integration))
-    .filter(Boolean) as Array<NonNullable<TelemetryIntegration['executeTool']>>;
+    .filter(Boolean) as Array<NonNullable<Telemetry['executeTool']>>;
 
   return {
     onStart: mergeTelemetryCallback('onStart'),
     onStepStart: mergeTelemetryCallback('onStepStart'),
-    onToolCallStart: mergeTelemetryCallback('onToolCallStart'),
-    onToolCallFinish: mergeTelemetryCallback('onToolCallFinish'),
+    onToolExecutionStart: mergeTelemetryCallback('onToolExecutionStart'),
+    onToolExecutionEnd: mergeTelemetryCallback('onToolExecutionEnd'),
     onChunk: mergeTelemetryCallback('onChunk'),
     onStepFinish: mergeTelemetryCallback('onStepFinish'),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
@@ -89,7 +92,7 @@ export function createUnifiedTelemetry({
               execute = () =>
                 executeWrapper({ ...args, execute: innerExecute });
             }
-            return execute();
+            return await execute();
           }
         : undefined,
   };

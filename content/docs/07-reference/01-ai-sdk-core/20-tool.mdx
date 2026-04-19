@@ -85,7 +85,7 @@ export const weatherTool = tool({
               isOptional: true,
               type: 'Zod Schema | JSON Schema',
               description:
-                'An optional schema that describes the context expected by the tool. When provided, the `context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema.',
+                'An optional schema that describes the tool-specific context expected by the tool. When provided, the `context` type in `execute`, `needsApproval`, and the input lifecycle callbacks is inferred from this schema. The value is supplied via the tool\'s entry in `toolsContext`.',
             },
             {
               name: 'strict',
@@ -127,7 +127,7 @@ export const weatherTool = tool({
                       name: 'context',
                       type: 'CONTEXT',
                       description:
-                        'User-defined context that is passed into tool execution. When `contextSchema` is provided, this type is inferred from that schema.',
+                        'Tool-specific context passed into tool execution. When `contextSchema` is provided, this type is inferred from that schema and supplied from the matching entry in `toolsContext`.',
                     },
                   ],
                 },

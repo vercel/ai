@@ -3,14 +3,15 @@ import type {
   LanguageModelV4Prompt,
   LanguageModelV4ToolResultPart,
 } from '@ai-sdk/provider';
-import type {
-  Experimental_LanguageModelStreamPart as ModelCallStreamPart,
-  LanguageModel,
-  ModelMessage,
-  StepResult,
-  ToolCallRepairFunction,
-  ToolChoice,
-  ToolSet,
+import {
+  type Experimental_LanguageModelStreamPart as ModelCallStreamPart,
+  type LanguageModel,
+  type ModelMessage,
+  type StepResult,
+  type ToolCallRepairFunction,
+  type ToolChoice,
+  type ToolSet,
+  experimental_filterActiveTools as filterActiveTools,
 } from 'ai';
 import {
   doStreamStep,
@@ -24,7 +25,7 @@ import type {
   PrepareStepCallback,
   WorkflowAgentOnErrorCallback,
   WorkflowAgentOnStepFinishCallback,
-  TelemetrySettings,
+  TelemetryOptions,
   WorkflowAgentOnStepStartCallback,
 } from './workflow-agent.js';
 
@@ -55,7 +56,6 @@ export async function* streamTextIterator({
   writable,
   model,
   stopConditions,
-  maxSteps,
   onStepFinish,
   onStepStart,
   onError,
@@ -63,7 +63,7 @@ export async function* streamTextIterator({
   generationSettings,
   toolChoice,
   experimental_context,
-  experimental_telemetry,
+  telemetry,
   includeRawChunks = false,
   repairToolCall,
   responseFormat,
@@ -73,7 +73,6 @@ export async function* streamTextIterator({
   writable?: WritableStream<ModelCallStreamPart<ToolSet>>;
   model: LanguageModel;
   stopConditions?: ModelStopCondition[] | ModelStopCondition;
-  maxSteps?: number;
   onStepFinish?: WorkflowAgentOnStepFinishCallback<any>;
   onStepStart?: WorkflowAgentOnStepStartCallback;
   onError?: WorkflowAgentOnErrorCallback;
@@ -81,7 +80,7 @@ export async function* streamTextIterator({
   generationSettings?: GenerationSettings;
   toolChoice?: ToolChoice<ToolSet>;
   experimental_context?: unknown;
-  experimental_telemetry?: TelemetrySettings;
+  telemetry?: TelemetryOptions;
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
@@ -104,16 +103,7 @@ export async function* streamTextIterator({
   let lastStep: StepResult<any, any> | undefined;
   let lastStepWasToolCalls = false;
 
-  // Default maxSteps to Infinity to preserve backwards compatibility
-  // (agent loops until completion unless explicitly limited)
-  const effectiveMaxSteps = maxSteps ?? Infinity;
-
   while (!done) {
-    // Check if we've exceeded the maximum number of steps
-    if (stepNumber >= effectiveMaxSteps) {
-      break;
-    }
-
     // Check for abort signal
     if (currentGenerationSettings.abortSignal?.aborted) {
       break;
@@ -242,6 +232,7 @@ export async function* streamTextIterator({
         stepNumber,
         model: currentModel,
         messages: conversationPrompt as unknown as ModelMessage[],
+        steps: [...steps],
       });
     }
 
@@ -249,7 +240,10 @@ export async function* streamTextIterator({
       // Filter tools if activeTools is specified
       const effectiveTools =
         currentActiveTools && currentActiveTools.length > 0
-          ? filterToolSet(tools, currentActiveTools)
+          ? (filterActiveTools({
+              tools,
+              activeTools: currentActiveTools,
+            }) ?? tools)
           : tools;
 
       // Serialize tools before crossing the step boundary — zod schemas
@@ -267,7 +261,7 @@ export async function* streamTextIterator({
             ...currentGenerationSettings,
             toolChoice: currentToolChoice,
             includeRawChunks,
-            experimental_telemetry,
+            telemetry,
             repairToolCall,
             responseFormat,
           },
@@ -391,19 +385,6 @@ export async function* streamTextIterator({
   }
 
   return conversationPrompt;
-}
-
-/**
- * Filter a tool set to only include the specified active tools.
- */
-function filterToolSet(tools: ToolSet, activeTools: string[]): ToolSet {
-  const filtered: ToolSet = {};
-  for (const toolName of activeTools) {
-    if (toolName in tools) {
-      filtered[toolName] = tools[toolName];
-    }
-  }
-  return filtered;
 }
 
 /**

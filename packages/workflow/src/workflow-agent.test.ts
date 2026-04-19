@@ -1524,42 +1524,6 @@ describe('WorkflowAgent', () => {
     });
   });
 
-  describe('maxSteps', () => {
-    it('should pass maxSteps to streamTextIterator', async () => {
-      const mockModel = createMockModel();
-
-      const agent = new WorkflowAgent({
-        model: mockModel,
-        tools: {},
-      });
-
-      const mockWritable = new WritableStream({
-        write: vi.fn(),
-        close: vi.fn(),
-      });
-
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      const mockIterator = {
-        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
-      };
-      vi.mocked(streamTextIterator).mockReturnValue(
-        mockIterator as unknown as MockIterator,
-      );
-
-      await agent.stream({
-        messages: [{ role: 'user', content: 'test' }],
-        writable: mockWritable,
-        maxSteps: 5,
-      });
-
-      expect(streamTextIterator).toHaveBeenCalledWith(
-        expect.objectContaining({
-          maxSteps: 5,
-        }),
-      );
-    });
-  });
-
   describe('toolChoice', () => {
     it('should pass toolChoice from constructor to streamTextIterator', async () => {
       const mockModel = createMockModel();
@@ -2056,6 +2020,196 @@ describe('WorkflowAgent', () => {
 
       expect(onAbort).toHaveBeenCalledWith({ steps: [] });
     });
+
+    it('should pass stepNumber to onToolExecutionStart and use discriminated union in onToolExecutionEnd', async () => {
+      const tools: ToolSet = {
+        testTool: {
+          description: 'A test tool',
+          inputSchema: z.object({}),
+          execute: async () => ({ result: 'ok' }),
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const onToolExecutionStart = vi.fn();
+      const onToolExecutionEnd = vi.fn();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools,
+        experimental_onToolExecutionStart: onToolExecutionStart,
+        experimental_onToolExecutionEnd: onToolExecutionEnd,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'call-1',
+                  toolName: 'testTool',
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      // Verify onToolExecutionStart includes stepNumber
+      expect(onToolExecutionStart).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          toolCall: expect.objectContaining({
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+          }),
+        }),
+      );
+
+      // Verify onToolExecutionEnd uses discriminated union with success: true
+      expect(onToolExecutionEnd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          success: true,
+          output: { result: 'ok' },
+          durationMs: expect.any(Number),
+          toolCall: expect.objectContaining({
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+          }),
+        }),
+      );
+    });
+
+    it('should pass success: false in onToolExecutionEnd when tool errors', async () => {
+      const tools: ToolSet = {
+        failTool: {
+          description: 'A tool that fails',
+          inputSchema: z.object({}),
+          execute: async () => {
+            throw new Error('tool failed');
+          },
+        },
+      };
+
+      const mockModel = createMockModel();
+
+      const onToolExecutionEnd = vi.fn();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools,
+        experimental_onToolExecutionEnd: onToolExecutionEnd,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const mockMessages: LanguageModelV4Prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ];
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: {
+              toolCalls: [
+                {
+                  toolCallId: 'call-1',
+                  toolName: 'failTool',
+                  input: '{}',
+                } as LanguageModelV4ToolCall,
+              ],
+              messages: mockMessages,
+            },
+          })
+          .mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      // Verify onToolExecutionEnd uses discriminated union with success: false
+      expect(onToolExecutionEnd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          stepNumber: 0,
+          success: false,
+          error: 'tool failed',
+          durationMs: expect.any(Number),
+        }),
+      );
+    });
+
+    it('should pass steps to onStepStart callback', async () => {
+      const mockModel = createMockModel();
+
+      const onStepStart = vi.fn();
+
+      const agent = new WorkflowAgent({
+        model: mockModel,
+        tools: {},
+        experimental_onStepStart: onStepStart,
+      });
+
+      const mockWritable = new WritableStream({
+        write: vi.fn(),
+        close: vi.fn(),
+      });
+
+      const { streamTextIterator } = await import('./stream-text-iterator.js');
+      const mockIterator = {
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      };
+      vi.mocked(streamTextIterator).mockReturnValue(
+        mockIterator as unknown as MockIterator,
+      );
+
+      await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable: mockWritable,
+      });
+
+      // Verify onStepStart is passed to streamTextIterator (it will be called internally)
+      expect(streamTextIterator).toHaveBeenCalledWith(
+        expect.objectContaining({
+          onStepStart: expect.any(Function),
+        }),
+      );
+    });
   });
 
   describe('experimental_context', () => {
@@ -2332,7 +2486,7 @@ describe('WorkflowAgent', () => {
     it('should pass telemetry settings from constructor to streamTextIterator', async () => {
       const mockModel = createMockModel();
 
-      const telemetrySettings = {
+      const TelemetryOptions = {
         isEnabled: true,
         functionId: 'test-agent',
         metadata: { version: '1.0' },
@@ -2341,7 +2495,7 @@ describe('WorkflowAgent', () => {
       const agent = new WorkflowAgent({
         model: mockModel,
         tools: {},
-        experimental_telemetry: telemetrySettings,
+        experimental_telemetry: TelemetryOptions,
       });
 
       const mockWritable = new WritableStream({
@@ -2364,7 +2518,7 @@ describe('WorkflowAgent', () => {
 
       expect(streamTextIterator).toHaveBeenCalledWith(
         expect.objectContaining({
-          experimental_telemetry: telemetrySettings,
+          telemetry: TelemetryOptions,
         }),
       );
     });
@@ -2401,7 +2555,7 @@ describe('WorkflowAgent', () => {
 
       expect(streamTextIterator).toHaveBeenCalledWith(
         expect.objectContaining({
-          experimental_telemetry: streamTelemetry,
+          telemetry: streamTelemetry,
         }),
       );
     });
