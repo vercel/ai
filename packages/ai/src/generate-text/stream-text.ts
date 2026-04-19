@@ -1327,21 +1327,39 @@ class DefaultStreamTextResult<
 
       async pull(controller) {
         // abort handling:
-        function abort() {
+        async function abort() {
+          // Snapshot mutable step-state immediately — these values may be
+          // mutated or reset by async pipeline operations (e.g. currentStepUsage
+          // is set to undefined at line ~1977 after a step finishes), so they
+          // must be read before any await.
+          const snapshotStepUsage = currentStepUsage;
+          const snapshotCompletedStepsUsage = completedStepsUsage;
+          const snapshotInputMessages = currentStepInputMessages;
+          const snapshotSteps = recordedSteps;
+
+          // Wait for all pending microtasks to settle before reading
+          // pullLevelTextContent. When abort fires, a text-delta chunk may be
+          // blocked by backpressure in intermediate TransformStream layers.
+          // The abort error propagation releases that backpressure, letting
+          // the normalizer's transform (and onStreamChunk) finally run — but
+          // only after several microtask cycles. A macrotask boundary ensures
+          // those microtasks have all completed before we capture partial text.
+          await new Promise<void>(resolve => setTimeout(resolve, 0));
+
           const totalUsage =
-            currentStepUsage != null || completedStepsUsage != null
+            snapshotStepUsage != null || snapshotCompletedStepsUsage != null
               ? addLanguageModelUsage(
-                  completedStepsUsage ?? createNullLanguageModelUsage(),
-                  currentStepUsage ?? createNullLanguageModelUsage(),
+                  snapshotCompletedStepsUsage ?? createNullLanguageModelUsage(),
+                  snapshotStepUsage ?? createNullLanguageModelUsage(),
                 )
               : undefined;
           const partialText =
             Object.values(pullLevelTextContent).join('') || undefined;
           onAbort?.({
-            steps: recordedSteps,
-            usage: currentStepUsage,
+            steps: snapshotSteps,
+            usage: snapshotStepUsage,
             totalUsage,
-            inputMessages: currentStepInputMessages,
+            inputMessages: snapshotInputMessages,
             partialText,
           });
           controller.enqueue({
@@ -1365,14 +1383,14 @@ class DefaultStreamTextResult<
           }
 
           if (abortSignal?.aborted) {
-            abort();
+            await abort();
             return;
           }
 
           controller.enqueue(value);
         } catch (error) {
           if (isAbortError(error) && abortSignal?.aborted) {
-            abort();
+            await abort();
           } else {
             controller.error(error);
           }
@@ -1863,8 +1881,6 @@ class DefaultStreamTextResult<
                   if (stepFirstChunk) {
                     stepFirstChunk = false;
 
-                    pullLevelTextContent = {};
-
                     // Step start:
                     controller.enqueue({
                       type: 'start-step',
@@ -1891,21 +1907,17 @@ class DefaultStreamTextResult<
                     }
 
                     case 'text-start': {
-                      pullLevelTextContent[chunk.id] = '';
                       controller.enqueue(chunk);
                       break;
                     }
 
                     case 'text-end': {
-                      delete pullLevelTextContent[chunk.id];
                       controller.enqueue(chunk);
                       break;
                     }
 
                     case 'text-delta': {
                       if (chunk.text.length > 0) {
-                        pullLevelTextContent[chunk.id] =
-                          (pullLevelTextContent[chunk.id] ?? '') + chunk.text;
                         controller.enqueue(chunk);
                       }
                       break;
