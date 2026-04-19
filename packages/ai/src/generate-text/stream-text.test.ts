@@ -17313,7 +17313,7 @@ describe('streamText', () => {
                   "role": "user",
                 },
               ],
-              "partialText": undefined,
+              "partialText": "Hello",
               "steps": [],
               "totalUsage": undefined,
               "usage": undefined,
@@ -17573,7 +17573,7 @@ describe('streamText', () => {
                   "role": "tool",
                 },
               ],
-              "partialText": undefined,
+              "partialText": "Hello",
               "steps": [
                 DefaultStepResult {
                   "callId": "test-telemetry-call-id",
@@ -18548,7 +18548,7 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(onAbortCalls[0].partialText).toMatchInlineSnapshot(`undefined`);
+        expect(onAbortCalls[0].partialText).toMatchInlineSnapshot(`"Partial"`);
         // inputMessages for step 2 should include the initial user message
         // AND the step-1 assistant response (tool call + tool result)
         expect(onAbortCalls[0].inputMessages.length).toMatchInlineSnapshot(`3`);

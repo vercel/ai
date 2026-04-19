@@ -168,6 +168,7 @@ export async function streamLanguageModelCall<
   providerOptions,
   repairToolCall,
   onStart,
+  onStreamChunk,
   ...callSettings
 }: {
   model: LanguageModel;
@@ -192,6 +193,14 @@ export async function streamLanguageModelCall<
   onStart?: (args: {
     promptMessages: LanguageModelV4Prompt;
   }) => Promise<void> | void;
+
+  /**
+   * Called synchronously for each normalized stream chunk as it exits the
+   * normalizer transform, before the chunk enters any downstream buffer.
+   * Callers can use this to track state (e.g. partial text) that must be
+   * reliably captured even when downstream buffers are discarded on abort.
+   */
+  onStreamChunk?: (chunk: LanguageModelStreamPart<TOOLS>) => void;
 } & Prompt &
   LanguageModelCallOptions): Promise<{
   stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
@@ -261,6 +270,7 @@ export async function streamLanguageModelCall<
       system: standardizedPrompt.system,
       messages: standardizedPrompt.messages,
       repairToolCall,
+      onStreamChunk,
     }),
   );
 
@@ -279,11 +289,13 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   system,
   messages,
   repairToolCall,
+  onStreamChunk,
 }: {
   tools: TOOLS | undefined;
   system: string | SystemModelMessage | Array<SystemModelMessage> | undefined;
   messages: ModelMessage[];
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
+  onStreamChunk?: (chunk: LanguageModelStreamPart<TOOLS>) => void;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
@@ -295,14 +307,17 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   >({
     async transform(chunk, controller) {
       switch (chunk.type) {
-        case 'text-delta':
-          controller.enqueue({
-            type: 'text-delta',
+        case 'text-delta': {
+          const textDeltaChunk = {
+            type: 'text-delta' as const,
             id: chunk.id,
             text: chunk.delta,
             providerMetadata: chunk.providerMetadata,
-          });
+          };
+          onStreamChunk?.(textDeltaChunk);
+          controller.enqueue(textDeltaChunk);
           break;
+        }
 
         case 'reasoning-delta':
           controller.enqueue({
@@ -437,10 +452,12 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         case 'stream-start': {
-          controller.enqueue({
-            type: 'model-call-start',
+          const modelCallStartChunk = {
+            type: 'model-call-start' as const,
             warnings: chunk.warnings,
-          });
+          };
+          onStreamChunk?.(modelCallStartChunk);
+          controller.enqueue(modelCallStartChunk);
           break;
         }
 
@@ -455,6 +472,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         }
 
         default:
+          onStreamChunk?.(chunk);
           controller.enqueue(chunk);
           break;
       }
