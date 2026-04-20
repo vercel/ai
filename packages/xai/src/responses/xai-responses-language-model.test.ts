@@ -1378,9 +1378,11 @@ describe('XaiResponsesLanguageModel', () => {
           ],
         });
 
-        expect(result.content).toHaveLength(2);
+        expect(result.content).toHaveLength(4);
         expect(result.content[0].type).toBe('tool-call');
-        expect(result.content[1].type).toBe('tool-call');
+        expect(result.content[1].type).toBe('tool-result');
+        expect(result.content[2].type).toBe('tool-call');
+        expect(result.content[3].type).toBe('tool-result');
       });
     });
 
@@ -1424,6 +1426,15 @@ describe('XaiResponsesLanguageModel', () => {
             input: '{"query":"test"}',
             providerExecuted: true,
           },
+          {
+            type: 'tool-result',
+            toolCallId: 'ws_123',
+            toolName: 'web_search',
+            result: {
+              status: 'completed',
+              action: null,
+            },
+          },
         ]);
       });
 
@@ -1465,6 +1476,15 @@ describe('XaiResponsesLanguageModel', () => {
             toolName: 'x_search',
             input: '{"query":"test"}',
             providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'xs_123',
+            toolName: 'x_search',
+            result: {
+              status: 'completed',
+              action: null,
+            },
           },
         ]);
       });
@@ -1508,6 +1528,15 @@ describe('XaiResponsesLanguageModel', () => {
             input: '{}',
             providerExecuted: true,
           },
+          {
+            type: 'tool-result',
+            toolCallId: 'ci_123',
+            toolName: 'code_execution',
+            result: {
+              status: 'completed',
+              action: null,
+            },
+          },
         ]);
       });
 
@@ -1550,6 +1579,15 @@ describe('XaiResponsesLanguageModel', () => {
             input: '{}',
             providerExecuted: true,
           },
+          {
+            type: 'tool-result',
+            toolCallId: 'ce_123',
+            toolName: 'code_execution',
+            result: {
+              status: 'completed',
+              action: null,
+            },
+          },
         ]);
       });
 
@@ -1591,6 +1629,15 @@ describe('XaiResponsesLanguageModel', () => {
             toolName: 'my_custom_search',
             input: '{}',
             providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'ws_123',
+            toolName: 'my_custom_search',
+            result: {
+              status: 'completed',
+              action: null,
+            },
           },
         ]);
       });
@@ -2191,6 +2238,173 @@ describe('XaiResponsesLanguageModel', () => {
           toolName: 'web_search',
           input: '{"query":"test"}',
           providerExecuted: true,
+        });
+      });
+
+      it('should emit tool-result for web_search_call on output_item.done', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: 'web_search',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'in_progress',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_123',
+              name: 'web_search',
+              arguments: '{"query":"test"}',
+              call_id: '',
+              status: 'completed',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'ws_123',
+          toolName: 'web_search',
+          input: '{"query":"test"}',
+          providerExecuted: true,
+        });
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_123',
+          toolName: 'web_search',
+          result: {
+            status: 'completed',
+            action: null,
+          },
+        });
+      });
+
+      it('should emit tool-result for mcp_call on output_item.done', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'mcp_call',
+              id: 'mcp_123',
+              name: 'my_mcp_tool',
+              arguments: '{"key":"value"}',
+              status: 'in_progress',
+              server_label: 'my_server',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'mcp_call',
+              id: 'mcp_123',
+              name: 'my_mcp_tool',
+              arguments: '{"key":"value"}',
+              output: '{"result":"success"}',
+              status: 'completed',
+              server_label: 'my_server',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.mcp',
+              name: 'my_mcp_tool',
+              args: {
+                serverUrl: 'https://mcp.example.com',
+                serverLabel: 'my_server',
+              },
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'mcp_123',
+          toolName: 'my_mcp_tool',
+          input: '{"key":"value"}',
+          providerExecuted: true,
+        });
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'mcp_123',
+          toolName: 'my_mcp_tool',
+          result: {
+            output: '{"result":"success"}',
+            error: null,
+            server_label: 'my_server',
+          },
         });
       });
 
