@@ -558,17 +558,27 @@ pipeUIMessageStreamToResponse({
 });
 ```
 
-**Text stream helpers**
+**Text stream `Response`**
 
 ```tsx filename="AI SDK 6"
 return result.toTextStreamResponse();
+```
+
+```tsx filename="AI SDK 7"
+import { createTextStreamResponse } from 'ai';
+
+return createTextStreamResponse({ textStream: result.textStream });
+```
+
+**Pipe text stream to Node.js response**
+
+```tsx filename="AI SDK 6"
 result.pipeTextStreamToResponse(response);
 ```
 
 ```tsx filename="AI SDK 7"
-import { createTextStreamResponse, pipeTextStreamToResponse } from 'ai';
+import { pipeTextStreamToResponse } from 'ai';
 
-return createTextStreamResponse({ textStream: result.textStream });
 pipeTextStreamToResponse({ response, textStream: result.textStream });
 ```
 
