@@ -48,7 +48,17 @@ run(async () => {
         'Just say that the tool execution was not approved.',
       tools: { weather: weatherTool },
       toolApproval: {
-        weather: 'user-approval',
+        weather: ({ location }) => {
+          if (location.toLowerCase().includes('san francisco')) {
+            return 'approved';
+          }
+
+          if (location.toLowerCase().includes('new york')) {
+            return 'denied';
+          }
+
+          return 'user-approval';
+        },
       },
       messages,
       stopWhen: isStepCount(5),
@@ -62,19 +72,32 @@ run(async () => {
     // go through each approval request and ask the user for approval
     const content = await result.content;
     for (const part of content) {
-      if (part.type === 'tool-approval-request') {
-        if (part.toolCall.toolName === 'weather' && !part.toolCall.dynamic) {
-          const answer = await terminal.question(
-            `\nCan I retrieve the weather for ${part.toolCall.input.location} (y/n)?`,
-          );
+      if (
+        part.type === 'tool-approval-request' &&
+        part.toolCall.toolName === 'weather' &&
+        !part.toolCall.dynamic &&
+        !part.isAutomatic
+      ) {
+        const answer = await terminal.question(
+          `\nCan I retrieve the weather for ${part.toolCall.input.location} (y/n)?`,
+        );
 
-          approvals.push({
-            type: 'tool-approval-response',
-            approvalId: part.approvalId,
-            approved:
-              answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
-          });
-        }
+        approvals.push({
+          type: 'tool-approval-response',
+          approvalId: part.approvalId,
+          approved:
+            answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
+        });
+      }
+
+      if (
+        part.type === 'tool-approval-response' &&
+        part.toolCall.toolName === 'weather' &&
+        !part.toolCall.dynamic
+      ) {
+        process.stdout.write(
+          `Weather tool execution for ${part.toolCall.input.location} was automatically ${part.approved ? 'approved' : 'denied'}.`,
+        );
       }
     }
 

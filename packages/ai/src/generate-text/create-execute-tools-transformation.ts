@@ -111,6 +111,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
                 type: 'tool-approval-request',
                 approvalId,
                 toolCall: chunk,
+                isAutomatic: true,
               });
               controller.enqueue({
                 type: 'tool-approval-response',
@@ -130,6 +131,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
                 type: 'tool-approval-request',
                 approvalId,
                 toolCall: chunk,
+                isAutomatic: true,
               });
               controller.enqueue({
                 type: 'tool-approval-response',

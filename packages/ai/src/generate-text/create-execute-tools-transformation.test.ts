@@ -309,6 +309,7 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "approvalId": "id-0",
+            "isAutomatic": true,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -424,6 +425,7 @@ describe('createExecuteToolsTransformation', () => {
           },
           {
             "approvalId": "id-0",
+            "isAutomatic": true,
             "toolCall": {
               "input": {
                 "value": "test",
