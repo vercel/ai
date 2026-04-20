@@ -6,7 +6,6 @@ import { registerTelemetry } from './telemetry-registry';
 const dummyEvent = {} as any;
 const augmentedDummyEvent = {
   ...dummyEvent,
-  isEnabled: true,
   recordInputs: undefined,
   recordOutputs: undefined,
   functionId: undefined,
@@ -198,6 +197,95 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onFinish).toBeDefined();
 
     await expect(telemetry.onStart!(dummyEvent)).resolves.toBeUndefined();
+  });
+
+  describe('isEnabled filter', () => {
+    it('does not invoke any integration callbacks when isEnabled is false', async () => {
+      const integration: Telemetry = {
+        onStart: vi.fn(),
+        onStepStart: vi.fn(),
+        onToolExecutionStart: vi.fn(),
+        onToolExecutionEnd: vi.fn(),
+        onChunk: vi.fn(),
+        onStepFinish: vi.fn(),
+        onObjectStepStart: vi.fn(),
+        onObjectStepFinish: vi.fn(),
+        onEmbedStart: vi.fn(),
+        onEmbedFinish: vi.fn(),
+        onRerankStart: vi.fn(),
+        onRerankFinish: vi.fn(),
+        onFinish: vi.fn(),
+        onError: vi.fn(),
+      };
+
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { isEnabled: false, integrations: integration },
+      });
+
+      expect(telemetry.onStart).toBeUndefined();
+      expect(telemetry.onStepStart).toBeUndefined();
+      expect(telemetry.onToolExecutionStart).toBeUndefined();
+      expect(telemetry.onToolExecutionEnd).toBeUndefined();
+      expect(telemetry.onChunk).toBeUndefined();
+      expect(telemetry.onStepFinish).toBeUndefined();
+      expect(telemetry.onObjectStepStart).toBeUndefined();
+      expect(telemetry.onObjectStepFinish).toBeUndefined();
+      expect(telemetry.onEmbedStart).toBeUndefined();
+      expect(telemetry.onEmbedFinish).toBeUndefined();
+      expect(telemetry.onRerankStart).toBeUndefined();
+      expect(telemetry.onRerankFinish).toBeUndefined();
+      expect(telemetry.onFinish).toBeUndefined();
+      expect(telemetry.onError).toBeUndefined();
+      expect(telemetry.executeTool).toBeUndefined();
+    });
+
+    it('ignores globally registered integrations when isEnabled is false', () => {
+      registerTelemetry({
+        onStart: vi.fn(),
+        executeTool: async ({ execute }) => execute(),
+      });
+
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { isEnabled: false },
+      });
+
+      expect(telemetry.onStart).toBeUndefined();
+      expect(telemetry.executeTool).toBeUndefined();
+    });
+
+    it('invokes integrations when isEnabled is true', async () => {
+      const onStart = vi.fn();
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { isEnabled: true, integrations: { onStart } },
+      });
+
+      await telemetry.onStart!(dummyEvent);
+
+      expect(onStart).toHaveBeenCalledWith(augmentedDummyEvent);
+    });
+
+    it('invokes integrations when isEnabled is undefined (default enabled)', async () => {
+      const onStart = vi.fn();
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { integrations: { onStart } },
+      });
+
+      await telemetry.onStart!(dummyEvent);
+
+      expect(onStart).toHaveBeenCalledWith(augmentedDummyEvent);
+    });
+
+    it('does not augment events with isEnabled', async () => {
+      const onStart = vi.fn();
+      const telemetry = createTelemetryDispatcher({
+        telemetry: { isEnabled: true, integrations: { onStart } },
+      });
+
+      await telemetry.onStart!(dummyEvent);
+
+      const receivedEvent = onStart.mock.calls[0]![0];
+      expect(receivedEvent).not.toHaveProperty('isEnabled');
+    });
   });
 
   describe('global vs local integration resolution', () => {

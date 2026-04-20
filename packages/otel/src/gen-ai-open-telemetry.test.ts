@@ -131,7 +131,6 @@ let callIdCounter = 0;
 
 function telemetryFields() {
   return {
-    isEnabled: true as const,
     recordInputs: undefined,
     recordOutputs: undefined,
     functionId: undefined,
@@ -385,12 +384,6 @@ describe('GenAIOpenTelemetry', () => {
           ],
         }
       `);
-    });
-
-    it('does not create a span when telemetry is disabled', () => {
-      integration.onStart!(makeOnStartEvent({ isEnabled: false }));
-
-      expect(tracer.startSpan).not.toHaveBeenCalled();
     });
 
     it('preserves functionId as gen_ai.agent.name', () => {

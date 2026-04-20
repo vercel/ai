@@ -147,7 +147,6 @@ let callIdCounter = 0;
 
 function telemetryFields() {
   return {
-    isEnabled: true as const,
     recordInputs: undefined,
     recordOutputs: undefined,
     functionId: undefined,
@@ -400,22 +399,6 @@ describe('OpenTelemetry', () => {
       const attrs = getStartSpanAttributes(tracer, 0);
       expect(attrs['ai.operationId']).toBe('ai.generateText');
       expect(attrs['operation.name']).toBe('ai.generateText');
-    });
-
-    it('does not create a span when telemetry is disabled', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent({
-          isEnabled: false,
-        }),
-      );
-
-      expect(tracer.startSpan).not.toHaveBeenCalled();
-    });
-
-    it('should create a span when isEnabled is not defined explicitly', () => {
-      otelIntegration.onStart?.(makeOnStartEvent({ isEnabled: undefined }));
-
-      expect(tracer.startSpan).toHaveBeenCalled();
     });
 
     it('uses a tracer configured for the call id', () => {

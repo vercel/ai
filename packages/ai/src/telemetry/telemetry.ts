@@ -32,7 +32,7 @@ import type { Callback } from '../util/callback';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 
 export type InferTelemetryEvent<EVENT> = EVENT &
-  Omit<TelemetryOptions, 'integrations'>;
+  Omit<TelemetryOptions, 'integrations' | 'isEnabled'>;
 
 type OperationStartEvent =
   | OnStartEvent

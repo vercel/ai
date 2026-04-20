@@ -33,7 +33,7 @@ function augmentEvent<EVENT>(
   event: EVENT,
   telemetry: Pick<
     TelemetryOptions,
-    'isEnabled' | 'recordInputs' | 'recordOutputs' | 'functionId'
+    'recordInputs' | 'recordOutputs' | 'functionId'
   >,
 ): InferTelemetryEvent<EVENT> {
   return Object.assign(
@@ -61,6 +61,12 @@ export function createTelemetryDispatcher({
 }: {
   telemetry?: TelemetryOptions;
 }): TelemetryDispatcher {
+  // When telemetry is explicitly disabled, return a dispatcher
+  // that performs no work and lets tool execution pass through unwrapped.
+  if (telemetry?.isEnabled === false) {
+    return {};
+  }
+
   const localIntegrations = telemetry?.integrations;
   const integrations: Array<Telemetry> =
     localIntegrations != null
@@ -68,7 +74,6 @@ export function createTelemetryDispatcher({
       : getGlobalTelemetryIntegrations();
 
   const telemetryMetadata = {
-    isEnabled: telemetry?.isEnabled ?? true,
     recordInputs: telemetry?.recordInputs,
     recordOutputs: telemetry?.recordOutputs,
     functionId: telemetry?.functionId,

@@ -189,8 +189,6 @@ export class GenAIOpenTelemetry implements Telemetry {
       | InferTelemetryEvent<EmbedOnStartEvent>
       | InferTelemetryEvent<RerankOnStartEvent>,
   ): void {
-    if (event.isEnabled === false) return;
-
     if (
       event.operationId === 'ai.embed' ||
       event.operationId === 'ai.embedMany'
@@ -223,7 +221,6 @@ export class GenAIOpenTelemetry implements Telemetry {
 
   private onGenerateStart(event: InferTelemetryEvent<OnStartEvent>): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
@@ -305,7 +302,6 @@ export class GenAIOpenTelemetry implements Telemetry {
     event: InferTelemetryEvent<ObjectOnStartEvent>,
   ): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
@@ -470,7 +466,6 @@ export class GenAIOpenTelemetry implements Telemetry {
     event: InferTelemetryEvent<EmbedOnStartEvent>,
   ): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
@@ -843,7 +838,6 @@ export class GenAIOpenTelemetry implements Telemetry {
     event: InferTelemetryEvent<RerankOnStartEvent>,
   ): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
