@@ -234,4 +234,103 @@ describe('convertGroqUsage', () => {
       raw: {},
     });
   });
+
+  it('should extract cached tokens from prompt_tokens_details', () => {
+    const result = convertGroqUsage({
+      prompt_tokens: 3829,
+      completion_tokens: 48,
+      prompt_tokens_details: {
+        cached_tokens: 3584,
+      },
+    });
+
+    expect(result).toStrictEqual({
+      inputTokens: {
+        total: 3829,
+        noCache: 245, // 3829 - 3584 = 245
+        cacheRead: 3584,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 48,
+        text: 48,
+        reasoning: undefined,
+      },
+      raw: {
+        prompt_tokens: 3829,
+        completion_tokens: 48,
+        prompt_tokens_details: {
+          cached_tokens: 3584,
+        },
+      },
+    });
+  });
+
+  it('should handle null cached_tokens in prompt_tokens_details', () => {
+    const result = convertGroqUsage({
+      prompt_tokens: 20,
+      completion_tokens: 10,
+      prompt_tokens_details: {
+        cached_tokens: null,
+      },
+    });
+
+    expect(result).toStrictEqual({
+      inputTokens: {
+        total: 20,
+        noCache: 20,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 10,
+        text: 10,
+        reasoning: undefined,
+      },
+      raw: {
+        prompt_tokens: 20,
+        completion_tokens: 10,
+        prompt_tokens_details: {
+          cached_tokens: null,
+        },
+      },
+    });
+  });
+
+  it('should handle both cached tokens and reasoning tokens', () => {
+    const result = convertGroqUsage({
+      prompt_tokens: 100,
+      completion_tokens: 50,
+      prompt_tokens_details: {
+        cached_tokens: 80,
+      },
+      completion_tokens_details: {
+        reasoning_tokens: 30,
+      },
+    });
+
+    expect(result).toStrictEqual({
+      inputTokens: {
+        total: 100,
+        noCache: 20, // 100 - 80 = 20
+        cacheRead: 80,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 50,
+        text: 20, // 50 - 30 = 20
+        reasoning: 30,
+      },
+      raw: {
+        prompt_tokens: 100,
+        completion_tokens: 50,
+        prompt_tokens_details: {
+          cached_tokens: 80,
+        },
+        completion_tokens_details: {
+          reasoning_tokens: 30,
+        },
+      },
+    });
+  });
 });
