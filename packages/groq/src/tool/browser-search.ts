@@ -1,4 +1,8 @@
-import { createProviderExecutedToolFactory } from '@ai-sdk/provider-utils';
+import {
+  createProviderExecutedToolFactory,
+  lazySchema,
+  zodSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 /**
@@ -27,6 +31,6 @@ export const browserSearch = createProviderExecutedToolFactory<
   }
 >({
   id: 'groq.browser_search',
-  inputSchema: z.object({}),
-  outputSchema: z.object({}),
+  inputSchema: lazySchema(() => zodSchema(z.object({}))),
+  outputSchema: lazySchema(() => zodSchema(z.object({}))),
 });
