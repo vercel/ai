@@ -28,8 +28,14 @@ export interface ToolExecutionOptions<
   abortSignal?: AbortSignal;
 
   /**
-   * Tool context as defined by the tool's context schema.
-   * The tool context is specific to the tool and is passed to the tool execution.
+   * User-defined runtime context.
+   *
+   * Treat the context object as immutable inside tools.
+   * Mutating the context object can lead to race conditions and unexpected results
+   * when tools are called in parallel.
+   *
+   * If you need to mutate the context, analyze the tool calls and results
+   * in `prepareStep` and update it there.
    */
   context: CONTEXT;
 }
