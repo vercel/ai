@@ -1382,6 +1382,7 @@ class DefaultStreamTextResult<
         let toolExecutionStepStreamController:
           | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
           | undefined;
+        let toolExecutionStepStreamClosed = false;
         const toolExecutionStepStream = new ReadableStream<
           TextStreamPart<TOOLS>
         >({
@@ -1390,6 +1391,19 @@ class DefaultStreamTextResult<
           },
         });
 
+        function safeEnqueue(chunk: TextStreamPart<TOOLS>) {
+          if (!toolExecutionStepStreamClosed) {
+            toolExecutionStepStreamController?.enqueue(chunk);
+          }
+        }
+
+        function safeClose() {
+          if (!toolExecutionStepStreamClosed) {
+            toolExecutionStepStreamClosed = true;
+            toolExecutionStepStreamController?.close();
+          }
+        }
+
         self.addStream(toolExecutionStepStream);
 
         try {
@@ -1397,7 +1411,7 @@ class DefaultStreamTextResult<
             ...localDeniedToolApprovals,
             ...deniedProviderExecutedToolApprovals,
           ]) {
-            toolExecutionStepStreamController?.enqueue({
+            safeEnqueue({
               type: 'tool-output-denied',
               toolCallId: toolApproval.toolCall.toolCallId,
               toolName: toolApproval.toolCall.toolName,
@@ -1434,12 +1448,12 @@ class DefaultStreamTextResult<
                 ),
                 executeToolInTelemetryContext: unifiedTelemetry.executeTool,
                 onPreliminaryToolResult: result => {
-                  toolExecutionStepStreamController?.enqueue(result);
+                  safeEnqueue(result);
                 },
               });
 
               if (result != null) {
-                toolExecutionStepStreamController?.enqueue(result);
+                safeEnqueue(result);
                 toolOutputs.push(result);
               }
             }),
@@ -1487,7 +1501,7 @@ class DefaultStreamTextResult<
             });
           }
         } finally {
-          toolExecutionStepStreamController?.close();
+          safeClose();
         }
       }
 
