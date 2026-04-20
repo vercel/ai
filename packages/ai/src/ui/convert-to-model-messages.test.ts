@@ -1783,6 +1783,15 @@ describe('convertToModelMessages', () => {
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
               },
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "I don't want to approve this",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
             ],
             "role": "tool",
           },
@@ -1878,6 +1887,15 @@ describe('convertToModelMessages', () => {
                 "providerExecuted": undefined,
                 "reason": "I don't want to approve this",
                 "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "I don't want to approve this",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
               },
             ],
             "role": "tool",
