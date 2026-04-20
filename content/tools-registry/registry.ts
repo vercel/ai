@@ -484,6 +484,67 @@ console.log(text);`,
     npmUrl: 'https://www.npmjs.com/package/bash-tool',
   },
   {
+    slug: 'scalekit',
+    name: 'Scalekit',
+    description:
+      'Scalekit Agent Auth stores OAuth tokens for SaaS connectors and runs built-in tools (for example Gmail, Google Calendar) on behalf of each user. Use @scalekit-sdk/node with the AI SDK to wrap executeTool calls as tools, or expose per-user MCP servers over Streamable HTTP.',
+    packageName: '@scalekit-sdk/node',
+    tags: ['agent', 'oauth', 'connectors', 'mcp'],
+    installCommand: {
+      pnpm: 'pnpm add @scalekit-sdk/node',
+      npm: 'npm install @scalekit-sdk/node',
+      yarn: 'yarn add @scalekit-sdk/node',
+      bun: 'bun add @scalekit-sdk/node',
+    },
+    codeExample: `import { generateText, tool, stepCountIs } from 'ai';
+import { ScalekitClient } from '@scalekit-sdk/node';
+import { z } from 'zod';
+import 'dotenv/config';
+
+const scalekit = new ScalekitClient(
+  process.env.SCALEKIT_ENV_URL!,
+  process.env.SCALEKIT_CLIENT_ID!,
+  process.env.SCALEKIT_CLIENT_SECRET!,
+);
+
+const { connectedAccount } =
+  await scalekit.connectedAccounts.getOrCreateConnectedAccount({
+    connector: 'gmail',
+    identifier: 'user_123',
+  });
+
+const fetchUnread = tool({
+  description: 'Fetch unread emails via Scalekit gmail_fetch_mails',
+  inputSchema: z.object({
+    maxResults: z.number().optional().describe('Max emails to return'),
+  }),
+  execute: async ({ maxResults = 5 }) => {
+    const response = await scalekit.tools.executeTool({
+      toolName: 'gmail_fetch_mails',
+      connectedAccountId: connectedAccount!.id,
+      params: {
+        query: 'is:unread',
+        max_results: maxResults,
+      },
+    });
+    return response.data?.toJson?.() ?? response;
+  },
+});
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-4.5',
+  prompt: 'How many unread emails do I have? Summarize the subjects.',
+  tools: { fetchUnread },
+  stopWhen: stepCountIs(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.scalekit.com/agent-auth/quickstart/',
+    apiKeyUrl: 'https://app.scalekit.com',
+    websiteUrl: 'https://www.scalekit.com',
+    npmUrl: 'https://www.npmjs.com/package/@scalekit-sdk/node',
+  },
+  {
     slug: 'browserbase',
     name: 'Browserbase',
     description:
