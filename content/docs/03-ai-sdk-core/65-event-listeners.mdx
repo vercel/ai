@@ -44,6 +44,18 @@ const result = await generateText({
         'Called when a step (LLM call) begins, before the provider is called.',
     },
     {
+      name: 'experimental_onModelCallStart',
+      type: '(event: ModelCallStartEvent) => void | Promise<void>',
+      description:
+        'Called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this is scoped to model work only.',
+    },
+    {
+      name: 'experimental_onModelCallEnd',
+      type: '(event: ModelCallEndEvent) => void | Promise<void>',
+      description:
+        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
+    },
+    {
       name: 'experimental_onToolExecutionStart',
       type: '(event: ToolExecutionStartEvent) => void | Promise<void>',
       description: "Called when a tool's execute function is about to run.",
@@ -66,6 +78,10 @@ const result = await generateText({
     },
   ]}
 />
+
+For multi-step text generations that use tools, the callback order is typically
+`experimental_onStepStart` -> `experimental_onModelCallStart` ->
+`experimental_onModelCallEnd` -> tool execution callbacks -> `onStepFinish`.
 
 ### `embed` / `embedMany`
 
@@ -375,6 +391,119 @@ const result = await generateText({
       type: 'InferToolSetContext<TOOLS>',
       description:
         'Per-tool context map. May be updated from prepareStep between steps.',
+    },
+  ]}
+/>
+
+#### `experimental_onModelCallStart`
+
+Called immediately before the provider model call begins. Unlike
+`experimental_onStepStart`, this callback is scoped to model work only and
+excludes any later client-side tool execution.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Hello!',
+  experimental_onModelCallStart: event => {
+    console.log('Model call:', event.modelId);
+    console.log('Messages:', event.messages.length);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for the generation call.',
+    },
+    {
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier for this model call.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier for this model call.',
+    },
+    {
+      name: 'messages',
+      type: 'Array<ModelMessage>',
+      description: 'The messages that will be sent to the model.',
+    },
+    {
+      name: 'stepTools',
+      type: 'ReadonlyArray<Record<string, unknown>> | undefined',
+      description: 'Prepared tool definitions for the model call, if any.',
+    },
+  ]}
+/>
+
+#### `experimental_onModelCallEnd`
+
+Called after the model response has been normalized and parsed, but before any
+client-side tool execution begins.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'What is the weather?',
+  experimental_onModelCallEnd: event => {
+    console.log('Finish reason:', event.finishReason);
+    console.log('Tool calls:', event.toolCalls.length);
+  },
+});
+```
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for the generation call.',
+    },
+    {
+      name: 'provider',
+      type: 'string',
+      description: 'The provider identifier for this model call.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'The specific model identifier for this model call.',
+    },
+    {
+      name: 'finishReason',
+      type: 'FinishReason',
+      description: 'The unified reason why the model call finished.',
+    },
+    {
+      name: 'usage',
+      type: 'LanguageModelUsage',
+      description: 'Token usage reported by the model call.',
+    },
+    {
+      name: 'text',
+      type: 'string',
+      description: 'Generated text from the model call.',
+    },
+    {
+      name: 'reasoning',
+      type: 'ReadonlyArray<{ text?: string }>',
+      description: 'Reasoning text segments emitted by the model call.',
+    },
+    {
+      name: 'files',
+      type: 'ReadonlyArray<GeneratedFile>',
+      description: 'Files generated directly by the model call.',
+    },
+    {
+      name: 'toolCalls',
+      type: 'ReadonlyArray<TypedToolCall>',
+      description: 'Parsed tool calls emitted by the model call.',
     },
   ]}
 />

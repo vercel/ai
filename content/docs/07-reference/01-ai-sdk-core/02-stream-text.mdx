@@ -2087,6 +2087,104 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'experimental_onModelCallStart',
+      type: '(event: ModelCallStartEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this callback is scoped to model work only and excludes any later client-side tool execution. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'ModelCallStartEvent',
+          parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
+            {
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier for this model call.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier for this model call.',
+            },
+            {
+              name: 'messages',
+              type: 'Array<ModelMessage>',
+              description: 'The messages that will be sent to the model.',
+            },
+            {
+              name: 'stepTools',
+              type: 'ReadonlyArray<Record<string, unknown>> | undefined',
+              description: 'Prepared tool definitions for the model call, if any.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'experimental_onModelCallEnd',
+      type: '(event: ModelCallEndEvent) => PromiseLike<void> | void',
+      isOptional: true,
+      description:
+        'Callback that is called after the model response has been normalized and parsed, but before any client-side tool execution begins. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
+      properties: [
+        {
+          type: 'ModelCallEndEvent',
+          parameters: [
+            {
+              name: 'callId',
+              type: 'string',
+              description: 'Unique identifier for the generation call.',
+            },
+            {
+              name: 'provider',
+              type: 'string',
+              description: 'The provider identifier for this model call.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description: 'The specific model identifier for this model call.',
+            },
+            {
+              name: 'finishReason',
+              type: 'FinishReason',
+              description: 'The unified reason why the model call finished.',
+            },
+            {
+              name: 'usage',
+              type: 'LanguageModelUsage',
+              description: 'Token usage reported by the model call.',
+            },
+            {
+              name: 'text',
+              type: 'string',
+              description: 'Generated text from the model call.',
+            },
+            {
+              name: 'reasoning',
+              type: 'ReadonlyArray<{ text?: string }>',
+              description: 'Reasoning text segments emitted by the model call.',
+            },
+            {
+              name: 'files',
+              type: 'ReadonlyArray<GeneratedFile>',
+              description: 'Files generated directly by the model call.',
+            },
+            {
+              name: 'toolCalls',
+              type: 'ReadonlyArray<TypedToolCall<TOOLS>>',
+              description: 'Parsed tool calls emitted by the model call.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'experimental_onToolExecutionStart',
       type: '(event: ToolExecutionStartEvent) => PromiseLike<void> | void',
       isOptional: true,
