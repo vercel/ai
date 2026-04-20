@@ -1,5 +1,6 @@
 import {
   APICallError,
+  JSONParseError,
   JSONValue,
   LanguageModelV4,
   LanguageModelV4Prompt,
@@ -1171,6 +1172,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
+              // Skip truncated response.* events (e.g. response.created, response.in_progress,
+              // response.completed) that fail JSON parsing due to large payload sizes.
+              // These are informational status updates and not required for text streaming.
+              // This mirrors the strategy used by the official OpenAI Codex CLI:
+              // https://github.com/openai/codex/blob/main/codex-rs/codex-api/src/sse/responses.rs
+              if (
+                JSONParseError.isInstance(chunk.error) &&
+                typeof chunk.rawValue === 'string' &&
+                chunk.rawValue.startsWith('{"type":"response.')
+              ) {
+                return;
+              }
               finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
