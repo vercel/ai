@@ -562,6 +562,7 @@ describe('streamLanguageModelCall', () => {
       const tools = {
         mcp_tool: tool({
           type: 'provider',
+          isProviderExecuted: true,
           id: 'mcp.mcp_tool',
           inputSchema: z.object({ query: z.string() }),
           args: {},
@@ -651,12 +652,14 @@ describe('streamLanguageModelCall', () => {
       const tools = {
         mcp_search: tool({
           type: 'provider',
+          isProviderExecuted: true,
           id: 'mcp.mcp_search',
           inputSchema: z.object({ query: z.string() }),
           args: {},
         }),
         mcp_execute: tool({
           type: 'provider',
+          isProviderExecuted: true,
           id: 'mcp.mcp_execute',
           inputSchema: z.object({ command: z.string() }),
           args: {},

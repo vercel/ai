@@ -83,18 +83,18 @@ import {
   StopCondition,
 } from './stop-condition';
 import { toResponseMessages } from './to-response-messages';
+import { ToolApprovalConfiguration } from './tool-approval-configuration';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
-import { ToolOutput } from './tool-output';
-import { TypedToolResult } from './tool-result';
-import { ToolsContextParameter } from './tools-context-parameter';
 import {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import { ToolOutput } from './tool-output';
+import { TypedToolResult } from './tool-result';
+import { ToolsContextParameter } from './tools-context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -235,7 +235,7 @@ export async function generateText<
   headers,
   stopWhen = isStepCount(1),
   output,
-  toolNeedsApproval,
+  toolApproval,
   experimental_telemetry,
   telemetry = experimental_telemetry,
   providerOptions,
@@ -320,7 +320,7 @@ export async function generateText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
+    toolApproval?: ToolApprovalConfiguration<TOOLS>;
 
     /**
      * Custom download function to use for URLs.
@@ -774,7 +774,7 @@ export async function generateText<
           if (
             await isToolApprovalNeeded({
               tools,
-              toolNeedsApproval,
+              toolApproval,
               toolCall,
               messages: stepInputMessages,
               toolsContext,
