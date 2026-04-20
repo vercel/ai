@@ -3132,6 +3132,41 @@ describe('streamText', () => {
         `);
     });
 
+    it('should support async messageMetadata callback', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({
+        messageMetadata: async ({ part }) => {
+          if (part.type === 'finish') {
+            await new Promise(resolve => setTimeout(resolve, 0));
+            return {
+              usage: {
+                tokens: (part.totalUsage.inputTokens ?? 0) + 100,
+                limit: 1000,
+                exceeded: false,
+              },
+            };
+          }
+        },
+      });
+
+      const chunks = await convertReadableStreamToArray(uiMessageStream);
+      const finishChunk = chunks.find(
+        (c): c is typeof c & { type: 'finish' } => c.type === 'finish',
+      );
+      expect(finishChunk).toBeDefined();
+      expect(finishChunk?.messageMetadata).toEqual({
+        usage: {
+          tokens: 100,
+          limit: 1000,
+          exceeded: false,
+        },
+      });
+    });
+
     it('should mask error messages by default', async () => {
       const result = streamText({
         model: createTestModel({

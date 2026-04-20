@@ -2275,7 +2275,9 @@ class DefaultStreamTextResult<
         >
       >({
         transform: async (part, controller) => {
-          const messageMetadataValue = messageMetadata?.({ part });
+          const messageMetadataValue = messageMetadata
+            ? await Promise.resolve(messageMetadata({ part }))
+            : undefined;
 
           const partType = part.type;
           switch (partType) {
