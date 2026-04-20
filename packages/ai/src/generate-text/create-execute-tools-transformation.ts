@@ -85,7 +85,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             return;
           }
 
-          const toolApprovalValue = await resolveToolApproval({
+          const toolApprovalStatus = await resolveToolApproval({
             tools,
             toolCall: chunk,
             toolApproval,
@@ -93,7 +93,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             toolsContext,
           });
 
-          switch (toolApprovalValue) {
+          switch (toolApprovalStatus) {
             case 'user-approval': {
               controller.enqueue({
                 type: 'tool-approval-request',
