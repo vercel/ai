@@ -364,16 +364,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'text-delta': {
-              const textPart = state.activeTextParts[chunk.id];
+              let textPart = state.activeTextParts[chunk.id];
+
+              // When resuming a stream after disconnect, the resumed stream may
+              // start with text-delta chunks whose text-start was already sent
+              // before the disconnect. Lazily create the text part so that
+              // useChat resumeStream works correctly (see #13160).
               if (textPart == null) {
-                throw new UIMessageStreamError({
-                  chunkType: 'text-delta',
-                  chunkId: chunk.id,
-                  message:
-                    `Received text-delta for missing text part with ID "${chunk.id}". ` +
-                    `Ensure a "text-start" chunk is sent before any "text-delta" chunks.`,
-                });
+                textPart = {
+                  type: 'text',
+                  text: '',
+                  providerMetadata: undefined,
+                  state: 'streaming',
+                };
+                state.activeTextParts[chunk.id] = textPart;
+                state.message.parts.push(textPart);
               }
+
               textPart.text += chunk.delta;
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
@@ -382,16 +389,22 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'text-end': {
-              const textPart = state.activeTextParts[chunk.id];
+              let textPart = state.activeTextParts[chunk.id];
+
+              // When resuming a stream, text-end may arrive without a prior
+              // text-start in the current stream. Lazily create the part so
+              // the stream can complete gracefully (see #13160).
               if (textPart == null) {
-                throw new UIMessageStreamError({
-                  chunkType: 'text-end',
-                  chunkId: chunk.id,
-                  message:
-                    `Received text-end for missing text part with ID "${chunk.id}". ` +
-                    `Ensure a "text-start" chunk is sent before any "text-end" chunks.`,
-                });
+                textPart = {
+                  type: 'text',
+                  text: '',
+                  providerMetadata: undefined,
+                  state: 'streaming',
+                };
+                state.activeTextParts[chunk.id] = textPart;
+                state.message.parts.push(textPart);
               }
+
               textPart.state = 'done';
               textPart.providerMetadata =
                 chunk.providerMetadata ?? textPart.providerMetadata;
@@ -425,16 +438,23 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'reasoning-delta': {
-              const reasoningPart = state.activeReasoningParts[chunk.id];
+              let reasoningPart = state.activeReasoningParts[chunk.id];
+
+              // When resuming a stream after disconnect, the resumed stream may
+              // start with reasoning-delta chunks whose reasoning-start was
+              // already sent before the disconnect. Lazily create the reasoning
+              // part so that useChat resumeStream works correctly (see #13160).
               if (reasoningPart == null) {
-                throw new UIMessageStreamError({
-                  chunkType: 'reasoning-delta',
-                  chunkId: chunk.id,
-                  message:
-                    `Received reasoning-delta for missing reasoning part with ID "${chunk.id}". ` +
-                    `Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`,
-                });
+                reasoningPart = {
+                  type: 'reasoning',
+                  text: '',
+                  providerMetadata: undefined,
+                  state: 'streaming',
+                };
+                state.activeReasoningParts[chunk.id] = reasoningPart;
+                state.message.parts.push(reasoningPart);
               }
+
               reasoningPart.text += chunk.delta;
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
@@ -443,16 +463,22 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'reasoning-end': {
-              const reasoningPart = state.activeReasoningParts[chunk.id];
+              let reasoningPart = state.activeReasoningParts[chunk.id];
+
+              // When resuming a stream, reasoning-end may arrive without a
+              // prior reasoning-start in the current stream. Lazily create the
+              // part so the stream can complete gracefully (see #13160).
               if (reasoningPart == null) {
-                throw new UIMessageStreamError({
-                  chunkType: 'reasoning-end',
-                  chunkId: chunk.id,
-                  message:
-                    `Received reasoning-end for missing reasoning part with ID "${chunk.id}". ` +
-                    `Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.`,
-                });
+                reasoningPart = {
+                  type: 'reasoning',
+                  text: '',
+                  providerMetadata: undefined,
+                  state: 'streaming',
+                };
+                state.activeReasoningParts[chunk.id] = reasoningPart;
+                state.message.parts.push(reasoningPart);
               }
+
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
               reasoningPart.state = 'done';

@@ -226,11 +226,15 @@ describe('processUIMessageStream', () => {
   });
 
   describe('malformed stream errors', () => {
-    it('should throw descriptive error when text-delta is received without text-start', async () => {
+    it('should lazily create text part when text-delta is received without text-start (resume stream)', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-delta', id: 'text-1', delta: ', world!' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -238,30 +242,41 @@ describe('processUIMessageStream', () => {
         lastMessage: undefined,
       });
 
-      await expect(
-        consumeStream({
-          stream: processUIMessageStream({
-            stream,
-            runUpdateMessageJob,
-            onError: error => {
-              throw error;
-            },
-          }),
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
           onError: error => {
             throw error;
           },
         }),
-      ).rejects.toThrow(
-        'Received text-delta for missing text part with ID "text-1". ' +
-          'Ensure a "text-start" chunk is sent before any "text-delta" chunks.',
-      );
+      });
+
+      // The text part should have been lazily created and accumulated deltas
+      const lastWrite = writeCalls[writeCalls.length - 1];
+      const textParts = lastWrite.message.parts.filter(p => p.type === 'text');
+      expect(textParts).toHaveLength(1);
+      expect(textParts[0]).toEqual({
+        type: 'text',
+        text: 'Hello, world!',
+        providerMetadata: undefined,
+        state: 'done',
+      });
     });
 
-    it('should throw descriptive error when reasoning-delta is received without reasoning-start', async () => {
+    it('should lazily create reasoning part when reasoning-delta is received without reasoning-start (resume stream)', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         { type: 'reasoning-delta', id: 'reasoning-1', delta: 'Thinking...' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-1',
+          delta: ' still thinking',
+        },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -269,23 +284,28 @@ describe('processUIMessageStream', () => {
         lastMessage: undefined,
       });
 
-      await expect(
-        consumeStream({
-          stream: processUIMessageStream({
-            stream,
-            runUpdateMessageJob,
-            onError: error => {
-              throw error;
-            },
-          }),
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
           onError: error => {
             throw error;
           },
         }),
-      ).rejects.toThrow(
-        'Received reasoning-delta for missing reasoning part with ID "reasoning-1". ' +
-          'Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.',
+      });
+
+      // The reasoning part should have been lazily created and accumulated deltas
+      const lastWrite = writeCalls[writeCalls.length - 1];
+      const reasoningParts = lastWrite.message.parts.filter(
+        p => p.type === 'reasoning',
       );
+      expect(reasoningParts).toHaveLength(1);
+      expect(reasoningParts[0]).toEqual({
+        type: 'reasoning',
+        text: 'Thinking... still thinking',
+        providerMetadata: undefined,
+        state: 'done',
+      });
     });
 
     it('should throw descriptive error when tool-input-delta is received without tool-input-start', async () => {
@@ -323,11 +343,13 @@ describe('processUIMessageStream', () => {
       );
     });
 
-    it('should throw descriptive error when text-end is received without text-start', async () => {
+    it('should lazily create text part when text-end is received without text-start (resume stream)', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         { type: 'text-end', id: 'text-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -335,30 +357,35 @@ describe('processUIMessageStream', () => {
         lastMessage: undefined,
       });
 
-      await expect(
-        consumeStream({
-          stream: processUIMessageStream({
-            stream,
-            runUpdateMessageJob,
-            onError: error => {
-              throw error;
-            },
-          }),
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
           onError: error => {
             throw error;
           },
         }),
-      ).rejects.toThrow(
-        'Received text-end for missing text part with ID "text-1". ' +
-          'Ensure a "text-start" chunk is sent before any "text-end" chunks.',
-      );
+      });
+
+      // The text part should have been lazily created and marked as done
+      const lastWrite = writeCalls[writeCalls.length - 1];
+      const textParts = lastWrite.message.parts.filter(p => p.type === 'text');
+      expect(textParts).toHaveLength(1);
+      expect(textParts[0]).toEqual({
+        type: 'text',
+        text: '',
+        providerMetadata: undefined,
+        state: 'done',
+      });
     });
 
-    it('should throw descriptive error when reasoning-end is received without reasoning-start', async () => {
+    it('should lazily create reasoning part when reasoning-end is received without reasoning-start (resume stream)', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         { type: 'reasoning-end', id: 'reasoning-1' },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -366,30 +393,38 @@ describe('processUIMessageStream', () => {
         lastMessage: undefined,
       });
 
-      await expect(
-        consumeStream({
-          stream: processUIMessageStream({
-            stream,
-            runUpdateMessageJob,
-            onError: error => {
-              throw error;
-            },
-          }),
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
           onError: error => {
             throw error;
           },
         }),
-      ).rejects.toThrow(
-        'Received reasoning-end for missing reasoning part with ID "reasoning-1". ' +
-          'Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.',
+      });
+
+      // The reasoning part should have been lazily created and marked as done
+      const lastWrite = writeCalls[writeCalls.length - 1];
+      const reasoningParts = lastWrite.message.parts.filter(
+        p => p.type === 'reasoning',
       );
+      expect(reasoningParts).toHaveLength(1);
+      expect(reasoningParts[0]).toEqual({
+        type: 'reasoning',
+        text: '',
+        providerMetadata: undefined,
+        state: 'done',
+      });
     });
 
-    it('should throw UIMessageStreamError with correct properties for text-delta without text-start', async () => {
+    it('should lazily create text part when text-delta arrives with unknown ID (resume stream)', async () => {
       const stream = createUIMessageStream([
         { type: 'start', messageId: 'msg-123' },
         { type: 'start-step' },
         { type: 'text-delta', id: 'missing-id', delta: 'Hello' },
+        { type: 'text-end', id: 'missing-id' },
+        { type: 'finish-step' },
+        { type: 'finish' },
       ]);
 
       state = createStreamingUIMessageState({
@@ -397,29 +432,26 @@ describe('processUIMessageStream', () => {
         lastMessage: undefined,
       });
 
-      let caughtError: unknown;
-      try {
-        await consumeStream({
-          stream: processUIMessageStream({
-            stream,
-            runUpdateMessageJob,
-            onError: error => {
-              throw error;
-            },
-          }),
+      // Should not throw — lazily creates the text part
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
           onError: error => {
             throw error;
           },
-        });
-      } catch (error) {
-        caughtError = error;
-      }
+        }),
+      });
 
-      expect(UIMessageStreamError.isInstance(caughtError)).toBe(true);
-      expect((caughtError as UIMessageStreamError).chunkType).toBe(
-        'text-delta',
-      );
-      expect((caughtError as UIMessageStreamError).chunkId).toBe('missing-id');
+      const lastWrite = writeCalls[writeCalls.length - 1];
+      const textParts = lastWrite.message.parts.filter(p => p.type === 'text');
+      expect(textParts).toHaveLength(1);
+      expect(textParts[0]).toEqual({
+        type: 'text',
+        text: 'Hello',
+        providerMetadata: undefined,
+        state: 'done',
+      });
     });
 
     it('should throw UIMessageStreamError with correct properties for tool-input-delta without tool-input-start', async () => {
