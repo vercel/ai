@@ -1124,7 +1124,7 @@ describe('toResponseMessages', () => {
       `);
     });
 
-    it('should skip provider-executed approval response stages in the tool message', async () => {
+    it('should include provider-executed approval response stages in the tool message', async () => {
       const result = await toResponseMessages({
         content: [
           {
@@ -1184,6 +1184,75 @@ describe('toResponseMessages', () => {
                 "isAutomatic": undefined,
                 "toolCallId": "mcp-call-1",
                 "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "mcp-approval-1",
+                "approved": true,
+                "providerExecuted": true,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should keep provider-executed tool result stages in the assistant message only', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'mcp-call-1',
+            toolName: 'mcp_tool',
+            input: { query: 'test' },
+            providerExecuted: true,
+            dynamic: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'mcp-call-1',
+            toolName: 'mcp_tool',
+            input: { query: 'test' },
+            output: { value: 'provider result' },
+            providerExecuted: true,
+            dynamic: true,
+          },
+        ],
+        tools: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "query": "test",
+                },
+                "providerExecuted": true,
+                "providerOptions": undefined,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-call",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": {
+                    "value": "provider result",
+                  },
+                },
+                "providerOptions": undefined,
+                "toolCallId": "mcp-call-1",
+                "toolName": "mcp_tool",
+                "type": "tool-result",
               },
             ],
             "role": "assistant",

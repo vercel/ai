@@ -144,12 +144,9 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
   const toolResultContent: ToolContent = [];
   for (const part of inputContent) {
     if (
-      !(
-        part.type === 'tool-result' ||
-        part.type === 'tool-error' ||
-        part.type === 'tool-approval-response'
-      ) ||
-      part.providerExecuted
+      part.type !== 'tool-approval-response' &&
+      part.type !== 'tool-result' &&
+      part.type !== 'tool-error'
     ) {
       continue;
     }
@@ -162,6 +159,10 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         reason: part.reason,
         providerExecuted: part.providerExecuted,
       });
+      continue;
+    }
+
+    if (part.providerExecuted) {
       continue;
     }
 
