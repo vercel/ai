@@ -1,6 +1,6 @@
 import { JSONObject } from '@ai-sdk/provider';
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   FlexibleSchema,
   lazySchema,
   zodSchema,
@@ -36,7 +36,7 @@ export const toolSearchOutputSchema: FlexibleSchema<{
   ),
 ) as FlexibleSchema<{ tools: Array<JSONObject> }>;
 
-const toolSearchToolFactory = createProviderToolFactoryWithOutputSchema<
+const toolSearchToolFactory = createProviderExecutedToolFactory<
   {
     /**
      * The arguments from the tool_search_call.

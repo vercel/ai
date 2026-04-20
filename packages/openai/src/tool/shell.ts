@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -157,7 +157,7 @@ type ShellArgs = {
       };
 };
 
-export const shell = createProviderToolFactoryWithOutputSchema<
+export const shell = createProviderExecutedToolFactory<
   {
     /**
      * Shell tool action containing commands to execute.
