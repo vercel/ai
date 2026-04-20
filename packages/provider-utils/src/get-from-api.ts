@@ -31,7 +31,7 @@ export const getFromApi = async <T>({
       method: 'GET',
       headers: withUserAgentSuffix(
         headers,
-        `ai-sdk/provider-utils/${VERSION}`,
+        `ai-sdk-provider-utils/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),
       signal: abortSignal,
