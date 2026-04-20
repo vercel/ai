@@ -71,7 +71,7 @@
             "files": "${providerId}-provider.ts"
           },
           "must": {
-            "import": [
+            "importTypes": [
               {
                 "name": "ProviderV4",
                 "from": "@ai-sdk/provider"
@@ -101,6 +101,12 @@
             "files": "${providerId}-{modelKind:segments(1)}-model.ts"
           },
           "must": {
+            "importTypes": [
+              {
+                "name": "${modelKind.toPascalCase()}ModelV4",
+                "from": "@ai-sdk/provider"
+              }
+            ],
             "exportClasses": [
               {
                 "name": "${providerId.toPascalCase()}${modelKind.toPascalCase()}Model",
@@ -120,6 +126,12 @@
             "files": "${providerId}-{modelKind:segments(2)}-model.ts"
           },
           "must": {
+            "importTypes": [
+              {
+                "name": "${modelKind.toNthSegmentPascalCase(1)}ModelV4",
+                "from": "@ai-sdk/provider"
+              }
+            ],
             "exportClasses": [
               {
                 "name": "${providerId.toPascalCase()}${modelKind.toNthSegmentPascalCase(0)}${modelKind.toNthSegmentPascalCase(1)}Model",
@@ -138,6 +150,12 @@
             "files": "${providerId}-video-model.ts"
           },
           "must": {
+            "importTypes": [
+              {
+                "name": "Experimental_VideoModelV4",
+                "from": "@ai-sdk/provider"
+              }
+            ],
             "exportClasses": [
               {
                 "name": "${providerId.toPascalCase()}VideoModel",
