@@ -265,6 +265,13 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
               }
             }
 
+            // Skip empty assistant messages that arise when all block parts are
+            // unknown data parts with no convertDataPart handler provided.
+            if (content.length === 0) {
+              block = [];
+              return;
+            }
+
             modelMessages.push({
               role: 'assistant',
               content,
