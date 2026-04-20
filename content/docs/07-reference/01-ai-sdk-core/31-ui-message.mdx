@@ -117,6 +117,21 @@ type ReasoningUIPart = {
 };
 ```
 
+### `ToolCallState`
+
+A type representing the possible states of a tool invocation within a `ToolUIPart`.
+
+```typescript
+type ToolCallState =
+  | 'input-streaming'
+  | 'input-available'
+  | 'approval-requested'
+  | 'approval-responded'
+  | 'output-available'
+  | 'output-error'
+  | 'output-denied';
+```
+
 ### `ToolUIPart`
 
 A tool part of a message that represents tool invocations and their results.
