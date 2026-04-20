@@ -63,7 +63,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
         part =>
           !isToolUIPart(part) ||
           (part.state !== 'input-streaming' &&
-            part.state !== 'input-available'),
+            part.state !== 'input-available' &&
+            part.state !== 'approval-requested'),
       ),
     }));
   }
@@ -322,6 +323,33 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           ? { providerOptions: toolPart.callProviderMetadata }
                           : {}),
                       });
+                      break;
+                    }
+
+                    case 'approval-responded': {
+                      // For denied approvals, emit a tool-result so the
+                      // provider sees a complete tool_use + tool_result pair.
+                      if (!toolPart.approval.approved) {
+                        content.push({
+                          type: 'tool-result',
+                          toolCallId: toolPart.toolCallId,
+                          toolName: getToolName(toolPart),
+                          output: {
+                            type: 'error-text' as const,
+                            value:
+                              toolPart.approval.reason ??
+                              'Tool execution denied.',
+                          },
+                          ...(toolPart.callProviderMetadata != null
+                            ? {
+                                providerOptions: toolPart.callProviderMetadata,
+                              }
+                            : {}),
+                        });
+                      }
+                      // For approved tools, no tool-result is emitted here.
+                      // streamText's collectToolApprovals intercepts the
+                      // approval-response and executes the tool.
                       break;
                     }
 

@@ -2465,4 +2465,100 @@ describe('convertToLanguageModelMessage', () => {
       `);
     });
   });
+
+  describe('unresolved approved tool-calls', () => {
+    it('should strip approved tool-call with no matching tool-result', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_1',
+                  toolName: 'createIssue',
+                  input: { title: 'Foo' },
+                },
+                {
+                  type: 'tool-approval-request',
+                  toolCallId: 'call_1',
+                  approvalId: 'ap_1',
+                } as any,
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: 'ap_1',
+                  approved: true,
+                } as any,
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      // The approved tool-call has no matching tool-result, so the
+      // assistant message should be stripped entirely (empty after removal).
+      expect(result).toEqual([]);
+    });
+
+    it('should keep approved tool-call when matching tool-result exists', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_1',
+                  toolName: 'createIssue',
+                  input: { title: 'Foo' },
+                },
+                {
+                  type: 'tool-approval-request',
+                  toolCallId: 'call_1',
+                  approvalId: 'ap_1',
+                } as any,
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: 'ap_1',
+                  approved: true,
+                } as any,
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_1',
+                  toolName: 'createIssue',
+                  output: { type: 'text', value: 'done' },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      // tool-call is preserved because there's a matching tool-result
+      expect(result.some(m => m.role === 'assistant')).toBe(true);
+      const assistantContent = result.find(m => m.role === 'assistant')!
+        .content as any[];
+      expect(
+        assistantContent.some(
+          (p: any) => p.type === 'tool-call' && p.toolCallId === 'call_1',
+        ),
+      ).toBe(true);
+    });
+  });
 });
