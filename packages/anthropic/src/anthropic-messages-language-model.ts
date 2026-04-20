@@ -2321,6 +2321,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
               return;
             }
 
+            case 'vertex_event': {
+              // Vertex AI proxies emit vertex_event chunks with usage metadata.
+              // No content to process; safely ignore.
+              return;
+            }
+
             default: {
               const _exhaustiveCheck: never = value;
               throw new Error(`Unsupported chunk type: ${_exhaustiveCheck}`);
