@@ -226,10 +226,10 @@ export async function generateImage({
         if (providerName === 'gateway') {
           const currentEntry = providerMetadata[providerName];
           if (currentEntry != null && typeof currentEntry === 'object') {
-            providerMetadata[providerName] = {
-              ...(currentEntry as object),
-              ...metadata,
-            } as ImageModelV4ProviderMetadata[string];
+            providerMetadata[providerName] = mergeGatewayMetadata(
+              currentEntry as Record<string, unknown>,
+              metadata as Record<string, unknown>,
+            ) as ImageModelV4ProviderMetadata[string];
           } else {
             providerMetadata[providerName] =
               metadata as ImageModelV4ProviderMetadata[string];
@@ -266,6 +266,34 @@ export async function generateImage({
     providerMetadata,
     usage: totalUsage,
   });
+}
+
+/**
+ * Merges two gateway metadata objects, summing numeric values (like cost)
+ * instead of overwriting them.
+ */
+function mergeGatewayMetadata(
+  current: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged = { ...current, ...incoming };
+
+  for (const key of Object.keys(merged)) {
+    const currentValue = current[key];
+    const incomingValue = incoming[key];
+
+    // Sum numeric values that exist in both objects
+    if (currentValue != null && incomingValue != null) {
+      const currentNum = Number(currentValue);
+      const incomingNum = Number(incomingValue);
+
+      if (!isNaN(currentNum) && !isNaN(incomingNum)) {
+        merged[key] = currentNum + incomingNum;
+      }
+    }
+  }
+
+  return merged;
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {
