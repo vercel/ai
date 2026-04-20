@@ -455,7 +455,7 @@ describe('tool calls', () => {
     expect(result.messages).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -495,7 +495,7 @@ describe('tool calls', () => {
     expect(result.messages).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
+          "content": null,
           "role": "assistant",
           "tool_calls": [
             {
