@@ -6,6 +6,7 @@ export type {
   OnStepFinishEvent,
   OnStepStartEvent,
 } from './core-events';
+export { createTextStreamPartToUIMessageChunkTransform } from './create-text-stream-part-to-ui-message-chunk-transform';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export {
   generateText,
