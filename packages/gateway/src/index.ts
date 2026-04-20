@@ -21,6 +21,7 @@ export {
   createGatewayProvider as createGateway,
   gateway,
 } from './gateway-provider';
+export { gatewayTools } from './gateway-tools';
 export type {
   GatewayProvider,
   GatewayProviderSettings,

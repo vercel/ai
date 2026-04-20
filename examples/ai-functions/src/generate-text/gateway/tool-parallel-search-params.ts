@@ -1,4 +1,4 @@
-import { gateway, generateText } from 'ai';
+import { gatewayTools, generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -6,7 +6,7 @@ async function main() {
     model: 'openai/gpt-5-nano',
     prompt: `Search for the latest research on quantum computing breakthroughs.`,
     tools: {
-      parallel_search: gateway.tools.parallelSearch({
+      parallel_search: gatewayTools.parallelSearch({
         mode: 'agentic',
         maxResults: 5,
         sourcePolicy: {

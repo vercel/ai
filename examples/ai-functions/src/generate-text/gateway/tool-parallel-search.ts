@@ -1,4 +1,4 @@
-import { gateway, generateText } from 'ai';
+import { gatewayTools, generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
@@ -7,7 +7,7 @@ async function main() {
     prompt:
       'Use the parallelSearch tool to find current information about renewable energy developments in 2025. You must search the web first before answering.',
     tools: {
-      parallel_search: gateway.tools.parallelSearch(),
+      parallel_search: gatewayTools.parallelSearch(),
     },
   });
 
