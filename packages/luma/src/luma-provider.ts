@@ -1,4 +1,8 @@
-import { ImageModelV4, NoSuchModelError, ProviderV4 } from '@ai-sdk/provider';
+import {
+  type ImageModelV4,
+  NoSuchModelError,
+  type ProviderV4,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,

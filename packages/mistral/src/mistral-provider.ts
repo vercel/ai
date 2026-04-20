@@ -1,8 +1,8 @@
 import {
-  EmbeddingModelV4,
-  LanguageModelV4,
+  type EmbeddingModelV4,
+  type LanguageModelV4,
   NoSuchModelError,
-  ProviderV4,
+  type ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,

@@ -1,7 +1,7 @@
 import {
-  LanguageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
   NoSuchModelError,
-  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,

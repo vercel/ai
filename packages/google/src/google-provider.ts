@@ -1,4 +1,4 @@
-import {
+import type {
   EmbeddingModelV4,
   Experimental_VideoModelV4,
   FilesV4,

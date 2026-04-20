@@ -1,7 +1,7 @@
 import {
-  ImageModelV4,
-  ImageModelV4File,
-  SharedV4Warning,
+  type ImageModelV4,
+  type ImageModelV4File,
+  type SharedV4Warning,
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
 import {

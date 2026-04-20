@@ -35,7 +35,7 @@ import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
-import {
+import type {
   LanguageModelV4,
   EmbeddingModelV4,
   ImageModelV4,

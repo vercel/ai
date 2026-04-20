@@ -1,7 +1,7 @@
 import {
-  TranscriptionModelV4,
-  SpeechModelV4,
-  ProviderV4,
+  type TranscriptionModelV4,
+  type SpeechModelV4,
+  type ProviderV4,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import {

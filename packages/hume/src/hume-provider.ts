@@ -1,4 +1,4 @@
-import { SpeechModelV4, ProviderV4 } from '@ai-sdk/provider';
+import type { SpeechModelV4, ProviderV4 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,

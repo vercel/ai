@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV4,
+  type EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
