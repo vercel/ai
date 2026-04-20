@@ -1,4 +1,4 @@
-import { RerankingModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type { RerankingModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
