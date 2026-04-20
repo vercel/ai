@@ -1743,9 +1743,20 @@ class DefaultStreamTextResult<
 
                   const chunkType = chunk.type;
                   switch (chunkType) {
-                    case 'tool-approval-request':
+                    case 'file':
+                    case 'custom':
+                    case 'source':
                     case 'text-start':
-                    case 'text-end': {
+                    case 'text-end':
+                    case 'reasoning-start':
+                    case 'reasoning-end':
+                    case 'reasoning-delta':
+                    case 'reasoning-file':
+                    case 'tool-input-start':
+                    case 'tool-input-end':
+                    case 'tool-input-delta':
+                    case 'tool-approval-request':
+                    case 'tool-approval-response': {
                       controller.enqueue(chunk);
                       break;
                     }
@@ -1754,22 +1765,6 @@ class DefaultStreamTextResult<
                       if (chunk.text.length > 0) {
                         controller.enqueue(chunk);
                       }
-                      break;
-                    }
-
-                    case 'reasoning-start':
-                    case 'reasoning-end': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'custom': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'reasoning-delta': {
-                      controller.enqueue(chunk);
                       break;
                     }
 
@@ -1827,24 +1822,6 @@ class DefaultStreamTextResult<
                         },
                       });
 
-                      break;
-                    }
-
-                    case 'file':
-                    case 'reasoning-file': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'source': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'tool-input-start':
-                    case 'tool-input-end':
-                    case 'tool-input-delta': {
-                      controller.enqueue(chunk);
                       break;
                     }
 

@@ -532,6 +532,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamToolErrorPart<TOOLS>
   | TextStreamToolOutputDeniedPart<TOOLS>
   | TextStreamToolApprovalRequestPart<TOOLS>
+  | TextStreamToolApprovalResponsePart<TOOLS>
   | TextStreamStartStepPart
   | TextStreamFinishStepPart
   | TextStreamStartPart
