@@ -1,0 +1,136 @@
+---
+title: 'Sardis'
+description: 'Learn how to use the Sardis AI SDK provider for policy-controlled agent payments.'
+---
+
+# Sardis
+
+[Sardis](https://sardis.sh) is the Payment OS for the Agent Economy. The [`@sardis/ai-sdk`](https://www.npmjs.com/package/@sardis/ai-sdk) package provides Vercel AI SDK-compatible tools that let your AI agents make real financial transactions safely, enforced by spending policies.
+
+- Policy-controlled payments with configurable guardrails
+- Non-custodial MPC wallets via Turnkey
+- Multi-chain USDC/USDT support (Base, Polygon, Ethereum, Arbitrum, Optimism)
+- Works with `generateText`, `streamText`, and agentic tool loops
+- Full TypeScript support
+
+## Setup
+
+The Sardis provider is available in the `@sardis/ai-sdk` module:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @sardis/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @sardis/ai-sdk" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @sardis/ai-sdk" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+```ts
+import { createSardisTools } from '@sardis/ai-sdk';
+
+const tools = createSardisTools({
+  apiKey: process.env.SARDIS_API_KEY!,
+  walletId: 'wal_abc123',
+  maxPaymentAmount: 100,
+  blockedCategories: ['gambling'],
+});
+```
+
+## Example
+
+### `generateText`
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { createSardisTools } from '@sardis/ai-sdk';
+
+const tools = createSardisTools({
+  apiKey: process.env.SARDIS_API_KEY!,
+  walletId: 'wal_abc123',
+});
+
+const { text, toolResults } = await generateText({
+  model: openai('gpt-4o'),
+  tools,
+  prompt: 'Check my balance and pay $25 to OpenAI for API credits',
+});
+```
+
+### `streamText`
+
+```ts
+import { streamText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { createSardisTools } from '@sardis/ai-sdk';
+
+const tools = createSardisTools({
+  apiKey: process.env.SARDIS_API_KEY!,
+  walletId: 'wal_abc123',
+});
+
+const { textStream } = streamText({
+  model: anthropic('claude-sonnet-4-6'),
+  tools,
+  prompt: 'Pay $10 to OpenAI for API credits',
+});
+
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Configuration
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `apiKey` | `string` | Sardis API key (required) |
+| `walletId` | `string` | Wallet ID to use (required) |
+| `agentId` | `string` | Agent ID (auto-resolved from wallet if omitted) |
+| `simulationMode` | `boolean` | Test without real transactions |
+| `maxPaymentAmount` | `number` | Maximum single payment amount |
+| `blockedCategories` | `string[]` | Merchant categories to block |
+| `allowedMerchants` | `string[]` | Whitelist of allowed merchants |
+
+## Available Tools
+
+| Tool | Description |
+| --- | --- |
+| `sardis_pay` | Execute a payment from the wallet |
+| `sardis_create_hold` | Pre-authorize funds for a future payment |
+| `sardis_capture_hold` | Capture a previously created hold |
+| `sardis_void_hold` | Cancel a hold and release funds |
+| `sardis_check_policy` | Check if a payment would be allowed |
+| `sardis_get_balance` | Get current wallet balance |
+| `sardis_get_spending` | Get spending summary |
+
+## Tool Presets
+
+```ts
+import {
+  createSardisTools,
+  createMinimalSardisTools,
+  createReadOnlySardisTools,
+} from '@sardis/ai-sdk';
+
+// Full tool suite (7 tools)
+const allTools = createSardisTools(config);
+
+// Minimal (pay + balance only)
+const minimalTools = createMinimalSardisTools(config);
+
+// Read-only (balance + policy + spending)
+const readOnlyTools = createReadOnlySardisTools(config);
+```
+
+## More Information
+
+- [Sardis Documentation](https://sardis.sh/docs)
+- [npm: @sardis/ai-sdk](https://www.npmjs.com/package/@sardis/ai-sdk)
+- [GitHub](https://github.com/EfeDurmaz16/sardis)
