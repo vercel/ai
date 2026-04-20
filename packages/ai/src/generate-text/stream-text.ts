@@ -83,6 +83,8 @@ import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import type {
+  ModelCallEndEvent,
+  ModelCallStartEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
@@ -248,6 +250,26 @@ export type StreamTextOnStepStartCallback<
 > = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
 
 /**
+ * Callback that is set using the `experimental_onModelCallStart` option.
+ *
+ * Called immediately before the provider model call begins.
+ *
+ * @param event - The event object containing model-call-specific inputs.
+ */
+export type StreamTextOnModelCallStartCallback = Callback<ModelCallStartEvent>;
+
+/**
+ * Callback that is set using the `experimental_onModelCallEnd` option.
+ *
+ * Called after the model response has been normalized and parsed, but before
+ * any client-side tool execution begins.
+ *
+ * @param event - The event object containing model-call-specific outputs.
+ */
+export type StreamTextOnModelCallEndCallback<TOOLS extends ToolSet = ToolSet> =
+  Callback<ModelCallEndEvent<TOOLS>>;
+
+/**
  * Generate a text and call tools for a given prompt using a language model.
  *
  * This function streams the output. If you do not want to stream the output, use `generateText` instead.
@@ -331,6 +353,8 @@ export function streamText<
   onStepFinish,
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
+  experimental_onModelCallStart: onModelCallStart,
+  experimental_onModelCallEnd: onModelCallEnd,
   experimental_onToolExecutionStart: onToolExecutionStart,
   experimental_onToolExecutionEnd: onToolExecutionEnd,
   runtimeContext = {} as RUNTIME_CONTEXT,
@@ -505,6 +529,19 @@ export function streamText<
     >;
 
     /**
+     * Callback that is called immediately before the provider model call begins.
+     */
+    experimental_onModelCallStart?: StreamTextOnModelCallStartCallback;
+
+    /**
+     * Callback that is called after the model response has been normalized and parsed,
+     * but before any client-side tool execution begins.
+     */
+    experimental_onModelCallEnd?: StreamTextOnModelCallEndCallback<
+      NoInfer<TOOLS>
+    >;
+
+    /**
      * Callback that is called right before a tool's execute function runs.
      */
     experimental_onToolExecutionStart?: OnToolExecutionStartCallback<
@@ -591,6 +628,8 @@ export function streamText<
     onStepFinish,
     onStart,
     onStepStart,
+    onModelCallStart,
+    onModelCallEnd,
     onToolExecutionStart,
     onToolExecutionEnd,
     now,
@@ -778,6 +817,8 @@ class DefaultStreamTextResult<
     onStepFinish,
     onStart,
     onStepStart,
+    onModelCallStart,
+    onModelCallEnd,
     onToolExecutionStart,
     onToolExecutionEnd,
     runtimeContext,
@@ -854,6 +895,10 @@ class DefaultStreamTextResult<
           NoInfer<RUNTIME_CONTEXT>,
           NoInfer<OUTPUT>
         >;
+    onModelCallStart: undefined | StreamTextOnModelCallStartCallback;
+    onModelCallEnd:
+      | undefined
+      | StreamTextOnModelCallEndCallback<NoInfer<TOOLS>>;
     onToolExecutionStart: undefined | OnToolExecutionStartCallback<TOOLS>;
     onToolExecutionEnd: undefined | OnToolExecutionEndCallback<TOOLS>;
   }) {
@@ -1639,6 +1684,22 @@ class DefaultStreamTextResult<
                         >,
                   ],
                 });
+
+                await notify({
+                  event: {
+                    callId,
+                    provider: stepModel.provider,
+                    modelId: stepModel.modelId,
+                    messages: stepMessages,
+                    stepTools,
+                  },
+                  callbacks: [
+                    onModelCallStart,
+                    unifiedTelemetry.onModelCallStart as
+                      | undefined
+                      | StreamTextOnModelCallStartCallback,
+                  ],
+                });
               },
               ...callSettings,
             }),
@@ -1676,6 +1737,12 @@ class DefaultStreamTextResult<
                 onToolExecutionEnd,
                 unifiedTelemetry.onToolExecutionEnd as
                   | OnToolExecutionEndCallback<TOOLS>
+                  | undefined,
+              ),
+              onModelCallEnd: filterNullable(
+                onModelCallEnd,
+                unifiedTelemetry.onModelCallEnd as
+                  | StreamTextOnModelCallEndCallback<TOOLS>
                   | undefined,
               ),
               executeToolInTelemetryContext: unifiedTelemetry.executeTool,

@@ -12,6 +12,8 @@ import type {
   ObjectOnStepStartEvent,
 } from '../generate-object/structured-output-events';
 import type {
+  ModelCallEndEvent,
+  ModelCallStartEvent,
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -56,6 +58,19 @@ export interface Telemetry {
    * and the messages that will be sent to the model.
    */
   onStepStart?: Callback<OnStepStartEvent>;
+
+  /**
+   * Called immediately before the provider model call begins.
+   * Unlike `onStepStart`, this callback is scoped to model work only and
+   * excludes any later client-side tool execution.
+   */
+  onModelCallStart?: Callback<ModelCallStartEvent>;
+
+  /**
+   * Called after the model response has been normalized and parsed, but before
+   * any client-side tool execution begins.
+   */
+  onModelCallEnd?: Callback<ModelCallEndEvent>;
 
   /**
    * Called when a tool execution begins, before the tool's `execute` function

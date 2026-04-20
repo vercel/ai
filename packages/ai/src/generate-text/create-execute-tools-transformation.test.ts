@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
+import { ModelCallEndEvent } from './core-events';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import { LanguageModelStreamPart } from './stream-language-model-call';
 import {
@@ -258,6 +259,106 @@ describe('createExecuteToolsTransformation', () => {
   });
 
   describe('onToolExecutionStart and onToolExecutionEnd callbacks', () => {
+    it('should call onModelCallEnd before starting tool execution', async () => {
+      const tools = {
+        testTool: tool({
+          inputSchema: z.object({ value: z.string() }),
+          execute: async ({ value }) => `${value}-result`,
+        }),
+      };
+
+      const callOrder: string[] = [];
+      const modelCallEndEvents: ModelCallEndEvent<typeof tools>[] = [];
+
+      const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+        convertArrayToReadableStream([
+          {
+            type: 'text-delta',
+            id: 'text-1',
+            text: 'Hello ',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: { value: 'hello' },
+          },
+          {
+            type: 'model-call-response-metadata',
+            id: 'response-1',
+            timestamp: new Date('2025-01-01T00:00:00.000Z'),
+            modelId: 'response-model',
+          },
+          finishChunk,
+        ]);
+
+      const transformedStream = inputStream.pipeThrough(
+        createExecuteToolsTransformation({
+          generateId: mockId({ prefix: 'id' }),
+          tools,
+          telemetry: undefined,
+          callId: 'test-telemetry-call-id',
+          messages: [],
+          timeout: undefined,
+          abortSignal: undefined,
+          toolsContext: {},
+          provider: 'test-provider',
+          modelId: 'test-model',
+          onModelCallEnd: async event => {
+            callOrder.push('onModelCallEnd');
+            modelCallEndEvents.push(event);
+          },
+          onToolExecutionStart: async () => {
+            callOrder.push('onToolExecutionStart');
+          },
+        }),
+      );
+
+      await convertReadableStreamToArray(transformedStream);
+
+      expect(callOrder).toEqual(['onModelCallEnd', 'onToolExecutionStart']);
+      expect(modelCallEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "files": [],
+            "finishReason": "stop",
+            "modelId": "test-model",
+            "provider": "test-provider",
+            "reasoning": [],
+            "text": "Hello ",
+            "toolCalls": [
+              {
+                "input": {
+                  "value": "hello",
+                },
+                "toolCallId": "call-1",
+                "toolName": "testTool",
+                "type": "tool-call",
+              },
+            ],
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+    });
+
     it('should call onToolExecutionStart before tool execution and onToolExecutionEnd after', async () => {
       const tools = {
         testTool: tool({

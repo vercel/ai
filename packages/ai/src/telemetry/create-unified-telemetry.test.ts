@@ -15,6 +15,8 @@ describe('createUnifiedTelemetry', () => {
 
     expect(telemetry.onStart).toBeDefined();
     expect(telemetry.onStepStart).toBeDefined();
+    expect(telemetry.onModelCallStart).toBeDefined();
+    expect(telemetry.onModelCallEnd).toBeDefined();
     expect(telemetry.onToolExecutionStart).toBeDefined();
     expect(telemetry.onToolExecutionEnd).toBeDefined();
     expect(telemetry.onChunk).toBeDefined();
@@ -123,6 +125,8 @@ describe('createUnifiedTelemetry', () => {
     const integration: Telemetry = {
       onStart: vi.fn(),
       onStepStart: vi.fn(),
+      onModelCallStart: vi.fn(),
+      onModelCallEnd: vi.fn(),
       onToolExecutionStart: vi.fn(),
       onToolExecutionEnd: vi.fn(),
       onChunk: vi.fn(),
@@ -141,6 +145,8 @@ describe('createUnifiedTelemetry', () => {
 
     await telemetry.onStart!(dummyEvent);
     await telemetry.onStepStart!(dummyEvent);
+    await telemetry.onModelCallStart!(dummyEvent);
+    await telemetry.onModelCallEnd!(dummyEvent);
     await telemetry.onToolExecutionStart!(dummyEvent);
     await telemetry.onToolExecutionEnd!(dummyEvent);
     await telemetry.onChunk!(dummyEvent);
@@ -156,6 +162,8 @@ describe('createUnifiedTelemetry', () => {
 
     expect(integration.onStart).toHaveBeenCalledOnce();
     expect(integration.onStepStart).toHaveBeenCalledOnce();
+    expect(integration.onModelCallStart).toHaveBeenCalledOnce();
+    expect(integration.onModelCallEnd).toHaveBeenCalledOnce();
     expect(integration.onToolExecutionStart).toHaveBeenCalledOnce();
     expect(integration.onToolExecutionEnd).toHaveBeenCalledOnce();
     expect(integration.onChunk).toHaveBeenCalledOnce();

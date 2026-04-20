@@ -60,6 +60,8 @@ import { VERSION } from '../version';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
 import type {
+  ModelCallEndEvent,
+  ModelCallStartEvent,
   OnFinishEvent,
   OnStartEvent,
   OnStepFinishEvent,
@@ -135,6 +137,28 @@ export type GenerateTextOnStepStartCallback<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output,
 > = Callback<OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT>>;
+
+/**
+ * Callback that is set using the `experimental_onModelCallStart` option.
+ *
+ * Called immediately before the provider model call begins.
+ *
+ * @param event - The event object containing model-call-specific inputs.
+ */
+export type GenerateTextOnModelCallStartCallback =
+  Callback<ModelCallStartEvent>;
+
+/**
+ * Callback that is set using the `experimental_onModelCallEnd` option.
+ *
+ * Called after the model response has been normalized and parsed, but before
+ * any client-side tool execution begins.
+ *
+ * @param event - The event object containing model-call-specific outputs.
+ */
+export type GenerateTextOnModelCallEndCallback<
+  TOOLS extends ToolSet = ToolSet,
+> = Callback<ModelCallEndEvent<TOOLS>>;
 
 /**
  * Callback that is set using the `onStepFinish` option.
@@ -252,6 +276,8 @@ export async function generateText<
   } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
+  experimental_onModelCallStart: onModelCallStart,
+  experimental_onModelCallEnd: onModelCallEnd,
   experimental_onToolExecutionStart: onToolExecutionStart,
   experimental_onToolExecutionEnd: onToolExecutionEnd,
   onStepFinish,
@@ -357,6 +383,19 @@ export async function generateText<
       NoInfer<TOOLS>,
       NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
+    >;
+
+    /**
+     * Callback that is called immediately before the provider model call begins.
+     */
+    experimental_onModelCallStart?: GenerateTextOnModelCallStartCallback;
+
+    /**
+     * Callback that is called after the model response has been normalized and parsed,
+     * but before any client-side tool execution begins.
+     */
+    experimental_onModelCallEnd?: GenerateTextOnModelCallEndCallback<
+      NoInfer<TOOLS>
     >;
 
     /**
@@ -669,11 +708,12 @@ export async function generateText<
           providerOptions,
           prepareStepResult?.providerOptions,
         );
+        const stepNumber = steps.length;
 
         await notify({
           event: {
             callId,
-            stepNumber: steps.length,
+            stepNumber,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             system: stepSystem,
@@ -699,6 +739,22 @@ export async function generateText<
             unifiedTelemetry.onStepStart as
               | undefined
               | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+          ],
+        });
+
+        await notify({
+          event: {
+            callId,
+            provider: stepModel.provider,
+            modelId: stepModel.modelId,
+            messages: stepMessages,
+            stepTools,
+          },
+          callbacks: [
+            onModelCallStart,
+            unifiedTelemetry.onModelCallStart as
+              | undefined
+              | GenerateTextOnModelCallStartCallback,
           ],
         });
 
@@ -746,6 +802,40 @@ export async function generateText<
           string,
           ToolApprovalRequestOutput<TOOLS>
         > = {};
+        const modelCallContent = asContent({
+          content: currentModelResponse.content,
+          toolCalls: stepToolCalls,
+          toolOutputs: [],
+          toolApprovalRequests: [],
+          tools,
+        });
+
+        await notify({
+          event: {
+            callId,
+            provider: stepModel.provider,
+            modelId: stepModel.modelId,
+            finishReason: currentModelResponse.finishReason.unified,
+            usage: asLanguageModelUsage(currentModelResponse.usage),
+            text: modelCallContent
+              .filter(part => part.type === 'text')
+              .map(part => part.text)
+              .join(''),
+            reasoning: modelCallContent.flatMap(part =>
+              part.type === 'reasoning' ? [{ text: part.text }] : [],
+            ),
+            files: modelCallContent
+              .filter(part => part.type === 'file')
+              .map(part => part.file),
+            toolCalls: stepToolCalls,
+          },
+          callbacks: [
+            onModelCallEnd,
+            unifiedTelemetry.onModelCallEnd as
+              | undefined
+              | GenerateTextOnModelCallEndCallback<TOOLS>,
+          ],
+        });
 
         // notify the tools that the tool calls are available:
         for (const toolCall of stepToolCalls) {
@@ -827,7 +917,7 @@ export async function generateText<
               abortSignal: mergedAbortSignal,
               timeout,
               toolsContext,
-              stepNumber: steps.length,
+              stepNumber,
               provider: stepModel.provider,
               modelId: stepModel.modelId,
               onToolExecutionStart: event =>
@@ -919,8 +1009,6 @@ export async function generateText<
               ? currentModelResponse.response?.body
               : undefined,
         };
-
-        const stepNumber = steps.length;
 
         const currentStepResult: StepResult<TOOLS, RUNTIME_CONTEXT> =
           new DefaultStepResult({

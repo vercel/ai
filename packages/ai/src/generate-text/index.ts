@@ -1,5 +1,7 @@
 export type { ContentPart } from './content-part';
 export type {
+  ModelCallEndEvent,
+  ModelCallStartEvent,
   OnChunkEvent,
   OnFinishEvent,
   OnStartEvent,
@@ -10,6 +12,8 @@ export { filterActiveTools as experimental_filterActiveTools } from './filter-ac
 export {
   generateText,
   type GenerateTextOnFinishCallback,
+  type GenerateTextOnModelCallEndCallback,
+  type GenerateTextOnModelCallStartCallback,
   type GenerateTextOnStartCallback,
   type GenerateTextOnStepFinishCallback,
   type GenerateTextOnStepStartCallback,
@@ -51,6 +55,8 @@ export {
   type StreamTextOnChunkCallback,
   type StreamTextOnErrorCallback,
   type StreamTextOnFinishCallback,
+  type StreamTextOnModelCallEndCallback,
+  type StreamTextOnModelCallStartCallback,
   type StreamTextOnStartCallback,
   type StreamTextOnStepFinishCallback,
   type StreamTextOnStepStartCallback,

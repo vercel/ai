@@ -1,13 +1,17 @@
-import type { Arrayable, ToolSet } from '@ai-sdk/provider-utils';
-import {
-  IdGenerator,
+import type {
+  Arrayable,
   InferToolSetContext,
-  ModelMessage,
+  ToolSet,
 } from '@ai-sdk/provider-utils';
+import { IdGenerator, ModelMessage } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry } from '../telemetry/telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
+import type { Callback } from '../util/callback';
+import { notify } from '../util/notify';
+import type { ModelCallEndEvent } from './core-events';
 import { executeToolCall } from './execute-tool-call';
+import type { GeneratedFile } from './generated-file';
 import { isToolApprovalNeeded } from './is-tool-approval-needed';
 import { LanguageModelStreamPart } from './stream-language-model-call';
 import { ToolApprovalConfiguration } from './tool-approval-configuration';
@@ -30,6 +34,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   stepNumber,
   provider,
   modelId,
+  onModelCallEnd,
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
@@ -46,6 +51,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   stepNumber?: number;
   provider?: string;
   modelId?: string;
+  onModelCallEnd?: Arrayable<Callback<ModelCallEndEvent<TOOLS>>>;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
@@ -54,6 +60,11 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   LanguageModelStreamPart<TOOLS>
 > {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
+  const modelToolCalls: Array<TypedToolCall<TOOLS>> = [];
+  const modelFiles: Array<GeneratedFile> = [];
+  const modelReasoning: Array<{ text?: string }> = [];
+  let modelText = '';
+  let responseModelId = modelId ?? '';
 
   // forward stream
   return new TransformStream<
@@ -75,6 +86,8 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
           if (chunk.invalid) {
             break;
           }
+
+          modelToolCalls.push(chunk);
 
           const tool = tools?.[chunk.toolName];
 
@@ -109,7 +122,52 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
           break;
         }
 
+        case 'text-delta': {
+          modelText += chunk.text;
+          break;
+        }
+
+        case 'reasoning-start': {
+          modelReasoning.push({ text: '' });
+          break;
+        }
+
+        case 'reasoning-delta': {
+          const lastReasoning = modelReasoning.at(-1);
+          if (lastReasoning == null) {
+            modelReasoning.push({ text: chunk.text });
+          } else {
+            lastReasoning.text = `${lastReasoning.text ?? ''}${chunk.text}`;
+          }
+          break;
+        }
+
+        case 'file': {
+          modelFiles.push(chunk.file);
+          break;
+        }
+
+        case 'model-call-response-metadata': {
+          responseModelId = chunk.modelId ?? responseModelId;
+          break;
+        }
+
         case 'model-call-end': {
+          await notify({
+            event: {
+              callId,
+              provider: provider ?? '',
+              modelId: modelId ?? responseModelId,
+              finishReason: chunk.finishReason,
+              usage: chunk.usage,
+              text: modelText,
+              reasoning: modelReasoning,
+              files: modelFiles,
+              toolCalls: modelToolCalls,
+            },
+            callbacks: onModelCallEnd,
+          });
+
           await Promise.all(
             toolCallsToExecute.map(async toolCall => {
               try {
