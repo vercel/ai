@@ -190,6 +190,24 @@ function appendLegacyToolResultParts(
   }
 }
 
+/* Recursively strips $ref and $defs keys from plain objects/arrays before sending as functionResponse.response.content — Gemini's proto parser treats $ref string values as references to declared function names and returns a 400 INVALID_ARGUMENT when they don't match, which happens when a tool result contains a JSON Schema (e.g. from z.toJSONSchema() with z.lazy()); non-plain values (Date, Map, Set, class instances, etc.) are left untouched rather than being silently flattened by Object.entries/fromEntries. */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== 'object' || value === null) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function sanitizeFunctionResponseContent(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizeFunctionResponseContent);
+  if (!isPlainObject(value)) return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (key === '$ref' || key === '$defs') continue;
+    out[key] = sanitizeFunctionResponseContent(val);
+  }
+  return out;
+}
+
 export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
@@ -592,7 +610,7 @@ export function convertToGoogleMessages(
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                      : sanitizeFunctionResponseContent(output.value),
                 },
               },
             });
