@@ -42,9 +42,9 @@ run(async () => {
     const result = streamText({
       model: openai('gpt-5-mini'),
       // context engineering required to make sure the model does not retry
-      // the tool execution if it is not approved:
+      // the tool execution if it is not approved for a particular tool call:
       system:
-        'When a tool execution is not approved by the user, do not retry it.' +
+        'When a tool execution is not approved by the user for a particular tool call, do not retry it.' +
         'Just say that the tool execution was not approved.',
       tools: { weather: weatherTool },
       toolApproval: {

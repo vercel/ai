@@ -21153,45 +21153,45 @@ describe('streamText', () => {
           model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
               prompts.push(prompt);
-              step++;
+              switch (step++) {
+                case 0:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'stream-start', warnings: [] },
+                      {
+                        type: 'tool-call',
+                        toolCallType: 'function',
+                        toolCallId: 'call-1',
+                        toolName: 'tool1',
+                        input: `{ "value": "value" }`,
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
 
-              if (step === 1) {
-                return {
-                  stream: convertArrayToReadableStream([
-                    { type: 'stream-start', warnings: [] },
-                    {
-                      type: 'tool-call',
-                      toolCallType: 'function',
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      input: `{ "value": "value" }`,
-                    },
-                    {
-                      type: 'finish',
-                      finishReason: { unified: 'tool-calls', raw: undefined },
-                      usage: testUsage,
-                    },
-                  ]),
-                };
+                default:
+                  return {
+                    stream: convertArrayToReadableStream([
+                      { type: 'stream-start', warnings: [] },
+                      { type: 'text-start', id: '1' },
+                      {
+                        type: 'text-delta',
+                        id: '1',
+                        delta: 'Hello, world!',
+                      },
+                      { type: 'text-end', id: '1' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage,
+                      },
+                    ]),
+                  };
               }
-
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'stream-start', warnings: [] },
-                  { type: 'text-start', id: '1' },
-                  {
-                    type: 'text-delta',
-                    id: '1',
-                    delta: 'Hello, world!',
-                  },
-                  { type: 'text-end', id: '1' },
-                  {
-                    type: 'finish',
-                    finishReason: { unified: 'stop', raw: 'stop' },
-                    usage: testUsage,
-                  },
-                ]),
-              };
             },
           }),
           prompt: 'test-input',
@@ -21279,6 +21279,65 @@ describe('streamText', () => {
                 "role": "tool",
               },
             ],
+          ]
+        `);
+      });
+
+      it('should produce response messages', async () => {
+        expect((await result.response).messages).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "input": {
+                    "value": "value",
+                  },
+                  "providerExecuted": undefined,
+                  "providerOptions": undefined,
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-call",
+                },
+                {
+                  "approvalId": "id-1",
+                  "isAutomatic": true,
+                  "toolCallId": "call-1",
+                  "type": "tool-approval-request",
+                },
+              ],
+              "role": "assistant",
+            },
+            {
+              "content": [
+                {
+                  "approvalId": "id-1",
+                  "approved": false,
+                  "providerExecuted": undefined,
+                  "reason": undefined,
+                  "type": "tool-approval-response",
+                },
+                {
+                  "output": {
+                    "reason": undefined,
+                    "type": "execution-denied",
+                  },
+                  "toolCallId": "call-1",
+                  "toolName": "tool1",
+                  "type": "tool-result",
+                },
+              ],
+              "role": "tool",
+            },
+            {
+              "content": [
+                {
+                  "providerOptions": undefined,
+                  "text": "Hello, world!",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
           ]
         `);
       });
