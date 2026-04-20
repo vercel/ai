@@ -282,6 +282,11 @@ export type Tool<
         id: `${string}.${string}`;
 
         /**
+         * Flag that indicates whether the tool is executed by the provider.
+         */
+        isProviderExecuted: boolean;
+
+        /**
          * The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
          */
         args: Record<string, unknown>;
