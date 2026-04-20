@@ -1074,4 +1074,196 @@ describe('extractReasoningMiddleware', () => {
       expect(reasoningEndIndex).toBeGreaterThan(reasoningStartIndex);
     });
   });
+
+  describe('custom openingTag / closingTag (e.g. Gemma 4)', () => {
+    const gemmaMiddleware = extractReasoningMiddleware({
+      tagName: { opening: '<|channel>thought\n', closing: '<channel|>' },
+    });
+
+    describe('wrapGenerate', () => {
+      it('should extract reasoning using custom tags', async () => {
+        const mockModel = new MockLanguageModelV4({
+          async doGenerate() {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: '<|channel>thought\nanalyzing the request<channel|>Here is the response',
+                },
+              ],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            };
+          },
+        });
+
+        const result = await generateText({
+          model: wrapLanguageModel({
+            model: mockModel,
+            middleware: gemmaMiddleware,
+          }),
+          prompt: 'Hello',
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "analyzing the request",
+              "type": "reasoning",
+            },
+            {
+              "text": "Here is the response",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should handle empty reasoning block (thinking disabled)', async () => {
+        const mockModel = new MockLanguageModelV4({
+          async doGenerate() {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: '<|channel>thought\n<channel|>Final answer',
+                },
+              ],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            };
+          },
+        });
+
+        const result = await generateText({
+          model: wrapLanguageModel({
+            model: mockModel,
+            middleware: gemmaMiddleware,
+          }),
+          prompt: 'Hello',
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "",
+              "type": "reasoning",
+            },
+            {
+              "text": "Final answer",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+    });
+
+    describe('wrapStream', () => {
+      it('should extract reasoning using custom tags in a stream', async () => {
+        const mockModel = new MockLanguageModelV4({
+          async doStream() {
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '<|channel>thought\n' },
+                { type: 'text-delta', id: '1', delta: 'analyzing' },
+                { type: 'text-delta', id: '1', delta: ' the request' },
+                { type: 'text-delta', id: '1', delta: '<channel|>' },
+                { type: 'text-delta', id: '1', delta: 'Here is the response' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        });
+
+        const result = streamText({
+          model: wrapLanguageModel({
+            model: mockModel,
+            middleware: gemmaMiddleware,
+          }),
+          prompt: 'Hello',
+        });
+
+        const parts = await convertAsyncIterableToArray(result.fullStream);
+        const types = parts.map(p => p.type);
+
+        expect(types).toContain('reasoning-start');
+        expect(types).toContain('reasoning-delta');
+        expect(types).toContain('reasoning-end');
+        expect(types).toContain('text-delta');
+
+        const reasoningDeltas = parts
+          .filter(p => p.type === 'reasoning-delta')
+          .map(p => (p as { type: 'reasoning-delta'; text: string }).text)
+          .join('');
+        expect(reasoningDeltas).toBe('analyzing the request');
+
+        const textDeltas = parts
+          .filter(p => p.type === 'text-delta')
+          .map(p => (p as { type: 'text-delta'; text: string }).text)
+          .join('');
+        expect(textDeltas).toBe('Here is the response');
+      });
+
+      it('should handle empty reasoning block in stream (thinking disabled)', async () => {
+        const mockModel = new MockLanguageModelV4({
+          async doStream() {
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: '<|channel>thought\n' },
+                { type: 'text-delta', id: '1', delta: '<channel|>' },
+                { type: 'text-delta', id: '1', delta: 'Final answer' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        });
+
+        const result = streamText({
+          model: wrapLanguageModel({
+            model: mockModel,
+            middleware: gemmaMiddleware,
+          }),
+          prompt: 'Hello',
+        });
+
+        const parts = await convertAsyncIterableToArray(result.fullStream);
+        const types = parts.map(p => p.type);
+
+        expect(types).toContain('reasoning-start');
+        expect(types).toContain('reasoning-end');
+
+        const textDeltas = parts
+          .filter(p => p.type === 'text-delta')
+          .map(p => (p as { type: 'text-delta'; text: string }).text)
+          .join('');
+        expect(textDeltas).toBe('Final answer');
+      });
+    });
+  });
 });
