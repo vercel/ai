@@ -24,7 +24,6 @@ const weatherTool = tool({
     location,
     temperature: 72 + Math.floor(Math.random() * 21) - 10,
   }),
-  needsApproval: true,
 });
 
 run(async () => {
@@ -48,6 +47,9 @@ run(async () => {
         'When a tool execution is not approved by the user, do not retry it.' +
         'Just say that the tool execution was not approved.',
       tools: { weather: weatherTool },
+      toolApproval: {
+        weather: 'user-approval',
+      },
       messages,
       stopWhen: isStepCount(5),
     });
