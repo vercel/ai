@@ -7562,7 +7562,7 @@ describe('generateText', () => {
               execute: async () => 'result1',
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -7783,7 +7783,7 @@ describe('generateText', () => {
               execute: input => `result for ${input.value}`,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: (input, options) => {
               needsApprovalCalls.push({ input, options });
               return input.value === 'value-needs-approval';
@@ -7979,7 +7979,7 @@ describe('generateText', () => {
               execute: executeFunction,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -8147,7 +8147,7 @@ describe('generateText', () => {
               },
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -8263,7 +8263,7 @@ describe('generateText', () => {
               execute: executeFunction,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -8424,7 +8424,7 @@ describe('generateText', () => {
               execute: executeFunction,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
