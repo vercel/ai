@@ -91,7 +91,10 @@
         "exportInterfaces": [
           {
             "name": "${providerId.toPascalCase()}Provider",
-            "extend": "ProviderV4"
+            "extend": {
+              "type": "ProviderV4",
+              "allowOmissions": true
+            }
           },
           "${providerId.toPascalCase()}ProviderSettings"
         ],
