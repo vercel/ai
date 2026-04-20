@@ -89,20 +89,24 @@ const { textStream } = streamText({
 
 ### Generating Structured Data
 
-While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides two functions ([`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object)) to generate structured data, allowing you to constrain model outputs to a specific schema.
+While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`streamText`](/docs/reference/ai-sdk-core/stream-text) with `Output` to generate structured data, allowing you to constrain model outputs to a specific schema.
 
 ```ts
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { deepinfra } from '@ai-sdk/deepinfra';
 import { z } from 'zod';
 
-const { object } = await generateObject({
+const { output } = await generateText({
   model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(
+          z.object({ name: z.string(), amount: z.string() }),
+        ),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
@@ -154,12 +158,12 @@ Agents use LLMs to choose the next step in a problem-solving process. They can r
 
 ### Implementing Agents with the AI SDK
 
-The AI SDK supports agent implementation through the `maxSteps` parameter. This allows the model to make multiple decisions and tool calls in a single interaction.
+The AI SDK supports agent implementation through the `stopWhen` parameter and built-in stop conditions. This allows the model to make multiple decisions and tool calls in a single interaction.
 
 Here's an example of an agent that solves math problems:
 
 ```tsx
-import { generateText, tool } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { deepinfra } from '@ai-sdk/deepinfra';
 import * as mathjs from 'mathjs';
 import { z } from 'zod';
@@ -179,7 +183,7 @@ const { text: answer } = await generateText({
       execute: async ({ expression }) => mathjs.evaluate(expression),
     }),
   },
-  maxSteps: 5,
+  stopWhen: isStepCount(5),
 });
 ```
 
@@ -407,5 +411,5 @@ Ready to get started? Here's how you can dive in:
 
 1. Explore the documentation at [ai-sdk.dev/docs](/docs) to understand the full capabilities of the AI SDK.
 2. Check out practical examples at [ai-sdk.dev/examples](/examples) to see the SDK in action and get inspired for your own projects.
-3. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) and multi-modal chat at [ai-sdk.dev/docs/guides](/docs/guides).
+3. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) and multi-modal chat at [ai-sdk.dev/docs/guides](/cookbook/guides).
 4. Check out ready-to-deploy AI templates at [vercel.com/templates?type=ai](https://vercel.com/templates?type=ai).

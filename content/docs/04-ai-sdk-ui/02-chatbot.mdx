@@ -902,8 +902,8 @@ Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more 
 
 ## Reasoning
 
-Some models such as as DeepSeek `deepseek-r1`
-and Anthropic `claude-3-7-sonnet-20250219` support reasoning tokens.
+Some models such as DeepSeek `deepseek-r1`
+and Anthropic `claude-sonnet-4-5-20250929` support reasoning tokens.
 These tokens are typically sent before the message content.
 You can forward them to the client with the `sendReasoning` option:
 
@@ -947,10 +947,14 @@ messages.map(message => (
 ));
 ```
 
+Some models may also produce files as part of reasoning (e.g. images).
+These are available as `reasoning-file` parts (`ReasoningFileUIPart`) with
+`mediaType` and `url` properties, similar to regular file parts.
+
 ## Sources
 
 Some providers such as [Perplexity](/providers/ai-sdk-providers/perplexity#sources) and
-[Google Generative AI](/providers/ai-sdk-providers/google-generative-ai#sources) include sources in the response.
+[Google](/providers/ai-sdk-providers/google#sources) include sources in the response.
 
 Currently sources are limited to web pages that ground the response.
 You can forward them to the client with the `sendSources` option:
@@ -1008,7 +1012,7 @@ messages.map(message => (
 
 ## Image Generation
 
-Some models such as Google `gemini-2.5-flash-image-preview` support image generation.
+Some models such as Google `gemini-2.5-flash-image` support image generation.
 When images are generated, they are exposed as files to the client.
 On the client side, you can access file parts of the message object
 and render them as images.
@@ -1204,6 +1208,9 @@ export default function Page() {
   );
 }
 ```
+
+Files generated as part of model reasoning are available as `reasoning-file`
+parts (`ReasoningFileUIPart`) with the same `mediaType` and `url` properties.
 
 ## Type Inference for Tools
 

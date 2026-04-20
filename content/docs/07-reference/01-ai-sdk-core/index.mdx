@@ -25,14 +25,9 @@ AI SDK Core contains the following main functions:
       href: '/docs/reference/ai-sdk-core/stream-text',
     },
     {
-      title: 'generateObject()',
-      description: 'Generate structured data from a language model.',
-      href: '/docs/reference/ai-sdk-core/generate-object',
-    },
-    {
-      title: 'streamObject()',
-      description: 'Stream structured data from a language model.',
-      href: '/docs/reference/ai-sdk-core/stream-object',
+      title: 'Output',
+      description: 'Structured output types for generateText and streamText.',
+      href: '/docs/reference/ai-sdk-core/output',
     },
     {
       title: 'embed()',
@@ -68,6 +63,16 @@ AI SDK Core contains the following main functions:
       description: 'Generate speech audio from text.',
       href: '/docs/reference/ai-sdk-core/generate-speech',
     },
+    {
+      title: 'uploadFile()',
+      description: 'Upload a file to a provider and get a provider reference.',
+      href: '/docs/reference/ai-sdk-core/upload-file',
+    },
+    {
+      title: 'uploadSkill()',
+      description: 'Upload a skill to a provider and get a provider reference.',
+      href: '/docs/reference/ai-sdk-core/upload-skill',
+    },
   ]}
 />
 
@@ -79,6 +84,11 @@ It also contains the following helper functions:
       title: 'tool()',
       description: 'Type inference helper function for tools.',
       href: '/docs/reference/ai-sdk-core/tool',
+    },
+    {
+      title: 'experimental_filterActiveTools()',
+      description: 'Filters a tool set to only the currently active tools.',
+      href: '/docs/reference/ai-sdk-core/filter-active-tools',
     },
     {
       title: 'createMCPClient()',
@@ -134,6 +144,24 @@ It also contains the following helper functions:
       description:
         'Extracts JSON from text content by stripping markdown code fences.',
       href: '/docs/reference/ai-sdk-core/extract-json-middleware',
+    },
+    {
+      title: 'isStepCount()',
+      description:
+        'Creates a stop condition that triggers after a specified number of steps.',
+      href: '/docs/reference/ai-sdk-core/is-step-count',
+    },
+    {
+      title: 'hasToolCall()',
+      description:
+        'Creates a stop condition that triggers when any specified tool is called.',
+      href: '/docs/reference/ai-sdk-core/has-tool-call',
+    },
+    {
+      title: 'isLoopFinished()',
+      description:
+        'Creates a stop condition that lets the agent loop run until it naturally finishes.',
+      href: '/docs/reference/ai-sdk-core/loop-finished',
     },
     {
       title: 'simulateStreamingMiddleware()',

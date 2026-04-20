@@ -1,5 +1,443 @@
 # @ai-sdk/anthropic
 
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 4.0.0-beta.33
+
+### Major Changes
+
+- 832f86f: fix(anthropic): remove cacheCreationInputTokens from providerMetadata
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- ad0b376: fix(provider/anthropic): stop adding `fine-grained-tool-streaming-2025-05-14` beta for `claude-opus-4-7`
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 4.0.0-beta.27
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- 09bd27b: feat (provider/anthropic): add support for inference_geo provider option
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- 34bd95d: feat(ai): add support for uploading provider skills using the provider references abstraction
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- f57c702: fix(anthropic): allow both temperature and topP for non-Anthropic models using the Anthropic-compatible API
+
+  The temperature/topP mutual exclusivity check now only applies to known Anthropic models (model IDs starting with `claude-`). Non-Anthropic models using the Anthropic-compatible API (e.g. Minimax) can now send both parameters as required by their APIs.
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- 0ee8aec: feat (provider/anthropic): support passing metadata.user_id
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 21d1ee3: fix(anthropic): skip passing beta header for tool search tools
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- f05a40d: fix(vertex): throw warning when strict: true for vertexAnthropic
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- e748b35: chore: update v3 specs to v4
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- 1fe058b: fix(anthropic): preserve the error code returned by model
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.58
+
+### Patch Changes
+
+- 3fb4e70: feat(anthropic): support eagerInputStreaming option for fine-grained tool streaming
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.57
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 3.0.56
+
+### Patch Changes
+
+- e49c34d: feat(anthropic): expose anthropic.anthropicBeta to downstream providers
+- e49c34d: feat(anthropic): expose anthropic.anthropicBeta to downstream provider
+
+## 3.0.55
+
+### Patch Changes
+
+- 7531e72: fix(provider/anthropic): handle encrypted_code_execution_result for multi-turn with web_fetch/web_search 20260209
+
+## 3.0.54
+
+### Patch Changes
+
+- 56c67d5: feat(provider/anthropic): add support for Anthropic web tools `web_fetch_20260209` and `web_search_20260209`
+
+## 3.0.53
+
+### Patch Changes
+
+- 89caf28: fix(openai-compat): decode base64 string data
+
+## 3.0.52
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.51
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+
+## 3.0.50
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.49
+
+### Patch Changes
+
+- d98d9ba: Migrated deprecated `output_format` parameter to `output_config.format` for structured outputs + Enabled native structured output support for Bedrock Anthropic models via `output_config.format`.
+
+## 3.0.48
+
+### Patch Changes
+
+- 2164cdf: feat(anthropic): add the new code_execution tool
+
+## 3.0.47
+
+### Patch Changes
+
+- 17978c6: Pass `cacheControl` provider option as top-level `cache_control` in Anthropic API request body to support automatic caching.
+
+## 3.0.46
+
+### Patch Changes
+
+- b094c07: fix compaction_delta streaming schema to allow null content
+
+## 3.0.45
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+
+## 3.0.44
+
+### Patch Changes
+
+- 23ac4a3: fix(provider/anthropic): minor follow up to support no-op speed standard
+
+## 3.0.43
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.42
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 3.0.41
+
+### Patch Changes
+
+- c60b393: feat(anthropic): add the new compaction feature
+
+## 3.0.40
+
+### Patch Changes
+
+- 8c2b1e1: fix(provider/anthropic): include actual raw usage data for `response.usage.raw` when streaming
+
+## 3.0.39
+
+### Patch Changes
+
+- 0a0d29c: feat(anthropic): add support for Opus 4.6 fast mode
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.37
+
+### Patch Changes
+
+- e288302: feat(anthropic): add support for Opus 4.6
+
 ## 3.0.36
 
 ### Patch Changes
@@ -274,13 +712,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - f33a018: chore: add model ID for Haiku 4.5
@@ -620,13 +1058,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

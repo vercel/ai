@@ -24,6 +24,7 @@ import {
 import {
   resourceUrlFromServerUrl,
   checkResourceAllowed,
+  resourceUrlStripSlash,
 } from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { FetchFunction } from '@ai-sdk/provider-utils';
@@ -83,6 +84,8 @@ export interface OAuthClientProvider {
     clientInformation: OAuthClientInformation,
   ): void | Promise<void>;
   state?(): string | Promise<string>;
+  saveState?(state: string): void | Promise<void>;
+  storedState?(): string | undefined | Promise<string | undefined>;
   validateResourceURL?(
     serverUrl: string | URL,
     resource?: string,
@@ -449,7 +452,10 @@ export async function startAuthorization(
   }
 
   if (resource) {
-    authorizationUrl.searchParams.set('resource', resource.href);
+    authorizationUrl.searchParams.set(
+      'resource',
+      resourceUrlStripSlash(resource),
+    );
   }
 
   return { authorizationUrl, codeVerifier };
@@ -673,7 +679,7 @@ export async function exchangeAuthorization(
   }
 
   if (resource) {
-    params.set('resource', resource.href);
+    params.set('resource', resourceUrlStripSlash(resource));
   }
 
   const response = await (fetchFn ?? fetch)(tokenUrl, {
@@ -760,7 +766,7 @@ export async function refreshAuthorization(
   }
 
   if (resource) {
-    params.set('resource', resource.href);
+    params.set('resource', resourceUrlStripSlash(resource));
   }
 
   const response = await (fetchFn ?? fetch)(tokenUrl, {
@@ -827,6 +833,7 @@ export async function auth(
   options: {
     serverUrl: string | URL;
     authorizationCode?: string;
+    callbackState?: string;
     scope?: string;
     resourceMetadataUrl?: URL;
     fetchFn?: FetchFunction;
@@ -886,12 +893,14 @@ async function authInternal(
   {
     serverUrl,
     authorizationCode,
+    callbackState,
     scope,
     resourceMetadataUrl,
     fetchFn,
   }: {
     serverUrl: string | URL;
     authorizationCode?: string;
+    callbackState?: string;
     scope?: string;
     resourceMetadataUrl?: URL;
     fetchFn?: FetchFunction;
@@ -960,6 +969,15 @@ async function authInternal(
 
   // Exchange authorization code for tokens
   if (authorizationCode !== undefined) {
+    if (provider.storedState) {
+      const expectedState = await provider.storedState();
+      if (expectedState !== undefined && expectedState !== callbackState) {
+        throw new Error(
+          'OAuth state parameter mismatch - possible CSRF attack',
+        );
+      }
+    }
+
     const codeVerifier = await provider.codeVerifier();
     const tokens = await exchangeAuthorization(authorizationServerUrl, {
       metadata,
@@ -1008,6 +1026,9 @@ async function authInternal(
   }
 
   const state = provider.state ? await provider.state() : undefined;
+  if (state && provider.saveState) {
+    await provider.saveState(state);
+  }
 
   // Start new authorization flow
   const { authorizationUrl, codeVerifier } = await startAuthorization(

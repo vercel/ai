@@ -11,23 +11,25 @@ Some language models that support vision capabilities accept images as part of t
 ## URL
 
 ```ts file='index.ts'
-import { streamObject } from 'ai';
+import { streamText, Output } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
 dotenv.config();
 
 async function main() {
-  const { partialObjectStream } = streamObject({
+  const { partialOutputStream } = streamText({
     model: 'openai/gpt-4.1',
     maxOutputTokens: 512,
-    schema: z.object({
-      stamps: z.array(
-        z.object({
-          country: z.string(),
-          date: z.string(),
-        }),
-      ),
+    output: Output.object({
+      schema: z.object({
+        stamps: z.array(
+          z.object({
+            country: z.string(),
+            date: z.string(),
+          }),
+        ),
+      }),
     }),
     messages: [
       {
@@ -48,7 +50,7 @@ async function main() {
     ],
   });
 
-  for await (const partialObject of partialObjectStream) {
+  for await (const partialObject of partialOutputStream) {
     console.clear();
     console.log(partialObject);
   }
@@ -60,7 +62,7 @@ main();
 ## File Buffer
 
 ```ts file='index.ts'
-import { streamObject } from 'ai';
+import { streamText, Output } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import fs from 'fs';
@@ -68,16 +70,18 @@ import fs from 'fs';
 dotenv.config();
 
 async function main() {
-  const { partialObjectStream } = streamObject({
+  const { partialOutputStream } = streamText({
     model: 'openai/gpt-4.1',
     maxOutputTokens: 512,
-    schema: z.object({
-      stamps: z.array(
-        z.object({
-          country: z.string(),
-          date: z.string(),
-        }),
-      ),
+    output: Output.object({
+      schema: z.object({
+        stamps: z.array(
+          z.object({
+            country: z.string(),
+            date: z.string(),
+          }),
+        ),
+      }),
     }),
     messages: [
       {
@@ -98,7 +102,7 @@ async function main() {
     ],
   });
 
-  for await (const partialObject of partialObjectStream) {
+  for await (const partialObject of partialOutputStream) {
     console.clear();
     console.log(partialObject);
   }

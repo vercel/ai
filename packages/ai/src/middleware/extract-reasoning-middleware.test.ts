@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -6,10 +6,10 @@ import {
 import { describe, expect, it } from 'vitest';
 import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 5,
     noCache: 5,
@@ -26,7 +26,7 @@ const testUsage: LanguageModelV3Usage = {
 describe('extractReasoningMiddleware', () => {
   describe('wrapGenerate', () => {
     it('should extract reasoning from <think> tags', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -65,7 +65,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should extract reasoning from <think> tags when there is no text', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -105,7 +105,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should extract reasoning from multiple <think> tags', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -146,7 +146,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should prepend <think> tag IFF startWithReasoning is true', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -207,7 +207,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should preserve reasoning property even when rest contains other properties', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doGenerate() {
           return {
             content: [
@@ -249,7 +249,7 @@ describe('extractReasoningMiddleware', () => {
 
   describe('wrapStream', () => {
     it('should extract reasoning from split <think> tags', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -391,7 +391,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should extract reasoning from single chunk with multiple <think> tags', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -543,7 +543,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should extract reasoning from <think> when there is no text', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -672,7 +672,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should prepend <think> tag if startWithReasoning is true', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -915,7 +915,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should keep original text when <think> tag is not present', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([
@@ -1026,7 +1026,7 @@ describe('extractReasoningMiddleware', () => {
     });
 
     it('should handle empty <think></think> tags without crashing', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         async doStream() {
           return {
             stream: convertArrayToReadableStream([

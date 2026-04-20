@@ -1,14 +1,16 @@
 import {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3FunctionTool,
-  LanguageModelV3Prompt,
-  LanguageModelV3ProviderTool,
-  LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  APICallError,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4FunctionTool,
+  LanguageModelV4Prompt,
+  LanguageModelV4ProviderTool,
+  LanguageModelV4StreamPart,
+  LanguageModelV4Usage,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 import {
   delay,
   DelayedPromise,
@@ -39,19 +41,26 @@ import {
 import { z } from 'zod/v4';
 import { Output } from '..';
 import * as logWarningsModule from '../logger/log-warnings';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createMockServerResponse } from '../test/mock-server-response';
-import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
 import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
 } from '../types/usage';
 import { StepResult } from './step-result';
-import { stepCountIs } from './stop-condition';
-import { streamText, StreamTextOnFinishCallback } from './stream-text';
+import { isLoopFinished, isStepCount } from './stop-condition';
+import {
+  streamText,
+  StreamTextOnFinishCallback,
+  StreamTextOnStartCallback,
+  StreamTextOnStepStartCallback,
+} from './stream-text';
 import { StreamTextResult, TextStreamPart } from './stream-text-result';
-import { ToolSet } from './tool-set';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from './tool-execution-events';
 
 const defaultSettings = () =>
   ({
@@ -59,11 +68,12 @@ const defaultSettings = () =>
     experimental_generateMessageId: mockId({ prefix: 'msg' }),
     _internal: {
       generateId: mockId({ prefix: 'id' }),
+      generateCallId: () => 'test-telemetry-call-id',
     },
     onError: () => {},
   }) as const;
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 3,
     noCache: 3,
@@ -77,7 +87,7 @@ const testUsage: LanguageModelV3Usage = {
   },
 };
 
-const testUsage2: LanguageModelV3Usage = {
+const testUsage2: LanguageModelV4Usage = {
   inputTokens: {
     total: 3,
     noCache: 3,
@@ -121,17 +131,17 @@ function createTestModel({
   request = undefined,
   response = undefined,
 }: {
-  stream?: ReadableStream<LanguageModelV3StreamPart>;
+  stream?: ReadableStream<LanguageModelV4StreamPart>;
   request?: { body: string };
   response?: { headers: Record<string, string> };
-  warnings?: SharedV3Warning[];
-} = {}): LanguageModelV3 {
-  return new MockLanguageModelV3({
+  warnings?: SharedV4Warning[];
+} = {}): LanguageModelV4 {
+  return new MockLanguageModelV4({
     doStream: async () => ({ stream, request, response, warnings }),
   });
 }
 
-const modelWithSources = new MockLanguageModelV3({
+const modelWithSources = new MockLanguageModelV4({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -162,7 +172,29 @@ const modelWithSources = new MockLanguageModelV3({
   }),
 });
 
-const modelWithDocumentSources = new MockLanguageModelV3({
+const modelWithCustom = new MockLanguageModelV4({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
+      {
+        type: 'custom',
+        kind: 'openai.compaction',
+        providerMetadata: {
+          openai: { itemId: 'cmp_123' },
+        },
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
+const modelWithDocumentSources = new MockLanguageModelV4({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -194,7 +226,7 @@ const modelWithDocumentSources = new MockLanguageModelV3({
   }),
 });
 
-const modelWithFiles = new MockLanguageModelV3({
+const modelWithFiles = new MockLanguageModelV4({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -219,7 +251,35 @@ const modelWithFiles = new MockLanguageModelV3({
   }),
 });
 
-const modelWithReasoning = new MockLanguageModelV3({
+const modelWithFilesAndProviderMetadata = new MockLanguageModelV4({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'file',
+        data: 'Hello World',
+        mediaType: 'text/plain',
+        providerMetadata: {
+          testProvider: { signature: 'sig-1' },
+        },
+      },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
+      {
+        type: 'file',
+        data: 'QkFVRw==',
+        mediaType: 'image/jpeg',
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
+const modelWithReasoning = new MockLanguageModelV4({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -245,7 +305,7 @@ const modelWithReasoning = new MockLanguageModelV3({
         delta: '',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       { type: 'reasoning-end', id: '1' },
       {
@@ -272,14 +332,14 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '3',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       {
         type: 'reasoning-start',
         id: '4',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       {
         type: 'reasoning-delta',
@@ -296,7 +356,7 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '5',
         providerMetadata: {
           testProvider: { signature: '1234567890' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       {
         type: 'reasoning-delta',
@@ -318,14 +378,14 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '4',
         providerMetadata: {
           testProvider: { signature: '0987654321' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       {
         type: 'reasoning-end',
         id: '5',
         providerMetadata: {
           testProvider: { signature: '0987654321' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
       { type: 'text-start', id: '1' },
       { type: 'text-delta', id: '1', delta: 'Hi' },
@@ -335,8 +395,49 @@ const modelWithReasoning = new MockLanguageModelV3({
         id: '1',
         providerMetadata: {
           testProvider: { signature: '0987654321' },
-        } as SharedV3ProviderMetadata,
+        } as SharedV4ProviderMetadata,
       },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage: testUsage,
+      },
+    ]),
+  }),
+});
+
+const modelWithReasoningFiles = new MockLanguageModelV4({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'response-metadata',
+        id: 'id-0',
+        modelId: 'mock-model-id',
+        timestamp: new Date(0),
+      },
+      {
+        type: 'reasoning-file',
+        data: 'reasoning-file-data-1',
+        mediaType: 'image/png',
+      },
+      { type: 'reasoning-start', id: '1' },
+      {
+        type: 'reasoning-delta',
+        id: '1',
+        delta: 'Some reasoning text.',
+      },
+      { type: 'reasoning-end', id: '1' },
+      {
+        type: 'reasoning-file',
+        data: 'reasoning-file-data-2',
+        mediaType: 'image/jpeg',
+        providerMetadata: {
+          testProvider: { signature: 'rf-sig-1' },
+        },
+      },
+      { type: 'text-start', id: '1' },
+      { type: 'text-delta', id: '1', delta: 'Hello!' },
+      { type: 'text-end', id: '1' },
       {
         type: 'finish',
         finishReason: { unified: 'stop', raw: 'stop' },
@@ -365,7 +466,7 @@ describe('streamText', () => {
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -442,7 +543,7 @@ describe('streamText', () => {
   describe('result.fullStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -907,6 +1008,100 @@ describe('streamText', () => {
         `);
     });
 
+    it('should send custom parts', async () => {
+      const result = streamText({
+        model: modelWithCustom,
+        ...defaultSettings(),
+      });
+
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello!",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "kind": "openai.compaction",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "cmp_123",
+                },
+              },
+              "type": "custom",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "rawFinishReason": "stop",
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "raw": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "rawFinishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
     it('should send files', async () => {
       const result = streamText({
         model: modelWithFiles,
@@ -931,6 +1126,7 @@ describe('streamText', () => {
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
+              "providerMetadata": undefined,
               "type": "file",
             },
             {
@@ -954,7 +1150,170 @@ describe('streamText', () => {
                 "type": "file",
                 "uint8ArrayData": undefined,
               },
+              "providerMetadata": undefined,
               "type": "file",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "rawFinishReason": "stop",
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "raw": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+            },
+            {
+              "finishReason": "stop",
+              "rawFinishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokenDetails": {
+                  "cacheReadTokens": undefined,
+                  "cacheWriteTokens": undefined,
+                  "noCacheTokens": 3,
+                },
+                "inputTokens": 3,
+                "outputTokenDetails": {
+                  "reasoningTokens": undefined,
+                  "textTokens": 10,
+                },
+                "outputTokens": 10,
+                "reasoningTokens": undefined,
+                "totalTokens": 13,
+              },
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
+    it('should send files with providerMetadata', async () => {
+      const result = streamText({
+        model: modelWithFilesAndProviderMetadata,
+        ...defaultSettings(),
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const fileParts = parts.filter(p => p.type === 'file');
+
+      expect(fileParts).toMatchInlineSnapshot(`
+        [
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "Hello World",
+              "mediaType": "text/plain",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "sig-1",
+              },
+            },
+            "type": "file",
+          },
+          {
+            "file": DefaultGeneratedFileWithType {
+              "base64Data": "QkFVRw==",
+              "mediaType": "image/jpeg",
+              "type": "file",
+              "uint8ArrayData": undefined,
+            },
+            "providerMetadata": undefined,
+            "type": "file",
+          },
+        ]
+      `);
+    });
+
+    it('should send reasoning-files', async () => {
+      const result = streamText({
+        model: modelWithReasoningFiles,
+        ...defaultSettings(),
+      });
+
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "file": DefaultGeneratedFileWithType {
+                "base64Data": "reasoning-file-data-1",
+                "mediaType": "image/png",
+                "type": "file",
+                "uint8ArrayData": undefined,
+              },
+              "providerMetadata": undefined,
+              "type": "reasoning-file",
+            },
+            {
+              "id": "1",
+              "type": "reasoning-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Some reasoning text.",
+              "type": "reasoning-delta",
+            },
+            {
+              "id": "1",
+              "type": "reasoning-end",
+            },
+            {
+              "file": DefaultGeneratedFileWithType {
+                "base64Data": "reasoning-file-data-2",
+                "mediaType": "image/jpeg",
+                "type": "file",
+                "uint8ArrayData": undefined,
+              },
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "rf-sig-1",
+                },
+              },
+              "type": "reasoning-file",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello!",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
             },
             {
               "finishReason": "stop",
@@ -1012,7 +1371,7 @@ describe('streamText', () => {
 
     it('should use fallback response metadata when response metadata is not provided', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -1041,6 +1400,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockValues('id-2000'),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -1137,7 +1497,7 @@ describe('streamText', () => {
 
     it('should send tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -1675,7 +2035,7 @@ describe('streamText', () => {
   describe('errors', () => {
     it('should swallow error to prevent server crash', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1691,7 +2051,7 @@ describe('streamText', () => {
 
     it('should forward error in doStream as error stream part', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1717,7 +2077,7 @@ describe('streamText', () => {
       const onError = vi.fn();
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1784,7 +2144,7 @@ describe('streamText', () => {
       let responseCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt, tools, toolChoice }) => {
             if (responseCount++ === 0) {
               return {
@@ -1821,7 +2181,7 @@ describe('streamText', () => {
             execute: async () => 'result1',
           },
         },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         onError,
       });
 
@@ -1834,7 +2194,7 @@ describe('streamText', () => {
 
     it('should reject text promise when error is thrown', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -1849,6 +2209,50 @@ describe('streamText', () => {
     });
   });
 
+  describe('retries', () => {
+    it('should retry after a 500 error and stream the successful response', async () => {
+      const doStream = vi
+        .fn<LanguageModelV4['doStream']>()
+        .mockImplementationOnce(async () => {
+          throw new APICallError({
+            message: 'Internal Server Error',
+            url: 'https://api.example.com/v1/chat',
+            requestBodyValues: { prompt: 'test-input' },
+            statusCode: 500,
+            responseHeaders: {
+              'retry-after-ms': '1',
+            },
+          });
+        })
+        .mockImplementationOnce(async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'hello' },
+            { type: 'text-delta', id: '1', delta: ' ' },
+            { type: 'text-delta', id: '1', delta: 'world' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }));
+
+      const result = streamText({
+        model: new MockLanguageModelV4({ doStream }),
+        prompt: 'test-input',
+      });
+
+      const textStreamPromise = convertAsyncIterableToArray(result.textStream);
+
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(await textStreamPromise).toStrictEqual(['hello', ' ', 'world']);
+      expect(doStream).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('result.pipeUIMessageStreamToResponse', async () => {
     it('should write data stream parts to a Node.js response-like object', async () => {
       const mockResponse = createMockServerResponse();
@@ -1858,6 +2262,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -1919,6 +2324,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -1994,6 +2400,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
         onError: () => {},
       });
@@ -2017,6 +2424,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
         onError: () => {},
       });
@@ -2861,6 +3269,59 @@ describe('streamText', () => {
         `);
     });
 
+    it('should omit reasoning content when sendReasoning is false', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream({
+        sendReasoning: false,
+      });
+
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hi",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "delta": " there!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "providerMetadata": {
+                "testProvider": {
+                  "signature": "0987654321",
+                },
+              },
+              "type": "text-end",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "finishReason": "stop",
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
     it('should send reasoning content when sendReasoning is true', async () => {
       const result = streamText({
         model: modelWithReasoning,
@@ -3165,6 +3626,56 @@ describe('streamText', () => {
         `);
     });
 
+    it('should send custom parts in toUIMessageStream', async () => {
+      const result = streamText({
+        model: modelWithCustom,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream();
+
+      expect(await convertReadableStreamToArray(uiMessageStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "type": "start",
+            },
+            {
+              "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello!",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
+              "id": "1",
+              "type": "text-end",
+            },
+            {
+              "kind": "openai.compaction",
+              "providerMetadata": {
+                "openai": {
+                  "itemId": "cmp_123",
+                },
+              },
+              "type": "custom",
+            },
+            {
+              "type": "finish-step",
+            },
+            {
+              "finishReason": "stop",
+              "type": "finish",
+            },
+          ]
+        `);
+    });
+
     it('should send file content', async () => {
       const result = streamText({
         model: modelWithFiles,
@@ -3214,6 +3725,39 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    it('should send file content with providerMetadata', async () => {
+      const result = streamText({
+        model: modelWithFilesAndProviderMetadata,
+        ...defaultSettings(),
+      });
+
+      const uiMessageStream = result.toUIMessageStream();
+      const parts = await convertReadableStreamToArray(uiMessageStream);
+      const fileParts = parts.filter(
+        (p: Record<string, unknown>) => p.type === 'file',
+      );
+
+      expect(fileParts).toMatchInlineSnapshot(`
+        [
+          {
+            "mediaType": "text/plain",
+            "providerMetadata": {
+              "testProvider": {
+                "signature": "sig-1",
+              },
+            },
+            "type": "file",
+            "url": "data:text/plain;base64,Hello World",
+          },
+          {
+            "mediaType": "image/jpeg",
+            "type": "file",
+            "url": "data:image/jpeg;base64,QkFVRw==",
+          },
+        ]
+      `);
     });
 
     it('should not generate a new message id when onFinish is provided and generateMessageId is not provided', async () => {
@@ -3326,7 +3870,7 @@ describe('streamText', () => {
     it('should call onFinish when reader.cancel() is called', async () => {
       const onFinishCallback = vi.fn();
 
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
             {
@@ -3382,7 +3926,7 @@ describe('streamText', () => {
     it('should call onFinish when async iteration stops mid-stream', async () => {
       const onFinishCallback = vi.fn();
 
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async () => ({
           stream: convertArrayToReadableStream([
             {
@@ -3461,7 +4005,7 @@ describe('streamText', () => {
       const onFinishCallback = vi.fn();
       const abortController = new AbortController();
 
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async ({ abortSignal }) => {
           const stream = new ReadableStream({
             async start(controller) {
@@ -3647,6 +4191,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -3707,6 +4252,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -3778,6 +4324,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
         onError: () => {},
       });
@@ -3797,6 +4344,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
         onError: () => {},
       });
@@ -3962,6 +4510,7 @@ describe('streamText', () => {
         prompt: 'test-input',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
+          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -4460,6 +5009,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "providerMetadata": {
@@ -4517,6 +5067,11 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "functionId": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {},
@@ -4587,6 +5142,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
+            "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -4619,6 +5177,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "id": "123",
@@ -4651,6 +5210,11 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "functionId": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {},
@@ -4672,6 +5236,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
+            "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -4704,6 +5271,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "file": DefaultGeneratedFileWithType {
@@ -4730,6 +5298,11 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "functionId": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {},
@@ -4763,6 +5336,128 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
+            "stepNumber": 0,
+            "toolsContext": {},
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+            "warnings": [],
+          },
+        ]
+      `);
+    });
+
+    it('should add reasoning-files from the model response to the step result', async () => {
+      const result = streamText({
+        model: modelWithReasoningFiles,
+        ...defaultSettings(),
+      });
+
+      expect(await result.steps).toMatchInlineSnapshot(`
+        [
+          DefaultStepResult {
+            "callId": "test-telemetry-call-id",
+            "content": [
+              {
+                "file": DefaultGeneratedFileWithType {
+                  "base64Data": "reasoning-file-data-1",
+                  "mediaType": "image/png",
+                  "type": "file",
+                  "uint8ArrayData": undefined,
+                },
+                "type": "reasoning-file",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "Some reasoning text.",
+                "type": "reasoning",
+              },
+              {
+                "file": DefaultGeneratedFileWithType {
+                  "base64Data": "reasoning-file-data-2",
+                  "mediaType": "image/jpeg",
+                  "type": "file",
+                  "uint8ArrayData": undefined,
+                },
+                "providerMetadata": {
+                  "testProvider": {
+                    "signature": "rf-sig-1",
+                  },
+                },
+                "type": "reasoning-file",
+              },
+              {
+                "providerMetadata": undefined,
+                "text": "Hello!",
+                "type": "text",
+              },
+            ],
+            "finishReason": "stop",
+            "functionId": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "stop",
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "data": "reasoning-file-data-1",
+                      "mediaType": "image/png",
+                      "providerOptions": undefined,
+                      "type": "reasoning-file",
+                    },
+                    {
+                      "providerOptions": undefined,
+                      "text": "Some reasoning text.",
+                      "type": "reasoning",
+                    },
+                    {
+                      "data": "reasoning-file-data-2",
+                      "mediaType": "image/jpeg",
+                      "providerOptions": {
+                        "testProvider": {
+                          "signature": "rf-sig-1",
+                        },
+                      },
+                      "type": "reasoning-file",
+                    },
+                    {
+                      "providerOptions": undefined,
+                      "text": "Hello!",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "assistant",
+                },
+              ],
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "runtimeContext": {},
+            "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -4875,6 +5570,1555 @@ describe('streamText', () => {
     });
   });
 
+  describe('options.experimental_onStart', () => {
+    it('should send correct information with text prompt', async () => {
+      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        telemetry: {
+          functionId: 'test-function',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+        onError: () => {},
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(startEvent).toMatchSnapshot();
+    });
+
+    it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'deprecated-fn',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(startEvent.isEnabled).toBe(true);
+      expect(startEvent.functionId).toBe('deprecated-fn');
+    });
+
+    it('should pass runtimeContext', async () => {
+      let startEvent!: any;
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        runtimeContext: { userId: 'test-user', sessionId: '123' },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(startEvent.runtimeContext).toEqual({
+        userId: 'test-user',
+        sessionId: '123',
+      });
+    });
+
+    it('should send correct information with system and messages', async () => {
+      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        system: 'you are a helpful assistant',
+        messages: [{ role: 'user', content: 'test-message' }],
+        maxOutputTokens: 100,
+        temperature: 0.5,
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(startEvent.provider).toBe('mock-provider');
+      expect(startEvent.modelId).toBe('mock-model-id');
+      expect(startEvent.system).toBe('you are a helpful assistant');
+      expect(startEvent.prompt).toBeUndefined();
+      expect(startEvent.messages).toEqual([
+        { role: 'user', content: 'test-message' },
+      ]);
+      expect(startEvent.maxOutputTokens).toBe(100);
+      expect(startEvent.temperature).toBe(0.5);
+      expect(startEvent.maxRetries).toBe(2);
+    });
+
+    it('should be called before doStream', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            callOrder.push('doStream');
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'stream-start',
+                  warnings: [],
+                },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        experimental_onStart: async () => {
+          callOrder.push('onStart');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual(['onStart', 'doStream']);
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_onStart: async () => {
+          throw new Error('callback error');
+        },
+        onError: () => {},
+      });
+
+      expect(await result.text).toBe('Hello, world!');
+    });
+
+    it('should expose tools and toolChoice', async () => {
+      let startEvent!: Parameters<StreamTextOnStartCallback<any>>[0];
+
+      const testTool = tool({
+        inputSchema: z.object({ value: z.string() }),
+      });
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        tools: { myTool: testTool },
+        toolChoice: 'auto',
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(startEvent.tools).toEqual({ myTool: testTool });
+      expect(startEvent.toolChoice).toBe('auto');
+    });
+
+    it('should expose providerOptions', async () => {
+      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        providerOptions: { openai: { logprobs: true } },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(startEvent.providerOptions).toEqual({
+        openai: { logprobs: true },
+      });
+    });
+
+    it('should expose timeout and stopWhen', async () => {
+      let startEvent!: Parameters<StreamTextOnStartCallback>[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        timeout: { totalMs: 5000, stepMs: 1000 },
+        stopWhen: isStepCount(3),
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(startEvent.timeout).toEqual({ totalMs: 5000, stepMs: 1000 });
+      expect(startEvent.stopWhen).toBeDefined();
+    });
+  });
+
+  describe('options.experimental_onStepStart', () => {
+    it('should be called with correct data for a single step', async () => {
+      let stepStartEvent!: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_onStepStart: async event => {
+          stepStartEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(stepStartEvent.stepNumber).toBe(0);
+      expect(stepStartEvent.provider).toBe('mock-provider');
+      expect(stepStartEvent.modelId).toBe('mock-model-id');
+      expect(stepStartEvent.messages).toEqual([
+        {
+          role: 'user',
+          content: 'test-input',
+        },
+      ]);
+      expect(stepStartEvent.steps).toEqual([]);
+    });
+
+    it('should be called once per step in a multi-step tool loop', async () => {
+      const stepStartEvents: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0][] = [];
+      let responseCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata' as const,
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call' as const,
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                    {
+                      type: 'finish' as const,
+                      finishReason: {
+                        unified: 'tool-calls' as const,
+                        raw: undefined,
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+              default:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata' as const,
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-start' as const, id: '1' },
+                    {
+                      type: 'text-delta' as const,
+                      id: '1',
+                      delta: 'Final answer.',
+                    },
+                    { type: 'text-end' as const, id: '1' },
+                    {
+                      type: 'finish' as const,
+                      finishReason: {
+                        unified: 'stop' as const,
+                        raw: 'stop',
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(stepStartEvents.length).toBe(2);
+      expect(stepStartEvents[0].stepNumber).toBe(0);
+      expect(stepStartEvents[1].stepNumber).toBe(1);
+    });
+
+    it('should be called before doStream on each step', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            callOrder.push('doStream');
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'stream-start',
+                  warnings: [],
+                },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        prompt: 'test-input',
+        experimental_onStepStart: async () => {
+          callOrder.push('onStepStart');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual(['onStepStart', 'doStream']);
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_onStepStart: async () => {
+          throw new Error('callback error');
+        },
+        onError: () => {},
+      });
+
+      expect(await result.text).toBe('Hello, world!');
+    });
+
+    it('should reflect model changes from prepareStep', async () => {
+      const stepStartEvents: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0][] = [];
+      let responseCount = 0;
+
+      const alternateModel = new MockLanguageModelV4({
+        provider: 'alternate-provider',
+        modelId: 'alternate-model-id',
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata' as const,
+              id: 'id-1',
+              modelId: 'alternate-model-id',
+              timestamp: new Date(1000),
+            },
+            { type: 'text-start' as const, id: '1' },
+            { type: 'text-delta' as const, id: '1', delta: 'Final answer.' },
+            { type: 'text-end' as const, id: '1' },
+            {
+              type: 'finish' as const,
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            responseCount++;
+            return {
+              stream: convertArrayToReadableStream([
+                {
+                  type: 'response-metadata' as const,
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                {
+                  type: 'tool-call' as const,
+                  id: 'call-1',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: '{ "value": "test" }',
+                },
+                {
+                  type: 'finish' as const,
+                  finishReason: {
+                    unified: 'tool-calls' as const,
+                    raw: undefined,
+                  },
+                  usage: testUsage,
+                },
+              ]),
+            };
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(3),
+        prepareStep: async ({ stepNumber }) => {
+          if (stepNumber === 1) {
+            return { model: alternateModel };
+          }
+          return undefined;
+        },
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(stepStartEvents[0].provider).toBe('mock-provider');
+      expect(stepStartEvents[0].modelId).toBe('mock-model-id');
+      expect(stepStartEvents[1].provider).toBe('alternate-provider');
+      expect(stepStartEvents[1].modelId).toBe('alternate-model-id');
+    });
+
+    it('should expose providerOptions and runtimeContext', async () => {
+      let stepStartEvent!: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        providerOptions: { openai: { logprobs: true } },
+        runtimeContext: { userId: 'test-user' },
+        experimental_onStepStart: async event => {
+          stepStartEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(stepStartEvent.providerOptions).toEqual({
+        openai: { logprobs: true },
+      });
+      expect(stepStartEvent.runtimeContext).toEqual({
+        userId: 'test-user',
+      });
+    });
+
+    it('should expose functionId from telemetry', async () => {
+      let stepStartEvent!: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        telemetry: {
+          functionId: 'test-function',
+        },
+        experimental_onStepStart: async event => {
+          stepStartEvent = event;
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(stepStartEvent.functionId).toBe('test-function');
+    });
+
+    it('should pass updated toolsContext from prepareStep', async () => {
+      const prepareStepToolsContexts: Array<unknown> = [];
+      const stepStartEvents: Parameters<
+        StreamTextOnStepStartCallback<any, any>
+      >[0][] = [];
+      let responseCount = 0;
+      let recordedToolContext: unknown;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata' as const,
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call' as const,
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "test" }',
+                    },
+                    {
+                      type: 'finish' as const,
+                      finishReason: {
+                        unified: 'tool-calls' as const,
+                        raw: undefined,
+                      },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+              default:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata' as const,
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-start' as const, id: '1' },
+                    { type: 'text-delta' as const, id: '1', delta: 'Done.' },
+                    { type: 'text-end' as const, id: '1' },
+                    {
+                      type: 'finish' as const,
+                      finishReason: { unified: 'stop' as const, raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ label: z.string() }),
+            execute: async (_, { context }) => {
+              recordedToolContext = context;
+              return 'test-result';
+            },
+          }),
+        },
+        prompt: 'test-input',
+        toolsContext: { tool1: { label: 'initial' } },
+        stopWhen: isStepCount(3),
+        prepareStep: async ({ stepNumber, toolsContext }) => {
+          prepareStepToolsContexts.push(toolsContext);
+
+          if (stepNumber === 0) {
+            return {
+              toolsContext: {
+                tool1: { label: 'updated' },
+              },
+            };
+          }
+
+          return undefined;
+        },
+        experimental_onStepStart: async event => {
+          stepStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(prepareStepToolsContexts).toEqual([
+        { tool1: { label: 'initial' } },
+        { tool1: { label: 'updated' } },
+      ]);
+      expect(stepStartEvents[0].toolsContext).toEqual({
+        tool1: { label: 'updated' },
+      });
+      expect(stepStartEvents[1].toolsContext).toEqual({
+        tool1: { label: 'updated' },
+      });
+      expect(recordedToolContext).toEqual({ label: 'updated' });
+    });
+  });
+
+  describe('options.experimental_onToolExecutionStart', () => {
+    it('should be called with correct tool name, id, and input', async () => {
+      const toolExecutionStartEvents: Parameters<
+        OnToolExecutionStartCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test-arg" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
+        },
+        onError: () => {},
+        _internal: {
+          generateId: () => 'test-call-id',
+          generateCallId: () => 'test-telemetry-call-id',
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": undefined,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "test-input",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "test-arg",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should be called once per tool call in a multi-tool step', async () => {
+      const toolExecutionStartEvents: Parameters<
+        OnToolExecutionStartCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "a" }',
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'tool1',
+                input: '{ "value": "b" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionStartEvents.length).toMatchInlineSnapshot(`2`);
+    });
+
+    it('should be called before tool execution', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              callOrder.push('execute');
+              return `${value}-result`;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionStart: async () => {
+          callOrder.push('onToolExecutionStart');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder.indexOf('onToolExecutionStart')).toBeLessThan(
+        callOrder.indexOf('execute'),
+      );
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionStart: async () => {
+          throw new Error('callback error');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const toolResults = await result.toolResults;
+      expect(toolResults.length).toBe(1);
+      expect(toolResults[0].output).toBe('test-result');
+    });
+
+    it('should not fire for tools without execute', async () => {
+      const toolExecutionStartEvents: Parameters<
+        OnToolExecutionStartCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionStartEvents.length).toBe(0);
+    });
+
+    it('should pass context', async () => {
+      const toolExecutionStartEvents: Parameters<
+        OnToolExecutionStartCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        toolsContext: { tool1: { context: 'test' } },
+        experimental_onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
+        },
+        ...defaultSettings(),
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionStartEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('options.experimental_onToolExecutionEnd', () => {
+    it('should be called with correct data on success', async () => {
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test-arg" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionEndEvents.length).toMatchInlineSnapshot(`1`);
+    });
+
+    it('should be called with error data when tool execution fails', async () => {
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
+      >[0][] = [];
+      const toolError = new Error('tool execution failed');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async (): Promise<string> => {
+              throw toolError;
+            },
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionEndEvents.length).toBe(1);
+      expect(toolExecutionEndEvents[0].toolCall.toolName).toBe('tool1');
+      expect(toolExecutionEndEvents[0].toolCall.toolCallId).toBe('call-1');
+      expect(toolExecutionEndEvents[0].success).toBe(false);
+      expect(toolExecutionEndEvents[0].error).toBe(toolError);
+      expect(toolExecutionEndEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should have a positive durationMs', async () => {
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionEndEvents[0].durationMs).toBeGreaterThanOrEqual(0);
+      expect(typeof toolExecutionEndEvents[0].durationMs).toBe('number');
+    });
+
+    it('should not break generation when callback throws', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionEnd: async () => {
+          throw new Error('callback error');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      const toolResults = await result.toolResults;
+      expect(toolResults.length).toBe(1);
+      expect(toolResults[0].output).toBe('test-result');
+    });
+
+    it('should not fire for tools without execute', async () => {
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionEndEvents.length).toBe(0);
+    });
+
+    it('should pass context on success', async () => {
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
+      >[0][] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        toolsContext: { tool1: { context: 'test' } },
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+        ...defaultSettings(),
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "durationMs": 0,
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "output": "test-result",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should pass context on error', async () => {
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
+      >[0][] = [];
+      const toolError = new Error('Tool execution failed');
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            contextSchema: z.object({ context: z.string() }),
+            execute: async (): Promise<string> => {
+              throw toolError;
+            },
+          }),
+        },
+        toolsContext: { tool1: { context: 'test' } },
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+        ...defaultSettings(),
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionEndEvents).toMatchInlineSnapshot(`
+        [
+          {
+            "callId": "test-telemetry-call-id",
+            "context": {
+              "context": "test",
+            },
+            "durationMs": 0,
+            "error": [Error: Tool execution failed],
+            "functionId": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+            "stepNumber": 0,
+            "success": false,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "title": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          },
+        ]
+      `);
+    });
+  });
+
+  describe('options.experimental_onToolExecutionStart and experimental_onToolExecutionEnd ordering', () => {
+    it('should call start before finish', async () => {
+      const callOrder: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        experimental_onToolExecutionStart: async () => {
+          callOrder.push('onToolExecutionStart');
+        },
+        experimental_onToolExecutionEnd: async () => {
+          callOrder.push('onToolExecutionEnd');
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(callOrder).toEqual(['onToolExecutionStart', 'onToolExecutionEnd']);
+    });
+
+    it('should fire tool call callbacks for each tool in a multi-step loop', async () => {
+      const toolExecutionStartEvents: Parameters<
+        OnToolExecutionStartCallback<any>
+      >[0][] = [];
+      const toolExecutionEndEvents: Parameters<
+        OnToolExecutionEndCallback<any>
+      >[0][] = [];
+      let callCount = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (callCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{ "value": "step0" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-2',
+                      toolName: 'tool1',
+                      input: '{ "value": "step1" }',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+              case 2:
+              default:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-2',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Done.' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                };
+            }
+          },
+        }),
+        tools: {
+          tool1: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        stopWhen: isStepCount(4),
+        experimental_onToolExecutionStart: async event => {
+          toolExecutionStartEvents.push(event);
+        },
+        experimental_onToolExecutionEnd: async event => {
+          toolExecutionEndEvents.push(event);
+        },
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(toolExecutionStartEvents.length).toMatchInlineSnapshot(`2`);
+      expect(toolExecutionEndEvents.length).toMatchInlineSnapshot(`2`);
+    });
+  });
+
   describe('options.onChunk', () => {
     let result: Array<
       Extract<
@@ -4883,6 +7127,7 @@ describe('streamText', () => {
           type:
             | 'text-delta'
             | 'reasoning-delta'
+            | 'custom'
             | 'source'
             | 'tool-call'
             | 'tool-input-start'
@@ -5038,6 +7283,36 @@ describe('streamText', () => {
         ]
       `);
     });
+
+    it('should include custom parts in onChunk events', async () => {
+      const chunks: Array<Record<string, unknown>> = [];
+
+      const resultObject = streamText({
+        model: modelWithCustom,
+        prompt: 'test-input',
+        onChunk(event) {
+          chunks.push(event.chunk);
+        },
+      });
+
+      await resultObject.consumeStream();
+
+      expect(chunks).toStrictEqual([
+        {
+          id: '1',
+          providerMetadata: undefined,
+          text: 'Hello!',
+          type: 'text-delta',
+        },
+        {
+          kind: 'openai.compaction',
+          providerMetadata: {
+            openai: { itemId: 'cmp_123' },
+          },
+          type: 'custom',
+        },
+      ]);
+    });
   });
 
   describe('options.onError', () => {
@@ -5045,7 +7320,7 @@ describe('streamText', () => {
       const result: Array<{ error: unknown }> = [];
 
       const resultObject = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -5064,7 +7339,7 @@ describe('streamText', () => {
 
   describe('options.onFinish', () => {
     it('should send correct information', async () => {
-      let result!: Parameters<StreamTextOnFinishCallback<any>>[0];
+      let result!: Parameters<StreamTextOnFinishCallback<any, any>>[0];
 
       const resultObject = streamText({
         model: createTestModel({
@@ -5113,6 +7388,7 @@ describe('streamText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-telemetry-call-id",
           "content": [
             {
               "providerMetadata": undefined,
@@ -5143,9 +7419,13 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
+          "functionId": undefined,
+          "model": {
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+          },
           "providerMetadata": {
             "testProvider": {
               "testKey": "testValue",
@@ -5199,6 +7479,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [
             {
@@ -5225,8 +7506,10 @@ describe('streamText', () => {
               "type": "tool-result",
             },
           ],
+          "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -5256,6 +7539,11 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "functionId": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": {
                 "testProvider": {
                   "testKey": "testValue",
@@ -5307,6 +7595,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
+              "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -5353,6 +7644,7 @@ describe('streamText', () => {
               "type": "tool-result",
             },
           ],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -5408,6 +7700,7 @@ describe('streamText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-telemetry-call-id",
           "content": [
             {
               "id": "123",
@@ -5441,9 +7734,13 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
           "files": [],
           "finishReason": "stop",
+          "functionId": undefined,
+          "model": {
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+          },
           "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "reasoning": [],
@@ -5467,6 +7764,7 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "runtimeContext": {},
           "sources": [
             {
               "id": "123",
@@ -5495,8 +7793,10 @@ describe('streamText', () => {
           ],
           "staticToolCalls": [],
           "staticToolResults": [],
+          "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "id": "123",
@@ -5529,6 +7829,11 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "functionId": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -5550,6 +7855,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
+              "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -5573,6 +7881,7 @@ describe('streamText', () => {
           "text": "Hello!",
           "toolCalls": [],
           "toolResults": [],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -5611,6 +7920,37 @@ describe('streamText', () => {
       `);
     });
 
+    it('should send custom parts', async () => {
+      let result!: Parameters<
+        Required<Parameters<typeof streamText>[0]>['onFinish']
+      >[0];
+
+      const resultObject = streamText({
+        model: modelWithCustom,
+        onFinish: async event => {
+          result = event as unknown as typeof result;
+        },
+        ...defaultSettings(),
+      });
+
+      await resultObject.consumeStream();
+
+      expect(result.content).toStrictEqual([
+        {
+          providerMetadata: undefined,
+          text: 'Hello!',
+          type: 'text',
+        },
+        {
+          kind: 'openai.compaction',
+          providerMetadata: {
+            openai: { itemId: 'cmp_123' },
+          },
+          type: 'custom',
+        },
+      ]);
+    });
+
     it('should send files', async () => {
       let result!: Parameters<
         Required<Parameters<typeof streamText>[0]>['onFinish']
@@ -5628,6 +7968,7 @@ describe('streamText', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
+          "callId": "test-telemetry-call-id",
           "content": [
             {
               "file": DefaultGeneratedFileWithType {
@@ -5655,7 +7996,6 @@ describe('streamText', () => {
           ],
           "dynamicToolCalls": [],
           "dynamicToolResults": [],
-          "experimental_context": undefined,
           "files": [
             DefaultGeneratedFileWithType {
               "base64Data": "Hello World",
@@ -5671,6 +8011,11 @@ describe('streamText', () => {
             },
           ],
           "finishReason": "stop",
+          "functionId": undefined,
+          "model": {
+            "modelId": "mock-model-id",
+            "provider": "mock-provider",
+          },
           "providerMetadata": undefined,
           "rawFinishReason": "stop",
           "reasoning": [],
@@ -5706,11 +8051,14 @@ describe('streamText', () => {
             "modelId": "mock-model-id",
             "timestamp": 1970-01-01T00:00:00.000Z,
           },
+          "runtimeContext": {},
           "sources": [],
           "staticToolCalls": [],
           "staticToolResults": [],
+          "stepNumber": 0,
           "steps": [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "file": DefaultGeneratedFileWithType {
@@ -5737,6 +8085,11 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "functionId": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -5770,6 +8123,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
+              "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -5793,6 +8149,7 @@ describe('streamText', () => {
           "text": "Hello!",
           "toolCalls": [],
           "toolResults": [],
+          "toolsContext": {},
           "totalUsage": {
             "cachedInputTokens": undefined,
             "inputTokenDetails": {
@@ -5833,7 +8190,7 @@ describe('streamText', () => {
 
     it('should not prevent error from being forwarded', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -5964,17 +8321,15 @@ describe('streamText', () => {
   });
 
   describe('options.stopWhen', () => {
-    let result: StreamTextResult<any, any>;
-    let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
-    let onStepFinishResults: StepResult<any>[];
-    let tracer: MockTracer;
+    let result: StreamTextResult<any, any, any>;
+    let onFinishResult: Parameters<StreamTextOnFinishCallback<any, any>>[0];
+    let onStepFinishResults: StepResult<any, any>[];
     let stepInputs: Array<any>;
 
     beforeEach(() => {
       result = undefined as any;
       onFinishResult = undefined as any;
       onStepFinishResults = [];
-      tracer = new MockTracer();
       stepInputs = [];
     });
 
@@ -5982,7 +8337,7 @@ describe('streamText', () => {
       beforeEach(async () => {
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt, tools, toolChoice }) => {
               stepInputs.push({ prompt, tools, toolChoice });
 
@@ -6057,11 +8412,11 @@ describe('streamText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          experimental_telemetry: { isEnabled: true, tracer },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -6355,6 +8710,7 @@ describe('streamText', () => {
         it('onFinish should send correct information', async () => {
           expect(onFinishResult).toMatchInlineSnapshot(`
             {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -6364,9 +8720,13 @@ describe('streamText', () => {
               ],
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
-              "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
+              "functionId": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "reasoning": [],
@@ -6426,11 +8786,14 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
+              "runtimeContext": {},
               "sources": [],
               "staticToolCalls": [],
               "staticToolResults": [],
+              "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -6460,6 +8823,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -6507,6 +8875,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
+                  "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -6527,6 +8898,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -6535,6 +8907,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {},
@@ -6592,6 +8969,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {},
+                  "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -6615,6 +8995,7 @@ describe('streamText', () => {
               "text": "Hello, world!",
               "toolCalls": [],
               "toolResults": [],
+              "toolsContext": {},
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -6657,6 +9038,7 @@ describe('streamText', () => {
           expect(onStepFinishResults).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -6686,6 +9068,11 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
+                "functionId": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {},
@@ -6733,6 +9120,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
+                "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -6753,6 +9143,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -6761,6 +9152,11 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "functionId": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "request": {},
@@ -6818,6 +9214,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
+                "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -6901,6 +9300,7 @@ describe('streamText', () => {
           expect(await result.steps).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -6930,6 +9330,11 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
+                "functionId": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {},
@@ -6977,6 +9382,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
+                "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -6997,6 +9405,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -7005,6 +9414,11 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "functionId": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "request": {},
@@ -7062,6 +9476,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
+                "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -7137,11 +9554,6 @@ describe('streamText', () => {
         });
       });
 
-      it('should record telemetry data for each step', async () => {
-        await result.consumeStream();
-        expect(tracer.jsonSpans).toMatchSnapshot();
-      });
-
       it('should have correct ui message stream', async () => {
         expect(await convertReadableStreamToArray(result.toUIMessageStream()))
           .toMatchInlineSnapshot(`
@@ -7215,13 +9627,13 @@ describe('streamText', () => {
     });
 
     describe('2 steps: initial, tool-result with prepareStep', () => {
-      let doStreamCalls: Array<LanguageModelV3CallOptions>;
+      let doStreamCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
-        experimental_context: unknown;
+        runtimeContext: unknown;
       }>;
 
       beforeEach(async () => {
@@ -7229,7 +9641,7 @@ describe('streamText', () => {
         prepareStepCalls = [];
 
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async options => {
               doStreamCalls.push(options);
               switch (doStreamCalls.length) {
@@ -7290,22 +9702,26 @@ describe('streamText', () => {
               execute: async () => 'result1',
             }),
           },
-          experimental_context: { context: 'state1' },
+          runtimeContext: { context: 'state1' },
           prompt: 'test-input',
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
           prepareStep: async ({
             model,
             stepNumber,
             steps,
             messages,
-            experimental_context,
+            runtimeContext,
           }) => {
             prepareStepCalls.push({
               modelId: typeof model === 'string' ? model : model.modelId,
               stepNumber,
               steps,
               messages,
-              experimental_context,
+              runtimeContext,
             });
 
             if (stepNumber === 0) {
@@ -7321,7 +9737,7 @@ describe('streamText', () => {
                     content: 'new input from prepareStep',
                   },
                 ],
-                experimental_context: { context: 'state2' },
+                runtimeContext: { context: 'state2' },
               };
             }
 
@@ -7329,7 +9745,7 @@ describe('streamText', () => {
               return {
                 activeTools: [],
                 system: 'system-message-1',
-                experimental_context: { context: 'state3' },
+                runtimeContext: { context: 'state3' },
               };
             }
           },
@@ -7364,6 +9780,7 @@ describe('streamText', () => {
                 },
               ],
               "providerOptions": undefined,
+              "reasoning": undefined,
               "responseFormat": undefined,
               "seed": undefined,
               "stopSequences": undefined,
@@ -7452,6 +9869,7 @@ describe('streamText', () => {
                 },
               ],
               "providerOptions": undefined,
+              "reasoning": undefined,
               "responseFormat": undefined,
               "seed": undefined,
               "stopSequences": undefined,
@@ -7459,7 +9877,7 @@ describe('streamText', () => {
               "toolChoice": {
                 "type": "auto",
               },
-              "tools": [],
+              "tools": undefined,
               "topK": undefined,
               "topP": undefined,
             },
@@ -7472,9 +9890,6 @@ describe('streamText', () => {
         expect(prepareStepCalls).toMatchInlineSnapshot(`
           [
             {
-              "experimental_context": {
-                "context": "state1",
-              },
               "messages": [
                 {
                   "content": "test-input",
@@ -7482,9 +9897,13 @@ describe('streamText', () => {
                 },
               ],
               "modelId": "mock-model-id",
+              "runtimeContext": {
+                "context": "state1",
+              },
               "stepNumber": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -7509,6 +9928,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -7551,6 +9975,11 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state2",
+                  },
+                  "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -7571,6 +10000,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -7579,6 +10009,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {},
@@ -7631,6 +10066,11 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state3",
+                  },
+                  "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -7653,9 +10093,6 @@ describe('streamText', () => {
               ],
             },
             {
-              "experimental_context": {
-                "context": "state2",
-              },
               "messages": [
                 {
                   "content": "test-input",
@@ -7692,9 +10129,13 @@ describe('streamText', () => {
                 },
               ],
               "modelId": "mock-model-id",
+              "runtimeContext": {
+                "context": "state2",
+              },
               "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -7719,6 +10160,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -7761,6 +10207,11 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state2",
+                  },
+                  "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -7781,6 +10232,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -7789,6 +10241,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {},
@@ -7841,6 +10298,11 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {
+                    "context": "state3",
+                  },
+                  "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -7889,7 +10351,7 @@ describe('streamText', () => {
       beforeEach(async () => {
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt, tools, toolChoice }) => {
               switch (responseCount++) {
                 case 0: {
@@ -7967,11 +10429,11 @@ describe('streamText', () => {
           onStepFinish: async event => {
             onStepFinishResults.push(event);
           },
-          experimental_telemetry: { isEnabled: true, tracer },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -8143,6 +10605,7 @@ describe('streamText', () => {
         it('onFinish should send correct information', async () => {
           expect(onFinishResult).toMatchInlineSnapshot(`
             {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -8152,9 +10615,13 @@ describe('streamText', () => {
               ],
               "dynamicToolCalls": [],
               "dynamicToolResults": [],
-              "experimental_context": undefined,
               "files": [],
               "finishReason": "stop",
+              "functionId": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "reasoning": [],
@@ -8214,11 +10681,14 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:01.000Z,
               },
+              "runtimeContext": {},
               "sources": [],
               "staticToolCalls": [],
               "staticToolResults": [],
+              "stepNumber": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -8248,6 +10718,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -8295,6 +10770,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
+                  "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -8315,6 +10793,7 @@ describe('streamText', () => {
                   "warnings": [],
                 },
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -8323,6 +10802,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": "stop",
                   "request": {},
@@ -8380,6 +10864,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:01.000Z,
                   },
+                  "runtimeContext": {},
+                  "stepNumber": 1,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": 0,
                     "inputTokenDetails": {
@@ -8403,6 +10890,7 @@ describe('streamText', () => {
               "text": "Hello, world!",
               "toolCalls": [],
               "toolResults": [],
+              "toolsContext": {},
               "totalUsage": {
                 "cachedInputTokens": 0,
                 "inputTokenDetails": {
@@ -8445,6 +10933,7 @@ describe('streamText', () => {
           expect(onStepFinishResults).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8474,6 +10963,11 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
+                "functionId": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {},
@@ -8521,6 +11015,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
+                "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -8541,6 +11038,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8549,6 +11047,11 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "functionId": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "request": {},
@@ -8606,6 +11109,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
+                "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -8685,6 +11191,7 @@ describe('streamText', () => {
           expect(await result.steps).toMatchInlineSnapshot(`
             [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8714,6 +11221,11 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
+                "functionId": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": undefined,
                 "request": {},
@@ -8761,6 +11273,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
+                "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -8781,6 +11296,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -8789,6 +11305,11 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "functionId": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "request": {},
@@ -8846,6 +11367,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:01.000Z,
                 },
+                "runtimeContext": {},
+                "stepNumber": 1,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": 0,
                   "inputTokenDetails": {
@@ -8919,142 +11443,6 @@ describe('streamText', () => {
             ]
           `);
         });
-      });
-
-      it('should record telemetry data for each step', async () => {
-        await result.consumeStream();
-        expect(tracer.jsonSpans).toMatchInlineSnapshot(`
-          [
-            {
-              "attributes": {
-                "ai.model.id": "mock-model-id",
-                "ai.model.provider": "mock-provider",
-                "ai.operationId": "ai.streamText",
-                "ai.prompt": "{"prompt":"test-input"}",
-                "ai.response.finishReason": "stop",
-                "ai.response.text": "Hello, world!",
-                "ai.settings.maxRetries": 2,
-                "ai.usage.cachedInputTokens": 0,
-                "ai.usage.inputTokens": 6,
-                "ai.usage.outputTokens": 20,
-                "ai.usage.reasoningTokens": 10,
-                "ai.usage.totalTokens": 26,
-                "operation.name": "ai.streamText",
-              },
-              "events": [],
-              "name": "ai.streamText",
-            },
-            {
-              "attributes": {
-                "ai.model.id": "mock-model-id",
-                "ai.model.provider": "mock-provider",
-                "ai.operationId": "ai.streamText.doStream",
-                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-                "ai.prompt.toolChoice": "{"type":"auto"}",
-                "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
-                ],
-                "ai.response.avgOutputTokensPerSecond": 20,
-                "ai.response.finishReason": "tool-calls",
-                "ai.response.id": "id-0",
-                "ai.response.model": "mock-model-id",
-                "ai.response.msToFinish": 500,
-                "ai.response.msToFirstChunk": 100,
-                "ai.response.text": "",
-                "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
-                "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]",
-                "ai.settings.maxRetries": 2,
-                "ai.usage.inputTokens": 3,
-                "ai.usage.outputTokens": 10,
-                "ai.usage.totalTokens": 13,
-                "gen_ai.request.model": "mock-model-id",
-                "gen_ai.response.finish_reasons": [
-                  "tool-calls",
-                ],
-                "gen_ai.response.id": "id-0",
-                "gen_ai.response.model": "mock-model-id",
-                "gen_ai.system": "mock-provider",
-                "gen_ai.usage.input_tokens": 3,
-                "gen_ai.usage.output_tokens": 10,
-                "operation.name": "ai.streamText.doStream",
-              },
-              "events": [
-                {
-                  "attributes": {
-                    "ai.response.msToFirstChunk": 100,
-                  },
-                  "name": "ai.stream.firstChunk",
-                },
-                {
-                  "attributes": undefined,
-                  "name": "ai.stream.finish",
-                },
-              ],
-              "name": "ai.streamText.doStream",
-            },
-            {
-              "attributes": {
-                "ai.operationId": "ai.toolCall",
-                "ai.toolCall.args": "{"value":"value"}",
-                "ai.toolCall.id": "call-1",
-                "ai.toolCall.name": "tool1",
-                "ai.toolCall.result": ""result1"",
-                "operation.name": "ai.toolCall",
-              },
-              "events": [],
-              "name": "ai.toolCall",
-            },
-            {
-              "attributes": {
-                "ai.model.id": "mock-model-id",
-                "ai.model.provider": "mock-provider",
-                "ai.operationId": "ai.streamText.doStream",
-                "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","input":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","output":{"type":"text","value":"RESULT1"}}]}]",
-                "ai.prompt.toolChoice": "{"type":"auto"}",
-                "ai.prompt.tools": [
-                  "{"type":"function","name":"tool1","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}",
-                ],
-                "ai.response.avgOutputTokensPerSecond": 25,
-                "ai.response.finishReason": "stop",
-                "ai.response.id": "id-1",
-                "ai.response.model": "mock-model-id",
-                "ai.response.msToFinish": 400,
-                "ai.response.msToFirstChunk": 400,
-                "ai.response.text": "Hello, world!",
-                "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
-                "ai.settings.maxRetries": 2,
-                "ai.usage.cachedInputTokens": 0,
-                "ai.usage.inputTokens": 3,
-                "ai.usage.outputTokens": 10,
-                "ai.usage.reasoningTokens": 10,
-                "ai.usage.totalTokens": 13,
-                "gen_ai.request.model": "mock-model-id",
-                "gen_ai.response.finish_reasons": [
-                  "stop",
-                ],
-                "gen_ai.response.id": "id-1",
-                "gen_ai.response.model": "mock-model-id",
-                "gen_ai.system": "mock-provider",
-                "gen_ai.usage.input_tokens": 3,
-                "gen_ai.usage.output_tokens": 10,
-                "operation.name": "ai.streamText.doStream",
-              },
-              "events": [
-                {
-                  "attributes": {
-                    "ai.response.msToFirstChunk": 400,
-                  },
-                  "name": "ai.stream.firstChunk",
-                },
-                {
-                  "attributes": undefined,
-                  "name": "ai.stream.finish",
-                },
-              ],
-              "name": "ai.streamText.doStream",
-            },
-          ]
-        `);
       });
 
       it('should have correct ui message stream', async () => {
@@ -9132,7 +11520,7 @@ describe('streamText', () => {
     describe('2 stop conditions', () => {
       let stopConditionCalls: Array<{
         number: number;
-        steps: StepResult<any>[];
+        steps: StepResult<any, any>[];
       }>;
 
       beforeEach(async () => {
@@ -9140,7 +11528,7 @@ describe('streamText', () => {
 
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => {
               switch (responseCount++) {
                 case 0: {
@@ -9195,7 +11583,6 @@ describe('streamText', () => {
             },
           },
           prompt: 'test-input',
-          experimental_telemetry: { isEnabled: true, tracer },
           stopWhen: [
             ({ steps }) => {
               stopConditionCalls.push({ number: 0, steps });
@@ -9208,6 +11595,8 @@ describe('streamText', () => {
           ],
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -9224,6 +11613,7 @@ describe('streamText', () => {
               "number": 0,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -9253,6 +11643,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -9300,6 +11695,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
+                  "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -9325,6 +11723,7 @@ describe('streamText', () => {
               "number": 1,
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "providerMetadata": undefined,
@@ -9354,6 +11753,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -9401,6 +11805,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
+                  "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -9426,12 +11833,83 @@ describe('streamText', () => {
         `);
       });
     });
+
+    it('should complete tool loop with isLoopFinished()', async () => {
+      let responseCount = 0;
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            switch (responseCount++) {
+              case 0:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-0',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(0),
+                    },
+                    {
+                      type: 'tool-call',
+                      id: 'call-1',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: `{ "value": "value" }`,
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'tool-calls', raw: undefined },
+                      usage: testUsage,
+                    },
+                  ]),
+                  response: {},
+                };
+              case 1:
+                return {
+                  stream: convertArrayToReadableStream([
+                    {
+                      type: 'response-metadata',
+                      id: 'id-1',
+                      modelId: 'mock-model-id',
+                      timestamp: new Date(1000),
+                    },
+                    { type: 'text-start', id: '1' },
+                    { type: 'text-delta', id: '1', delta: 'Done!' },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+                  response: {},
+                };
+              default:
+                throw new Error(`Unexpected response count: ${responseCount}`);
+            }
+          },
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        stopWhen: isLoopFinished(),
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toBe('Done!');
+      expect((await result.steps).length).toBe(2);
+    });
   });
 
   describe('options.headers', () => {
     it('should set headers', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ headers }) => {
             expect(headers).toStrictEqual({
               'custom-request-header': 'request-header-value',
@@ -9466,7 +11944,7 @@ describe('streamText', () => {
 
   describe('provider-executed tools', () => {
     describe('single provider-executed tool call and result', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -9500,6 +11978,9 @@ describe('streamText', () => {
                 toolName: 'web_search',
                 result: `{ "value": "result1" }`,
                 providerExecuted: true,
+                providerMetadata: {
+                  provider: { itemId: 'result-1' },
+                },
               },
               {
                 type: 'tool-call',
@@ -9515,6 +11996,9 @@ describe('streamText', () => {
                 result: `ERROR`,
                 isError: true,
                 providerExecuted: true,
+                providerMetadata: {
+                  provider: { itemId: 'error-1' },
+                },
               },
               {
                 type: 'finish',
@@ -9526,6 +12010,7 @@ describe('streamText', () => {
           tools: {
             web_search: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.web_search',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
@@ -9533,7 +12018,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(4),
+          stopWhen: isStepCount(4),
         });
       });
 
@@ -9562,6 +12047,11 @@ describe('streamText', () => {
               },
               "output": "{ "value": "result1" }",
               "providerExecuted": true,
+              "providerMetadata": {
+                "provider": {
+                  "itemId": "result-1",
+                },
+              },
               "toolCallId": "call-1",
               "toolName": "web_search",
               "type": "tool-result",
@@ -9584,6 +12074,11 @@ describe('streamText', () => {
                 "value": "value",
               },
               "providerExecuted": true,
+              "providerMetadata": {
+                "provider": {
+                  "itemId": "error-1",
+                },
+              },
               "toolCallId": "call-2",
               "toolName": "web_search",
               "type": "tool-error",
@@ -9639,6 +12134,11 @@ describe('streamText', () => {
                 },
                 "output": "{ "value": "result1" }",
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "provider": {
+                    "itemId": "result-1",
+                  },
+                },
                 "toolCallId": "call-1",
                 "toolName": "web_search",
                 "type": "tool-result",
@@ -9661,6 +12161,11 @@ describe('streamText', () => {
                   "value": "value",
                 },
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "provider": {
+                    "itemId": "error-1",
+                  },
+                },
                 "toolCallId": "call-2",
                 "toolName": "web_search",
                 "type": "tool-error",
@@ -9752,6 +12257,11 @@ describe('streamText', () => {
               {
                 "output": "{ "value": "result1" }",
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "provider": {
+                    "itemId": "result-1",
+                  },
+                },
                 "toolCallId": "call-1",
                 "type": "tool-output-available",
               },
@@ -9767,6 +12277,11 @@ describe('streamText', () => {
               {
                 "errorText": "ERROR",
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "provider": {
+                    "itemId": "error-1",
+                  },
+                },
                 "toolCallId": "call-2",
                 "type": "tool-output-error",
               },
@@ -9781,11 +12296,293 @@ describe('streamText', () => {
           `);
       });
     });
+
+    describe('provider-executed tool error with structured object preserves error in ui message stream', () => {
+      it('should preserve structured error despite custom onError for provider-executed tools', async () => {
+        const result = streamText({
+          model: createTestModel({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'web_fetch',
+                input: `{ "url": "https://example.com" }`,
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'web_fetch',
+                result: {
+                  type: 'web_fetch_tool_result_error',
+                  errorCode: 'url_not_accessible',
+                },
+                isError: true,
+                providerExecuted: true,
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+          tools: {
+            web_fetch: {
+              type: 'provider',
+              isProviderExecuted: true,
+              id: 'test.web_fetch',
+              inputSchema: z.object({ url: z.string() }),
+              args: {},
+            },
+          },
+          ...defaultSettings(),
+          stopWhen: isStepCount(4),
+        });
+
+        const chunks = await convertReadableStreamToArray(
+          result.toUIMessageStream({
+            onError: () => 'Oops, an error occurred!',
+          }),
+        );
+
+        const errorChunk = chunks.find(
+          (c: any) => c.type === 'tool-output-error',
+        );
+
+        const parsed = JSON.parse((errorChunk as any).errorText);
+        expect(parsed).toEqual({
+          type: 'web_fetch_tool_result_error',
+          errorCode: 'url_not_accessible',
+        });
+      });
+    });
+
+    describe('provider-executed tool result replay across steps', () => {
+      it('should preserve provider metadata when replaying the next step', async () => {
+        const stepInputs: Array<{ prompt: LanguageModelV4Prompt }> = [];
+        let responseCount = 0;
+
+        const result = streamText({
+          ...defaultSettings(),
+          model: new MockLanguageModelV4({
+            doStream: async ({ prompt }) => {
+              stepInputs.push({ prompt });
+
+              switch (responseCount++) {
+                case 0: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-0',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(0),
+                      },
+                      {
+                        type: 'tool-call',
+                        id: 'tool-search-call-1',
+                        toolCallId: 'tool-search-call-1',
+                        toolName: 'toolSearch',
+                        input: JSON.stringify({
+                          arguments: { paths: ['get_weather'] },
+                          call_id: null,
+                        }),
+                        providerExecuted: true,
+                        providerMetadata: {
+                          openai: { itemId: 'tsc_123' },
+                        },
+                      },
+                      {
+                        type: 'tool-result',
+                        toolCallId: 'tool-search-call-1',
+                        toolName: 'toolSearch',
+                        result: {
+                          tools: [
+                            {
+                              type: 'function',
+                              name: 'get_weather',
+                              description:
+                                'Get the current weather at a specific location',
+                              parameters: {
+                                type: 'object',
+                                properties: {
+                                  location: { type: 'string' },
+                                },
+                                required: ['location'],
+                              },
+                            },
+                          ],
+                        },
+                        providerExecuted: true,
+                        providerMetadata: {
+                          openai: { itemId: 'tso_123' },
+                        },
+                      },
+                      {
+                        type: 'tool-call',
+                        id: 'call-2',
+                        toolCallId: 'call-2',
+                        toolName: 'get_weather',
+                        input: JSON.stringify({
+                          location: 'San Francisco, CA',
+                        }),
+                      },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'tool-calls', raw: undefined },
+                        usage: testUsage,
+                      },
+                    ]),
+                    response: { headers: { call: '1' } },
+                  };
+                }
+
+                case 1: {
+                  return {
+                    stream: convertArrayToReadableStream([
+                      {
+                        type: 'response-metadata',
+                        id: 'id-1',
+                        modelId: 'mock-model-id',
+                        timestamp: new Date(1000),
+                      },
+                      { type: 'text-start', id: '1' },
+                      { type: 'text-delta', id: '1', delta: 'Sunny.' },
+                      { type: 'text-end', id: '1' },
+                      {
+                        type: 'finish',
+                        finishReason: { unified: 'stop', raw: 'stop' },
+                        usage: testUsage2,
+                      },
+                    ]),
+                    response: { headers: { call: '2' } },
+                  };
+                }
+
+                default:
+                  throw new Error(
+                    `Unexpected response count: ${responseCount}`,
+                  );
+              }
+            },
+          }),
+          tools: {
+            toolSearch: {
+              type: 'provider',
+              isProviderExecuted: true,
+              id: 'openai.tool_search',
+              inputSchema: z.object({
+                arguments: z.object({
+                  paths: z.array(z.string()),
+                }),
+                call_id: z.null(),
+              }),
+              outputSchema: z.object({
+                tools: z.array(z.record(z.string(), z.unknown())),
+              }),
+              args: {},
+            },
+            get_weather: tool({
+              inputSchema: z.object({
+                location: z.string(),
+              }),
+              execute: async () => 'sunny',
+            }),
+          },
+          prompt: 'test-input',
+          stopWhen: isStepCount(3),
+        });
+
+        await result.consumeStream();
+
+        expect(stepInputs).toHaveLength(2);
+        expect(stepInputs[1].prompt).toEqual([
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'test-input' }],
+            providerOptions: undefined,
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'tool-search-call-1',
+                toolName: 'toolSearch',
+                input: {
+                  arguments: { paths: ['get_weather'] },
+                  call_id: null,
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  openai: { itemId: 'tsc_123' },
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'tool-search-call-1',
+                toolName: 'toolSearch',
+                output: {
+                  type: 'json',
+                  value: {
+                    tools: [
+                      {
+                        type: 'function',
+                        name: 'get_weather',
+                        description:
+                          'Get the current weather at a specific location',
+                        parameters: {
+                          type: 'object',
+                          properties: {
+                            location: { type: 'string' },
+                          },
+                          required: ['location'],
+                        },
+                      },
+                    ],
+                  },
+                },
+                providerOptions: {
+                  openai: { itemId: 'tso_123' },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-2',
+                toolName: 'get_weather',
+                input: {
+                  location: 'San Francisco, CA',
+                },
+                providerExecuted: undefined,
+                providerOptions: undefined,
+              },
+            ],
+            providerOptions: undefined,
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-2',
+                toolName: 'get_weather',
+                output: {
+                  type: 'text',
+                  value: 'sunny',
+                },
+              },
+            ],
+            providerOptions: undefined,
+          },
+        ]);
+      });
+    });
   });
 
   describe('dynamic tools', () => {
     describe('single dynamic tool call and result', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -10021,7 +12818,7 @@ describe('streamText', () => {
   describe('options.providerMetadata', () => {
     it('should pass provider metadata to model', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ providerOptions }) => {
             expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
@@ -10055,6 +12852,62 @@ describe('streamText', () => {
         await convertAsyncIterableToArray(result.textStream),
         ['provider metadata test'],
       );
+    });
+  });
+
+  describe('options.reasoning', () => {
+    it('should pass reasoning to model doStream call', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'test' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        reasoning: 'high',
+      });
+
+      await result.text;
+
+      expect(model.doStreamCalls[0].reasoning).toBe('high');
+    });
+
+    it('should pass through provider-default', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'test' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({
+        model,
+        prompt: 'test-input',
+        reasoning: 'provider-default',
+      });
+
+      await result.text;
+
+      expect(model.doStreamCalls[0].reasoning).toBe('provider-default');
     });
   });
 
@@ -10098,6 +12951,7 @@ describe('streamText', () => {
         {
           abortSignal: abortController.signal,
           toolCallId: 'call-1',
+          context: undefined,
           messages: expect.any(Array),
         },
       );
@@ -10109,7 +12963,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10141,7 +12995,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10175,7 +13029,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined = 'not-set' as any;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10206,7 +13060,7 @@ describe('streamText', () => {
       const abortController = new AbortController();
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             await delayedPromise.promise;
             return {
@@ -10238,7 +13092,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10270,7 +13124,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10304,7 +13158,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined = 'not-set' as any;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10335,7 +13189,7 @@ describe('streamText', () => {
       const receivedAbortSignals: (AbortSignal | undefined)[] = [];
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignals.push(abortSignal);
             return {
@@ -10368,7 +13222,7 @@ describe('streamText', () => {
       let stepCount = 0;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignals.push(abortSignal);
             stepCount++;
@@ -10412,7 +13266,7 @@ describe('streamText', () => {
         },
         prompt: 'test-input',
         timeout: { stepMs: 5000 },
-        stopWhen: stepCountIs(2),
+        stopWhen: isStepCount(2),
         onError: () => {},
       });
 
@@ -10429,7 +13283,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10460,7 +13314,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10491,7 +13345,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10525,7 +13379,7 @@ describe('streamText', () => {
       const delayedPromise = new DelayedPromise<void>();
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10578,7 +13432,7 @@ describe('streamText', () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ abortSignal }) => {
             receivedAbortSignal = abortSignal;
             return {
@@ -10607,7 +13461,7 @@ describe('streamText', () => {
 
     it('should clean up step timeout when doStream throws an error', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => {
             throw new Error('Fail immediately');
           },
@@ -10619,208 +13473,6 @@ describe('streamText', () => {
       });
 
       await result.consumeStream();
-    });
-  });
-
-  describe('telemetry', () => {
-    let tracer: MockTracer;
-
-    beforeEach(() => {
-      tracer = new MockTracer();
-    });
-
-    it('should not record any telemetry data when not explicitly enabled', async () => {
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-        _internal: {
-          now: mockValues(0, 100, 500),
-        },
-      });
-
-      await result.consumeStream();
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should record telemetry data when enabled', async () => {
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-        topK: 0.1,
-        topP: 0.2,
-        frequencyPenalty: 0.3,
-        presencePenalty: 0.4,
-        temperature: 0.5,
-        stopSequences: ['stop'],
-        headers: {
-          header1: 'value1',
-          header2: 'value2',
-        },
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'test-function-id',
-          metadata: {
-            test1: 'value1',
-            test2: false,
-          },
-          tracer,
-        },
-        _internal: { now: mockValues(0, 100, 500) },
-      });
-
-      await result.consumeStream();
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should record successful tool call', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
-        prompt: 'test-input',
-        experimental_telemetry: { isEnabled: true, tracer },
-        _internal: { now: mockValues(0, 100, 500) },
-      });
-
-      await result.consumeStream();
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
-    });
-
-    it('should record error on tool call', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async () => {
-              throw new Error('Tool execution failed');
-            },
-          },
-        },
-        prompt: 'test-input',
-        experimental_telemetry: { isEnabled: true, tracer },
-        _internal: { now: mockValues(0, 100, 500) },
-      });
-
-      await result.consumeStream();
-
-      expect(tracer.jsonSpans).toHaveLength(3);
-
-      // Check that we have the expected spans
-      expect(tracer.jsonSpans[0].name).toBe('ai.streamText');
-      expect(tracer.jsonSpans[1].name).toBe('ai.streamText.doStream');
-      expect(tracer.jsonSpans[2].name).toBe('ai.toolCall');
-
-      // Check that the tool call span has error status
-      const toolCallSpan = tracer.jsonSpans[2];
-      expect(toolCallSpan.status).toEqual({
-        code: 2,
-        message: 'Tool execution failed',
-      });
-
-      // Check that the tool call span has exception event
-      expect(toolCallSpan.events).toHaveLength(1);
-      const exceptionEvent = toolCallSpan.events[0];
-      expect(exceptionEvent.name).toBe('exception');
-      expect(exceptionEvent.attributes).toMatchObject({
-        'exception.message': 'Tool execution failed',
-        'exception.name': 'Error',
-      });
-      expect(exceptionEvent.attributes?.['exception.stack']).toContain(
-        'Tool execution failed',
-      );
-      expect(exceptionEvent.time).toEqual([0, 0]);
-    });
-
-    it('should not record telemetry inputs / outputs when disabled', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            {
-              type: 'response-metadata',
-              id: 'id-0',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
-            },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'stop', raw: 'stop' },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: {
-            inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }) => `${value}-result`,
-          },
-        },
-        prompt: 'test-input',
-        experimental_telemetry: {
-          isEnabled: true,
-          recordInputs: false,
-          recordOutputs: false,
-          tracer,
-        },
-        _internal: { now: mockValues(0, 100, 500) },
-      });
-
-      await result.consumeStream();
-
-      expect(tracer.jsonSpans).toMatchSnapshot();
     });
   });
 
@@ -10927,7 +13579,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "messages": [
                 {
                   "content": "test-input",
@@ -10941,7 +13593,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": "{"",
               "messages": [
                 {
@@ -10956,7 +13608,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": "value",
               "messages": [
                 {
@@ -10971,7 +13623,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": "":"",
               "messages": [
                 {
@@ -10986,7 +13638,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": "Spark",
               "messages": [
                 {
@@ -11001,7 +13653,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": "le",
               "messages": [
                 {
@@ -11016,7 +13668,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": " Day",
               "messages": [
                 {
@@ -11031,7 +13683,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "inputTextDelta": ""}",
               "messages": [
                 {
@@ -11046,7 +13698,7 @@ describe('streamText', () => {
           {
             "options": {
               "abortSignal": undefined,
-              "experimental_context": undefined,
+              "context": {},
               "input": {
                 "value": "Sparkle Day",
               },
@@ -11068,7 +13720,7 @@ describe('streamText', () => {
   describe('tools with custom schema', () => {
     it('should send tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ prompt, tools, toolChoice }) => {
             expect(tools).toStrictEqual([
               {
@@ -11144,7 +13796,7 @@ describe('streamText', () => {
   describe('options.messages', () => {
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV3 {
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV4 {
         constructor() {
           super({
             supportedUrls() {
@@ -11189,7 +13841,7 @@ describe('streamText', () => {
   });
 
   describe('tool execution errors', () => {
-    let result: StreamTextResult<any, any>;
+    let result: StreamTextResult<any, any, any>;
 
     beforeEach(async () => {
       result = streamText({
@@ -11317,6 +13969,7 @@ describe('streamText', () => {
       expect(await result.steps).toMatchInlineSnapshot(`
         [
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "input": {
@@ -11341,6 +13994,11 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "functionId": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "request": {},
@@ -11368,7 +14026,7 @@ describe('streamText', () => {
                     {
                       "output": {
                         "type": "error-text",
-                        "value": "test error",
+                        "value": "Error: test error",
                       },
                       "toolCallId": "call-1",
                       "toolName": "tool1",
@@ -11381,6 +14039,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
+            "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -11427,7 +14088,7 @@ describe('streamText', () => {
               {
                 "output": {
                   "type": "error-text",
-                  "value": "test error",
+                  "value": "Error: test error",
                 },
                 "toolCallId": "call-1",
                 "toolName": "tool1",
@@ -11459,7 +14120,7 @@ describe('streamText', () => {
               "type": "tool-input-available",
             },
             {
-              "errorText": "test error",
+              "errorText": "Error: test error",
               "toolCallId": "call-1",
               "type": "tool-output-error",
             },
@@ -11799,11 +14460,16 @@ describe('streamText', () => {
           },
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
         });
 
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -11833,6 +14499,11 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "functionId": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -11878,6 +14549,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
+              "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -12017,12 +14691,17 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: upperCaseTransform,
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
         });
 
         await resultObject.consumeStream();
 
         expect(result).toMatchInlineSnapshot(`
           {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -12053,9 +14732,13 @@ describe('streamText', () => {
             ],
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
-            "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
+            "functionId": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": {
               "testProvider": {
                 "testKey": "TEST VALUE",
@@ -12109,6 +14792,7 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "sources": [],
             "staticToolCalls": [
               {
@@ -12135,8 +14819,10 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
+            "stepNumber": 0,
             "steps": [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -12166,6 +14852,11 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "functionId": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": {
                   "testProvider": {
                     "testKey": "TEST VALUE",
@@ -12217,6 +14908,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
+                "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -12263,6 +14957,7 @@ describe('streamText', () => {
                 "type": "tool-result",
               },
             ],
+            "toolsContext": {},
             "totalUsage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -12348,12 +15043,17 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: upperCaseTransform,
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
         });
 
         await resultObject.consumeStream();
 
         expect(result).toMatchInlineSnapshot(`
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -12383,6 +15083,11 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "functionId": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": {
               "testProvider": {
                 "testKey": "TEST VALUE",
@@ -12434,6 +15139,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
+            "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -12456,56 +15164,6 @@ describe('streamText', () => {
         `);
       });
 
-      it('telemetry should record transformed data when enabled', async () => {
-        const tracer = new MockTracer();
-
-        const result = streamText({
-          model: createTestModel({
-            stream: convertArrayToReadableStream([
-              {
-                type: 'response-metadata',
-                id: 'id-0',
-                modelId: 'mock-model-id',
-                timestamp: new Date(0),
-              },
-              { type: 'text-start', id: '1' },
-              { type: 'text-delta', id: '1', delta: 'Hello' },
-              { type: 'text-delta', id: '1', delta: ', ' },
-              {
-                type: 'tool-call',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                input: `{ "value": "value" }`,
-              },
-              { type: 'text-delta', id: '1', delta: 'world!' },
-              { type: 'text-end', id: '1' },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-                providerMetadata: {
-                  testProvider: { testKey: 'testValue' },
-                },
-              },
-            ]),
-          }),
-          tools: {
-            tool1: tool({
-              inputSchema: z.object({ value: z.string() }),
-              execute: async ({ value }) => `${value}-result`,
-            }),
-          },
-          prompt: 'test-input',
-          experimental_transform: upperCaseTransform,
-          experimental_telemetry: { isEnabled: true, tracer },
-          _internal: { now: mockValues(0, 100, 500) },
-        });
-
-        await result.consumeStream();
-
-        expect(tracer.jsonSpans).toMatchSnapshot();
-      });
-
       it('it should send transformed chunks to onChunk', async () => {
         const result: Array<
           Extract<
@@ -12514,6 +15172,7 @@ describe('streamText', () => {
               type:
                 | 'text-delta'
                 | 'reasoning-delta'
+                | 'custom'
                 | 'source'
                 | 'tool-call'
                 | 'tool-input-start'
@@ -12859,12 +15518,17 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: stopWordTransform(),
+          _internal: {
+            generateId: () => 'test-call-id',
+            generateCallId: () => 'test-telemetry-call-id',
+          },
         });
 
         await resultObject.consumeStream();
 
         expect(result).toMatchInlineSnapshot(`
           DefaultStepResult {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -12873,6 +15537,11 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
+            "functionId": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": undefined,
             "request": {},
@@ -12893,6 +15562,9 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
+            "stepNumber": 0,
+            "toolsContext": {},
             "usage": {
               "inputTokenDetails": {
                 "cacheReadTokens": undefined,
@@ -12995,6 +15667,50 @@ describe('streamText', () => {
         `);
       });
 
+      it('should not call JSON.stringify for string partial outputs', async () => {
+        const originalStringify = JSON.stringify;
+        const stringifySpy = vi.spyOn(JSON, 'stringify').mockImplementation(((
+          ...args: Parameters<typeof JSON.stringify>
+        ) => {
+          if (typeof args[0] === 'string') {
+            throw new Error(
+              'JSON.stringify should not be called for string partial outputs',
+            );
+          }
+          return originalStringify.call(JSON, ...args);
+        }) as typeof JSON.stringify);
+
+        try {
+          const result = streamText({
+            model: createTestModel({
+              stream: convertArrayToReadableStream([
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'Hello, ' },
+                { type: 'text-delta', id: '1', delta: 'world!' },
+                { type: 'text-end', id: '1' },
+                {
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                },
+              ]),
+            }),
+            prompt: 'prompt',
+            output: Output.text(),
+          });
+
+          expect(await convertAsyncIterableToArray(result.partialOutputStream))
+            .toMatchInlineSnapshot(`
+            [
+              "Hello, ",
+              "Hello, world!",
+            ]
+          `);
+        } finally {
+          stringifySpy.mockRestore();
+        }
+      });
+
       it('should resolve output promise with the correct content', async () => {
         const result = streamText({
           model: createTestModel({
@@ -13020,10 +15736,10 @@ describe('streamText', () => {
 
     describe('object output', () => {
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-        let callOptions!: LanguageModelV3CallOptions;
+        let callOptions!: LanguageModelV4CallOptions;
 
         const result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async args => {
               callOptions = args;
               return {
@@ -13074,6 +15790,7 @@ describe('streamText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": {
               "schema": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13093,7 +15810,9 @@ describe('streamText', () => {
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,
@@ -13286,6 +16005,7 @@ describe('streamText', () => {
           },
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
 
@@ -13295,6 +16015,7 @@ describe('streamText', () => {
 
         expect(result).toMatchInlineSnapshot(`
           {
+            "callId": "test-telemetry-call-id",
             "content": [
               {
                 "providerMetadata": undefined,
@@ -13304,9 +16025,13 @@ describe('streamText', () => {
             ],
             "dynamicToolCalls": [],
             "dynamicToolResults": [],
-            "experimental_context": undefined,
             "files": [],
             "finishReason": "stop",
+            "functionId": undefined,
+            "model": {
+              "modelId": "mock-model-id",
+              "provider": "mock-provider",
+            },
             "providerMetadata": undefined,
             "rawFinishReason": "stop",
             "reasoning": [],
@@ -13330,11 +16055,14 @@ describe('streamText', () => {
               "modelId": "mock-model-id",
               "timestamp": 1970-01-01T00:00:00.000Z,
             },
+            "runtimeContext": {},
             "sources": [],
             "staticToolCalls": [],
             "staticToolResults": [],
+            "stepNumber": 0,
             "steps": [
               DefaultStepResult {
+                "callId": "test-telemetry-call-id",
                 "content": [
                   {
                     "providerMetadata": undefined,
@@ -13343,6 +16071,11 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
+                "functionId": undefined,
+                "model": {
+                  "modelId": "mock-model-id",
+                  "provider": "mock-provider",
+                },
                 "providerMetadata": undefined,
                 "rawFinishReason": "stop",
                 "request": {},
@@ -13364,6 +16097,9 @@ describe('streamText', () => {
                   "modelId": "mock-model-id",
                   "timestamp": 1970-01-01T00:00:00.000Z,
                 },
+                "runtimeContext": {},
+                "stepNumber": 0,
+                "toolsContext": {},
                 "usage": {
                   "cachedInputTokens": undefined,
                   "inputTokenDetails": {
@@ -13387,6 +16123,7 @@ describe('streamText', () => {
             "text": "{ "value": "Hello, world!" }",
             "toolCalls": [],
             "toolResults": [],
+            "toolsContext": {},
             "totalUsage": {
               "cachedInputTokens": undefined,
               "inputTokenDetails": {
@@ -13427,7 +16164,7 @@ describe('streamText', () => {
     });
 
     describe('array output', () => {
-      let result: StreamTextResult<any, any> | undefined;
+      let result: StreamTextResult<any, any, any> | undefined;
 
       let onFinishResult:
         | Parameters<Required<Parameters<typeof streamText>[0]>['onFinish']>[0]
@@ -13725,7 +16462,7 @@ describe('streamText', () => {
       });
 
       it('should not stream incorrect values', async () => {
-        const mockModel = new MockLanguageModelV3({
+        const mockModel = new MockLanguageModelV4({
           doStream: {
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
@@ -13832,11 +16569,11 @@ describe('streamText', () => {
   describe('options.activeTools', () => {
     it('should filter available tools to only the ones in activeTools', async () => {
       let tools:
-        | (LanguageModelV3FunctionTool | LanguageModelV3ProviderTool)[]
+        | (LanguageModelV4FunctionTool | LanguageModelV4ProviderTool)[]
         | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async ({ tools: toolsArg }) => {
             tools = toolsArg;
 
@@ -13991,7 +16728,7 @@ describe('streamText', () => {
     it('should pass through the includeRawChunks flag correctly to the model', async () => {
       let capturedOptions: any;
 
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async options => {
           capturedOptions = options;
 
@@ -14126,7 +16863,7 @@ describe('streamText', () => {
     it('should pass includeRawChunks flag correctly to the model', async () => {
       let capturedOptions: any;
 
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async options => {
           capturedOptions = options;
           return {
@@ -14178,7 +16915,7 @@ describe('streamText', () => {
 
   describe('mixed multi content streaming with interleaving parts', () => {
     describe('mixed text and reasoning blocks', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -14213,6 +16950,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -14406,6 +17144,7 @@ describe('streamText', () => {
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "providerMetadata": undefined,
@@ -14429,6 +17168,11 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "functionId": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -14465,6 +17209,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
+              "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -14492,9 +17239,9 @@ describe('streamText', () => {
 
   describe('abort signal', () => {
     describe('basic abort', () => {
-      let result: StreamTextResult<ToolSet, never>;
+      let result: StreamTextResult<ToolSet, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<ToolSet>[] }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<ToolSet, any>[] }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -14511,7 +17258,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: new ReadableStream({
                 pull(controller) {
@@ -14582,7 +17329,7 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -14600,7 +17347,7 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -14613,7 +17360,7 @@ describe('streamText', () => {
 
         const resultWithReason = streamText({
           abortSignal: abortController.signal,
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: new ReadableStream({
                 pull(controller) {
@@ -14673,9 +17420,9 @@ describe('streamText', () => {
     });
 
     describe('abort in 2nd step', () => {
-      let result: StreamTextResult<any, never>;
+      let result: StreamTextResult<any, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<any, any>[] }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -14690,7 +17437,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: new ReadableStream({
                 start(controller) {
@@ -14767,7 +17514,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             },
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
           ...defaultSettings(),
           onError: error => {
             onErrorCalls.push({ error });
@@ -14787,6 +17534,7 @@ describe('streamText', () => {
             {
               "steps": [
                 DefaultStepResult {
+                  "callId": "test-telemetry-call-id",
                   "content": [
                     {
                       "input": {
@@ -14811,6 +17559,11 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
+                  "functionId": undefined,
+                  "model": {
+                    "modelId": "mock-model-id",
+                    "provider": "mock-provider",
+                  },
                   "providerMetadata": undefined,
                   "rawFinishReason": undefined,
                   "request": {},
@@ -14851,6 +17604,9 @@ describe('streamText', () => {
                     "modelId": "mock-model-id",
                     "timestamp": 1970-01-01T00:00:00.000Z,
                   },
+                  "runtimeContext": {},
+                  "stepNumber": 0,
+                  "toolsContext": {},
                   "usage": {
                     "cachedInputTokens": undefined,
                     "inputTokenDetails": {
@@ -14939,12 +17695,7 @@ describe('streamText', () => {
                 },
               },
               {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -14978,10 +17729,7 @@ describe('streamText', () => {
                 "type": "finish-step",
               },
               {
-                "type": "start-step",
-              },
-              {
-                "reason": "This operation was aborted",
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -14989,10 +17737,10 @@ describe('streamText', () => {
       });
     });
 
-    describe('abort during tool call', () => {
-      let result: StreamTextResult<any, never>;
+    describe('abort during tool execution', () => {
+      let result: StreamTextResult<any, any, never>;
       let onErrorCalls: Array<{ error: unknown }> = [];
-      let onAbortCalls: Array<{ steps: StepResult<any>[] }> = [];
+      let onAbortCalls: Array<{ steps: StepResult<any, any>[] }> = [];
 
       beforeEach(() => {
         onErrorCalls = [];
@@ -15011,7 +17759,7 @@ describe('streamText', () => {
           onAbort: event => {
             onAbortCalls.push(event);
           },
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => ({
               stream: new ReadableStream({
                 start(controller) {
@@ -15097,7 +17845,7 @@ describe('streamText', () => {
               },
             },
           },
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
         });
       });
 
@@ -15130,7 +17878,18 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
-                "reason": "This operation was aborted",
+                "input": {
+                  "value": "value",
+                },
+                "providerExecuted": undefined,
+                "providerMetadata": undefined,
+                "title": undefined,
+                "toolCallId": "call-1",
+                "toolName": "tool1",
+                "type": "tool-call",
+              },
+              {
+                "reason": "AbortError: This operation was aborted",
                 "type": "abort",
               },
             ]
@@ -15177,14 +17936,17 @@ describe('streamText', () => {
         tools: {
           t1: tool({
             inputSchema: z.object({ value: z.string() }),
-            execute: async ({ value }, { experimental_context }) => {
-              recordedContext = experimental_context;
+            contextSchema: z.object({ context: z.string() }),
+            execute: async ({ value }, { context }) => {
+              recordedContext = context;
               return { value: 'test-result' };
             },
           }),
         },
-        experimental_context: {
-          context: 'test',
+        toolsContext: {
+          t1: {
+            context: 'test',
+          },
         },
         prompt: 'test-input',
       });
@@ -15197,11 +17959,11 @@ describe('streamText', () => {
       });
     });
 
-    it('should pass experimental_context to prepareStep', async () => {
+    it('should pass runtimeContext to prepareStep', async () => {
       let capturedContext: unknown;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
@@ -15216,9 +17978,9 @@ describe('streamText', () => {
             response: {},
           }),
         }),
-        experimental_context: { myData: 'test-value' },
-        prepareStep: async ({ experimental_context }) => {
-          capturedContext = experimental_context;
+        runtimeContext: { myData: 'test-value' },
+        prepareStep: async ({ runtimeContext }) => {
+          capturedContext = runtimeContext;
           return undefined;
         },
         prompt: 'test',
@@ -15228,11 +17990,11 @@ describe('streamText', () => {
       expect(capturedContext).toEqual({ myData: 'test-value' });
     });
 
-    it('should send context in onFinish callback', async () => {
+    it('should send runtimeContext in onFinish callback', async () => {
       let recordedContext: unknown | undefined;
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               { type: 'text-start', id: '1' },
@@ -15247,12 +18009,12 @@ describe('streamText', () => {
             ]),
           }),
         }),
-        experimental_context: {
+        runtimeContext: {
           context: 'test',
         },
         prompt: 'test-input',
-        onFinish: ({ experimental_context }) => {
-          recordedContext = experimental_context;
+        onFinish: ({ runtimeContext }) => {
+          recordedContext = runtimeContext;
         },
       });
 
@@ -15266,7 +18028,7 @@ describe('streamText', () => {
 
   describe('invalid tool calls', () => {
     describe('single invalid tool call', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -15305,6 +18067,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -15319,7 +18082,7 @@ describe('streamText', () => {
           [
             {
               "dynamic": true,
-              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -15343,7 +18106,7 @@ describe('streamText', () => {
             },
             {
               "dynamic": true,
-              "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+              "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
           Error message: [
             {
               "expected": "string",
@@ -15396,7 +18159,7 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
-                "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "error": [AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -15420,7 +18183,7 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
-                "error": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "error": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -15514,7 +18277,7 @@ describe('streamText', () => {
                 "type": "tool-input-delta",
               },
               {
-                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -15533,7 +18296,7 @@ describe('streamText', () => {
                 "type": "tool-input-error",
               },
               {
-                "errorText": "Invalid input for tool cityAttractions: Type validation failed: Value: {"cities":"San Francisco"}.
+                "errorText": "AI_InvalidToolInputError: Invalid input for tool cityAttractions: AI_TypeValidationError: Type validation failed: Value: {"cities":"San Francisco"}.
             Error message: [
               {
                 "expected": "string",
@@ -15562,7 +18325,7 @@ describe('streamText', () => {
 
   describe('tools with preliminary results', () => {
     describe('single tool with preliminary results', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -15586,6 +18349,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           tools: {
             cityAttractions: tool({
@@ -15824,6 +18588,7 @@ describe('streamText', () => {
         expect(await result.steps).toMatchInlineSnapshot(`
           [
             DefaultStepResult {
+              "callId": "test-telemetry-call-id",
               "content": [
                 {
                   "input": {
@@ -15852,6 +18617,11 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
+              "functionId": undefined,
+              "model": {
+                "modelId": "mock-model-id",
+                "provider": "mock-provider",
+              },
               "providerMetadata": undefined,
               "rawFinishReason": "stop",
               "request": {},
@@ -15896,6 +18666,9 @@ describe('streamText', () => {
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
+              "runtimeContext": {},
+              "stepNumber": 0,
+              "toolsContext": {},
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokenDetails": {
@@ -15923,7 +18696,7 @@ describe('streamText', () => {
 
   describe('provider-executed dynamic tools', () => {
     describe('single provider-executed dynamic tool with input streaming', () => {
-      let result: StreamTextResult<any, any>;
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -15991,6 +18764,7 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId(),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -16046,12 +18820,19 @@ describe('streamText', () => {
               },
               {
                 "dynamic": true,
-                "input": undefined,
+                "input": {
+                  "city": "San Francisco",
+                },
                 "output": {
                   "status": "success",
                   "text": "The weather in San Francisco is 72°F",
                 },
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "anthropic": {
+                    "serverName": "echo",
+                  },
+                },
                 "toolCallId": "call-1",
                 "toolName": "cityAttractions",
                 "type": "tool-result",
@@ -16159,6 +18940,11 @@ describe('streamText', () => {
                   "text": "The weather in San Francisco is 72°F",
                 },
                 "providerExecuted": true,
+                "providerMetadata": {
+                  "anthropic": {
+                    "serverName": "echo",
+                  },
+                },
                 "toolCallId": "call-1",
                 "type": "tool-output-available",
               },
@@ -16193,12 +18979,19 @@ describe('streamText', () => {
             },
             {
               "dynamic": true,
-              "input": undefined,
+              "input": {
+                "city": "San Francisco",
+              },
               "output": {
                 "status": "success",
                 "text": "The weather in San Francisco is 72°F",
               },
               "providerExecuted": true,
+              "providerMetadata": {
+                "anthropic": {
+                  "serverName": "echo",
+                },
+              },
               "toolCallId": "call-1",
               "toolName": "cityAttractions",
               "type": "tool-result",
@@ -16211,14 +19004,14 @@ describe('streamText', () => {
 
   describe('programmatic tool calling', () => {
     describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
-      let result: StreamTextResult<any, any>;
-      let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
-      let onStepFinishResults: StepResult<any>[];
-      let doStreamCalls: Array<LanguageModelV3CallOptions>;
+      let result: StreamTextResult<any, any, any>;
+      let onFinishResult: Parameters<StreamTextOnFinishCallback<any, any>>[0];
+      let onStepFinishResults: StepResult<any, any>[];
+      let doStreamCalls: Array<LanguageModelV4CallOptions>;
       let prepareStepCalls: Array<{
         modelId: string;
         stepNumber: number;
-        steps: Array<StepResult<any>>;
+        steps: Array<StepResult<any, any>>;
         messages: Array<ModelMessage>;
       }>;
       let rollDieExecutions: Array<{ player: string }>;
@@ -16237,7 +19030,7 @@ describe('streamText', () => {
         let responseCount = 0;
 
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async options => {
               doStreamCalls.push(options);
 
@@ -16488,6 +19281,7 @@ describe('streamText', () => {
           tools: {
             code_execution: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'anthropic.code_execution_20250825',
               inputSchema: z.object({ code: z.string() }),
               outputSchema: z.object({
@@ -16514,7 +19308,7 @@ describe('streamText', () => {
             }),
           },
           prompt: 'Play a dice game between two players.',
-          stopWhen: stepCountIs(10),
+          stopWhen: isStepCount(10),
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
           },
@@ -17742,7 +20536,7 @@ describe('streamText', () => {
     describe('deferred tool calls with tool-error', () => {
       it('should resolve deferred tool call when tool-error is in the same step', async () => {
         const result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => {
               return {
                 stream: convertArrayToReadableStream([
@@ -17793,6 +20587,7 @@ describe('streamText', () => {
           tools: {
             deferred_tool: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.deferred_tool',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
@@ -17801,7 +20596,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(2),
+          stopWhen: isStepCount(2),
         });
 
         // Consume the stream
@@ -17847,7 +20642,7 @@ describe('streamText', () => {
       it('should resolve deferred tool call when tool-error arrives in a later step', async () => {
         let responseCount = 0;
         const result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async () => {
               switch (responseCount++) {
                 case 0:
@@ -17924,6 +20719,7 @@ describe('streamText', () => {
           tools: {
             deferred_tool: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.deferred_tool',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
@@ -17932,7 +20728,7 @@ describe('streamText', () => {
             },
           },
           ...defaultSettings(),
-          stopWhen: stepCountIs(3),
+          stopWhen: isStepCount(3),
         });
 
         // Consume the stream
@@ -18006,7 +20802,7 @@ describe('streamText', () => {
       };
 
       let callCount = 0;
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV4({
         doStream: async _options => {
           switch (callCount++) {
             case 0:
@@ -18075,7 +20871,7 @@ describe('streamText', () => {
             execute: async () => 'result',
           },
         },
-        stopWhen: stepCountIs(3),
+        stopWhen: isStepCount(3),
         ...defaultSettings(),
       });
 
@@ -18116,8 +20912,8 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
-    describe('when a single tool needs approval', () => {
-      let result: StreamTextResult<any, any>;
+    describe('when a single tool needs approval (user-defined)', () => {
+      let result: StreamTextResult<any, any, any>;
 
       beforeEach(async () => {
         result = streamText({
@@ -18141,13 +20937,16 @@ describe('streamText', () => {
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           tools: {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: async () => 'result1',
-              needsApproval: true,
             }),
+          },
+          toolApproval: {
+            tool1: true,
           },
         });
       });
@@ -18339,8 +21138,8 @@ describe('streamText', () => {
       });
     });
 
-    describe('when a single tool has a needsApproval function', () => {
-      let result: StreamTextResult<any, any>;
+    describe('when a single tool has a user-defined approval function', () => {
+      let result: StreamTextResult<any, any, any>;
       let needsApprovalCalls: Array<{ input: any; options: any }> = [];
 
       beforeEach(async () => {
@@ -18374,16 +21173,19 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: input => `result for ${input.value}`,
-              needsApproval: (input, options) => {
-                needsApprovalCalls.push({ input, options });
-                return input.value === 'value-needs-approval';
-              },
             }),
           },
-          stopWhen: stepCountIs(3),
+          toolApproval: {
+            tool1: (input, options) => {
+              needsApprovalCalls.push({ input, options });
+              return input.value === 'value-needs-approval';
+            },
+          },
+          stopWhen: isStepCount(3),
           prompt: 'test-input',
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
         });
       });
@@ -18661,21 +21463,56 @@ describe('streamText', () => {
         `);
       });
 
-      it('should call the needsApproval function with the correct input and options', async () => {
-        expect(needsApprovalCalls).toMatchInlineSnapshot(`[]`);
+      it('should call the approval function with the correct input and options', async () => {
+        await result.consumeStream();
+
+        expect(needsApprovalCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "input": {
+                "value": "value-needs-approval",
+              },
+              "options": {
+                "context": undefined,
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+                "toolCallId": "call-1",
+              },
+            },
+            {
+              "input": {
+                "value": "value-no-approval",
+              },
+              "options": {
+                "context": undefined,
+                "messages": [
+                  {
+                    "content": "test-input",
+                    "role": "user",
+                  },
+                ],
+                "toolCallId": "call-2",
+              },
+            },
+          ]
+        `);
       });
     });
 
     describe('when a call from a single tool that needs approval is approved', () => {
-      let result: StreamTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let result: StreamTextResult<any, any, any>;
+      let prompts: LanguageModelV4Prompt[];
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -18701,12 +21538,15 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: executeFunction,
-              needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          toolApproval: {
+            tool1: true,
+          },
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -18969,14 +21809,139 @@ describe('streamText', () => {
       });
     });
 
-    describe('when a call from a single tool with preliminary results that needs approval is approved', () => {
-      let result: StreamTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
+    describe('when a call from a single tool that needs approval is approved and the tool throws', () => {
+      let result: StreamTextResult<any, any, any>;
+      let prompts: LanguageModelV4Prompt[];
 
       beforeEach(async () => {
         prompts = [];
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
+            doStream: async ({ prompt }) => {
+              prompts.push(prompt);
+              return {
+                stream: convertArrayToReadableStream([
+                  { type: 'stream-start', warnings: [] },
+                  { type: 'text-start', id: '1' },
+                  {
+                    type: 'text-delta',
+                    id: '1',
+                    delta: 'Hello, world!',
+                  },
+                  { type: 'text-end', id: '1' },
+                  {
+                    type: 'finish',
+                    finishReason: { unified: 'stop', raw: 'stop' },
+                    usage: testUsage,
+                  },
+                ]),
+              };
+            },
+          }),
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({ value: z.string() }),
+              execute: async (): Promise<string> => {
+                throw new Error('No valid token for plugin');
+              },
+            }),
+          },
+          toolApproval: {
+            tool1: true,
+          },
+          stopWhen: isStepCount(3),
+          _internal: {
+            generateId: mockId({ prefix: 'id' }),
+          },
+          messages: [
+            { role: 'user', content: 'test-input' },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  input: {
+                    value: 'value',
+                  },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  type: 'tool-call',
+                },
+                {
+                  approvalId: 'id-1',
+                  toolCallId: 'call-1',
+                  type: 'tool-approval-request',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  approvalId: 'id-1',
+                  type: 'tool-approval-response',
+                  approved: true,
+                },
+              ],
+            },
+          ],
+        });
+
+        await result.consumeStream();
+      });
+
+      it('should serialize the tool error as error-text in the continuation prompt', async () => {
+        expect(prompts).toEqual([
+          [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'test-input' }],
+              providerOptions: undefined,
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: { value: 'value' },
+                  providerExecuted: undefined,
+                  providerOptions: undefined,
+                },
+              ],
+              providerOptions: undefined,
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  output: {
+                    type: 'error-text',
+                    value: 'Error: No valid token for plugin',
+                  },
+                  providerOptions: undefined,
+                },
+              ],
+              providerOptions: undefined,
+            },
+          ],
+        ]);
+      });
+    });
+
+    describe('when a call from a single tool with preliminary results that needs approval is approved', () => {
+      let result: StreamTextResult<any, any, any>;
+      let prompts: LanguageModelV4Prompt[];
+
+      beforeEach(async () => {
+        prompts = [];
+        result = streamText({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -19005,12 +21970,15 @@ describe('streamText', () => {
                 yield 'preliminary-result';
                 yield 'final-result';
               },
-              needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          toolApproval: {
+            tool1: true,
+          },
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -19299,15 +22267,15 @@ describe('streamText', () => {
     });
 
     describe('when a call from a single tool that needs approval is denied', () => {
-      let result: StreamTextResult<any, any>;
-      let prompts: LanguageModelV3Prompt[];
-      let executeFunction: ToolExecuteFunction<any, any>;
+      let result: StreamTextResult<any, any, any>;
+      let prompts: LanguageModelV4Prompt[];
+      let executeFunction: ToolExecuteFunction<any, any, any>;
 
       beforeEach(async () => {
         prompts = [];
         executeFunction = vi.fn().mockReturnValue('result1');
         result = streamText({
-          model: new MockLanguageModelV3({
+          model: new MockLanguageModelV4({
             doStream: async ({ prompt }) => {
               prompts.push(prompt);
               return {
@@ -19333,12 +22301,15 @@ describe('streamText', () => {
             tool1: tool({
               inputSchema: z.object({ value: z.string() }),
               execute: executeFunction,
-              needsApproval: true,
             }),
           },
-          stopWhen: stepCountIs(3),
+          toolApproval: {
+            tool1: true,
+          },
+          stopWhen: isStepCount(3),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
+            generateCallId: () => 'test-telemetry-call-id',
           },
           messages: [
             { role: 'user', content: 'test-input' },
@@ -19590,7 +22561,7 @@ describe('streamText', () => {
 
     describe('provider-executed tool (MCP) approval', () => {
       describe('when a provider-executed tool emits tool-approval-request', () => {
-        let result: StreamTextResult<any, any>;
+        let result: StreamTextResult<any, any, any>;
 
         beforeEach(async () => {
           result = streamText({
@@ -19619,6 +22590,7 @@ describe('streamText', () => {
             tools: {
               mcp_tool: {
                 type: 'provider',
+                isProviderExecuted: true,
                 id: 'test.mcp_tool',
                 inputSchema: z.object({ query: z.string() }),
                 args: {},
@@ -19627,6 +22599,7 @@ describe('streamText', () => {
             prompt: 'test-input',
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
           });
         });
@@ -19824,13 +22797,13 @@ describe('streamText', () => {
       });
 
       describe('when a provider-executed tool approval is approved', () => {
-        let result: StreamTextResult<any, any>;
-        let prompts: LanguageModelV3Prompt[];
+        let result: StreamTextResult<any, any, any>;
+        let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
           prompts = [];
           result = streamText({
-            model: new MockLanguageModelV3({
+            model: new MockLanguageModelV4({
               doStream: async ({ prompt }) => {
                 prompts.push(prompt);
                 return {
@@ -19876,6 +22849,7 @@ describe('streamText', () => {
             tools: {
               mcp_tool: {
                 type: 'provider',
+                isProviderExecuted: true,
                 id: 'test.mcp_tool',
                 inputSchema: z.object({ query: z.string() }),
                 args: {},
@@ -19883,6 +22857,7 @@ describe('streamText', () => {
             },
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
             messages: [
               {
@@ -19922,7 +22897,7 @@ describe('streamText', () => {
           });
         });
 
-        it('should send tool-approval-response to the model', async () => {
+        it('should send tool-approval-response to the model exactly once', async () => {
           await result.consumeStream();
           expect(prompts[0]).toMatchInlineSnapshot(`
             [
@@ -19954,12 +22929,6 @@ describe('streamText', () => {
               },
               {
                 "content": [
-                  {
-                    "approvalId": "mcp-approval-1",
-                    "approved": true,
-                    "reason": undefined,
-                    "type": "tool-approval-response",
-                  },
                   {
                     "approvalId": "mcp-approval-1",
                     "approved": true,
@@ -20012,13 +22981,13 @@ describe('streamText', () => {
       });
 
       describe('when a provider-executed tool approval is denied', () => {
-        let result: StreamTextResult<any, any>;
-        let prompts: LanguageModelV3Prompt[];
+        let result: StreamTextResult<any, any, any>;
+        let prompts: LanguageModelV4Prompt[];
 
         beforeEach(async () => {
           prompts = [];
           result = streamText({
-            model: new MockLanguageModelV3({
+            model: new MockLanguageModelV4({
               doStream: async ({ prompt }) => {
                 prompts.push(prompt);
                 return {
@@ -20050,6 +23019,7 @@ describe('streamText', () => {
             tools: {
               mcp_tool: {
                 type: 'provider',
+                isProviderExecuted: true,
                 id: 'test.mcp_tool',
                 inputSchema: z.object({ query: z.string() }),
                 args: {},
@@ -20057,6 +23027,7 @@ describe('streamText', () => {
             },
             _internal: {
               generateId: mockId({ prefix: 'id' }),
+              generateCallId: () => 'test-telemetry-call-id',
             },
             messages: [
               {
@@ -20097,7 +23068,7 @@ describe('streamText', () => {
           });
         });
 
-        it('should send denied tool-approval-response to the model', async () => {
+        it('should send denied tool-approval-response to the model exactly once', async () => {
           await result.consumeStream();
           expect(prompts[0]).toMatchInlineSnapshot(`
             [
@@ -20135,12 +23106,6 @@ describe('streamText', () => {
                     "reason": "User denied the request",
                     "type": "tool-approval-response",
                   },
-                  {
-                    "approvalId": "mcp-approval-1",
-                    "approved": false,
-                    "reason": "User denied the request",
-                    "type": "tool-approval-response",
-                  },
                 ],
                 "providerOptions": undefined,
                 "role": "tool",
@@ -20172,9 +23137,9 @@ describe('streamText', () => {
     it('should use the prepareStep model supportedUrls for download decision', async () => {
       const downloadCalls: Array<{ url: URL; isUrlSupportedByModel: boolean }> =
         [];
-      const languageModelCalls: Array<LanguageModelV3CallOptions> = [];
+      const languageModelCalls: Array<LanguageModelV4CallOptions> = [];
 
-      const modelWithImageUrlSupport = new MockLanguageModelV3({
+      const modelWithImageUrlSupport = new MockLanguageModelV4({
         provider: 'with-image-url-support',
         modelId: 'with-image-url-support',
         supportedUrls: {
@@ -20196,7 +23161,7 @@ describe('streamText', () => {
         },
       });
 
-      const modelWithoutImageUrlSupport = new MockLanguageModelV3({
+      const modelWithoutImageUrlSupport = new MockLanguageModelV4({
         provider: 'without-image-url-support',
         modelId: 'without-image-url-support',
         supportedUrls: {},
@@ -20295,11 +23260,14 @@ describe('streamText', () => {
               },
             ],
             "providerOptions": undefined,
+            "reasoning": undefined,
             "responseFormat": undefined,
             "seed": undefined,
             "stopSequences": undefined,
             "temperature": undefined,
-            "toolChoice": undefined,
+            "toolChoice": {
+              "type": "auto",
+            },
             "tools": undefined,
             "topK": undefined,
             "topP": undefined,
@@ -20308,6 +23276,423 @@ describe('streamText', () => {
       `);
 
       expect(await result.text).toBe('response from without-image-url-support');
+    });
+  });
+
+  describe('telemetry integrations', () => {
+    afterEach(() => {
+      globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
+    });
+
+    it('should call per-call integration listeners for all lifecycle events', async () => {
+      const events: string[] = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        onError: () => {},
+        telemetry: {
+          integrations: {
+            onStart: async () => {
+              events.push('onStart');
+            },
+            onStepStart: async () => {
+              events.push('onStepStart');
+            },
+            onToolExecutionStart: async () => {
+              events.push('onToolExecutionStart');
+            },
+            onToolExecutionEnd: async () => {
+              events.push('onToolExecutionEnd');
+            },
+            onStepFinish: async () => {
+              events.push('onStepFinish');
+            },
+            onFinish: async () => {
+              events.push('onFinish');
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          "onStart",
+          "onStepStart",
+          "onToolExecutionStart",
+          "onToolExecutionEnd",
+          "onStepFinish",
+          "onFinish",
+        ]
+      `);
+    });
+
+    it('should call globally registered integration listeners', async () => {
+      const events: string[] = [];
+
+      globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
+        {
+          onStart: async () => {
+            events.push('global-onStart');
+          },
+          onStepFinish: async () => {
+            events.push('global-onStepFinish');
+          },
+          onFinish: async () => {
+            events.push('global-onFinish');
+          },
+        },
+      ];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onError: () => {},
+      });
+
+      await result.consumeStream();
+
+      expect(events).toEqual([
+        'global-onStart',
+        'global-onStepFinish',
+        'global-onFinish',
+      ]);
+    });
+
+    it('should only call per-call integrations when both global and per-call integrations are provided', async () => {
+      const events: string[] = [];
+
+      globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = [
+        {
+          onStart: async () => {
+            events.push('global');
+          },
+        },
+      ];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onError: () => {},
+        telemetry: {
+          integrations: {
+            onStart: async () => {
+              events.push('per-call');
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(events).toEqual(['per-call']);
+    });
+
+    it('should call integration listeners alongside user callbacks', async () => {
+      const events: string[] = [];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onError: () => {},
+        experimental_onStart: async () => {
+          events.push('user-onStart');
+        },
+        onStepFinish: async () => {
+          events.push('user-onStepFinish');
+        },
+        onFinish: async () => {
+          events.push('user-onFinish');
+        },
+        telemetry: {
+          integrations: {
+            onStart: async () => {
+              events.push('integration-onStart');
+            },
+            onStepFinish: async () => {
+              events.push('integration-onStepFinish');
+            },
+            onFinish: async () => {
+              events.push('integration-onFinish');
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(events).toEqual([
+        'user-onStart',
+        'integration-onStart',
+        'user-onStepFinish',
+        'integration-onStepFinish',
+        'user-onFinish',
+        'integration-onFinish',
+      ]);
+    });
+
+    it('should not break streaming when an integration listener throws', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onError: () => {},
+        telemetry: {
+          integrations: {
+            onStart: async () => {
+              throw new Error('integration error');
+            },
+            onStepFinish: async () => {
+              throw new Error('integration error');
+            },
+            onFinish: async () => {
+              throw new Error('integration error');
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(await result.text).toBe('Hello, world!');
+    });
+
+    it('should call integration onChunk with content stream chunks', async () => {
+      const chunks: Array<Record<string, unknown>> = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-delta', id: '1', delta: ', world!' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: '{ "value": "test" }',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: undefined },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          }),
+        },
+        prompt: 'test-input',
+        onError: () => {},
+        telemetry: {
+          integrations: {
+            onChunk: async event => {
+              chunks.push(event.chunk as Record<string, unknown>);
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(chunks.map(c => c.type)).toMatchInlineSnapshot(`
+        [
+          "ai.stream.firstChunk",
+          "text-start",
+          "text-delta",
+          "text-delta",
+          "text-end",
+          "tool-call",
+          "ai.stream.finish",
+          "tool-result",
+        ]
+      `);
+
+      const contentChunks = chunks.filter(
+        c => c.type !== 'ai.stream.firstChunk' && c.type !== 'ai.stream.finish',
+      );
+      expect(contentChunks).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "type": "text-start",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": ", world!",
+            "type": "text-delta",
+          },
+          {
+            "id": "1",
+            "type": "text-end",
+          },
+          {
+            "input": {
+              "value": "test",
+            },
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "testTool",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": false,
+            "input": {
+              "value": "test",
+            },
+            "output": "test-result",
+            "toolCallId": "call-1",
+            "toolName": "testTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
+    });
+
+    it('should call integration onChunk with raw chunks when includeRawChunks is enabled', async () => {
+      const chunks: Array<Record<string, unknown>> = [];
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              {
+                type: 'raw',
+                rawValue: { type: 'content_block_delta', delta: 'Hello' },
+              },
+              { type: 'text-delta', id: '1', delta: 'Hello' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          }),
+        }),
+        prompt: 'test-input',
+        includeRawChunks: true,
+        onError: () => {},
+        telemetry: {
+          integrations: {
+            onChunk: async event => {
+              chunks.push(event.chunk as Record<string, unknown>);
+            },
+          },
+        },
+      });
+
+      await result.consumeStream();
+
+      const rawChunks = chunks.filter(c => c.type === 'raw');
+      const textChunks = chunks.filter(c => c.type === 'text-delta');
+
+      expect(rawChunks).toMatchInlineSnapshot(`
+        [
+          {
+            "rawValue": {
+              "delta": "Hello",
+              "type": "content_block_delta",
+            },
+            "type": "raw",
+          },
+        ]
+      `);
+      expect(textChunks).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "1",
+            "providerMetadata": undefined,
+            "text": "Hello",
+            "type": "text-delta",
+          },
+        ]
+      `);
+    });
+
+    it('should support multiple per-call integrations as an array', async () => {
+      const events: string[] = [];
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        onError: () => {},
+        telemetry: {
+          integrations: [
+            {
+              onStart: async () => {
+                events.push('first');
+              },
+            },
+            {
+              onStart: async () => {
+                events.push('second');
+              },
+            },
+          ],
+        },
+      });
+
+      await result.consumeStream();
+
+      expect(events).toEqual(['first', 'second']);
     });
   });
 });

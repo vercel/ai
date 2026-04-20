@@ -1,4 +1,4 @@
-import { RerankingModelV3 } from '@ai-sdk/provider';
+import { RerankingModelV4 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   Resolvable,
@@ -16,7 +16,7 @@ import {
 } from './bedrock-reranking-api';
 import {
   BedrockRerankingModelId,
-  bedrockRerankingOptionsSchema,
+  amazonBedrockRerankingModelOptionsSchema,
 } from './bedrock-reranking-options';
 
 type BedrockRerankingConfig = {
@@ -26,10 +26,10 @@ type BedrockRerankingConfig = {
   fetch?: FetchFunction;
 };
 
-type DoRerankResponse = Awaited<ReturnType<RerankingModelV3['doRerank']>>;
+type DoRerankResponse = Awaited<ReturnType<RerankingModelV4['doRerank']>>;
 
-export class BedrockRerankingModel implements RerankingModelV3 {
-  readonly specificationVersion = 'v3';
+export class BedrockRerankingModel implements RerankingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
 
   constructor(
@@ -44,11 +44,11 @@ export class BedrockRerankingModel implements RerankingModelV3 {
     topN,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV3['doRerank']>[0]): Promise<DoRerankResponse> {
+  }: Parameters<RerankingModelV4['doRerank']>[0]): Promise<DoRerankResponse> {
     const bedrockOptions = await parseProviderOptions({
       provider: 'bedrock',
       providerOptions,
-      schema: bedrockRerankingOptionsSchema,
+      schema: amazonBedrockRerankingModelOptionsSchema,
     });
 
     const {

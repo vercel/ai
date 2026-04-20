@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -20,7 +20,7 @@ import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 
-export type GoogleVertexVideoProviderOptions = {
+export type GoogleVertexVideoModelOptions = {
   // Polling configuration
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
@@ -53,8 +53,8 @@ interface GoogleVertexVideoModelConfig {
   };
 }
 
-export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class GoogleVertexVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
@@ -71,16 +71,16 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     const vertexOptions = (await parseProviderOptions({
       provider: 'vertex',
       providerOptions: options.providerOptions,
-      schema: vertexVideoProviderOptionsSchema,
-    })) as GoogleVertexVideoProviderOptions | undefined;
+      schema: googleVertexVideoModelOptionsSchema,
+    })) as GoogleVertexVideoModelOptions | undefined;
 
     const instances: Array<Record<string, unknown>> = [{}];
     const instance = instances[0];
@@ -105,6 +105,7 @@ export class GoogleVertexVideoModel implements Experimental_VideoModelV3 {
 
         instance.image = {
           bytesBase64Encoded: base64Data,
+          mimeType: options.image.mediaType,
         };
       }
     }
@@ -348,7 +349,7 @@ const vertexOperationSchema = z.object({
     .nullish(),
 });
 
-const vertexVideoProviderOptionsSchema = lazySchema(() =>
+const googleVertexVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({

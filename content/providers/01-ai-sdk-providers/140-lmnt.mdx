@@ -91,9 +91,10 @@ const result = await generateSpeech({
 
 You can also pass additional provider-specific options using the `providerOptions` argument:
 
-```ts highlight="9-13"
+```ts highlight="10-14"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { lmnt } from '@ai-sdk/lmnt';
+import { type LMNTSpeechModelOptions } from '@ai-sdk/lmnt';
 
 const result = await generateSpeech({
   model: lmnt.speech('aurora'),
@@ -104,7 +105,7 @@ const result = await generateSpeech({
     lmnt: {
       conversational: true,
       speed: 1.2,
-    },
+    } satisfies LMNTSpeechModelOptions,
   },
 });
 ```

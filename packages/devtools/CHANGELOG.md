@@ -1,5 +1,151 @@
 # @ai-sdk/devtools
 
+## 1.0.0-beta.16
+
+### Major Changes
+
+- 1949571: feat(ai): make experimental_telemetry stable
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+
+## 1.0.0-beta.15
+
+### Patch Changes
+
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+
+## 1.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 1.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+
+## 1.0.0-beta.12
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+
+## 1.0.0-beta.11
+
+### Patch Changes
+
+- e27ed76: feat(devtools): add new devtools integration for telemetry
+
+## 1.0.0-beta.10
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+
+## 1.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+
+## 1.0.0-beta.8
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+
+## 1.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 1.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 1.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 1.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 1.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 1.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 1.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+
+## 1.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+
+## 0.0.15
+
+### Patch Changes
+
+- 4c3a932: Use explicit AI_SDK_DEVTOOLS_DEV env flag for dev mode detection
+
+## 0.0.14
+
+### Patch Changes
+
+- d14f0aa: chore (devtools): include skill instructions in readme
+
+## 0.0.13
+
+### Patch Changes
+
+- b2e7fe2: Fix dev mode detection to prevent false positives when repos are in paths containing '/src/'
+
+## 0.0.12
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+
 ## 0.0.11
 
 ### Patch Changes

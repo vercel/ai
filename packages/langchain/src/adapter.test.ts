@@ -665,11 +665,61 @@ describe('toUIMessageStream', () => {
     `);
   });
 
+  it('should handle reasoning when message ID changes between chunks', async () => {
+    // Simulates GPT-5 streaming where the message ID switches mid-stream.
+    // Each distinct msgId should get its own reasoning lifecycle.
+    const chunk1 = new AIMessageChunk({
+      id: 'run-test-001',
+      content: [{ type: 'reasoning', reasoning: 'Thinking about this...' }],
+    });
+
+    const chunk2 = new AIMessageChunk({
+      id: 'msg_test-002',
+      content: [{ type: 'reasoning', reasoning: ' More reasoning.' }],
+    });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [chunk1, { langgraph_step: 1 }]],
+      ['messages', [chunk2, { langgraph_step: 1 }]],
+      ['values', {}],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Extract reasoning events
+    const reasoningEvents = result.filter((e: unknown) => {
+      const event = e as { type: string };
+      return (
+        event.type === 'reasoning-start' ||
+        event.type === 'reasoning-delta' ||
+        event.type === 'reasoning-end'
+      );
+    }) as Array<{ type: string; id: string; delta?: string }>;
+
+    // The key invariant: every reasoning-delta must be preceded by a
+    // reasoning-start with the SAME id.
+    const startIds = new Set(
+      reasoningEvents.filter(e => e.type === 'reasoning-start').map(e => e.id),
+    );
+    for (const event of reasoningEvents) {
+      if (event.type === 'reasoning-delta') {
+        expect(startIds.has(event.id)).toBe(true);
+      }
+    }
+
+    // Both msgIds should have reasoning-start events
+    expect(startIds.size).toBe(2);
+    expect(startIds.has('run-test-001')).toBe(true);
+    expect(startIds.has('msg_test-002')).toBe(true);
+  });
+
   it('should handle reasoning followed by text content', async () => {
     // Reasoning chunk
-    const reasoningChunk = new AIMessageChunk({ id: 'msg-1', content: '' });
-    Object.defineProperty(reasoningChunk, 'contentBlocks', {
-      get: () => [{ type: 'reasoning', reasoning: 'Thinking about this...' }],
+    const reasoningChunk = new AIMessageChunk({
+      id: 'msg-1',
+      content: [{ type: 'reasoning', reasoning: 'Thinking about this...' }],
     });
 
     // Text chunk
@@ -728,9 +778,9 @@ describe('toUIMessageStream', () => {
 
   it('should handle reasoning with tool calls', async () => {
     // Reasoning before tool call
-    const reasoningChunk = new AIMessageChunk({ id: 'msg-1', content: '' });
-    Object.defineProperty(reasoningChunk, 'contentBlocks', {
-      get: () => [
+    const reasoningChunk = new AIMessageChunk({
+      id: 'msg-1',
+      content: [
         { type: 'reasoning', reasoning: 'I need to search for this...' },
       ],
     });
@@ -796,14 +846,49 @@ describe('toUIMessageStream', () => {
     `);
   });
 
+  it('should emit reasoning-end before finish-step when no values event', async () => {
+    // Simulates streamMode: 'messages' (no values) with multi-step reasoning.
+    // Without values events, the adapter must still emit reasoning-end
+    // before finish-step to avoid orphaned reasoning parts on the client.
+    const reasoningChunk1 = new AIMessageChunk({
+      id: 'run-step1',
+      content: [{ type: 'reasoning', reasoning: 'Step 1 thinking...' }],
+    });
+
+    const textChunk2 = new AIMessageChunk({
+      id: 'run-step2',
+      content: 'Answer from step 2',
+    });
+
+    const inputStream = convertArrayToReadableStream([
+      ['messages', [reasoningChunk1, { langgraph_step: 1 }]],
+      ['messages', [textChunk2, { langgraph_step: 2 }]],
+      // No values events!
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    const types = result.map((e: unknown) => (e as { type: string }).type);
+
+    // reasoning-end must appear before finish-step
+    const reasoningEndIdx = types.indexOf('reasoning-end');
+    const finishStepIdx = types.indexOf('finish-step');
+    expect(reasoningEndIdx).toBeGreaterThan(-1);
+    expect(finishStepIdx).toBeGreaterThan(-1);
+    expect(reasoningEndIdx).toBeLessThan(finishStepIdx);
+
+    // Also verify text-end appears before finish at the end
+    const textEndIdx = types.lastIndexOf('text-end');
+    expect(textEndIdx).toBeGreaterThan(-1);
+  });
+
   it('should handle model stream with reasoning contentBlocks', async () => {
     // Non-array events are treated as model stream chunks (AIMessageChunk)
     const reasoningChunk = new AIMessageChunk({
-      content: '',
+      content: [{ type: 'reasoning', reasoning: 'Thinking...' }],
       id: 'test-1',
-    });
-    Object.defineProperty(reasoningChunk, 'contentBlocks', {
-      get: () => [{ type: 'reasoning', reasoning: 'Thinking...' }],
     });
 
     const textChunk = new AIMessageChunk({
@@ -2039,5 +2124,307 @@ describe('toUIMessageStream with LangGraph HITL fixture', () => {
     await expect(JSON.stringify(result, null, 2)).toMatchFileSnapshot(
       './__snapshots__/react-agent-tool-calling.json',
     );
+  });
+});
+
+describe('toUIMessageStream end-to-end with processUIMessageStream', () => {
+  // These tests verify that the adapter output is valid for the client-side
+  // processUIMessageStream by feeding real fixture data through both.
+  // This catches bugs where reasoning-start is missing before reasoning-delta.
+
+  async function assertAdapterOutputIsValidForClient(
+    fixtureData: unknown[],
+  ): Promise<void> {
+    const inputStream = convertArrayToReadableStream(fixtureData);
+    const chunks = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    // Verify invariant: every reasoning-delta must be preceded by a
+    // reasoning-start with the same ID (and not yet closed by reasoning-end)
+    const activeReasoningParts = new Set<string>();
+    for (const chunk of chunks) {
+      const c = chunk as { type: string; id?: string };
+      switch (c.type) {
+        case 'reasoning-start':
+          activeReasoningParts.add(c.id!);
+          break;
+        case 'reasoning-delta':
+          expect(activeReasoningParts.has(c.id!)).toBe(true);
+          break;
+        case 'reasoning-end':
+          activeReasoningParts.delete(c.id!);
+          break;
+        case 'finish-step':
+          activeReasoningParts.clear();
+          break;
+      }
+    }
+  }
+
+  it('LANGGRAPH_RESPONSE_1 (GPT-5 reasoning + tool call)', async () => {
+    await assertAdapterOutputIsValidForClient(LANGGRAPH_RESPONSE_1);
+  });
+
+  it('LANGGRAPH_RESPONSE_2 (GPT-5 HITL follow-up turn)', async () => {
+    await assertAdapterOutputIsValidForClient(LANGGRAPH_RESPONSE_2);
+  });
+
+  it('REACT_AGENT_TOOL_CALLING (GPT-5 multi-step reasoning + parallel tools)', async () => {
+    await assertAdapterOutputIsValidForClient(REACT_AGENT_TOOL_CALLING);
+  });
+});
+
+describe('toUIMessageStream callbacks', () => {
+  it('should call onFinish with final state for LangGraph streams', async () => {
+    const onFinish = vi.fn();
+    const valuesData = {
+      messages: [{ id: 'ai-1', type: 'ai', content: 'Hello!' }],
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith(valuesData);
+  });
+
+  it('should call onFinish with last values data when multiple values events', async () => {
+    const onFinish = vi.fn();
+
+    const inputStream = convertArrayToReadableStream([
+      ['values', { messages: [], step: 1 }],
+      ['values', { messages: [{ id: 'ai-1' }], step: 2 }],
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith({
+      messages: [{ id: 'ai-1' }],
+      step: 2,
+    });
+  });
+
+  it('should call onFinish with undefined for model streams', async () => {
+    const onFinish = vi.fn();
+
+    const inputStream = convertArrayToReadableStream([
+      new AIMessageChunk({ content: 'Hello', id: 'test-1' }),
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call onFinish with undefined for streamEvents streams', async () => {
+    const onFinish = vi.fn();
+
+    const inputStream = convertArrayToReadableStream([
+      {
+        event: 'on_chat_model_stream',
+        data: { chunk: { id: 'msg-1', content: 'Hello' } },
+      },
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith(undefined);
+  });
+
+  it('should call onError when stream errors', async () => {
+    const onError = vi.fn();
+    const onFinish = vi.fn();
+
+    async function* errorStream(): AsyncGenerator<unknown> {
+      yield ['values', { messages: [] }];
+      throw new Error('Stream failed');
+    }
+
+    await convertReadableStreamToArray(
+      toUIMessageStream(errorStream() as AsyncIterable<AIMessageChunk>, {
+        onError,
+        onFinish,
+      }),
+    );
+
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Stream failed' }),
+    );
+    expect(onFinish).not.toHaveBeenCalled();
+  });
+
+  it('should call onAbort when stream is aborted', async () => {
+    const onAbort = vi.fn();
+    const onError = vi.fn();
+    const onFinish = vi.fn();
+
+    async function* abortStream(): AsyncGenerator<unknown> {
+      yield ['values', { messages: [] }];
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    await convertReadableStreamToArray(
+      toUIMessageStream(abortStream() as AsyncIterable<AIMessageChunk>, {
+        onAbort,
+        onError,
+        onFinish,
+      }),
+    );
+
+    expect(onAbort).toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(onFinish).not.toHaveBeenCalled();
+  });
+
+  it('should call onFinal before onFinish on success', async () => {
+    const callOrder: string[] = [];
+
+    const callbacks = {
+      onFinal: () => {
+        callOrder.push('onFinal');
+      },
+      onFinish: () => {
+        callOrder.push('onFinish');
+      },
+    };
+
+    const inputStream = convertArrayToReadableStream([
+      ['values', { messages: [] }],
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, callbacks),
+    );
+
+    expect(callOrder).toEqual(['onFinal', 'onFinish']);
+  });
+
+  it('should call onFinal before onError on error', async () => {
+    const callOrder: string[] = [];
+
+    async function* errorStream(): AsyncGenerator<unknown> {
+      yield ['values', { messages: [] }];
+      throw new Error('Stream failed');
+    }
+
+    const callbacks = {
+      onFinal: () => {
+        callOrder.push('onFinal');
+      },
+      onError: () => {
+        callOrder.push('onError');
+      },
+    };
+
+    const stream = toUIMessageStream(
+      errorStream() as AsyncIterable<AIMessageChunk>,
+      callbacks,
+    );
+    await convertReadableStreamToArray(stream);
+
+    expect(callOrder).toEqual(['onFinal', 'onError']);
+  });
+
+  it('should call onFinal before onAbort on abort', async () => {
+    const callOrder: string[] = [];
+
+    async function* abortStream(): AsyncGenerator<unknown> {
+      yield ['values', { messages: [] }];
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    const callbacks = {
+      onFinal: () => {
+        callOrder.push('onFinal');
+      },
+      onAbort: () => {
+        callOrder.push('onAbort');
+      },
+    };
+
+    const stream = toUIMessageStream(
+      abortStream() as AsyncIterable<AIMessageChunk>,
+      callbacks,
+    );
+    await convertReadableStreamToArray(stream);
+
+    expect(callOrder).toEqual(['onFinal', 'onAbort']);
+  });
+
+  it('should support typed state with generic parameter', async () => {
+    interface ChatState {
+      messages: Array<{ role: string; content: string }>;
+      escalated: boolean;
+    }
+
+    const onFinish = vi.fn();
+    const valuesData: ChatState = {
+      messages: [{ role: 'assistant', content: 'Hello' }],
+      escalated: false,
+    };
+
+    const inputStream = convertArrayToReadableStream([['values', valuesData]]);
+    await convertReadableStreamToArray(
+      toUIMessageStream<ChatState>(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith(valuesData);
+  });
+
+  it('should await async callbacks in order', async () => {
+    const results: string[] = [];
+
+    const inputStream = convertArrayToReadableStream([
+      ['values', { messages: [] }],
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, {
+        onStart: async () => {
+          results.push('start');
+        },
+        onFinal: async () => {
+          results.push('final');
+        },
+        onFinish: async () => {
+          results.push('finish');
+        },
+      }),
+    );
+
+    expect(results).toEqual(['start', 'final', 'finish']);
+  });
+
+  it('should pass accumulated text to onFinal even on error', async () => {
+    const onFinal = vi.fn();
+
+    async function* partialStream(): AsyncGenerator<AIMessageChunk> {
+      yield new AIMessageChunk({ content: 'Hello', id: 'msg-1' });
+      yield new AIMessageChunk({ content: ' World', id: 'msg-1' });
+      throw new Error('Mid-stream error');
+    }
+
+    await convertReadableStreamToArray(
+      toUIMessageStream(partialStream(), { onFinal }),
+    );
+
+    expect(onFinal).toHaveBeenCalledWith('Hello World');
+  });
+
+  it('should handle [namespace, type, data] format for values events', async () => {
+    const onFinish = vi.fn();
+    const valuesData = { messages: [{ id: 'ai-1', content: 'Hello' }] };
+
+    const inputStream = convertArrayToReadableStream([
+      ['some-namespace', 'values', valuesData],
+    ]);
+    await convertReadableStreamToArray(
+      toUIMessageStream(inputStream, { onFinish }),
+    );
+
+    expect(onFinish).toHaveBeenCalledWith(valuesData);
   });
 });

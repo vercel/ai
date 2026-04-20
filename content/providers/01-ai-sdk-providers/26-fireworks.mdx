@@ -115,7 +115,10 @@ Fireworks chat models support additional provider options that are not part of
 the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in the `providerOptions` argument:
 
 ```ts
-import { fireworks } from '@ai-sdk/fireworks';
+import {
+  fireworks,
+  type FireworksLanguageModelOptions,
+} from '@ai-sdk/fireworks';
 import { generateText } from 'ai';
 
 const { text, reasoningText } = await generateText({
@@ -124,7 +127,7 @@ const { text, reasoningText } = await generateText({
     fireworks: {
       thinking: { type: 'enabled', budgetTokens: 4096 },
       reasoningHistory: 'interleaved',
-    },
+    } satisfies FireworksLanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });

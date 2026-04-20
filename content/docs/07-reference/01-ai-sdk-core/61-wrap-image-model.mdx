@@ -35,12 +35,12 @@ const { image } = await generateImage({
   content={[
     {
       name: 'model',
-      type: 'ImageModelV3',
-      description: 'The original ImageModelV3 instance to be wrapped.',
+      type: 'ImageModelV4',
+      description: 'The original ImageModelV4 instance to be wrapped.',
     },
     {
       name: 'middleware',
-      type: 'ImageModelV3Middleware | ImageModelV3Middleware[]',
+      type: 'ImageModelV4Middleware | ImageModelV4Middleware[]',
       description:
         'The middleware to be applied to the image model. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.',
     },
@@ -61,4 +61,4 @@ const { image } = await generateImage({
 
 ### Returns
 
-A new `ImageModelV3` instance with middleware applied.
+A new `ImageModelV4` instance with middleware applied.

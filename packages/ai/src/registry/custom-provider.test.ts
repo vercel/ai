@@ -1,24 +1,38 @@
-import { NoSuchModelError } from '@ai-sdk/provider';
+import { FilesV4, NoSuchModelError, SkillsV4 } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
-import { MockEmbeddingModelV3 } from '../test/mock-embedding-model-v3';
-import { MockImageModelV3 } from '../test/mock-image-model-v3';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
-import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
-import { MockSpeechModelV3 } from '../test/mock-speech-model-v3';
-import { MockTranscriptionModelV3 } from '../test/mock-transcription-model-v3';
+import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
+import { MockImageModelV4 } from '../test/mock-image-model-v4';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
+import { MockSpeechModelV4 } from '../test/mock-speech-model-v4';
+import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
 import { customProvider } from './custom-provider';
 
-const mockLanguageModel = new MockLanguageModelV3();
-const mockEmbeddingModel = new MockEmbeddingModelV3();
-const mockRerankingModel = new MockRerankingModelV3();
+const mockLanguageModel = new MockLanguageModelV4();
+const mockEmbeddingModel = new MockEmbeddingModelV4();
+const mockRerankingModel = new MockRerankingModelV4();
+const mockFilesV4: FilesV4 = {
+  specificationVersion: 'v4',
+  provider: 'test',
+  uploadFile: vi.fn(),
+};
+
+const mockSkillsV4: SkillsV4 = {
+  specificationVersion: 'v4',
+  provider: 'test',
+  uploadSkill: vi.fn(),
+};
+
 const mockFallbackProvider = {
-  specificationVersion: 'v3' as const,
+  specificationVersion: 'v4' as const,
   languageModel: vi.fn(),
   embeddingModel: vi.fn(),
   imageModel: vi.fn(),
   transcriptionModel: vi.fn(),
   speechModel: vi.fn(),
   rerankingModel: vi.fn(),
+  files: vi.fn(),
+  skills: vi.fn(),
 };
 
 describe('languageModel', () => {
@@ -83,7 +97,7 @@ describe('embeddingModel', () => {
 });
 
 describe('imageModel', () => {
-  const mockImageModel = new MockImageModelV3();
+  const mockImageModel = new MockImageModelV4();
 
   it('should return the image model if it exists', () => {
     const provider = customProvider({
@@ -112,7 +126,7 @@ describe('imageModel', () => {
 });
 
 describe('transcriptionModel', () => {
-  const mockTranscriptionModel = new MockTranscriptionModelV3();
+  const mockTranscriptionModel = new MockTranscriptionModelV4();
 
   it('should return the transcription model if it exists', () => {
     const provider = customProvider({
@@ -151,7 +165,7 @@ describe('transcriptionModel', () => {
 });
 
 describe('speechModel', () => {
-  const mockSpeechModel = new MockSpeechModelV3();
+  const mockSpeechModel = new MockSpeechModelV4();
 
   it('should return the speech model if it exists', () => {
     const provider = customProvider({
@@ -207,5 +221,65 @@ describe('rerankingModel', () => {
     expect(() => provider.rerankingModel('test-model')).toThrow(
       NoSuchModelError,
     );
+  });
+});
+
+describe('files', () => {
+  it('should return the files interface if provided', () => {
+    const provider = customProvider({ files: mockFilesV4 });
+
+    expect(provider.files?.()).toBe(mockFilesV4);
+  });
+
+  it('should use fallback provider files if not provided locally', () => {
+    mockFallbackProvider.files.mockReturnValue(mockFilesV4);
+
+    const provider = customProvider({ fallbackProvider: mockFallbackProvider });
+
+    expect(provider.files?.()).toBe(mockFilesV4);
+  });
+
+  it('should not expose files method if neither provided nor in fallback', () => {
+    mockFallbackProvider.files.mockReturnValue(undefined);
+
+    const provider = customProvider({ fallbackProvider: mockFallbackProvider });
+
+    expect(provider.files).toBeUndefined();
+  });
+
+  it('should not expose files method when no files and no fallback', () => {
+    const provider = customProvider({});
+
+    expect(provider.files).toBeUndefined();
+  });
+});
+
+describe('skills', () => {
+  it('should return the skills interface if provided', () => {
+    const provider = customProvider({ skills: mockSkillsV4 });
+
+    expect(provider.skills?.()).toBe(mockSkillsV4);
+  });
+
+  it('should use fallback provider skills if not provided locally', () => {
+    mockFallbackProvider.skills.mockReturnValue(mockSkillsV4);
+
+    const provider = customProvider({ fallbackProvider: mockFallbackProvider });
+
+    expect(provider.skills?.()).toBe(mockSkillsV4);
+  });
+
+  it('should not expose skills method if neither provided nor in fallback', () => {
+    mockFallbackProvider.skills.mockReturnValue(undefined);
+
+    const provider = customProvider({ fallbackProvider: mockFallbackProvider });
+
+    expect(provider.skills).toBeUndefined();
+  });
+
+  it('should not expose skills method when no skills and no fallback', () => {
+    const provider = customProvider({});
+
+    expect(provider.skills).toBeUndefined();
   });
 });

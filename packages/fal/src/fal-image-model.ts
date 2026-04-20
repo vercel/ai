@@ -1,4 +1,4 @@
-import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   combineHeaders,
@@ -12,10 +12,13 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FalImageModelId, FalImageSize } from './fal-image-settings';
-import { falImageProviderOptionsSchema } from './fal-image-options';
+import { falImageModelOptionsSchema } from './fal-image-options';
 
 interface FalImageModelConfig {
   provider: string;
@@ -27,12 +30,26 @@ interface FalImageModelConfig {
   };
 }
 
-export class FalImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class FalImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: FalImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FalImageModelId;
+    config: FalImageModelConfig;
+  }) {
+    return new FalImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -49,8 +66,8 @@ export class FalImageModel implements ImageModelV3 {
     providerOptions,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<SharedV3Warning> = [];
+  }: Parameters<ImageModelV4['doGenerate']>[0]) {
+    const warnings: Array<SharedV4Warning> = [];
 
     let imageSize: FalImageSize | undefined;
     if (size) {
@@ -63,7 +80,7 @@ export class FalImageModel implements ImageModelV3 {
     const falOptions = await parseProviderOptions({
       provider: 'fal',
       providerOptions,
-      schema: falImageProviderOptionsSchema,
+      schema: falImageModelOptionsSchema,
     });
 
     const requestBody: Record<string, unknown> = {
@@ -149,15 +166,15 @@ export class FalImageModel implements ImageModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<ImageModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const { requestBody, warnings } = await this.getArgs(options);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/${this.modelId}`,
       headers: combineHeaders(
-        await resolve(this.config.headers),
+        this.config.headers ? await resolve(this.config.headers) : undefined,
         options.headers,
       ),
       body: requestBody,
@@ -199,7 +216,7 @@ export class FalImageModel implements ImageModelV3 {
         fal: {
           images: targetImages.map((image, index) => {
             const {
-              url,
+              url: _url,
               content_type: contentType,
               file_name: fileName,
               file_data: fileData,

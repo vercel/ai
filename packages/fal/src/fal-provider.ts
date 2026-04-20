@@ -1,10 +1,10 @@
 import {
-  Experimental_VideoModelV3,
-  ImageModelV3,
+  Experimental_VideoModelV4,
+  ImageModelV4,
   NoSuchModelError,
-  ProviderV3,
-  SpeechModelV3,
-  TranscriptionModelV3,
+  ProviderV4,
+  SpeechModelV4,
+  TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import {
@@ -46,31 +46,36 @@ export interface FalProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface FalProvider extends ProviderV3 {
+export interface FalProvider extends ProviderV4 {
   /**
    * Creates a model for image generation.
    */
-  image(modelId: FalImageModelId): ImageModelV3;
+  image(modelId: FalImageModelId): ImageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: FalImageModelId): ImageModelV3;
+  imageModel(modelId: FalImageModelId): ImageModelV4;
 
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: FalTranscriptionModelId): TranscriptionModelV3;
+  transcription(modelId: FalTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: FalVideoModelId): Experimental_VideoModelV3;
+  video(modelId: FalVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(modelId: FalVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: FalSpeechModelId): SpeechModelV3;
+  speech(modelId: FalSpeechModelId): SpeechModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -177,10 +182,9 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
   };
 
   return {
-    specificationVersion: 'v3' as const,
+    specificationVersion: 'v4' as const,
     imageModel: createImageModel,
     image: createImageModel,
-    video: createVideoModel,
     languageModel: (modelId: string) => {
       throw new NoSuchModelError({
         modelId,
@@ -191,6 +195,8 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
     embeddingModel,
     textEmbeddingModel: embeddingModel,
     transcription: createTranscriptionModel,
+    video: createVideoModel,
+    videoModel: createVideoModel,
   };
 }
 

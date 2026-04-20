@@ -7,7 +7,7 @@ description: Learn how to use the FriendliAI Provider for the AI SDK.
 
 The [FriendliAI](https://friendli.ai/) provider supports both open-source LLMs via [Friendli Serverless Endpoints](https://friendli.ai/products/serverless-endpoints) and custom models via [Dedicated Endpoints](https://friendli.ai/products/dedicated-endpoints).
 
-It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject`, and `streamObject` functions.
+It creates language model objects that can be used with the `generateText` and `streamText` functions, and supports structured data generation with [`Output`](/docs/reference/ai-sdk-core/output).
 
 ## Setup
 
@@ -126,22 +126,24 @@ Structured outputs are a form of guided generation. The JSON schema is used as a
 
 ```ts
 import { friendli } from '@friendliai/ai-provider';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const { object } = await generateObject({
+const { output } = await generateText({
   model: friendli('meta-llama-3.3-70b-instruct'),
-  schemaName: 'CalendarEvent',
-  schema: z.object({
-    name: z.string(),
-    date: z.string(),
-    participants: z.array(z.string()),
+  output: Output.object({
+    schemaName: 'CalendarEvent',
+    schema: z.object({
+      name: z.string(),
+      date: z.string(),
+      participants: z.array(z.string()),
+    }),
   }),
   system: 'Extract the event information.',
   prompt: 'Alice and Bob are going to a science fair on Friday.',
 });
 
-console.log(object);
+console.log(output);
 ```
 
 ### Example: Using built-in tools
@@ -201,7 +203,7 @@ const { text } = await generateText({
 console.log(text);
 ```
 
-FriendliAI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions.
+FriendliAI language models can also be used in the `streamText` function and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
 ### Model Capabilities

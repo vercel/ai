@@ -1,15 +1,15 @@
-import { JSONObject, LanguageModelV3CallOptions } from '@ai-sdk/provider';
+import { JSONObject, LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { addToolInputExamplesMiddleware } from './add-tool-input-examples-middleware';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { describe, it, expect } from 'vitest';
 
-const BASE_PARAMS: LanguageModelV3CallOptions = {
+const BASE_PARAMS: LanguageModelV4CallOptions = {
   prompt: [
     { role: 'user', content: [{ type: 'text', text: 'Hello, world!' }] },
   ],
 };
 
-const MOCK_MODEL = new MockLanguageModelV3();
+const MOCK_MODEL = new MockLanguageModelV4();
 
 describe('addToolInputExamplesMiddleware', () => {
   describe('transformParams', () => {

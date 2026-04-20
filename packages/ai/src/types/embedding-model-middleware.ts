@@ -1,3 +1,15 @@
-import { EmbeddingModelV3Middleware } from '@ai-sdk/provider';
+import { EmbeddingModelV4Middleware } from '@ai-sdk/provider';
 
-export type EmbeddingModelMiddleware = EmbeddingModelV3Middleware;
+/**
+ * Middleware for embedding models.
+ * Accepts both V3 and V4 middleware types for backward compatibility.
+ *
+ * Uses EmbeddingModelV4Middleware as the base but relaxes specificationVersion
+ * to accept any string (including 'v3') and makes it optional.
+ */
+export type EmbeddingModelMiddleware = Omit<
+  EmbeddingModelV4Middleware,
+  'specificationVersion'
+> & {
+  readonly specificationVersion?: string;
+};

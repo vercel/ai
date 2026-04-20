@@ -46,7 +46,7 @@ console.log(text);
 Gemini 3 models can use enhanced reasoning through thinking mode, which improves their ability to solve complex problems. You can control the thinking level using the `thinkingLevel` provider option:
 
 ```ts
-import { google, GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { google, GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
@@ -58,7 +58,7 @@ const { text } = await generateText({
         includeThoughts: true,
         thinkingLevel: 'low',
       },
-    } satisfies GoogleGenerativeAIProviderOptions,
+    } satisfies GoogleLanguageModelOptions,
   },
 });
 
@@ -76,7 +76,7 @@ Gemini 3 excels at tool calling with improved reliability and consistency for mu
 
 ```ts
 import { z } from 'zod';
-import { generateText, tool, stepCountIs } from 'ai';
+import { generateText, tool, isStepCount } from 'ai';
 import { google } from '@ai-sdk/google';
 
 const result = await generateText({
@@ -94,7 +94,7 @@ const result = await generateText({
       }),
     }),
   },
-  stopWhen: stepCountIs(5), // enables multi-step calling
+  stopWhen: isStepCount(5), // enables multi-step calling
 });
 
 console.log(result.text);
@@ -108,7 +108,7 @@ With [search grounding](https://ai.google.dev/gemini-api/docs/google-search), Ge
 
 ```ts
 import { google } from '@ai-sdk/google';
-import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import { GoogleProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, sources, providerMetadata } = await generateText({
@@ -124,7 +124,7 @@ const { text, sources, providerMetadata } = await generateText({
 // access the grounding metadata. Casting to the provider metadata type
 // is optional but provides autocomplete and type safety.
 const metadata = providerMetadata?.google as
-  | GoogleGenerativeAIProviderMetadata
+  | GoogleProviderMetadata
   | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
 const safetyRatings = metadata?.safetyRatings;
@@ -142,7 +142,7 @@ With three main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`use
 
 Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and Gemini 3 Pro:
 
-In a new Next.js application, first install the AI SDK and the Google Generative AI provider:
+In a new Next.js application, first install the AI SDK and the Google provider:
 
 <Snippet text="pnpm install ai @ai-sdk/google" />
 
@@ -216,6 +216,6 @@ Ready to dive in? Here's how you can begin:
 
 1. Explore the documentation at [ai-sdk.dev/docs](/docs) to understand the capabilities of the AI SDK.
 2. Check out practical examples at [ai-sdk.dev/examples](/examples) to see the SDK in action.
-3. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) at [ai-sdk.dev/docs/guides](/docs/guides).
+3. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) at [ai-sdk.dev/docs/guides](/cookbook/guides).
 4. Use ready-to-deploy AI templates at [vercel.com/templates?type=ai](https://vercel.com/templates?type=ai).
-5. Read more about the [Google Generative AI provider](/providers/ai-sdk-providers/google-generative-ai).
+5. Read more about the [Google provider](/providers/ai-sdk-providers/google).

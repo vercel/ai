@@ -5,10 +5,10 @@ import {
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  EmbeddingModelV3,
-  ImageModelV3,
-  LanguageModelV3,
-  ProviderV3,
+  EmbeddingModelV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -56,46 +56,46 @@ export interface FireworksProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface FireworksProvider extends ProviderV3 {
+export interface FireworksProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: FireworksChatModelId): LanguageModelV3;
+  (modelId: FireworksChatModelId): LanguageModelV4;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: FireworksChatModelId): LanguageModelV3;
+  chatModel(modelId: FireworksChatModelId): LanguageModelV4;
 
   /**
    * Creates a completion model for text generation.
    */
-  completionModel(modelId: FireworksCompletionModelId): LanguageModelV3;
+  completionModel(modelId: FireworksCompletionModelId): LanguageModelV4;
 
   /**
    * Creates a chat model for text generation.
    */
-  languageModel(modelId: FireworksChatModelId): LanguageModelV3;
+  languageModel(modelId: FireworksChatModelId): LanguageModelV4;
 
   /**
    * Creates a text embedding model for text generation.
    */
-  embeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV3;
+  embeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: FireworksImageModelId): ImageModelV3;
+  image(modelId: FireworksImageModelId): ImageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: FireworksImageModelId): ImageModelV3;
+  imageModel(modelId: FireworksImageModelId): ImageModelV4;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
@@ -141,10 +141,24 @@ export function createFireworks(
           | undefined;
         const reasoningHistory = args.reasoningHistory as string | undefined;
 
-        const { thinking: _, reasoningHistory: __, ...rest } = args;
+        const {
+          thinking: _,
+          reasoningHistory: __,
+          reasoning_effort,
+          ...rest
+        } = args;
 
         return {
           ...rest,
+          ...(reasoning_effort != null && {
+            // Workaround since OpenAI spec allows for 5 reasoning levels, but Fireworks only supports 3 of them.
+            reasoning_effort:
+              reasoning_effort === 'minimal'
+                ? 'low'
+                : reasoning_effort === 'xhigh'
+                  ? 'high'
+                  : reasoning_effort,
+          }),
           ...(thinking && {
             thinking: {
               type: thinking.type,
@@ -181,7 +195,7 @@ export function createFireworks(
 
   const provider = (modelId: FireworksChatModelId) => createChatModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;

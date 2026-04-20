@@ -1,25 +1,28 @@
 import {
-  InvalidResponseDataError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3ProviderMetadata,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4ProviderMetadata,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   ParseResult,
+  StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isParsableJson,
+  isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
@@ -37,19 +40,19 @@ import {
 } from './openai-chat-api';
 import {
   OpenAIChatModelId,
-  openaiChatLanguageModelOptions,
+  openaiLanguageModelChatOptions,
 } from './openai-chat-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 
 type OpenAIChatConfig = {
   provider: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
 
-export class OpenAIChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAIChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAIChatModelId;
 
@@ -58,6 +61,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   };
 
   private readonly config: OpenAIChatConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIChatLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIChatModelId;
+    config: OpenAIChatConfig;
+  }) {
+    return new OpenAIChatLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {
     this.modelId = modelId;
@@ -81,19 +98,26 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     seed,
     tools,
     toolChoice,
+    reasoning,
     providerOptions,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const openaiOptions =
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiChatLanguageModelOptions,
+        schema: openaiLanguageModelChatOptions,
       })) ?? {};
 
     const modelCapabilities = getOpenAILanguageModelCapabilities(this.modelId);
+
+    // AI SDK reasoning values map directly to the OpenAI reasoning values.
+    const resolvedReasoningEffort =
+      openaiOptions.reasoningEffort ??
+      (isCustomReasoning(reasoning) ? reasoning : undefined);
+
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
 
@@ -168,7 +192,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
+      reasoning_effort: resolvedReasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
       prompt_cache_retention: openaiOptions.promptCacheRetention,
@@ -184,7 +208,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       // when reasoning effort is none, gpt-5.1 models allow temperature, topP, logprobs
       //  https://platform.openai.com/docs/guides/latest-model#gpt-5-1-parameter-compatibility
       if (
-        openaiOptions.reasoningEffort !== 'none' ||
+        resolvedReasoningEffort !== 'none' ||
         !modelCapabilities.supportsNonReasoningParameters
       ) {
         if (baseArgs.temperature != null) {
@@ -314,8 +338,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
     const {
@@ -327,7 +351,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -338,7 +362,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     const text = choice.message.content;
@@ -369,8 +393,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
-    const promptTokenDetails = response.usage?.prompt_tokens_details;
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata.openai.acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
@@ -402,8 +425,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -419,7 +442,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
         path: '/chat/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -429,17 +452,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-    }> = [];
+    const toolCallTracker = new StreamingToolCallTracker({
+      generateId,
+      typeValidation: 'if-present',
+    });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -447,13 +465,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     let metadataExtracted = false;
     let isActiveText = false;
 
-    const providerMetadata: SharedV3ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV4ProviderMetadata = { openai: {} };
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIChatChunk>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -547,121 +565,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
             if (delta.tool_calls != null) {
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
-
-                // Tool call start. OpenAI returns all information except the arguments in the first chunk.
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.type !== 'function') {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function' type.`,
-                    });
-                  }
-
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-
-                    // check if tool call is complete
-                    // (some providers send the full tool call in one chunk):
-                    if (isParsableJson(toolCall.function.arguments)) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
-
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
-                      });
-                      toolCall.hasFinished = true;
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
-
-                // check if tool call is complete
-                if (
-                  toolCall.function?.name != null &&
-                  toolCall.function?.arguments != null &&
-                  isParsableJson(toolCall.function.arguments)
-                ) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                  });
-                  toolCall.hasFinished = true;
-                }
+                toolCallTracker.processDelta(
+                  toolCallDelta,
+                  controller.enqueue.bind(controller),
+                );
               }
             }
 
@@ -683,6 +590,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
+
+            toolCallTracker.flush(controller.enqueue.bind(controller));
 
             controller.enqueue({
               type: 'finish',

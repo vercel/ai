@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV3,
+  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -7,22 +7,39 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import {
   OpenAIEmbeddingModelId,
-  openaiEmbeddingProviderOptions,
+  openaiEmbeddingModelOptions,
 } from './openai-embedding-options';
 import { openaiTextEmbeddingResponseSchema } from './openai-embedding-api';
 
-export class OpenAIEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: OpenAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
   readonly supportsParallelCalls = true;
 
   private readonly config: OpenAIConfig;
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIEmbeddingModelId;
+    config: OpenAIConfig;
+  }) {
+    return new OpenAIEmbeddingModel(options.modelId, options.config);
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -38,8 +55,8 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
@@ -55,7 +72,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3 {
       (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
-        schema: openaiEmbeddingProviderOptions,
+        schema: openaiEmbeddingModelOptions,
       })) ?? {};
 
     const {
@@ -67,7 +84,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV3 {
         path: '/embeddings',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         input: values,

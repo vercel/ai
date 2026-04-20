@@ -1,8 +1,8 @@
 import type {
-  Experimental_VideoModelV3,
-  Experimental_VideoModelV3CallOptions,
-  Experimental_VideoModelV3File,
-  SharedV3ProviderMetadata,
+  Experimental_VideoModelV4,
+  Experimental_VideoModelV4CallOptions,
+  Experimental_VideoModelV4File,
+  SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -25,7 +25,7 @@ import {
   imageMediaTypeSignatures,
   videoMediaTypeSignatures,
 } from '../util/detect-media-type';
-import { download } from '../util/download/download';
+import { createDownload } from '../util/download/create-download';
 import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { GenerateVideoResult } from './generate-video-result';
@@ -57,6 +57,8 @@ export type GenerateVideoPrompt =
  *
  * @returns A result object that contains the generated videos.
  */
+const defaultDownload = createDownload();
+
 export async function experimental_generateVideo({
   model: modelArg,
   prompt: promptArg,
@@ -71,6 +73,7 @@ export async function experimental_generateVideo({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  download: downloadFn = defaultDownload,
 }: {
   /**
    * The video model to use.
@@ -140,6 +143,17 @@ export async function experimental_generateVideo({
    * Only applicable for HTTP-based providers.
    */
   headers?: Record<string, string>;
+
+  /**
+   * Custom download function for fetching videos from URLs.
+   * Use `createDownload()` from `ai` to create a download function with custom size limits.
+   *
+   * @default createDownload() (2 GiB limit)
+   */
+  download?: (options: {
+    url: URL;
+    abortSignal?: AbortSignal;
+  }) => Promise<{ data: Uint8Array; mediaType: string | undefined }>;
 }): Promise<GenerateVideoResult> {
   const model = resolveVideoModel(modelArg);
 
@@ -166,22 +180,23 @@ export async function experimental_generateVideo({
   });
 
   const results = await Promise.all(
-    callVideoCounts.map(async callVideoCount =>
-      retry(() =>
-        model.doGenerate({
-          prompt,
-          n: callVideoCount,
-          aspectRatio,
-          resolution,
-          duration,
-          fps,
-          seed,
-          image,
-          providerOptions: providerOptions ?? {},
-          headers: headersWithUserAgent,
-          abortSignal,
-        } satisfies Experimental_VideoModelV3CallOptions),
-      ),
+    callVideoCounts.map(
+      async callVideoCount =>
+        await retry(() =>
+          model.doGenerate({
+            prompt,
+            n: callVideoCount,
+            aspectRatio,
+            resolution,
+            duration,
+            fps,
+            seed,
+            image,
+            providerOptions: providerOptions ?? {},
+            headers: headersWithUserAgent,
+            abortSignal,
+          } satisfies Experimental_VideoModelV4CallOptions),
+        ),
     ),
   );
 
@@ -189,14 +204,15 @@ export async function experimental_generateVideo({
   const videos: Array<GeneratedFile> = [];
   const warnings: Array<Warning> = [];
   const responses: Array<VideoModelResponseMetadata> = [];
-  const providerMetadata: SharedV3ProviderMetadata = {};
+  const providerMetadata: SharedV4ProviderMetadata = {};
 
   for (const result of results) {
     for (const videoData of result.videos) {
       switch (videoData.type) {
         case 'url': {
-          const { data, mediaType: downloadedMediaType } = await download({
+          const { data, mediaType: downloadedMediaType } = await downloadFn({
             url: new URL(videoData.url),
+            abortSignal,
           });
 
           // Filter out generic/unknown media types that should fall through to detection
@@ -313,7 +329,7 @@ export async function experimental_generateVideo({
 
 function normalizePrompt(promptArg: GenerateVideoPrompt): {
   prompt: string | undefined;
-  image: Experimental_VideoModelV3File | undefined;
+  image: Experimental_VideoModelV4File | undefined;
 } {
   if (typeof promptArg === 'string') {
     return {
@@ -322,7 +338,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
     };
   }
 
-  let image: Experimental_VideoModelV3File | undefined;
+  let image: Experimental_VideoModelV4File | undefined;
 
   if (promptArg.image != null) {
     const dataContent = promptArg.image;
@@ -378,7 +394,7 @@ function normalizePrompt(promptArg: GenerateVideoPrompt): {
   };
 }
 
-async function invokeModelMaxVideosPerCall(model: Experimental_VideoModelV3) {
+async function invokeModelMaxVideosPerCall(model: Experimental_VideoModelV4) {
   if (typeof model.maxVideosPerCall === 'function') {
     return await model.maxVideosPerCall({ modelId: model.modelId });
   }

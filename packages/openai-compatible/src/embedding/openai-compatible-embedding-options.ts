@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 
 export type OpenAICompatibleEmbeddingModelId = string;
 
-export const openaiCompatibleEmbeddingProviderOptions = z.object({
+export const openaiCompatibleEmbeddingModelOptions = z.object({
   /**
    * The number of dimensions the resulting output embeddings should have.
    * Only supported in text-embedding-3 and later models.
@@ -16,6 +16,6 @@ export const openaiCompatibleEmbeddingProviderOptions = z.object({
   user: z.string().optional(),
 });
 
-export type OpenAICompatibleEmbeddingProviderOptions = z.infer<
-  typeof openaiCompatibleEmbeddingProviderOptions
+export type OpenAICompatibleEmbeddingModelOptions = z.infer<
+  typeof openaiCompatibleEmbeddingModelOptions
 >;

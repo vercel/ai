@@ -7,17 +7,22 @@ import { AnthropicMessagesLanguageModel } from '@ai-sdk/anthropic/internal';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 // Mock the imported modules
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadOptionalSetting: vi
-    .fn()
-    .mockImplementation(({ settingValue }) => settingValue),
-  withoutTrailingSlash: vi.fn().mockImplementation(url => url),
-  createJsonErrorResponseHandler: vi.fn(),
-  createProviderToolFactory: vi.fn(),
-  createProviderToolFactoryWithOutputSchema: vi.fn(),
-  lazySchema: vi.fn(),
-  zodSchema: vi.fn(),
-}));
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as Record<string, unknown>),
+    loadOptionalSetting: vi
+      .fn()
+      .mockImplementation(({ settingValue }) => settingValue),
+    withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+    createJsonErrorResponseHandler: vi.fn(),
+    createProviderDefinedToolFactory: vi.fn(),
+    createProviderDefinedToolFactoryWithOutputSchema: vi.fn(),
+    createProviderExecutedToolFactory: vi.fn(),
+    lazySchema: vi.fn(),
+    zodSchema: vi.fn(),
+  };
+});
 
 vi.mock('@ai-sdk/anthropic/internal', async () => {
   const originalModule = await vi.importActual('@ai-sdk/anthropic/internal');
@@ -50,6 +55,8 @@ describe('google-vertex-anthropic-provider', () => {
         headers: expect.any(Object),
         buildRequestUrl: expect.any(Function),
         transformRequestBody: expect.any(Function),
+        supportsNativeStructuredOutput: false,
+        supportsStrictTools: false,
       }),
     );
   });
@@ -99,7 +106,10 @@ describe('google-vertex-anthropic-provider', () => {
     expect(provider.tools).toHaveProperty('textEditor_20250728');
     expect(provider.tools).toHaveProperty('computer_20241022');
     expect(provider.tools).toHaveProperty('webSearch_20250305');
+    expect(provider.tools).toHaveProperty('toolSearchRegex_20251119');
+    expect(provider.tools).toHaveProperty('toolSearchBm25_20251119');
     expect(provider.tools).not.toHaveProperty('codeExecution_20250825');
+    expect(provider.tools).not.toHaveProperty('codeExecution_20260120');
   });
 
   it('should pass custom headers to the model constructor', () => {

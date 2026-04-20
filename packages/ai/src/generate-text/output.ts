@@ -1,6 +1,6 @@
 import {
   JSONValue,
-  LanguageModelV3CallOptions,
+  LanguageModelV4CallOptions,
   TypeValidationError,
 } from '@ai-sdk/provider';
 import {
@@ -27,7 +27,7 @@ export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
   /**
    * The response format to use for the model.
    */
-  responseFormat: PromiseLike<LanguageModelV3CallOptions['responseFormat']>;
+  responseFormat: PromiseLike<LanguageModelV4CallOptions['responseFormat']>;
 
   /**
    * Parses the complete output of the model.
@@ -218,7 +218,7 @@ export const array = <ELEMENT>({
     // JSON schema that describes an array of elements:
     responseFormat: resolve(elementSchema.jsonSchema).then(jsonSchema => {
       // remove $schema from schema.jsonSchema:
-      const { $schema, ...itemSchema } = jsonSchema;
+      const { $schema: _$schema, ...itemSchema } = jsonSchema;
 
       return {
         type: 'json' as const,

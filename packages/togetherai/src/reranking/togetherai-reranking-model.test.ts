@@ -2,7 +2,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createTogetherAI } from '../togetherai-provider';
-import { TogetherAIRerankingOptions } from './togetherai-reranking-options';
+import { TogetherAIRerankingModelOptions } from './togetherai-reranking-options';
 
 const provider = createTogetherAI({ apiKey: 'test-api-key' });
 const model = provider.rerankingModel('Salesforce/Llama-Rank-v1');
@@ -41,7 +41,7 @@ describe('doRerank', () => {
         providerOptions: {
           togetherai: {
             rankFields: ['example'],
-          } satisfies TogetherAIRerankingOptions,
+          } satisfies TogetherAIRerankingModelOptions,
         },
       });
     });
@@ -152,7 +152,7 @@ describe('doRerank', () => {
         providerOptions: {
           togetherai: {
             rankFields: ['example'],
-          } satisfies TogetherAIRerankingOptions,
+          } satisfies TogetherAIRerankingModelOptions,
         },
       });
     });

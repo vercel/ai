@@ -100,7 +100,7 @@ The following optional provider options are available for DeepSeek models:
   - `type`: `'enabled' | 'disabled'` - Enable or disable thinking mode.
 
 ```ts highlight="7-11"
-import { deepseek } from '@ai-sdk/deepseek';
+import { deepseek, type DeepSeekLanguageModelOptions } from '@ai-sdk/deepseek';
 import { generateText } from 'ai';
 
 const { text, reasoning } = await generateText({
@@ -109,7 +109,7 @@ const { text, reasoning } = await generateText({
   providerOptions: {
     deepseek: {
       thinking: { type: 'enabled' },
-    },
+    } satisfies DeepSeekLanguageModelOptions,
   },
 });
 ```

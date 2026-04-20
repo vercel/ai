@@ -36,15 +36,26 @@ const broadcastToClients = (event: string, data: Record<string, unknown>) => {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Determine if we're running from source (tsx) or built (dist)
-const isDevMode =
-  __dirname.includes('/src/') || process.env.NODE_ENV === 'development';
-const projectRoot = isDevMode
-  ? path.resolve(__dirname, '../..')
-  : path.resolve(__dirname, '../..');
+// Determine whether to use the dev-mode Vite proxy or serve the built client.
+//
+// We rely exclusively on an explicit env flag to avoid false positives in
+// monorepos where /dist paths are common.
+//
+//   AI_SDK_DEVTOOLS_DEV=true  → use dev mode (Vite proxy)
+//   AI_SDK_DEVTOOLS_DEV=false → use production mode (serve built client)
+//
+// If the flag is unset, default to production mode.
+const devEnv = process.env.AI_SDK_DEVTOOLS_DEV;
+const isDevMode = devEnv !== undefined && devEnv !== 'false' && devEnv !== '0';
+// __dirname points at packages/devtools/src/viewer, so ../.. is the package root.
+const projectRoot = path.resolve(__dirname, '../..');
 
 // Client directory: dist/client in both cases
 const clientDir = path.join(projectRoot, 'dist/client');
+
+// Track the DB path from the most recent notify call so all reads
+// use the correct file, even when the viewer runs in a different CWD.
+let remoteDbPath: string | undefined;
 
 const app = new Hono();
 
@@ -53,10 +64,12 @@ app.use('/*', cors());
 
 // API Routes
 app.get('/api/runs', async c => {
+  await reloadDb(remoteDbPath);
   const runs = await getRuns();
-  // Include step count, first message, and error status for each run
+  // Only return root-level runs (no parent) in the sidebar list
+  const rootRuns = runs.filter(r => !r.parent_run_id);
   const runsWithMeta = await Promise.all(
-    runs.map(async run => {
+    rootRuns.map(async run => {
       const steps = await getStepsForRun(run.id);
       let firstMessage = 'No user message';
       let hasError = false;
@@ -102,15 +115,49 @@ app.get('/api/runs', async c => {
 });
 
 app.get('/api/runs/:id', async c => {
+  await reloadDb(remoteDbPath);
   const data = await getRunWithSteps(c.req.param('id'));
   if (!data) {
     return c.json({ error: 'Run not found' }, 404);
   }
   // Compute isInProgress from steps (any step without duration_ms or error)
   const isInProgress = data.steps.some(s => s.duration_ms === null && !s.error);
+
+  // Recursively collect all descendant runs so the viewer can render
+  const allRuns = await getRuns();
+
+  interface DescendantRun {
+    run: (typeof allRuns)[number] & { isInProgress: boolean };
+    steps: Awaited<ReturnType<typeof getStepsForRun>>;
+    childRuns: DescendantRun[];
+  }
+
+  async function getDescendantRuns(
+    parentRunId: string,
+  ): Promise<DescendantRun[]> {
+    const children = allRuns.filter(r => r.parent_run_id === parentRunId);
+    return Promise.all(
+      children.map(async childRun => {
+        const childSteps = await getStepsForRun(childRun.id);
+        const childIsInProgress = childSteps.some(
+          s => s.duration_ms === null && !s.error,
+        );
+        const grandchildren = await getDescendantRuns(childRun.id);
+        return {
+          run: { ...childRun, isInProgress: childIsInProgress },
+          steps: childSteps,
+          childRuns: grandchildren,
+        };
+      }),
+    );
+  }
+
+  const childRuns = await getDescendantRuns(data.run.id);
+
   return c.json({
     run: { ...data.run, isInProgress },
     steps: data.steps,
+    childRuns,
   });
 });
 
@@ -181,11 +228,15 @@ app.get('/api/events', c => {
   });
 });
 
-// Notification endpoint (called by middleware)
+// Notification endpoint (called by middleware/integration)
 app.post('/api/notify', async c => {
   const body = await c.req.json();
-  // Reload database from disk to pick up changes from middleware
-  await reloadDb();
+  if (body.dbPath) {
+    remoteDbPath = body.dbPath;
+  }
+  // Reload database from disk, using the remote dbPath if provided so the
+  // viewer works even when started from a different directory than the app.
+  await reloadDb(remoteDbPath);
   broadcastToClients('update', body);
   return c.json({ success: true });
 });
@@ -237,17 +288,13 @@ app.get('*', async c => {
 });
 
 export const startViewer = (port = 4983) => {
-  const isDev =
-    process.env.NODE_ENV === 'development' ||
-    process.argv[1]?.includes('/src/');
-
   const server = serve(
     {
       fetch: app.fetch,
       port,
     },
     () => {
-      if (isDev) {
+      if (isDevMode) {
         console.log(`🔍 AI SDK DevTools API running on port ${port}`);
         console.log(`   Open http://localhost:5173 for the dev UI`);
       } else {

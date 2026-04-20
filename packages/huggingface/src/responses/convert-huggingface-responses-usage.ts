@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
 
 export type HuggingFaceResponsesUsage = {
   input_tokens: number;
@@ -14,7 +14,7 @@ export type HuggingFaceResponsesUsage = {
 
 export function convertHuggingFaceResponsesUsage(
   usage: HuggingFaceResponsesUsage | undefined | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (usage == null) {
     return {
       inputTokens: {

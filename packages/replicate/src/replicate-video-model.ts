@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -21,7 +21,7 @@ import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
 import type { ReplicateVideoModelId } from './replicate-video-settings';
 
-export type ReplicateVideoProviderOptions = {
+export type ReplicateVideoModelOptions = {
   // Polling configuration
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
@@ -55,8 +55,8 @@ interface ReplicateVideoModelConfig {
   };
 }
 
-export class ReplicateVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class ReplicateVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // Replicate video models support 1 video at a time
 
   get provider(): string {
@@ -69,16 +69,16 @@ export class ReplicateVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     const replicateOptions = (await parseProviderOptions({
       provider: 'replicate',
       providerOptions: options.providerOptions,
-      schema: replicateVideoProviderOptionsSchema,
-    })) as ReplicateVideoProviderOptions | undefined;
+      schema: replicateVideoModelOptionsSchema,
+    })) as ReplicateVideoModelOptions | undefined;
 
     const [modelId, version] = this.modelId.split(':');
     const input: Record<string, unknown> = {};
@@ -320,7 +320,7 @@ const replicatePredictionSchema = z.object({
     .nullish(),
 });
 
-const replicateVideoProviderOptionsSchema = lazySchema(() =>
+const replicateVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({

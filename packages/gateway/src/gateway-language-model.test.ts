@@ -1,6 +1,6 @@
 import type {
-  LanguageModelV3Prompt,
-  LanguageModelV3FilePart,
+  LanguageModelV4Prompt,
+  LanguageModelV4FilePart,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -16,7 +16,7 @@ import {
 } from './errors';
 import { describe, it, expect, vi } from 'vitest';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -48,7 +48,7 @@ describe('GatewayLanguageModel', () => {
       const model = createTestModel();
       expect(model.modelId).toBe('test-model');
       expect(model.provider).toBe('test-provider');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
     });
   });
 
@@ -91,7 +91,7 @@ describe('GatewayLanguageModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'custom-header': 'test-value',
-        'ai-language-model-specification-version': '3',
+        'ai-language-model-specification-version': '4',
         'ai-language-model-id': 'test-model',
         'ai-language-model-streaming': 'false',
       });
@@ -310,7 +310,7 @@ describe('GatewayLanguageModel', () => {
         prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
-        const imagePrompt: LanguageModelV3Prompt = [
+        const imagePrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [
@@ -326,7 +326,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[1] as LanguageModelV3FilePart;
+          .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(`data:image/jpeg;base64,${expectedBase64}`);
@@ -338,7 +338,7 @@ describe('GatewayLanguageModel', () => {
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const mimeType = 'image/png';
-        const imagePrompt: LanguageModelV3Prompt = [
+        const imagePrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [{ type: 'file', data: imageBytes, mediaType: mimeType }],
@@ -351,7 +351,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[0] as LanguageModelV3FilePart;
+          .content[0] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(
@@ -363,7 +363,7 @@ describe('GatewayLanguageModel', () => {
       it('should not modify image part with URL', async () => {
         prepareJsonResponse({ content: { type: 'text', text: 'response' } });
         const imageUrl = new URL('https://example.com/image.jpg');
-        const imagePrompt: LanguageModelV3Prompt = [
+        const imagePrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [
@@ -379,7 +379,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[1] as LanguageModelV3FilePart;
+          .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(imageUrl.toString());
@@ -390,7 +390,7 @@ describe('GatewayLanguageModel', () => {
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const imageUrl = new URL('https://example.com/image2.png');
-        const imagePrompt: LanguageModelV3Prompt = [
+        const imagePrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [
@@ -635,7 +635,7 @@ describe('GatewayLanguageModel', () => {
 
       const headers = server.calls[0].requestHeaders;
       expect(headers).toMatchObject({
-        'ai-language-model-specification-version': '3',
+        'ai-language-model-specification-version': '4',
         'ai-language-model-id': 'test-model',
         'ai-language-model-streaming': 'true',
       });
@@ -837,7 +837,7 @@ describe('GatewayLanguageModel', () => {
         prepareStreamResponse({ content: ['response'] });
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
-        const imagePrompt: LanguageModelV3Prompt = [
+        const imagePrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [
@@ -854,7 +854,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[1] as LanguageModelV3FilePart;
+          .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(`data:image/jpeg;base64,${expectedBase64}`);
@@ -866,7 +866,7 @@ describe('GatewayLanguageModel', () => {
         const imageBytes = new Uint8Array([5, 6, 7, 8]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const mimeType = 'image/png';
-        const imagePrompt: LanguageModelV3Prompt = [
+        const imagePrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [
@@ -883,7 +883,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[1] as LanguageModelV3FilePart;
+          .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(
@@ -895,7 +895,7 @@ describe('GatewayLanguageModel', () => {
       it('should not modify image part with URL', async () => {
         prepareStreamResponse({ content: ['response'] });
         const imageUrl = new URL('https://example.com/image.jpg');
-        const imagePrompt: LanguageModelV3Prompt = [
+        const imagePrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [
@@ -912,7 +912,7 @@ describe('GatewayLanguageModel', () => {
 
         const requestBody = await server.calls[0].requestBodyJson;
         const imagePart = requestBody.prompt[0]
-          .content[1] as LanguageModelV3FilePart;
+          .content[1] as LanguageModelV4FilePart;
 
         expect(imagePart.type).toBe('file');
         expect(imagePart.data).toBe(imageUrl.toString());
@@ -924,7 +924,7 @@ describe('GatewayLanguageModel', () => {
         const imageBytes = new Uint8Array([1, 2, 3, 4]);
         const expectedBase64 = Buffer.from(imageBytes).toString('base64');
         const imageUrl = new URL('https://example.com/image2.png');
-        const imagePrompt: LanguageModelV3Prompt = [
+        const imagePrompt: LanguageModelV4Prompt = [
           {
             role: 'user',
             content: [
@@ -1479,6 +1479,182 @@ describe('GatewayLanguageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.providerOptions).toEqual({
         gateway: { order: ['anthropic', 'bedrock', 'openai'] },
+      });
+    });
+
+    it('should pass providerTimeouts for doGenerate', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            providerTimeouts: {
+              byok: { openai: 5000, anthropic: 2000 },
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          providerTimeouts: {
+            byok: { openai: 5000, anthropic: 2000 },
+          },
+        },
+      });
+    });
+
+    it('should pass providerTimeouts for doStream', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' world'],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            providerTimeouts: {
+              byok: { anthropic: 3000 },
+            },
+          },
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: {
+          providerTimeouts: {
+            byok: { anthropic: 3000 },
+          },
+        },
+      });
+    });
+
+    it('should pass zeroDataRetention option', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            zeroDataRetention: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { zeroDataRetention: true },
+      });
+    });
+
+    it('should pass disallowPromptTraining option', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            disallowPromptTraining: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { disallowPromptTraining: true },
+      });
+    });
+
+    it('should pass hipaaCompliant option', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            hipaaCompliant: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { hipaaCompliant: true },
+      });
+    });
+
+    it('should pass both zeroDataRetention and hipaaCompliant options', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            zeroDataRetention: true,
+            hipaaCompliant: true,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { zeroDataRetention: true, hipaaCompliant: true },
+      });
+    });
+
+    it('should pass quotaEntityId option', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            quotaEntityId: 'entity-123',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { quotaEntityId: 'entity-123' },
+      });
+    });
+
+    it('should pass quotaEntityId with other options', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            quotaEntityId: 'entity-123',
+            user: 'user-456',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { quotaEntityId: 'entity-123', user: 'user-456' },
       });
     });
   });

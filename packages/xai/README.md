@@ -3,6 +3,8 @@
 The **[xAI Grok provider](https://ai-sdk.dev/providers/ai-sdk-providers/xai)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains language model support for the xAI chat and completion APIs.
 
+> **Deploying to Vercel?** With Vercel's AI Gateway you can access xAI (and hundreds of models from other providers) — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
+
 ## Setup
 
 The xAI Grok provider is available in the `@ai-sdk/xai` module. You can install it with
@@ -34,7 +36,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-3-beta'),
+  model: xai('grok-3'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```

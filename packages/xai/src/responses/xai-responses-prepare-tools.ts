@@ -1,6 +1,6 @@
 import {
-  LanguageModelV3CallOptions,
-  SharedV3Warning,
+  LanguageModelV4CallOptions,
+  SharedV4Warning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
@@ -20,16 +20,16 @@ export async function prepareResponsesTools({
   tools,
   toolChoice,
 }: {
-  tools: LanguageModelV3CallOptions['tools'];
-  toolChoice?: LanguageModelV3CallOptions['toolChoice'];
+  tools: LanguageModelV4CallOptions['tools'];
+  toolChoice?: LanguageModelV4CallOptions['toolChoice'];
 }): Promise<{
   tools: Array<XaiResponsesTool> | undefined;
   toolChoice: XaiResponsesToolChoice | undefined;
-  toolWarnings: SharedV3Warning[];
+  toolWarnings: SharedV4Warning[];
 }> {
   const normalizedTools = tools?.length ? tools : undefined;
 
-  const toolWarnings: SharedV3Warning[] = [];
+  const toolWarnings: SharedV4Warning[] = [];
 
   if (normalizedTools == null) {
     return { tools: undefined, toolChoice: undefined, toolWarnings };
@@ -143,6 +143,7 @@ export async function prepareResponsesTools({
         name: tool.name,
         description: tool.description,
         parameters: tool.inputSchema,
+        ...(tool.strict != null ? { strict: tool.strict } : {}),
       });
     }
   }

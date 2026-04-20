@@ -33,19 +33,21 @@ Zod expects JavaScript Date objects, but models return dates as strings.
 You can specify and validate the date format using `z.string().datetime()` or `z.string().date()`,
 and then use a Zod transformer to convert the string to a Date object.
 
-```ts highlight="7-10"
-const result = await generateObject({
+```ts highlight="8-11"
+const result = await generateText({
   model: __MODEL__,
-  schema: z.object({
-    events: z.array(
-      z.object({
-        event: z.string(),
-        date: z
-          .string()
-          .date()
-          .transform(value => new Date(value)),
-      }),
-    ),
+  output: Output.object({
+    schema: z.object({
+      events: z.array(
+        z.object({
+          event: z.string(),
+          date: z
+            .string()
+            .date()
+            .transform(value => new Date(value)),
+        }),
+      ),
+    }),
   }),
   prompt: 'List 5 important events from the year 2000.',
 });

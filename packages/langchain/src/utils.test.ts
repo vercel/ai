@@ -125,7 +125,7 @@ describe('convertToolResultPart', () => {
         type: 'content',
         value: [
           { type: 'text', text: 'Hello' },
-          { type: 'image-data', data: 'base64data', mediaType: 'image/png' },
+          { type: 'file-data', data: 'base64data', mediaType: 'image/png' },
         ],
       },
     };

@@ -1,5 +1,4 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
-import { ZodType } from 'zod/v4';
 import { extractResponseHeaders } from './extract-response-headers';
 import { parseJSON, ParseResult, safeParseJSON } from './parse-json';
 import { parseJsonEventStream } from './parse-json-event-stream';
@@ -65,7 +64,7 @@ export const createJsonErrorResponseHandler =
           isRetryable: isRetryable?.(response, parsedError),
         }),
       };
-    } catch (parseError) {
+    } catch {
       return {
         responseHeaders,
         value: new APICallError({

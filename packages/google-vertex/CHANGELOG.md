@@ -1,5 +1,830 @@
 # @ai-sdk/google-vertex
 
+## 5.0.0-beta.58
+
+### Patch Changes
+
+- a3757d7: chore(provider/google): remove useless GenerativeAI affix from types and classes for consistency
+- Updated dependencies [a3757d7]
+- Updated dependencies [2e98477]
+- Updated dependencies [bfb756d]
+  - @ai-sdk/google@4.0.0-beta.45
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/openai-compatible@3.0.0-beta.31
+  - @ai-sdk/anthropic@4.0.0-beta.37
+
+## 5.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/anthropic@4.0.0-beta.36
+  - @ai-sdk/google@4.0.0-beta.44
+  - @ai-sdk/openai-compatible@3.0.0-beta.30
+
+## 5.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/openai-compatible@3.0.0-beta.29
+  - @ai-sdk/anthropic@4.0.0-beta.35
+  - @ai-sdk/google@4.0.0-beta.43
+
+## 5.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/anthropic@4.0.0-beta.34
+  - @ai-sdk/google@4.0.0-beta.42
+  - @ai-sdk/openai-compatible@3.0.0-beta.28
+
+## 5.0.0-beta.54
+
+### Major Changes
+
+- 832f86f: fix(anthropic): remove cacheCreationInputTokens from providerMetadata
+
+### Patch Changes
+
+- Updated dependencies [832f86f]
+  - @ai-sdk/anthropic@4.0.0-beta.33
+
+## 5.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [ad0b376]
+  - @ai-sdk/anthropic@4.0.0-beta.32
+
+## 5.0.0-beta.52
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/anthropic@4.0.0-beta.31
+  - @ai-sdk/google@4.0.0-beta.41
+  - @ai-sdk/openai-compatible@3.0.0-beta.27
+
+## 5.0.0-beta.51
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [0d8f107]
+  - @ai-sdk/anthropic@4.0.0-beta.30
+
+## 5.0.0-beta.50
+
+### Patch Changes
+
+- 55f0938: chore(provider/google): update available models
+- Updated dependencies [55f0938]
+  - @ai-sdk/google@4.0.0-beta.40
+
+## 5.0.0-beta.49
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+  - @ai-sdk/anthropic@4.0.0-beta.29
+  - @ai-sdk/google@4.0.0-beta.39
+  - @ai-sdk/openai-compatible@3.0.0-beta.26
+
+## 5.0.0-beta.48
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/anthropic@4.0.0-beta.28
+  - @ai-sdk/google@4.0.0-beta.38
+  - @ai-sdk/openai-compatible@3.0.0-beta.25
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 5.0.0-beta.47
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/anthropic@4.0.0-beta.27
+  - @ai-sdk/google@4.0.0-beta.37
+  - @ai-sdk/openai-compatible@3.0.0-beta.24
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 5.0.0-beta.46
+
+### Patch Changes
+
+- Updated dependencies [9a0a618]
+  - @ai-sdk/google@4.0.0-beta.36
+
+## 5.0.0-beta.45
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/openai-compatible@3.0.0-beta.23
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+  - @ai-sdk/anthropic@4.0.0-beta.26
+  - @ai-sdk/google@4.0.0-beta.35
+
+## 5.0.0-beta.44
+
+### Patch Changes
+
+- Updated dependencies [5b7e7c2]
+  - @ai-sdk/google@4.0.0-beta.34
+
+## 5.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [09bd27b]
+  - @ai-sdk/anthropic@4.0.0-beta.25
+
+## 5.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+  - @ai-sdk/anthropic@4.0.0-beta.24
+  - @ai-sdk/google@4.0.0-beta.33
+  - @ai-sdk/openai-compatible@3.0.0-beta.22
+
+## 5.0.0-beta.41
+
+### Patch Changes
+
+- Updated dependencies [5036db8]
+  - @ai-sdk/google@4.0.0-beta.32
+
+## 5.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/anthropic@4.0.0-beta.23
+  - @ai-sdk/google@4.0.0-beta.31
+  - @ai-sdk/openai-compatible@3.0.0-beta.21
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 5.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/anthropic@4.0.0-beta.22
+  - @ai-sdk/google@4.0.0-beta.30
+  - @ai-sdk/openai-compatible@3.0.0-beta.20
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 5.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/anthropic@4.0.0-beta.21
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/openai-compatible@3.0.0-beta.19
+  - @ai-sdk/google@4.0.0-beta.29
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 5.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+  - @ai-sdk/anthropic@4.0.0-beta.20
+  - @ai-sdk/google@4.0.0-beta.28
+  - @ai-sdk/openai-compatible@3.0.0-beta.18
+
+## 5.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [816ff67]
+  - @ai-sdk/openai-compatible@3.0.0-beta.17
+
+## 5.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+  - @ai-sdk/google@4.0.0-beta.27
+  - @ai-sdk/anthropic@4.0.0-beta.19
+  - @ai-sdk/openai-compatible@3.0.0-beta.16
+
+## 5.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [a05109d]
+  - @ai-sdk/google@4.0.0-beta.26
+
+## 5.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+  - @ai-sdk/openai-compatible@3.0.0-beta.15
+  - @ai-sdk/anthropic@4.0.0-beta.18
+  - @ai-sdk/google@4.0.0-beta.25
+
+## 5.0.0-beta.32
+
+### Patch Changes
+
+- Updated dependencies [55db546]
+  - @ai-sdk/google@4.0.0-beta.24
+
+## 5.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/openai-compatible@3.0.0-beta.14
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/anthropic@4.0.0-beta.17
+  - @ai-sdk/provider@4.0.0-beta.6
+  - @ai-sdk/google@4.0.0-beta.23
+
+## 5.0.0-beta.30
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+- Updated dependencies [38fc777]
+  - @ai-sdk/anthropic@4.0.0-beta.16
+  - @ai-sdk/google@4.0.0-beta.22
+  - @ai-sdk/openai-compatible@3.0.0-beta.13
+
+## 5.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [f57c702]
+  - @ai-sdk/anthropic@4.0.0-beta.15
+
+## 5.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+  - @ai-sdk/anthropic@4.0.0-beta.14
+  - @ai-sdk/google@4.0.0-beta.21
+  - @ai-sdk/openai-compatible@3.0.0-beta.12
+
+## 5.0.0-beta.27
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+  - @ai-sdk/anthropic@4.0.0-beta.13
+  - @ai-sdk/google@4.0.0-beta.20
+  - @ai-sdk/openai-compatible@3.0.0-beta.11
+
+## 5.0.0-beta.26
+
+### Patch Changes
+
+- Updated dependencies [01fa606]
+  - @ai-sdk/google@4.0.0-beta.19
+
+## 5.0.0-beta.25
+
+### Patch Changes
+
+- a34b997: feat (provider/google-vertex): add support for maas models
+
+## 5.0.0-beta.24
+
+### Patch Changes
+
+- Updated dependencies [9715ec7]
+  - @ai-sdk/google@4.0.0-beta.18
+
+## 5.0.0-beta.23
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+  - @ai-sdk/anthropic@4.0.0-beta.12
+  - @ai-sdk/google@4.0.0-beta.17
+
+## 5.0.0-beta.22
+
+### Patch Changes
+
+- Updated dependencies [0ee8aec]
+  - @ai-sdk/anthropic@4.0.0-beta.11
+
+## 5.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [6190649]
+  - @ai-sdk/google@4.0.0-beta.16
+
+## 5.0.0-beta.20
+
+### Patch Changes
+
+- Updated dependencies [18c1970]
+  - @ai-sdk/google@4.0.0-beta.15
+
+## 5.0.0-beta.19
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/anthropic@4.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.4
+  - @ai-sdk/google@4.0.0-beta.14
+
+## 5.0.0-beta.18
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+  - @ai-sdk/anthropic@4.0.0-beta.9
+  - @ai-sdk/google@4.0.0-beta.13
+
+## 5.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+  - @ai-sdk/anthropic@4.0.0-beta.8
+  - @ai-sdk/google@4.0.0-beta.12
+
+## 5.0.0-beta.16
+
+### Patch Changes
+
+- ebb02ea: feat(google-vertex): add the anthropic tool search tools
+
+## 5.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+  - @ai-sdk/google@4.0.0-beta.11
+  - @ai-sdk/anthropic@4.0.0-beta.7
+
+## 5.0.0-beta.14
+
+### Patch Changes
+
+- Updated dependencies [21d1ee3]
+  - @ai-sdk/anthropic@4.0.0-beta.6
+
+## 5.0.0-beta.13
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/anthropic@4.0.0-beta.5
+  - @ai-sdk/google@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 5.0.0-beta.12
+
+### Patch Changes
+
+- f05a40d: fix(vertex): throw warning when strict: true for vertexAnthropic
+- Updated dependencies [f05a40d]
+  - @ai-sdk/anthropic@4.0.0-beta.4
+
+## 5.0.0-beta.11
+
+### Patch Changes
+
+- e59176c: chore(google): update v3 specs to v4
+- Updated dependencies [e59176c]
+  - @ai-sdk/google@4.0.0-beta.9
+
+## 5.0.0-beta.10
+
+### Patch Changes
+
+- e748b35: chore: update v3 specs to v4
+- Updated dependencies [e748b35]
+  - @ai-sdk/anthropic@4.0.0-beta.3
+
+## 5.0.0-beta.9
+
+### Patch Changes
+
+- Updated dependencies [4dac142]
+  - @ai-sdk/google@4.0.0-beta.8
+
+## 5.0.0-beta.8
+
+### Patch Changes
+
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+- Updated dependencies [82288b0]
+  - @ai-sdk/google@4.0.0-beta.7
+
+## 5.0.0-beta.7
+
+### Patch Changes
+
+- Updated dependencies [add4326]
+  - @ai-sdk/google@4.0.0-beta.6
+
+## 5.0.0-beta.6
+
+### Patch Changes
+
+- Updated dependencies [ab43029]
+  - @ai-sdk/google@4.0.0-beta.5
+
+## 5.0.0-beta.5
+
+### Patch Changes
+
+- Updated dependencies [2edd14e]
+  - @ai-sdk/google@4.0.0-beta.4
+
+## 5.0.0-beta.4
+
+### Patch Changes
+
+- Updated dependencies [1fe058b]
+  - @ai-sdk/anthropic@4.0.0-beta.2
+
+## 5.0.0-beta.3
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+  - @ai-sdk/anthropic@4.0.0-beta.1
+  - @ai-sdk/google@4.0.0-beta.3
+
+## 5.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [c9c4661]
+  - @ai-sdk/google@4.0.0-beta.2
+
+## 5.0.0-beta.1
+
+### Patch Changes
+
+- Updated dependencies [19b95f9]
+  - @ai-sdk/google@4.0.0-beta.1
+
+## 5.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/anthropic@4.0.0-beta.0
+  - @ai-sdk/google@4.0.0-beta.0
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 4.0.80
+
+### Patch Changes
+
+- Updated dependencies [7ba09a4]
+  - @ai-sdk/google@3.0.43
+
+## 4.0.79
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+- Updated dependencies [3fb4e70]
+  - @ai-sdk/provider-utils@4.0.19
+  - @ai-sdk/anthropic@3.0.58
+  - @ai-sdk/google@3.0.42
+
+## 4.0.78
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+  - @ai-sdk/anthropic@3.0.57
+  - @ai-sdk/google@3.0.41
+
+## 4.0.77
+
+### Patch Changes
+
+- Updated dependencies [89d8b45]
+  - @ai-sdk/google@3.0.40
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [2565e70]
+  - @ai-sdk/google@3.0.39
+
+## 4.0.75
+
+### Patch Changes
+
+- Updated dependencies [e49c34d]
+- Updated dependencies [e49c34d]
+- Updated dependencies [2291047]
+  - @ai-sdk/anthropic@3.0.56
+  - @ai-sdk/google@3.0.38
+
+## 4.0.74
+
+### Patch Changes
+
+- Updated dependencies [7531e72]
+  - @ai-sdk/anthropic@3.0.55
+
+## 4.0.73
+
+### Patch Changes
+
+- Updated dependencies [56c67d5]
+  - @ai-sdk/anthropic@3.0.54
+
+## 4.0.72
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+- Updated dependencies [10bec50]
+  - @ai-sdk/google@3.0.37
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [89caf28]
+  - @ai-sdk/anthropic@3.0.53
+
+## 4.0.70
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+  - @ai-sdk/anthropic@3.0.52
+  - @ai-sdk/google@3.0.36
+
+## 4.0.69
+
+### Patch Changes
+
+- 64a8fae: chore: remove obsolete model IDs for Anthropic, Google, OpenAI, xAI
+- Updated dependencies [64a8fae]
+  - @ai-sdk/anthropic@3.0.51
+  - @ai-sdk/google@3.0.35
+
+## 4.0.68
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+  - @ai-sdk/anthropic@3.0.50
+  - @ai-sdk/google@3.0.34
+
+## 4.0.67
+
+### Patch Changes
+
+- Updated dependencies [d98d9ba]
+  - @ai-sdk/anthropic@3.0.49
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [2164cdf]
+  - @ai-sdk/anthropic@3.0.48
+
+## 4.0.65
+
+### Patch Changes
+
+- Updated dependencies [1ece97a]
+  - @ai-sdk/google@3.0.33
+
+## 4.0.64
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+- Updated dependencies [45f0a7f]
+  - @ai-sdk/google@3.0.32
+
+## 4.0.63
+
+### Patch Changes
+
+- Updated dependencies [17978c6]
+  - @ai-sdk/anthropic@3.0.47
+
+## 4.0.62
+
+### Patch Changes
+
+- Updated dependencies [2fa3ca8]
+  - @ai-sdk/google@3.0.31
+
+## 4.0.61
+
+### Patch Changes
+
+- Updated dependencies [b094c07]
+  - @ai-sdk/anthropic@3.0.46
+
+## 4.0.60
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+- Updated dependencies [765b013]
+  - @ai-sdk/google@3.0.30
+
+## 4.0.59
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+- Updated dependencies [2a1c664]
+  - @ai-sdk/anthropic@3.0.45
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [23ac4a3]
+  - @ai-sdk/anthropic@3.0.44
+
+## 4.0.57
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+  - @ai-sdk/anthropic@3.0.43
+  - @ai-sdk/google@3.0.29
+
+## 4.0.56
+
+### Patch Changes
+
+- 5a307f5: feat(provider/google-vertex): allow using Gemini image models with `generateImage`
+- Updated dependencies [5a307f5]
+  - @ai-sdk/google@3.0.28
+
+## 4.0.55
+
+### Patch Changes
+
+- Updated dependencies [051361b]
+  - @ai-sdk/google@3.0.27
+
+## 4.0.54
+
+### Patch Changes
+
+- a8835e9: fix (provider/google-vertex): pass mime type with i2v video generation
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [4c27179]
+  - @ai-sdk/google@3.0.26
+
+## 4.0.52
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+- Updated dependencies [99fbed8]
+  - @ai-sdk/anthropic@3.0.42
+  - @ai-sdk/google@3.0.25
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [3b3e32f]
+  - @ai-sdk/google@3.0.24
+
+## 4.0.50
+
+### Patch Changes
+
+- Updated dependencies [c60b393]
+  - @ai-sdk/anthropic@3.0.41
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [8c2b1e1]
+  - @ai-sdk/anthropic@3.0.40
+
+## 4.0.48
+
+### Patch Changes
+
+- Updated dependencies [ba98c56]
+  - @ai-sdk/google@3.0.23
+
+## 4.0.47
+
+### Patch Changes
+
+- Updated dependencies [0a0d29c]
+  - @ai-sdk/anthropic@3.0.39
+
+## 4.0.46
+
+### Patch Changes
+
+- 90a41e3: feat (provider/google-vertex): update model ids and add video generation docs
+
+## 4.0.45
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+- Updated dependencies [7168375]
+  - @ai-sdk/google@3.0.22
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/anthropic@3.0.38
+  - @ai-sdk/provider-utils@4.0.14
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [e288302]
+  - @ai-sdk/anthropic@3.0.37
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [ae30443]
+  - @ai-sdk/google@3.0.21
+
 ## 4.0.42
 
 ### Patch Changes
@@ -353,13 +1178,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - 32a6c13: Add Google Maps grounding tool support for location-aware Gemini responses
@@ -843,13 +1668,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]
@@ -1804,7 +2629,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -1817,7 +2642,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,
@@ -2207,7 +3032,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1', {
+    model: luma.image("photon-flash-1", {
       maxImagesPerCall: 5,
       pollIntervalMillis: 500,
     }),
@@ -2220,7 +3045,7 @@
 
   ```js
   await generateImage({
-    model: luma.image('photon-flash-1'),
+    model: luma.image("photon-flash-1"),
     prompt,
     n: 10,
     maxImagesPerCall: 5,

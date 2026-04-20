@@ -1,10 +1,7 @@
-import {
-  LanguageModelV3Middleware,
-  LanguageModelV3StreamPart,
-} from '@ai-sdk/provider';
+import { LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import { LanguageModelMiddleware } from 'ai';
 
-export const yourLogMiddleware: LanguageModelV3Middleware = {
-  specificationVersion: 'v3',
+export const yourLogMiddleware: LanguageModelMiddleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     console.log('doGenerate called');
     console.log(`params: ${JSON.stringify(params, null, 2)}`);
@@ -26,8 +23,8 @@ export const yourLogMiddleware: LanguageModelV3Middleware = {
     let generatedText = '';
 
     const transformStream = new TransformStream<
-      LanguageModelV3StreamPart,
-      LanguageModelV3StreamPart
+      LanguageModelV4StreamPart,
+      LanguageModelV4StreamPart
     >({
       transform(chunk, controller) {
         if (chunk.type === 'text-delta') {

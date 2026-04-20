@@ -8,12 +8,12 @@ import {
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
 import {
-  EmbeddingModelV3,
-  LanguageModelV3,
-  ProviderV3,
-  ImageModelV3,
-  SpeechModelV3,
-  TranscriptionModelV3,
+  EmbeddingModelV4,
+  LanguageModelV4,
+  ProviderV4,
+  ImageModelV4,
+  SpeechModelV4,
+  TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -24,68 +24,68 @@ import {
 import { azureOpenaiTools } from './azure-openai-tools';
 import { VERSION } from './version';
 
-export interface AzureOpenAIProvider extends ProviderV3 {
-  (deploymentId: string): LanguageModelV3;
+export interface AzureOpenAIProvider extends ProviderV4 {
+  (deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
    */
-  languageModel(deploymentId: string): LanguageModelV3;
+  languageModel(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI chat model for text generation.
    */
-  chat(deploymentId: string): LanguageModelV3;
+  chat(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
    */
-  responses(deploymentId: string): LanguageModelV3;
+  responses(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI completion model for text generation.
    */
-  completion(deploymentId: string): LanguageModelV3;
+  completion(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI model for text embeddings.
    */
-  embedding(deploymentId: string): EmbeddingModelV3;
+  embedding(deploymentId: string): EmbeddingModelV4;
 
   /**
    * Creates an Azure OpenAI model for text embeddings.
    */
-  embeddingModel(deploymentId: string): EmbeddingModelV3;
+  embeddingModel(deploymentId: string): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(deploymentId: string): EmbeddingModelV3;
+  textEmbedding(deploymentId: string): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(deploymentId: string): EmbeddingModelV3;
+  textEmbeddingModel(deploymentId: string): EmbeddingModelV4;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  image(deploymentId: string): ImageModelV3;
+  image(deploymentId: string): ImageModelV4;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  imageModel(deploymentId: string): ImageModelV3;
+  imageModel(deploymentId: string): ImageModelV4;
 
   /**
    * Creates an Azure OpenAI model for audio transcription.
    */
-  transcription(deploymentId: string): TranscriptionModelV3;
+  transcription(deploymentId: string): TranscriptionModelV4;
 
   /**
    * Creates an Azure OpenAI model for speech generation.
    */
-  speech(deploymentId: string): SpeechModelV3;
+  speech(deploymentId: string): SpeechModelV4;
 
   /**
    * AzureOpenAI-specific tools.
@@ -213,6 +213,7 @@ export function createAzure(
       url,
       headers: getHeaders,
       fetch: options.fetch,
+      // Soft-deprecated. TODO: remove in v8
       fileIdPrefixes: ['assistant-'],
     });
 
@@ -250,7 +251,7 @@ export function createAzure(
     return createResponsesModel(deploymentId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;

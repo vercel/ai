@@ -71,7 +71,7 @@ describe('Valid error responses', () => {
       error: {
         message: 'Model not available',
         type: 'model_not_found',
-        param: { modelId: 'gpt-4-turbo' },
+        param: { modelId: 'gpt-ai-sdk-test' }, // Not a real model, just for testing.
       },
     };
 
@@ -83,7 +83,9 @@ describe('Valid error responses', () => {
     expect(error).toBeInstanceOf(GatewayModelNotFoundError);
     expect(error.message).toBe('Model not available');
     expect(error.statusCode).toBe(404);
-    expect((error as GatewayModelNotFoundError).modelId).toBe('gpt-4-turbo');
+    expect((error as GatewayModelNotFoundError).modelId).toBe(
+      'gpt-ai-sdk-test',
+    );
   });
 
   it('should create GatewayModelNotFoundError without modelId for invalid param', async () => {

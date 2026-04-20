@@ -26,7 +26,8 @@ export type XaiResponsesSystemMessage = {
 
 export type XaiResponsesUserMessageContentPart =
   | { type: 'input_text'; text: string }
-  | { type: 'input_image'; image_url: string };
+  | { type: 'input_image'; image_url: string }
+  | { type: 'input_file'; file_id: string };
 
 export type XaiResponsesUserMessage = {
   role: 'user';
@@ -110,6 +111,7 @@ export type XaiResponsesTool =
       name: string;
       description?: string;
       parameters: unknown;
+      strict?: boolean;
     };
 
 const annotationSchema = z.union([
@@ -222,6 +224,9 @@ const outputItemSchema = z.discriminatedUnion('type', [
     type: z.literal('reasoning'),
     id: z.string(),
     summary: z.array(reasoningSummaryPartSchema),
+    content: z
+      .array(z.object({ type: z.string(), text: z.string() }))
+      .nullish(),
     status: z.string(),
     encrypted_content: z.string().nullish(),
   }),
@@ -243,6 +248,7 @@ export const xaiResponsesUsageSchema = z.object({
     .optional(),
   num_sources_used: z.number().optional(),
   num_server_side_tools_used: z.number().optional(),
+  cost_in_usd_ticks: z.number().nullish(),
 });
 
 export const xaiResponsesResponseSchema = z.object({
@@ -339,6 +345,20 @@ export const xaiResponsesChunkSchema = z.union([
     item_id: z.string(),
     output_index: z.number(),
     summary_index: z.number(),
+    text: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.reasoning_text.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.reasoning_text.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    content_index: z.number(),
     text: z.string(),
   }),
   z.object({
@@ -446,6 +466,19 @@ export const xaiResponsesChunkSchema = z.union([
     output_index: z.number(),
     input: z.string(),
   }),
+  // Function call arguments streaming events (standard function tools)
+  z.object({
+    type: z.literal('response.function_call_arguments.delta'),
+    item_id: z.string(),
+    output_index: z.number(),
+    delta: z.string(),
+  }),
+  z.object({
+    type: z.literal('response.function_call_arguments.done'),
+    item_id: z.string(),
+    output_index: z.number(),
+    arguments: z.string(),
+  }),
   z.object({
     type: z.literal('response.mcp_call.in_progress'),
     item_id: z.string(),
@@ -489,6 +522,32 @@ export const xaiResponsesChunkSchema = z.union([
     item_id: z.string(),
     output_index: z.number(),
     output: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal('response.incomplete'),
+    response: z.object({
+      incomplete_details: z.object({ reason: z.string() }).nullish(),
+      usage: xaiResponsesUsageSchema.nullish(),
+    }),
+  }),
+  z.object({
+    type: z.literal('response.failed'),
+    response: z.object({
+      error: z
+        .object({
+          code: z.string().nullish(),
+          message: z.string(),
+        })
+        .nullish(),
+      incomplete_details: z.object({ reason: z.string() }).nullish(),
+      usage: xaiResponsesUsageSchema.nullish(),
+    }),
+  }),
+  z.object({
+    type: z.literal('error'),
+    code: z.string().nullish(),
+    message: z.string(),
+    param: z.string().nullish(),
   }),
   z.object({
     type: z.literal('response.done'),

@@ -1,4 +1,4 @@
-import type { SharedV3ProviderMetadata } from '@ai-sdk/provider';
+import type { SharedV4ProviderMetadata } from '@ai-sdk/provider';
 
 /**
  * Response metadata for a video model call.
@@ -24,5 +24,5 @@ export type VideoModelResponseMetadata = {
    * When multiple calls are made (n > maxVideosPerCall), each response
    * contains its own providerMetadata, allowing lossless per-call access.
    */
-  providerMetadata?: SharedV3ProviderMetadata;
+  providerMetadata?: SharedV4ProviderMetadata;
 };

@@ -1,5 +1,23 @@
 # @ai-sdk/codemod
 
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 38fc777: Add AI Gateway hint to provider READMEs
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
 ## 3.0.3
 
 ### Patch Changes
@@ -183,21 +201,21 @@
   Before:
 
   ```ts
-  import { createIdGenerator } from 'ai';
+  import { createIdGenerator } from "ai";
 
-  const generator = createIdGenerator({ prefix: 'msg' });
+  const generator = createIdGenerator({ prefix: "msg" });
   const id2 = generator(16); // Custom size at call time
   ```
 
   After:
 
   ```ts
-  import { createIdGenerator } from 'ai';
+  import { createIdGenerator } from "ai";
 
   const generator32 = createIdGenerator({ size: 32 });
   const id1 = generator32(); // Fixed size from creation
 
-  const generator16 = createIdGenerator({ prefix: 'msg', size: 16 });
+  const generator16 = createIdGenerator({ prefix: "msg", size: 16 });
   const id2 = generator16(); // Fixed size from creation
   ```
 
@@ -206,13 +224,13 @@
   This change adds a new codemod which handles the change from
 
   ```ts
-  import { IDGenerator } from 'ai';
+  import { IDGenerator } from "ai";
   ```
 
   to
 
   ```ts
-  import { IdGenerator } from 'ai';
+  import { IdGenerator } from "ai";
   ```
 
 ## 2.0.0

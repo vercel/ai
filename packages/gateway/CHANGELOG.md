@@ -1,5 +1,660 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- 03dc15c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
+## 4.0.0-beta.55
+
+### Patch Changes
+
+- Updated dependencies [add1126]
+  - @ai-sdk/provider-utils@5.0.0-beta.21
+
+## 4.0.0-beta.54
+
+### Patch Changes
+
+- 5df9b6f: feat (provider/gateway): make model list resilient to unknown model types
+
+## 4.0.0-beta.53
+
+### Patch Changes
+
+- 0457e45: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.52
+
+### Patch Changes
+
+- ba2e254: fix (provider/gateway): add 'reranking' to modelType validation schema and type so getAvailableModels() accepts reranking models from the gateway API
+
+## 4.0.0-beta.51
+
+### Patch Changes
+
+- cdcdec2: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.50
+
+### Patch Changes
+
+- b3976a2: Add workflow serialization support to all provider models.
+
+  **`@ai-sdk/provider-utils`:** New `serializeModel()` helper that extracts only serializable properties from a model instance, filtering out functions and objects containing functions. Third-party provider authors can use this to add workflow support to their own models.
+
+  **All providers:** `headers` is now optional in provider config types. This is non-breaking — existing code that passes `headers` continues to work. Custom provider implementations that construct model configs manually can now omit `headers`, which is useful when models are deserialized from a workflow step boundary where auth is provided separately.
+
+  All provider model classes now include `WORKFLOW_SERIALIZE` and `WORKFLOW_DESERIALIZE` static methods, enabling them to cross workflow step boundaries without serialization errors.
+
+- Updated dependencies [b3976a2]
+- Updated dependencies [ff5eba1]
+  - @ai-sdk/provider-utils@5.0.0-beta.20
+  - @ai-sdk/provider@4.0.0-beta.12
+
+## 4.0.0-beta.49
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+### Patch Changes
+
+- Updated dependencies [ef992f8]
+  - @ai-sdk/provider@4.0.0-beta.11
+  - @ai-sdk/provider-utils@5.0.0-beta.19
+
+## 4.0.0-beta.48
+
+### Patch Changes
+
+- bdbd322: fix (packages/gateway): clarify sort docs
+- 8f53ccf: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.47
+
+### Patch Changes
+
+- 90e2d8a: chore: fix unused vars not being flagged by our lint tooling
+- Updated dependencies [90e2d8a]
+  - @ai-sdk/provider-utils@5.0.0-beta.18
+
+## 4.0.0-beta.46
+
+### Patch Changes
+
+- 6b0a40d: feat (provider/gateway): add sort options
+
+## 4.0.0-beta.45
+
+### Patch Changes
+
+- Updated dependencies [3ae1786]
+  - @ai-sdk/provider-utils@5.0.0-beta.17
+
+## 4.0.0-beta.44
+
+### Patch Changes
+
+- 7943a4b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.43
+
+### Patch Changes
+
+- Updated dependencies [176466a]
+  - @ai-sdk/provider@4.0.0-beta.10
+  - @ai-sdk/provider-utils@5.0.0-beta.16
+
+## 4.0.0-beta.42
+
+### Patch Changes
+
+- Updated dependencies [e311194]
+  - @ai-sdk/provider@4.0.0-beta.9
+  - @ai-sdk/provider-utils@5.0.0-beta.15
+
+## 4.0.0-beta.41
+
+### Patch Changes
+
+- 1464561: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.40
+
+### Patch Changes
+
+- 939171f: feat (provider/gateway): add reranking model support with `rerankingModel()` and `reranking()` methods
+
+## 4.0.0-beta.39
+
+### Patch Changes
+
+- 0694029: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [34bd95d]
+- Updated dependencies [008271d]
+  - @ai-sdk/provider@4.0.0-beta.8
+  - @ai-sdk/provider-utils@5.0.0-beta.14
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [b0c2869]
+- Updated dependencies [7e26e81]
+  - @ai-sdk/provider-utils@5.0.0-beta.13
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- fb0c233: chore(provider/gateway): update gateway model settings files
+- d1f0d2b: feat (provider/gateway): add quotaEntityId gateway provider option
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [46d1149]
+  - @ai-sdk/provider-utils@5.0.0-beta.12
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- 71b0e7d: feat (provider/gateway): add hipaaCompliant gateway provider option
+
+## 4.0.0-beta.33
+
+### Patch Changes
+
+- Updated dependencies [6fd51c0]
+  - @ai-sdk/provider-utils@5.0.0-beta.11
+  - @ai-sdk/provider@4.0.0-beta.7
+
+## 4.0.0-beta.32
+
+### Patch Changes
+
+- 11746ca: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.31
+
+### Patch Changes
+
+- Updated dependencies [c29a26f]
+  - @ai-sdk/provider-utils@5.0.0-beta.10
+  - @ai-sdk/provider@4.0.0-beta.6
+
+## 4.0.0-beta.30
+
+### Patch Changes
+
+- 4552cbf: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.29
+
+### Patch Changes
+
+- Updated dependencies [2e17091]
+  - @ai-sdk/provider-utils@5.0.0-beta.9
+
+## 4.0.0-beta.28
+
+### Patch Changes
+
+- Updated dependencies [986c6fd]
+- Updated dependencies [493295c]
+  - @ai-sdk/provider-utils@5.0.0-beta.8
+
+## 4.0.0-beta.27
+
+### Patch Changes
+
+- 70a9aae: feat (provider/gateway): add disallowPromptTraining gateway provider option
+
+## 4.0.0-beta.26
+
+### Patch Changes
+
+- 294cbe7: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.25
+
+### Patch Changes
+
+- 435895b: feat (provider/gateway): add get-generation support
+
+## 4.0.0-beta.24
+
+### Patch Changes
+
+- d30466c: feat (provider/gateway): add spend reporting support
+
+## 4.0.0-beta.23
+
+### Patch Changes
+
+- 4ec78cd: chore(provider/gateway): rename GatewayLanguageModelOptions back to GatewayProviderOptions
+
+## 4.0.0-beta.22
+
+### Patch Changes
+
+- 7ceff62: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.21
+
+### Patch Changes
+
+- Updated dependencies [1f509d4]
+  - @ai-sdk/provider-utils@5.0.0-beta.7
+  - @ai-sdk/provider@4.0.0-beta.5
+
+## 4.0.0-beta.20
+
+### Patch Changes
+
+- 4f91b5d: chore(provider/xai): update Grok 4.20 model IDs to their non-beta versions
+
+## 4.0.0-beta.19
+
+### Patch Changes
+
+- 72889f8: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.18
+
+### Patch Changes
+
+- 165b97a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.17
+
+### Patch Changes
+
+- Updated dependencies [3887c70]
+  - @ai-sdk/provider-utils@5.0.0-beta.6
+  - @ai-sdk/provider@4.0.0-beta.4
+
+## 4.0.0-beta.16
+
+### Patch Changes
+
+- Updated dependencies [776b617]
+  - @ai-sdk/provider-utils@5.0.0-beta.5
+  - @ai-sdk/provider@4.0.0-beta.3
+
+## 4.0.0-beta.15
+
+### Patch Changes
+
+- Updated dependencies [61753c3]
+  - @ai-sdk/provider-utils@5.0.0-beta.4
+
+## 4.0.0-beta.14
+
+### Patch Changes
+
+- ead9144: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.13
+
+### Patch Changes
+
+- 2095655: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- Updated dependencies [f7d4f01]
+  - @ai-sdk/provider-utils@5.0.0-beta.3
+  - @ai-sdk/provider@4.0.0-beta.2
+
+## 4.0.0-beta.11
+
+### Patch Changes
+
+- Updated dependencies [5c2a5a2]
+  - @ai-sdk/provider@4.0.0-beta.1
+  - @ai-sdk/provider-utils@5.0.0-beta.2
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 4d6ab9a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- 980f777: chore(provider/gateway): update gateway model settings files
+- 7185ba2: bump `@vercel/oidc` dependency to 3.2.0
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 4adc485: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- e046ea3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- 82288b0: feat(provider/google): add `gemini-embedding-2-preview` and fix multimodal embedding support with `embedMany`
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- aa5a583: chore(provider/xai): remove obsolete Grok 2 models now that they are shut down in their API
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- f32d84a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.3
+
+### Patch Changes
+
+- c949e25: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- Updated dependencies [531251e]
+  - @ai-sdk/provider-utils@5.0.0-beta.1
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 7afaece: feat(provider/openai): add GPT-5.4 model support
+- f16c103: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+### Patch Changes
+
+- Updated dependencies [8359612]
+  - @ai-sdk/provider@4.0.0-beta.0
+  - @ai-sdk/provider-utils@5.0.0-beta.0
+
+## 3.0.66
+
+### Patch Changes
+
+- Updated dependencies [ad4cfc2]
+  - @ai-sdk/provider-utils@4.0.19
+
+## 3.0.65
+
+### Patch Changes
+
+- Updated dependencies [824b295]
+  - @ai-sdk/provider-utils@4.0.18
+
+## 3.0.64
+
+### Patch Changes
+
+- db3d4ca: chore(provider/gateway): update gateway model settings files
+
+## 3.0.63
+
+### Patch Changes
+
+- 1b01ec1: feat(gateway): add providerTimeouts to provider options
+- 8df8e11: chore(provider/gateway): update gateway model settings files
+
+## 3.0.62
+
+### Patch Changes
+
+- 10bec50: feat(provider/google): add `gemini-3.1-flash-lite-preview`
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [08336f1]
+  - @ai-sdk/provider-utils@4.0.17
+
+## 3.0.60
+
+### Patch Changes
+
+- 29e9f4d: chore(provider/gateway): update gateway model settings files
+
+## 3.0.59
+
+### Patch Changes
+
+- Updated dependencies [58bc42d]
+  - @ai-sdk/provider-utils@4.0.16
+
+## 3.0.58
+
+### Patch Changes
+
+- 1330f2f: chore(provider/gateway): update gateway model settings files
+
+## 3.0.57
+
+### Patch Changes
+
+- ba63bc2: chore(provider/gateway): update gateway model settings files
+
+## 3.0.56
+
+### Patch Changes
+
+- 45f0a7f: feat(provider/google): add support for gemini-3.1-flash-image-preview
+
+## 3.0.55
+
+### Patch Changes
+
+- e8172b6: feat (provider/gateway): pass through project id when available for o11y
+
+## 3.0.54
+
+### Patch Changes
+
+- 0c9395b: feat(provider/openai): add `gpt-5.3-codex`
+
+## 3.0.53
+
+### Patch Changes
+
+- 73b7e09: feat (provider/gateway): add SSE support for video generation with heartbeat keep-alive
+
+## 3.0.52
+
+### Patch Changes
+
+- 363fa44: chore(provider/gateway): update gateway model settings files
+
+## 3.0.51
+
+### Patch Changes
+
+- 765b013: feat(provider/google): add support for `gemini-3.1-pro-preview`
+
+## 3.0.50
+
+### Patch Changes
+
+- a433cd3: chore(provider/gateway): update gateway model settings files
+
+## 3.0.49
+
+### Patch Changes
+
+- 5f693c8: chore(provider/gateway): update gateway model settings files
+
+## 3.0.48
+
+### Patch Changes
+
+- 2a1c664: feat(provider/anthropic): add support for new Claude Sonnet 4.6 model
+
+## 3.0.47
+
+### Patch Changes
+
+- 6bbd05b: chore(provider/gateway): update gateway model settings files
+
+## 3.0.46
+
+### Patch Changes
+
+- f75f18c: chore(provider/gateway): update gateway model settings files
+
+## 3.0.45
+
+### Patch Changes
+
+- e858654: fix (provider/gateway): Fixed error handling in Gateway models by making asGatewayError async in both image and video model implementations.
+
+## 3.0.44
+
+### Patch Changes
+
+- Updated dependencies [4024a3a]
+  - @ai-sdk/provider-utils@4.0.15
+
+## 3.0.43
+
+### Patch Changes
+
+- b424e50: chore(provider/gateway): update gateway model settings files
+
+## 3.0.42
+
+### Patch Changes
+
+- 1819bc1: fix (provider/gateway): add missing warning types for video response parsing
+
+## 3.0.41
+
+### Patch Changes
+
+- 99fbed8: feat: normalize provider specific model options type names and ensure they are exported
+
+## 3.0.40
+
+### Patch Changes
+
+- a2208a2: fix (provider/gateway): added custom error class and message for client side timeouts
+
+## 3.0.39
+
+### Patch Changes
+
+- eea5d30: fix: image generation via Gateway warning schema mismatch
+
+## 3.0.38
+
+### Patch Changes
+
+- 70028ab: feat: report image generation usage info in Gateway
+
+## 3.0.37
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.36
+
+### Patch Changes
+
+- 9892c58: feat(anthropic): add support for Opus 4.6
+
+## 3.0.35
+
+### Patch Changes
+
+- 8e2eaac: chore(provider/gateway): update gateway model settings files
+
+## 3.0.34
+
+### Patch Changes
+
+- 4867635: feat (provider/gateway): add video generation support
+
+## 3.0.33
+
+### Patch Changes
+
+- ae30443: fix(google): remove shut down `gemini-2.5-flash-image-preview`
+
 ## 3.0.32
 
 ### Patch Changes
@@ -245,13 +900,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - aaf5ebf: feat(provider/gateway): Add new Qwen models to Gateway model string autocomplete
@@ -533,13 +1188,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - Updated dependencies [8d9e8ad]

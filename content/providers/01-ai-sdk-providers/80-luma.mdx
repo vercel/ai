@@ -79,7 +79,7 @@ For more on image generation with the AI SDK see [generateImage()](/docs/referen
 ### Basic Usage
 
 ```ts
-import { luma, type LumaImageProviderOptions } from '@ai-sdk/luma';
+import { luma, type LumaImageModelOptions } from '@ai-sdk/luma';
 import { generateImage } from 'ai';
 import fs from 'fs';
 
@@ -109,7 +109,7 @@ const { image } = await generateImage({
       pollIntervalMillis: 5000, // How often to check for completed images (in ms)
       maxPollAttempts: 10, // Maximum number of polling attempts before timeout
     },
-  } satisfies LumaImageProviderOptions,
+  } satisfies LumaImageModelOptions,
 });
 ```
 
@@ -179,7 +179,7 @@ await generateImage({
     luma: {
       referenceType: 'modify_image',
       images: [{ weight: 1.0 }],
-    } satisfies LumaImageProviderOptions,
+    } satisfies LumaImageModelOptions,
   },
 });
 ```
@@ -204,7 +204,7 @@ await generateImage({
     luma: {
       referenceType: 'image',
       images: [{ weight: 0.8 }],
-    } satisfies LumaImageProviderOptions,
+    } satisfies LumaImageModelOptions,
   },
 });
 ```
@@ -229,7 +229,7 @@ await generateImage({
     luma: {
       referenceType: 'style',
       images: [{ weight: 0.8 }],
-    } satisfies LumaImageProviderOptions,
+    } satisfies LumaImageModelOptions,
   },
 });
 ```
@@ -258,7 +258,7 @@ await generateImage({
           id: 'identity0',
         },
       ],
-    } satisfies LumaImageProviderOptions,
+    } satisfies LumaImageModelOptions,
   },
 });
 ```

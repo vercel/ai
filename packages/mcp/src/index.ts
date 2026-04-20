@@ -14,8 +14,10 @@ export {
 } from './tool/mcp-client';
 export { ElicitationRequestSchema, ElicitResultSchema } from './tool/types';
 export type {
+  Configuration,
   ElicitationRequest,
   ElicitResult,
+  ListToolsResult,
   ClientCapabilities as MCPClientCapabilities,
 } from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';

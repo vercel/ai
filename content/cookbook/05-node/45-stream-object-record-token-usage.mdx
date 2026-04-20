@@ -6,7 +6,7 @@ tags: ['node', 'streaming', 'structured data', 'observability']
 
 # Record Token Usage After Streaming Object
 
-When you're streaming structured data with [`streamObject`](/docs/reference/ai-sdk-core/stream-object),
+When you're streaming structured data with `streamText` and `Output`,
 you may want to record the token usage for billing purposes.
 
 ## `onFinish` Callback
@@ -15,16 +15,18 @@ You can use the `onFinish` callback to record token usage.
 It is called when the stream is finished.
 
 ```ts file='index.ts' highlight={"15-17"}
-import { streamObject } from 'ai';
+import { streamText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = streamObject({
+const result = streamText({
   model: 'openai/gpt-4.1',
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
@@ -36,25 +38,26 @@ const result = streamObject({
 
 ## `usage` Promise
 
-The [`streamObject`](/docs/reference/ai-sdk-core/stream-object) result contains a `usage` promise that resolves to the total token usage.
+The `streamText` result contains a `usage` promise that resolves to the total token usage.
 
-```ts file='index.ts' highlight={"29,32"}
-import { streamObject, LanguageModelUsage } from 'ai';
+```ts file='index.ts' highlight={"28,30"}
+import { streamText, Output, LanguageModelUsage } from 'ai';
 import { z } from 'zod';
 
-const result = streamObject({
+const result = streamText({
   model: 'openai/gpt-4.1',
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      steps: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        steps: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a lasagna recipe.',
 });
 
-// your custom function to record token usage:
 function recordUsage({
   inputTokens,
   outputTokens,
@@ -65,13 +68,10 @@ function recordUsage({
   console.log('Total tokens:', totalTokens);
 }
 
-// use as promise:
 result.usage.then(recordUsage);
 
-// use with async/await:
 recordUsage(await result.usage);
 
-// note: the stream needs to be consumed because of backpressure
-for await (const partialObject of result.partialObjectStream) {
+for await (const partialObject of result.partialOutputStream) {
 }
 ```

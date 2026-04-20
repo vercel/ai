@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - release-v*
     paths:
       - '.changeset/**'
       - '.github/workflows/release.yml'
@@ -26,7 +27,7 @@ jobs:
     if: github.repository_owner == 'vercel'
     steps:
       - name: Create access token for GitHub App
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         id: app-token
         with:
           app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
@@ -44,19 +45,19 @@ jobs:
           git config --global user.email '${{ steps.app-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
 
       - name: Checkout Repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
           persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 10.11.0
 
       - name: Setup Node.js 22
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -72,3 +73,21 @@ jobs:
           setupGitUser: false
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Find release PR number
+        if: steps.changesets.outputs.published == 'true'
+        id: release-pr
+        run: echo "number=$(gh api repos/${{ github.repository }}/commits/${{ github.sha }}/pulls --jq '.[0].number')" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Notify released PRs and issues
+        if: steps.changesets.outputs.published == 'true'
+        run: |
+          cd .github/scripts/notify-released
+          npm install --no-save
+          node index.mjs
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+          PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}

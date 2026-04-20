@@ -12,20 +12,16 @@ const OUTPUT_DIR = 'output';
 export async function presentVideos(videos: GeneratedFile[]) {
   const timestamp = Date.now();
   for (const [index, video] of videos.entries()) {
-    // Videos from providers may be URLs (stored as base64 strings) or actual video data
-    const videoData = video.uint8Array;
-
-    // Determine the file extension based on media type
     const mediaType = video.mediaType || 'video/mp4';
     const extension = mediaType.split('/')[1] || 'mp4';
 
-    // Save the video to a file
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     const filePath = path.join(
       OUTPUT_DIR,
       `video-${timestamp}-${index}.${extension}`,
     );
 
+    const videoData = video.uint8Array;
     await fs.promises.writeFile(filePath, videoData);
     console.log(`Saved video to ${filePath}`);
     console.log(`  Media type: ${mediaType}`);

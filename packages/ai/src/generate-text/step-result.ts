@@ -1,4 +1,9 @@
-import { ReasoningPart } from '@ai-sdk/provider-utils';
+import type {
+  Context,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
+import { ReasoningFilePart, ReasoningPart } from '@ai-sdk/provider-utils';
 import {
   CallWarning,
   FinishReason,
@@ -10,6 +15,12 @@ import { Source } from '../types/language-model';
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
+import { asReasoningText } from './reasoning';
+import {
+  ReasoningFileOutput,
+  ReasoningOutput,
+  convertFromReasoningOutputs,
+} from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
 import {
@@ -17,12 +28,49 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
 
 /**
  * The result of a single step in the generation process.
  */
-export type StepResult<TOOLS extends ToolSet> = {
+export type StepResult<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> = {
+  /**
+   * Unique identifier for the generation call this step belongs to.
+   */
+  readonly callId: string;
+
+  /**
+   * Zero-based index of this step.
+   */
+  readonly stepNumber: number;
+
+  /**
+   * Information about the model that produced this step.
+   */
+  readonly model: {
+    /** The provider of the model. */
+    readonly provider: string;
+    /** The ID of the model. */
+    readonly modelId: string;
+  };
+
+  /**
+   * Identifier from telemetry settings for grouping related operations.
+   */
+  readonly functionId: string | undefined;
+
+  /**
+   * Tool context.
+   */
+  readonly toolsContext: InferToolSetContext<TOOLS>;
+
+  /**
+   * Runtime context.
+   */
+  readonly runtimeContext: RUNTIME_CONTEXT;
+
   /**
    * The content that was generated in the last step.
    */
@@ -36,7 +84,7 @@ export type StepResult<TOOLS extends ToolSet> = {
   /**
    * The reasoning that was generated during the generation.
    */
-  readonly reasoning: Array<ReasoningPart>;
+  readonly reasoning: Array<ReasoningPart | ReasoningFilePart>;
 
   /**
    * The reasoning text that was generated during the generation.
@@ -133,19 +181,39 @@ export type StepResult<TOOLS extends ToolSet> = {
   readonly providerMetadata: ProviderMetadata | undefined;
 };
 
-export class DefaultStepResult<TOOLS extends ToolSet>
-  implements StepResult<TOOLS>
-{
-  readonly content: StepResult<TOOLS>['content'];
-  readonly finishReason: StepResult<TOOLS>['finishReason'];
-  readonly rawFinishReason: StepResult<TOOLS>['rawFinishReason'];
-  readonly usage: StepResult<TOOLS>['usage'];
-  readonly warnings: StepResult<TOOLS>['warnings'];
-  readonly request: StepResult<TOOLS>['request'];
-  readonly response: StepResult<TOOLS>['response'];
-  readonly providerMetadata: StepResult<TOOLS>['providerMetadata'];
+export class DefaultStepResult<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context = Context,
+> implements StepResult<TOOLS, RUNTIME_CONTEXT> {
+  readonly callId: StepResult<TOOLS, RUNTIME_CONTEXT>['callId'];
+  readonly stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
+  readonly model: StepResult<TOOLS, RUNTIME_CONTEXT>['model'];
+  readonly functionId: StepResult<TOOLS, RUNTIME_CONTEXT>['functionId'];
+  readonly toolsContext: StepResult<TOOLS, RUNTIME_CONTEXT>['toolsContext'];
+  readonly runtimeContext: StepResult<TOOLS, RUNTIME_CONTEXT>['runtimeContext'];
+  readonly content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
+  readonly finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
+  readonly rawFinishReason: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['rawFinishReason'];
+  readonly usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+  readonly warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
+  readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
+  readonly response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
+  readonly providerMetadata: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['providerMetadata'];
 
   constructor({
+    callId,
+    stepNumber,
+    provider,
+    modelId,
+    functionId,
+    runtimeContext,
+    toolsContext,
     content,
     finishReason,
     rawFinishReason,
@@ -155,15 +223,28 @@ export class DefaultStepResult<TOOLS extends ToolSet>
     response,
     providerMetadata,
   }: {
-    content: StepResult<TOOLS>['content'];
-    finishReason: StepResult<TOOLS>['finishReason'];
-    rawFinishReason: StepResult<TOOLS>['rawFinishReason'];
-    usage: StepResult<TOOLS>['usage'];
-    warnings: StepResult<TOOLS>['warnings'];
-    request: StepResult<TOOLS>['request'];
-    response: StepResult<TOOLS>['response'];
-    providerMetadata: StepResult<TOOLS>['providerMetadata'];
+    callId: StepResult<TOOLS, RUNTIME_CONTEXT>['callId'];
+    stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
+    provider: StepResult<TOOLS, RUNTIME_CONTEXT>['model']['provider'];
+    modelId: StepResult<TOOLS, RUNTIME_CONTEXT>['model']['modelId'];
+    functionId: StepResult<TOOLS, RUNTIME_CONTEXT>['functionId'];
+    runtimeContext: StepResult<TOOLS, RUNTIME_CONTEXT>['runtimeContext'];
+    toolsContext: StepResult<TOOLS, RUNTIME_CONTEXT>['toolsContext'];
+    content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
+    finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
+    rawFinishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['rawFinishReason'];
+    usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+    warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
+    request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
+    response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
+    providerMetadata: StepResult<TOOLS, RUNTIME_CONTEXT>['providerMetadata'];
   }) {
+    this.callId = callId;
+    this.stepNumber = stepNumber;
+    this.model = { provider, modelId };
+    this.functionId = functionId;
+    this.runtimeContext = runtimeContext;
+    this.toolsContext = toolsContext;
     this.content = content;
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;
@@ -181,14 +262,17 @@ export class DefaultStepResult<TOOLS extends ToolSet>
       .join('');
   }
 
-  get reasoning() {
-    return this.content.filter(part => part.type === 'reasoning');
+  get reasoning(): Array<ReasoningPart | ReasoningFilePart> {
+    return convertFromReasoningOutputs(
+      this.content.filter(
+        (part): part is ReasoningOutput | ReasoningFileOutput =>
+          part.type === 'reasoning' || part.type === 'reasoning-file',
+      ),
+    );
   }
 
   get reasoningText() {
-    return this.reasoning.length === 0
-      ? undefined
-      : this.reasoning.map(part => part.text).join('');
+    return asReasoningText(this.reasoning);
   }
 
   get files() {

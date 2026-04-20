@@ -1,9 +1,11 @@
 import { applyPatch } from './tool/apply-patch';
 import { codeInterpreter } from './tool/code-interpreter';
+import { customTool } from './tool/custom';
 import { fileSearch } from './tool/file-search';
 import { imageGeneration } from './tool/image-generation';
 import { localShell } from './tool/local-shell';
 import { shell } from './tool/shell';
+import { toolSearch } from './tool/tool-search';
 import { webSearch } from './tool/web-search';
 import { webSearchPreview } from './tool/web-search-preview';
 import { mcp } from './tool/mcp';
@@ -17,6 +19,16 @@ export const openaiTools = {
    *
    */
   applyPatch,
+
+  /**
+   * Custom tools let callers constrain model output to a grammar (regex or
+   * Lark syntax). The model returns a `custom_tool_call` output item whose
+   * `input` field is a string matching the specified grammar.
+   *
+   * @param description - An optional description of the tool.
+   * @param format - The output format constraint (grammar type, syntax, and definition).
+   */
+  customTool,
 
   /**
    * The Code Interpreter tool allows models to write and run Python code in a
@@ -61,7 +73,7 @@ export const openaiTools = {
    * Local shell is a tool that allows agents to run shell commands locally
    * on a machine you or the user provides.
    *
-   * Supported models: `gpt-5-codex` and `codex-mini-latest`
+   * Supported models: `gpt-5-codex`
    */
   localShell,
 
@@ -111,4 +123,15 @@ export const openaiTools = {
    * @param serverUrl - URL for the MCP server.
    */
   mcp,
+
+  /**
+   * Tool search allows the model to dynamically search for and load deferred
+   * tools into the model's context as needed. This helps reduce overall token
+   * usage, cost, and latency by only loading tools when the model needs them.
+   *
+   * To use tool search, mark functions or namespaces with `defer_loading: true`
+   * in the tools array. The model will use tool search to load these tools
+   * when it determines they are needed.
+   */
+  toolSearch,
 };

@@ -1,30 +1,38 @@
-import { ImageModelV3, ImageModelV3CallOptions } from '@ai-sdk/provider';
+import {
+  ImageModelV2,
+  ImageModelV3,
+  ImageModelV4,
+  ImageModelV4CallOptions,
+  ImageModelV4Result,
+} from '@ai-sdk/provider';
+import { asArray } from '@ai-sdk/provider-utils';
+import { asImageModelV4 } from '../model/as-image-model-v4';
 import { ImageModelMiddleware } from '../types';
-import { asArray } from '../util/as-array';
 
 /**
- * Wraps an ImageModelV3 instance with middleware functionality.
+ * Wraps an ImageModelV4 instance with middleware functionality.
  * This function allows you to apply middleware to transform parameters
  * and wrap generate operations of an image model.
  *
  * @param options - Configuration options for wrapping the image model.
- * @param options.model - The original ImageModelV3 instance to be wrapped.
+ * @param options.model - The original ImageModelV4 instance to be wrapped.
  * @param options.middleware - The middleware to be applied to the image model. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.
  * @param options.modelId - Optional custom model ID to override the original model's ID.
  * @param options.providerId - Optional custom provider ID to override the original model's provider ID.
- * @returns A new ImageModelV3 instance with middleware applied.
+ * @returns A new ImageModelV4 instance with middleware applied.
  */
 export const wrapImageModel = ({
-  model,
+  model: inputModel,
   middleware: middlewareArg,
   modelId,
   providerId,
 }: {
-  model: ImageModelV3;
+  model: ImageModelV2 | ImageModelV3 | ImageModelV4;
   middleware: ImageModelMiddleware | ImageModelMiddleware[];
   modelId?: string;
   providerId?: string;
-}): ImageModelV3 => {
+}): ImageModelV4 => {
+  const model = asImageModelV4(inputModel);
   return [...asArray(middlewareArg)]
     .reverse()
     .reduce((wrappedModel, middleware) => {
@@ -44,12 +52,12 @@ const doWrap = ({
   modelId,
   providerId,
 }: {
-  model: ImageModelV3;
+  model: ImageModelV4;
   middleware: ImageModelMiddleware;
   modelId?: string;
   providerId?: string;
-}): ImageModelV3 => {
-  async function doTransform({ params }: { params: ImageModelV3CallOptions }) {
+}): ImageModelV4 => {
+  async function doTransform({ params }: { params: ImageModelV4CallOptions }) {
     return transformParams ? await transformParams({ params, model }) : params;
   }
 
@@ -64,22 +72,22 @@ const doWrap = ({
       : maxImagesPerCallRaw;
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: providerId ?? overrideProvider?.({ model }) ?? model.provider,
     modelId: modelId ?? overrideModelId?.({ model }) ?? model.modelId,
     maxImagesPerCall,
     async doGenerate(
-      params: ImageModelV3CallOptions,
-    ): Promise<Awaited<ReturnType<ImageModelV3['doGenerate']>>> {
+      params: ImageModelV4CallOptions,
+    ): Promise<ImageModelV4Result> {
       const transformedParams = await doTransform({ params });
-      const doGenerate = async () => model.doGenerate(transformedParams);
+      const doGenerate = async () => await model.doGenerate(transformedParams);
       return wrapGenerate
-        ? wrapGenerate({
+        ? await wrapGenerate({
             doGenerate,
             params: transformedParams,
             model,
           })
-        : doGenerate();
+        : await doGenerate();
     },
   };
 };

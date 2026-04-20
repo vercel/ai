@@ -13,11 +13,9 @@
     "rootDir": "./src",
     "outDir": "./build",
     "skipLibCheck": true,
-    "composite": true,
+    "composite": true
   },
-  "include": [
-    "src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../../packages/ai"
@@ -36,6 +34,9 @@
     },
     {
       "path": "../../packages/cerebras"
+    },
+    {
+      "path": "../../packages/devtools"
     },
     {
       "path": "../../packages/elevenlabs"
@@ -92,10 +93,16 @@
       "path": "../../packages/mistral"
     },
     {
+      "path": "../../packages/moonshotai"
+    },
+    {
       "path": "../../packages/openai"
     },
     {
       "path": "../../packages/openai-compatible"
+    },
+    {
+      "path": "../../packages/otel"
     },
     {
       "path": "../../packages/perplexity"
@@ -114,6 +121,9 @@
     },
     {
       "path": "../../packages/valibot"
+    },
+    {
+      "path": "../../packages/voyage"
     },
     {
       "path": "../../packages/xai"

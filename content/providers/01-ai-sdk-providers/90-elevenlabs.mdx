@@ -93,7 +93,10 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="7-9"
 import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { elevenlabs } from '@ai-sdk/elevenlabs';
+import {
+  elevenlabs,
+  type ElevenLabsSpeechModelOptions,
+} from '@ai-sdk/elevenlabs';
 
 const result = await generateSpeech({
   model: elevenlabs.speech('eleven_multilingual_v2'),
@@ -105,7 +108,7 @@ const result = await generateSpeech({
         stability: 0.5,
         similarityBoost: 0.75,
       },
-    },
+    } satisfies ElevenLabsSpeechModelOptions,
   },
 });
 ```
@@ -192,12 +195,19 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
-import { elevenlabs } from '@ai-sdk/elevenlabs';
+import {
+  elevenlabs,
+  type ElevenLabsTranscriptionModelOptions,
+} from '@ai-sdk/elevenlabs';
 
 const result = await transcribe({
   model: elevenlabs.transcription('scribe_v1'),
   audio: new Uint8Array([1, 2, 3, 4]),
-  providerOptions: { elevenlabs: { languageCode: 'en' } },
+  providerOptions: {
+    elevenlabs: {
+      languageCode: 'en',
+    } satisfies ElevenLabsTranscriptionModelOptions,
+  },
 });
 ```
 

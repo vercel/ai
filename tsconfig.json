@@ -2,6 +2,7 @@
   "references": [
     { "path": "packages/ai" },
     { "path": "packages/mcp" },
+    { "path": "packages/alibaba" },
     { "path": "packages/amazon-bedrock" },
     { "path": "packages/angular" },
     { "path": "packages/anthropic" },
@@ -9,12 +10,14 @@
     { "path": "packages/azure" },
     { "path": "packages/black-forest-labs" },
     { "path": "packages/baseten" },
+    { "path": "packages/bytedance" },
     { "path": "packages/cerebras" },
     { "path": "packages/codemod" },
     { "path": "packages/cohere" },
     { "path": "packages/deepgram" },
     { "path": "packages/deepinfra" },
     { "path": "packages/deepseek" },
+    { "path": "packages/workflow" },
     { "path": "packages/elevenlabs" },
     { "path": "packages/fal" },
     { "path": "packages/fireworks" },
@@ -25,13 +28,17 @@
     { "path": "packages/groq" },
     { "path": "packages/huggingface" },
     { "path": "packages/hume" },
+    { "path": "packages/klingai" },
     { "path": "packages/langchain" },
     { "path": "packages/llamaindex" },
     { "path": "packages/lmnt" },
     { "path": "packages/luma" },
     { "path": "packages/mistral" },
+    { "path": "packages/moonshotai" },
     { "path": "packages/openai" },
     { "path": "packages/openai-compatible" },
+    { "path": "packages/open-responses" },
+    { "path": "packages/otel" },
     { "path": "packages/perplexity" },
     { "path": "packages/provider" },
     { "path": "packages/provider-utils" },
@@ -44,8 +51,12 @@
     { "path": "packages/togetherai" },
     { "path": "packages/valibot" },
     { "path": "packages/vercel" },
+    { "path": "packages/voyage" },
     { "path": "packages/vue" },
     { "path": "packages/xai" }
   ],
-  "include": []
+  "include": [],
+  "compilerOptions": {
+    "strictNullChecks": true
+  }
 }

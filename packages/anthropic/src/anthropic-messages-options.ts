@@ -2,23 +2,22 @@ import { z } from 'zod/v4';
 
 // https://docs.claude.com/en/docs/about-claude/models/overview
 export type AnthropicMessagesModelId =
-  | 'claude-3-5-haiku-20241022'
-  | 'claude-3-5-haiku-latest'
-  | 'claude-3-7-sonnet-20250219'
-  | 'claude-3-7-sonnet-latest'
   | 'claude-3-haiku-20240307'
   | 'claude-haiku-4-5-20251001'
   | 'claude-haiku-4-5'
   | 'claude-opus-4-0'
+  | 'claude-opus-4-20250514'
   | 'claude-opus-4-1-20250805'
   | 'claude-opus-4-1'
-  | 'claude-opus-4-20250514'
   | 'claude-opus-4-5'
   | 'claude-opus-4-5-20251101'
   | 'claude-sonnet-4-0'
   | 'claude-sonnet-4-20250514'
   | 'claude-sonnet-4-5-20250929'
   | 'claude-sonnet-4-5'
+  | 'claude-sonnet-4-6'
+  | 'claude-opus-4-6'
+  | 'claude-opus-4-7'
   | (string & {});
 
 /**
@@ -57,7 +56,7 @@ export type AnthropicFilePartProviderOptions = z.infer<
   typeof anthropicFilePartProviderOptions
 >;
 
-export const anthropicProviderOptions = z.object({
+export const anthropicLanguageModelOptions = z.object({
   /**
    * Whether to send reasoning to the model.
    *
@@ -68,7 +67,7 @@ export const anthropicProviderOptions = z.object({
   /**
    * Determines how structured outputs are generated.
    *
-   * - `outputFormat`: Use the `output_format` parameter to specify the structured output format.
+   * - `outputFormat`: Use the `output_config.format` parameter to specify the structured output format.
    * - `jsonTool`: Use a special 'json' tool to specify the structured output format.
    * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool' (default).
    */
@@ -81,10 +80,26 @@ export const anthropicProviderOptions = z.object({
    * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
    */
   thinking: z
-    .object({
-      type: z.union([z.literal('enabled'), z.literal('disabled')]),
-      budgetTokens: z.number().optional(),
-    })
+    .discriminatedUnion('type', [
+      z.object({
+        /** for Sonnet 4.6, Opus 4.6, and newer models */
+        type: z.literal('adaptive'),
+        /**
+         * Controls whether thinking content is included in the response.
+         * - `"omitted"`: Thinking blocks are present but text is empty (default for Opus 4.7+).
+         * - `"summarized"`: Thinking content is returned. Required to see reasoning output.
+         */
+        display: z.enum(['omitted', 'summarized']).optional(),
+      }),
+      z.object({
+        /** for models before Opus 4.6, except Sonnet 4.6 still supports it */
+        type: z.literal('enabled'),
+        budgetTokens: z.number().optional(),
+      }),
+      z.object({
+        type: z.literal('disabled'),
+      }),
+    ])
     .optional(),
 
   /**
@@ -101,6 +116,23 @@ export const anthropicProviderOptions = z.object({
     .object({
       type: z.literal('ephemeral'),
       ttl: z.union([z.literal('5m'), z.literal('1h')]).optional(),
+    })
+    .optional(),
+
+  /**
+   * Metadata to include with the request.
+   *
+   * See https://platform.claude.com/docs/en/api/messages/create for details.
+   */
+  metadata: z
+    .object({
+      /**
+       * An external identifier for the user associated with the request.
+       *
+       * Should be a UUID, hash value, or other opaque identifier.
+       * Must not contain PII (name, email, phone number, etc.).
+       */
+      userId: z.string().optional(),
     })
     .optional(),
 
@@ -134,21 +166,29 @@ export const anthropicProviderOptions = z.object({
       id: z.string().optional(),
       skills: z
         .array(
-          z.object({
-            type: z.union([z.literal('anthropic'), z.literal('custom')]),
-            skillId: z.string(),
-            version: z.string().optional(),
-          }),
+          z.discriminatedUnion('type', [
+            z.object({
+              type: z.literal('anthropic'),
+              skillId: z.string(),
+              version: z.string().optional(),
+            }),
+            z.object({
+              type: z.literal('custom'),
+              providerReference: z.record(z.string(), z.string()),
+              version: z.string().optional(),
+            }),
+          ]),
         )
         .optional(),
     })
     .optional(),
 
   /**
-   * Whether to enable tool streaming (and structured output streaming).
-   *
-   * When set to false, the model will return all tool calls and results
-   * at once after a delay.
+   * Whether to enable fine-grained (eager) streaming of tool call inputs
+   * and structured outputs for every function tool in the request. When
+   * true (the default), each function tool receives a default of
+   * `eager_input_streaming: true` unless it explicitly sets
+   * `providerOptions.anthropic.eagerInputStreaming`.
    *
    * @default true
    */
@@ -157,7 +197,44 @@ export const anthropicProviderOptions = z.object({
   /**
    * @default 'high'
    */
-  effort: z.enum(['low', 'medium', 'high']).optional(),
+  effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
+
+  /**
+   * Task budget for agentic turns. Informs the model of the total token budget
+   * available for the current task, allowing it to prioritize work and wind down
+   * gracefully as the budget is consumed.
+   *
+   * Advisory only — does not enforce a hard token limit.
+   */
+  taskBudget: z
+    .object({
+      type: z.literal('tokens'),
+      total: z.number().int().min(20000),
+      remaining: z.number().int().min(0).optional(),
+    })
+    .optional(),
+
+  /**
+   * Enable fast mode for faster inference (2.5x faster output token speeds).
+   * Only supported with claude-opus-4-6.
+   */
+  speed: z.enum(['fast', 'standard']).optional(),
+
+  /**
+   * Controls where model inference runs for this request.
+   *
+   * - `"global"`: Inference may run in any available geography (default).
+   * - `"us"`: Inference runs only in US-based infrastructure.
+   *
+   * See https://platform.claude.com/docs/en/build-with-claude/data-residency
+   */
+  inferenceGeo: z.enum(['us', 'global']).optional(),
+
+  /**
+   * A set of beta features to enable.
+   * Allow a provider to receive the full `betas` set if it needs it.
+   */
+  anthropicBeta: z.array(z.string()).optional(),
 
   contextManagement: z
     .object({
@@ -204,10 +281,23 @@ export const anthropicProviderOptions = z.object({
               ])
               .optional(),
           }),
+          z.object({
+            type: z.literal('compact_20260112'),
+            trigger: z
+              .object({
+                type: z.literal('input_tokens'),
+                value: z.number(),
+              })
+              .optional(),
+            pauseAfterCompaction: z.boolean().optional(),
+            instructions: z.string().optional(),
+          }),
         ]),
       ),
     })
     .optional(),
 });
 
-export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;
+export type AnthropicLanguageModelOptions = z.infer<
+  typeof anthropicLanguageModelOptions
+>;

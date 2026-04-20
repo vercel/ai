@@ -122,13 +122,13 @@ export default {
 };
 ```
 
-#### `generateObject`
+#### Structured Output
 
-Some Cloudflare Workers AI language models can also be used with the `generateObject` function:
+Some Cloudflare Workers AI language models also support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output):
 
 ```typescript
 import { createWorkersAI } from 'workers-ai-provider';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
 type Env = {
@@ -138,18 +138,20 @@ type Env = {
 export default {
   async fetch(_: Request, env: Env) {
     const workersai = createWorkersAI({ binding: env.AI });
-    const result = await generateObject({
+    const result = await generateText({
       model: workersai('@cf/meta/llama-3.1-8b-instruct'),
       prompt: 'Generate a Lasagna recipe',
-      schema: z.object({
-        recipe: z.object({
-          ingredients: z.array(z.string()),
-          description: z.string(),
+      output: Output.object({
+        schema: z.object({
+          recipe: z.object({
+            ingredients: z.array(z.string()),
+            description: z.string(),
+          }),
         }),
       }),
     });
 
-    return Response.json(result.object);
+    return Response.json(result.output);
   },
 };
 ```

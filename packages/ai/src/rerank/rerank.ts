@@ -1,15 +1,20 @@
-import { JSONObject, RerankingModelV3CallOptions } from '@ai-sdk/provider';
-import { ProviderOptions } from '@ai-sdk/provider-utils';
+import { JSONObject, RerankingModelV4CallOptions } from '@ai-sdk/provider';
+import { createIdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
-import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
-import { getTracer } from '../telemetry/get-tracer';
-import { recordSpan } from '../telemetry/record-span';
-import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { RerankingModel } from '../types';
-import { RerankResult } from './rerank-result';
 import { logWarnings } from '../logger/log-warnings';
+import { resolveRerankingModel } from '../model/resolve-model';
+import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
+import { RerankingModel } from '../types';
+import type { Callback } from '../util/callback';
+import { notify } from '../util/notify';
+import type { RerankOnFinishEvent, RerankOnStartEvent } from './rerank-events';
+import { RerankResult } from './rerank-result';
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 
 /**
  * Rerank documents using a reranking model. The type of the value is defined by the reranking model.
@@ -23,12 +28,12 @@ import { logWarnings } from '../logger/log-warnings';
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  * @param providerOptions - Additional provider-specific options.
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
 export async function rerank<VALUE extends JSONObject | string>({
-  model,
+  model: modelArg,
   documents,
   query,
   topN,
@@ -36,7 +41,11 @@ export async function rerank<VALUE extends JSONObject | string>({
   abortSignal,
   headers,
   providerOptions,
-  experimental_telemetry: telemetry,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
+  experimental_onStart: onStart,
+  experimental_onFinish: onFinish,
+  _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
    * The reranking model to use.
@@ -77,9 +86,16 @@ export async function rerank<VALUE extends JSONObject | string>({
   headers?: Record<string, string>;
 
   /**
-   * Optional telemetry configuration (experimental).
+   * Optional telemetry configuration.
    */
-  experimental_telemetry?: TelemetrySettings;
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Optional telemetry configuration.
+   *
+   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+   */
+  experimental_telemetry?: TelemetryOptions;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -87,8 +103,77 @@ export async function rerank<VALUE extends JSONObject | string>({
    * functionality that can be fully encapsulated in the provider.
    */
   providerOptions?: ProviderOptions;
+
+  /**
+   * Callback that is called when the rerank operation begins,
+   * before the reranking model is called.
+   */
+  experimental_onStart?: Callback<RerankOnStartEvent>;
+
+  /**
+   * Callback that is called when the rerank operation completes,
+   * after the reranking model returns.
+   */
+  experimental_onFinish?: Callback<RerankOnFinishEvent>;
+
+  /**
+   * Internal. For test use only. May change without notice.
+   */
+  _internal?: {
+    generateCallId?: () => string;
+  };
 }): Promise<RerankResult<VALUE>> {
+  const model = resolveRerankingModel(modelArg);
+  const callId = generateCallId();
+
+  const unifiedTelemetry = createUnifiedTelemetry({
+    integrations: telemetry?.integrations,
+  });
+
   if (documents.length === 0) {
+    await notify({
+      event: {
+        callId,
+        operationId: 'ai.rerank',
+        provider: model.provider,
+        modelId: model.modelId,
+        documents,
+        query,
+        topN,
+        maxRetries: maxRetriesArg ?? 2,
+        headers,
+        providerOptions,
+        isEnabled: telemetry?.isEnabled ?? true,
+        recordInputs: telemetry?.recordInputs,
+        recordOutputs: telemetry?.recordOutputs,
+        functionId: telemetry?.functionId,
+      },
+      callbacks: [onStart, unifiedTelemetry.onStart],
+    });
+
+    await notify({
+      event: {
+        callId,
+        operationId: 'ai.rerank',
+        provider: model.provider,
+        modelId: model.modelId,
+        documents,
+        query,
+        ranking: [],
+        warnings: [],
+        providerMetadata: undefined,
+        response: {
+          timestamp: new Date(),
+          modelId: model.modelId,
+        },
+        isEnabled: telemetry?.isEnabled ?? true,
+        recordInputs: telemetry?.recordInputs,
+        recordOutputs: telemetry?.recordOutputs,
+        functionId: telemetry?.functionId,
+      },
+      callbacks: [onFinish, unifiedTelemetry.onFinish],
+    });
+
     return new DefaultRerankResult({
       originalDocuments: [],
       ranking: [],
@@ -105,103 +190,104 @@ export async function rerank<VALUE extends JSONObject | string>({
     abortSignal,
   });
 
-  // detect the type of the documents:
-  const documentsToSend: RerankingModelV3CallOptions['documents'] =
+  const documentsToSend: RerankingModelV4CallOptions['documents'] =
     typeof documents[0] === 'string'
       ? { type: 'text', values: documents as string[] }
       : { type: 'object', values: documents as JSONObject[] };
 
-  const baseTelemetryAttributes = getBaseTelemetryAttributes({
-    model,
-    telemetry,
-    headers,
-    settings: { maxRetries },
+  await notify({
+    event: {
+      callId,
+      operationId: 'ai.rerank',
+      provider: model.provider,
+      modelId: model.modelId,
+      documents,
+      query,
+      topN,
+      maxRetries,
+      headers,
+      providerOptions,
+      isEnabled: telemetry?.isEnabled ?? true,
+      recordInputs: telemetry?.recordInputs,
+      recordOutputs: telemetry?.recordOutputs,
+      functionId: telemetry?.functionId,
+    },
+    callbacks: [onStart, unifiedTelemetry.onStart],
   });
 
-  const tracer = getTracer(telemetry);
+  try {
+    const { ranking, response, providerMetadata, warnings } = await retry(
+      async () => {
+        await notify({
+          event: {
+            callId,
+            operationId: 'ai.rerank.doRerank',
+            provider: model.provider,
+            modelId: model.modelId,
+            documents,
+            documentsType: documentsToSend.type,
+            query,
+            topN,
+            isEnabled: telemetry?.isEnabled ?? true,
+            recordInputs: telemetry?.recordInputs,
+            recordOutputs: telemetry?.recordOutputs,
+            functionId: telemetry?.functionId,
+          },
+          callbacks: [unifiedTelemetry.onRerankStart],
+        });
 
-  return recordSpan({
-    name: 'ai.rerank',
-    attributes: selectTelemetryAttributes({
-      telemetry,
-      attributes: {
-        ...assembleOperationName({ operationId: 'ai.rerank', telemetry }),
-        ...baseTelemetryAttributes,
-        'ai.documents': {
-          input: () => documents.map(document => JSON.stringify(document)),
-        },
+        const modelResponse = await model.doRerank({
+          documents: documentsToSend,
+          query,
+          topN,
+          providerOptions,
+          abortSignal,
+          headers,
+        });
+
+        const ranking = modelResponse.ranking;
+
+        await notify({
+          event: {
+            callId,
+            operationId: 'ai.rerank.doRerank',
+            provider: model.provider,
+            modelId: model.modelId,
+            documentsType: documentsToSend.type,
+            ranking,
+          },
+          callbacks: [unifiedTelemetry.onRerankFinish],
+        });
+
+        return {
+          ranking,
+          providerMetadata: modelResponse.providerMetadata,
+          response: modelResponse.response,
+          warnings: modelResponse.warnings,
+        };
       },
-    }),
-    tracer,
-    fn: async () => {
-      const { ranking, response, providerMetadata, warnings } = await retry(
-        () =>
-          recordSpan({
-            name: 'ai.rerank.doRerank',
-            attributes: selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                ...assembleOperationName({
-                  operationId: 'ai.rerank.doRerank',
-                  telemetry,
-                }),
-                ...baseTelemetryAttributes,
-                // specific settings that only make sense on the outer level:
-                'ai.documents': {
-                  input: () =>
-                    documents.map(document => JSON.stringify(document)),
-                },
-              },
-            }),
-            tracer,
-            fn: async doRerankSpan => {
-              const modelResponse = await model.doRerank({
-                documents: documentsToSend,
-                query,
-                topN,
-                providerOptions,
-                abortSignal,
-                headers,
-              });
+    );
 
-              const ranking = modelResponse.ranking;
+    logWarnings({
+      warnings: warnings ?? [],
+      provider: model.provider,
+      model: model.modelId,
+    });
 
-              doRerankSpan.setAttributes(
-                await selectTelemetryAttributes({
-                  telemetry,
-                  attributes: {
-                    'ai.ranking.type': documentsToSend.type,
-                    'ai.ranking': {
-                      output: () =>
-                        ranking.map(ranking => JSON.stringify(ranking)),
-                    },
-                  },
-                }),
-              );
-
-              return {
-                ranking,
-                providerMetadata: modelResponse.providerMetadata,
-                response: modelResponse.response,
-                warnings: modelResponse.warnings,
-              };
-            },
-          }),
-      );
-
-      logWarnings({
-        warnings: warnings ?? [],
+    await notify({
+      event: {
+        callId,
+        operationId: 'ai.rerank',
         provider: model.provider,
-        model: model.modelId,
-      });
-
-      return new DefaultRerankResult({
-        originalDocuments: documents,
-        ranking: ranking.map(ranking => ({
-          originalIndex: ranking.index,
-          score: ranking.relevanceScore,
-          document: documents[ranking.index],
+        modelId: model.modelId,
+        documents,
+        query,
+        ranking: ranking.map(r => ({
+          originalIndex: r.index,
+          score: r.relevanceScore,
+          document: documents[r.index],
         })),
+        warnings: warnings ?? [],
         providerMetadata,
         response: {
           id: response?.id,
@@ -210,9 +296,34 @@ export async function rerank<VALUE extends JSONObject | string>({
           headers: response?.headers,
           body: response?.body,
         },
-      });
-    },
-  });
+        isEnabled: telemetry?.isEnabled ?? true,
+        recordInputs: telemetry?.recordInputs,
+        recordOutputs: telemetry?.recordOutputs,
+        functionId: telemetry?.functionId,
+      },
+      callbacks: [onFinish, unifiedTelemetry.onFinish],
+    });
+
+    return new DefaultRerankResult({
+      originalDocuments: documents,
+      ranking: ranking.map(ranking => ({
+        originalIndex: ranking.index,
+        score: ranking.relevanceScore,
+        document: documents[ranking.index],
+      })),
+      providerMetadata,
+      response: {
+        id: response?.id,
+        timestamp: response?.timestamp ?? new Date(),
+        modelId: response?.modelId ?? model.modelId,
+        headers: response?.headers,
+        body: response?.body,
+      },
+    });
+  } catch (error) {
+    await unifiedTelemetry.onError?.({ callId, error });
+    throw error;
+  }
 }
 
 class DefaultRerankResult<VALUE> implements RerankResult<VALUE> {

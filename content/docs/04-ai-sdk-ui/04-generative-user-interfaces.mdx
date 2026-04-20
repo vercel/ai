@@ -76,7 +76,7 @@ export default function Page() {
 To handle the chat requests and model responses, set up an API route:
 
 ```ts filename="app/api/chat/route.ts"
-import { streamText, convertToModelMessages, UIMessage, stepCountIs } from 'ai';
+import { streamText, convertToModelMessages, UIMessage, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 
 export async function POST(request: Request) {
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
     model: __MODEL__,
     system: 'You are a friendly assistant!',
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
   });
 
   return result.toUIMessageStreamResponse();
@@ -128,7 +128,7 @@ In this file, you've created a tool called `weatherTool`. This tool simulates fe
 Update the API route to include the tool you've defined:
 
 ```ts filename="app/api/chat/route.ts" highlight="3,8,14"
-import { streamText, convertToModelMessages, UIMessage, stepCountIs } from 'ai';
+import { streamText, convertToModelMessages, UIMessage, isStepCount } from 'ai';
 __PROVIDER_IMPORT__;
 import { tools } from '@/ai/tools';
 
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
     model: __MODEL__,
     system: 'You are a friendly assistant!',
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     tools,
   });
 

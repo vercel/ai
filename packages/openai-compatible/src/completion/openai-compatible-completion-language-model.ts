@@ -1,13 +1,13 @@
 import {
   APICallError,
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -19,8 +19,15 @@ import {
   ParseResult,
   postJsonToApi,
   ResponseHandler,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  toCamelCase,
+  warnIfDeprecatedProviderOptionsKey,
+} from '../utils/to-camel-case';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
@@ -31,13 +38,13 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleCompletionModelId,
-  openaiCompatibleCompletionProviderOptions,
+  openaiCompatibleLanguageModelCompletionOptions,
 } from './openai-compatible-completion-options';
 
 type OpenAICompatibleCompletionConfig = {
   provider: string;
   includeUsage?: boolean;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
@@ -45,18 +52,33 @@ type OpenAICompatibleCompletionConfig = {
   /**
    * The supported URLs for the model.
    */
-  supportedUrls?: () => LanguageModelV3['supportedUrls'];
+  supportedUrls?: () => LanguageModelV4['supportedUrls'];
 };
 
-export class OpenAICompatibleCompletionLanguageModel
-  implements LanguageModelV3
-{
-  readonly specificationVersion = 'v3';
+export class OpenAICompatibleCompletionLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAICompatibleCompletionModelId;
   private readonly config: OpenAICompatibleCompletionConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
+
+  static [WORKFLOW_SERIALIZE](model: OpenAICompatibleCompletionLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenAICompatibleCompletionConfig;
+  }) {
+    return new OpenAICompatibleCompletionLanguageModel(
+      options.modelId,
+      options.config,
+    );
+  }
 
   constructor(
     modelId: OpenAICompatibleCompletionModelId,
@@ -100,16 +122,29 @@ export class OpenAICompatibleCompletionLanguageModel
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
+  }: LanguageModelV4CallOptions) {
+    const warnings: SharedV4Warning[] = [];
 
-    // Parse provider options
-    const completionOptions =
+    // Warn when the raw (non-camelCase) provider name is used
+    warnIfDeprecatedProviderOptionsKey({
+      rawName: this.providerOptionsName,
+      providerOptions,
+      warnings,
+    });
+
+    // Parse provider options (support both raw and camelCase keys)
+    const completionOptions = Object.assign(
       (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
-        schema: openaiCompatibleCompletionProviderOptions,
-      })) ?? {};
+        schema: openaiCompatibleLanguageModelCompletionOptions,
+      })) ?? {},
+      (await parseProviderOptions({
+        provider: toCamelCase(this.providerOptionsName),
+        providerOptions,
+        schema: openaiCompatibleLanguageModelCompletionOptions,
+      })) ?? {},
+    );
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -155,6 +190,7 @@ export class OpenAICompatibleCompletionLanguageModel
         presence_penalty: presencePenalty,
         seed,
         ...providerOptions?.[this.providerOptionsName],
+        ...providerOptions?.[toCamelCase(this.providerOptionsName)],
 
         // prompt:
         prompt: completionPrompt,
@@ -167,8 +203,8 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3GenerateResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const {
@@ -180,7 +216,7 @@ export class OpenAICompatibleCompletionLanguageModel
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: args,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -191,7 +227,7 @@ export class OpenAICompatibleCompletionLanguageModel
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // text content:
     if (choice.text != null && choice.text.length > 0) {
@@ -216,8 +252,8 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<LanguageModelV3StreamResult> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = {
@@ -235,7 +271,7 @@ export class OpenAICompatibleCompletionLanguageModel
         path: '/completions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -245,7 +281,7 @@ export class OpenAICompatibleCompletionLanguageModel
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
+    let finishReason: LanguageModelV4FinishReason = {
       unified: 'other',
       raw: undefined,
     };
@@ -262,7 +298,7 @@ export class OpenAICompatibleCompletionLanguageModel
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });

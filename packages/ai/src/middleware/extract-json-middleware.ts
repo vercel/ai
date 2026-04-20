@@ -1,6 +1,6 @@
 import type {
-  LanguageModelV3Content,
-  LanguageModelV3StreamPart,
+  LanguageModelV4Content,
+  LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import { LanguageModelMiddleware } from '../types/language-model-middleware';
 
@@ -37,12 +37,12 @@ export function extractJsonMiddleware(options?: {
   const hasCustomTransform = options?.transform !== undefined;
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
 
     wrapGenerate: async ({ doGenerate }) => {
       const { content, ...rest } = await doGenerate();
 
-      const transformedContent: LanguageModelV3Content[] = [];
+      const transformedContent: LanguageModelV4Content[] = [];
       for (const part of content) {
         if (part.type !== 'text') {
           transformedContent.push(part);
@@ -63,7 +63,7 @@ export function extractJsonMiddleware(options?: {
       const textBlocks: Record<
         string,
         {
-          startEvent: LanguageModelV3StreamPart;
+          startEvent: LanguageModelV4StreamPart;
           phase: 'prefix' | 'streaming' | 'buffering';
           buffer: string;
           prefixStripped: boolean;
@@ -75,8 +75,8 @@ export function extractJsonMiddleware(options?: {
       return {
         stream: stream.pipeThrough(
           new TransformStream<
-            LanguageModelV3StreamPart,
-            LanguageModelV3StreamPart
+            LanguageModelV4StreamPart,
+            LanguageModelV4StreamPart
           >({
             transform: (chunk, controller) => {
               if (chunk.type === 'text-start') {

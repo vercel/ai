@@ -1,9 +1,9 @@
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { GoogleLanguageModel } from '@ai-sdk/google/internal';
 import {
-  Experimental_VideoModelV3,
-  ImageModelV3,
-  LanguageModelV3,
-  ProviderV3,
+  Experimental_VideoModelV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -47,28 +47,23 @@ function createExpressModeFetch(
   };
 }
 
-export interface GoogleVertexProvider extends ProviderV3 {
+export interface GoogleVertexProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: GoogleVertexModelId): LanguageModelV3;
+  (modelId: GoogleVertexModelId): LanguageModelV4;
 
-  languageModel: (modelId: GoogleVertexModelId) => LanguageModelV3;
-
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: GoogleVertexImageModelId): ImageModelV3;
+  languageModel: (modelId: GoogleVertexModelId) => LanguageModelV4;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: GoogleVertexImageModelId): ImageModelV3;
+  image(modelId: GoogleVertexImageModelId): ImageModelV4;
 
   /**
-   * Creates a model for video generation.
+   * Creates a model for image generation.
    */
-  video(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV3;
+  imageModel(modelId: GoogleVertexImageModelId): ImageModelV4;
 
   tools: typeof googleVertexTools;
 
@@ -78,6 +73,16 @@ export interface GoogleVertexProvider extends ProviderV3 {
   textEmbeddingModel(
     modelId: GoogleVertexEmbeddingModelId,
   ): GoogleVertexEmbeddingModel;
+
+  /**
+   * Creates a model for video generation.
+   */
+  video(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for video generation.
+   */
+  videoModel(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV4;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -187,7 +192,7 @@ export function createVertex(
   };
 
   const createChatModel = (modelId: GoogleVertexModelId) => {
-    return new GoogleGenerativeAILanguageModel(modelId, {
+    return new GoogleLanguageModel(modelId, {
       ...createConfig('chat'),
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({
@@ -205,7 +210,10 @@ export function createVertex(
     new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
 
   const createImageModel = (modelId: GoogleVertexImageModelId) =>
-    new GoogleVertexImageModel(modelId, createConfig('image'));
+    new GoogleVertexImageModel(modelId, {
+      ...createConfig('image'),
+      generateId: options.generateId ?? generateId,
+    });
 
   const createVideoModel = (modelId: GoogleVertexVideoModelId) =>
     new GoogleVertexVideoModel(modelId, {
@@ -223,13 +231,14 @@ export function createVertex(
     return createChatModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
   provider.tools = googleVertexTools;
 
   return provider;

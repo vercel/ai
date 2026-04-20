@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV3,
-  SharedV3Warning,
+  TranscriptionModelV4,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -13,6 +13,9 @@ import {
   parseProviderOptions,
   postFormDataToApi,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { GladiaConfig } from './gladia-config';
@@ -20,7 +23,7 @@ import { gladiaFailedResponseHandler } from './gladia-error';
 import { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
 
 // https://docs.gladia.io/api-reference/v2/pre-recorded/init
-const gladiaProviderOptionsSchema = z.object({
+const gladiaTranscriptionModelOptionsSchema = z.object({
   /**
    * Optional context prompt to guide the transcription.
    */
@@ -323,8 +326,8 @@ const gladiaProviderOptionsSchema = z.object({
   punctuationEnhanced: z.boolean().nullish(),
 });
 
-export type GladiaTranscriptionCallOptions = z.infer<
-  typeof gladiaProviderOptionsSchema
+export type GladiaTranscriptionModelOptions = z.infer<
+  typeof gladiaTranscriptionModelOptionsSchema
 >;
 
 interface GladiaTranscriptionModelConfig extends GladiaConfig {
@@ -333,28 +336,42 @@ interface GladiaTranscriptionModelConfig extends GladiaConfig {
   };
 }
 
-export class GladiaTranscriptionModel implements TranscriptionModelV3 {
-  readonly specificationVersion = 'v3';
+export class GladiaTranscriptionModel implements TranscriptionModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
   }
 
+  static [WORKFLOW_SERIALIZE](model: GladiaTranscriptionModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: 'default';
+    config: GladiaTranscriptionModelConfig;
+  }) {
+    return new GladiaTranscriptionModel(options.modelId, options.config);
+  }
+
   constructor(
-    readonly modelId: 'default',
+    readonly modelId: string,
     private readonly config: GladiaTranscriptionModelConfig,
   ) {}
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const gladiaOptions = await parseProviderOptions({
       provider: 'gladia',
       providerOptions,
-      schema: gladiaProviderOptionsSchema,
+      schema: gladiaTranscriptionModelOptionsSchema,
     });
 
     const body: Omit<GladiaTranscriptionInitiateAPITypes, 'audio_url'> = {};
@@ -487,8 +504,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     // Create form data with base fields
@@ -510,7 +527,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV3 {
         path: '/v2/upload',
         modelId: 'default',
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       formData,
       failedResponseHandler: gladiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -527,7 +544,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV3 {
         path: '/v2/pre-recorded',
         modelId: 'default',
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: {
         ...body,
         audio_url: uploadResponse.audio_url,
@@ -560,7 +577,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV3 {
 
       const response = await getFromApi({
         url: resultUrl,
-        headers: combineHeaders(this.config.headers(), options.headers),
+        headers: combineHeaders(this.config.headers?.(), options.headers),
         failedResponseHandler: gladiaFailedResponseHandler,
         successfulResponseHandler: createJsonResponseHandler(
           gladiaTranscriptionResultResponseSchema,

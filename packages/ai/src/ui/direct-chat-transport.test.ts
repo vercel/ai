@@ -1,15 +1,15 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, beforeEach } from 'vitest';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { ToolLoopAgent } from '../agent/tool-loop-agent';
 import { DirectChatTransport } from './direct-chat-transport';
 
 describe('DirectChatTransport', () => {
   describe('sendMessages', () => {
-    let mockModel: MockLanguageModelV3;
+    let mockModel: MockLanguageModelV4;
 
     beforeEach(() => {
-      mockModel = new MockLanguageModelV3({
+      mockModel = new MockLanguageModelV4({
         doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
@@ -102,7 +102,7 @@ describe('DirectChatTransport', () => {
     it('should pass abortSignal to agent', async () => {
       let receivedAbortSignal: AbortSignal | undefined;
 
-      const mockModelWithCapture = new MockLanguageModelV3({
+      const mockModelWithCapture = new MockLanguageModelV4({
         doStream: async options => {
           receivedAbortSignal = options.abortSignal;
           return {
@@ -167,7 +167,7 @@ describe('DirectChatTransport', () => {
     it('should pass agent options to agent', async () => {
       let receivedProviderOptions: unknown;
 
-      const mockModelWithCapture = new MockLanguageModelV3({
+      const mockModelWithCapture = new MockLanguageModelV4({
         doStream: async options => {
           receivedProviderOptions = options.providerOptions;
           return {
@@ -240,7 +240,7 @@ describe('DirectChatTransport', () => {
     });
 
     it('should apply UIMessageStreamOptions', async () => {
-      const mockModelWithReasoning = new MockLanguageModelV3({
+      const mockModelWithReasoning = new MockLanguageModelV4({
         doStream: async () => {
           return {
             stream: convertArrayToReadableStream([
@@ -318,7 +318,7 @@ describe('DirectChatTransport', () => {
     it('should convert UI messages to model messages correctly', async () => {
       let receivedPrompt: unknown;
 
-      const mockModelWithCapture = new MockLanguageModelV3({
+      const mockModelWithCapture = new MockLanguageModelV4({
         doStream: async options => {
           receivedPrompt = options.prompt;
           return {
@@ -425,7 +425,7 @@ describe('DirectChatTransport', () => {
 
   describe('reconnectToStream', () => {
     it('should return null', async () => {
-      const mockModel = new MockLanguageModelV3({
+      const mockModel = new MockLanguageModelV4({
         doStream: async () => {
           return {
             stream: convertArrayToReadableStream([]),

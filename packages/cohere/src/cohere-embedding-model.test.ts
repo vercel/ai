@@ -1,16 +1,12 @@
-import { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { createCohere } from './cohere-provider';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
 }));
 
-const dummyEmbeddings = [
-  [0.1, 0.2, 0.3, 0.4, 0.5],
-  [0.6, 0.7, 0.8, 0.9, 1.0],
-];
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createCohere({ apiKey: 'test-api-key' });
@@ -20,80 +16,93 @@ const server = createTestServer({
   'https://api.cohere.com/v2/embed': {},
 });
 
-describe('doEmbed', () => {
-  function prepareJsonResponse({
-    embeddings = dummyEmbeddings,
-    meta = { billed_units: { input_tokens: 8 } },
+function prepareJsonFixtureResponse(
+  filename: string,
+  headers?: Record<string, string>,
+) {
+  server.urls['https://api.cohere.com/v2/embed'].response = {
+    type: 'json-value',
     headers,
-  }: {
-    embeddings?: EmbeddingModelV3Embedding[];
-    meta?: { billed_units: { input_tokens: number } };
-    headers?: Record<string, string>;
-  } = {}) {
-    server.urls['https://api.cohere.com/v2/embed'].response = {
-      type: 'json-value',
-      headers,
-      body: {
-        id: 'test-id',
-        texts: testValues,
-        embeddings: { float: embeddings },
-        meta,
-      },
-    };
-  }
+    body: JSON.parse(
+      fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+    ),
+  };
+}
+
+describe('doEmbed', () => {
+  beforeEach(() => {
+    prepareJsonFixtureResponse('cohere-embedding');
+  });
 
   it('should extract embedding', async () => {
-    prepareJsonResponse();
-
     const { embeddings } = await model.doEmbed({ values: testValues });
 
-    expect(embeddings).toStrictEqual(dummyEmbeddings);
+    expect(embeddings).toMatchInlineSnapshot(`
+      [
+        [
+          0.03302002,
+          0.020904541,
+          -0.019744873,
+          -0.0625,
+          0.04437256,
+        ],
+        [
+          -0.04660034,
+          0.00037765503,
+          -0.061157227,
+          -0.08239746,
+          -0.010360718,
+        ],
+      ]
+    `);
   });
 
   it('should expose the raw response', async () => {
-    prepareJsonResponse({
-      headers: { 'test-header': 'test-value' },
+    prepareJsonFixtureResponse('cohere-embedding', {
+      'test-header': 'test-value',
     });
 
     const { response } = await model.doEmbed({ values: testValues });
 
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '185',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "363",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
     expect(response).toMatchSnapshot();
   });
 
   it('should extract usage', async () => {
-    prepareJsonResponse({
-      meta: { billed_units: { input_tokens: 20 } },
-    });
-
     const { usage } = await model.doEmbed({ values: testValues });
 
-    expect(usage).toStrictEqual({ tokens: 20 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "tokens": 10,
+      }
+    `);
   });
 
   it('should pass the model and the values', async () => {
-    prepareJsonResponse();
-
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'embed-english-v3.0',
-      embedding_types: ['float'],
-      texts: testValues,
-      input_type: 'search_query',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "embedding_types": [
+          "float",
+        ],
+        "input_type": "search_query",
+        "model": "embed-english-v3.0",
+        "texts": [
+          "sunny day at the beach",
+          "rainy day in the city",
+        ],
+      }
+    `);
   });
 
   it('should pass the input_type setting', async () => {
-    prepareJsonResponse();
-
     await provider.embeddingModel('embed-english-v3.0').doEmbed({
       values: testValues,
       providerOptions: {
@@ -103,17 +112,22 @@ describe('doEmbed', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'embed-english-v3.0',
-      embedding_types: ['float'],
-      texts: testValues,
-      input_type: 'search_document',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "embedding_types": [
+          "float",
+        ],
+        "input_type": "search_document",
+        "model": "embed-english-v3.0",
+        "texts": [
+          "sunny day at the beach",
+          "rainy day in the city",
+        ],
+      }
+    `);
   });
 
   it('should pass the output_dimension setting', async () => {
-    prepareJsonResponse();
-
     await provider.embeddingModel('embed-v4.0').doEmbed({
       values: testValues,
       providerOptions: {
@@ -123,18 +137,23 @@ describe('doEmbed', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      model: 'embed-v4.0',
-      embedding_types: ['float'],
-      texts: testValues,
-      input_type: 'search_query',
-      output_dimension: 256,
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "embedding_types": [
+          "float",
+        ],
+        "input_type": "search_query",
+        "model": "embed-v4.0",
+        "output_dimension": 256,
+        "texts": [
+          "sunny day at the beach",
+          "rainy day in the city",
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
-    prepareJsonResponse();
-
     const provider = createCohere({
       apiKey: 'test-api-key',
       headers: {
@@ -151,12 +170,14 @@ describe('doEmbed', () => {
 
     const requestHeaders = server.calls[0].requestHeaders;
 
-    expect(requestHeaders).toStrictEqual({
-      authorization: 'Bearer test-api-key',
-      'content-type': 'application/json',
-      'custom-provider-header': 'provider-header-value',
-      'custom-request-header': 'request-header-value',
-    });
+    expect(requestHeaders).toMatchInlineSnapshot(`
+      {
+        "authorization": "Bearer test-api-key",
+        "content-type": "application/json",
+        "custom-provider-header": "provider-header-value",
+        "custom-request-header": "request-header-value",
+      }
+    `);
     expect(server.calls[0].requestUserAgent).toContain(
       `ai-sdk/cohere/0.0.0-test`,
     );

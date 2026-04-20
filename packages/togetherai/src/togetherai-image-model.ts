@@ -1,4 +1,4 @@
-import { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -9,6 +9,9 @@ import {
   lazySchema,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { TogetherAIImageModelId } from './togetherai-image-settings';
@@ -17,19 +20,33 @@ import { z } from 'zod/v4';
 interface TogetherAIImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
-export class TogetherAIImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class TogetherAIImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: TogetherAIImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: TogetherAIImageModelId;
+    config: TogetherAIImageModelConfig;
+  }) {
+    return new TogetherAIImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -47,10 +64,10 @@ export class TogetherAIImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (mask != null) {
       throw new Error(
@@ -74,7 +91,7 @@ export class TogetherAIImageModel implements ImageModelV3 {
     const togetheraiOptions = await parseProviderOptions({
       provider: 'togetherai',
       providerOptions,
-      schema: togetheraiImageProviderOptionsSchema,
+      schema: togetheraiImageModelOptionsSchema,
     });
 
     // Handle image input from files
@@ -95,7 +112,7 @@ export class TogetherAIImageModel implements ImageModelV3 {
     // https://docs.together.ai/reference/post_images-generations
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/images/generations`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         prompt,
@@ -153,7 +170,7 @@ const togetheraiErrorSchema = z.object({
 /**
  * Provider options schema for Together AI image generation.
  */
-export const togetheraiImageProviderOptionsSchema = lazySchema(() =>
+export const togetheraiImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -183,6 +200,6 @@ export const togetheraiImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type TogetherAIImageProviderOptions = InferSchema<
-  typeof togetheraiImageProviderOptionsSchema
+export type TogetherAIImageModelOptions = InferSchema<
+  typeof togetheraiImageModelOptionsSchema
 >;

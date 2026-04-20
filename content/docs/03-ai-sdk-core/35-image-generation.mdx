@@ -10,10 +10,10 @@ function to generate images based on a given prompt using an image model.
 
 ```tsx
 import { generateImage } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: __IMAGE_MODEL__,
   prompt: 'Santa Claus driving a Cadillac',
 });
 ```
@@ -38,10 +38,10 @@ Models only support a few sizes, and the supported sizes are different for each 
 
 ```tsx highlight={"7"}
 import { generateImage } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: __IMAGE_MODEL__,
   prompt: 'Santa Claus driving a Cadillac',
   size: '1024x1024',
 });
@@ -54,10 +54,10 @@ Models only support a few aspect ratios, and the supported aspect ratios are dif
 
 ```tsx highlight={"7"}
 import { generateImage } from 'ai';
-import { vertex } from '@ai-sdk/google-vertex';
+__PROVIDER_IMPORT__;
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-4.0-generate-001'),
+  model: __IMAGE_MODEL__,
   prompt: 'Santa Claus driving a Cadillac',
   aspectRatio: '16:9',
 });
@@ -69,10 +69,10 @@ const { image } = await generateImage({
 
 ```tsx highlight={"7"}
 import { generateImage } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 const { images } = await generateImage({
-  model: openai.image('dall-e-2'),
+  model: __IMAGE_MODEL__,
   prompt: 'Santa Claus driving a Cadillac',
   n: 4, // number of images to generate
 });
@@ -89,7 +89,7 @@ If needed, you can override this behavior using the `maxImagesPerCall` setting w
 
 ```tsx
 const { images } = await generateImage({
-  model: openai.image('dall-e-2'),
+  model: __IMAGE_MODEL__,
   prompt: 'Santa Claus driving a Cadillac',
   maxImagesPerCall: 5, // Override the default batch size
   n: 10, // Will make 2 calls of 5 images each
@@ -103,10 +103,10 @@ If supported by the model, the same seed will always produce the same image.
 
 ```tsx highlight={"7"}
 import { generateImage } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: __IMAGE_MODEL__,
   prompt: 'Santa Claus driving a Cadillac',
   seed: 1234567890,
 });
@@ -140,11 +140,11 @@ type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSigna
 that you can use to abort the image generation process or set a timeout.
 
 ```ts highlight={"7"}
-import { openai } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: __IMAGE_MODEL__,
   prompt: 'Santa Claus driving a Cadillac',
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
 });
@@ -156,11 +156,11 @@ const { image } = await generateImage({
 that you can use to add custom headers to the image generation request.
 
 ```ts highlight={"7"}
-import { openai } from '@ai-sdk/openai';
 import { generateImage } from 'ai';
+__PROVIDER_IMPORT__;
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: __IMAGE_MODEL__,
   prompt: 'Santa Claus driving a Cadillac',
   headers: { 'X-Custom-Header': 'custom-value' },
 });
@@ -172,7 +172,7 @@ If the model returns warnings, e.g. for unsupported parameters, they will be ava
 
 ```tsx
 const { image, warnings } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: __IMAGE_MODEL__,
   prompt: 'Santa Claus driving a Cadillac',
 });
 ```
@@ -230,16 +230,16 @@ try {
 ## Image Middleware
 
 You can enhance image models, e.g. to set default values or implement logging, using
-`wrapImageModel` and `ImageModelV3Middleware`.
+`wrapImageModel` and `ImageModelV4Middleware`.
 
 Here is an example that sets a default size when none is provided:
 
 ```ts
 import { generateImage, wrapImageModel } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 
 const model = wrapImageModel({
-  model: openai.image('gpt-image-1'),
+  model: __IMAGE_MODEL__,
   middleware: {
     specificationVersion: 'v3',
     transformParams: async ({ params }) => ({
@@ -257,7 +257,7 @@ const { image } = await generateImage({
 
 ## Generating Images with Language Models
 
-Some language models such as Google `gemini-2.5-flash-image-preview` support multi-modal outputs including images.
+Some language models such as Google `gemini-2.5-flash-image` support multi-modal outputs including images.
 With such models, you can access the generated images using the `files` property of the response.
 
 ```ts
@@ -265,7 +265,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.5-flash-image-preview'),
+  model: google('gemini-2.5-flash-image'),
   prompt: 'Generate an image of a comic cat',
 });
 
@@ -284,7 +284,7 @@ for (const file of result.files) {
 
 | Provider                                                                        | Model                                                        | Support sizes (`width x height`) or aspect ratios (`width : height`)                                                                                                |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [xAI Grok](/providers/ai-sdk-providers/xai#image-models)                        | `grok-2-image`                                               | 1024x768 (default)                                                                                                                                                  |
+| [xAI Grok](/providers/ai-sdk-providers/xai#image-models)                        | `grok-imagine-image`                                         | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto`                                                         |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `gpt-image-1`                                                | 1024x1024, 1536x1024, 1024x1536                                                                                                                                     |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `dall-e-3`                                                   | 1024x1024, 1792x1024, 1024x1792                                                                                                                                     |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `dall-e-2`                                                   | 256x256, 512x512, 1024x1024                                                                                                                                         |
@@ -306,9 +306,9 @@ for (const file of result.files) {
 | [DeepInfra](/providers/ai-sdk-providers/deepinfra#image-models)                 | `stabilityai/sdxl-turbo`                                     | 1:1, 16:9, 1:9, 3:2, 2:3, 4:5, 5:4, 9:16, 9:21                                                                                                                      |
 | [Replicate](/providers/ai-sdk-providers/replicate)                              | `black-forest-labs/flux-schnell`                             | 1:1, 2:3, 3:2, 4:5, 5:4, 16:9, 9:16, 9:21, 21:9                                                                                                                     |
 | [Replicate](/providers/ai-sdk-providers/replicate)                              | `recraft-ai/recraft-v3`                                      | 1024x1024, 1365x1024, 1024x1365, 1536x1024, 1024x1536, 1820x1024, 1024x1820, 1024x2048, 2048x1024, 1434x1024, 1024x1434, 1024x1280, 1280x1024, 1024x1707, 1707x1024 |
-| [Google](/providers/ai-sdk-providers/google#image-models)                       | `imagen-4.0-generate-001`                                    | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
-| [Google](/providers/ai-sdk-providers/google#image-models)                       | `imagen-4.0-fast-generate-001`                               | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
-| [Google](/providers/ai-sdk-providers/google#image-models)                       | `imagen-4.0-ultra-generate-001`                              | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
+| [Google](/providers/ai-sdk-providers/google#image-models)         | `imagen-4.0-generate-001`                                    | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
+| [Google](/providers/ai-sdk-providers/google#image-models)         | `imagen-4.0-fast-generate-001`                               | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
+| [Google](/providers/ai-sdk-providers/google#image-models)         | `imagen-4.0-ultra-generate-001`                              | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models)         | `imagen-4.0-generate-001`                                    | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models)         | `imagen-4.0-fast-generate-001`                               | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#image-models)         | `imagen-4.0-ultra-generate-001`                              | 1:1, 3:4, 4:3, 9:16, 16:9                                                                                                                                           |

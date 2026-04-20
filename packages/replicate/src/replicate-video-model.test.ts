@@ -143,7 +143,7 @@ describe('ReplicateVideoModel', () => {
 
       expect(model.provider).toBe('replicate.video');
       expect(model.modelId).toBe('minimax/video-01');
-      expect(model.specificationVersion).toBe('v3');
+      expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
     });
 

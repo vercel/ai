@@ -1,5 +1,9 @@
 import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import { APICallError, ImageModelV3, LanguageModelV3 } from '@ai-sdk/provider';
+import {
+  APICallError,
+  LanguageModelV3,
+  LanguageModelV4,
+} from '@ai-sdk/provider';
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
@@ -13,26 +17,29 @@ import {
 import { wrapLanguageModel } from 'ai';
 import { defaultSettingsMiddleware } from 'ai';
 
-const createChatModel = (
-  modelId: string,
-): ModelWithCapabilities<LanguageModelV3> =>
+const createChatModel = (modelId: string) =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
 
-const createImageModel = (
-  modelId: string,
-): ModelWithCapabilities<ImageModelV3> =>
+const createImageModel = (modelId: string) =>
   createImageModelWithCapabilities(provider.image(modelId));
 
 const createSearchGroundedModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV3> => {
+): ModelWithCapabilities<LanguageModelV3 | LanguageModelV4> => {
   const model = provider.chat(modelId);
   return {
     model: wrapLanguageModel({
       model,
       middleware: defaultSettingsMiddleware({
         settings: {
-          providerOptions: { google: { useSearchGrounding: true } },
+          tools: [
+            {
+              type: 'provider',
+              id: 'google.google_search',
+              name: 'google_search',
+              args: {},
+            },
+          ],
         },
       }),
     }),
@@ -41,21 +48,24 @@ const createSearchGroundedModel = (
 };
 
 createFeatureTestSuite({
-  name: 'Google Generative AI',
+  name: 'Google',
   models: {
     invalidModel: provider.chat('no-such-model'),
     languageModels: [
-      createSearchGroundedModel('gemini-1.5-flash-latest'),
-      createChatModel('gemini-1.5-flash-latest'),
+      createSearchGroundedModel('gemini-2.5-flash'),
+      createChatModel('gemini-2.5-flash'),
       // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
-      // createChatModel('gemini-2.0-flash-exp'),
-      // createSearchGroundedModel('gemini-2.0-flash-exp'),
-      // createChatModel('gemini-1.5-pro-latest'),
+      // createChatModel('gemini-2.5-flash-image'),
+      // createSearchGroundedModel('gemini-2.5-flash-image'),
+      // createChatModel('gemini-2.5-pro'),
       // createChatModel('gemini-1.0-pro'),
     ],
     embeddingModels: [
       createEmbeddingModelWithCapabilities(
         provider.embeddingModel('gemini-embedding-001'),
+      ),
+      createEmbeddingModelWithCapabilities(
+        provider.embeddingModel('gemini-embedding-2-preview'),
       ),
     ],
     imageModels: [createImageModel('imagen-3.0-generate-002')],

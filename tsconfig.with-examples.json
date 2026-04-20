@@ -7,6 +7,9 @@
       "path": "./"
     },
     {
+      "path": "examples/ai-e2e-next"
+    },
+    {
       "path": "examples/ai-functions"
     },
     {
@@ -38,9 +41,6 @@
     },
     {
       "path": "examples/next-langchain"
-    },
-    {
-      "path": "examples/next-openai"
     },
     {
       "path": "examples/next-openai-kasada-bot-protection"

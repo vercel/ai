@@ -128,7 +128,7 @@ Transform an existing image using text prompts:
 ```ts
 import {
   blackForestLabs,
-  BlackForestLabsImageProviderOptions,
+  BlackForestLabsImageModelOptions,
 } from '@ai-sdk/black-forest-labs';
 import { generateImage } from 'ai';
 
@@ -144,7 +144,7 @@ const { images } = await generateImage({
     blackForestLabs: {
       width: 1024,
       height: 768,
-    } satisfies BlackForestLabsImageProviderOptions,
+    } satisfies BlackForestLabsImageModelOptions,
   },
 });
 ```

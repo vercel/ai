@@ -13,30 +13,51 @@ import {
   type GatewayFetchMetadataResponse,
   type GatewayCreditsResponse,
 } from './gateway-fetch-metadata';
+import {
+  GatewaySpendReport,
+  type GatewaySpendReportParams,
+  type GatewaySpendReportResponse,
+} from './gateway-spend-report';
+import {
+  GatewayGenerationInfoFetcher,
+  type GatewayGenerationInfoParams,
+  type GatewayGenerationInfo,
+} from './gateway-generation-info';
 import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
+import { GatewayVideoModel } from './gateway-video-model';
+import { GatewayRerankingModel } from './gateway-reranking-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
+import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
+import type { GatewayVideoModelId } from './gateway-video-model-settings';
 import { gatewayTools } from './gateway-tools';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import type { GatewayModelId } from './gateway-language-model-settings';
 import type {
-  LanguageModelV3,
-  EmbeddingModelV3,
-  ImageModelV3,
-  ProviderV3,
+  LanguageModelV4,
+  EmbeddingModelV4,
+  ImageModelV4,
+  RerankingModelV4,
+  Experimental_VideoModelV4,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import { withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
 
-export interface GatewayProvider extends ProviderV3 {
-  (modelId: GatewayModelId): LanguageModelV3;
+export interface GatewayProvider extends ProviderV4 {
+  (modelId: GatewayModelId): LanguageModelV4;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: GatewayModelId): LanguageModelV3;
+  chat(modelId: GatewayModelId): LanguageModelV4;
+
+  /**
+   * Creates a model for text generation.
+   */
+  languageModel(modelId: GatewayModelId): LanguageModelV4;
 
   /**
    * Returns available providers and models for use with the remote provider.
@@ -49,19 +70,65 @@ export interface GatewayProvider extends ProviderV3 {
   getCredits(): Promise<GatewayCreditsResponse>;
 
   /**
+   * Returns a spend report with cost, token, and request count data,
+   * aggregated by the specified dimension.
+   */
+  getSpendReport(
+    params: GatewaySpendReportParams,
+  ): Promise<GatewaySpendReportResponse>;
+
+  /**
+   * Returns detailed information about a specific generation by its ID,
+   * including cost, token usage, latency, and provider details.
+   */
+  getGenerationInfo(
+    params: GatewayGenerationInfoParams,
+  ): Promise<GatewayGenerationInfo>;
+
+  /**
    * Creates a model for generating text embeddings.
    */
-  embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+  embedding(modelId: GatewayEmbeddingModelId): EmbeddingModelV4;
+
+  /**
+   * Creates a model for generating text embeddings.
+   */
+  embeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV3;
+  textEmbeddingModel(modelId: GatewayEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * Creates a model for generating images.
    */
-  imageModel(modelId: GatewayImageModelId): ImageModelV3;
+  image(modelId: GatewayImageModelId): ImageModelV4;
+
+  /**
+   * Creates a model for generating images.
+   */
+  imageModel(modelId: GatewayImageModelId): ImageModelV4;
+
+  /**
+   * Creates a model for generating videos.
+   */
+  video(modelId: GatewayVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for generating videos.
+   */
+  videoModel(modelId: GatewayVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for reranking documents.
+   */
+  reranking(modelId: GatewayRerankingModelId): RerankingModelV4;
+
+  /**
+   * Creates a model for reranking documents.
+   */
+  rerankingModel(modelId: GatewayRerankingModelId): RerankingModelV4;
 
   /**
    * Gateway-specific tools executed server-side.
@@ -120,7 +187,7 @@ export function createGatewayProvider(
 
   const baseURL =
     withoutTrailingSlash(options.baseURL) ??
-    'https://ai-gateway.vercel.sh/v3/ai';
+    'https://ai-gateway.vercel.sh/v4/ai';
 
   const getHeaders = async () => {
     try {
@@ -157,6 +224,10 @@ export function createGatewayProvider(
       settingValue: undefined,
       environmentVariableName: 'VERCEL_REGION',
     });
+    const projectId = loadOptionalSetting({
+      settingValue: undefined,
+      environmentVariableName: 'VERCEL_PROJECT_ID',
+    });
 
     return async () => {
       const requestId = await getVercelRequestId();
@@ -165,6 +236,7 @@ export function createGatewayProvider(
         ...(environment && { 'ai-o11y-environment': environment }),
         ...(region && { 'ai-o11y-region': region }),
         ...(requestId && { 'ai-o11y-request-id': requestId }),
+        ...(projectId && { 'ai-o11y-project-id': projectId }),
       };
     };
   };
@@ -220,6 +292,36 @@ export function createGatewayProvider(
       });
   };
 
+  const getSpendReport = async (params: GatewaySpendReportParams) => {
+    return new GatewaySpendReport({
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    })
+      .getSpendReport(params)
+      .catch(async (error: unknown) => {
+        throw await asGatewayError(
+          error,
+          await parseAuthMethod(await getHeaders()),
+        );
+      });
+  };
+
+  const getGenerationInfo = async (params: GatewayGenerationInfoParams) => {
+    return new GatewayGenerationInfoFetcher({
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    })
+      .getGenerationInfo(params)
+      .catch(async (error: unknown) => {
+        throw await asGatewayError(
+          error,
+          await parseAuthMethod(await getHeaders()),
+        );
+      });
+  };
+
   const provider = function (modelId: GatewayModelId) {
     if (new.target) {
       throw new Error(
@@ -230,9 +332,11 @@ export function createGatewayProvider(
     return createLanguageModel(modelId);
   };
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.getAvailableModels = getAvailableModels;
   provider.getCredits = getCredits;
+  provider.getSpendReport = getSpendReport;
+  provider.getGenerationInfo = getGenerationInfo;
   provider.imageModel = (modelId: GatewayImageModelId) => {
     return new GatewayImageModel(modelId, {
       provider: 'gateway',
@@ -254,8 +358,31 @@ export function createGatewayProvider(
   };
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.videoModel = (modelId: GatewayVideoModelId) => {
+    return new GatewayVideoModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  const createRerankingModel = (modelId: GatewayRerankingModelId) => {
+    return new GatewayRerankingModel(modelId, {
+      provider: 'gateway',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+      o11yHeaders: createO11yHeaders(),
+    });
+  };
+  provider.rerankingModel = createRerankingModel;
+  provider.reranking = createRerankingModel;
+  provider.chat = provider.languageModel;
+  provider.embedding = provider.embeddingModel;
+  provider.image = provider.imageModel;
+  provider.video = provider.videoModel;
   provider.tools = gatewayTools;
-
   return provider;
 }
 

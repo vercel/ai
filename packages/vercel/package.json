@@ -1,10 +1,10 @@
 {
   "name": "@ai-sdk/vercel",
-  "version": "2.0.28",
+  "version": "3.0.0-beta.31",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
@@ -26,9 +26,7 @@
     "clean": "del-cli dist docs *.tsbuildinfo",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/02-vercel.mdx ./docs/",
     "postpack": "del-cli docs",
-    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --build",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
     "test:watch": "vitest --config vitest.node.config.js",
@@ -39,8 +37,8 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "dependencies": {

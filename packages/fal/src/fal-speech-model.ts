@@ -1,4 +1,4 @@
-import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -7,6 +7,9 @@ import {
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { FalConfig } from './fal-config';
@@ -14,7 +17,7 @@ import { falFailedResponseHandler } from './fal-error';
 import { FAL_EMOTIONS, FAL_LANGUAGE_BOOSTS } from './fal-api-types';
 import { FalSpeechModelId } from './fal-speech-settings';
 
-const falSpeechProviderOptionsSchema = z.looseObject({
+const falSpeechModelOptionsSchema = z.looseObject({
   voice_setting: z
     .object({
       speed: z.number().nullish(),
@@ -31,9 +34,7 @@ const falSpeechProviderOptionsSchema = z.looseObject({
   pronunciation_dict: z.record(z.string(), z.string()).nullish(),
 });
 
-export type FalSpeechCallOptions = z.infer<
-  typeof falSpeechProviderOptionsSchema
->;
+export type FalSpeechModelOptions = z.infer<typeof falSpeechModelOptionsSchema>;
 
 interface FalSpeechModelConfig extends FalConfig {
   _internal?: {
@@ -41,11 +42,25 @@ interface FalSpeechModelConfig extends FalConfig {
   };
 }
 
-export class FalSpeechModel implements SpeechModelV3 {
-  readonly specificationVersion = 'v3';
+export class FalSpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: FalSpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: FalSpeechModelId;
+    config: FalSpeechModelConfig;
+  }) {
+    return new FalSpeechModel(options.modelId, options.config);
   }
 
   constructor(
@@ -60,13 +75,13 @@ export class FalSpeechModel implements SpeechModelV3 {
     speed,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     const falOptions = await parseProviderOptions({
       provider: 'fal',
       providerOptions,
-      schema: falSpeechProviderOptionsSchema,
+      schema: falSpeechModelOptionsSchema,
     });
 
     const requestBody = {
@@ -100,8 +115,8 @@ export class FalSpeechModel implements SpeechModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
+    options: Parameters<SpeechModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 
@@ -114,7 +129,7 @@ export class FalSpeechModel implements SpeechModelV3 {
         path: `https://fal.run/${this.modelId}`,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

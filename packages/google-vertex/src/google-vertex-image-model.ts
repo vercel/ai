@@ -1,16 +1,24 @@
+import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
+import { GoogleLanguageModel } from '@ai-sdk/google/internal';
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  LanguageModelV4Prompt,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   Resolvable,
   combineHeaders,
+  convertToBase64,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
+  generateId as defaultGenerateId,
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
@@ -21,16 +29,36 @@ interface GoogleVertexImageModelConfig {
   baseURL: string;
   headers?: Resolvable<Record<string, string | undefined>>;
   fetch?: typeof fetch;
+  generateId?: () => string;
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
-export class GoogleVertexImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
-  // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
-  readonly maxImagesPerCall = 4;
+export class GoogleVertexImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: GoogleVertexImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: GoogleVertexImageModelConfig;
+  }) {
+    return new GoogleVertexImageModel(options.modelId, options.config);
+  }
+
+  get maxImagesPerCall(): number {
+    if (isGeminiModel(this.modelId)) {
+      return 10;
+    }
+    return 4;
+  }
 
   get provider(): string {
     return this.config.provider;
@@ -41,7 +69,16 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     private config: GoogleVertexImageModelConfig,
   ) {}
 
-  async doGenerate({
+  async doGenerate(
+    options: Parameters<ImageModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
+    if (isGeminiModel(this.modelId)) {
+      return this.doGenerateGemini(options);
+    }
+    return this.doGenerateImagen(options);
+  }
+
+  private async doGenerateImagen({
     prompt,
     n,
     size,
@@ -52,10 +89,10 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (size != null) {
       warnings.push({
@@ -69,7 +106,7 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     const vertexImageOptions = await parseProviderOptions({
       provider: 'vertex',
       providerOptions,
-      schema: vertexImageProviderOptionsSchema,
+      schema: googleVertexImageModelOptionsSchema,
     });
 
     // Extract edit-specific options from provider options
@@ -144,7 +181,10 @@ export class GoogleVertexImageModel implements ImageModelV3 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:predict`,
-      headers: combineHeaders(await resolve(this.config.headers), headers),
+      headers: combineHeaders(
+        this.config.headers ? await resolve(this.config.headers) : undefined,
+        headers,
+      ),
       body,
       failedResponseHandler: googleVertexFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -180,6 +220,149 @@ export class GoogleVertexImageModel implements ImageModelV3 {
       },
     };
   }
+
+  private async doGenerateGemini({
+    prompt,
+    n,
+    size,
+    aspectRatio,
+    seed,
+    providerOptions,
+    headers,
+    abortSignal,
+    files,
+    mask,
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
+  > {
+    const warnings: Array<SharedV4Warning> = [];
+
+    if (mask != null) {
+      throw new Error(
+        'Gemini image models do not support mask-based image editing.',
+      );
+    }
+
+    if (n != null && n > 1) {
+      throw new Error(
+        'Gemini image models do not support generating a set number of images per call. Use n=1 or omit the n parameter.',
+      );
+    }
+
+    if (size != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'size',
+        details:
+          'This model does not support the `size` option. Use `aspectRatio` instead.',
+      });
+    }
+
+    const userContent: Array<
+      | { type: 'text'; text: string }
+      | { type: 'file'; data: string | Uint8Array | URL; mediaType: string }
+    > = [];
+
+    if (prompt != null) {
+      userContent.push({ type: 'text', text: prompt });
+    }
+
+    if (files != null && files.length > 0) {
+      for (const file of files) {
+        if (file.type === 'url') {
+          userContent.push({
+            type: 'file',
+            data: new URL(file.url),
+            mediaType: 'image/*',
+          });
+        } else {
+          userContent.push({
+            type: 'file',
+            data:
+              typeof file.data === 'string'
+                ? file.data
+                : new Uint8Array(file.data),
+            mediaType: file.mediaType,
+          });
+        }
+      }
+    }
+
+    const languageModelPrompt: LanguageModelV4Prompt = [
+      { role: 'user', content: userContent },
+    ];
+
+    const languageModel = new GoogleLanguageModel(this.modelId, {
+      provider: this.config.provider,
+      baseURL: this.config.baseURL,
+      headers: this.config.headers ?? {},
+      fetch: this.config.fetch,
+      generateId: this.config.generateId ?? defaultGenerateId,
+      supportedUrls: () => ({
+        '*': [/^https?:\/\/.*$/, /^gs:\/\/.*$/],
+      }),
+    });
+
+    const result = await languageModel.doGenerate({
+      prompt: languageModelPrompt,
+      seed,
+      providerOptions: {
+        vertex: {
+          responseModalities: ['IMAGE'],
+          imageConfig: aspectRatio
+            ? {
+                aspectRatio: aspectRatio as NonNullable<
+                  GoogleLanguageModelOptions['imageConfig']
+                >['aspectRatio'],
+              }
+            : undefined,
+          ...((providerOptions?.vertex as Omit<
+            GoogleLanguageModelOptions,
+            'responseModalities' | 'imageConfig'
+          >) ?? {}),
+        } satisfies GoogleLanguageModelOptions,
+      },
+      headers,
+      abortSignal,
+    });
+
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    const images: string[] = [];
+    for (const part of result.content) {
+      if (part.type === 'file' && part.mediaType.startsWith('image/')) {
+        images.push(convertToBase64(part.data));
+      }
+    }
+
+    return {
+      images,
+      warnings,
+      providerMetadata: {
+        vertex: {
+          images: images.map(() => ({})),
+        },
+      },
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: result.response?.headers,
+      },
+      usage: result.usage
+        ? {
+            inputTokens: result.usage.inputTokens.total,
+            outputTokens: result.usage.outputTokens.total,
+            totalTokens:
+              (result.usage.inputTokens.total ?? 0) +
+              (result.usage.outputTokens.total ?? 0),
+          }
+        : undefined,
+    };
+  }
+}
+
+function isGeminiModel(modelId: string): boolean {
+  return modelId.startsWith('gemini-');
 }
 
 // minimal version of the schema, focussed on what is needed for the implementation
@@ -196,7 +379,7 @@ const vertexImageResponseSchema = z.object({
     .nullish(),
 });
 
-const vertexImageProviderOptionsSchema = z.object({
+const googleVertexImageModelOptionsSchema = z.object({
   negativePrompt: z.string().nullish(),
   personGeneration: z
     .enum(['dont_allow', 'allow_adult', 'allow_all'])
@@ -265,14 +448,14 @@ const vertexImageProviderOptionsSchema = z.object({
     })
     .nullish(),
 });
-export type GoogleVertexImageProviderOptions = z.infer<
-  typeof vertexImageProviderOptionsSchema
+export type GoogleVertexImageModelOptions = z.infer<
+  typeof googleVertexImageModelOptionsSchema
 >;
 
 /**
- * Helper to convert ImageModelV3File data to base64 string
+ * Helper to convert ImageModelV4File data to base64 string
  */
-function getBase64Data(file: ImageModelV3File): string {
+function getBase64Data(file: ImageModelV4File): string {
   if (file.type === 'url') {
     throw new Error(
       'URL-based images are not supported for Google Vertex image editing. Please provide the image data directly.',

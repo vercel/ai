@@ -25,6 +25,19 @@ import {
 } from './types';
 
 /**
+ * Parses a LangGraph event tuple into [type, data].
+ * Handles both 2-element [type, data] and 3-element [namespace, type, data] formats.
+ *
+ * @param event - The raw LangGraph event array.
+ * @returns A tuple of [type, data].
+ */
+export function parseLangGraphEvent(
+  event: unknown[],
+): [type: unknown, data: unknown] {
+  return event.length === 3 ? [event[1], event[2]] : [event[0], event[1]];
+}
+
+/**
  * Converts a ToolResultPart to a LangChain ToolMessage
  * @param block - The ToolResultPart to convert.
  * @returns The converted ToolMessage.
@@ -959,7 +972,7 @@ export function processLangGraphEvent(
     toolCallInfoByIndex,
     emittedToolCallsByKey,
   } = state;
-  const [type, data] = event.length === 3 ? event.slice(1) : event;
+  const [type, data] = parseLangGraphEvent(event);
 
   switch (type) {
     case 'custom': {
@@ -1008,7 +1021,10 @@ export function processLangGraphEvent(
       if (!msgId) return;
 
       /**
-       * Track LangGraph step changes and emit start-step/finish-step events
+       * Track LangGraph step changes and emit start-step/finish-step events.
+       * Before emitting finish-step, close any open text/reasoning parts so
+       * the client does not receive orphaned deltas after its
+       * activeReasoningParts / activeTextParts have been cleared.
        */
       const langgraphStep =
         typeof metadata?.langgraph_step === 'number'
@@ -1016,6 +1032,17 @@ export function processLangGraphEvent(
           : null;
       if (langgraphStep !== null && langgraphStep !== state.currentStep) {
         if (state.currentStep !== null) {
+          for (const [id, seen] of Object.entries(messageSeen)) {
+            if (seen.text) {
+              controller.enqueue({ type: 'text-end', id });
+            }
+            if (seen.reasoning) {
+              controller.enqueue({ type: 'reasoning-end', id });
+            }
+            delete messageSeen[id];
+            delete messageConcat[id];
+            delete messageReasoningIds[id];
+          }
           controller.enqueue({ type: 'finish-step' });
         }
         controller.enqueue({ type: 'start-step' });

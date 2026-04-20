@@ -1,4 +1,4 @@
-import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import type { InferSchema, Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -13,6 +13,9 @@ import {
   parseProviderOptions,
   postJsonToApi,
   resolve,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
   zodSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -40,12 +43,26 @@ interface BlackForestLabsImageModelConfig {
   };
 }
 
-export class BlackForestLabsImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class BlackForestLabsImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: BlackForestLabsImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: BlackForestLabsImageModelId;
+    config: BlackForestLabsImageModelConfig;
+  }) {
+    return new BlackForestLabsImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -61,8 +78,8 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     aspectRatio,
     seed,
     providerOptions,
-  }: Parameters<ImageModelV3['doGenerate']>[0]) {
-    const warnings: Array<SharedV3Warning> = [];
+  }: Parameters<ImageModelV4['doGenerate']>[0]) {
+    const warnings: Array<SharedV4Warning> = [];
 
     const finalAspectRatio =
       aspectRatio ?? (size ? convertSizeToAspectRatio(size) : undefined);
@@ -86,7 +103,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
       providerOptions,
-      schema: blackForestLabsImageProviderOptionsSchema,
+      schema: blackForestLabsImageModelOptionsSchema,
     });
 
     const [widthStr, heightStr] = size?.split('x') ?? [];
@@ -161,8 +178,8 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
     const { body, warnings } = await this.getArgs({
       prompt,
@@ -175,12 +192,12 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       n: 1,
       headers,
       abortSignal,
-    } as Parameters<ImageModelV3['doGenerate']>[0]);
+    } as Parameters<ImageModelV4['doGenerate']>[0]);
 
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
       providerOptions,
-      schema: blackForestLabsImageProviderOptionsSchema,
+      schema: blackForestLabsImageModelOptionsSchema,
     });
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
@@ -333,7 +350,7 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   }
 }
 
-export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
+export const blackForestLabsImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       imagePrompt: z.string().optional(),
@@ -374,8 +391,8 @@ export const blackForestLabsImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type BlackForestLabsImageProviderOptions = InferSchema<
-  typeof blackForestLabsImageProviderOptionsSchema
+export type BlackForestLabsImageModelOptions = InferSchema<
+  typeof blackForestLabsImageModelOptionsSchema
 >;
 
 function convertSizeToAspectRatio(

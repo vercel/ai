@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { generateText } from './generate-text';
 import { streamText } from './stream-text';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
@@ -11,7 +11,7 @@ function createLargeBody(): string {
   return 'x'.repeat(LARGE_BODY_SIZE);
 }
 
-const testUsage: LanguageModelV3Usage = {
+const testUsage: LanguageModelV4Usage = {
   inputTokens: {
     total: 10,
     noCache: 10,
@@ -37,7 +37,7 @@ describe('retention benchmark', () => {
       const largeBody = createLargeBody();
 
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello' }],
@@ -56,7 +56,7 @@ describe('retention benchmark', () => {
       const largeBody = createLargeBody();
 
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello' }],
@@ -75,7 +75,7 @@ describe('retention benchmark', () => {
       const largeBody = createLargeBody();
 
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello' }],
@@ -98,7 +98,7 @@ describe('retention benchmark', () => {
       const largeBody = createLargeBody();
 
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello' }],
@@ -123,7 +123,7 @@ describe('retention benchmark', () => {
       const largeResponseBody = createLargeBody();
 
       const result = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello' }],
@@ -151,7 +151,7 @@ describe('retention benchmark', () => {
       const largeBody = createLargeBody();
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -186,7 +186,7 @@ describe('retention benchmark', () => {
       const largeBody = createLargeBody();
 
       const result = streamText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doStream: async () => ({
             stream: convertArrayToReadableStream([
               {
@@ -226,7 +226,7 @@ describe('retention benchmark', () => {
       const memoryBeforeRetained = process.memoryUsage().heapUsed;
 
       const resultRetained = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello' }],
@@ -251,7 +251,7 @@ describe('retention benchmark', () => {
       const memoryBeforeExcluded = process.memoryUsage().heapUsed;
 
       const resultExcluded = await generateText({
-        model: new MockLanguageModelV3({
+        model: new MockLanguageModelV4({
           doGenerate: async () => ({
             ...dummyResponseValues,
             content: [{ type: 'text', text: 'Hello' }],

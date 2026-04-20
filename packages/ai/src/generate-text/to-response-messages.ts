@@ -6,7 +6,7 @@ import {
 } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { ContentPart } from './content-part';
-import { ToolSet } from './tool-set';
+import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * Converts the result of a `generateText` or `streamText` call to a list of response messages.
@@ -48,6 +48,13 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           providerOptions: part.providerMetadata,
         });
         break;
+      case 'custom':
+        content.push({
+          type: 'custom',
+          kind: part.kind,
+          providerOptions: part.providerMetadata,
+        });
+        break;
       case 'reasoning':
         content.push({
           type: 'reasoning',
@@ -63,12 +70,21 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           providerOptions: part.providerMetadata,
         });
         break;
+      case 'reasoning-file':
+        content.push({
+          type: 'reasoning-file',
+          data: part.file.base64,
+          mediaType: part.file.mediaType,
+          providerOptions: part.providerMetadata,
+        });
+        break;
       case 'tool-call':
         content.push({
           type: 'tool-call',
           toolCallId: part.toolCallId,
           toolName: part.toolName,
-          input: part.input,
+          input:
+            part.invalid && typeof part.input !== 'object' ? {} : part.input,
           providerExecuted: part.providerExecuted,
           providerOptions: part.providerMetadata,
         });

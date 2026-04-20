@@ -1,7 +1,7 @@
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -11,6 +11,9 @@ import {
   downloadBlob,
   postFormDataToApi,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -27,8 +30,22 @@ interface OpenAIImageModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAIImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class OpenAIImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
+
+  static [WORKFLOW_SERIALIZE](model: OpenAIImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: OpenAIImageModelId;
+    config: OpenAIImageModelConfig;
+  }) {
+    return new OpenAIImageModel(options.modelId, options.config);
+  }
 
   get maxImagesPerCall(): number {
     return modelMaxImagesPerCall[this.modelId] ?? 1;
@@ -54,10 +71,10 @@ export class OpenAIImageModel implements ImageModelV3 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -80,7 +97,7 @@ export class OpenAIImageModel implements ImageModelV3 {
           path: '/images/edits',
           modelId: this.modelId,
         }),
-        headers: combineHeaders(this.config.headers(), headers),
+        headers: combineHeaders(this.config.headers?.(), headers),
         formData: convertToFormData<OpenAIImageEditInput>({
           model: this.modelId,
           prompt,
@@ -133,7 +150,7 @@ export class OpenAIImageModel implements ImageModelV3 {
         },
         providerMetadata: {
           openai: {
-            images: response.data.map(item => ({
+            images: response.data.map((item, index) => ({
               ...(item.revised_prompt
                 ? { revisedPrompt: item.revised_prompt }
                 : {}),
@@ -142,6 +159,11 @@ export class OpenAIImageModel implements ImageModelV3 {
               quality: response.quality ?? undefined,
               background: response.background ?? undefined,
               outputFormat: response.output_format ?? undefined,
+              ...distributeTokenDetails(
+                response.usage?.input_tokens_details,
+                index,
+                response.data.length,
+              ),
             })),
           },
         },
@@ -153,7 +175,7 @@ export class OpenAIImageModel implements ImageModelV3 {
         path: '/images/generations',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         prompt,
@@ -190,7 +212,7 @@ export class OpenAIImageModel implements ImageModelV3 {
       },
       providerMetadata: {
         openai: {
-          images: response.data.map(item => ({
+          images: response.data.map((item, index) => ({
             ...(item.revised_prompt
               ? { revisedPrompt: item.revised_prompt }
               : {}),
@@ -199,11 +221,50 @@ export class OpenAIImageModel implements ImageModelV3 {
             quality: response.quality ?? undefined,
             background: response.background ?? undefined,
             outputFormat: response.output_format ?? undefined,
+            ...distributeTokenDetails(
+              response.usage?.input_tokens_details,
+              index,
+              response.data.length,
+            ),
           })),
         },
       },
     };
   }
+}
+
+/**
+ * Distributes input token details evenly across images, with the remainder
+ * assigned to the last image so that summing across all entries gives the
+ * exact total.
+ */
+function distributeTokenDetails(
+  details:
+    | { image_tokens?: number | null; text_tokens?: number | null }
+    | null
+    | undefined,
+  index: number,
+  total: number,
+): { imageTokens?: number; textTokens?: number } {
+  if (details == null) {
+    return {};
+  }
+
+  const result: { imageTokens?: number; textTokens?: number } = {};
+
+  if (details.image_tokens != null) {
+    const base = Math.floor(details.image_tokens / total);
+    const remainder = details.image_tokens - base * (total - 1);
+    result.imageTokens = index === total - 1 ? remainder : base;
+  }
+
+  if (details.text_tokens != null) {
+    const base = Math.floor(details.text_tokens / total);
+    const remainder = details.text_tokens - base * (total - 1);
+    result.textTokens = index === total - 1 ? remainder : base;
+  }
+
+  return result;
 }
 
 type OpenAIImageEditInput = {
@@ -288,7 +349,7 @@ type OpenAIImageEditInput = {
 };
 
 async function fileToBlob(
-  file: ImageModelV3File | undefined,
+  file: ImageModelV4File | undefined,
 ): Promise<Blob | undefined> {
   if (!file) return undefined;
 

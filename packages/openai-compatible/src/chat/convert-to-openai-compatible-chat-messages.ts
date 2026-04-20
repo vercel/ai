@@ -1,13 +1,17 @@
 import {
-  LanguageModelV3Prompt,
-  SharedV3ProviderMetadata,
+  LanguageModelV4Prompt,
+  SharedV4ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import {
+  convertBase64ToUint8Array,
+  convertToBase64,
+  isProviderReference,
+} from '@ai-sdk/provider-utils';
 
 function getOpenAIMetadata(message: {
-  providerOptions?: SharedV3ProviderMetadata;
+  providerOptions?: SharedV4ProviderMetadata;
 }) {
   return message?.providerOptions?.openaiCompatible ?? {};
 }
@@ -25,7 +29,7 @@ function getAudioFormat(mediaType: string): 'wav' | 'mp3' | null {
 }
 
 export function convertToOpenAICompatibleChatMessages(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {
@@ -55,6 +59,12 @@ export function convertToOpenAICompatibleChatMessages(
                 return { type: 'text', text: part.text, ...partMetadata };
               }
               case 'file': {
+                if (isProviderReference(part.data)) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'file parts with provider references',
+                  });
+                }
+
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -119,7 +129,9 @@ export function convertToOpenAICompatibleChatMessages(
                     part.data instanceof URL
                       ? part.data.toString()
                       : typeof part.data === 'string'
-                        ? part.data
+                        ? new TextDecoder().decode(
+                            convertBase64ToUint8Array(part.data),
+                          )
                         : new TextDecoder().decode(part.data);
 
                   return {
@@ -197,7 +209,7 @@ export function convertToOpenAICompatibleChatMessages(
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: text || null,
           ...(reasoning.length > 0 ? { reasoning_content: reasoning } : {}),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           ...metadata,

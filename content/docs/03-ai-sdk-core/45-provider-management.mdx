@@ -134,6 +134,38 @@ export const myProvider = customProvider({
 });
 ```
 
+### Example: files and skills interfaces
+
+You can attach a provider's `files` or `skills` interface to your custom provider. This allows you to use `uploadFile` and `uploadSkill` through the same provider abstraction.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { openai } from '@ai-sdk/openai';
+import { customProvider, uploadFile, uploadSkill } from 'ai';
+
+// custom provider with files interface:
+const myOpenAI = customProvider({
+  languageModels: {
+    'gpt-4o-mini': openai.responses('gpt-4o-mini'),
+  },
+  files: openai.files(),
+});
+
+// custom provider with skills interface:
+const myAnthropic = customProvider({
+  languageModels: {
+    sonnet: anthropic('claude-sonnet-4-5'),
+  },
+  skills: anthropic.skills(),
+});
+
+// usage:
+await uploadFile({ api: myOpenAI.files!(), data: fileData, filename: 'image.png' });
+await uploadSkill({ api: myAnthropic.skills!(), files: skillFiles, displayTitle: 'My Skill' });
+```
+
+If no `files` or `skills` option is set but a `fallbackProvider` is configured, the custom provider will inherit those interfaces from the fallback.
+
 ## Provider Registry
 
 You can create a [provider registry](/docs/reference/ai-sdk-core/provider-registry) with multiple providers and models using `createProviderRegistry`.
@@ -221,6 +253,82 @@ const { image } = await generateImage({
 });
 ```
 
+### Example: Use video models
+
+You can access video models by using the `videoModel` method on the registry.
+The provider id will become the prefix of the model id: `providerId:modelId`.
+
+```ts highlight={"5"}
+import { experimental_generateVideo } from 'ai';
+import { fal } from '@ai-sdk/fal';
+import { createProviderRegistry } from 'ai';
+
+const registry = createProviderRegistry({ fal });
+
+const { videos } = await experimental_generateVideo({
+  model: registry.videoModel('fal:luma-dream-machine/ray-2'),
+  prompt: 'A cat walking on a beach at sunset',
+});
+```
+
+### Example: Use files interface
+
+You can access a provider's files interface by calling `registry.files(providerId)`.
+This is useful when you want to upload files through a provider in the registry before referencing them in model requests.
+
+```ts highlight={"7,8"}
+import { openai } from '@ai-sdk/openai';
+import { createProviderRegistry, customProvider, generateText, uploadFile } from 'ai';
+
+const registry = createProviderRegistry({
+  openai: customProvider({
+    languageModels: { 'gpt-4o-mini': openai.responses('gpt-4o-mini') },
+    files: openai.files(),
+  }),
+});
+
+const { providerReference } = await uploadFile({
+  api: registry.files('openai'),
+  data: fileData,
+  filename: 'image.png',
+});
+
+const { text } = await generateText({
+  model: registry.languageModel('openai:gpt-4o-mini'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Describe what you see in this image.' },
+        { type: 'image', image: providerReference },
+      ],
+    },
+  ],
+});
+```
+
+### Example: Use skills interface
+
+You can access a provider's skills interface by calling `registry.skills(providerId)`.
+
+```ts highlight={"8"}
+import { anthropic } from '@ai-sdk/anthropic';
+import { createProviderRegistry, customProvider, uploadSkill } from 'ai';
+
+const registry = createProviderRegistry({
+  anthropic: customProvider({
+    languageModels: { sonnet: anthropic('claude-sonnet-4-5') },
+    skills: anthropic.skills(),
+  }),
+});
+
+await uploadSkill({
+  api: registry.skills('anthropic'),
+  files: skillFiles,
+  displayTitle: 'My Skill',
+});
+```
+
 ## Combining Custom Providers, Provider Registry, and Middleware
 
 The central idea of provider management is to set up a file that contains all the providers and models you want to use.
@@ -233,13 +341,13 @@ Here is an example that implements the following concepts:
 - setup an OpenAI-compatible provider with custom api key and base URL (here: `custom > *`)
 - setup model name aliases (here: `anthropic > fast`, `anthropic > writing`, `anthropic > reasoning`)
 - pre-configure model settings (here: `anthropic > reasoning`)
-- validate the provider-specific options (here: `AnthropicProviderOptions`)
+- validate the provider-specific options (here: `AnthropicLanguageModelOptions`)
 - use a fallback provider (here: `anthropic > *`)
 - limit a provider to certain models without a fallback (here: `groq > gemma2-9b-it`, `groq > qwen-qwq-32b`)
 - define a custom separator for the provider registry (here: `>`)
 
 ```ts
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { xai } from '@ai-sdk/xai';
 import { groq } from '@ai-sdk/groq';
@@ -286,7 +394,7 @@ export const registry = createProviderRegistry(
                     type: 'enabled',
                     budgetTokens: 32000,
                   },
-                } satisfies AnthropicProviderOptions,
+                } satisfies AnthropicLanguageModelOptions,
               },
             },
           }),

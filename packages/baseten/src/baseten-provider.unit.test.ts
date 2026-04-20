@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createBaseten } from './baseten-provider';
 import {
-  LanguageModelV3,
-  EmbeddingModelV3,
+  LanguageModelV4,
+  EmbeddingModelV4,
   NoSuchModelError,
 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
@@ -49,10 +49,12 @@ vi.mock('@ai-sdk/provider-utils', async () => {
 });
 
 vi.mock('@basetenlabs/performance-client', () => ({
-  PerformanceClient: vi.fn().mockImplementation(() => ({
-    embed: vi.fn(),
-    embedBatch: vi.fn(),
-  })),
+  PerformanceClient: vi.fn(function () {
+    return {
+      embed: vi.fn(),
+      embedBatch: vi.fn(),
+    };
+  }),
 }));
 
 vi.mock('./version', () => ({

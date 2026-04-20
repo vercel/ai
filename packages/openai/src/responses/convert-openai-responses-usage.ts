@@ -1,4 +1,4 @@
-import { LanguageModelV3Usage } from '@ai-sdk/provider';
+import { LanguageModelV4Usage } from '@ai-sdk/provider';
 
 export type OpenAIResponsesUsage = {
   input_tokens: number;
@@ -13,7 +13,7 @@ export type OpenAIResponsesUsage = {
 
 export function convertOpenAIResponsesUsage(
   usage: OpenAIResponsesUsage | undefined | null,
-): LanguageModelV3Usage {
+): LanguageModelV4Usage {
   if (usage == null) {
     return {
       inputTokens: {

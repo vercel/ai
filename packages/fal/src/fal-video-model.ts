@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  type Experimental_VideoModelV3,
-  type SharedV3Warning,
+  type Experimental_VideoModelV4,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -20,7 +20,7 @@ import type { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
 import type { FalVideoModelId } from './fal-video-settings';
 
-export type FalVideoProviderOptions = {
+export type FalVideoModelOptions = {
   loop?: boolean | null;
   motionStrength?: number | null;
   pollIntervalMs?: number | null;
@@ -32,7 +32,7 @@ export type FalVideoProviderOptions = {
 };
 
 // Provider options schema for FAL video generation
-export const falVideoProviderOptionsSchema = lazySchema(() =>
+export const falVideoModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -63,8 +63,8 @@ interface FalVideoModelConfig extends FalConfig {
   };
 }
 
-export class FalVideoModel implements Experimental_VideoModelV3 {
-  readonly specificationVersion = 'v3';
+export class FalVideoModel implements Experimental_VideoModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // FAL video models support 1 video at a time
 
   get provider(): string {
@@ -81,16 +81,16 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV3['doGenerate']>>> {
+    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     const falOptions = (await parseProviderOptions({
       provider: 'fal',
       providerOptions: options.providerOptions,
-      schema: falVideoProviderOptionsSchema,
-    })) as FalVideoProviderOptions | undefined;
+      schema: falVideoModelOptionsSchema,
+    })) as FalVideoModelOptions | undefined;
 
     const body: Record<string, unknown> = {};
 
@@ -158,7 +158,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
         path: `https://queue.fal.run/fal-ai/${this.normalizedModelId}`,
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler:
@@ -189,7 +189,7 @@ export class FalVideoModel implements Experimental_VideoModelV3 {
               path: responseUrl,
               modelId: this.modelId,
             }),
-            headers: combineHeaders(this.config.headers(), options.headers),
+            headers: combineHeaders(this.config.headers?.(), options.headers),
             failedResponseHandler: async ({
               response,
               url,

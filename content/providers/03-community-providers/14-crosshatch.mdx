@@ -13,7 +13,7 @@ description: Learn how to use the Crosshatch provider for the AI SDK.
 
 The [Crosshatch](https://crosshatch.io) provider supports secure inference from popular language models with permissioned access to data users share, giving responses personalized with complete user context.
 
-It creates language model objects that can be used with the `generateText`, `streamText`, `generateObject` and `streamObject` functions.
+It creates language model objects that can be used with the `generateText` and `streamText` functions, and supports structured data generation with [`Output`](/docs/reference/ai-sdk-core/output).
 
 ## Setup
 
@@ -102,16 +102,23 @@ const { text } = await generateText({
 Use crosshatch to re-rank items based on recent user purchases.
 
 ```ts
-import { streamObject } from 'ai';
+import { streamText, Output } from 'ai';
 import createCrosshatch from `@crosshatch/ai-provider`
 const crosshatch = createCrosshatch();
 
 const itemSummaries = [...]; // list of items
 const ids = (itemSummaries?.map(({ itemId }) => itemId) ?? []) as string[];
 
-const { elementStream } = streamObject({
-  output: "array",
-  mode: "json",
+const { elementStream } = streamText({
+  output: Output.array({
+    element: jsonSchema<{ id: string; reason: string }>({
+      type: "object",
+      properties: {
+        id: { type: "string", enum: ids },
+        reason: { type: "string", description: "Explain your ranking." },
+      },
+    }),
+  }),
   model: crosshatch.languageModel("gpt-4o-mini", {
     token,
     replace: {
@@ -126,12 +133,5 @@ const { elementStream } = streamObject({
   }),
   system: `Rerank the following items based on alignment with users recent purchases {orders}`,
   messages: [{role: "user", content: "Heres a list of item: ${JSON.stringify(itemSummaries)"},],
-  schema: jsonSchema<{ id: string; reason: string }>({
-    type: "object",
-    properties: {
-      id: { type: "string", enum: ids },
-      reason: { type: "string", description: "Explain your ranking." },
-    },
-  }),
 })
 ```

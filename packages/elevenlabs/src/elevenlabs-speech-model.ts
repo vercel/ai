@@ -1,9 +1,12 @@
-import { SpeechModelV3, SharedV3Warning } from '@ai-sdk/provider';
+import { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { ElevenLabsConfig } from './elevenlabs-config';
@@ -15,7 +18,7 @@ import {
 } from './elevenlabs-speech-options';
 
 // Schema for camelCase input from users
-const ElevenLabsProviderOptionsSchema = z.object({
+const elevenLabsSpeechModelOptionsSchema = z.object({
   languageCode: z.string().optional(),
   voiceSettings: z
     .object({
@@ -44,8 +47,8 @@ const ElevenLabsProviderOptionsSchema = z.object({
   enableLogging: z.boolean().optional(),
 });
 
-export type ElevenLabsSpeechCallOptions = z.infer<
-  typeof ElevenLabsProviderOptionsSchema
+export type ElevenLabsSpeechModelOptions = z.infer<
+  typeof elevenLabsSpeechModelOptionsSchema
 >;
 
 interface ElevenLabsSpeechModelConfig extends ElevenLabsConfig {
@@ -54,11 +57,25 @@ interface ElevenLabsSpeechModelConfig extends ElevenLabsConfig {
   };
 }
 
-export class ElevenLabsSpeechModel implements SpeechModelV3 {
-  readonly specificationVersion = 'v3';
+export class ElevenLabsSpeechModel implements SpeechModelV4 {
+  readonly specificationVersion = 'v4';
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: ElevenLabsSpeechModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: ElevenLabsSpeechModelId;
+    config: ElevenLabsSpeechModelConfig;
+  }) {
+    return new ElevenLabsSpeechModel(options.modelId, options.config);
   }
 
   constructor(
@@ -74,14 +91,14 @@ export class ElevenLabsSpeechModel implements SpeechModelV3 {
     language,
     speed,
     providerOptions,
-  }: Parameters<SpeechModelV3['doGenerate']>[0]) {
-    const warnings: SharedV3Warning[] = [];
+  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+    const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
     const elevenLabsOptions = await parseProviderOptions({
       provider: 'elevenlabs',
       providerOptions,
-      schema: ElevenLabsProviderOptionsSchema,
+      schema: elevenLabsSpeechModelOptionsSchema,
     });
 
     // Create request body
@@ -214,8 +231,8 @@ export class ElevenLabsSpeechModel implements SpeechModelV3 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV3['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV3['doGenerate']>>> {
+    options: Parameters<SpeechModelV4['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, queryParams, warnings, voiceId } =
       await this.getArgs(options);
@@ -233,7 +250,7 @@ export class ElevenLabsSpeechModel implements SpeechModelV3 {
         const queryString = new URLSearchParams(queryParams).toString();
         return queryString ? `${baseUrl}?${queryString}` : baseUrl;
       })(),
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body: requestBody,
       failedResponseHandler: elevenlabsFailedResponseHandler,
       successfulResponseHandler: createBinaryResponseHandler(),

@@ -1,10 +1,10 @@
-import { LanguageModelV3FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV4FinishReason } from '@ai-sdk/provider';
 import { BedrockStopReason } from './bedrock-api-types';
 
 export function mapBedrockFinishReason(
   finishReason: BedrockStopReason,
   isJsonResponseFromTool?: boolean,
-): LanguageModelV3FinishReason['unified'] {
+): LanguageModelV4FinishReason['unified'] {
   switch (finishReason) {
     case 'stop_sequence':
     case 'end_turn':

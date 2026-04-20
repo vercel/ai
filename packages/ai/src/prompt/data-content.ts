@@ -1,4 +1,4 @@
-import { AISDKError, LanguageModelV3DataContent } from '@ai-sdk/provider';
+import { AISDKError, LanguageModelV4DataContent } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
@@ -23,10 +23,10 @@ export const dataContentSchema: z.ZodType<DataContent> = z.union([
   ),
 ]);
 
-export function convertToLanguageModelV3DataContent(
+export function convertToLanguageModelV4DataContent(
   content: DataContent | URL,
 ): {
-  data: LanguageModelV3DataContent;
+  data: LanguageModelV4DataContent;
   mediaType: string | undefined;
 } {
   // Buffer & Uint8Array:
@@ -44,7 +44,7 @@ export function convertToLanguageModelV3DataContent(
   if (typeof content === 'string') {
     try {
       content = new URL(content);
-    } catch (error) {
+    } catch {
       // ignored
     }
   }
@@ -128,7 +128,7 @@ export function convertDataContentToUint8Array(
 export function convertUint8ArrayToText(uint8Array: Uint8Array): string {
   try {
     return new TextDecoder().decode(uint8Array);
-  } catch (error) {
+  } catch {
     throw new Error('Error decoding Uint8Array to text');
   }
 }

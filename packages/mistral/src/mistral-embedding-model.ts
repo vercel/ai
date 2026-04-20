@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV3,
+  EmbeddingModelV4,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -7,6 +7,9 @@ import {
   createJsonResponseHandler,
   FetchFunction,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { MistralEmbeddingModelId } from './mistral-embedding-options';
@@ -15,12 +18,12 @@ import { mistralFailedResponseHandler } from './mistral-error';
 type MistralEmbeddingConfig = {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
 };
 
-export class MistralEmbeddingModel implements EmbeddingModelV3 {
-  readonly specificationVersion = 'v3';
+export class MistralEmbeddingModel implements EmbeddingModelV4 {
+  readonly specificationVersion = 'v4';
   readonly modelId: MistralEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 32;
   readonly supportsParallelCalls = false;
@@ -29,6 +32,20 @@ export class MistralEmbeddingModel implements EmbeddingModelV3 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: MistralEmbeddingModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: MistralEmbeddingModelId;
+    config: MistralEmbeddingConfig;
+  }) {
+    return new MistralEmbeddingModel(options.modelId, options.config);
   }
 
   constructor(
@@ -43,8 +60,8 @@ export class MistralEmbeddingModel implements EmbeddingModelV3 {
     values,
     abortSignal,
     headers,
-  }: Parameters<EmbeddingModelV3['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV3['doEmbed']>>
+  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
@@ -61,7 +78,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV3 {
       rawValue,
     } = await postJsonToApi({
       url: `${this.config.baseURL}/embeddings`,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
         input: values,

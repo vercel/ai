@@ -1,3 +1,4 @@
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { CallWarning, FinishReason, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
@@ -7,7 +8,7 @@ import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { InferCompleteOutput } from './output-utils';
-import { ReasoningOutput } from './reasoning-output';
+import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
@@ -16,7 +17,6 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import { ToolSet } from './tool-set';
 
 /**
  * The result of a `generateText` call.
@@ -24,6 +24,7 @@ import { ToolSet } from './tool-set';
  */
 export interface GenerateTextResult<
   TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
 > {
   /**
@@ -39,7 +40,7 @@ export interface GenerateTextResult<
   /**
    * The full reasoning that the model has generated in the last step.
    */
-  readonly reasoning: Array<ReasoningOutput>;
+  readonly reasoning: Array<ReasoningOutput | ReasoningFileOutput>;
 
   /**
    * The reasoning text that the model has generated in the last step. Can be undefined if the model
@@ -151,14 +152,7 @@ export interface GenerateTextResult<
    * You can use this to get information about intermediate steps,
    * such as the tool calls or the response headers.
    */
-  readonly steps: Array<StepResult<TOOLS>>;
-
-  /**
-   * The generated structured output. It uses the `output` specification.
-   *
-   * @deprecated Use `output` instead.
-   */
-  readonly experimental_output: InferCompleteOutput<OUTPUT>;
+  readonly steps: Array<StepResult<TOOLS, RUNTIME_CONTEXT>>;
 
   /**
    * The generated structured output. It uses the `output` specification.

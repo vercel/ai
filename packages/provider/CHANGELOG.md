@@ -1,5 +1,90 @@
 # @ai-sdk/provider
 
+## 4.0.0-beta.12
+
+### Patch Changes
+
+- ff5eba1: feat: roll `image-*` tool output types into their equivalent `file-*` types
+
+## 4.0.0-beta.11
+
+### Major Changes
+
+- ef992f8: Remove CommonJS exports from all packages. All packages are now ESM-only (`"type": "module"`). Consumers using `require()` must switch to ESM `import` syntax.
+
+## 4.0.0-beta.10
+
+### Patch Changes
+
+- 176466a: chore(provider): align V4 model return types to have their own definitions across all model interfaces
+
+## 4.0.0-beta.9
+
+### Patch Changes
+
+- e311194: feat(ai): allow passing provider instance to `uploadFile` and `uploadSkill` as shorthand
+
+## 4.0.0-beta.8
+
+### Patch Changes
+
+- 34bd95d: feat(ai): add support for uploading provider skills using the provider references abstraction
+- 008271d: feat(openai-compatible): emit warning when using kebab-case instead of camelCase
+
+## 4.0.0-beta.7
+
+### Patch Changes
+
+- 6fd51c0: fix(provider): preserve error type prefix in getErrorMessage
+
+## 4.0.0-beta.6
+
+### Patch Changes
+
+- c29a26f: feat(provider): add support for provider references and uploading files as supported per provider
+
+## 4.0.0-beta.5
+
+### Patch Changes
+
+- 1f509d4: fix(ai): force template check on 'kind' param
+
+## 4.0.0-beta.4
+
+### Patch Changes
+
+- 3887c70: feat(provider): add new top-level reasoning parameter to spec and support it in `generateText` and `streamText`
+
+## 4.0.0-beta.3
+
+### Major Changes
+
+- 776b617: feat(provider): adding new 'custom' content type
+
+## 4.0.0-beta.2
+
+### Patch Changes
+
+- f7d4f01: feat(provider): add support for `reasoning-file` type for files that are part of reasoning
+
+## 4.0.0-beta.1
+
+### Patch Changes
+
+- 5c2a5a2: fix(provider): fix v4 spec to not use shared v3 types
+
+## 4.0.0-beta.0
+
+### Major Changes
+
+- 8359612: Start v7 pre-release
+
+## 3.0.8
+
+### Patch Changes
+
+- 7168375: feat (ai, provider): default global provider video model resolution
+
 ## 3.0.7
 
 ### Patch Changes
@@ -63,13 +148,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 - dce03c4: feat: tool input examples
@@ -189,13 +274,13 @@
   Before
 
   ```ts
-  model.textEmbeddingModel('my-model-id');
+  model.textEmbeddingModel("my-model-id");
   ```
 
   After
 
   ```ts
-  model.embeddingModel('my-model-id');
+  model.embeddingModel("my-model-id");
   ```
 
 ## 3.0.0-beta.18
@@ -382,13 +467,13 @@
   Before
 
   ```ts
-  import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+  import { convertUint8ArrayToBase64 } from "@ai-sdk/provider-utils";
 
   // Had to manually convert binary data to base64
   const fileData = new Uint8Array([0, 1, 2, 3]);
   const filePart = {
-    type: 'file',
-    mediaType: 'application/pdf',
+    type: "file",
+    mediaType: "application/pdf",
     data: convertUint8ArrayToBase64(fileData), // Required conversion
   };
   ```
@@ -399,8 +484,8 @@
   // Can use binary data directly
   const fileData = new Uint8Array([0, 1, 2, 3]);
   const filePart = {
-    type: 'file',
-    mediaType: 'application/pdf',
+    type: "file",
+    mediaType: "application/pdf",
     data: fileData, // Direct Uint8Array support
   };
   ```
@@ -416,10 +501,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 
@@ -578,10 +663,10 @@
   The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
 
   ```js
-  const prompt = 'Santa Claus driving a Cadillac';
+  const prompt = "Santa Claus driving a Cadillac";
 
   const { providerMetadata } = await experimental_generateImage({
-    model: openai.image('dall-e-3'),
+    model: openai.image("dall-e-3"),
     prompt,
   });
 

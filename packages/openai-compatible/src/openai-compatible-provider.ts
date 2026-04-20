@@ -1,8 +1,8 @@
 import {
-  EmbeddingModelV3,
-  ImageModelV3,
-  LanguageModelV3,
-  ProviderV3,
+  EmbeddingModelV4,
+  ImageModelV4,
+  LanguageModelV4,
+  ProviderV4,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -24,26 +24,26 @@ export interface OpenAICompatibleProvider<
   COMPLETION_MODEL_IDS extends string = string,
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
-> extends Omit<ProviderV3, 'imageModel'> {
-  (modelId: CHAT_MODEL_IDS): LanguageModelV3;
+> extends Omit<ProviderV4, 'imageModel'> {
+  (modelId: CHAT_MODEL_IDS): LanguageModelV4;
 
   languageModel(
     modelId: CHAT_MODEL_IDS,
     config?: Partial<OpenAICompatibleChatConfig>,
-  ): LanguageModelV3;
+  ): LanguageModelV4;
 
-  chatModel(modelId: CHAT_MODEL_IDS): LanguageModelV3;
+  chatModel(modelId: CHAT_MODEL_IDS): LanguageModelV4;
 
-  completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV3;
+  completionModel(modelId: COMPLETION_MODEL_IDS): LanguageModelV4;
 
-  embeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3;
+  embeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV3;
+  textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV4;
 
-  imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV3;
+  imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV4;
 }
 
 export interface OpenAICompatibleProviderSettings {
@@ -181,7 +181,7 @@ export function createOpenAICompatible<
 
   const provider = (modelId: CHAT_MODEL_IDS) => createLanguageModel(modelId);
 
-  provider.specificationVersion = 'v3' as const;
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chatModel = createChatModel;
   provider.completionModel = createCompletionModel;

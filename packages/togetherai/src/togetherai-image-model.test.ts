@@ -281,7 +281,7 @@ describe('constructor', () => {
 
     expect(model.provider).toBe('togetherai');
     expect(model.modelId).toBe('stabilityai/stable-diffusion-xl');
-    expect(model.specificationVersion).toBe('v3');
+    expect(model.specificationVersion).toBe('v4');
     expect(model.maxImagesPerCall).toBe(1);
   });
 });

@@ -13,6 +13,9 @@ export interface BedrockConverseInput {
   };
   additionalModelRequestFields?: Record<string, unknown>;
   additionalModelResponseFieldPaths?: string[];
+  serviceTier?: {
+    type: string;
+  };
   guardrailConfig?:
     | BedrockGuardrailConfiguration
     | BedrockGuardrailStreamConfiguration
@@ -80,6 +83,7 @@ export interface BedrockTool {
   toolSpec: {
     name: string;
     description?: string;
+    strict?: boolean;
     inputSchema: { json: JSONObject };
   };
 }

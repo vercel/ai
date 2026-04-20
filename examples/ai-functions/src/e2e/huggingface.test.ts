@@ -1,5 +1,5 @@
 import { huggingface } from '@ai-sdk/huggingface';
-import { generateText, streamText, generateObject, streamObject } from 'ai';
+import { generateText, streamText, Output } from 'ai';
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod/v4';
 import 'dotenv/config';
@@ -32,16 +32,18 @@ describe('HuggingFace Provider', () => {
   });
 
   it('should generate object', async () => {
-    const result = await generateObject({
+    const result = await generateText({
       model: huggingface.responses('moonshotai/Kimi-K2-Instruct'),
-      schema: z.object({
-        name: z.string(),
-        age: z.number(),
+      output: Output.object({
+        schema: z.object({
+          name: z.string(),
+          age: z.number(),
+        }),
       }),
       prompt: 'Generate a person with name and age',
     });
 
-    expect(result.object).toMatchObject({
+    expect(result.output).toMatchObject({
       name: expect.any(String),
       age: expect.any(Number),
     });
@@ -49,21 +51,23 @@ describe('HuggingFace Provider', () => {
   });
 
   it('should stream object', async () => {
-    const result = streamObject({
+    const result = streamText({
       model: huggingface.responses('moonshotai/Kimi-K2-Instruct'),
-      schema: z.object({
-        items: z.array(z.string()),
+      output: Output.object({
+        schema: z.object({
+          items: z.array(z.string()),
+        }),
       }),
       prompt: 'Generate a list of 3 colors',
     });
 
-    const partialObjects = [];
-    for await (const partialObject of result.partialObjectStream) {
-      partialObjects.push(partialObject);
+    const partialOutputs = [];
+    for await (const partialOutput of result.partialOutputStream) {
+      partialOutputs.push(partialOutput);
     }
 
-    expect(partialObjects.length).toBeGreaterThan(0);
-    expect(partialObjects[partialObjects.length - 1]).toHaveProperty('items');
+    expect(partialOutputs.length).toBeGreaterThan(0);
+    expect(partialOutputs[partialOutputs.length - 1]).toHaveProperty('items');
   });
 
   it('should handle multi-message conversations', async () => {

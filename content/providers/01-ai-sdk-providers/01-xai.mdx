@@ -1,6 +1,6 @@
 ---
 title: xAI Grok
-description: Learn how to use xAI Grok.
+description: Learn how to use xAI Grok and Imagine.
 ---
 
 # xAI Grok Provider
@@ -73,13 +73,13 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-3`.
+first argument is the model id, e.g. `grok-4.20-non-reasoning`.
 
 ```ts
-const model = xai('grok-3');
+const model = xai('grok-4.20-non-reasoning');
 ```
 
-By default, `xai(modelId)` uses the Chat API. To use the Responses API with server-side agentic tools, explicitly use `xai.responses(modelId)`.
+By default, `xai(modelId)` uses the Responses API. To use the [Chat Completions API](https://docs.x.ai/docs/api-reference#chat-completions) (legacy), use `xai.chat(modelId)`.
 
 ### Example
 
@@ -90,48 +90,21 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-3'),
+  model: xai('grok-4.20-non-reasoning'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-xAI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+xAI language models can also be used in the `streamText` function
+and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
-
-### Provider Options
-
-xAI chat models support additional provider options that are not part of
-the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in the `providerOptions` argument:
-
-```ts
-const model = xai('grok-3-mini');
-
-await generateText({
-  model,
-  providerOptions: {
-    xai: {
-      reasoningEffort: 'high',
-    },
-  },
-});
-```
-
-The following optional provider options are available for xAI chat models:
-
-- **reasoningEffort** _'low' | 'high'_
-
-  Reasoning effort for reasoning models.
-
-- **parallel_function_calling** _boolean_
-
-  Whether to enable parallel function calling during tool use. When true, the model can call multiple functions in parallel. When false, the model will call functions sequentially. Defaults to `true`.
 
 ## Responses API (Agentic Tools)
 
-You can use the xAI Responses API with the `xai.responses(modelId)` factory method for server-side agentic tool calling. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
+The xAI Responses API is the default when using `xai(modelId)`. You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
-const model = xai.responses('grok-4-fast');
+const model = xai.responses('grok-4.20-non-reasoning');
 ```
 
 The Responses API provides server-side tools that the model can autonomously execute during its reasoning process:
@@ -153,7 +126,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses('grok-2-vision-1212'),
+  model: xai.responses('grok-3'),
   messages: [
     {
       role: 'user',
@@ -175,7 +148,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4.20-non-reasoning'),
   prompt: 'What are the latest developments in AI?',
   tools: {
     web_search: xai.tools.webSearch({
@@ -209,7 +182,7 @@ The X search tool enables searching X (Twitter) for posts, with filtering by han
 
 ```ts
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4.20-non-reasoning'),
   prompt: 'What are people saying about AI on X this week?',
   tools: {
     x_search: xai.tools.xSearch({
@@ -255,7 +228,7 @@ The code execution tool enables the model to write and execute Python code for c
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4.20-non-reasoning'),
   prompt:
     'Calculate the compound interest for $10,000 at 5% annually for 10 years',
   tools: {
@@ -270,7 +243,7 @@ The view image tool enables the model to view and analyze images:
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4.20-non-reasoning'),
   prompt: 'Describe what you see in the image',
   tools: {
     view_image: xai.tools.viewImage(),
@@ -284,7 +257,7 @@ The view X video tool enables the model to view and analyze videos from X (Twitt
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4.20-non-reasoning'),
   prompt: 'Summarize the content of this X video',
   tools: {
     view_x_video: xai.tools.viewXVideo(),
@@ -298,7 +271,7 @@ The MCP server tool enables the model to connect to remote [Model Context Protoc
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4.20-non-reasoning'),
   prompt: 'Use the weather tool to check conditions in San Francisco',
   tools: {
     weather_server: xai.tools.mcpServer({
@@ -342,11 +315,11 @@ const { text } = await generateText({
 The file search tool enables searching through documents stored in xAI vector stores (collections):
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: xai.responses('grok-4-1-fast-reasoning'),
+  model: xai.responses('grok-4.20-reasoning'),
   prompt: 'What documents do you have access to?',
   tools: {
     file_search: xai.tools.fileSearch({
@@ -357,7 +330,7 @@ const result = streamText({
   providerOptions: {
     xai: {
       include: ['file_search_call.results'],
-    },
+    } satisfies XaiLanguageModelResponsesOptions,
   },
 });
 ```
@@ -379,7 +352,7 @@ const result = streamText({
   Include file search results in the response. When set to `['file_search_call.results']`, the response will contain the actual search results with file content and scores.
 
 <Note>
-  File search requires grok-4 family models and the Responses API. Vector stores
+  File search requires grok-4 family models (including grok-4.20) and the Responses API. Vector stores
   can be created using the [xAI
   API](https://docs.x.ai/docs/guides/using-collections/api).
 </Note>
@@ -393,7 +366,7 @@ import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const { fullStream } = streamText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4.20-non-reasoning'),
   prompt: 'Research AI safety developments and calculate risk metrics',
   tools: {
     web_search: xai.tools.webSearch(),
@@ -423,15 +396,15 @@ for await (const part of fullStream) {
 The Responses API supports the following provider options:
 
 ```ts
-import { xai } from '@ai-sdk/xai';
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: xai.responses('grok-4-fast'),
+  model: xai.responses('grok-4.20-non-reasoning'),
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
-    },
+    } satisfies XaiLanguageModelResponsesOptions,
   },
   // ...
 });
@@ -442,6 +415,14 @@ The following provider options are available:
 - **reasoningEffort** _'low' | 'medium' | 'high'_
 
   Control the reasoning effort for the model. Higher effort may produce more thorough results at the cost of increased latency and token usage.
+
+- **logprobs** _boolean_
+
+  Return log probabilities for output tokens.
+
+- **topLogprobs** _number_
+
+  Number of most likely tokens to return per token position (0-8). When set, `logprobs` is automatically enabled.
 
 - **include** _Array&lt;'file_search_call.results'&gt;_
 
@@ -460,307 +441,20 @@ The following provider options are available:
   tools with client-side function tools in the same request.
 </Note>
 
-## Live Search
-
-xAI models support Live Search functionality, allowing them to query real-time data from various sources and include it in responses with citations.
-
-### Basic Search
-
-To enable search, specify `searchParameters` with a search mode:
-
-```ts
-import { xai } from '@ai-sdk/xai';
-import { generateText } from 'ai';
-
-const { text, sources } = await generateText({
-  model: xai('grok-3-latest'),
-  prompt: 'What are the latest developments in AI?',
-  providerOptions: {
-    xai: {
-      searchParameters: {
-        mode: 'auto', // 'auto', 'on', or 'off'
-        returnCitations: true,
-        maxSearchResults: 5,
-      },
-    },
-  },
-});
-
-console.log(text);
-console.log('Sources:', sources);
-```
-
-### Search Parameters
-
-The following search parameters are available:
-
-- **mode** _'auto' | 'on' | 'off'_
-
-  Search mode preference:
-
-  - `'auto'` (default): Model decides whether to search
-  - `'on'`: Always enables search
-  - `'off'`: Disables search completely
-
-- **returnCitations** _boolean_
-
-  Whether to return citations in the response. Defaults to `true`.
-
-- **fromDate** _string_
-
-  Start date for search data in ISO8601 format (`YYYY-MM-DD`).
-
-- **toDate** _string_
-
-  End date for search data in ISO8601 format (`YYYY-MM-DD`).
-
-- **maxSearchResults** _number_
-
-  Maximum number of search results to consider. Defaults to 20, max 50.
-
-- **sources** _Array&lt;SearchSource&gt;_
-
-  Data sources to search from. Defaults to `["web", "x"]` if not specified.
-
-### Search Sources
-
-You can specify different types of data sources for search:
-
-#### Web Search
-
-```ts
-const result = await generateText({
-  model: xai('grok-3-latest'),
-  prompt: 'Best ski resorts in Switzerland',
-  providerOptions: {
-    xai: {
-      searchParameters: {
-        mode: 'on',
-        sources: [
-          {
-            type: 'web',
-            country: 'CH', // ISO alpha-2 country code
-            allowedWebsites: ['ski.com', 'snow-forecast.com'],
-            safeSearch: true,
-          },
-        ],
-      },
-    },
-  },
-});
-```
-
-#### Web source parameters
-
-- **country** _string_: ISO alpha-2 country code
-- **allowedWebsites** _string[]_: Max 5 allowed websites
-- **excludedWebsites** _string[]_: Max 5 excluded websites
-- **safeSearch** _boolean_: Enable safe search (default: true)
-
-#### X (Twitter) Search
-
-```ts
-const result = await generateText({
-  model: xai('grok-3-latest'),
-  prompt: 'Latest updates on Grok AI',
-  providerOptions: {
-    xai: {
-      searchParameters: {
-        mode: 'on',
-        sources: [
-          {
-            type: 'x',
-            includedXHandles: ['grok', 'xai'],
-            excludedXHandles: ['openai'],
-            postFavoriteCount: 10,
-            postViewCount: 100,
-          },
-        ],
-      },
-    },
-  },
-});
-```
-
-#### X source parameters
-
-- **includedXHandles** _string[]_: Array of X handles to search (without @ symbol)
-- **excludedXHandles** _string[]_: Array of X handles to exclude from search (without @ symbol)
-- **postFavoriteCount** _number_: Minimum favorite count of the X posts to consider.
-- **postViewCount** _number_: Minimum view count of the X posts to consider.
-
-#### News Search
-
-```ts
-const result = await generateText({
-  model: xai('grok-3-latest'),
-  prompt: 'Recent tech industry news',
-  providerOptions: {
-    xai: {
-      searchParameters: {
-        mode: 'on',
-        sources: [
-          {
-            type: 'news',
-            country: 'US',
-            excludedWebsites: ['tabloid.com'],
-            safeSearch: true,
-          },
-        ],
-      },
-    },
-  },
-});
-```
-
-#### News source parameters
-
-- **country** _string_: ISO alpha-2 country code
-- **excludedWebsites** _string[]_: Max 5 excluded websites
-- **safeSearch** _boolean_: Enable safe search (default: true)
-
-#### RSS Feed Search
-
-```ts
-const result = await generateText({
-  model: xai('grok-3-latest'),
-  prompt: 'Latest status updates',
-  providerOptions: {
-    xai: {
-      searchParameters: {
-        mode: 'on',
-        sources: [
-          {
-            type: 'rss',
-            links: ['https://status.x.ai/feed.xml'],
-          },
-        ],
-      },
-    },
-  },
-});
-```
-
-#### RSS source parameters
-
-- **links** _string[]_: Array of RSS feed URLs (max 1 currently supported)
-
-### Multiple Sources
-
-You can combine multiple data sources in a single search:
-
-```ts
-const result = await generateText({
-  model: xai('grok-3-latest'),
-  prompt: 'Comprehensive overview of recent AI breakthroughs',
-  providerOptions: {
-    xai: {
-      searchParameters: {
-        mode: 'on',
-        returnCitations: true,
-        maxSearchResults: 15,
-        sources: [
-          {
-            type: 'web',
-            allowedWebsites: ['arxiv.org', 'openai.com'],
-          },
-          {
-            type: 'news',
-            country: 'US',
-          },
-          {
-            type: 'x',
-            includedXHandles: ['openai', 'deepmind'],
-          },
-        ],
-      },
-    },
-  },
-});
-```
-
-### Sources and Citations
-
-When search is enabled with `returnCitations: true`, the response includes sources that were used to generate the answer:
-
-```ts
-const { text, sources } = await generateText({
-  model: xai('grok-3-latest'),
-  prompt: 'What are the latest developments in AI?',
-  providerOptions: {
-    xai: {
-      searchParameters: {
-        mode: 'auto',
-        returnCitations: true,
-      },
-    },
-  },
-});
-
-// Access the sources used
-for (const source of sources) {
-  if (source.sourceType === 'url') {
-    console.log('Source:', source.url);
-  }
-}
-```
-
-### Streaming with Search
-
-Live Search works with streaming responses. Citations are included when the stream completes:
-
-```ts
-import { streamText } from 'ai';
-
-const result = streamText({
-  model: xai('grok-3-latest'),
-  prompt: 'What has happened in tech recently?',
-  providerOptions: {
-    xai: {
-      searchParameters: {
-        mode: 'auto',
-        returnCitations: true,
-      },
-    },
-  },
-});
-
-for await (const textPart of result.textStream) {
-  process.stdout.write(textPart);
-}
-
-console.log('Sources:', await result.sources);
-```
-
 ## Model Capabilities
 
 | Model                         | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Reasoning           |
 | ----------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `grok-4-1`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-4.20-reasoning`         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-4.20-non-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-4-1-fast-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `grok-4-1-fast-non-reasoning` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-4-fast-non-reasoning`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `grok-4-1`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-4-fast-reasoning`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `grok-4-fast-non-reasoning`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-code-fast-1`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-4`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-4-0709`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-4-latest`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-3`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3-latest`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3-fast`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-3-fast-latest`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `grok-3-mini`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini-latest`          | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini-fast`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-3-mini-fast-latest`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `grok-2`                      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-latest`               | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-1212`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-vision`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-vision-latest`        | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-2-vision-1212`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-beta`                   | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `grok-vision-beta`            | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [xAI
@@ -777,34 +471,407 @@ import { xai } from '@ai-sdk/xai';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: xai.image('grok-2-image'),
+  model: xai.image('grok-imagine-image'),
   prompt: 'A futuristic cityscape at sunset',
 });
 ```
 
 <Note>
-  The xAI image model does not currently support the `aspectRatio` or `size`
-  parameters. Image size defaults to 1024x768.
+  The xAI image model does not support the `size` parameter. Use `aspectRatio`
+  instead. Supported aspect ratios: `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`,
+  `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, and `auto`.
 </Note>
 
-### Model-specific options
+### Image Editing
 
-You can customize the image generation behavior with model-specific settings:
+xAI supports image editing through the `grok-imagine-image` model. Pass input images via `prompt.images` to transform or edit existing images.
+
+<Note>
+  xAI image editing does not support masks. Editing is prompt-driven - describe
+  what you want to change in the text prompt.
+</Note>
+
+#### Basic Image Editing
+
+Transform an existing image using text prompts:
 
 ```ts
 import { xai } from '@ai-sdk/xai';
 import { generateImage } from 'ai';
+import { readFileSync } from 'fs';
+
+const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: xai.image('grok-2-image'),
-  prompt: 'A futuristic cityscape at sunset',
-  maxImagesPerCall: 5, // Default is 10
-  n: 2, // Generate 2 images
+  model: xai.image('grok-imagine-image'),
+  prompt: {
+    text: 'Turn the cat into a golden retriever dog',
+    images: [imageBuffer],
+  },
 });
 ```
 
-### Model Capabilities
+#### Multi-Image Editing
 
-| Model          | Sizes              | Notes                                                                                                                                                                                                    |
-| -------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `grok-2-image` | 1024x768 (default) | xAI's text-to-image generation model, designed to create high-quality images from text prompts. It's trained on a diverse dataset and can generate images across various styles, subjects, and settings. |
+Combine or reference multiple input images in the prompt:
+
+```ts
+import { xai } from '@ai-sdk/xai';
+import { generateImage } from 'ai';
+import { readFileSync } from 'fs';
+
+const cat = readFileSync('./cat.png');
+const dog = readFileSync('./dog.png');
+
+const { images } = await generateImage({
+  model: xai.image('grok-imagine-image'),
+  prompt: {
+    text: 'Combine these two animals into a group photo',
+    images: [cat, dog],
+  },
+});
+```
+
+#### Style Transfer
+
+Apply artistic styles to an image:
+
+```ts
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: xai.image('grok-imagine-image'),
+  prompt: {
+    text: 'Transform this into a watercolor painting style',
+    images: [imageBuffer],
+  },
+  aspectRatio: '1:1',
+});
+```
+
+<Note>
+  Input images can be provided as `Buffer`, `ArrayBuffer`, `Uint8Array`, or
+  base64-encoded strings.
+</Note>
+
+### Image Provider Options
+
+You can customize the image generation behavior with provider-specific settings via `providerOptions.xai`:
+
+```ts
+import { xai, type XaiImageModelOptions } from '@ai-sdk/xai';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: xai.image('grok-imagine-image-pro'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
+  providerOptions: {
+    xai: {
+      resolution: '2k',
+      quality: 'high',
+    } satisfies XaiImageModelOptions,
+  },
+});
+```
+
+- **resolution** _'1k' | '2k'_
+
+  Output resolution. `1k` produces ~1024×1024 images, `2k` produces ~2048×2048
+  images (actual dimensions vary based on aspect ratio). Available for
+  `grok-imagine-image-pro`.
+
+- **quality** _'low' | 'medium' | 'high'_
+
+  Image quality level. Higher quality may increase generation time.
+
+### Image Model Capabilities
+
+| Model                    | Resolution   | Aspect Ratios                                                                                               | Image Editing       |
+| ------------------------ | ------------ | ----------------------------------------------------------------------------------------------------------- | ------------------- |
+| `grok-imagine-image-pro` | `1k`, `2k`   | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
+| `grok-imagine-image`     | `1k`         | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check size={18} /> |
+
+## Video Models
+
+You can create xAI video models using the `.video()` factory method.
+For more on video generation with the AI SDK see [generateVideo()](/docs/reference/ai-sdk-core/generate-video).
+
+This provider supports standard video generation from text prompts or image input, plus explicit video editing, video extension, and reference-to-video (R2V) operations.
+
+### Text-to-Video
+
+Generate videos from text prompts:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'A chicken flying into the sunset in the style of 90s anime.',
+  aspectRatio: '16:9',
+  duration: 5,
+  providerOptions: {
+    xai: {
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+### Generation with Image Input
+
+Generate videos using an image as the starting frame with an optional text prompt. This uses the standard generation path rather than a separate provider mode:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: {
+    image: 'https://example.com/start-frame.png',
+    text: 'The cat slowly turns its head and blinks',
+  },
+  duration: 5,
+  providerOptions: {
+    xai: {
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+### Video Editing
+
+Edit an existing video using a text prompt by providing a source video URL via provider options:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'Give the person sunglasses and a hat',
+  providerOptions: {
+    xai: {
+      mode: 'edit-video',
+      videoUrl: 'https://example.com/source-video.mp4',
+      pollTimeoutMs: 600000, // 10 minutes
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+<Note>
+  Video editing accepts input videos up to 8.7 seconds long. The `duration`,
+  `aspectRatio`, and `resolution` parameters are not supported for editing - the
+  output matches the input video's properties (capped at 720p).
+</Note>
+
+### Chaining and Concurrent Edits
+
+The xAI-hosted video URL is available in `providerMetadata.xai.videoUrl`.
+You can use it to chain sequential edits or branch into concurrent edits
+using `Promise.all`:
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const providerOptions = {
+  xai: {
+    mode: 'edit-video',
+    videoUrl: 'https://example.com/source-video.mp4',
+    pollTimeoutMs: 600000,
+  } satisfies XaiVideoModelOptions,
+};
+
+// Step 1: Apply an initial edit
+const step1 = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'Add a party hat to the person',
+  providerOptions,
+});
+
+// Get the xAI-hosted URL from provider metadata
+const step1VideoUrl = step1.providerMetadata?.xai?.videoUrl as string;
+
+// Step 2: Apply two more edits concurrently, building on step 1
+const [withSunglasses, withScarf] = await Promise.all([
+  generateVideo({
+    model: xai.video('grok-imagine-video'),
+    prompt: 'Add sunglasses',
+    providerOptions: {
+      xai: { mode: 'edit-video', videoUrl: step1VideoUrl, pollTimeoutMs: 600000 },
+    },
+  }),
+  generateVideo({
+    model: xai.video('grok-imagine-video'),
+    prompt: 'Add a scarf',
+    providerOptions: {
+      xai: { mode: 'edit-video', videoUrl: step1VideoUrl, pollTimeoutMs: 600000 },
+    },
+  }),
+]);
+```
+
+### Video Extension
+
+Extend an existing video from its last frame. The `duration` controls the length of the extension only, not the total output. The output inherits `aspectRatio` and `resolution` from the source video.
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+// Step 1: Generate a source video
+const source = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'A cat sitting on a sunlit windowsill, tail gently swishing.',
+  duration: 5,
+  aspectRatio: '16:9',
+  providerOptions: {
+    xai: {
+      pollTimeoutMs: 600000,
+    } satisfies XaiVideoModelOptions,
+  },
+});
+
+const sourceUrl = source.providerMetadata?.xai?.videoUrl as string;
+
+// Step 2: Extend the video with a new scene
+const extended = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt: 'The cat turns its head, notices a butterfly, and leaps off.',
+  duration: 6,
+  providerOptions: {
+    xai: {
+      mode: 'extend-video',
+      videoUrl: sourceUrl,
+      pollTimeoutMs: 600000,
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+<Note>
+  Video extension does not support custom `aspectRatio` or `resolution` — the
+  output inherits those from the source video. `duration` is supported and
+  controls how long the extension is (not the total video length).
+</Note>
+
+### Reference-to-Video (R2V)
+
+Provide reference images to guide the video's style and content. Unlike image-to-video, reference images are not used as the first frame — the model incorporates their visual elements into the generated video. Each reference image can be a public HTTPS URL or a base64 data URI.
+
+```ts
+import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video'),
+  prompt:
+    'The comic cat from <IMAGE_1> and the comic dog from <IMAGE_2> ' +
+    'are having a playful chase through a sunlit park. ' +
+    'Cinematic slow-motion, warm afternoon light.',
+  duration: 8,
+  aspectRatio: '16:9',
+  providerOptions: {
+    xai: {
+      mode: 'reference-to-video',
+      referenceImageUrls: [
+        'https://example.com/comic-cat.png',
+        'https://example.com/comic-dog.png',
+      ],
+      pollTimeoutMs: 600000,
+    } satisfies XaiVideoModelOptions,
+  },
+});
+```
+
+Use `<IMAGE_1>`, `<IMAGE_2>`, etc. in your prompt to reference specific images. Up to 7 reference images are supported per request.
+
+<Note>
+  Reference-to-video supports `duration`, `aspectRatio`, and `resolution`. Use
+  `mode` to select the operation — each mode is mutually exclusive.
+</Note>
+
+### Video Provider Options
+
+The following provider options are available via `providerOptions.xai`.
+You can validate the provider options using the `XaiVideoModelOptions` type.
+
+- **pollIntervalMs** _number_
+
+  Polling interval in milliseconds for checking task status. Defaults to 5000.
+
+- **pollTimeoutMs** _number_
+
+  Maximum wait time in milliseconds for video generation. Defaults to 600000 (10 minutes).
+
+- **resolution** _'480p' | '720p'_
+
+  Video resolution. When using the SDK's standard `resolution` parameter,
+  `1280x720` maps to `720p` and `854x480` maps to `480p`.
+  Use this provider option to pass the native format directly.
+
+- **mode** _'edit-video' | 'extend-video' | 'reference-to-video'_
+
+  Selects the explicit video operation. Each mode is mutually exclusive:
+  - `'edit-video'` — edit an existing video (requires `videoUrl`)
+  - `'extend-video'` — extend a video from its last frame (requires `videoUrl`)
+  - `'reference-to-video'` — generate from reference images (requires `referenceImageUrls`)
+
+  When omitted, standard generation is used. Legacy inputs are still auto-detected from fields for backward compatibility.
+
+- **videoUrl** _string_
+
+  URL of a source video. Used with `mode: 'edit-video'` for video editing
+  and `mode: 'extend-video'` for video extension.
+
+- **referenceImageUrls** _string[]_
+
+  Array of reference image URLs (1–7 images) or base64 data URIs for
+  reference-to-video (R2V) generation. The model incorporates visual
+  elements from these images without using them as the first frame. Use
+  `<IMAGE_1>`, `<IMAGE_2>`, etc. in the prompt to reference specific
+  images. Used with `mode: 'reference-to-video'`.
+
+<Note>
+  Video generation is an asynchronous process that can take several minutes.
+  Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
+  reliable operation. Generated video URLs are ephemeral and should be
+  downloaded promptly.
+</Note>
+
+### Aspect Ratio and Resolution
+
+For **text-to-video**, you can specify both `aspectRatio` and `resolution`.
+The default aspect ratio is `16:9` and the default resolution is `480p`.
+
+For **image-to-video**, the output defaults to the input image's aspect ratio.
+If you specify `aspectRatio`, it will override this and stretch the image to the
+desired ratio.
+
+For **video editing**, the output matches the input video's aspect ratio and
+resolution. Custom `duration`, `aspectRatio`, and `resolution` are not
+supported — the output resolution is capped at 720p (e.g., a 1080p input
+will be downsized to 720p).
+
+For **video extension**, the output inherits `aspectRatio` and `resolution`
+from the source video. `duration` is supported and controls only the
+extension length.
+
+For **reference-to-video (R2V)**, you can specify `duration`, `aspectRatio`,
+and `resolution` just like text-to-video.
+
+### Video Model Capabilities
+
+| Model                | Duration | Aspect Ratios                                     | Resolution     | Image-to-Video      | Editing             | Extension           | R2V                 |
+| -------------------- | -------- | ------------------------------------------------- | -------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `grok-imagine-video` | 1–15s    | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3` | `480p`, `720p` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+<Note>
+  You can also pass any available provider model ID as a string if needed.
+</Note>

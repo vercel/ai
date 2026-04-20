@@ -86,7 +86,7 @@ You can configure how the reasoning is exposed in the generated text by using th
 It supports the options `parsed`, `hidden`, and `raw`.
 
 ```ts
-import { groq } from '@ai-sdk/groq';
+import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 
 const result = await generateText({
@@ -98,7 +98,7 @@ const result = await generateText({
       parallelToolCalls: true, // Enable parallel function calling (default: true)
       user: 'user-123', // Unique identifier for end-user (optional)
       serviceTier: 'flex', // Use flex tier for higher throughput (optional)
-    },
+    } satisfies GroqLanguageModelOptions,
   },
   prompt: 'How many "r"s are in the word "strawberry"?',
 });
@@ -152,15 +152,16 @@ The following optional provider options are available for Groq language models:
 
   A unique identifier representing your end-user, which can help with monitoring and abuse detection.
 
-- **serviceTier** _'on_demand' | 'flex' | 'auto'_
+- **serviceTier** _'on_demand' | 'performance' | 'flex' | 'auto'_
 
   Service tier for the request. Defaults to `'on_demand'`.
 
   - `'on_demand'`: Default tier with consistent performance and fairness
+  - `'performance'`: Prioritized tier for latency-sensitive workloads
   - `'flex'`: Higher throughput tier (10x rate limits) optimized for workloads that can handle occasional request failures
   - `'auto'`: Uses on_demand rate limits first, then falls back to flex tier if exceeded
 
-  For more details about service tiers and their benefits, see [Groq's Flex Processing documentation](https://console.groq.com/docs/flex-processing).
+  For more details about service tiers and their benefits, see [Groq's service tiers documentation](https://console.groq.com/docs/service-tiers).
 
 <Note>Only Groq reasoning models support the `reasoningFormat` option.</Note>
 
@@ -171,49 +172,53 @@ You can disable them by setting the `structuredOutputs` option to `false`.
 
 ```ts
 import { groq } from '@ai-sdk/groq';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: groq('moonshotai/kimi-k2-instruct-0905'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      instructions: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        instructions: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a simple pasta recipe.',
 });
 
-console.log(JSON.stringify(result.object, null, 2));
+console.log(JSON.stringify(result.output, null, 2));
 ```
 
 You can disable structured outputs for models that don't support them:
 
 ```ts highlight="9"
-import { groq } from '@ai-sdk/groq';
-import { generateObject } from 'ai';
+import { groq, type GroqLanguageModelOptions } from '@ai-sdk/groq';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
-const result = await generateObject({
+const result = await generateText({
   model: groq('gemma2-9b-it'),
   providerOptions: {
     groq: {
       structuredOutputs: false,
-    },
+    } satisfies GroqLanguageModelOptions,
   },
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.string()),
-      instructions: z.array(z.string()),
+  output: Output.object({
+    schema: z.object({
+      recipe: z.object({
+        name: z.string(),
+        ingredients: z.array(z.string()),
+        instructions: z.array(z.string()),
+      }),
     }),
   }),
   prompt: 'Generate a simple pasta recipe in JSON format.',
 });
 
-console.log(JSON.stringify(result.object, null, 2));
+console.log(JSON.stringify(result.output, null, 2));
 ```
 
 <Note type="warning">
@@ -433,13 +438,15 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
-import { groq } from '@ai-sdk/groq';
+import { groq, type GroqTranscriptionModelOptions } from '@ai-sdk/groq';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: groq.transcription('whisper-large-v3'),
   audio: await readFile('audio.mp3'),
-  providerOptions: { groq: { language: 'en' } },
+  providerOptions: {
+    groq: { language: 'en' } satisfies GroqTranscriptionModelOptions,
+  },
 });
 ```
 

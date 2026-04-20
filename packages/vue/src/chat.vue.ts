@@ -7,9 +7,9 @@ import {
 } from 'ai';
 import { Ref, ref } from 'vue';
 
-class VueChatState<UI_MESSAGE extends UIMessage>
-  implements ChatState<UI_MESSAGE>
-{
+class VueChatState<
+  UI_MESSAGE extends UIMessage,
+> implements ChatState<UI_MESSAGE> {
   private messagesRef: Ref<UI_MESSAGE[]>;
   private statusRef = ref<ChatStatus>('ready');
   private errorRef = ref<Error | undefined>(undefined);

@@ -1,7 +1,7 @@
 import {
-  ImageModelV3,
-  ImageModelV3File,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4File,
+  SharedV4Warning,
   InvalidResponseDataError,
 } from '@ai-sdk/provider';
 import {
@@ -18,8 +18,11 @@ import {
   lazySchema,
   parseProviderOptions,
   zodSchema,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
-import { LumaImageSettings, LumaReferenceType } from './luma-image-settings';
+import { LumaReferenceType } from './luma-image-settings';
 import { z } from 'zod/v4';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -28,21 +31,35 @@ const DEFAULT_MAX_POLL_ATTEMPTS = 60000 / DEFAULT_POLL_INTERVAL_MILLIS;
 interface LumaImageModelConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string>;
+  headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   _internal?: {
     currentDate?: () => Date;
   };
 }
 
-export class LumaImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3';
+export class LumaImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
   readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
   readonly maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS;
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: LumaImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: LumaImageModelConfig;
+  }) {
+    return new LumaImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -52,7 +69,6 @@ export class LumaImageModel implements ImageModelV3 {
 
   async doGenerate({
     prompt,
-    n,
     size,
     aspectRatio,
     seed,
@@ -61,10 +77,10 @@ export class LumaImageModel implements ImageModelV3 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV3['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV3['doGenerate']>>
+  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
-    const warnings: Array<SharedV3Warning> = [];
+    const warnings: Array<SharedV4Warning> = [];
 
     if (seed != null) {
       warnings.push({
@@ -87,7 +103,7 @@ export class LumaImageModel implements ImageModelV3 {
     const lumaOptions = await parseProviderOptions({
       provider: 'luma',
       providerOptions,
-      schema: lumaImageProviderOptionsSchema,
+      schema: lumaImageModelOptionsSchema,
     });
 
     // Extract non-request options
@@ -108,7 +124,7 @@ export class LumaImageModel implements ImageModelV3 {
     );
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const fullHeaders = combineHeaders(this.config.headers(), headers);
+    const fullHeaders = combineHeaders(this.config.headers?.(), headers);
     const { value: generationResponse, responseHeaders } = await postJsonToApi({
       url: this.getLumaGenerationsUrl(),
       headers: fullHeaders,
@@ -206,8 +222,8 @@ export class LumaImageModel implements ImageModelV3 {
   }
 
   private getEditingOptions(
-    files: ImageModelV3File[] | undefined,
-    mask: ImageModelV3File | undefined,
+    files: ImageModelV4File[] | undefined,
+    mask: ImageModelV4File | undefined,
     referenceType: LumaReferenceType = 'image',
     imageConfigs: Array<{ weight?: number | null; id?: string | null }> = [],
   ): Record<string, unknown> {
@@ -380,7 +396,7 @@ export type LumaErrorData = z.infer<typeof lumaErrorSchema>;
  *
  * @see https://docs.lumalabs.ai/docs/image-generation
  */
-export const lumaImageProviderOptionsSchema = lazySchema(() =>
+export const lumaImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z
       .object({
@@ -436,6 +452,6 @@ export const lumaImageProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type LumaImageProviderOptions = InferSchema<
-  typeof lumaImageProviderOptionsSchema
+export type LumaImageModelOptions = InferSchema<
+  typeof lumaImageModelOptionsSchema
 >;

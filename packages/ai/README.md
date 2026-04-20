@@ -24,13 +24,13 @@ npx skills add vercel/ai
 
 ## Unified Provider Architecture
 
-The AI SDK provides a [unified API](https://ai-sdk.dev/docs/foundations/providers-and-models) to interact with model providers like [OpenAI](https://ai-sdk.dev/providers/ai-sdk-providers/openai), [Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic), [Google](https://ai-sdk.dev/providers/ai-sdk-providers/google-generative-ai), and [more](https://ai-sdk.dev/providers/ai-sdk-providers).
+The AI SDK provides a [unified API](https://ai-sdk.dev/docs/foundations/providers-and-models) to interact with model providers like [OpenAI](https://ai-sdk.dev/providers/ai-sdk-providers/openai), [Anthropic](https://ai-sdk.dev/providers/ai-sdk-providers/anthropic), [Google](https://ai-sdk.dev/providers/ai-sdk-providers/google), and [more](https://ai-sdk.dev/providers/ai-sdk-providers).
 
 By default, the AI SDK uses the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) to give you access to all major providers out of the box. Just pass a model string for any supported model:
 
 ```ts
 const result = await generateText({
-  model: 'anthropic/claude-opus-4.5', // or 'openai/gpt-5.2', 'google/gemini-3-flash', etc.
+  model: 'anthropic/claude-opus-4.6', // or 'openai/gpt-5.4', 'google/gemini-3-flash', etc.
   prompt: 'Hello!',
 });
 ```
@@ -45,7 +45,7 @@ npm install @ai-sdk/openai @ai-sdk/anthropic @ai-sdk/google
 import { anthropic } from '@ai-sdk/anthropic';
 
 const result = await generateText({
-  model: anthropic('claude-opus-4-5-20250414'), // or openai('gpt-5.2'), google('gemini-3-flash'), etc.
+  model: anthropic('claude-opus-4-6'), // or openai('gpt-5.4'), google('gemini-3-flash'), etc.
   prompt: 'Hello!',
 });
 ```
@@ -58,17 +58,7 @@ const result = await generateText({
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5', // use Vercel AI Gateway
-  prompt: 'What is an agent?',
-});
-```
-
-```ts
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-const { text } = await generateText({
-  model: openai('gpt-5'), // use OpenAI Responses API
+  model: 'openai/gpt-5.4', // use Vercel AI Gateway
   prompt: 'What is an agent?',
 });
 ```
@@ -80,7 +70,7 @@ import { generateText, Output } from 'ai';
 import { z } from 'zod';
 
 const { output } = await generateText({
-  model: 'openai/gpt-5',
+  model: 'openai/gpt-5.4',
   output: Output.object({
     schema: z.object({
       recipe: z.object({
@@ -102,7 +92,7 @@ const { output } = await generateText({
 import { ToolLoopAgent } from 'ai';
 
 const sandboxAgent = new ToolLoopAgent({
-  model: 'openai/gpt-5',
+  model: 'openai/gpt-5.4',
   system: 'You are an agent with access to a shell environment.',
   tools: {
     shell: openai.tools.localShell({
@@ -134,7 +124,7 @@ import { openai } from '@ai-sdk/openai';
 import { ToolLoopAgent, InferAgentUIMessage } from 'ai';
 
 export const imageGenerationAgent = new ToolLoopAgent({
-  model: openai('gpt-5'),
+  model: 'openai/gpt-5.4',
   tools: {
     generateImage: openai.tools.imageGeneration({
       partialImages: 3,

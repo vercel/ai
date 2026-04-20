@@ -295,7 +295,10 @@ describe('user messages', () => {
     ).toThrow("'PDF file parts with URLs' functionality not supported");
   });
 
-  it('should convert messages with text/markdown parts', async () => {
+  it('should convert messages with base64-encoded text/markdown parts', async () => {
+    const markdownText = '# Hello World\n\nThis is **markdown** content.';
+    const base64Data = btoa(markdownText);
+
     const result = convertToOpenAICompatibleChatMessages([
       {
         role: 'user',
@@ -303,7 +306,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Summarize this document' },
           {
             type: 'file',
-            data: '# Hello World\n\nThis is **markdown** content.',
+            data: base64Data,
             mediaType: 'text/markdown',
           },
         ],
@@ -317,7 +320,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Summarize this document' },
           {
             type: 'text',
-            text: '# Hello World\n\nThis is **markdown** content.',
+            text: markdownText,
           },
         ],
       },
@@ -333,6 +336,33 @@ describe('user messages', () => {
           {
             type: 'file',
             data: encoder.encode('Plain text content'),
+            mediaType: 'text/plain',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Plain text content',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should decode base64 string data for text/* file parts', async () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: Buffer.from('Plain text content').toString('base64'),
             mediaType: 'text/plain',
           },
         ],
@@ -427,7 +457,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -476,7 +506,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -602,7 +632,7 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call1',
@@ -969,7 +999,7 @@ describe('provider-specific metadata merging', () => {
         role: 'assistant',
         cacheControl: { type: 'default' },
         sharedKey: 'assistantLevel',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'collisionToolCall',
@@ -1011,7 +1041,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'function-call-1',
@@ -1104,7 +1134,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     // Verify both signatures are preserved
     expect(result[1]).toEqual({
       role: 'assistant',
-      content: '',
+      content: null,
       tool_calls: [
         {
           id: 'function-call-1',
@@ -1124,7 +1154,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
 
     expect(result[3]).toEqual({
       role: 'assistant',
-      content: '',
+      content: null,
       tool_calls: [
         {
           id: 'function-call-2',
@@ -1173,7 +1203,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'function-call-paris',
@@ -1220,7 +1250,7 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call-1',
@@ -1229,7 +1259,6 @@ describe('Google Gemini thought signatures (OpenAI compatibility)', () => {
               name: 'some_tool',
               arguments: JSON.stringify({ param: 'value' }),
             },
-            // No extra_content field
           },
         ],
       },

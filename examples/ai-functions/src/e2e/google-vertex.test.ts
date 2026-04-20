@@ -1,6 +1,6 @@
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
 import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
-import { ImageModelV3, LanguageModelV3 } from '@ai-sdk/provider';
+import { ImageModelV3, ImageModelV4 } from '@ai-sdk/provider';
 import { APICallError, generateImage } from 'ai';
 import 'dotenv/config';
 import { describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,7 @@ import {
   createImageModelWithCapabilities,
   createLanguageModelWithCapabilities,
   defaultChatModelCapabilities,
+  ModelCapabilities,
   ModelWithCapabilities,
 } from './feature-test-suite';
 import { wrapLanguageModel } from 'ai';
@@ -29,7 +30,7 @@ const RUNTIME_VARIANTS = {
 const createBaseModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV3> =>
+) =>
   createLanguageModelWithCapabilities(vertex(modelId), [
     ...defaultChatModelCapabilities,
     'audioInput',
@@ -38,25 +39,31 @@ const createBaseModel = (
 const createSearchGroundedModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV3> => ({
+) => ({
   model: wrapLanguageModel({
     model: vertex(modelId),
     middleware: defaultSettingsMiddleware({
       settings: {
-        providerOptions: {
-          google: {
-            useSearchGrounding: true,
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.google_search',
+            name: 'google_search',
+            args: {},
           },
-        },
+        ],
       },
     }),
   }),
-  capabilities: [...defaultChatModelCapabilities, 'searchGrounding'],
+  capabilities: [
+    ...defaultChatModelCapabilities,
+    'searchGrounding',
+  ] as ModelCapabilities,
 });
 
 const createModelObject = (
-  imageModel: ImageModelV3,
-): { model: ImageModelV3; modelId: string } => ({
+  imageModel: ImageModelV4,
+): { model: ImageModelV4; modelId: string } => ({
   model: imageModel,
   modelId: imageModel.modelId,
 });
@@ -64,8 +71,8 @@ const createModelObject = (
 const createImageModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-  additionalTests: ((model: ImageModelV3) => void)[] = [],
-): ModelWithCapabilities<ImageModelV3> => {
+  additionalTests: ((model: ImageModelV4) => void)[] = [],
+): ModelWithCapabilities<ImageModelV3 | ImageModelV4> => {
   const model = vertex.image(modelId);
 
   if (additionalTests.length > 0) {
@@ -82,7 +89,7 @@ const createImageModel = (
 const createModelVariants = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV3>[] => [
+) => [
   createBaseModel(vertex, modelId),
   createSearchGroundedModel(vertex, modelId),
 ];
@@ -92,11 +99,8 @@ const createModelsForRuntime = (
 ) => ({
   invalidModel: vertex('no-such-model'),
   languageModels: [
-    ...createModelVariants(vertex, 'gemini-2.0-flash-exp'),
-    ...createModelVariants(vertex, 'gemini-1.5-flash'),
-    // Gemini 2.0 and Pro models have low quota limits and may require billing enabled.
-    // ...createModelVariants(vertex, 'gemini-1.5-pro-001'),
-    // ...createModelVariants(vertex, 'gemini-1.0-pro-001'),
+    ...createModelVariants(vertex, 'gemini-2.5-flash-image'),
+    ...createModelVariants(vertex, 'gemini-2.5-flash'),
   ],
   embeddingModels: [
     createEmbeddingModelWithCapabilities(
@@ -151,7 +155,7 @@ function detectImageMediaType(
   return undefined;
 }
 
-const imageTest = (model: ImageModelV3) => {
+const imageTest = (model: ImageModelV4) => {
   vi.setConfig({ testTimeout: 10000 });
 
   it('should generate an image with correct dimensions and format', async () => {

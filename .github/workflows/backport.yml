@@ -1,6 +1,7 @@
-# Backport pull requests to the latest stable release branch
-# by adding a "backport" label to pull request against the
-# main branch. The label can be added before or after merging.
+# Backport pull requests to the next-older release branch by adding
+# a "backport" label. Works on PRs against `main` (targets the latest
+# release-v* branch) and on PRs against `release-v*` branches
+# (targets the next-older release-v* branch).
 
 name: Backport
 
@@ -9,6 +10,7 @@ on:
     types: [closed, labeled]
     branches:
       - main
+      - release-v*
 
 concurrency: ${{ github.workflow }}-${{ github.event.pull_request.number }}
 
@@ -18,31 +20,28 @@ permissions:
 
 jobs:
   find-branch:
-    name: Find latest release branch
+    name: Find target release branch
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Only run when backport label is present and PR is merged in main repository
     if: |
       github.repository_owner == 'vercel' &&
       github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'backport') &&
-      github.event.pull_request.base.ref == 'main'
+      contains(github.event.pull_request.labels.*.name, 'backport')
     outputs:
-      release-branch: ${{ steps.find-latest-release.outputs.release-branch }}
+      release-branch: ${{ steps.find-target.outputs.release-branch }}
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Find latest release branch
-        id: find-latest-release
+      - name: Find target release branch
+        id: find-target
         run: |
-          # Fetch all remote branches
           git fetch --all
 
-          # Find all release branches matching the pattern release-vX.Y
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
           RELEASE_BRANCHES=$(git branch -r | grep -E 'origin/release-v[0-9]+\.[0-9]+$' | sed 's/.*origin\///' | sort -V)
 
           if [ -z "$RELEASE_BRANCHES" ]; then
@@ -50,28 +49,34 @@ jobs:
             exit 1
           fi
 
-          # Get the latest release branch (last in sorted order)
-          LATEST_RELEASE=$(echo "$RELEASE_BRANCHES" | tail -n 1)
-
           echo "Found release branches: $RELEASE_BRANCHES"
-          echo "Latest release branch: $LATEST_RELEASE"
-          echo "release-branch=$LATEST_RELEASE" >> "$GITHUB_OUTPUT"
+
+          if [ "$BASE_REF" = "main" ]; then
+            TARGET=$(echo "$RELEASE_BRANCHES" | tail -n 1)
+          else
+            TARGET=$(echo "$RELEASE_BRANCHES" | grep -B1 "^${BASE_REF}$" | head -n 1)
+            if [ "$TARGET" = "$BASE_REF" ] || [ -z "$TARGET" ]; then
+              echo "::error::No older release branch found before $BASE_REF"
+              exit 1
+            fi
+          fi
+
+          echo "Target release branch: $TARGET"
+          echo "release-branch=$TARGET" >> "$GITHUB_OUTPUT"
 
   backport:
     name: Backport to ${{ needs.find-branch.outputs.release-branch }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: find-branch
-    # Only run on merged PRs with backport label in the main repository
     if: |
       github.repository_owner == 'vercel' &&
       github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'backport') &&
-      github.event.pull_request.base.ref == 'main'
+      contains(github.event.pull_request.labels.*.name, 'backport')
 
     steps:
       - name: Create access token for GitHub App
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         id: app-token
         with:
           app-id: ${{ vars.VERCEL_AI_SDK_GITHUB_APP_CLIENT_ID }}
@@ -88,19 +93,41 @@ jobs:
           git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
           git config --global user.email '${{ steps.app-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
 
+      - name: Check for existing backport PR
+        id: check-existing
+        run: |
+          BACKPORT_BRANCH="backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}"
+          EXISTING_PR=$(gh api "repos/${{ github.repository }}/pulls?head=${{ github.repository_owner }}:${BACKPORT_BRANCH}&state=open" --jq '.[0].html_url // empty')
+          if [ -n "$EXISTING_PR" ]; then
+            echo "Backport PR already exists: $EXISTING_PR — skipping."
+            echo "existing-pr=$EXISTING_PR" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Remove backport label (already backported)
+        if: steps.check-existing.outputs.existing-pr
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --remove-label backport || true
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        if: '!steps.check-existing.outputs.existing-pr'
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
           ref: ${{ needs.find-branch.outputs.release-branch }}
 
       - name: Create backport branch
+        if: '!steps.check-existing.outputs.existing-pr'
         run: |
           # Create a new branch from the latest release branch for the backport
           git checkout -b backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} origin/${{ needs.find-branch.outputs.release-branch }}
 
       - name: Cherry-pick commits
+        if: '!steps.check-existing.outputs.existing-pr'
         id: cherry-pick
         run: |
           # Get the merge commit hash
@@ -122,7 +149,7 @@ jobs:
           fi
 
       - name: Remap example paths for release-v5.0
-        if: needs.find-branch.outputs.release-branch == 'release-v5.0' && steps.cherry-pick.outputs.has-conflicts == 'false'
+        if: "!steps.check-existing.outputs.existing-pr && needs.find-branch.outputs.release-branch == 'release-v5.0' && steps.cherry-pick.outputs.has-conflicts == 'false'"
         run: |
           # On release-v5.0, examples are in examples/ai-core/ but on main they are in examples/ai-functions/
           # If the cherry-pick created examples/ai-functions/, move the files to examples/ai-core/
@@ -149,18 +176,53 @@ jobs:
           fi
 
       - name: Commit changes in case of errors
-        if: steps.cherry-pick.outputs.has-conflicts == 'true'
+        if: "!steps.check-existing.outputs.existing-pr && steps.cherry-pick.outputs.has-conflicts == 'true'"
         run: |
           # In case of failure, commit the conflicts to allow inspection
           git add .
           git commit -m "Backport conflicts for PR #${{ github.event.pull_request.number }} to ${{ needs.find-branch.outputs.release-branch }}"
       - name: Push backport branch
+        if: '!steps.check-existing.outputs.existing-pr'
         run: |
-          git push origin backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}
+          BACKPORT_BRANCH="backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }}"
+          if git ls-remote --exit-code origin "refs/heads/${BACKPORT_BRANCH}" > /dev/null 2>&1; then
+            echo "Branch ${BACKPORT_BRANCH} already exists on remote (orphaned from a previous run). Force-pushing."
+            git push --force-with-lease origin "${BACKPORT_BRANCH}"
+          else
+            git push origin "${BACKPORT_BRANCH}"
+          fi
+
+      - name: Determine PR assignee
+        if: '!steps.check-existing.outputs.existing-pr'
+        id: assignee
+        run: |
+          if [ "$MERGED_BY_TYPE" = "User" ]; then
+            echo "login=$MERGED_BY_LOGIN" >> "$GITHUB_OUTPUT"
+          elif [ "$PR_AUTHOR_TYPE" = "User" ]; then
+            echo "login=$PR_AUTHOR_LOGIN" >> "$GITHUB_OUTPUT"
+          else
+            REVIEWER=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews" \
+              --jq '[.[] | select(.user.type == "User")] | last | .user.login // empty')
+            if [ -n "$REVIEWER" ]; then
+              echo "login=$REVIEWER" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          MERGED_BY_TYPE: ${{ github.event.pull_request.merged_by.type }}
+          MERGED_BY_LOGIN: ${{ github.event.pull_request.merged_by.login }}
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+          PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
 
       - name: Create backport pull request
+        if: '!steps.check-existing.outputs.existing-pr'
         id: create-pr
         run: |
+          ASSIGNEE_FLAG=""
+          if [ -n "$ASSIGNEE_LOGIN" ]; then
+            ASSIGNEE_FLAG="--assignee $ASSIGNEE_LOGIN"
+          fi
+
           # Create the backport PR
           if [ "${{ steps.cherry-pick.outputs.has-conflicts }}" = "true" ]; then
             PR_URL=$(gh pr create \
@@ -168,7 +230,7 @@ jobs:
               --body "$PR_BODY_CONFLICTS" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
               --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} \
-              --assignee ${{ github.event.pull_request.merged_by.login }} \
+              $ASSIGNEE_FLAG \
               --draft)
           else
             PR_URL=$(gh pr create \
@@ -176,13 +238,14 @@ jobs:
               --body "$PR_BODY_NO_CONFLICTS" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
               --head backport-pr-${{ github.event.pull_request.number }}-to-${{ needs.find-branch.outputs.release-branch }} \
-              --assignee ${{ github.event.pull_request.merged_by.login }})
+              $ASSIGNEE_FLAG)
           fi
           echo "backport-pr-url=$PR_URL" >> "$GITHUB_OUTPUT"
           gh pr merge "$PR_URL" --auto --squash || echo "Auto-merge could not be enabled"
           echo "Created backport PR $PR_URL"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          ASSIGNEE_LOGIN: ${{ steps.assignee.outputs.login }}
           PR_TITLE: 'Backport: ${{ github.event.pull_request.title }}'
           PR_BODY_NO_CONFLICTS: 'This is an automated backport of #${{ github.event.pull_request.number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ github.event.pull_request.user.login }}'
           PR_BODY_CONFLICTS: |
@@ -197,7 +260,7 @@ jobs:
             ```
 
       - name: Remove backport label from original PR
-        if: steps.create-pr.outputs.backport-pr-url
+        if: '!steps.check-existing.outputs.existing-pr && steps.create-pr.outputs.backport-pr-url'
         run: |
           # Remove the backport label from the original PR
           gh pr edit ${{ github.event.pull_request.number }} --remove-label backport
@@ -206,21 +269,21 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Success Comment on original PR
-        if: steps.cherry-pick.outputs.has-conflicts == 'false' && steps.create-pr.outputs.backport-pr-url
+        if: "!steps.check-existing.outputs.existing-pr && steps.cherry-pick.outputs.has-conflicts == 'false' && steps.create-pr.outputs.backport-pr-url"
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "✅ Backport PR created: ${{ steps.create-pr.outputs.backport-pr-url }}"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Error Comment on original PR
-        if: steps.cherry-pick.outputs.has-conflicts == 'true' && steps.create-pr.outputs.backport-pr-url
+        if: "!steps.check-existing.outputs.existing-pr && steps.cherry-pick.outputs.has-conflicts == 'true' && steps.create-pr.outputs.backport-pr-url"
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ Backport to ${{ needs.find-branch.outputs.release-branch }} created but has conflicts: ${{ steps.create-pr.outputs.backport-pr-url }}"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Pull request failure Comment on original PR
-        if: steps.cherry-pick.outputs.has-conflicts == 'true' && !steps.create-pr.outputs.backport-pr-url
+        if: "!steps.check-existing.outputs.existing-pr && steps.cherry-pick.outputs.has-conflicts == 'true' && !steps.create-pr.outputs.backport-pr-url"
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "❌ Backport to ${{ needs.find-branch.outputs.release-branch }} failed. This backport requires manual intervention. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
         env:

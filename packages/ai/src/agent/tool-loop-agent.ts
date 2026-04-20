@@ -1,15 +1,18 @@
+import type { Context, ModelMessage, ToolSet } from '@ai-sdk/provider-utils';
 import { generateText } from '../generate-text/generate-text';
 import { GenerateTextResult } from '../generate-text/generate-text-result';
 import { Output } from '../generate-text/output';
-import { StepResult } from '../generate-text/step-result';
-import { stepCountIs } from '../generate-text/stop-condition';
+import { isStepCount } from '../generate-text/stop-condition';
 import { streamText } from '../generate-text/stream-text';
 import { StreamTextResult } from '../generate-text/stream-text-result';
-import { ToolSet } from '../generate-text/tool-set';
 import { Prompt } from '../prompt';
+import { mergeCallbacks } from '../util/merge-callbacks';
 import { Agent, AgentCallParameters, AgentStreamParameters } from './agent';
-import { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-on-step-finish-callback';
-import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
+import {
+  ToolLoopAgentOnStartCallback,
+  ToolLoopAgentOnStepStartCallback,
+  ToolLoopAgentSettings,
+} from './tool-loop-agent-settings';
 
 /**
  * A tool loop agent is an agent that runs tools in a loop. In each step,
@@ -19,20 +22,32 @@ import { ToolLoopAgentSettings } from './tool-loop-agent-settings';
  * The loop continues until:
  * - A finish reasoning other than tool-calls is returned, or
  * - A tool that is invoked does not have an execute function, or
- * - A tool call needs approval, or
- * - A stop condition is met (default stop condition is stepCountIs(20))
+ * - A tool call needs approval via `toolApproval` or tool-level `needsApproval`, or
+ * - A stop condition is met (default stop condition is isStepCount(20))
  */
 export class ToolLoopAgent<
   CALL_OPTIONS = never,
   TOOLS extends ToolSet = {},
+  RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
-> implements Agent<CALL_OPTIONS, TOOLS, OUTPUT>
-{
+> implements Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly version = 'agent-v1';
 
-  private readonly settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>;
+  private readonly settings: ToolLoopAgentSettings<
+    CALL_OPTIONS,
+    TOOLS,
+    RUNTIME_CONTEXT,
+    OUTPUT
+  >;
 
-  constructor(settings: ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>) {
+  constructor(
+    settings: ToolLoopAgentSettings<
+      CALL_OPTIONS,
+      TOOLS,
+      RUNTIME_CONTEXT,
+      OUTPUT
+    >,
+  ) {
     this.settings = settings;
   }
 
@@ -51,22 +66,36 @@ export class ToolLoopAgent<
   }
 
   private async prepareCall(options: {
-    prompt?: string | Array<import('@ai-sdk/provider-utils').ModelMessage>;
-    messages?: Array<import('@ai-sdk/provider-utils').ModelMessage>;
+    prompt?: string | Array<ModelMessage>;
+    messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
   }): Promise<
     Omit<
-      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>,
-      'prepareCall' | 'instructions' | 'onStepFinish'
+      ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+      | 'prepareCall'
+      | 'instructions'
+      | 'experimental_onStart'
+      | 'experimental_onStepStart'
+      | 'experimental_onToolExecutionStart'
+      | 'experimental_onToolExecutionEnd'
+      | 'onStepFinish'
+      | 'onFinish'
     > &
       Prompt
   > {
-    const { onStepFinish: _settingsOnStepFinish, ...settingsWithoutCallback } =
-      this.settings;
+    const {
+      experimental_onStart: _settingsOnStart,
+      experimental_onStepStart: _settingsOnStepStart,
+      experimental_onToolExecutionStart: _settingsOnToolExecutionStart,
+      experimental_onToolExecutionEnd: _settingsOnToolExecutionEnd,
+      onStepFinish: _settingsOnStepFinish,
+      onFinish: _settingsOnFinish,
+      ...settingsWithoutCallbacks
+    } = this.settings;
 
     const baseCallArgs = {
-      ...settingsWithoutCallback,
-      stopWhen: this.settings.stopWhen ?? stepCountIs(20),
+      ...settingsWithoutCallbacks,
+      stopWhen: this.settings.stopWhen ?? isStepCount(20),
       ...options,
     };
 
@@ -74,34 +103,33 @@ export class ToolLoopAgent<
       (await this.settings.prepareCall?.(
         baseCallArgs as Parameters<
           NonNullable<
-            ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, OUTPUT>['prepareCall']
+            ToolLoopAgentSettings<
+              CALL_OPTIONS,
+              TOOLS,
+              RUNTIME_CONTEXT,
+              OUTPUT
+            >['prepareCall']
           >
         >[0],
       )) ?? baseCallArgs;
 
-    const { instructions, messages, prompt, ...callArgs } = preparedCallArgs;
+    const { instructions, messages, prompt, runtimeContext, ...callArgs } =
+      preparedCallArgs;
 
-    return {
-      ...callArgs,
+    const promptArgs = { system: instructions, messages, prompt } as Prompt;
 
-      // restore prompt types
-      ...({ system: instructions, messages, prompt } as Prompt),
-    };
-  }
-
-  private mergeOnStepFinishCallbacks(
-    methodCallback: ToolLoopAgentOnStepFinishCallback<TOOLS> | undefined,
-  ): ToolLoopAgentOnStepFinishCallback<TOOLS> | undefined {
-    const constructorCallback = this.settings.onStepFinish;
-
-    if (methodCallback && constructorCallback) {
-      return async (stepResult: StepResult<TOOLS>) => {
-        await constructorCallback(stepResult);
-        await methodCallback(stepResult);
+    if (runtimeContext === undefined) {
+      return {
+        ...callArgs,
+        ...promptArgs,
       };
     }
 
-    return methodCallback ?? constructorCallback;
+    return {
+      ...callArgs,
+      runtimeContext,
+      ...promptArgs,
+    };
   }
 
   /**
@@ -110,17 +138,49 @@ export class ToolLoopAgent<
   async generate({
     abortSignal,
     timeout,
+    experimental_onStart,
+    experimental_onStepStart,
+    experimental_onToolExecutionStart,
+    experimental_onToolExecutionEnd,
     onStepFinish,
+    onFinish,
     ...options
-  }: AgentCallParameters<CALL_OPTIONS, TOOLS>): Promise<
-    GenerateTextResult<TOOLS, OUTPUT>
+  }: AgentCallParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
+    GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
-    return generateText({
-      ...(await this.prepareCall(options)),
+    const generate = generateText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+    const preparedCall = await this.prepareCall(options);
+    const callbackArgs = {
       abortSignal,
       timeout,
-      onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
-    });
+      experimental_onStart: mergeCallbacks(
+        this.settings.experimental_onStart,
+        experimental_onStart as
+          | ToolLoopAgentOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | undefined,
+      ),
+      experimental_onStepStart: mergeCallbacks(
+        this.settings.experimental_onStepStart,
+        experimental_onStepStart as
+          | ToolLoopAgentOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | undefined,
+      ),
+      experimental_onToolExecutionStart: mergeCallbacks(
+        this.settings.experimental_onToolExecutionStart,
+        experimental_onToolExecutionStart,
+      ),
+      experimental_onToolExecutionEnd: mergeCallbacks(
+        this.settings.experimental_onToolExecutionEnd,
+        experimental_onToolExecutionEnd,
+      ),
+      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
+    };
+
+    return await generate({
+      ...preparedCall,
+      ...callbackArgs,
+    } as unknown as Parameters<typeof generate>[0]);
   }
 
   /**
@@ -130,17 +190,49 @@ export class ToolLoopAgent<
     abortSignal,
     timeout,
     experimental_transform,
+    experimental_onStart,
+    experimental_onStepStart,
+    experimental_onToolExecutionStart,
+    experimental_onToolExecutionEnd,
     onStepFinish,
+    onFinish,
     ...options
-  }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
-    StreamTextResult<TOOLS, OUTPUT>
+  }: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
+    StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
   > {
-    return streamText({
-      ...(await this.prepareCall(options)),
+    const stream = streamText<TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+    const preparedCall = await this.prepareCall(options);
+    const callbackArgs = {
       abortSignal,
       timeout,
       experimental_transform,
-      onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
-    });
+      experimental_onStart: mergeCallbacks(
+        this.settings.experimental_onStart,
+        experimental_onStart as
+          | ToolLoopAgentOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | undefined,
+      ),
+      experimental_onStepStart: mergeCallbacks(
+        this.settings.experimental_onStepStart,
+        experimental_onStepStart as
+          | ToolLoopAgentOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+          | undefined,
+      ),
+      experimental_onToolExecutionStart: mergeCallbacks(
+        this.settings.experimental_onToolExecutionStart,
+        experimental_onToolExecutionStart,
+      ),
+      experimental_onToolExecutionEnd: mergeCallbacks(
+        this.settings.experimental_onToolExecutionEnd,
+        experimental_onToolExecutionEnd,
+      ),
+      onStepFinish: mergeCallbacks(this.settings.onStepFinish, onStepFinish),
+      onFinish: mergeCallbacks(this.settings.onFinish, onFinish),
+    };
+
+    return await stream({
+      ...preparedCall,
+      ...callbackArgs,
+    } as unknown as Parameters<typeof stream>[0]);
   }
 }

@@ -1,10 +1,10 @@
 {
   "name": "@ai-sdk/hume",
-  "version": "2.0.17",
+  "version": "3.0.0-beta.27",
+  "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
@@ -26,9 +26,7 @@
     "clean": "del-cli dist docs",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/150-hume.mdx ./docs/",
     "postpack": "del-cli docs",
-    "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
-    "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:watch": "vitest --config vitest.node.config.js --watch",
     "test:edge": "vitest --config vitest.edge.config.js --run",
@@ -39,8 +37,8 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "dependencies": {

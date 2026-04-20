@@ -11,8 +11,8 @@ and calling them is slow and expensive.
 To enable you to unit test your code that uses the AI SDK, the AI SDK Core
 includes mock providers and test helpers. You can import the following helpers from `ai/test`:
 
-- `MockEmbeddingModelV3`: A mock embedding model using the [embedding model v3 specification](https://github.com/vercel/ai/blob/main/packages/provider/src/embedding-model/v3/embedding-model-v3.ts).
-- `MockLanguageModelV3`: A mock language model using the [language model v3 specification](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v3/language-model-v3.ts).
+- `MockEmbeddingModelV4`: A mock embedding model using the [embedding model v4 specification](https://github.com/vercel/ai/blob/main/packages/provider/src/embedding-model/v4/embedding-model-v4.ts).
+- `MockLanguageModelV4`: A mock language model using the [language model v4 specification](https://github.com/vercel/ai/blob/main/packages/provider/src/language-model/v4/language-model-v4.ts).
 - `mockId`: Provides an incrementing integer ID.
 - `mockValues`: Iterates over an array of values with each call. Returns the last value when the array is exhausted.
 
@@ -30,10 +30,10 @@ You can use the test helpers with the AI Core functions in your unit tests:
 
 ```ts
 import { generateText } from 'ai';
-import { MockLanguageModelV3 } from 'ai/test';
+import { MockLanguageModelV4 } from 'ai/test';
 
 const result = await generateText({
-  model: new MockLanguageModelV3({
+  model: new MockLanguageModelV4({
     doGenerate: async () => ({
       content: [{ type: 'text', text: `Hello, world!` }],
       finishReason: { unified: 'stop', raw: undefined },
@@ -61,10 +61,10 @@ const result = await generateText({
 
 ```ts
 import { streamText, simulateReadableStream } from 'ai';
-import { MockLanguageModelV3 } from 'ai/test';
+import { MockLanguageModelV4 } from 'ai/test';
 
 const result = streamText({
-  model: new MockLanguageModelV3({
+  model: new MockLanguageModelV4({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks: [
@@ -99,15 +99,15 @@ const result = streamText({
 });
 ```
 
-### generateObject
+### generateText with Output
 
 ```ts
-import { generateObject } from 'ai';
-import { MockLanguageModelV3 } from 'ai/test';
+import { generateText, Output } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
 import { z } from 'zod';
 
-const result = await generateObject({
-  model: new MockLanguageModelV3({
+const result = await generateText({
+  model: new MockLanguageModelV4({
     doGenerate: async () => ({
       content: [{ type: 'text', text: `{"content":"Hello, world!"}` }],
       finishReason: { unified: 'stop', raw: undefined },
@@ -127,20 +127,20 @@ const result = await generateObject({
       warnings: [],
     }),
   }),
-  schema: z.object({ content: z.string() }),
+  output: Output.object({ schema: z.object({ content: z.string() }) }),
   prompt: 'Hello, test!',
 });
 ```
 
-### streamObject
+### streamText with Output
 
 ```ts
-import { streamObject, simulateReadableStream } from 'ai';
-import { MockLanguageModelV3 } from 'ai/test';
+import { streamText, Output, simulateReadableStream } from 'ai';
+import { MockLanguageModelV4 } from 'ai/test';
 import { z } from 'zod';
 
-const result = streamObject({
-  model: new MockLanguageModelV3({
+const result = streamText({
+  model: new MockLanguageModelV4({
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks: [
@@ -174,7 +174,7 @@ const result = streamObject({
       }),
     }),
   }),
-  schema: z.object({ content: z.string() }),
+  output: Output.object({ schema: z.object({ content: z.string() }) }),
   prompt: 'Hello, test!',
 });
 ```

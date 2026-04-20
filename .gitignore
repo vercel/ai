@@ -1,9 +1,12 @@
 .DS_Store
 .cache
+.claude
 .env
 .envrc
 .next
 .turbo
+.well-known
+.workflow-vitest
 dist
 dist-ssr
 dist-bundle-check
