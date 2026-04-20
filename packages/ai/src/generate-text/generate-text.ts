@@ -37,7 +37,7 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-unified-telemetry';
 import type { Telemetry } from '../telemetry/telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import {
@@ -452,7 +452,7 @@ export async function generateText<
 
   const callId = generateCallId();
 
-  const unifiedTelemetry = createUnifiedTelemetry({
+  const unifiedTelemetry = createTelemetryDispatcher({
     telemetry,
   });
 

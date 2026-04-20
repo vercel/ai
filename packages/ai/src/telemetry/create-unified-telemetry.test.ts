@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createUnifiedTelemetry } from './create-unified-telemetry';
+import { createTelemetryDispatcher } from './create-unified-telemetry';
 import type { Telemetry } from './telemetry';
 import { registerTelemetry } from './telemetry-registry';
 
@@ -16,9 +16,9 @@ beforeEach(() => {
   globalThis.AI_SDK_TELEMETRY_INTEGRATIONS = undefined;
 });
 
-describe('createUnifiedTelemetry', () => {
+describe('createTelemetryDispatcher', () => {
   it('returns no-op listeners when no integrations are configured', async () => {
-    const telemetry = createUnifiedTelemetry({});
+    const telemetry = createTelemetryDispatcher({});
 
     expect(telemetry.onStart).toBeDefined();
     expect(telemetry.onStepStart).toBeDefined();
@@ -45,7 +45,7 @@ describe('createUnifiedTelemetry', () => {
       onStart: vi.fn(),
     };
 
-    const telemetry = createUnifiedTelemetry({
+    const telemetry = createTelemetryDispatcher({
       telemetry: { integrations: integration },
     });
 
@@ -55,7 +55,7 @@ describe('createUnifiedTelemetry', () => {
   });
 
   it('accepts an array of integrations', () => {
-    const telemetry = createUnifiedTelemetry({
+    const telemetry = createTelemetryDispatcher({
       telemetry: {
         integrations: [{ onStart: vi.fn() }, { onFinish: vi.fn() }],
       },
@@ -66,7 +66,7 @@ describe('createUnifiedTelemetry', () => {
   });
 
   it('returns no-op listeners for methods that no integration implements', async () => {
-    const telemetry = createUnifiedTelemetry({
+    const telemetry = createTelemetryDispatcher({
       telemetry: { integrations: [{ onStart: vi.fn() }] },
     });
 
@@ -80,7 +80,7 @@ describe('createUnifiedTelemetry', () => {
     const onStart1 = vi.fn();
     const onStart2 = vi.fn();
 
-    const telemetry = createUnifiedTelemetry({
+    const telemetry = createTelemetryDispatcher({
       telemetry: {
         integrations: [{ onStart: onStart1 }, { onStart: onStart2 }],
       },
@@ -95,7 +95,7 @@ describe('createUnifiedTelemetry', () => {
   it('skips integrations that do not implement the method', async () => {
     const onStart = vi.fn();
 
-    const telemetry = createUnifiedTelemetry({
+    const telemetry = createTelemetryDispatcher({
       telemetry: { integrations: [{ onStart }, {}] },
     });
 
@@ -108,7 +108,7 @@ describe('createUnifiedTelemetry', () => {
     const onStart1 = vi.fn().mockRejectedValue(new Error('boom'));
     const onStart2 = vi.fn();
 
-    const telemetry = createUnifiedTelemetry({
+    const telemetry = createTelemetryDispatcher({
       telemetry: {
         integrations: [{ onStart: onStart1 }, { onStart: onStart2 }],
       },
@@ -121,7 +121,7 @@ describe('createUnifiedTelemetry', () => {
   });
 
   it('swallows sync errors thrown by integrations', async () => {
-    const telemetry = createUnifiedTelemetry({
+    const telemetry = createTelemetryDispatcher({
       telemetry: {
         integrations: [
           {
@@ -154,7 +154,7 @@ describe('createUnifiedTelemetry', () => {
       onError: vi.fn(),
     };
 
-    const telemetry = createUnifiedTelemetry({
+    const telemetry = createTelemetryDispatcher({
       telemetry: { integrations: integration },
     });
 
@@ -190,7 +190,7 @@ describe('createUnifiedTelemetry', () => {
   });
 
   it('handles an empty array of integrations', async () => {
-    const telemetry = createUnifiedTelemetry({
+    const telemetry = createTelemetryDispatcher({
       telemetry: { integrations: [] },
     });
 
@@ -205,7 +205,7 @@ describe('createUnifiedTelemetry', () => {
       const onStart = vi.fn();
       registerTelemetry({ onStart });
 
-      const telemetry = createUnifiedTelemetry({});
+      const telemetry = createTelemetryDispatcher({});
       await telemetry.onStart!(dummyEvent);
 
       expect(onStart).toHaveBeenCalledWith(augmentedDummyEvent);
@@ -217,7 +217,7 @@ describe('createUnifiedTelemetry', () => {
 
       registerTelemetry({ onStart: globalOnStart });
 
-      const telemetry = createUnifiedTelemetry({
+      const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: { onStart: localOnStart } },
       });
       await telemetry.onStart!(dummyEvent);
@@ -233,7 +233,7 @@ describe('createUnifiedTelemetry', () => {
 
       registerTelemetry({ onStart: globalOnStart });
 
-      const telemetry = createUnifiedTelemetry({
+      const telemetry = createTelemetryDispatcher({
         telemetry: {
           integrations: [
             { onStart: localOnStart1 },
@@ -254,10 +254,10 @@ describe('createUnifiedTelemetry', () => {
 
       registerTelemetry({ onStart: globalOnStart });
 
-      const withLocal = createUnifiedTelemetry({
+      const withLocal = createTelemetryDispatcher({
         telemetry: { integrations: { onStart: localOnStart } },
       });
-      const withoutLocal = createUnifiedTelemetry({});
+      const withoutLocal = createTelemetryDispatcher({});
 
       await withLocal.onStart!(dummyEvent);
       await withoutLocal.onStart!(dummyEvent);
@@ -278,7 +278,7 @@ describe('createUnifiedTelemetry', () => {
       const integration = new ClassGlobalIntegration();
       registerTelemetry(integration);
 
-      const telemetry = createUnifiedTelemetry({});
+      const telemetry = createTelemetryDispatcher({});
       await telemetry.onStart!(dummyEvent);
 
       expect(integration.calls).toBe(1);
@@ -296,7 +296,7 @@ describe('createUnifiedTelemetry', () => {
       }
 
       const instance = new MyIntegration();
-      const telemetry = createUnifiedTelemetry({
+      const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: instance },
       });
 
@@ -319,7 +319,7 @@ describe('createUnifiedTelemetry', () => {
       }
 
       const instance = new DevToolsTelemetry();
-      const telemetry = createUnifiedTelemetry({
+      const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: [instance] },
       });
 
@@ -332,7 +332,7 @@ describe('createUnifiedTelemetry', () => {
 
   describe('executeTool', () => {
     it('returns undefined when no integrations implement executeTool', () => {
-      const telemetry = createUnifiedTelemetry({
+      const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: { onStart: vi.fn() } },
       });
 
@@ -347,7 +347,7 @@ describe('createUnifiedTelemetry', () => {
         return `wrapped:${await execute()}` as any;
       };
 
-      const telemetry = createUnifiedTelemetry({
+      const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: { executeTool: wrapper } },
       });
 
@@ -375,7 +375,7 @@ describe('createUnifiedTelemetry', () => {
         },
       });
 
-      const telemetry = createUnifiedTelemetry({
+      const telemetry = createTelemetryDispatcher({
         telemetry: {
           integrations: {
             executeTool: async ({ execute }) => {
@@ -413,7 +413,7 @@ describe('createUnifiedTelemetry', () => {
         },
       });
 
-      const telemetry = createUnifiedTelemetry({});
+      const telemetry = createTelemetryDispatcher({});
 
       const result = await telemetry.executeTool!({
         callId: 'call-1',
@@ -445,7 +445,7 @@ describe('createUnifiedTelemetry', () => {
       }
 
       const integration = new ExecuteToolIntegration();
-      const telemetry = createUnifiedTelemetry({
+      const telemetry = createTelemetryDispatcher({
         telemetry: { integrations: integration },
       });
 

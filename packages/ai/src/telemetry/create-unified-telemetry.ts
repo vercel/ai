@@ -44,7 +44,7 @@ function augmentEvent<EVENT>(
 }
 
 /**
- * Creates a unified telemetry target that sends telemetry events
+ * Creates a telemetry dispatcher that sends telemetry events
  * to the resolved set of integrations.
  *
  * When per-call integrations are provided, they take precedence over the globally
@@ -53,10 +53,10 @@ function augmentEvent<EVENT>(
  *
  * @param args.telemetry - Optional per-call telemetry settings and integrations.
  *
- * @returns A telemetry target that fans out lifecycle events to the resolved
- * set of integrations.
+ * @returns A telemetry dispatcher that fans out lifecycle events to the
+ * resolved set of integrations.
  */
-export function createUnifiedTelemetry({
+export function createTelemetryDispatcher({
   telemetry,
 }: {
   telemetry?: TelemetryOptions;

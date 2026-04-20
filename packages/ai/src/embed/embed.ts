@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-unified-telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { EmbeddingModel } from '../types';
 import type { Callback } from '../util/callback';
@@ -131,7 +131,7 @@ export async function embed({
 
   const callId = generateCallId();
 
-  const unifiedTelemetry = createUnifiedTelemetry({
+  const unifiedTelemetry = createTelemetryDispatcher({
     telemetry,
   });
 
