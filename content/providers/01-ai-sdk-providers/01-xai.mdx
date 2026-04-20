@@ -428,6 +428,10 @@ The following provider options are available:
 
   Specify additional output data to include in the model response. Use `['file_search_call.results']` to include file search results with scores and content.
 
+- **useEncryptedContent** _boolean_
+
+  Include xAI encrypted content for reasoning and multi-agent state in the response. This maps to xAI's `include: ['reasoning.encrypted_content']` mechanism and is useful for preserving encrypted context across multi-turn conversations. This encrypted content is also included automatically when `store` is set to `false`.
+
 - **store** _boolean_
 
   Whether to store the input message(s) and model response for later retrieval. Defaults to `true`.
@@ -435,6 +439,31 @@ The following provider options are available:
 - **previousResponseId** _string_
 
   The ID of the previous response from the model. You can use it to continue a conversation.
+
+### Encrypted Content for Multi-Agent Models
+
+Use `useEncryptedContent` with xAI's multi-agent Responses models when you want to preserve encrypted sub-agent state for follow-up turns:
+
+```ts
+import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: xai.responses('grok-4.20-multi-agent'),
+  prompt:
+    'Research the latest breakthroughs in quantum computing and summarize the key findings.',
+  tools: {
+    web_search: xai.tools.webSearch(),
+    x_search: xai.tools.xSearch(),
+  },
+  providerOptions: {
+    xai: {
+      reasoningEffort: 'low',
+      useEncryptedContent: true,
+    } satisfies XaiLanguageModelResponsesOptions,
+  },
+});
+```
 
 <Note>
   The Responses API only supports server-side tools. You cannot mix server-side

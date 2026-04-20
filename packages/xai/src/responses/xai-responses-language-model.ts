@@ -31,6 +31,7 @@ import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
   XaiResponsesIncludeOptions,
+  XaiResponsesIncludeValue,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
 } from './xai-responses-api';
@@ -144,20 +145,17 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     });
     warnings.push(...toolWarnings);
 
-    // Build include array based on provider options and store setting
-    let include: XaiResponsesIncludeOptions = options.include
-      ? [...options.include]
-      : undefined;
+    // Merge includes from raw provider options and ergonomic flags without duplicates.
+    const includeValues = new Set<XaiResponsesIncludeValue>(
+      options.include ?? [],
+    );
 
-    if (options.store === false) {
-      // When store is false, we need to include reasoning.encrypted_content
-      // to preserve reasoning tokens in the response
-      if (include == null) {
-        include = ['reasoning.encrypted_content'];
-      } else {
-        include = [...include, 'reasoning.encrypted_content'];
-      }
+    if (options.useEncryptedContent === true || options.store === false) {
+      includeValues.add('reasoning.encrypted_content');
     }
+
+    const include: XaiResponsesIncludeOptions =
+      includeValues.size > 0 ? [...includeValues] : undefined;
 
     const resolvedReasoningEffort =
       options.reasoningEffort ??

@@ -24,6 +24,10 @@ export const xaiLanguageModelResponsesOptions = z.object({
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
   /**
+   * Include xAI encrypted content for reasoning and multi-agent state.
+   */
+  useEncryptedContent: z.boolean().optional(),
+  /**
    * Whether to store the input message(s) and model response for later retrieval.
    * Must be set to `false` for teams with Zero Data Retention (ZDR) enabled,
    * otherwise the API will return an error.

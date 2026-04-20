@@ -731,6 +731,86 @@ describe('XaiResponsesLanguageModel', () => {
           ]);
         });
 
+        it('useEncryptedContent:true', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                useEncryptedContent: true,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.store).toBe(undefined);
+          expect(requestBody.include).toStrictEqual([
+            'reasoning.encrypted_content',
+          ]);
+        });
+
+        it('useEncryptedContent:true with file_search_call.results', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                include: ['file_search_call.results'],
+                useEncryptedContent: true,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.include).toStrictEqual([
+            'file_search_call.results',
+            'reasoning.encrypted_content',
+          ]);
+        });
+
+        it('useEncryptedContent:true with store:false dedupes encrypted content include', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4-fast-non-reasoning',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                store: false,
+                useEncryptedContent: true,
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.store).toBe(false);
+          expect(requestBody.include).toStrictEqual([
+            'reasoning.encrypted_content',
+          ]);
+        });
+
         it('previousResponseId', async () => {
           prepareJsonResponse({
             id: 'resp_123',
