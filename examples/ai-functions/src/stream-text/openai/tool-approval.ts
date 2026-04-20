@@ -64,41 +64,53 @@ run(async () => {
       stopWhen: isStepCount(5),
     });
 
-    process.stdout.write('\nAssistant: ');
-    for await (const delta of result.textStream) {
-      process.stdout.write(delta);
-    }
+    for await (const chunk of result.fullStream) {
+      switch (chunk.type) {
+        case 'tool-approval-request': {
+          if (
+            chunk.toolCall.toolName === 'weather' &&
+            !chunk.toolCall.dynamic &&
+            !chunk.isAutomatic
+          ) {
+            const answer = await terminal.question(
+              `\nCan I retrieve the weather for ${chunk.toolCall.input.location} (y/n)?`,
+            );
 
-    // go through each approval request and ask the user for approval
-    for (const part of await result.content) {
-      console.log(part.type);
+            approvals.push({
+              type: 'tool-approval-response',
+              approvalId: chunk.approvalId,
+              approved:
+                answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
+            });
+          }
+          break;
+        }
 
-      if (
-        part.type === 'tool-approval-request' &&
-        part.toolCall.toolName === 'weather' &&
-        !part.toolCall.dynamic &&
-        !part.isAutomatic
-      ) {
-        const answer = await terminal.question(
-          `\nCan I retrieve the weather for ${part.toolCall.input.location} (y/n)?`,
-        );
+        case 'tool-approval-response': {
+          if (
+            chunk.toolCall.toolName === 'weather' &&
+            !chunk.toolCall.dynamic
+          ) {
+            process.stdout.write(
+              `\nWeather tool execution for ${chunk.toolCall.input.location} was automatically ${
+                chunk.approved
+                  ? '\x1b[32mapproved\x1b[0m' // dark green
+                  : '\x1b[31mdenied\x1b[0m' // dark red
+              }.\n`,
+            );
+          }
+          break;
+        }
 
-        approvals.push({
-          type: 'tool-approval-response',
-          approvalId: part.approvalId,
-          approved:
-            answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
-        });
-      }
+        case 'text-start': {
+          process.stdout.write('\nAssistant: ');
+          break;
+        }
 
-      if (
-        part.type === 'tool-approval-response' &&
-        part.toolCall.toolName === 'weather' &&
-        !part.toolCall.dynamic
-      ) {
-        process.stdout.write(
-          `Weather tool execution for ${part.toolCall.input.location} was automatically ${part.approved ? 'approved' : 'denied'}.`,
-        );
+        case 'text-delta': {
+          process.stdout.write(chunk.text);
+          break;
+        }
       }
     }
 
