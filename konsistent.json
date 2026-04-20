@@ -26,6 +26,7 @@
         "!packages/ai",
         "!packages/angular",
         "!packages/codemod",
+        "!packages/devtools",
         "!packages/langchain",
         "!packages/llamaindex",
         "!packages/mcp",
