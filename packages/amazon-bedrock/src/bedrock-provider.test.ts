@@ -391,6 +391,94 @@ describe('AmazonBedrockProvider', () => {
         );
       });
 
+      describe('Session Token Environment Isolation (#14136)', () => {
+        it('should NOT inherit AWS_SESSION_TOKEN from env when explicit accessKeyId and secretAccessKey are provided', async () => {
+          // Simulate environment where AWS_SESSION_TOKEN is set (e.g. EKS IRSA)
+          mockLoadOptionalSetting.mockImplementation(
+            ({ settingValue, environmentVariableName }) => {
+              if (environmentVariableName === 'AWS_BEARER_TOKEN_BEDROCK') {
+                return undefined; // no API key
+              }
+              if (environmentVariableName === 'AWS_SESSION_TOKEN') {
+                // env has a session token from workload identity
+                return settingValue ?? 'irsa-session-token-from-env';
+              }
+              return settingValue;
+            },
+          );
+
+          createAmazonBedrock({
+            region: 'us-east-1',
+            accessKeyId: 'explicit-static-key',
+            secretAccessKey: 'explicit-static-secret',
+            // sessionToken intentionally omitted
+          });
+
+          // Capture the credential resolver passed to createSigV4FetchFunction
+          const credentialResolver =
+            mockCreateSigV4FetchFunction.mock.calls[0]![0];
+          const creds = await credentialResolver();
+
+          expect(creds.accessKeyId).toBe('explicit-static-key');
+          expect(creds.secretAccessKey).toBe('explicit-static-secret');
+          // Must be undefined — must NOT pick up the env session token
+          expect(creds.sessionToken).toBeUndefined();
+        });
+
+        it('should use explicit sessionToken when explicit keys are provided', async () => {
+          mockLoadOptionalSetting.mockImplementation(
+            ({ settingValue, environmentVariableName }) => {
+              if (environmentVariableName === 'AWS_BEARER_TOKEN_BEDROCK') {
+                return undefined;
+              }
+              if (environmentVariableName === 'AWS_SESSION_TOKEN') {
+                return settingValue ?? 'irsa-session-token-from-env';
+              }
+              return settingValue;
+            },
+          );
+
+          createAmazonBedrock({
+            region: 'us-east-1',
+            accessKeyId: 'explicit-static-key',
+            secretAccessKey: 'explicit-static-secret',
+            sessionToken: 'explicit-session-token',
+          });
+
+          const credentialResolver =
+            mockCreateSigV4FetchFunction.mock.calls[0]![0];
+          const creds = await credentialResolver();
+
+          expect(creds.sessionToken).toBe('explicit-session-token');
+        });
+
+        it('should fall back to AWS_SESSION_TOKEN from env when keys come from env', async () => {
+          mockLoadOptionalSetting.mockImplementation(
+            ({ settingValue, environmentVariableName }) => {
+              if (environmentVariableName === 'AWS_BEARER_TOKEN_BEDROCK') {
+                return undefined;
+              }
+              if (environmentVariableName === 'AWS_SESSION_TOKEN') {
+                return settingValue ?? 'env-session-token';
+              }
+              return settingValue;
+            },
+          );
+
+          // No explicit keys — both will come from env via loadSetting
+          createAmazonBedrock({
+            region: 'us-east-1',
+          });
+
+          const credentialResolver =
+            mockCreateSigV4FetchFunction.mock.calls[0]![0];
+          const creds = await credentialResolver();
+
+          // Should pick up env session token since keys are also from env
+          expect(creds.sessionToken).toBe('env-session-token');
+        });
+      });
+
       it('should work with credential provider when no API key is provided', () => {
         // Mock loadOptionalSetting to return undefined (no API key)
         mockLoadOptionalSetting.mockImplementation(() => undefined);

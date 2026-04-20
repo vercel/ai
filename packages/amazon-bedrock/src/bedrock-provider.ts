@@ -221,10 +221,17 @@ export function createAmazonBedrock(
               environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
               description: 'AWS secret access key',
             }),
-            sessionToken: loadOptionalSetting({
-              settingValue: options.sessionToken,
-              environmentVariableName: 'AWS_SESSION_TOKEN',
-            }),
+            // When explicit accessKeyId and secretAccessKey are provided,
+            // only use an explicitly provided sessionToken — do not fall back
+            // to AWS_SESSION_TOKEN from the environment, as it may belong to
+            // a different identity (e.g. EKS IRSA, ECS task role, Lambda).
+            sessionToken:
+              options.accessKeyId != null && options.secretAccessKey != null
+                ? options.sessionToken
+                : loadOptionalSetting({
+                    settingValue: options.sessionToken,
+                    environmentVariableName: 'AWS_SESSION_TOKEN',
+                  }),
           };
         } catch (error) {
           // Provide helpful error message for missing AWS credentials
