@@ -1,0 +1,139 @@
+---
+title: LLMKit
+description: LLMKit Provider for the AI SDK
+---
+
+# LLMKit Provider
+
+[LLMKit](https://github.com/smigolsmigol/llmkit) is an open-source AI API gateway that routes requests to 11 providers (OpenAI, Anthropic, Google Gemini, Groq, DeepSeek, Mistral, xAI, Together, Fireworks, Ollama, OpenRouter) through a single endpoint. Every request is logged with token counts and cost breakdowns so you know exactly what your AI agents spend.
+
+The proxy runs on Cloudflare Workers and handles budget enforcement, rate limiting, provider fallback chains, and encrypted API key storage. The AI SDK provider wraps all of this into a standard `LanguageModelV3` interface.
+
+## Setup
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @f3d1/llmkit-ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @f3d1/llmkit-ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @f3d1/llmkit-ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+Create an LLMKit provider instance with your API key. You can get a key from the [LLMKit dashboard](https://github.com/smigolsmigol/llmkit).
+
+```ts
+import { createLLMKit } from '@f3d1/llmkit-ai-sdk-provider';
+
+const llmkit = createLLMKit({
+  apiKey: process.env.LLMKIT_API_KEY!,
+});
+```
+
+### Configuration Options
+
+```ts
+const llmkit = createLLMKit({
+  apiKey: process.env.LLMKIT_API_KEY!,
+  baseUrl: 'https://llmkit-proxy.example.workers.dev', // self-hosted proxy URL
+  provider: 'openai',      // route to a specific provider
+  sessionId: 'agent-run-1', // group requests for cost tracking
+  providerKey: 'sk-...',   // pass provider key directly (optional)
+});
+```
+
+## Language Models
+
+Create models by passing any model ID supported by your configured providers.
+
+```ts
+const model = llmkit.chat('gpt-4o');
+const anthropic = llmkit.chat('claude-sonnet-4-20250514');
+const gemini = llmkit.chat('gemini-2.0-flash');
+```
+
+LLMKit resolves the model to the right provider automatically based on the model ID, or you can set the `provider` option explicitly.
+
+## Examples
+
+### Generate Text
+
+```ts
+import { generateText } from 'ai';
+import { createLLMKit } from '@f3d1/llmkit-ai-sdk-provider';
+
+const llmkit = createLLMKit({
+  apiKey: process.env.LLMKIT_API_KEY!,
+});
+
+const { text, usage, providerMetadata } = await generateText({
+  model: llmkit.chat('gpt-4o'),
+  prompt: 'Explain how transformer attention works in two sentences.',
+});
+
+console.log(text);
+console.log('Tokens:', usage);
+console.log('Cost:', providerMetadata?.llmkit);
+```
+
+### Stream Text
+
+```ts
+import { streamText } from 'ai';
+import { createLLMKit } from '@f3d1/llmkit-ai-sdk-provider';
+
+const llmkit = createLLMKit({
+  apiKey: process.env.LLMKIT_API_KEY!,
+  sessionId: 'chat-session-42',
+});
+
+const result = streamText({
+  model: llmkit.chat('claude-sonnet-4-20250514'),
+  prompt: 'Write a haiku about serverless computing.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Session Tracking for AI Agents
+
+LLMKit tracks costs per session, which is useful for long-running agent workflows where you need to know what each run costs.
+
+```ts
+const llmkit = createLLMKit({
+  apiKey: process.env.LLMKIT_API_KEY!,
+  sessionId: `agent-${Date.now()}`,
+});
+
+// all requests through this instance are grouped under the same session
+const step1 = await generateText({ model: llmkit.chat('gpt-4o-mini'), prompt: '...' });
+const step2 = await generateText({ model: llmkit.chat('gpt-4o-mini'), prompt: '...' });
+// query session cost via the LLMKit MCP server or REST API
+```
+
+## Cost Metadata
+
+Every response includes cost data in `providerMetadata.llmkit`:
+
+```ts
+const { providerMetadata } = await generateText({
+  model: llmkit.chat('gpt-4o'),
+  prompt: 'Hello',
+});
+
+// providerMetadata.llmkit contains:
+// { totalCost, inputCost, outputCost, currency }
+```
+
+## Additional Resources
+
+- [GitHub Repository](https://github.com/smigolsmigol/llmkit)
+- [npm: @f3d1/llmkit-ai-sdk-provider](https://www.npmjs.com/package/@f3d1/llmkit-ai-sdk-provider)
+- [MCP Server](https://www.npmjs.com/package/@f3d1/llmkit-mcp-server) for querying costs from Claude Code or Cursor
