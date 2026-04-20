@@ -38,7 +38,7 @@ export const xaiLanguageModelResponsesOptions = z.object({
    * Specify additional output data to include in the model response.
    * Example values: 'file_search_call.results'.
    */
-  include: z.array(z.enum(['file_search_call.results'])).nullish(),
+  include: z.array(z.enum(['file_search_call.results', 'no_inline_citations'])).nullish(),
 });
 
 export type XaiLanguageModelResponsesOptions = z.infer<
