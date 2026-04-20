@@ -164,9 +164,17 @@ export interface GoogleVertexAnthropicProviderSettings {
  * dedicated hostnames rather than the standard `${location}-aiplatform.googleapis.com`
  * pattern. This mirrors the behavior of the upstream `@anthropic-ai/vertex-sdk`.
  *
- * See https://cloud.google.com/vertex-ai/generative-ai/docs/learn/locations#regional-endpoints
+ * See https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-partner-models#multi-region
  */
 function getVertexAnthropicHost(location: string | undefined): string {
+  if (!location) {
+    throw new Error(
+      'No location was given. Set the `location` option on `createVertexAnthropic` ' +
+        'or the `GOOGLE_VERTEX_LOCATION` environment variable. ' +
+        'See https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-partner-models#multi-region',
+    );
+  }
+
   switch (location) {
     case 'global':
       return 'aiplatform.googleapis.com';
