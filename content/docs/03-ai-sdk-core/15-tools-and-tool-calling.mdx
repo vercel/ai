@@ -727,6 +727,54 @@ const result = await generateText({
 });
 ```
 
+#### Cancellation on Vercel
+
+When you deploy tools to Vercel and opt into [request cancellation](https://vercel.com/docs/functions/functions-api-reference#cancel-requests) with `"supportsCancellation": true` in `vercel.json`, cancellation is cooperative: your tool keeps running until it observes the signal and returns.
+
+Two things to know:
+
+- **`abortSignal.aborted` only flips once the client disconnects.** In practice this means polling it at the top of each iteration of a loop works, but only between `await` points. If your tool has large async gaps (e.g. batched parallel work), listen to the `abort` event directly rather than only polling `.aborted`.
+- **Cleanup work that runs after the response closes must be wrapped in `waitUntil`.** Once your tool returns and the response stream closes, the function is eligible to be reaped. Any persistence you trigger from an `abort` listener (or in a `finally` block after the response closes) is only guaranteed to complete if it is attached to `waitUntil`.
+
+<Note>
+  This behavior is the same as for any Vercel Function. See the [Vercel cancel
+  requests docs](https://vercel.com/docs/functions/functions-api-reference#cancel-requests)
+  for the full contract.
+</Note>
+
+```ts highlight="2,14-18,23"
+import { tool } from 'ai';
+import { waitUntil } from '@vercel/functions';
+import { z } from 'zod';
+
+export const processBatch = tool({
+  description: 'Process a batch of items and persist progress',
+  inputSchema: z.object({ items: z.array(z.string()) }),
+  execute: async ({ items }, { abortSignal }) => {
+    const completed: string[] = [];
+
+    // Persist partial progress if the request is cancelled. `waitUntil` keeps
+    // the async work alive after the response stream closes so it is not lost
+    // when the function is reaped.
+    const onAbort = () => waitUntil(saveProgress([...completed]));
+    abortSignal?.addEventListener('abort', onAbort, { once: true });
+
+    try {
+      for (const item of items) {
+        if (abortSignal?.aborted) break;
+        await processItem(item);
+        completed.push(item);
+      }
+      return { completed: completed.length, cancelled: abortSignal?.aborted };
+    } finally {
+      abortSignal?.removeEventListener('abort', onAbort);
+    }
+  },
+});
+```
+
+For stream-level cleanup (saving partial steps, logging aborts across a whole generation), use `onAbort` on `streamText`. See [Stopping Streams](/docs/advanced/stopping-streams#handling-stream-abort-cleanup).
+
 ### Runtime Context
 
 You can pass in arbitrary runtime context from `generateText` or `streamText` via the `runtimeContext` setting.

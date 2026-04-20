@@ -95,6 +95,52 @@ export const maxDuration = 30;
 
 You can increase the max duration to 60 seconds on the Hobby Tier. For other tiers, [see the documentation](https://vercel.com/docs/functions/runtimes#max-duration) for limits.
 
+### Request Cancellation
+
+When a user hits "Stop" on a chat, closes the browser tab, or an HTTP client aborts the request, the browser closes the connection. On Vercel, you can opt into surfacing this as an `AbortSignal` on the server by adding [`supportsCancellation`](https://vercel.com/docs/functions/functions-api-reference#cancel-requests) to your function config:
+
+```json filename="vercel.json"
+{
+  "functions": {
+    "app/**/api/**/route.ts": {
+      "supportsCancellation": true,
+      "maxDuration": 300
+    }
+  }
+}
+```
+
+With this enabled:
+
+- `req.signal` fires when the client disconnects.
+- Forwarding `req.signal` to `streamText` / `generateText` cancels the in-flight request to the model provider.
+- Tools receive the same signal in their `execute` options and can use it to stop their own work.
+
+Cancellation is cooperative. The function keeps running after the signal fires, but the response stream is already closed, so anything you write or log after that point does not reach the client. Work that must complete after the stream closes — persistence, analytics, logging — needs to be wrapped in [`waitUntil`](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package#waituntil) from `@vercel/functions`:
+
+```ts highlight="2,11-14"
+import { streamText } from 'ai';
+import { waitUntil } from '@vercel/functions';
+__PROVIDER_IMPORT__;
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: __MODEL__,
+    messages,
+    abortSignal: req.signal,
+    onAbort: ({ steps }) => {
+      waitUntil(saveSteps(steps));
+    },
+  });
+
+  return result.toUIMessageStreamResponse();
+}
+```
+
+For the end-to-end pattern (including tool-level cleanup and `onFinish` with `isAborted`), see [Stopping Streams](/docs/advanced/stopping-streams) and [Cancellation on Vercel](/docs/ai-sdk-core/tools-and-tool-calling#cancellation-on-vercel) in the Tools guide.
+
 ## Security Considerations
 
 Given the high cost of calling an LLM, it's important to have measures in place that can protect your application from abuse.
