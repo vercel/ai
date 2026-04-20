@@ -77,14 +77,14 @@ export function createUnifiedTelemetry({
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
   ): Callback<PublicTelemetryEvent<KEY>> => {
-    const callbacks = integrations
-      .map(integration => integration[key]?.bind(integration))
-      .filter(Boolean) as Array<
-      Callback<InferTelemetryEvent<PublicTelemetryEvent<KEY>>>
-    >;
-
     return mergeCallbacks(
-      ...callbacks.map(
+      ...(
+        integrations
+          .map(integration => integration[key]?.bind(integration))
+          .filter(Boolean) as Array<
+          Callback<InferTelemetryEvent<PublicTelemetryEvent<KEY>>>
+        >
+      ).map(
         callback =>
           ((event: PublicTelemetryEvent<KEY>) =>
             callback(augmentEvent(event, telemetryMetadata))) as Callback<
