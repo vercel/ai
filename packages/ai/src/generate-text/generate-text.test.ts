@@ -7563,7 +7563,7 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           prompt: 'test-input',
@@ -7786,7 +7786,9 @@ describe('generateText', () => {
           toolApproval: {
             tool1: (input, options) => {
               needsApprovalCalls.push({ input, options });
-              return input.value === 'value-needs-approval';
+              return input.value === 'value-needs-approval'
+                ? 'user-approval'
+                : 'not-applicable';
             },
           },
           stopWhen: isStepCount(3),
@@ -7919,7 +7921,6 @@ describe('generateText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -7927,6 +7928,7 @@ describe('generateText', () => {
                   },
                 ],
                 "toolCallId": "call-1",
+                "toolContext": undefined,
               },
             },
             {
@@ -7934,7 +7936,6 @@ describe('generateText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -7942,6 +7943,7 @@ describe('generateText', () => {
                   },
                 ],
                 "toolCallId": "call-2",
+                "toolContext": undefined,
               },
             },
           ]
@@ -7980,7 +7982,7 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -8148,7 +8150,7 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -8264,7 +8266,7 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -8425,7 +8427,7 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {

@@ -783,11 +783,13 @@ describe('createExecuteToolsTransformation', () => {
 
   describe('tool execution error handling', () => {
     it('should throw TypeValidationError before approval callbacks run', async () => {
+      const needsApproval = vi.fn(() => true);
+
       const tools = {
         guardedTool: tool({
           inputSchema: z.object({ value: z.string() }),
           contextSchema: z.object({ apiKey: z.string() }),
-          needsApproval: true,
+          needsApproval,
           execute: async ({ value }) => `${value}-result`,
         }),
       };
@@ -821,6 +823,7 @@ describe('createExecuteToolsTransformation', () => {
         await convertReadableStreamToArray(transformedStream);
         expect.unreachable('expected stream consumption to throw');
       } catch (error) {
+        expect(needsApproval).not.toHaveBeenCalled();
         expect(TypeValidationError.isInstance(error)).toBe(true);
 
         if (TypeValidationError.isInstance(error)) {

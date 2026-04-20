@@ -20946,7 +20946,7 @@ describe('streamText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
         });
       });
@@ -21178,7 +21178,9 @@ describe('streamText', () => {
           toolApproval: {
             tool1: (input, options) => {
               needsApprovalCalls.push({ input, options });
-              return input.value === 'value-needs-approval';
+              return input.value === 'value-needs-approval'
+                ? 'user-approval'
+                : 'not-applicable';
             },
           },
           stopWhen: isStepCount(3),
@@ -21473,7 +21475,6 @@ describe('streamText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -21481,6 +21482,7 @@ describe('streamText', () => {
                   },
                 ],
                 "toolCallId": "call-1",
+                "toolContext": undefined,
               },
             },
             {
@@ -21488,7 +21490,6 @@ describe('streamText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
@@ -21496,6 +21497,7 @@ describe('streamText', () => {
                   },
                 ],
                 "toolCallId": "call-2",
+                "toolContext": undefined,
               },
             },
           ]
@@ -21541,7 +21543,7 @@ describe('streamText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -21847,7 +21849,7 @@ describe('streamText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -21973,7 +21975,7 @@ describe('streamText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {
@@ -22304,7 +22306,7 @@ describe('streamText', () => {
             }),
           },
           toolApproval: {
-            tool1: true,
+            tool1: 'user-approval',
           },
           stopWhen: isStepCount(3),
           _internal: {

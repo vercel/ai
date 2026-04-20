@@ -8,7 +8,7 @@ import { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry } from '../telemetry/telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { executeToolCall } from './execute-tool-call';
-import { isToolApprovalNeeded } from './is-tool-approval-needed';
+import { resolveToolApproval } from './resolve-tool-approval';
 import { LanguageModelStreamPart } from './stream-language-model-call';
 import { ToolApprovalConfiguration } from './tool-approval-configuration';
 import { TypedToolCall } from './tool-call';
@@ -85,13 +85,13 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
           }
 
           if (
-            await isToolApprovalNeeded({
+            (await resolveToolApproval({
               tools,
               toolCall: chunk,
               toolApproval,
               messages,
               toolsContext,
-            })
+            })) === 'user-approval'
           ) {
             controller.enqueue({
               type: 'tool-approval-request',

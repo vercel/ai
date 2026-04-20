@@ -69,7 +69,7 @@ import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
-import { isToolApprovalNeeded } from './is-tool-approval-needed';
+import { resolveToolApproval } from './resolve-tool-approval';
 import { Output, text } from './output';
 import { InferCompleteOutput } from './output-utils';
 import { parseToolCall } from './parse-tool-call';
@@ -772,13 +772,13 @@ export async function generateText<
           }
 
           if (
-            await isToolApprovalNeeded({
+            (await resolveToolApproval({
               tools,
               toolApproval,
               toolCall,
               messages: stepInputMessages,
               toolsContext,
-            })
+            })) === 'user-approval'
           ) {
             toolApprovalRequests[toolCall.toolCallId] = {
               type: 'tool-approval-request',

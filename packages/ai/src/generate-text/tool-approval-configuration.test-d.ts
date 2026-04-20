@@ -20,17 +20,17 @@ describe('ToolApprovalConfiguration', () => {
     }),
   };
 
-  it('allows booleans and infers tool-specific approval callback types', () => {
+  it('allows configuration values and infers tool-specific approval callback types', () => {
     const config: ToolApprovalConfiguration<typeof tools> = {
-      weather: (input, { context, toolCallId, messages }) => {
+      weather: (input, { toolContext, toolCallId, messages }) => {
         expectTypeOf(input).toEqualTypeOf<{ location: string }>();
-        expectTypeOf(context).toEqualTypeOf<{ weatherApiKey: string }>();
+        expectTypeOf(toolContext).toEqualTypeOf<{ weatherApiKey: string }>();
         expectTypeOf(toolCallId).toEqualTypeOf<string>();
         expectTypeOf(messages).toEqualTypeOf<ModelMessage[]>();
 
-        return true;
+        return 'user-approval';
       },
-      calculator: false,
+      calculator: 'approved',
     };
 
     expectTypeOf(config).toEqualTypeOf<
@@ -42,9 +42,9 @@ describe('ToolApprovalConfiguration', () => {
     const config: ToolApprovalConfiguration<typeof tools> = {
       calculator: (input, options) => {
         expectTypeOf(input).toEqualTypeOf<{ expression: string }>();
-        expectTypeOf(options.context).toEqualTypeOf<never>();
+        expectTypeOf(options.toolContext).toEqualTypeOf<never>();
 
-        return false;
+        return 'denied';
       },
     };
 
@@ -57,7 +57,7 @@ describe('ToolApprovalConfiguration', () => {
     it('rejects approval configuration for unknown tool keys', () => {
       const config: ToolApprovalConfiguration<typeof tools> = {
         // @ts-expect-error tool approval only accepts keys from the provided tool set
-        search: true,
+        search: 'approved',
       };
 
       expectTypeOf(config).toEqualTypeOf<
@@ -68,7 +68,8 @@ describe('ToolApprovalConfiguration', () => {
     it('rejects callbacks with the wrong input type for a tool', () => {
       const config: ToolApprovalConfiguration<typeof tools> = {
         // @ts-expect-error weather approval callbacks must receive the weather tool input
-        weather: (input: { expression: string }) => input.expression.length > 0,
+        weather: (input: { expression: string }) =>
+          input.expression.length > 0 ? 'approved' : 'denied',
       };
 
       expectTypeOf(config).toEqualTypeOf<
@@ -78,8 +79,8 @@ describe('ToolApprovalConfiguration', () => {
 
     it('rejects callbacks with the wrong return type', () => {
       const config: ToolApprovalConfiguration<typeof tools> = {
-        // @ts-expect-error approval callbacks must return a boolean or promise-like boolean
-        calculator: () => 'approved',
+        // @ts-expect-error approval callbacks must return a valid approval state
+        calculator: () => true,
       };
 
       expectTypeOf(config).toEqualTypeOf<
