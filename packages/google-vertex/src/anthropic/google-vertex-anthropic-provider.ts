@@ -158,6 +158,28 @@ export interface GoogleVertexAnthropicProviderSettings {
 }
 
 /**
+ * Resolves the correct Vertex AI host for the given location.
+ *
+ * Vertex AI's multi-region endpoints (currently `us` and `eu`) are served from
+ * dedicated hostnames rather than the standard `${location}-aiplatform.googleapis.com`
+ * pattern. This mirrors the behavior of the upstream `@anthropic-ai/vertex-sdk`.
+ *
+ * See https://cloud.google.com/vertex-ai/generative-ai/docs/learn/locations#regional-endpoints
+ */
+function getVertexAnthropicHost(location: string | undefined): string {
+  switch (location) {
+    case 'global':
+      return 'aiplatform.googleapis.com';
+    case 'us':
+      return 'aiplatform.us.rep.googleapis.com';
+    case 'eu':
+      return 'aiplatform.eu.rep.googleapis.com';
+    default:
+      return `${location}-aiplatform.googleapis.com`;
+  }
+}
+
+/**
  * Create a Google Vertex Anthropic provider instance.
  */
 export function createVertexAnthropic(
@@ -175,7 +197,7 @@ export function createVertexAnthropic(
 
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
+      `https://${getVertexAnthropicHost(location)}/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
     );
   };
 
