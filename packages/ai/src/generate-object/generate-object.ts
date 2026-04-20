@@ -18,7 +18,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createTelemetryDispatcher } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';

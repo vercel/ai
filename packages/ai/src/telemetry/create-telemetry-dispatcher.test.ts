@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createTelemetryDispatcher } from './create-unified-telemetry';
+import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import type { Telemetry } from './telemetry';
 import { registerTelemetry } from './telemetry-registry';
 

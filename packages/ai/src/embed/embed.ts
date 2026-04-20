@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { createTelemetryDispatcher } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { EmbeddingModel } from '../types';
 import type { Callback } from '../util/callback';

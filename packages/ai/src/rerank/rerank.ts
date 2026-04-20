@@ -3,7 +3,7 @@ import { createIdGenerator, ProviderOptions } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
-import { createTelemetryDispatcher } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { RerankingModel } from '../types';
 import type { Callback } from '../util/callback';

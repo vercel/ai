@@ -37,7 +37,7 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createTelemetryDispatcher } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { Telemetry } from '../telemetry/telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import {
