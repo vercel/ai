@@ -42,6 +42,8 @@
       ],
       "must": [
         {
+          "name": "provider-package-must-export-instance-and-creator",
+          "description": "Every provider package must export a provider instance and a provider creator function from its index.ts file.",
           "must": {
             "export": [
               "${providerId.toFlatCase()}",
@@ -62,52 +64,90 @@
           }
         },
         {
+          "name": "provider-file-must-export-provider-class-and-settings-type",
+          "description": "Every provider file must export a provider class and a provider settings type.",
+          "for": {
+            "files": "${providerId}-provider.ts"
+          },
+          "must": {
+            "import": [
+              {
+                "name": "ProviderV4",
+                "from": "@ai-sdk/provider"
+              }
+            ],
+            "exportInterfaces": [
+              {
+                "name": "${providerId.toPascalCase()}Provider",
+                "extend": "ProviderV4"
+              },
+              "${providerId.toPascalCase()}ProviderSettings"
+            ],
+            "exportFunctions": [
+              {
+                "name": "create${providerId.toPascalCase()}",
+                "receiveParamOfType": "${providerId.toPascalCase()}ProviderSettings",
+                "returnValueOfType": "${providerId.toPascalCase()}Provider"
+              }
+            ],
+            "exportConstants": ["${providerId.toFlatCase()}"]
+          }
+        },
+        {
+          "name": "provider-model-file-must-export-model-class-and-options-type",
+          "description": "Every provider's model file must export a model class and a model options type.",
           "for": {
             "files": "${providerId}-{modelKind:segments(1)}-model.ts"
           },
           "must": {
+            "exportClasses": [
+              {
+                "name": "${providerId.toPascalCase()}${modelKind.toPascalCase()}Model",
+                "implement": ["${modelKind.toPascalCase()}ModelV4"]
+              }
+            ],
             "exportTypes": [
               "${providerId.toPascalCase()}${modelKind.toPascalCase()}ModelOptions"
             ]
-          }
+          },
+          "excludeFiles": ["${providerId}-video-model.ts"]
         },
         {
+          "name": "provider-model-file-with-subtype-must-export-model-class-and-options-type",
+          "description": "Every provider's model file with a specific subtype (e.g. chat, responses) must export a model class and a model options type.",
           "for": {
             "files": "${providerId}-{modelKind:segments(2)}-model.ts"
           },
           "must": {
+            "exportClasses": [
+              {
+                "name": "${providerId.toPascalCase()}${modelKind.toNthSegmentPascalCase(0)}${modelKind.toNthSegmentPascalCase(1)}Model",
+                "implement": ["${modelKind.toNthSegmentPascalCase(1)}ModelV4"]
+              }
+            ],
             "exportTypes": [
               "${providerId.toPascalCase()}${modelKind.toNthSegmentPascalCase(1)}Model${modelKind.toNthSegmentPascalCase(0)}Options"
             ]
           }
+        },
+        {
+          "name": "provider-video-model-file-must-export-model-class-and-options-type",
+          "description": "Every provider's video model file must export a model class and a model options type (separated only because VideoModelV4 type is experimental).",
+          "for": {
+            "files": "${providerId}-video-model.ts"
+          },
+          "must": {
+            "exportClasses": [
+              {
+                "name": "${providerId.toPascalCase()}VideoModel",
+                "implement": ["Experimental_VideoModelV4"]
+              }
+            ],
+            "exportTypes": ["${providerId.toPascalCase()}VideoModelOptions"]
+          },
+          "excludeFiles": ["${providerId}-video-model.ts"]
         }
       ]
-    },
-    {
-      "paths": ["packages/{providerId}/src/{providerId}-provider.ts"],
-      "must": {
-        "import": [
-          {
-            "name": "ProviderV4",
-            "from": "@ai-sdk/provider"
-          }
-        ],
-        "exportInterfaces": [
-          {
-            "name": "${providerId.toPascalCase()}Provider",
-            "extend": "ProviderV4"
-          },
-          "${providerId.toPascalCase()}ProviderSettings"
-        ],
-        "exportFunctions": [
-          {
-            "name": "create${providerId.toPascalCase()}",
-            "receiveParamOfType": "${providerId.toPascalCase()}ProviderSettings",
-            "returnValueOfType": "${providerId.toPascalCase()}Provider"
-          }
-        ],
-        "exportConstants": ["${providerId.toFlatCase()}"]
-      }
     }
   ],
   "kebabToPascalMap": {
