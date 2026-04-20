@@ -70,5 +70,9 @@
     "vaul": "^1.1.2",
     "vite": "^6.0.3",
     "zod": "3.25.76"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
