@@ -1,12 +1,24 @@
-import { StreamTextTransform, UIMessageStreamOptions } from '../generate-text';
-import { Output } from '../generate-text/output';
+import { getErrorMessage } from '@ai-sdk/provider-utils';
 import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
+import {
+  createTextStreamPartToUIMessageChunkTransform,
+  StreamTextTransform,
+  UIMessageStreamOptions,
+} from '../generate-text';
+import { Output } from '../generate-text/output';
 import { TimeoutConfiguration } from '../prompt/request-options';
-import { InferUIMessageChunk } from '../ui-message-stream';
+import {
+  handleUIMessageStreamFinish,
+  InferUIMessageChunk,
+} from '../ui-message-stream';
+import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import { InferUITools, UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../util/async-iterable-stream';
 import { Agent } from './agent';
 import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settings';
 
@@ -74,10 +86,38 @@ export async function createAgentUIStream<
     onStepFinish,
   });
 
-  return result.toUIMessageStream({
-    ...uiMessageStreamOptions,
-    // TODO reading `originalMessages` is here for bc, always use `validatedMessages` in v7
-    originalMessages:
-      uiMessageStreamOptions.originalMessages ?? validatedMessages,
-  });
+  // TODO reading `originalMessages` is here for bc, always use `validatedMessages` in v7
+  const originalMessages =
+    uiMessageStreamOptions.originalMessages ?? validatedMessages;
+  const {
+    generateMessageId,
+    onFinish,
+    onError = getErrorMessage,
+  } = uiMessageStreamOptions;
+
+  const responseMessageId =
+    generateMessageId != null
+      ? getResponseUIMessageId({
+          originalMessages,
+          responseMessageId: generateMessageId,
+        })
+      : undefined;
+
+  type AgentUIMessage = UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>;
+
+  return createAsyncIterableStream(
+    handleUIMessageStreamFinish<AgentUIMessage>({
+      stream: result.fullStream.pipeThrough(
+        createTextStreamPartToUIMessageChunkTransform<TOOLS, AgentUIMessage>({
+          ...uiMessageStreamOptions,
+          tools: agent.tools,
+          responseMessageId,
+        }),
+      ),
+      messageId: responseMessageId ?? generateMessageId?.(),
+      originalMessages,
+      onFinish,
+      onError,
+    }),
+  );
 }
