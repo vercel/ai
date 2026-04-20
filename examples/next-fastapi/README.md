@@ -4,21 +4,7 @@ These examples show you how to use the [AI SDK](https://ai-sdk.dev/docs) with [N
 
 ## How to use
 
-Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
-
-```bash
-npx create-next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
-```
-
-```bash
-yarn create next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
-```
-
-```bash
-pnpm create next-app --example https://github.com/vercel/ai/tree/main/examples/next-fastapi next-fastapi-app
-```
-
-You will also need [Python 3.6+](https://www.python.org/downloads) and [virtualenv](https://virtualenv.pypa.io/en/latest/installation.html) installed to run the FastAPI server.
+You will need [Python 3.6+](https://www.python.org/downloads) and [virtualenv](https://virtualenv.pypa.io/en/latest/installation.html) installed to run the FastAPI server.
 
 To run the example locally you need to:
 
@@ -28,7 +14,13 @@ To run the example locally you need to:
 4. `virtualenv venv` to create a python virtual environment.
 5. `source venv/bin/activate` to activate the python virtual environment.
 6. `pip install -r requirements.txt` to install the required python dependencies.
-7. `pnpm install` to install the required dependencies.
+7. Run the following commands from the root directory of the AI SDK repo:
+
+```sh
+pnpm install
+pnpm build
+```
+
 8. `pnpm dev` to launch the development server.
 
 ## Learn More
