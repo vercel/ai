@@ -196,6 +196,40 @@ describe('google-vertex-anthropic-provider', () => {
     );
   });
 
+  it('should use multi-region URL for eu location', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+      location: 'eu',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        baseURL:
+          'https://aiplatform.eu.rep.googleapis.com/v1/projects/test-project/locations/eu/publishers/anthropic/models',
+        provider: 'vertex.anthropic.messages',
+      }),
+    );
+  });
+
+  it('should use multi-region URL for us location', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+      location: 'us',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        baseURL:
+          'https://aiplatform.us.rep.googleapis.com/v1/projects/test-project/locations/us/publishers/anthropic/models',
+        provider: 'vertex.anthropic.messages',
+      }),
+    );
+  });
+
   it('should support combining tools with structured outputs (inherited from Anthropic)', () => {
     const provider = createVertexAnthropic({
       project: 'test-project',

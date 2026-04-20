@@ -173,9 +173,17 @@ export function createVertexAnthropic(
       environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
     });
 
+    // Multi-region locations (e.g. 'us', 'eu') use a different hostname format:
+    // https://aiplatform.{location}.rep.googleapis.com/v1/...
+    // See: https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-partner-models#multi-region
+    const MULTI_REGION_LOCATIONS = new Set(['us', 'eu']);
+    const baseHost = MULTI_REGION_LOCATIONS.has(location ?? '')
+      ? `aiplatform.${location}.rep.googleapis.com`
+      : `${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com`;
+
     return (
       withoutTrailingSlash(options.baseURL) ??
-      `https://${location === 'global' ? '' : location + '-'}aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
+      `https://${baseHost}/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
     );
   };
 
