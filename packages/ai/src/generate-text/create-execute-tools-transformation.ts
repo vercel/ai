@@ -70,10 +70,11 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
       controller.enqueue(chunk);
 
       const chunkType = chunk.type;
+
       switch (chunkType) {
         case 'tool-call': {
           if (chunk.invalid) {
-            break;
+            return;
           }
 
           const tool = tools?.[chunk.toolName];
@@ -81,24 +82,68 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
           if (tool == null) {
             // ignore tool calls for tools that are not available,
             // e.g. provider-executed dynamic tools
-            break;
+            return;
           }
 
-          if (
-            (await resolveToolApproval({
-              tools,
-              toolCall: chunk,
-              toolApproval,
-              messages,
-              toolsContext,
-            })) === 'user-approval'
-          ) {
-            controller.enqueue({
-              type: 'tool-approval-request',
-              approvalId: generateId(),
-              toolCall: chunk,
-            });
-            break;
+          const toolApprovalValue = await resolveToolApproval({
+            tools,
+            toolCall: chunk,
+            toolApproval,
+            messages,
+            toolsContext,
+          });
+
+          switch (toolApprovalValue) {
+            case 'user-approval': {
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId: generateId(),
+                toolCall: chunk,
+              });
+
+              return; // don't execute tool
+            }
+
+            case 'denied': {
+              const approvalId = generateId();
+
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall: chunk,
+              });
+              controller.enqueue({
+                type: 'tool-approval-response',
+                approvalId,
+                approved: false,
+                toolCall: chunk,
+                providerExecuted: chunk.providerExecuted,
+              });
+
+              return; // don't execute tool
+            }
+
+            case 'approved': {
+              const approvalId = generateId();
+
+              controller.enqueue({
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall: chunk,
+              });
+              controller.enqueue({
+                type: 'tool-approval-response',
+                approvalId,
+                approved: true,
+                toolCall: chunk,
+                providerExecuted: chunk.providerExecuted,
+              });
+
+              break; // continue with tool execution
+            }
+
+            case 'not-applicable':
+              break; // continue with tool execution
           }
 
           // Only execute tools that are not provider-executed:
@@ -106,7 +151,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             toolCallsToExecute.push(chunk);
           }
 
-          break;
+          return;
         }
 
         case 'model-call-end': {
@@ -145,7 +190,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             }),
           );
 
-          break;
+          return;
         }
       }
     },

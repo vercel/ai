@@ -28,6 +28,7 @@ import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
 import { StaticToolOutputDenied } from './tool-output-denied';
@@ -467,6 +468,9 @@ export type TextStreamToolOutputDeniedPart<TOOLS extends ToolSet> = {
 
 export type TextStreamToolApprovalRequestPart<TOOLS extends ToolSet> =
   ToolApprovalRequestOutput<TOOLS>;
+
+export type TextStreamToolApprovalResponsePart<TOOLS extends ToolSet> =
+  ToolApprovalResponseOutput<TOOLS>;
 
 export type TextStreamStartStepPart = {
   type: 'start-step';
