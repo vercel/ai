@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   ToolApprovalConfiguration,
-  ToolApprovalConfigurationValue,
+  ToolApprovalStatus,
 } from './tool-approval-configuration';
 import { TypedToolCall } from './tool-call';
 import { validateToolContext } from './validate-tool-context';
@@ -35,7 +35,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
   toolCall: TypedToolCall<TOOLS>; // assuming tool call is valid
   messages: ModelMessage[];
   toolsContext: InferToolSetContext<TOOLS>;
-}): Promise<ToolApprovalConfigurationValue> {
+}): Promise<ToolApprovalStatus> {
   const toolName = toolCall.toolName;
   const tool = tools?.[toolName];
 
@@ -43,10 +43,10 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
   const input = toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>;
 
   // user-defined tool approval
-  const userDefinedToolNeedsApproval = toolApproval?.[toolName];
-  if (userDefinedToolNeedsApproval != null) {
-    return typeof userDefinedToolNeedsApproval === 'function'
-      ? await userDefinedToolNeedsApproval(input, {
+  const userDefinedToolApprovalStatus = toolApproval?.[toolName];
+  if (userDefinedToolApprovalStatus != null) {
+    return typeof userDefinedToolApprovalStatus === 'function'
+      ? await userDefinedToolApprovalStatus(input, {
           toolCallId: toolCall.toolCallId,
           messages,
           toolContext: await validateToolContext({
@@ -56,7 +56,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
             contextSchema: tool?.contextSchema,
           }),
         })
-      : userDefinedToolNeedsApproval;
+      : userDefinedToolApprovalStatus;
   }
 
   // tool-defined approval

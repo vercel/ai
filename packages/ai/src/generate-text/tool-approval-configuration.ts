@@ -7,14 +7,14 @@ import {
 } from '@ai-sdk/provider-utils';
 
 /**
- * The value of a tool approval configuration.
+ * The approval status of a tool configuration.
  *
  * - 'not-applicable': The tool does not require approval.
  * - 'approved': The tool is automatically approved.
  * - 'denied': The tool is automatically denied.
  * - 'user-approval': The tool requires user approval.
  */
-export type ToolApprovalConfigurationValue =
+export type ToolApprovalStatus =
   | 'not-applicable'
   | 'approved'
   | 'denied'
@@ -53,16 +53,14 @@ export type ToolApprovalFunction<
      */
     messages: ModelMessage[];
   },
-) =>
-  | ToolApprovalConfigurationValue
-  | PromiseLike<ToolApprovalConfigurationValue>;
+) => ToolApprovalStatus | PromiseLike<ToolApprovalStatus>;
 
 /**
  * Configure whether individual tools require approval before they can run.
  *
- * Each tool can be assigned either a configuration value or a function that produces a configuration value at runtime.
+ * Each tool can be assigned either an approval status or a function that produces one at runtime.
  *
- * The configuration value can be one of the following:
+ * The approval status can be one of the following:
  * - 'not-applicable': The tool does not require approval.
  * - 'approved': The tool is automatically approved.
  * - 'denied': The tool is automatically denied.
@@ -70,7 +68,7 @@ export type ToolApprovalFunction<
  */
 export type ToolApprovalConfiguration<TOOLS extends ToolSet> = {
   [key in keyof TOOLS]?:
-    | ToolApprovalConfigurationValue
+    | ToolApprovalStatus
     | ToolApprovalFunction<
         InferToolInput<TOOLS[key]>,
         InferToolContext<TOOLS[key]>
