@@ -1124,6 +1124,94 @@ describe('toResponseMessages', () => {
       `);
     });
 
+    it('should add an execution-denied tool result when tool approval is denied', async () => {
+      const result = await toResponseMessages({
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'weather',
+            input: { city: 'Tokyo' },
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+            },
+          },
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-1',
+            approved: false,
+            reason: 'User denied access',
+            toolCall: {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+            },
+          },
+        ],
+        tools: {
+          weather: tool({
+            description: 'Get weather information',
+            inputSchema: z.object({ city: z.string() }),
+          }),
+        },
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "isAutomatic": undefined,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": false,
+                "providerExecuted": undefined,
+                "reason": "User denied access",
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "reason": "User denied access",
+                  "type": "execution-denied",
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
     it('should include provider-executed approval response stages in the tool message', async () => {
       const result = await toResponseMessages({
         content: [

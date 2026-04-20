@@ -159,6 +159,21 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         reason: part.reason,
         providerExecuted: part.providerExecuted,
       });
+
+      // when the tool approval is denied,
+      // we need to add an execution-denied tool result
+      // since there is no corresponding tool result for the tool call
+      if (part.approved === false) {
+        toolResultContent.push({
+          type: 'tool-result',
+          toolCallId: part.toolCall.toolCallId,
+          toolName: part.toolCall.toolName,
+          output: {
+            type: 'execution-denied' as const,
+            reason: part.reason,
+          },
+        });
+      }
       continue;
     }
 

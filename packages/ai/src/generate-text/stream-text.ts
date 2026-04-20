@@ -8,6 +8,7 @@ import type {
   Arrayable,
   Context,
   InferToolSetContext,
+  ToolApprovalResponse,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -1681,6 +1682,7 @@ class DefaultStreamTextResult<
               : { ...request, body: undefined };
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
+          const stepToolApprovalResponses: ToolApprovalResponse[] = [];
           let warnings: SharedV4Warning[] | undefined;
 
           let stepFinishReason: FinishReason = 'other';
@@ -1746,8 +1748,7 @@ class DefaultStreamTextResult<
                     case 'tool-input-start':
                     case 'tool-input-end':
                     case 'tool-input-delta':
-                    case 'tool-approval-request':
-                    case 'tool-approval-response': {
+                    case 'tool-approval-request': {
                       controller.enqueue(chunk);
                       break;
                     }
@@ -1763,6 +1764,12 @@ class DefaultStreamTextResult<
                       controller.enqueue(chunk);
                       // store tool calls for onFinish callback and toolCalls promise:
                       stepToolCalls.push(chunk);
+                      break;
+                    }
+
+                    case 'tool-approval-response': {
+                      controller.enqueue(chunk);
+                      stepToolApprovalResponses.push(chunk);
                       break;
                     }
 
@@ -1869,6 +1876,11 @@ class DefaultStreamTextResult<
                   const clientToolOutputs = stepToolOutputs.filter(
                     toolOutput => toolOutput.providerExecuted !== true,
                   );
+                  const deniedToolApprovalResponses =
+                    stepToolApprovalResponses.filter(
+                      toolApprovalResponse =>
+                        toolApprovalResponse.approved === false,
+                    );
 
                   // Track provider-executed tool calls that support deferred results.
                   // In programmatic tool calling, a server tool (e.g., code_execution) may
@@ -1912,10 +1924,12 @@ class DefaultStreamTextResult<
 
                   if (
                     // Continue if:
-                    // 1. There are client tool calls that have all been executed, OR
-                    // 2. There are pending deferred results from provider-executed tools
+                    // 1. There are client tool calls that have all been executed or denied, OR
+                    // 2. There are pending deferred results from provider-executed tools, OR
                     ((clientToolCalls.length > 0 &&
-                      clientToolOutputs.length === clientToolCalls.length) ||
+                      clientToolCalls.length ===
+                        clientToolOutputs.length +
+                          deniedToolApprovalResponses.length) ||
                       pendingDeferredToolCalls.size > 0) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
