@@ -128,6 +128,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           type: 'tool-approval-request',
           approvalId: part.approvalId,
           toolCallId: part.toolCall.toolCallId,
+          isAutomatic: part.isAutomatic,
         });
         break;
     }
@@ -143,9 +144,24 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
   const toolResultContent: ToolContent = [];
   for (const part of inputContent) {
     if (
-      !(part.type === 'tool-result' || part.type === 'tool-error') ||
+      !(
+        part.type === 'tool-result' ||
+        part.type === 'tool-error' ||
+        part.type === 'tool-approval-response'
+      ) ||
       part.providerExecuted
     ) {
+      continue;
+    }
+
+    if (part.type === 'tool-approval-response') {
+      toolResultContent.push({
+        type: 'tool-approval-response',
+        approvalId: part.approvalId,
+        approved: part.approved,
+        reason: part.reason,
+        providerExecuted: part.providerExecuted,
+      });
       continue;
     }
 
