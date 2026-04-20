@@ -278,6 +278,7 @@ await generateText({
   model,
   providerOptions: {
     vertex: {
+      mediaResolution: 'MEDIA_RESOLUTION_HIGH',
       safetySettings: [
         {
           category: 'HARM_CATEGORY_UNSPECIFIED',
@@ -338,6 +339,18 @@ The following optional provider options are available for Google Vertex models:
 
   This is useful for generating transcripts with accurate timestamps.
   Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding) for usage details.
+
+- **mediaResolution** _string_
+
+  Optional. If specified, the media resolution specified will be used. Can be one of the following:
+
+  - `MEDIA_RESOLUTION_UNSPECIFIED`
+  - `MEDIA_RESOLUTION_LOW`
+  - `MEDIA_RESOLUTION_MEDIUM`
+  - `MEDIA_RESOLUTION_HIGH`
+
+  This is useful for image and PDF inputs where higher-resolution media parsing can improve understanding quality.
+  Consult [Google's Documentation](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/image-understanding) for usage details.
 
 - **labels** _object_
 
