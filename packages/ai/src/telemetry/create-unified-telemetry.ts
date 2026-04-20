@@ -2,9 +2,9 @@ import { asArray } from '@ai-sdk/provider-utils';
 import { Callback } from '../util/callback';
 import { mergeCallbacks } from '../util/merge-callbacks';
 import type {
+  InferTelemetryEvent,
   Telemetry,
   TelemetryDispatcher,
-  TelemetryEvent,
 } from './telemetry';
 import { getGlobalTelemetryIntegrations } from './telemetry-registry';
 import type { TelemetryOptions } from './telemetry-options';
@@ -35,7 +35,7 @@ function augmentEvent<EVENT>(
     TelemetryOptions,
     'isEnabled' | 'recordInputs' | 'recordOutputs' | 'functionId'
   >,
-): TelemetryEvent<EVENT> {
+): InferTelemetryEvent<EVENT> {
   return Object.assign(
     Object.create(Object.getPrototypeOf(event)),
     event,
@@ -80,7 +80,7 @@ export function createUnifiedTelemetry({
     const callbacks = integrations
       .map(integration => integration[key]?.bind(integration))
       .filter(Boolean) as Array<
-      Callback<TelemetryEvent<PublicTelemetryEvent<KEY>>>
+      Callback<InferTelemetryEvent<PublicTelemetryEvent<KEY>>>
     >;
 
     return mergeCallbacks(
