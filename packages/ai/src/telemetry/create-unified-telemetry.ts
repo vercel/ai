@@ -24,7 +24,7 @@ type TelemetryCallbackKey = keyof {
 /**
  * Resolves the public event type accepted by a telemetry callback key.
  */
-type PublicTelemetryEvent<K extends TelemetryCallbackKey> =
+type TelemetryEvent<K extends TelemetryCallbackKey> =
   TelemetryDispatcher[K] extends Callback<infer EVENT> | undefined
     ? EVENT
     : never;
@@ -76,19 +76,19 @@ export function createUnifiedTelemetry({
 
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
-  ): Callback<PublicTelemetryEvent<KEY>> => {
+  ): Callback<TelemetryEvent<KEY>> => {
     return mergeCallbacks(
       ...(
         integrations
           .map(integration => integration[key]?.bind(integration))
           .filter(Boolean) as Array<
-          Callback<InferTelemetryEvent<PublicTelemetryEvent<KEY>>>
+          Callback<InferTelemetryEvent<TelemetryEvent<KEY>>>
         >
       ).map(
         callback =>
-          ((event: PublicTelemetryEvent<KEY>) =>
+          ((event: TelemetryEvent<KEY>) =>
             callback(augmentEvent(event, telemetryMetadata))) as Callback<
-            PublicTelemetryEvent<KEY>
+            TelemetryEvent<KEY>
           >,
       ),
     );
