@@ -70,8 +70,9 @@ run(async () => {
     }
 
     // go through each approval request and ask the user for approval
-    const content = await result.content;
-    for (const part of content) {
+    for (const part of await result.content) {
+      console.log(part.type);
+
       if (
         part.type === 'tool-approval-request' &&
         part.toolCall.toolName === 'weather' &&

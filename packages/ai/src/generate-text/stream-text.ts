@@ -929,6 +929,17 @@ class DefaultStreamTextResult<
           await onError({ error: wrapGatewayError(part.error) });
         }
 
+        if (
+          part.type === 'custom' ||
+          part.type === 'source' ||
+          part.type === 'tool-call' ||
+          part.type === 'tool-approval-request' ||
+          part.type === 'tool-approval-response' ||
+          part.type === 'tool-error'
+        ) {
+          recordedContent.push(part);
+        }
+
         if (part.type === 'text-start') {
           activeTextContent[part.id] = {
             type: 'text',
@@ -1037,27 +1048,7 @@ class DefaultStreamTextResult<
           });
         }
 
-        if (part.type === 'custom') {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'source') {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'tool-call') {
-          recordedContent.push(part);
-        }
-
         if (part.type === 'tool-result' && !part.preliminary) {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'tool-approval-request') {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'tool-error') {
           recordedContent.push(part);
         }
 
