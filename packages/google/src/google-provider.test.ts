@@ -263,6 +263,37 @@ describe('google-provider', () => {
       }
     `);
   });
+
+  it('should include http(s) URLs in supportedUrls for newer models (gemini-2.5+)', () => {
+    const provider = createGoogleGenerativeAI({
+      apiKey: 'test-api-key',
+    });
+    provider('gemini-2.5-pro');
+
+    const calls = vi.mocked(GoogleGenerativeAILanguageModel).mock.calls;
+    const call = calls[calls.length - 1]; // get the latest call
+    const supportedUrlsFunction = call[1].supportedUrls;
+
+    expect(supportedUrlsFunction).toBeDefined();
+
+    const supportedUrls = supportedUrlsFunction!() as Record<string, RegExp[]>;
+    const patterns = supportedUrls['*'];
+
+    expect(patterns).toBeDefined();
+    expect(Array.isArray(patterns)).toBe(true);
+
+    const testResults = {
+      supportedUrls: [
+        'https://example.com/image.jpg',
+        'http://example.com/audio.mp3',
+      ].map(url => ({
+        url,
+        isSupported: patterns.some((pattern: RegExp) => pattern.test(url)),
+      })),
+    };
+
+    expect(testResults.supportedUrls.every(r => r.isSupported)).toBe(true);
+  });
 });
 
 describe('google provider - custom provider name', () => {
