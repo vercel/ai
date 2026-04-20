@@ -489,6 +489,99 @@ import { isStepCount } from 'ai';
 stopWhen: isStepCount(3);
 ```
 
+### `streamText` Response Helpers Deprecated — Use Stateless Helpers
+
+The `toUIMessageStream`, `toUIMessageStreamResponse`, `pipeUIMessageStreamToResponse`, `toTextStreamResponse`, and `pipeTextStreamToResponse` methods on the `streamText` result are now deprecated. They still work in v7 (with deprecation warnings) and will be removed in the next major release.
+
+The equivalent stateless helpers live on the top-level `'ai'` export. Use them directly so the same transformation can be composed over any `fullStream` / `textStream` — not just a `streamText` result.
+
+**UI message stream**
+
+```tsx filename="AI SDK 6"
+const result = streamText({ model, prompt });
+
+const uiStream = result.toUIMessageStream({
+  originalMessages,
+  generateMessageId,
+  onFinish,
+});
+```
+
+```tsx filename="AI SDK 7"
+import {
+  createTextStreamPartToUIMessageChunkTransform,
+  handleUIMessageStreamFinish,
+  streamText,
+} from 'ai';
+
+const result = streamText({ model, prompt });
+
+const uiStream = handleUIMessageStreamFinish({
+  stream: result.fullStream.pipeThrough(
+    createTextStreamPartToUIMessageChunkTransform({
+      tools: result.tools,
+    }),
+  ),
+  messageId: generateMessageId?.(),
+  originalMessages,
+  onFinish,
+  onError: error => (error instanceof Error ? error.message : String(error)),
+});
+```
+
+**UI message stream `Response`**
+
+```tsx filename="AI SDK 6"
+return result.toUIMessageStreamResponse({ originalMessages });
+```
+
+```tsx filename="AI SDK 7"
+import { createUIMessageStreamResponse } from 'ai';
+
+return createUIMessageStreamResponse({
+  stream: uiStream, // see example above
+});
+```
+
+**Pipe UI message stream to Node.js response**
+
+```tsx filename="AI SDK 6"
+result.pipeUIMessageStreamToResponse(response, { originalMessages });
+```
+
+```tsx filename="AI SDK 7"
+import { pipeUIMessageStreamToResponse } from 'ai';
+
+pipeUIMessageStreamToResponse({
+  response,
+  stream: uiStream, // see example above
+});
+```
+
+**Text stream `Response`**
+
+```tsx filename="AI SDK 6"
+return result.toTextStreamResponse();
+```
+
+```tsx filename="AI SDK 7"
+import { createTextStreamResponse } from 'ai';
+
+return createTextStreamResponse({ textStream: result.textStream });
+```
+
+**Pipe text stream to Node.js response**
+
+```tsx filename="AI SDK 6"
+result.pipeTextStreamToResponse(response);
+```
+
+```tsx filename="AI SDK 7"
+import { pipeTextStreamToResponse } from 'ai';
+
+pipeTextStreamToResponse({ response, textStream: result.textStream });
+```
+
 ## MCP Package
 
 ### MCP Transport: `redirect` Default Changed from `'follow'` to `'error'`

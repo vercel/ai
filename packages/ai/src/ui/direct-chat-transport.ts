@@ -1,7 +1,11 @@
+import { getErrorMessage } from '@ai-sdk/provider-utils';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
 import { Agent } from '../agent/agent';
+import { createTextStreamPartToUIMessageChunkTransform } from '../generate-text/create-text-stream-part-to-ui-message-chunk-transform';
 import { Output } from '../generate-text/output';
 import { UIMessageStreamOptions } from '../generate-text/stream-text-result';
-import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import { getResponseUIMessageId } from '../ui-message-stream/get-response-ui-message-id';
+import { handleUIMessageStreamFinish } from '../ui-message-stream/handle-ui-message-stream-finish';
 import { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { ChatTransport } from './chat-transport';
 import { convertToModelMessages } from './convert-to-model-messages';
@@ -110,7 +114,32 @@ export class DirectChatTransport<
     >[0]);
 
     // Return the UI message stream
-    return result.toUIMessageStream(this.uiMessageStreamOptions);
+    const {
+      originalMessages,
+      generateMessageId,
+      onError = getErrorMessage,
+    } = this.uiMessageStreamOptions;
+
+    const responseMessageId =
+      generateMessageId != null
+        ? getResponseUIMessageId({
+            originalMessages,
+            responseMessageId: generateMessageId,
+          })
+        : undefined;
+
+    return handleUIMessageStreamFinish<UI_MESSAGE>({
+      stream: result.fullStream.pipeThrough(
+        createTextStreamPartToUIMessageChunkTransform<TOOLS, UI_MESSAGE>({
+          ...this.uiMessageStreamOptions,
+          tools: this.agent.tools,
+          responseMessageId,
+        }),
+      ),
+      messageId: responseMessageId ?? generateMessageId?.(),
+      originalMessages,
+      onError,
+    });
   }
 
   /**
