@@ -28,7 +28,8 @@ export interface ToolExecutionOptions<
   abortSignal?: AbortSignal;
 
   /**
-   * User-defined runtime context.
+   * Tool context as defined by the tool's context schema.
+   * The tool context is specific to the tool and is passed to the tool execution.
    *
    * Treat the context object as immutable inside tools.
    * Mutating the context object can lead to race conditions and unexpected results
@@ -61,7 +62,8 @@ export type ToolNeedsApprovalFunction<
     messages: ModelMessage[];
 
     /**
-     * User-defined runtime context.
+     * Tool context as defined by the tool's context schema.
+     * The tool context is specific to the tool and is passed to the tool execution.
      *
      * Treat the context object as immutable inside tools.
      * Mutating the context object can lead to race conditions and unexpected results
@@ -113,9 +115,15 @@ type ToolOutputProperties<
        */
       execute: ToolExecuteFunction<INPUT, OUTPUT, CONTEXT>;
 
+      /**
+       * The schema of the output that the tool produces.
+       */
       outputSchema?: FlexibleSchema<OUTPUT>;
     }
   | {
+      /**
+       * The schema of the output that the tool produces.
+       */
       outputSchema: FlexibleSchema<OUTPUT>;
 
       execute?: never;
@@ -274,6 +282,11 @@ export type Tool<
         id: `${string}.${string}`;
 
         /**
+         * Flag that indicates whether the tool is executed by the provider.
+         */
+        isProviderExecuted: boolean;
+
+        /**
          * The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
          */
         args: Record<string, unknown>;
@@ -319,10 +332,41 @@ export function tool(tool: any): any {
  * Defines a dynamic tool.
  */
 export function dynamicTool(tool: {
+  /**
+   * An optional description of what the tool does.
+   * Will be used by the language model to decide whether to use the tool.
+   * Not used for provider-defined tools.
+   */
   description?: string;
+
+  /**
+   * An optional title of the tool.
+   */
   title?: string;
+
+  /**
+   * Additional provider-specific metadata. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
+   */
   providerOptions?: ProviderOptions;
+
+  /**
+   * The schema of the input that the tool expects.
+   * The language model will use this to generate the input.
+   * It is also used to validate the output of the language model.
+   *
+   * You can use descriptions on the schema properties to make the input understandable for the language model.
+   */
   inputSchema: FlexibleSchema<unknown>;
+
+  /**
+   * An async function that is called with the arguments from the tool call and produces a result.
+   * If not provided, the tool will not be executed automatically.
+   *
+   * @args is the input of the tool call.
+   * @options.abortSignal is a signal that can be used to abort the tool call.
+   */
   execute: ToolExecuteFunction<unknown, unknown, Context>;
 
   /**

@@ -1,8 +1,11 @@
 import { tool, Tool, ToolExecuteFunction } from './types/tool';
 import { FlexibleSchema } from './schema';
 import { Context } from './types/context';
-
-export type ProviderToolFactory<
+/**
+ * A provider-defined tool is a tool for which the provider defines the input
+ * and output schemas, but does not execute the tool.
+ */
+export type ProviderDefinedToolFactory<
   INPUT,
   ARGS extends object,
   CONTEXT extends Context = {},
@@ -17,7 +20,7 @@ export type ProviderToolFactory<
   },
 ) => Tool<INPUT, OUTPUT, CONTEXT>;
 
-export function createProviderToolFactory<
+export function createProviderDefinedToolFactory<
   INPUT,
   ARGS extends object,
   CONTEXT extends Context = {},
@@ -27,7 +30,7 @@ export function createProviderToolFactory<
 }: {
   id: `${string}.${string}`;
   inputSchema: FlexibleSchema<INPUT>;
-}): ProviderToolFactory<INPUT, ARGS, CONTEXT> {
+}): ProviderDefinedToolFactory<INPUT, ARGS, CONTEXT> {
   return <OUTPUT>({
     execute,
     outputSchema,
@@ -48,6 +51,7 @@ export function createProviderToolFactory<
   }): Tool<INPUT, OUTPUT, CONTEXT> =>
     tool({
       type: 'provider',
+      isProviderExecuted: false,
       id,
       args,
       inputSchema,
@@ -61,7 +65,7 @@ export function createProviderToolFactory<
     });
 }
 
-export type ProviderToolFactoryWithOutputSchema<
+export type ProviderDefinedToolFactoryWithOutputSchema<
   INPUT,
   OUTPUT,
   ARGS extends object,
@@ -77,7 +81,7 @@ export type ProviderToolFactoryWithOutputSchema<
   },
 ) => Tool<INPUT, OUTPUT, CONTEXT>;
 
-export function createProviderToolFactoryWithOutputSchema<
+export function createProviderDefinedToolFactoryWithOutputSchema<
   INPUT,
   OUTPUT,
   ARGS extends object,
@@ -102,7 +106,7 @@ export function createProviderToolFactoryWithOutputSchema<
    * @default false
    */
   supportsDeferredResults?: boolean;
-}): ProviderToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS, CONTEXT> {
+}): ProviderDefinedToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS, CONTEXT> {
   return ({
     execute,
     needsApproval,
@@ -121,6 +125,7 @@ export function createProviderToolFactoryWithOutputSchema<
   }): Tool<INPUT, OUTPUT, CONTEXT> =>
     tool({
       type: 'provider',
+      isProviderExecuted: false,
       id,
       args,
       inputSchema,
