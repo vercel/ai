@@ -84,7 +84,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
         'Limits the subset of tools that are available in a specific call.',
     },
     {
-      name: 'toolNeedsApproval',
+      name: 'toolApproval',
       type: 'Record<string, boolean | ((input, options) => boolean | Promise<boolean>)>',
       isOptional: true,
       description:
@@ -968,7 +968,7 @@ const agent = new ToolLoopAgent({
       }),
     }),
   },
-  toolNeedsApproval: {
+  toolApproval: {
     weather: true,
   },
 });

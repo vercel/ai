@@ -377,7 +377,7 @@ describe('ToolLoopAgent', () => {
         });
       });
 
-      it('should honor toolNeedsApproval in generate', async () => {
+      it('should honor toolApproval in generate', async () => {
         let modelCallCount = 0;
         const execute = vi.fn(async () => 'tool-result');
 
@@ -446,7 +446,7 @@ describe('ToolLoopAgent', () => {
               execute,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             testTool: true,
           },
         });
@@ -657,7 +657,7 @@ describe('ToolLoopAgent', () => {
     `);
     });
 
-    it('should honor toolNeedsApproval in stream', async () => {
+    it('should honor toolApproval in stream', async () => {
       let modelCallCount = 0;
       const execute = vi.fn(async () => 'tool-result');
 
@@ -747,7 +747,7 @@ describe('ToolLoopAgent', () => {
             execute,
           }),
         },
-        toolNeedsApproval: {
+        toolApproval: {
           testTool: true,
         },
       });

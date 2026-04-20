@@ -133,6 +133,8 @@ interface CallState {
   rootContext: OpenTelemetryContext | undefined;
   stepSpan: Span | undefined;
   stepContext: OpenTelemetryContext | undefined;
+  inferenceSpan: Span | undefined;
+  inferenceContext: OpenTelemetryContext | undefined;
   embedSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
   rerankSpan: { span: Span; context: OpenTelemetryContext } | undefined;
   toolSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
@@ -282,6 +284,8 @@ export class GenAIOpenTelemetry implements Telemetry {
       rootContext,
       stepSpan: undefined,
       stepContext: undefined,
+      inferenceSpan: undefined,
+      inferenceContext: undefined,
       embedSpans: new Map(),
       rerankSpan: undefined,
       toolSpans: new Map(),
@@ -361,6 +365,8 @@ export class GenAIOpenTelemetry implements Telemetry {
       rootContext,
       stepSpan: undefined,
       stepContext: undefined,
+      inferenceSpan: undefined,
+      inferenceContext: undefined,
       embedSpans: new Map(),
       rerankSpan: undefined,
       toolSpans: new Map(),
@@ -406,22 +412,25 @@ export class GenAIOpenTelemetry implements Telemetry {
     });
 
     const spanName = `chat ${event.modelId}`;
-    state.stepSpan = this.tracer.startSpan(
+    state.inferenceSpan = this.tracer.startSpan(
       spanName,
       { attributes, kind: SpanKind.CLIENT },
       state.rootContext,
     );
-    state.stepContext = trace.setSpan(state.rootContext, state.stepSpan);
+    state.inferenceContext = trace.setSpan(
+      state.rootContext,
+      state.inferenceSpan,
+    );
   }
 
   /** @deprecated */
   onObjectStepFinish(event: ObjectOnStepFinishEvent): void {
     const state = this.getCallState(event.callId);
-    if (!state?.stepSpan) return;
+    if (!state?.inferenceSpan) return;
 
     const { telemetry } = state;
 
-    state.stepSpan.setAttributes(
+    state.inferenceSpan.setAttributes(
       selectAttributes(telemetry, {
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.response.id,
@@ -446,9 +455,9 @@ export class GenAIOpenTelemetry implements Telemetry {
       }),
     );
 
-    state.stepSpan.end();
-    state.stepSpan = undefined;
-    state.stepContext = undefined;
+    state.inferenceSpan.end();
+    state.inferenceSpan = undefined;
+    state.inferenceContext = undefined;
   }
 
   private onEmbedOperationStart(
@@ -487,6 +496,8 @@ export class GenAIOpenTelemetry implements Telemetry {
       rootContext,
       stepSpan: undefined,
       stepContext: undefined,
+      inferenceSpan: undefined,
+      inferenceContext: undefined,
       embedSpans: new Map(),
       rerankSpan: undefined,
       toolSpans: new Map(),
@@ -502,8 +513,18 @@ export class GenAIOpenTelemetry implements Telemetry {
 
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
+    const stepAttributes = selectAttributes(telemetry, {
+      'gen_ai.operation.name': 'agent_step',
+    });
 
-    const attributes = selectAttributes(telemetry, {
+    state.stepSpan = this.tracer.startSpan(
+      `step ${event.stepNumber + 1}`,
+      { attributes: stepAttributes, kind: SpanKind.INTERNAL },
+      state.rootContext,
+    );
+    state.stepContext = trace.setSpan(state.rootContext, state.stepSpan);
+
+    const inferenceAttributes = selectAttributes(telemetry, {
       'gen_ai.operation.name': 'chat',
       'gen_ai.provider.name': providerName,
       'gen_ai.request.model': event.modelId,
@@ -536,13 +557,15 @@ export class GenAIOpenTelemetry implements Telemetry {
       },
     });
 
-    const spanName = `chat ${event.modelId}`;
-    state.stepSpan = this.tracer.startSpan(
-      spanName,
-      { attributes, kind: SpanKind.CLIENT },
-      state.rootContext,
+    state.inferenceSpan = this.tracer.startSpan(
+      `chat ${event.modelId}`,
+      { attributes: inferenceAttributes, kind: SpanKind.CLIENT },
+      state.stepContext,
     );
-    state.stepContext = trace.setSpan(state.rootContext, state.stepSpan);
+    state.inferenceContext = trace.setSpan(
+      state.stepContext,
+      state.inferenceSpan,
+    );
   }
 
   onToolExecutionStart(event: ToolExecutionStartEvent<ToolSet>): void {
@@ -608,11 +631,11 @@ export class GenAIOpenTelemetry implements Telemetry {
 
   onStepFinish(event: OnStepFinishEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
-    if (!state?.stepSpan) return;
+    if (!state?.stepSpan || !state.inferenceSpan) return;
 
     const { telemetry } = state;
 
-    state.stepSpan.setAttributes(
+    state.inferenceSpan.setAttributes(
       selectAttributes(telemetry, {
         'gen_ai.response.finish_reasons': [event.finishReason],
         'gen_ai.response.id': event.response.id,
@@ -638,6 +661,10 @@ export class GenAIOpenTelemetry implements Telemetry {
         },
       }),
     );
+
+    state.inferenceSpan.end();
+    state.inferenceSpan = undefined;
+    state.inferenceContext = undefined;
 
     state.stepSpan.end();
     state.stepSpan = undefined;
@@ -842,6 +869,8 @@ export class GenAIOpenTelemetry implements Telemetry {
       rootContext,
       stepSpan: undefined,
       stepContext: undefined,
+      inferenceSpan: undefined,
+      inferenceContext: undefined,
       embedSpans: new Map(),
       rerankSpan: undefined,
       toolSpans: new Map(),
@@ -906,9 +935,24 @@ export class GenAIOpenTelemetry implements Telemetry {
 
     const actualError = event.error ?? error;
 
+    for (const { span: toolSpan } of state.toolSpans.values()) {
+      recordSpanError(toolSpan, actualError);
+      toolSpan.end();
+    }
+    state.toolSpans.clear();
+
+    if (state.inferenceSpan) {
+      recordSpanError(state.inferenceSpan, actualError);
+      state.inferenceSpan.end();
+      state.inferenceSpan = undefined;
+      state.inferenceContext = undefined;
+    }
+
     if (state.stepSpan) {
       recordSpanError(state.stepSpan, actualError);
       state.stepSpan.end();
+      state.stepSpan = undefined;
+      state.stepContext = undefined;
     }
 
     for (const { span: embedSpan } of state.embedSpans.values()) {

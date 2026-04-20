@@ -1,5 +1,24 @@
 # @ai-sdk/workflow
 
+## 1.0.0-beta.26
+
+### Major Changes
+
+- 1949571: feat(ai): make experimental_telemetry stable
+
+### Patch Changes
+
+- f32c750: refactoring(ai): simplify mergeAbortSignals
+- Updated dependencies [f319fde]
+- Updated dependencies [1949571]
+- Updated dependencies [511902c]
+- Updated dependencies [6542d93]
+- Updated dependencies [2e98477]
+- Updated dependencies [876fd3e]
+- Updated dependencies [f32c750]
+  - ai@7.0.0-beta.111
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
 ## 1.0.0-beta.25
 
 ### Patch Changes

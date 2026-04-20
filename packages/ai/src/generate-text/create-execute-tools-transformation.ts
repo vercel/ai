@@ -9,12 +9,12 @@ import type { Telemetry } from '../telemetry/telemetry';
 import { executeToolCall } from './execute-tool-call';
 import { isToolApprovalNeeded } from './is-tool-approval-needed';
 import { LanguageModelStreamPart } from './stream-language-model-call';
+import { ToolApprovalConfiguration } from './tool-approval-configuration';
 import { TypedToolCall } from './tool-call';
 import {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
 
 export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   tools,
@@ -23,7 +23,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   abortSignal,
   timeout,
   toolsContext,
-  toolNeedsApproval,
+  toolApproval,
   generateId,
   stepNumber,
   provider,
@@ -38,7 +38,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   toolsContext: InferToolSetContext<TOOLS>;
-  toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
+  toolApproval?: ToolApprovalConfiguration<TOOLS>;
   generateId: IdGenerator;
   stepNumber?: number;
   provider?: string;
@@ -85,7 +85,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             await isToolApprovalNeeded({
               tools,
               toolCall: chunk,
-              toolNeedsApproval,
+              toolApproval,
               messages,
               toolsContext,
             })

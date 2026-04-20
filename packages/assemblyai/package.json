@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/assemblyai",
-  "version": "3.0.0-beta.27",
+  "version": "3.0.0-beta.28",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

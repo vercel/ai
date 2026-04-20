@@ -20,8 +20,12 @@ import type {
 import { Output } from '../generate-text/output';
 import { PrepareStepFunction } from '../generate-text/prepare-step';
 import { StopCondition } from '../generate-text/stop-condition';
+import { ToolApprovalConfiguration } from '../generate-text/tool-approval-configuration';
 import { ToolCallRepairFunction } from '../generate-text/tool-call-repair-function';
-import { ToolNeedsApprovalConfiguration } from '../generate-text/tool-needs-approval-configuration';
+import {
+  OnToolExecutionEndCallback,
+  OnToolExecutionStartCallback,
+} from '../generate-text/tool-execution-events';
 import { ToolsContextParameter } from '../generate-text/tools-context-parameter';
 import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import { Prompt } from '../prompt/prompt';
@@ -31,10 +35,6 @@ import { LanguageModel, ToolChoice } from '../types/language-model';
 import type { Callback } from '../util/callback';
 import { DownloadFunction } from '../util/download/download-function';
 import { AgentCallParameters } from './agent';
-import {
-  OnToolExecutionEndCallback,
-  OnToolExecutionStartCallback,
-} from '../generate-text/tool-execution-events';
 
 export type ToolLoopAgentOnStartCallback<
   TOOLS extends ToolSet = ToolSet,
@@ -133,7 +133,7 @@ export type ToolLoopAgentSettings<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolNeedsApproval?: ToolNeedsApprovalConfiguration<NoInfer<TOOLS>>;
+    toolApproval?: ToolApprovalConfiguration<NoInfer<TOOLS>>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -257,7 +257,7 @@ export type ToolLoopAgentSettings<
           | 'telemetry'
           | 'experimental_telemetry'
           | 'activeTools'
-          | 'toolNeedsApproval'
+          | 'toolApproval'
           | 'providerOptions'
           | 'experimental_download'
           | 'runtimeContext'
@@ -287,7 +287,7 @@ export type ToolLoopAgentSettings<
         | 'telemetry'
         | 'experimental_telemetry'
         | 'activeTools'
-        | 'toolNeedsApproval'
+        | 'toolApproval'
         | 'providerOptions'
         | 'experimental_download'
         | 'runtimeContext'

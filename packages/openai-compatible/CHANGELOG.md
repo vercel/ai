@@ -1,5 +1,13 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.0-beta.31
+
+### Patch Changes
+
+- bfb756d: patch - send content: null instead of empty string for tool-only assistant messages
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
 ## 3.0.0-beta.30
 
 ### Patch Changes
