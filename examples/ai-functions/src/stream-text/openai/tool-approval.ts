@@ -103,7 +103,7 @@ run(async () => {
         }
 
         case 'text-start': {
-          process.stdout.write('\nAssistant: ');
+          process.stdout.write('\nAssistant:\n');
           break;
         }
 
