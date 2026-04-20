@@ -4767,6 +4767,96 @@ describe('generateText', () => {
       ]
     `);
     });
+
+    it('should not execute tool calls for tools not in activeTools', async () => {
+      // Reproduces issue #13448: even when activeTools restricts which tools
+      // are sent to the model, a (mocked / misbehaving) model that returns a
+      // tool call for an inactive tool must NOT have that tool executed.
+      let executed = false;
+
+      const result = await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: JSON.stringify({ location: 'Basel' }),
+              },
+            ],
+          }),
+        }),
+        tools: {
+          weather: {
+            inputSchema: z.object({ location: z.string() }),
+            execute: async () => {
+              executed = true;
+              return 'sunny';
+            },
+          },
+        },
+        // Disable all tools — the model must not be able to call any
+        activeTools: [],
+        prompt: 'test',
+      });
+
+      expect(executed).toBe(false);
+      // The tool call should be marked invalid (NoSuchTool) rather than run
+      expect(result.toolCalls[0]).toMatchObject({ invalid: true });
+    });
+
+    it('should not execute tool calls for a tool excluded from activeTools', async () => {
+      // When activeTools contains some tools but not all, calling an excluded
+      // tool must be treated as NoSuchToolError rather than executed silently.
+      const executed: string[] = [];
+
+      await generateText({
+        model: new MockLanguageModelV3({
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-active',
+                toolName: 'tool1',
+                input: JSON.stringify({ value: 'hello' }),
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'call-inactive',
+                toolName: 'tool2',
+                input: JSON.stringify({ value: 'world' }),
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              executed.push('tool1:' + value);
+              return 'result1';
+            },
+          },
+          tool2: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => {
+              executed.push('tool2:' + value);
+              return 'result2';
+            },
+          },
+        },
+        activeTools: ['tool1'],
+        prompt: 'test',
+      });
+
+      // tool1 is active and should be executed; tool2 is not and must not run
+      expect(executed).toEqual(['tool1:hello']);
+    });
   });
 
   describe('tool callbacks', () => {

@@ -726,6 +726,17 @@ export async function generateText<
         });
 
         // parse tool calls:
+        // When activeTools is set, only expose active tools during parsing so
+        // that tool calls for inactive tools are treated as NoSuchToolError
+        // (and end up as invalid calls) rather than being executed silently.
+        const toolsForParsing =
+          stepActiveTools != null && tools != null
+            ? (Object.fromEntries(
+                Object.entries(tools).filter(([name]) =>
+                  stepActiveTools.includes(name as keyof TOOLS),
+                ),
+              ) as TOOLS)
+            : tools;
         const stepToolCalls: TypedToolCall<TOOLS>[] = await Promise.all(
           currentModelResponse.content
             .filter(
@@ -735,7 +746,7 @@ export async function generateText<
             .map(toolCall =>
               parseToolCall({
                 toolCall,
-                tools,
+                tools: toolsForParsing,
                 repairToolCall,
                 system,
                 messages: stepInputMessages,
