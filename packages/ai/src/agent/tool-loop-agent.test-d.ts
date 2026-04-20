@@ -4,7 +4,7 @@ import { z } from 'zod';
 import {
   Output,
   StreamTextOnFinishCallback,
-  ToolNeedsApprovalConfiguration,
+  ToolApprovalConfiguration,
 } from '../generate-text';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
@@ -91,7 +91,7 @@ describe('ToolLoopAgent', () => {
       expectTypeOf<typeof output>().toEqualTypeOf<{ value: string }>();
     });
 
-    it('should type toolNeedsApproval in settings and prepareCall', () => {
+    it('should type toolApproval in settings and prepareCall', () => {
       const tools = {
         testTool: tool({
           inputSchema: z.object({ value: z.string() }),
@@ -101,7 +101,7 @@ describe('ToolLoopAgent', () => {
       new ToolLoopAgent({
         model: new MockLanguageModelV4(),
         tools,
-        toolNeedsApproval: {
+        toolApproval: {
           testTool: (input, options) => {
             expectTypeOf(input).toEqualTypeOf<{ value: string }>();
             expectTypeOf(options.toolCallId).toEqualTypeOf<string>();
@@ -111,8 +111,8 @@ describe('ToolLoopAgent', () => {
           },
         },
         prepareCall: options => {
-          expectTypeOf(options.toolNeedsApproval).toEqualTypeOf<
-            ToolNeedsApprovalConfiguration<typeof tools> | undefined
+          expectTypeOf(options.toolApproval).toEqualTypeOf<
+            ToolApprovalConfiguration<typeof tools> | undefined
           >();
 
           return {

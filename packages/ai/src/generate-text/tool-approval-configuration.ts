@@ -11,7 +11,7 @@ import {
  * Each tool can be assigned either a boolean or a function that decides at
  * runtime whether approval is needed.
  */
-export type ToolNeedsApprovalConfiguration<TOOLS extends ToolSet> = {
+export type ToolApprovalConfiguration<TOOLS extends ToolSet> = {
   [key in keyof TOOLS]?:
     | boolean
     | ToolNeedsApprovalFunction<

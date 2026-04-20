@@ -118,16 +118,16 @@ import {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
+import { ToolApprovalConfiguration } from './tool-approval-configuration';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
-import { ToolOutput } from './tool-output';
-import { StaticToolOutputDenied } from './tool-output-denied';
-import { ToolsContextParameter } from './tools-context-parameter';
 import {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import { ToolOutput } from './tool-output';
+import { StaticToolOutputDenied } from './tool-output-denied';
+import { ToolsContextParameter } from './tools-context-parameter';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -312,7 +312,7 @@ export function streamText<
   headers,
   stopWhen = isStepCount(1),
   output,
-  toolNeedsApproval,
+  toolApproval,
   experimental_telemetry,
   telemetry = experimental_telemetry,
   prepareStep,
@@ -405,7 +405,7 @@ export function streamText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolNeedsApproval?: ToolNeedsApprovalConfiguration<TOOLS>;
+    toolApproval?: ToolApprovalConfiguration<TOOLS>;
 
     /**
      * Optional function that you can use to provide different settings for a step.
@@ -578,7 +578,7 @@ export function streamText<
     repairToolCall,
     stopConditions: asArray(stopWhen),
     output,
-    toolNeedsApproval,
+    toolApproval,
     providerOptions,
     prepareStep,
     includeRawChunks,
@@ -762,7 +762,7 @@ class DefaultStreamTextResult<
     repairToolCall,
     stopConditions,
     output,
-    toolNeedsApproval,
+    toolApproval,
     providerOptions,
     prepareStep,
     includeRawChunks,
@@ -809,7 +809,7 @@ class DefaultStreamTextResult<
       StopCondition<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
     >;
     output: OUTPUT | undefined;
-    toolNeedsApproval: ToolNeedsApprovalConfiguration<TOOLS> | undefined;
+    toolApproval: ToolApprovalConfiguration<TOOLS> | undefined;
     providerOptions: ProviderOptions | undefined;
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
@@ -1661,7 +1661,7 @@ class DefaultStreamTextResult<
               abortSignal,
               timeout,
               toolsContext,
-              toolNeedsApproval,
+              toolApproval,
               generateId,
               stepNumber: recordedSteps.length,
               provider: stepModel.provider,
