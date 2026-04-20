@@ -791,6 +791,7 @@ describe('toResponseMessages', () => {
           web_search: tool({
             type: 'provider',
             id: 'test.web_search',
+            isProviderExecuted: true,
             inputSchema: z.object({
               query: z.string(),
             }),
