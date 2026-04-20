@@ -1734,5 +1734,178 @@ describe('prepareResponsesTools', () => {
         }
       `);
     });
+
+    it('should prepare namespace tool', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.namespace',
+            name: 'namespace',
+            args: {
+              name: 'mcp_github',
+              description: 'Tools from GitHub MCP server',
+              tools: [
+                {
+                  type: 'function',
+                  name: 'github__create_issue',
+                  description: 'Create a GitHub issue',
+                  defer_loading: true,
+                  parameters: {
+                    type: 'object',
+                    properties: { title: { type: 'string' } },
+                  },
+                },
+                {
+                  type: 'function',
+                  name: 'github__list_repos',
+                  description: 'List repositories',
+                  defer_loading: true,
+                  parameters: {
+                    type: 'object',
+                    properties: {},
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "description": "Tools from GitHub MCP server",
+              "name": "mcp_github",
+              "tools": [
+                {
+                  "defer_loading": true,
+                  "description": "Create a GitHub issue",
+                  "name": "github__create_issue",
+                  "parameters": {
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  "type": "function",
+                },
+                {
+                  "defer_loading": true,
+                  "description": "List repositories",
+                  "name": "github__list_repos",
+                  "parameters": {
+                    "properties": {},
+                    "type": "object",
+                  },
+                  "type": "function",
+                },
+              ],
+              "type": "namespace",
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should prepare namespace alongside tool_search and function tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.tool_search',
+            name: 'toolSearch',
+            args: {},
+          },
+          {
+            type: 'provider',
+            id: 'openai.namespace',
+            name: 'namespace',
+            args: {
+              name: 'mcp_slack',
+              tools: [
+                {
+                  type: 'function',
+                  name: 'slack__send_message',
+                  description: 'Send a Slack message',
+                  defer_loading: true,
+                  parameters: {
+                    type: 'object',
+                    properties: { channel: { type: 'string' } },
+                  },
+                },
+              ],
+            },
+          },
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the current weather',
+            inputSchema: {
+              type: 'object',
+              properties: { location: { type: 'string' } },
+              required: ['location'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        toolChoice: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "toolChoice": undefined,
+          "toolWarnings": [],
+          "tools": [
+            {
+              "type": "tool_search",
+            },
+            {
+              "name": "mcp_slack",
+              "tools": [
+                {
+                  "defer_loading": true,
+                  "description": "Send a Slack message",
+                  "name": "slack__send_message",
+                  "parameters": {
+                    "properties": {
+                      "channel": {
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                  "type": "function",
+                },
+              ],
+              "type": "namespace",
+            },
+            {
+              "description": "Get the current weather",
+              "name": "get_weather",
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "location": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "location",
+                ],
+                "type": "object",
+              },
+              "type": "function",
+            },
+          ],
+        }
+      `);
+    });
   });
 });
