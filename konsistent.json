@@ -98,7 +98,10 @@
           "name": "provider-model-file-must-export-model-class-and-options-type",
           "description": "Every provider's model file must export a model class and a model options type.",
           "for": {
-            "files": "${providerId}-{modelKind:segments(1)}-model.ts"
+            "files": [
+              "${providerId}-{modelKind:segments(1)}-model.ts",
+              "*/${providerId}-{modelKind:segments(1)}-model.ts"
+            ]
           },
           "must": {
             "importTypes": [
@@ -123,7 +126,10 @@
           "name": "provider-model-file-with-subtype-must-export-model-class-and-options-type",
           "description": "Every provider's model file with a specific subtype (e.g. chat, responses) must export a model class and a model options type.",
           "for": {
-            "files": "${providerId}-{modelKind:segments(2)}-model.ts"
+            "files": [
+              "${providerId}-{modelKind:segments(2)}-model.ts",
+              "*/${providerId}-{modelKind:segments(2)}-model.ts"
+            ]
           },
           "must": {
             "importTypes": [
@@ -147,7 +153,10 @@
           "name": "provider-video-model-file-must-export-model-class-and-options-type",
           "description": "Every provider's video model file must export a model class and a model options type (separated only because VideoModelV4 type is experimental).",
           "for": {
-            "files": "${providerId}-video-model.ts"
+            "files": [
+              "${providerId}-video-model.ts",
+              "*/${providerId}-video-model.ts"
+            ]
           },
           "must": {
             "importTypes": [
