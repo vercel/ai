@@ -90,22 +90,10 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
   id,
   inputSchema,
   outputSchema,
-  supportsDeferredResults,
 }: {
   id: `${string}.${string}`;
   inputSchema: FlexibleSchema<INPUT>;
   outputSchema: FlexibleSchema<OUTPUT>;
-  /**
-   * Whether this provider-executed tool supports deferred results.
-   *
-   * When true, the tool result may not be returned in the same turn as the
-   * tool call (e.g., when using programmatic tool calling where a server tool
-   * triggers a client-executed tool, and the server tool's result is deferred
-   * until the client tool is resolved).
-   *
-   * @default false
-   */
-  supportsDeferredResults?: boolean;
 }): ProviderDefinedToolFactoryWithOutputSchema<INPUT, OUTPUT, ARGS, CONTEXT> {
   return ({
     execute,
@@ -136,6 +124,5 @@ export function createProviderDefinedToolFactoryWithOutputSchema<
       onInputStart,
       onInputDelta,
       onInputAvailable,
-      supportsDeferredResults,
     });
 }
