@@ -5585,6 +5585,58 @@ describe('AnthropicMessagesLanguageModel', () => {
           raw: 'compaction',
         });
       });
+
+      it('should skip compaction blocks with empty content', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              { type: 'compaction', content: '' },
+              { type: 'text', text: 'Hello' },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        // Empty compaction block should be skipped, only text part remains
+        expect(result.content).toEqual([{ type: 'text', text: 'Hello' }]);
+      });
+
+      it('should skip compaction blocks with null content', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              { type: 'compaction', content: null },
+              { type: 'text', text: 'World' },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        // Null compaction block should be skipped, only text part remains
+        expect(result.content).toEqual([{ type: 'text', text: 'World' }]);
+      });
     });
   });
 

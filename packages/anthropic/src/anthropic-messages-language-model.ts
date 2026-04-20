@@ -960,6 +960,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV4 {
           break;
         }
         case 'compaction': {
+          // Skip compaction blocks with empty/null content — they carry
+          // no information and would be rejected by the API on re-send
+          // (the request schema requires non-empty content).
+          if (!part.content) {
+            break;
+          }
           content.push({
             type: 'text',
             text: part.content,

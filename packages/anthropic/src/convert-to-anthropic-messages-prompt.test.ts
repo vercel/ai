@@ -3338,3 +3338,78 @@ describe('citations', () => {
     });
   });
 });
+
+describe('compaction', () => {
+  it('should skip compaction blocks with empty content', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: '',
+              providerOptions: {
+                anthropic: { type: 'compaction' },
+              },
+            },
+            {
+              type: 'text',
+              text: 'Hello',
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hi' }],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    // Empty compaction block should be filtered out
+    expect(result.prompt.messages[0]!.content).toEqual([
+      {
+        type: 'text',
+        text: 'Hello',
+        cache_control: undefined,
+      },
+    ]);
+  });
+
+  it('should include compaction blocks with non-empty content', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Summary of conversation...',
+              providerOptions: {
+                anthropic: { type: 'compaction' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hi' }],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages[0]!.content).toEqual([
+      {
+        type: 'compaction',
+        content: 'Summary of conversation...',
+        cache_control: undefined,
+      },
+    ]);
+  });
+});
