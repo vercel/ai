@@ -1,9 +1,11 @@
+import { isJSONObject } from '@ai-sdk/provider';
 import {
   AssistantContent,
   CustomPart,
   FilePart,
   isNonNullable,
   ModelMessage,
+  safeParseJSON,
   TextPart,
   ToolApprovalResponse,
   ToolResultPart,
@@ -32,6 +34,32 @@ import {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+
+async function resolveToolInput(
+  part: ToolUIPart | DynamicToolUIPart,
+): Promise<unknown> {
+  if (part.input !== undefined) {
+    return part.input;
+  }
+
+  if (!('rawInput' in part)) {
+    return {};
+  }
+
+  if (isJSONObject(part.rawInput)) {
+    return part.rawInput;
+  }
+
+  if (typeof part.rawInput === 'string') {
+    const parsedRawInput = await safeParseJSON({ text: part.rawInput });
+
+    if (parsedRawInput.success && isJSONObject(parsedRawInput.value)) {
+      return parsedRawInput.value;
+    }
+  }
+
+  return {};
+}
 
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
@@ -198,15 +226,16 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 const toolName = getToolName(part);
 
                 if (part.state !== 'input-streaming') {
+                  const input =
+                    part.state === 'output-error'
+                      ? await resolveToolInput(part)
+                      : part.input;
+
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
                     toolName,
-                    input:
-                      part.state === 'output-error'
-                        ? (part.input ??
-                          ('rawInput' in part ? part.rawInput : undefined))
-                        : part.input,
+                    input,
                     providerExecuted: part.providerExecuted,
                     ...(part.callProviderMetadata != null
                       ? { providerOptions: part.callProviderMetadata }
