@@ -14,7 +14,7 @@ describe('isToolApprovalNeeded', () => {
           inputSchema: z.object({ city: z.string() }),
         }),
       },
-      toolNeedsApproval: undefined,
+      toolApproval: undefined,
       toolCall: {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -30,17 +30,17 @@ describe('isToolApprovalNeeded', () => {
   });
 
   it('uses user-defined approval before tool-defined approval', async () => {
-    const toolNeedsApproval = vi.fn(() => false);
+    const toolApproval = vi.fn(() => false);
     const userDefinedNeedsApproval = vi.fn(() => true);
 
     const result = await isToolApprovalNeeded({
       tools: {
         weather: tool({
           inputSchema: z.object({ city: z.string() }),
-          needsApproval: toolNeedsApproval,
+          needsApproval: toolApproval,
         }),
       },
-      toolNeedsApproval: {
+      toolApproval: {
         weather: userDefinedNeedsApproval,
       },
       toolCall: {
@@ -56,7 +56,7 @@ describe('isToolApprovalNeeded', () => {
 
     expect(result).toBe(true);
     expect(userDefinedNeedsApproval).toHaveBeenCalledTimes(1);
-    expect(toolNeedsApproval).not.toHaveBeenCalled();
+    expect(toolApproval).not.toHaveBeenCalled();
   });
 
   it('passes tool input and options to a user-defined approval callback', async () => {
@@ -68,7 +68,7 @@ describe('isToolApprovalNeeded', () => {
           inputSchema: z.object({ city: z.string() }),
         }),
       },
-      toolNeedsApproval: {
+      toolApproval: {
         weather: userDefinedNeedsApproval,
       },
       toolCall: {
@@ -92,16 +92,16 @@ describe('isToolApprovalNeeded', () => {
   });
 
   it('uses tool-defined approval when no user-defined approval is configured', async () => {
-    const toolNeedsApproval = vi.fn(() => true);
+    const toolApproval = vi.fn(() => true);
 
     const result = await isToolApprovalNeeded({
       tools: {
         weather: tool({
           inputSchema: z.object({ city: z.string() }),
-          needsApproval: toolNeedsApproval,
+          needsApproval: toolApproval,
         }),
       },
-      toolNeedsApproval: undefined,
+      toolApproval: undefined,
       toolCall: {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -114,7 +114,7 @@ describe('isToolApprovalNeeded', () => {
     });
 
     expect(result).toBe(true);
-    expect(toolNeedsApproval).toHaveBeenCalledWith(
+    expect(toolApproval).toHaveBeenCalledWith(
       { city: 'Berlin' },
       {
         toolCallId: 'call-1',
@@ -135,7 +135,7 @@ describe('isToolApprovalNeeded', () => {
             needsApproval: vi.fn(() => true),
           }),
         },
-        toolNeedsApproval: {
+        toolApproval: {
           weather: userDefinedNeedsApproval,
         },
         toolCall: {

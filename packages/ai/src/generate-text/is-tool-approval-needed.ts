@@ -4,9 +4,9 @@ import {
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { validateToolContext } from './validate-tool-context';
-import { ToolNeedsApprovalConfiguration } from './tool-needs-approval-configuration';
+import { ToolApprovalConfiguration } from './tool-approval-configuration';
 import { TypedToolCall } from './tool-call';
+import { validateToolContext } from './validate-tool-context';
 
 /**
  * Resolves whether a tool call requires approval by checking user-supplied and tool-defined
@@ -16,7 +16,7 @@ import { TypedToolCall } from './tool-call';
 export async function isToolApprovalNeeded<TOOLS extends ToolSet>({
   tools,
   toolCall,
-  toolNeedsApproval,
+  toolApproval,
   messages,
   toolsContext,
 }: {
@@ -27,7 +27,7 @@ export async function isToolApprovalNeeded<TOOLS extends ToolSet>({
    *
    * This configuration takes precedence over tool-defined approval settings.
    */
-  toolNeedsApproval: ToolNeedsApprovalConfiguration<TOOLS> | undefined;
+  toolApproval: ToolApprovalConfiguration<TOOLS> | undefined;
 
   toolCall: TypedToolCall<TOOLS>; // assuming tool call is valid
   messages: ModelMessage[];
@@ -50,7 +50,7 @@ export async function isToolApprovalNeeded<TOOLS extends ToolSet>({
   const input = toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>;
 
   // user-defined tool approval
-  const userDefinedToolNeedsApproval = toolNeedsApproval?.[toolName];
+  const userDefinedToolNeedsApproval = toolApproval?.[toolName];
   if (userDefinedToolNeedsApproval != null) {
     return typeof userDefinedToolNeedsApproval === 'boolean'
       ? userDefinedToolNeedsApproval

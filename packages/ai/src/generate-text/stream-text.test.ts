@@ -20945,7 +20945,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
         });
@@ -21175,7 +21175,7 @@ describe('streamText', () => {
               execute: input => `result for ${input.value}`,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: (input, options) => {
               needsApprovalCalls.push({ input, options });
               return input.value === 'value-needs-approval';
@@ -21540,7 +21540,7 @@ describe('streamText', () => {
               execute: executeFunction,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -21846,7 +21846,7 @@ describe('streamText', () => {
               },
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -21972,7 +21972,7 @@ describe('streamText', () => {
               },
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -22303,7 +22303,7 @@ describe('streamText', () => {
               execute: executeFunction,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
