@@ -574,6 +574,13 @@ const mistralUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
   total_tokens: z.number(),
+  num_cached_tokens: z.number().nullish(),
+  prompt_tokens_details: z
+    .object({ cached_tokens: z.number().nullish() })
+    .nullish(),
+  prompt_token_details: z
+    .object({ cached_tokens: z.number().nullish() })
+    .nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
