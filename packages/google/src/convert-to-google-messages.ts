@@ -166,6 +166,25 @@ function appendLegacyToolResultParts(
   }
 }
 
+/*
+ * Recursively removes $ref and $defs keys from an object before sending it as
+ * functionResponse.response.content. Gemini interprets $ref values as
+ * references to function declaration names and returns a 400 INVALID_ARGUMENT
+ * error when they don't match. This can happen when a tool returns a value
+ * containing a JSON Schema (e.g. from z.toJSONSchema() with z.lazy()).
+ */
+function sanitizeFunctionResponseContent(value: unknown): unknown {
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) {
+    return value.map(sanitizeFunctionResponseContent);
+  }
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => key !== '$ref' && key !== '$defs')
+      .map(([key, val]) => [key, sanitizeFunctionResponseContent(val)]),
+  );
+}
+
 export function convertToGoogleMessages(
   prompt: LanguageModelV4Prompt,
   options?: {
@@ -479,7 +498,7 @@ export function convertToGoogleMessages(
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool execution denied.')
-                      : output.value,
+                      : sanitizeFunctionResponseContent(output.value),
                 },
               },
             });

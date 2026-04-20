@@ -632,6 +632,75 @@ describe('tool messages', () => {
     });
   });
 
+  it('should strip $ref and $defs from function response content to avoid Gemini 400 errors', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'get_schema',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'json',
+              value: {
+                tools: [
+                  {
+                    name: 'find_records',
+                    inputSchema: {
+                      type: 'object',
+                      properties: {
+                        filter: { $ref: '#/$defs/__schema0' },
+                      },
+                      $defs: {
+                        __schema0: {
+                          type: 'object',
+                          properties: { field: { type: 'string' } },
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                name: 'get_schema',
+                response: {
+                  name: 'get_schema',
+                  content: {
+                    tools: [
+                      {
+                        name: 'find_records',
+                        inputSchema: {
+                          type: 'object',
+                          properties: {
+                            filter: {},
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('should convert tool result content with image-data into functionResponse parts', async () => {
     const result = convertToGoogleMessages([
       {
