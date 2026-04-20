@@ -52,6 +52,38 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  it('should use negotiated protocol version in POST headers after protocolVersion is set', async () => {
+    // Call 0: GET from start returns 405 (skip inbound SSE)
+    // Call 1: POST with the negotiated version header
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        default:
+          return {
+            type: 'json-value',
+            body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+          };
+      }
+    };
+
+    await transport.start();
+
+    // Simulate what DefaultMCPClient does after successful initialize
+    transport.protocolVersion = '2025-06-18';
+
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'notifications/initialized',
+      params: {},
+      id: 1,
+    });
+
+    expect(server.calls[1].requestHeaders['mcp-protocol-version']).toBe(
+      '2025-06-18',
+    );
+  });
+
   it('should handle text/event-stream responses', async () => {
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/stream' });
     const controller = new TestResponseController();

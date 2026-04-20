@@ -165,6 +165,38 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 
+  it('should use negotiated protocol version in POST headers after protocolVersion is set', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const connectPromise = transport.start();
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+    await connectPromise;
+
+    // Simulate what DefaultMCPClient does after a successful initialize handshake
+    // where the server negotiated down to an older version.
+    transport.protocolVersion = '2025-06-18';
+
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'notifications/initialized',
+      params: {},
+      id: '1',
+    });
+
+    expect(server.calls[1].requestHeaders['mcp-protocol-version']).toBe(
+      '2025-06-18',
+    );
+
+    await transport.close();
+  });
+
   it('should handle POST request errors', async () => {
     const controller = new TestResponseController();
 

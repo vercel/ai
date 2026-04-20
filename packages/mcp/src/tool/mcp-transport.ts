@@ -40,6 +40,14 @@ export interface MCPTransport {
    * Event handler for received messages
    */
   onmessage?: (message: JSONRPCMessage) => void;
+
+  /**
+   * The protocol version negotiated during initialization.
+   * Set by the MCP client after a successful `initialize` handshake.
+   * When set, transports SHOULD use this version in the `mcp-protocol-version`
+   * request header instead of the latest supported version.
+   */
+  protocolVersion?: string | null;
 }
 
 export type MCPTransportConfig = {
