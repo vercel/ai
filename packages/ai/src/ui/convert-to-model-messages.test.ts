@@ -786,6 +786,118 @@ describe('convertToModelMessages', () => {
       });
     });
 
+    it('should handle tool output error with rawInput as invalid JSON string', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'text',
+              text: 'Sending email...',
+              state: 'done',
+            },
+            {
+              type: 'tool-sendEmail',
+              state: 'output-error',
+              toolCallId: 'call1',
+              errorText: 'Error: Invalid JSON in tool input',
+              input: undefined,
+              rawInput: 'to: John Doe <john@example.com>',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Sending email...",
+                "type": "text",
+              },
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "toolCallId": "call1",
+                "toolName": "sendEmail",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Error: Invalid JSON in tool input",
+                },
+                "toolCallId": "call1",
+                "toolName": "sendEmail",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should handle tool output error with rawInput as parseable JSON string', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-sendEmail',
+              state: 'output-error',
+              toolCallId: 'call1',
+              errorText: 'Error: delivery failed',
+              input: undefined,
+              rawInput: '{"to":"john@example.com","subject":"Hi"}',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {
+                  "subject": "Hi",
+                  "to": "john@example.com",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call1",
+                "toolName": "sendEmail",
+                "type": "tool-call",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "error-text",
+                  "value": "Error: delivery failed",
+                },
+                "toolCallId": "call1",
+                "toolName": "sendEmail",
+                "type": "tool-result",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
     it('should handle assistant message with provider-executed tool output available', async () => {
       const result = await convertToModelMessages([
         {
