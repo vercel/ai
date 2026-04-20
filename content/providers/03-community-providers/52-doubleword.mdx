@@ -1,0 +1,188 @@
+---
+title: Doubleword
+description: Learn how to use the Doubleword provider for the AI SDK.
+---
+
+# Doubleword Provider
+
+[Doubleword](https://doubleword.ai) is an AI model gateway providing unified routing, management, and security for inference across multiple model providers.
+
+## Features
+
+- **Unified routing** — access any model configured in your Doubleword control layer through a single provider
+- **Batch pricing** — transparently batch concurrent requests via [`autobatcher`](https://www.npmjs.com/package/autobatcher) for up to 90% cost savings with the [Doubleword Inference API](https://docs.doubleword.ai)
+- **OpenAI-compatible** — language models and embedding models work with all AI SDK features
+- **Automatic credential resolution** — reads API key from environment, constructor option, or `~/.dw/credentials.toml`
+
+## Setup
+
+The Doubleword provider is available in the `@doubleword/vercel-ai` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @doubleword/vercel-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @doubleword/vercel-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @doubleword/vercel-ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @doubleword/vercel-ai" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `doubleword` from `@doubleword/vercel-ai`:
+
+```ts
+import { doubleword } from '@doubleword/vercel-ai';
+```
+
+If you need a customized setup, you can import `createDoubleword` and create a provider instance with your settings:
+
+```ts
+import { createDoubleword } from '@doubleword/vercel-ai';
+
+const doubleword = createDoubleword({
+  apiKey: process.env.DOUBLEWORD_API_KEY,
+  // baseURL: 'https://api.doubleword.ai/v1',  // default
+  // headers: { 'X-Custom': 'value' },          // optional extra headers
+});
+```
+
+The following options are available:
+
+| Option    | Default                        | Description                                          |
+|-----------|--------------------------------|------------------------------------------------------|
+| `apiKey`  | `DOUBLEWORD_API_KEY` env var   | API key for authentication                           |
+| `baseURL` | `https://api.doubleword.ai/v1` | Base URL (override for self-hosted deployments)       |
+| `headers` | `{}`                           | Extra headers sent with every request                |
+
+The provider also resolves credentials from `~/.dw/credentials.toml` if no API key is provided via option or environment.
+
+## Language Models
+
+You can create language models using any model ID configured in your Doubleword control layer. See the [available models](https://docs.doubleword.ai/inference-api/models) for a full list, or visit the [Doubleword console](https://doubleword.ai) for detailed model cards.
+
+```ts
+const model = doubleword('Qwen/Qwen3.5-397B-A17B-FP8');
+```
+
+Doubleword routes requests to the appropriate inference provider based on your configured routing rules. Feature support (tool calling, structured output, multimodal input, etc.) depends on the underlying model.
+
+## Embedding Models
+
+You can create embedding models using the `.textEmbeddingModel()` factory method:
+
+```ts
+const embeddingModel = doubleword.textEmbeddingModel('Qwen/Qwen3-Embedding-8B');
+```
+
+## Examples
+
+### `generateText`
+
+```ts
+import { generateText } from 'ai';
+import { doubleword } from '@doubleword/vercel-ai';
+
+const { text } = await generateText({
+  model: doubleword('Qwen/Qwen3.5-397B-A17B-FP8'),
+  prompt: 'What is Doubleword?',
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```ts
+import { streamText } from 'ai';
+import { doubleword } from '@doubleword/vercel-ai';
+
+const result = streamText({
+  model: doubleword('Qwen/Qwen3.5-397B-A17B-FP8'),
+  prompt: 'Explain the benefits of an AI gateway.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Tool Calling
+
+```ts
+import { generateText, tool, jsonSchema, stepCountIs } from 'ai';
+import { doubleword } from '@doubleword/vercel-ai';
+
+const { text } = await generateText({
+  model: doubleword('Qwen/Qwen3.5-397B-A17B-FP8'),
+  tools: {
+    getWeather: tool({
+      description: 'Get the weather for a location',
+      inputSchema: jsonSchema({
+        type: 'object',
+        properties: {
+          location: { type: 'string', description: 'The city name' },
+        },
+        required: ['location'],
+        additionalProperties: false,
+      }),
+      execute: async ({ location }) => `Sunny, 22°C in ${location}`,
+    }),
+  },
+  stopWhen: stepCountIs(5),
+  prompt: 'What is the weather in London?',
+});
+```
+
+### Embeddings
+
+```ts
+import { embed } from 'ai';
+import { doubleword } from '@doubleword/vercel-ai';
+
+const { embedding } = await embed({
+  model: doubleword.textEmbeddingModel('Qwen/Qwen3-Embedding-8B'),
+  value: 'sunny day at the beach',
+});
+```
+
+### Batch Pricing
+
+For background workloads where latency is not critical, use `createDoublewordBatch` to transparently route requests through the [Doubleword Inference API](https://docs.doubleword.ai) Batch API, cutting inference costs by up to 90%. Powered by [`autobatcher`](https://www.npmjs.com/package/autobatcher) under the hood.
+
+```ts
+import { generateText } from 'ai';
+import { createDoublewordBatch } from '@doubleword/vercel-ai';
+
+const doubleword = createDoublewordBatch();
+
+// Concurrent calls are automatically collected into batch submissions
+const results = await Promise.all([
+  generateText({ model: doubleword('Qwen/Qwen3.5-397B-A17B-FP8'), prompt: 'Summarize chapter 1.' }),
+  generateText({ model: doubleword('Qwen/Qwen3.5-397B-A17B-FP8'), prompt: 'Summarize chapter 2.' }),
+  generateText({ model: doubleword('Qwen/Qwen3.5-397B-A17B-FP8'), prompt: 'Summarize chapter 3.' }),
+]);
+
+// Flush remaining requests when done
+await doubleword.close();
+```
+
+The interface is identical to the real-time provider — only streaming is not supported (batch results return all at once).
+
+## End-to-End Examples
+
+- [`examples/tool-calling/`](https://github.com/doublewordai/vercel-doubleword/tree/main/examples/tool-calling) — minimal tool-calling agent with a calculator tool
+- [`examples/async-agents-research/`](https://github.com/doublewordai/vercel-doubleword/tree/main/examples/async-agents-research) — recursive multi-agent research orchestrator with parallel sub-agents and batch pricing
+
+## Additional Resources
+
+- [Doubleword Provider on GitHub](https://github.com/doublewordai/vercel-doubleword)
+- [Doubleword Documentation](https://docs.doubleword.ai)
+- [Available Models](https://docs.doubleword.ai/inference-api/models)
+- [`autobatcher` on npm](https://www.npmjs.com/package/autobatcher) — the batching engine
