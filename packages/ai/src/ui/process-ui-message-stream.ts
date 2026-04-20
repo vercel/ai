@@ -364,15 +364,35 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'text-delta': {
-              const textPart = state.activeTextParts[chunk.id];
+              let textPart = state.activeTextParts[chunk.id];
               if (textPart == null) {
-                throw new UIMessageStreamError({
-                  chunkType: 'text-delta',
-                  chunkId: chunk.id,
-                  message:
-                    `Received text-delta for missing text part with ID "${chunk.id}". ` +
-                    `Ensure a "text-start" chunk is sent before any "text-delta" chunks.`,
-                });
+                // On resume, the text-start chunk may have been sent before the
+                // disconnect. Try to recover by finding the last streaming text
+                // part in the existing message and associating it with this id.
+                const existingStreamingPart = state.message.parts
+                  .filter(
+                    (p): p is TextUIPart =>
+                      p.type === 'text' && p.state === 'streaming',
+                  )
+                  .find(
+                    p =>
+                      !Object.values(state.activeTextParts).includes(p),
+                  );
+
+                if (existingStreamingPart != null) {
+                  textPart = existingStreamingPart;
+                  state.activeTextParts[chunk.id] = textPart;
+                } else {
+                  // No streaming text part to recover — create one so the
+                  // resumed delta is not lost.
+                  textPart = {
+                    type: 'text',
+                    text: '',
+                    state: 'streaming',
+                  };
+                  state.activeTextParts[chunk.id] = textPart;
+                  state.message.parts.push(textPart);
+                }
               }
               textPart.text += chunk.delta;
               textPart.providerMetadata =
@@ -382,15 +402,26 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'text-end': {
-              const textPart = state.activeTextParts[chunk.id];
+              let textPart = state.activeTextParts[chunk.id];
               if (textPart == null) {
-                throw new UIMessageStreamError({
-                  chunkType: 'text-end',
-                  chunkId: chunk.id,
-                  message:
-                    `Received text-end for missing text part with ID "${chunk.id}". ` +
-                    `Ensure a "text-start" chunk is sent before any "text-end" chunks.`,
-                });
+                // On resume, try to find an untracked streaming text part.
+                const existingStreamingPart = state.message.parts
+                  .filter(
+                    (p): p is TextUIPart =>
+                      p.type === 'text' && p.state === 'streaming',
+                  )
+                  .find(
+                    p =>
+                      !Object.values(state.activeTextParts).includes(p),
+                  );
+
+                if (existingStreamingPart != null) {
+                  textPart = existingStreamingPart;
+                  state.activeTextParts[chunk.id] = textPart;
+                } else {
+                  // Nothing to close — skip silently.
+                  break;
+                }
               }
               textPart.state = 'done';
               textPart.providerMetadata =
@@ -425,15 +456,30 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'reasoning-delta': {
-              const reasoningPart = state.activeReasoningParts[chunk.id];
+              let reasoningPart = state.activeReasoningParts[chunk.id];
               if (reasoningPart == null) {
-                throw new UIMessageStreamError({
-                  chunkType: 'reasoning-delta',
-                  chunkId: chunk.id,
-                  message:
-                    `Received reasoning-delta for missing reasoning part with ID "${chunk.id}". ` +
-                    `Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`,
-                });
+                const existingStreamingPart = state.message.parts
+                  .filter(
+                    (p): p is ReasoningUIPart =>
+                      p.type === 'reasoning' && p.state === 'streaming',
+                  )
+                  .find(
+                    p =>
+                      !Object.values(state.activeReasoningParts).includes(p),
+                  );
+
+                if (existingStreamingPart != null) {
+                  reasoningPart = existingStreamingPart;
+                  state.activeReasoningParts[chunk.id] = reasoningPart;
+                } else {
+                  reasoningPart = {
+                    type: 'reasoning',
+                    text: '',
+                    state: 'streaming',
+                  };
+                  state.activeReasoningParts[chunk.id] = reasoningPart;
+                  state.message.parts.push(reasoningPart);
+                }
               }
               reasoningPart.text += chunk.delta;
               reasoningPart.providerMetadata =
@@ -443,15 +489,24 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'reasoning-end': {
-              const reasoningPart = state.activeReasoningParts[chunk.id];
+              let reasoningPart = state.activeReasoningParts[chunk.id];
               if (reasoningPart == null) {
-                throw new UIMessageStreamError({
-                  chunkType: 'reasoning-end',
-                  chunkId: chunk.id,
-                  message:
-                    `Received reasoning-end for missing reasoning part with ID "${chunk.id}". ` +
-                    `Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.`,
-                });
+                const existingStreamingPart = state.message.parts
+                  .filter(
+                    (p): p is ReasoningUIPart =>
+                      p.type === 'reasoning' && p.state === 'streaming',
+                  )
+                  .find(
+                    p =>
+                      !Object.values(state.activeReasoningParts).includes(p),
+                  );
+
+                if (existingStreamingPart != null) {
+                  reasoningPart = existingStreamingPart;
+                  state.activeReasoningParts[chunk.id] = reasoningPart;
+                } else {
+                  break;
+                }
               }
               reasoningPart.providerMetadata =
                 chunk.providerMetadata ?? reasoningPart.providerMetadata;
