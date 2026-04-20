@@ -123,7 +123,7 @@ export function convertToDeepSeekChatMessages({
 
         messages.push({
           role: 'assistant',
-          content: text,
+          content: text || null,
           reasoning_content: reasoning,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
