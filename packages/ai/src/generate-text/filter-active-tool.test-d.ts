@@ -14,16 +14,17 @@ const mockTools = {
   }),
 };
 
-const mockProviderTool: Tool = {
+const mockProviderDefinedTool: Tool = {
   type: 'provider',
   id: 'provider.tool-id',
+  isProviderExecuted: false,
   args: { key: 'value' },
   inputSchema: z.object({}),
 };
 
 const mockToolsWithProviderDefined = {
   ...mockTools,
-  providerTool: mockProviderTool,
+  providerTool: mockProviderDefinedTool,
 };
 
 describe('filterActiveTools types', () => {

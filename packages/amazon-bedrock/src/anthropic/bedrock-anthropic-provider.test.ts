@@ -35,8 +35,9 @@ vi.mock('@ai-sdk/provider-utils', async () => {
       return value;
     }),
     createJsonErrorResponseHandler: vi.fn(),
-    createProviderToolFactory: vi.fn(),
-    createProviderToolFactoryWithOutputSchema: vi.fn(),
+    createProviderDefinedToolFactory: vi.fn(),
+    createProviderDefinedToolFactoryWithOutputSchema: vi.fn(),
+    createProviderExecutedToolFactory: vi.fn(),
     lazySchema: vi.fn(),
     zodSchema: vi.fn(),
   };

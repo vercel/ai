@@ -12,7 +12,7 @@ const agent = new ToolLoopAgent({
     'When a tool execution is not approved by the user, do not retry it.' +
     'Just say that the tool execution was not approved.',
   tools: { weather: weatherTool },
-  toolNeedsApproval: { weather: true },
+  toolApproval: { weather: true },
 });
 
 const terminal = readline.createInterface({

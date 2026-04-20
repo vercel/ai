@@ -12010,6 +12010,7 @@ describe('streamText', () => {
           tools: {
             web_search: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.web_search',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
@@ -12329,6 +12330,7 @@ describe('streamText', () => {
           tools: {
             web_fetch: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.web_fetch',
               inputSchema: z.object({ url: z.string() }),
               args: {},
@@ -12468,6 +12470,7 @@ describe('streamText', () => {
           tools: {
             toolSearch: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'openai.tool_search',
               inputSchema: z.object({
                 arguments: z.object({
@@ -19278,6 +19281,7 @@ describe('streamText', () => {
           tools: {
             code_execution: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'anthropic.code_execution_20250825',
               inputSchema: z.object({ code: z.string() }),
               outputSchema: z.object({
@@ -20583,6 +20587,7 @@ describe('streamText', () => {
           tools: {
             deferred_tool: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.deferred_tool',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
@@ -20714,6 +20719,7 @@ describe('streamText', () => {
           tools: {
             deferred_tool: {
               type: 'provider',
+              isProviderExecuted: true,
               id: 'test.deferred_tool',
               inputSchema: z.object({ value: z.string() }),
               outputSchema: z.object({ value: z.string() }),
@@ -20939,7 +20945,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
         });
@@ -21169,7 +21175,7 @@ describe('streamText', () => {
               execute: input => `result for ${input.value}`,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: (input, options) => {
               needsApprovalCalls.push({ input, options });
               return input.value === 'value-needs-approval';
@@ -21534,7 +21540,7 @@ describe('streamText', () => {
               execute: executeFunction,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -21840,7 +21846,7 @@ describe('streamText', () => {
               },
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -21966,7 +21972,7 @@ describe('streamText', () => {
               },
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -22297,7 +22303,7 @@ describe('streamText', () => {
               execute: executeFunction,
             }),
           },
-          toolNeedsApproval: {
+          toolApproval: {
             tool1: true,
           },
           stopWhen: isStepCount(3),
@@ -22584,6 +22590,7 @@ describe('streamText', () => {
             tools: {
               mcp_tool: {
                 type: 'provider',
+                isProviderExecuted: true,
                 id: 'test.mcp_tool',
                 inputSchema: z.object({ query: z.string() }),
                 args: {},
@@ -22842,6 +22849,7 @@ describe('streamText', () => {
             tools: {
               mcp_tool: {
                 type: 'provider',
+                isProviderExecuted: true,
                 id: 'test.mcp_tool',
                 inputSchema: z.object({ query: z.string() }),
                 args: {},
@@ -23011,6 +23019,7 @@ describe('streamText', () => {
             tools: {
               mcp_tool: {
                 type: 'provider',
+                isProviderExecuted: true,
                 id: 'test.mcp_tool',
                 inputSchema: z.object({ query: z.string() }),
                 args: {},
