@@ -16,8 +16,9 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
       .mockImplementation(({ settingValue }) => settingValue),
     withoutTrailingSlash: vi.fn().mockImplementation(url => url),
     createJsonErrorResponseHandler: vi.fn(),
-    createProviderToolFactory: vi.fn(),
-    createProviderToolFactoryWithOutputSchema: vi.fn(),
+    createProviderDefinedToolFactory: vi.fn(),
+    createProviderDefinedToolFactoryWithOutputSchema: vi.fn(),
+    createProviderExecutedToolFactory: vi.fn(),
     lazySchema: vi.fn(),
     zodSchema: vi.fn(),
   };
