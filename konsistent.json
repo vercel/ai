@@ -3,6 +3,8 @@
   "version": "v1",
   "conventions": [
     {
+      "name": "package-dir-must-have-required-files",
+      "description": "Every package directory must contain a specific minimum set of files.",
       "paths": ["packages/*", "!packages/test-server"],
       "must": {
         "haveType": "directory",
@@ -17,6 +19,8 @@
       }
     },
     {
+      "name": "provider-package-must-export-required-symbols",
+      "description": "Every provider package must have specific files that export a specific set of symbols.",
       "paths": [
         "packages/{providerId}/src/index.ts",
         "!packages/ai",
@@ -91,10 +95,7 @@
         "exportInterfaces": [
           {
             "name": "${providerId.toPascalCase()}Provider",
-            "extend": {
-              "type": "ProviderV4",
-              "allowOmissions": true
-            }
+            "extend": "ProviderV4"
           },
           "${providerId.toPascalCase()}ProviderSettings"
         ],
