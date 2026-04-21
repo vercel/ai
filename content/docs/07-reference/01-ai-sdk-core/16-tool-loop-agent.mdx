@@ -88,7 +88,7 @@ To see `ToolLoopAgent` in action, check out [these examples](#examples).
       type: 'ToolApprovalConfiguration<TOOLS>',
       isOptional: true,
       description:
-        "Per-tool approval configuration for the agent. Each tool can be set to `'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`, or to a function that returns one of those statuses based on the tool input and options such as `toolCallId`, `messages`, and `toolContext`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'` or `'denied'` when you want explicit automatic approval request/response parts in the output. This setting takes precedence over a tool's `needsApproval` default.",
+        "Per-tool approval configuration for the agent. Each tool can be set to `'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`, to an object form such as `{ type: 'denied', reason: 'blocked by policy' }`, or to a function that returns one of those statuses based on the tool input and options such as `toolCallId`, `messages`, and `toolContext`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'`, `'denied'`, or their object forms when you want explicit automatic approval request/response parts in the output. Automatic approvals and denials can include a `reason`, which is forwarded to the emitted approval response. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
       name: 'output',

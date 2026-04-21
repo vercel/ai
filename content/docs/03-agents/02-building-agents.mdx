@@ -82,7 +82,9 @@ tool itself for the default behavior, or set `toolApproval` on the
 `ToolLoopAgent` when approval should be configured per agent. Use
 `'not-applicable'` for the default execution path, `'user-approval'` for
 manual review, or `'approved'` / `'denied'` when you want explicit automatic
-approval records in the output:
+approval records in the output. For automatic approvals and denials, you can
+also return an object such as `{ type: 'denied', reason: 'blocked by policy' }`
+to attach a reason to the approval response:
 
 ```ts
 const agent = new ToolLoopAgent({

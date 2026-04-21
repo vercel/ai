@@ -397,7 +397,11 @@ export async function POST(req: Request) {
 
 ### Client-Side Approval UI
 
-When a tool requires manual approval, the tool part state is `approval-requested`. Automatic approvals and denials also flow through the same approval states, but they set `part.approval.isAutomatic === true`, so you can render the status without calling `addToolApprovalResponse`.
+When a tool requires manual approval, the tool part state is
+`approval-requested`. Automatic approvals and denials also flow through the
+same approval states, but they set `part.approval.isAutomatic === true`, so you
+can render the status without calling `addToolApprovalResponse`. Automatic
+approval decisions can also include `part.approval.reason`.
 
 ```tsx filename='app/page.tsx'
 'use client';
@@ -455,6 +459,9 @@ export default function Chat() {
                       Weather request for {part.input.city} was
                       {part.approval.isAutomatic ? ' automatically' : ''}{' '}
                       {part.approval.approved ? 'approved' : 'denied'}.
+                      {part.approval.reason
+                        ? ` Reason: ${part.approval.reason}`
+                        : ''}
                     </div>
                   );
                 case 'output-available':
@@ -467,6 +474,9 @@ export default function Chat() {
                   return (
                     <div key={part.toolCallId}>
                       Weather request for {part.input.city} was denied.
+                      {part.approval.reason
+                        ? ` Reason: ${part.approval.reason}`
+                        : ''}
                     </div>
                   );
               }
@@ -480,7 +490,11 @@ export default function Chat() {
 }
 ```
 
-Call `addToolApprovalResponse` only for manual approvals. Automatic approval decisions already arrive in the UI stream as `approval-requested` and `approval-responded` states, and denied executions continue to `output-denied`.
+Call `addToolApprovalResponse` only for manual approvals. Automatic approval
+decisions already arrive in the UI stream as `approval-requested` and
+`approval-responded` states, and denied executions continue to `output-denied`.
+If you return a `reason` from an automatic approval or denial, it is available
+as `part.approval.reason`.
 
 ### Auto-Submit After Approval
 
