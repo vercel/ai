@@ -24,7 +24,15 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
   messages,
   toolsContext,
 }: {
+  /**
+   * Tools that are available for the model to call.
+   */
   tools: TOOLS | undefined;
+
+  /**
+   * Valid tool call.
+   */
+  toolCall: TypedToolCall<TOOLS>;
 
   /**
    * User-defined approval configuration for tools.
@@ -32,11 +40,6 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
    * This configuration takes precedence over tool-defined approval settings.
    */
   toolApproval: ToolApprovalConfiguration<TOOLS> | undefined;
-
-  /**
-   * Valid tool call.
-   */
-  toolCall: TypedToolCall<TOOLS>;
 
   /**
    * Messages that were sent to the language model to initiate the response that contained the tool call.
