@@ -40,12 +40,12 @@ run(async () => {
     approvals = [];
 
     const result = await generateText({
-      model: openai('gpt-5-mini'),
+      model: openai('gpt-5.4-mini'),
       // context engineering required to make sure the model does not retry
       // the tool execution if it is not approved for a particular tool call:
       system:
-        'When a tool execution is not approved by the user for a particular tool call, do not retry it.' +
-        'Just say that the tool execution was not approved.',
+        'When a tool call was not approved by the user, do not retry the same tool call with the same input.' +
+        'Say that the tool execution was not approved.',
       tools: { weather: weatherTool },
       toolApproval: {
         weather: ({ location }) => {
@@ -64,45 +64,51 @@ run(async () => {
       stopWhen: isStepCount(5),
     });
 
-    for (const part of result.content) {
-      switch (part.type) {
-        case 'text': {
-          process.stdout.write(`\nAssistant:\n`);
-          process.stdout.write(part.text);
-          break;
-        }
-
-        case 'tool-approval-request': {
-          if (
-            part.toolCall.toolName === 'weather' &&
-            !part.toolCall.dynamic &&
-            !part.isAutomatic
-          ) {
-            const answer = await terminal.question(
-              `\nCan I retrieve the weather for ${part.toolCall.input.location} (y/n)?`,
-            );
-
-            approvals.push({
-              type: 'tool-approval-response',
-              approvalId: part.approvalId,
-              approved:
-                answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes',
-            });
+    for (const step of result.steps) {
+      for (const part of step.content) {
+        switch (part.type) {
+          case 'text': {
+            process.stdout.write(`\nAssistant:\n`);
+            process.stdout.write(part.text);
+            break;
           }
-          break;
-        }
 
-        case 'tool-approval-response': {
-          if (part.toolCall.toolName === 'weather' && !part.toolCall.dynamic) {
-            process.stdout.write(
-              `\nWeather tool execution for ${part.toolCall.input.location} was automatically ${
-                part.approved
-                  ? '\x1b[32mapproved\x1b[0m' // dark green
-                  : '\x1b[31mdenied\x1b[0m' // dark red
-              }.\n`,
-            );
+          case 'tool-approval-request': {
+            if (
+              part.toolCall.toolName === 'weather' &&
+              !part.toolCall.dynamic &&
+              !part.isAutomatic
+            ) {
+              const answer = await terminal.question(
+                `\nCan I retrieve the weather for ${part.toolCall.input.location} (y/n)?`,
+              );
+
+              approvals.push({
+                type: 'tool-approval-response',
+                approvalId: part.approvalId,
+                approved:
+                  answer.toLowerCase() === 'y' ||
+                  answer.toLowerCase() === 'yes',
+              });
+            }
+            break;
           }
-          break;
+
+          case 'tool-approval-response': {
+            if (
+              part.toolCall.toolName === 'weather' &&
+              !part.toolCall.dynamic
+            ) {
+              process.stdout.write(
+                `\nWeather tool execution for ${part.toolCall.input.location} was automatically ${
+                  part.approved
+                    ? '\x1b[32mapproved\x1b[0m' // dark green
+                    : '\x1b[31mdenied\x1b[0m' // dark red
+                }.\n`,
+              );
+            }
+            break;
+          }
         }
       }
     }

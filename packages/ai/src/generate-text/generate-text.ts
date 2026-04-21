@@ -605,6 +605,7 @@ export async function generateText<
     };
     let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
     let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
+    let toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>> = [];
     let deniedToolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>> =
       [];
     const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
@@ -798,6 +799,25 @@ export async function generateText<
               break;
             }
 
+            case 'approved': {
+              const approvalId = generateId();
+
+              toolApprovalRequests[toolCall.toolCallId] = {
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall,
+                isAutomatic: true,
+              };
+              stepToolApprovalResponses[toolCall.toolCallId] = {
+                type: 'tool-approval-response',
+                approvalId,
+                toolCall,
+                approved: true,
+                providerExecuted: toolCall.providerExecuted,
+              };
+              break;
+            }
+
             case 'denied': {
               const approvalId = generateId();
 
@@ -843,7 +863,10 @@ export async function generateText<
         clientToolCalls = stepToolCalls.filter(
           toolCall => !toolCall.providerExecuted,
         );
-        deniedToolApprovalResponses = Object.values(stepToolApprovalResponses);
+        toolApprovalResponses = Object.values(stepToolApprovalResponses);
+        deniedToolApprovalResponses = toolApprovalResponses.filter(
+          toolApprovalResponse => toolApprovalResponse.approved === false,
+        );
 
         if (tools != null) {
           clientToolOutputs.push(
@@ -923,7 +946,7 @@ export async function generateText<
           toolCalls: stepToolCalls,
           toolOutputs: clientToolOutputs,
           toolApprovalRequests: Object.values(toolApprovalRequests),
-          toolApprovalResponses: deniedToolApprovalResponses,
+          toolApprovalResponses,
           tools,
         });
 
@@ -1271,6 +1294,13 @@ function asContent<TOOLS extends ToolSet>({
   tools: TOOLS | undefined;
 }): Array<ContentPart<TOOLS>> {
   const contentParts: Array<ContentPart<TOOLS>> = [];
+  const toolOutputsWithApprovalResponses: Array<ToolOutput<TOOLS>> = [];
+  const toolOutputsWithoutApprovalResponses: Array<ToolOutput<TOOLS>> = [];
+  const toolCallIdsWithApprovalResponses = new Set(
+    toolApprovalResponses.map(
+      toolApprovalResponse => toolApprovalResponse.toolCall.toolCallId,
+    ),
+  );
 
   for (const part of content) {
     switch (part.type) {
@@ -1401,10 +1431,19 @@ function asContent<TOOLS extends ToolSet>({
     }
   }
 
+  for (const toolOutput of toolOutputs) {
+    if (toolCallIdsWithApprovalResponses.has(toolOutput.toolCallId)) {
+      toolOutputsWithApprovalResponses.push(toolOutput);
+    } else {
+      toolOutputsWithoutApprovalResponses.push(toolOutput);
+    }
+  }
+
   return [
     ...contentParts,
-    ...toolOutputs,
+    ...toolOutputsWithoutApprovalResponses,
     ...toolApprovalRequests,
     ...toolApprovalResponses,
+    ...toolOutputsWithApprovalResponses,
   ];
 }
