@@ -107,7 +107,7 @@ describe('ToolLoopAgent', () => {
             expectTypeOf(options.toolCallId).toEqualTypeOf<string>();
             expectTypeOf(options.messages).toMatchTypeOf<Array<any>>();
 
-            return true;
+            return 'user-approval';
           },
         },
         prepareCall: options => {

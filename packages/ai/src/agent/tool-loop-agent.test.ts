@@ -447,7 +447,7 @@ describe('ToolLoopAgent', () => {
             }),
           },
           toolApproval: {
-            testTool: true,
+            testTool: 'user-approval',
           },
         });
 
@@ -748,7 +748,7 @@ describe('ToolLoopAgent', () => {
           }),
         },
         toolApproval: {
-          testTool: true,
+          testTool: 'user-approval',
         },
       });
 
