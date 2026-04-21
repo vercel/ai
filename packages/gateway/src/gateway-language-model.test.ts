@@ -1482,6 +1482,48 @@ describe('GatewayLanguageModel', () => {
       });
     });
 
+    it('should pass caching option for doGenerate', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            caching: 'auto',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { caching: 'auto' },
+      });
+    });
+
+    it('should pass caching option for doStream', async () => {
+      prepareStreamResponse({
+        content: ['Hello', ' world'],
+      });
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            caching: 'auto',
+          },
+        },
+      });
+
+      await convertReadableStreamToArray(stream);
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { caching: 'auto' },
+      });
+    });
+
     it('should pass providerTimeouts for doGenerate', async () => {
       prepareJsonResponse({
         content: { type: 'text', text: 'Test response' },
