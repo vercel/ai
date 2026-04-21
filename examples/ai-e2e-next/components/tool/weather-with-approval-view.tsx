@@ -56,6 +56,9 @@ export default function WeatherWithApprovalView({
               <span className="text-red-600">denied</span>
             )}
             .
+            {invocation.approval.reason != null
+              ? ` Reason: ${invocation.approval.reason}`
+              : ''}
           </div>
         );
       }
@@ -82,7 +85,7 @@ export default function WeatherWithApprovalView({
               )}
               .
               {invocation.approval.reason != null
-                ? `Reason: ${invocation.approval.reason}`
+                ? ` Reason: ${invocation.approval.reason}`
                 : ''}
             </div>
           )}
@@ -102,7 +105,7 @@ export default function WeatherWithApprovalView({
           {invocation.approval.isAutomatic ? ' automatically' : ''}{' '}
           <span className="text-red-600">denied</span>.
           {invocation.approval.reason != null
-            ? `Reason: ${invocation.approval.reason}`
+            ? ` Reason: ${invocation.approval.reason}`
             : ''}
         </div>
       );
