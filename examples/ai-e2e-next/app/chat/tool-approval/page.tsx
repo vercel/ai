@@ -6,12 +6,12 @@ import {
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai';
 import ChatInput from '@/components/chat-input';
-import { WeatherWithApprovalAgentUIMessage } from '@/agent/anthropic/weather-with-approval-agent';
+import { OpenAIWeatherToolApprovalAgentUIMessage } from '@/agent/openai/weather-tool-approval-agent';
 import WeatherWithApprovalView from '@/components/tool/weather-with-approval-view';
 
 export default function TestToolApproval() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
-    useChat<WeatherWithApprovalAgentUIMessage>({
+    useChat<OpenAIWeatherToolApprovalAgentUIMessage>({
       transport: new DefaultChatTransport({ api: '/api/chat/tool-approval' }),
       sendAutomaticallyWhen:
         lastAssistantMessageIsCompleteWithApprovalResponses,
@@ -24,8 +24,9 @@ export default function TestToolApproval() {
       <h1 className="mb-4 text-xl font-bold">Tool Approval Test</h1>
 
       {messages.map(message => (
-        <div key={message.id} className="whitespace-pre-wrap">
-          {message.role === 'user' ? 'User: ' : 'AI: '}
+        <div key={message.id} className="mb-4 whitespace-pre-wrap">
+          <strong>{message.role === 'user' ? 'User: ' : 'AI: '}</strong>
+
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':

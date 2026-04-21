@@ -218,6 +218,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-approval-request' as const,
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
+                      isAutomatic: part.approval.isAutomatic,
                     });
                   }
 
@@ -296,6 +297,25 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       approved: toolPart.approval.approved,
                       reason: toolPart.approval.reason,
                       providerExecuted: toolPart.providerExecuted,
+                    });
+                  }
+
+                  // add synthetic execution-denied result for denied tool approvals
+                  if (
+                    toolPart.state === 'approval-responded' &&
+                    toolPart.approval?.approved === false
+                  ) {
+                    content.push({
+                      type: 'tool-result',
+                      toolCallId: toolPart.toolCallId,
+                      toolName: getToolName(toolPart),
+                      output: {
+                        type: 'execution-denied' as const,
+                        reason: toolPart.approval.reason,
+                      },
+                      ...(toolPart.callProviderMetadata != null
+                        ? { providerOptions: toolPart.callProviderMetadata }
+                        : {}),
                     });
                   }
 
