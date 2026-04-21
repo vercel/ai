@@ -88,7 +88,7 @@ export interface RerankOnFinishEvent {
 /**
  * Event fired when an individual reranking model call (inner doRerank) begins.
  */
-export interface RerankStartEvent {
+export interface RerankingModelCallStartEvent {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -119,7 +119,7 @@ export interface RerankStartEvent {
  *
  * Contains the ranking results from the model response.
  */
-export interface RerankFinishEvent {
+export interface RerankingModelCallEndEvent {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -138,3 +138,9 @@ export interface RerankFinishEvent {
   /** The ranking results from the model. */
   readonly ranking: Array<{ index: number; relevanceScore: number }>;
 }
+
+/** @deprecated Use `RerankingModelCallStartEvent` instead. */
+export type RerankStartEvent = RerankingModelCallStartEvent;
+
+/** @deprecated Use `RerankingModelCallEndEvent` instead. */
+export type RerankFinishEvent = RerankingModelCallEndEvent;

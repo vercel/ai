@@ -80,7 +80,7 @@ export interface EmbedOnFinishEvent {
  * For `embed`, there is one call. For `embedMany`, there may be multiple
  * calls when values are chunked.
  */
-export interface EmbedStartEvent {
+export interface EmbeddingModelCallStartEvent {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -105,7 +105,7 @@ export interface EmbedStartEvent {
  *
  * Contains the embeddings, usage, and any warnings from the model response.
  */
-export interface EmbedFinishEvent {
+export interface EmbeddingModelCallEndEvent {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -130,3 +130,9 @@ export interface EmbedFinishEvent {
   /** Token usage for this model call. */
   readonly usage: EmbeddingModelUsage;
 }
+
+/** @deprecated Use `EmbeddingModelCallStartEvent` instead. */
+export type EmbedStartEvent = EmbeddingModelCallStartEvent;
+
+/** @deprecated Use `EmbeddingModelCallEndEvent` instead. */
+export type EmbedFinishEvent = EmbeddingModelCallEndEvent;
