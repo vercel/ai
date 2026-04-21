@@ -2,23 +2,30 @@ import {
   Context,
   InferToolContext,
   InferToolInput,
+  MaybePromiseLike,
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 
 /**
- * The approval status of a tool configuration.
+ * The approval status of a tool configuration. This can be one of the following:
  *
  * - 'not-applicable': The tool does not require approval.
  * - 'approved': The tool is automatically approved.
  * - 'denied': The tool is automatically denied.
  * - 'user-approval': The tool requires user approval.
+ *
+ * In addition to the string statuses, you can also use object statuses with a reason property.
  */
 export type ToolApprovalStatus =
   | 'not-applicable'
+  | { type: 'not-applicable'; reason?: never }
   | 'approved'
+  | { type: 'approved'; reason?: string }
   | 'denied'
-  | 'user-approval';
+  | { type: 'denied'; reason?: string }
+  | 'user-approval'
+  | { type: 'user-approval'; reason?: never };
 
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
@@ -53,7 +60,7 @@ export type ToolApprovalFunction<
      */
     messages: ModelMessage[];
   },
-) => ToolApprovalStatus | PromiseLike<ToolApprovalStatus>;
+) => MaybePromiseLike<ToolApprovalStatus>;
 
 /**
  * Configure whether individual tools require approval before they can run.
