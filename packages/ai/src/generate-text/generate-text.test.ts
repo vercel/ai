@@ -923,7 +923,6 @@ describe('generateText', () => {
       expect(startEvent.provider).toBe('mock-provider');
       expect(startEvent.modelId).toBe('mock-model-id');
       expect(startEvent.system).toBe('you are a helpful assistant');
-      expect(startEvent.prompt).toBeUndefined();
       expect(startEvent.messages).toEqual([
         { role: 'user', content: 'test-message' },
       ]);
@@ -991,7 +990,7 @@ describe('generateText', () => {
         },
       });
 
-      expect(stepStartEvent.stepNumber).toBe(0);
+      expect(stepStartEvent.steps.length).toBe(0);
       expect(stepStartEvent.provider).toBe('mock-provider');
       expect(stepStartEvent.modelId).toBe('mock-model-id');
       expect(stepStartEvent.messages).toEqual([
@@ -1050,8 +1049,8 @@ describe('generateText', () => {
       });
 
       expect(stepStartEvents.length).toBe(2);
-      expect(stepStartEvents[0].stepNumber).toBe(0);
-      expect(stepStartEvents[1].stepNumber).toBe(1);
+      expect(stepStartEvents[0].steps.length).toBe(0);
+      expect(stepStartEvents[1].steps.length).toBe(1);
     });
 
     it('should be called before doGenerate on each step', async () => {
@@ -1605,7 +1604,7 @@ describe('generateText', () => {
         prompt: 'test-input',
         stopWhen: isStepCount(3),
         experimental_onStepStart: async event => {
-          startStepNumbers.push(event.stepNumber);
+          startStepNumbers.push(event.steps.length);
         },
         onStepFinish: async event => {
           finishStepNumbers.push(event.stepNumber);

@@ -222,9 +222,12 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "key1": "value1",
-            },
+            "messages": [
+              {
+                "content": "test message",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -233,6 +236,9 @@ describe('executeToolCall', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "key1": "value1",
             },
           },
         ]
@@ -293,12 +299,13 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "key1": "value1",
-            },
             "durationMs": 50,
-            "output": "test-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "test message",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -307,6 +314,19 @@ describe('executeToolCall', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "key1": "value1",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "output": "test-result",
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-result",
             },
           },
         ]
@@ -343,12 +363,8 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "key1": "value1",
-            },
             "durationMs": 100,
-            "error": [Error: execution failed],
-            "success": false,
+            "messages": [],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -357,6 +373,19 @@ describe('executeToolCall', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "key1": "value1",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "error": [Error: execution failed],
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-error",
             },
           },
         ]
@@ -571,9 +600,12 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "key1": "value1",
-            },
+            "messages": [
+              {
+                "content": "hello",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -582,6 +614,9 @@ describe('executeToolCall', () => {
               "toolCallId": "my-call-id",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "key1": "value1",
             },
           },
         ]
@@ -591,12 +626,13 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "key1": "value1",
-            },
             "durationMs": 0,
-            "output": "test-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "hello",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -605,6 +641,19 @@ describe('executeToolCall', () => {
               "toolCallId": "my-call-id",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "key1": "value1",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "output": "test-result",
+              "toolCallId": "my-call-id",
+              "toolName": "testTool",
+              "type": "tool-result",
             },
           },
         ]
@@ -638,10 +687,8 @@ describe('executeToolCall', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
             "durationMs": 0,
-            "error": [Error: test error],
-            "success": false,
+            "messages": [],
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -650,6 +697,17 @@ describe('executeToolCall', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "error": [Error: test error],
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-error",
             },
           },
         ]

@@ -28,7 +28,7 @@ async function main() {
     },
     experimental_onStepStart: event => {
       console.log('\n--- onStepStart ---');
-      console.log('Step:', event.stepNumber);
+      console.log('Step:', event.steps[event.steps.length - 1].stepNumber);
       console.log('Message count:', event.messages.length);
     },
     experimental_onToolExecutionStart: event => {
@@ -40,9 +40,12 @@ async function main() {
       console.log('\n--- onToolExecutionEnd ---');
       console.log('Tool:', event.toolCall.toolName);
       console.log('Duration:', event.durationMs, 'ms');
-      console.log('Success:', event.success);
-      if (event.success) {
-        console.log('Output:', event.output);
+      const success = event.toolOutput.type === 'tool-result';
+      console.log('Success:', success);
+      if (event.toolOutput.type === 'tool-result') {
+        console.log('Output:', event.toolOutput.output);
+      } else {
+        console.log('Error:', event.toolOutput.error);
       }
     },
     onStepFinish: event => {

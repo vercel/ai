@@ -953,7 +953,6 @@ describe('ToolLoopAgent', () => {
           provider: startEvent.provider,
           modelId: startEvent.modelId,
           system: startEvent.system,
-          prompt: startEvent.prompt,
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
@@ -988,7 +987,6 @@ describe('ToolLoopAgent', () => {
           },
         });
 
-        expect(startEvent.prompt).toMatchInlineSnapshot(`undefined`);
         expect(startEvent.messages).toMatchInlineSnapshot(`
           [
             {
@@ -1138,7 +1136,6 @@ describe('ToolLoopAgent', () => {
           provider: startEvent.provider,
           modelId: startEvent.modelId,
           system: startEvent.system,
-          prompt: startEvent.prompt,
           messages: startEvent.messages,
           temperature: startEvent.temperature,
           maxOutputTokens: startEvent.maxOutputTokens,
@@ -1337,7 +1334,7 @@ describe('ToolLoopAgent', () => {
         });
 
         expect({
-          stepNumber: stepStartEvent.stepNumber,
+          stepNumber: stepStartEvent.steps.length,
           provider: stepStartEvent.provider,
           modelId: stepStartEvent.modelId,
           system: stepStartEvent.system,
@@ -1493,7 +1490,7 @@ describe('ToolLoopAgent', () => {
         await result.consumeStream();
 
         expect({
-          stepNumber: stepStartEvent.stepNumber,
+          stepNumber: stepStartEvent.steps.length,
           provider: stepStartEvent.provider,
           modelId: stepStartEvent.modelId,
           system: stepStartEvent.system,

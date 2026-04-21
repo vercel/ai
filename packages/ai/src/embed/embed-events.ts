@@ -80,6 +80,7 @@ export interface EmbedOnFinishEvent {
  * For `embed`, there is one call. For `embedMany`, there may be multiple
  * calls when values are chunked.
  */
+// rename to EmbeddingModelCallStartEvent
 export interface EmbedStartEvent {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
