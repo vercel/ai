@@ -83,6 +83,20 @@ describe('ToolLoopAgent', () => {
 
       expectTypeOf<typeof output>().toEqualTypeOf<{ value: string }>();
     });
+
+    it('should allow onFinish', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV3(),
+      });
+
+      await agent.generate({
+        prompt: 'Hello, world!',
+        onFinish: async event => {
+          const context: unknown = event.experimental_context;
+          context;
+        },
+      });
+    });
   });
 
   describe('stream', () => {
@@ -135,6 +149,20 @@ describe('ToolLoopAgent', () => {
       expectTypeOf<typeof partialOutputStream>().toEqualTypeOf<
         AsyncIterableStream<DeepPartial<{ value: string }>>
       >();
+    });
+
+    it('should allow onFinish', async () => {
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV3(),
+      });
+
+      await agent.stream({
+        prompt: 'Hello, world!',
+        onFinish: async event => {
+          const context: unknown = event.experimental_context;
+          context;
+        },
+      });
     });
   });
 });
