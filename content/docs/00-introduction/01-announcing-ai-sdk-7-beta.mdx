@@ -49,14 +49,16 @@ AI SDK 7 Beta introduces several new capabilities (with more to come soon):
 
 AI SDK 7 introduces `WorkflowAgent`, a durable agent implementation built on the [Workflow SDK](https://workflow-sdk.dev/). It turns your agent run into a durable workflow where each tool invocation becomes its own step with automatic retries. This means your agent is not bound by function duration limits, and if any single step fails, it picks up where it left off instead of restarting from scratch.
 
+Unlike `DurableAgent` from earlier releases, `WorkflowAgent` accepts provider model instances directly (e.g. `openai('gpt-5.4')`), just like `ToolLoopAgent`.
+
 ```ts
 import { WorkflowAgent } from '@ai-sdk/workflow';
 import { tool } from 'ai';
-import { openai } from '@ai-sdk/openai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 export const supportAgent = new WorkflowAgent({
-  model: openai('gpt-5.4-pro'),
+  model: __MODEL__,
   instructions: 'You are a helpful support agent.',
   tools: {
     lookupOrder: tool({
