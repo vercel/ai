@@ -52,11 +52,11 @@ AI SDK 7 introduces `WorkflowAgent`, a durable agent implementation built on the
 ```ts
 import { WorkflowAgent } from '@ai-sdk/workflow';
 import { tool } from 'ai';
-__PROVIDER_IMPORT__;
+import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 export const supportAgent = new WorkflowAgent({
-  model: __MODEL__,
+  model: openai('gpt-5.4-pro'),
   instructions: 'You are a helpful support agent.',
   tools: {
     lookupOrder: tool({
@@ -64,10 +64,16 @@ export const supportAgent = new WorkflowAgent({
       inputSchema: z.object({
         orderId: z.string(),
       }),
-      execute: async ({ orderId }) => ({
-        orderId,
-        status: 'shipped',
-      }),
+      execute: async ({ orderId }) => {
+        'use step';
+
+        /* look up order in database */
+
+        return {
+          orderId,
+          status: 'shipped',
+        };
+      },
     }),
   },
 });
@@ -77,23 +83,22 @@ On the UI side, `WorkflowChatTransport` lets `useChat` reconnect and resume inte
 
 ### Overhauled Telemetry
 
-AI SDK 7 overhauls telemetry to make observability much easier to adopt. OpenTelemetry support now lives in the new `@ai-sdk/otel` package, and setup is simple: register an integration once, then enable telemetry on the calls you want to trace.
+AI SDK 7 overhauls telemetry to make observability much easier to adopt. OpenTelemetry support now lives in the new `@ai-sdk/otel` package, and setup is simple: register a telemetry integration once at app startup, and all AI SDK calls are traced automatically.
 
 ```ts
-import { registerTelemetryIntegration, streamText } from 'ai';
-import { GenAIOpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry, streamText } from 'ai';
+import { GenAIOpenTelemetry } from '@ai-sdk/otel';
 __PROVIDER_IMPORT__;
 
-registerTelemetryIntegration(new GenAIOpenTelemetryIntegration());
+registerTelemetry(new GenAIOpenTelemetry());
 
 const result = streamText({
   model: __MODEL__,
   prompt: "Summarize today's release notes.",
-  experimental_telemetry: { isEnabled: true },
 });
 ```
 
-Register an integration once globally or swap integrations per call. Use `GenAIOpenTelemetryIntegration` for semantic-convention spans or `OpenTelemetryIntegration` for legacy AI SDK spans. Send traces to providers like [Braintrust](/providers/observability/braintrust), [Langfuse](/providers/observability/langfuse), and [MLflow](/providers/observability/mlflow), or inspect them locally with `DevToolsTelemetry()`.
+Register an integration once globally or swap integrations per call. Use `GenAIOpenTelemetry` for semantic-convention spans or `OpenTelemetry` for legacy AI SDK spans. Send traces to providers like [Braintrust](/providers/observability/braintrust), [Langfuse](/providers/observability/langfuse), and [MLflow](/providers/observability/mlflow), or inspect them locally with `DevToolsTelemetry()`.
 
 Observability integrations are already available across the ecosystem. Some integrate via `@ai-sdk/otel`; others, like [LangSmith](/providers/observability/langsmith), [Axiom](/providers/observability/axiom), and [Helicone](/providers/observability/helicone), connect through wrappers or provider-level instrumentation instead.
 
@@ -191,10 +196,15 @@ Learn more in the [File Uploads documentation](/docs/ai-sdk-core/file-uploads) a
 
 ### Stable Typed Tool Context
 
-AI SDK 7 promotes `experimental_context` to stable `context` and lets each tool declare its own `contextSchema` for end-to-end type inference. Context is separated by tool — each tool only receives the context it declares, and the call-site `context` is type-checked against the combined requirements of all tools.
+AI SDK 7 promotes `experimental_context` to stable, per-tool context via `toolsContext`. Each tool declares its own `contextSchema`, and context is passed per tool at the call site through the `toolsContext` map. This gives each tool only the context it declares, with full end-to-end type inference.
+
+<Note>
+  This API is still undergoing changes ([#14515](https://github.com/vercel/ai/pull/14515)). The example below reflects the current direction but may change before stable release.
+</Note>
 
 ```ts
-import { tool } from 'ai';
+import { generateText, tool } from 'ai';
+__PROVIDER_IMPORT__;
 import { z } from 'zod';
 
 const weather = tool({
@@ -207,6 +217,15 @@ const weather = tool({
   execute: async ({ location }, { context: { weatherApiKey } }) => {
     return getWeather(location, weatherApiKey);
   },
+});
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather },
+  toolsContext: {
+    weather: { weatherApiKey: process.env.WEATHER_API_KEY! },
+  },
+  prompt: 'What is the weather in San Francisco?',
 });
 ```
 
@@ -240,6 +259,27 @@ const result = await generateText({
 
 Learn more in the [Settings documentation](/docs/ai-sdk-core/settings#timeout).
 
+### Top-level `toolApproval`
+
+AI SDK 7 adds a top-level `toolApproval` setting on `generateText`, `streamText`, and `ToolLoopAgent`. Instead of setting `needsApproval` on each tool individually, you can configure approval logic in one place:
+
+```ts
+import { generateText } from 'ai';
+__PROVIDER_IMPORT__;
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { weather: weatherTool, payment: paymentTool },
+  toolApproval: {
+    // Require approval for specific tools
+    payment: true,
+    // Or use a function for dynamic approval
+    weather: async ({ args }) => args.city === 'restricted-zone',
+  },
+  prompt: 'Process payment and check weather.',
+});
+```
+
 ### `reasoning-file` Content Part
 
 Models that return files as part of their reasoning trace (separate from regular output files) now use a distinct `reasoning-file` content part type. Previously these were grouped under the generic `file` type. If you have exhaustive part handling (`switch` statements, renderers, serializers), you will need to add a case for `type: 'reasoning-file'`.
@@ -253,13 +293,17 @@ AI SDK 7 should be a relatively small migration for most applications, but there
 - **`experimental_context` was renamed to `context`** and is now typed
 - **Common call settings were clarified** across language model and request options
 
-If you use telemetry, register the new OpenTelemetry integration once at startup:
+If you use telemetry, register the new telemetry integration once at startup:
 
 ```ts
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 ```
 
 Start with the [AI SDK 6.x to 7.0 migration guide](/docs/migration-guides/migration-guide-7-0) and test against pinned beta versions while APIs continue to settle.
+
+## Follow Along
+
+Track progress and get weekly updates on the [AI SDK 7 tracking issue](https://github.com/vercel/ai/issues/14011).
