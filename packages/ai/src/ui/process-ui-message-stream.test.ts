@@ -7610,6 +7610,7 @@ describe('processUIMessageStream', () => {
         {
           approvalId: 'id-1',
           approved: true,
+          reason: 'trusted internal tool',
           type: 'tool-approval-response',
         },
         {
@@ -7678,6 +7679,7 @@ describe('processUIMessageStream', () => {
               "approved": true,
               "id": "id-1",
               "isAutomatic": true,
+              "reason": "trusted internal tool",
             },
             "errorText": undefined,
             "input": {
@@ -7697,6 +7699,7 @@ describe('processUIMessageStream', () => {
               "approved": true,
               "id": "id-1",
               "isAutomatic": true,
+              "reason": "trusted internal tool",
             },
             "errorText": undefined,
             "input": {
@@ -7721,6 +7724,7 @@ describe('processUIMessageStream', () => {
             "approved": true,
             "id": "id-1",
             "isAutomatic": true,
+            "reason": "trusted internal tool",
           },
           "errorText": undefined,
           "input": {

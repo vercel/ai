@@ -1826,6 +1826,7 @@ describe('convertToModelMessages', () => {
                 approved: true,
                 id: 'approval-1',
                 isAutomatic: true,
+                reason: 'trusted internal tool',
               },
               input: {
                 city: 'Tokyo',
@@ -1879,7 +1880,7 @@ describe('convertToModelMessages', () => {
                 "approvalId": "approval-1",
                 "approved": true,
                 "providerExecuted": undefined,
-                "reason": undefined,
+                "reason": "trusted internal tool",
                 "type": "tool-approval-response",
               },
               {
