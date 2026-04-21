@@ -74,6 +74,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
           })
         : userDefinedToolApprovalStatus;
 
+    // normalize the approval status to the object status shape
     return typeof approvalStatus === 'string'
       ? { type: approvalStatus }
       : approvalStatus;
