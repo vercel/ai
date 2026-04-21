@@ -66,6 +66,16 @@ run(async () => {
 
     for await (const chunk of result.fullStream) {
       switch (chunk.type) {
+        case 'text-start': {
+          process.stdout.write('\nAssistant:\n');
+          break;
+        }
+
+        case 'text-delta': {
+          process.stdout.write(chunk.text);
+          break;
+        }
+
         case 'tool-approval-request': {
           if (
             chunk.toolCall.toolName === 'weather' &&
@@ -99,16 +109,6 @@ run(async () => {
               }.\n`,
             );
           }
-          break;
-        }
-
-        case 'text-start': {
-          process.stdout.write('\nAssistant:\n');
-          break;
-        }
-
-        case 'text-delta': {
-          process.stdout.write(chunk.text);
           break;
         }
       }
