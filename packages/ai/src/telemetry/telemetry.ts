@@ -6,10 +6,10 @@ import type {
   EmbeddingModelCallStartEvent,
 } from '../embed/embed-events';
 import type {
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
 } from '../generate-object/structured-output-events';
 import type {
   ChunkEvent,
@@ -36,13 +36,13 @@ export type InferTelemetryEvent<EVENT> = EVENT &
 
 type OperationStartEvent =
   | GenerateTextStartEvent
-  | ObjectOnStartEvent
+  | GenerateObjectStartEvent
   | EmbedStartEvent
   | RerankStartEvent;
 
 type OperationFinishEvent =
   | GenerateTextEndEvent<ToolSet>
-  | ObjectOnFinishEvent<unknown>
+  | GenerateObjectEndEvent<unknown>
   | EmbedEndEvent
   | RerankEndEvent;
 
@@ -53,8 +53,8 @@ export interface TelemetryDispatcher {
   onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
   onChunk?: Callback<ChunkEvent>;
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
-  onObjectStepStart?: Callback<ObjectOnStepStartEvent>;
-  onObjectStepFinish?: Callback<ObjectOnStepFinishEvent>;
+  onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
+  onObjectStepFinish?: Callback<GenerateObjectStepEndEvent>;
   onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
   onEmbedFinish?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
@@ -124,7 +124,9 @@ export interface Telemetry {
    *
    * @deprecated
    */
-  onObjectStepStart?: Callback<InferTelemetryEvent<ObjectOnStepStartEvent>>;
+  onObjectStepStart?: Callback<
+    InferTelemetryEvent<GenerateObjectStepStartEvent>
+  >;
 
   /**
    * Called when an object generation step (single LLM invocation) completes,
@@ -132,7 +134,9 @@ export interface Telemetry {
    *
    * @deprecated
    */
-  onObjectStepFinish?: Callback<InferTelemetryEvent<ObjectOnStepFinishEvent>>;
+  onObjectStepFinish?: Callback<
+    InferTelemetryEvent<GenerateObjectStepEndEvent>
+  >;
 
   /**
    * Called when an individual embedding model call (doEmbed) begins.

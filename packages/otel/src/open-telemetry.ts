@@ -15,10 +15,10 @@ import type {
   EmbedEndEvent,
   EmbedStartEvent,
   EmbeddingModelCallStartEvent,
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
   ChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
@@ -178,7 +178,7 @@ export class OpenTelemetry implements Telemetry {
   onStart(
     event:
       | InferTelemetryEvent<GenerateTextStartEvent>
-      | InferTelemetryEvent<ObjectOnStartEvent>
+      | InferTelemetryEvent<GenerateObjectStartEvent>
       | InferTelemetryEvent<EmbedStartEvent>
       | InferTelemetryEvent<RerankStartEvent>,
   ): void {
@@ -202,7 +202,7 @@ export class OpenTelemetry implements Telemetry {
       event.operationId === 'ai.streamObject'
     ) {
       this.onObjectOperationStart(
-        event as InferTelemetryEvent<ObjectOnStartEvent>,
+        event as InferTelemetryEvent<GenerateObjectStartEvent>,
       );
       return;
     }
@@ -275,7 +275,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   private onObjectOperationStart(
-    event: InferTelemetryEvent<ObjectOnStartEvent>,
+    event: InferTelemetryEvent<GenerateObjectStartEvent>,
   ): void {
     const telemetry: TelemetryOptions = {
       recordInputs: event.recordInputs,
@@ -342,7 +342,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepStart(event: ObjectOnStepStartEvent): void {
+  onObjectStepStart(event: GenerateObjectStepStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
@@ -393,7 +393,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepFinish(event: ObjectOnStepFinishEvent): void {
+  onObjectStepFinish(event: GenerateObjectStepEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
@@ -717,7 +717,7 @@ export class OpenTelemetry implements Telemetry {
   onFinish(
     event:
       | GenerateTextEndEvent<ToolSet>
-      | ObjectOnFinishEvent<unknown>
+      | GenerateObjectEndEvent<unknown>
       | EmbedEndEvent
       | RerankEndEvent,
   ): void {
@@ -741,7 +741,7 @@ export class OpenTelemetry implements Telemetry {
       state.operationId === 'ai.generateObject' ||
       state.operationId === 'ai.streamObject'
     ) {
-      this.onObjectOperationFinish(event as ObjectOnFinishEvent<unknown>);
+      this.onObjectOperationFinish(event as GenerateObjectEndEvent<unknown>);
       return;
     }
 
@@ -819,7 +819,9 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  private onObjectOperationFinish(event: ObjectOnFinishEvent<unknown>): void {
+  private onObjectOperationFinish(
+    event: GenerateObjectEndEvent<unknown>,
+  ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 

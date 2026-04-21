@@ -21,7 +21,7 @@ import type { LanguageModelUsage } from '../types/usage';
  *
  * @deprecated
  */
-export interface ObjectOnStartEvent {
+export type GenerateObjectStartEvent = {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -81,7 +81,7 @@ export interface ObjectOnStartEvent {
 
   /** Optional description of the schema. */
   readonly schemaDescription: string | undefined;
-}
+};
 
 /**
  * Event passed to the `experimental_onStepStart` callback of
@@ -92,7 +92,7 @@ export interface ObjectOnStartEvent {
  *
  * @deprecated
  */
-export interface ObjectOnStepStartEvent {
+export type GenerateObjectStepStartEvent = {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -113,7 +113,7 @@ export interface ObjectOnStepStartEvent {
 
   /** The prompt messages in provider format (for telemetry). */
   readonly promptMessages?: LanguageModelV4Prompt;
-}
+};
 
 /**
  * Event passed to the `onStepFinish` callback of
@@ -124,7 +124,7 @@ export interface ObjectOnStepStartEvent {
  *
  * @deprecated
  */
-export interface ObjectOnStepFinishEvent {
+export type GenerateObjectStepEndEvent = {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -165,7 +165,7 @@ export interface ObjectOnStepFinishEvent {
 
   /** Milliseconds from the start of the stream to the first chunk (streaming only). */
   readonly msToFirstChunk: number | undefined;
-}
+};
 
 /**
  * Event passed to the `onFinish` callback of
@@ -177,7 +177,7 @@ export interface ObjectOnStepFinishEvent {
  *
  * @deprecated
  */
-export interface ObjectOnFinishEvent<RESULT> {
+export type GenerateObjectEndEvent<RESULT> = {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -216,4 +216,4 @@ export interface ObjectOnFinishEvent<RESULT> {
 
   /** Additional provider-specific metadata. */
   readonly providerMetadata: ProviderMetadata | undefined;
-}
+};
