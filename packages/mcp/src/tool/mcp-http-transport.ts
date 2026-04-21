@@ -109,6 +109,8 @@ export class HttpMCPTransport implements MCPTransport {
           'MCP HTTP Transport Error: Transport already started. Note: client.connect() calls start() automatically.',
       });
     }
+
+    this.protocolVersion = undefined;
     this.abortController = new AbortController();
 
     void this.openInboundSse();
@@ -132,7 +134,12 @@ export class HttpMCPTransport implements MCPTransport {
       }
     } catch {}
 
+    this.protocolVersion = undefined;
     this.abortController?.abort();
+    this.abortController = undefined;
+    this.sessionId = undefined;
+    this.resourceMetadataUrl = undefined;
+    this.inboundSseConnection = undefined;
     this.onclose?.();
   }
 

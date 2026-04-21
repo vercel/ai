@@ -99,6 +99,36 @@ describe('HttpMCPTransport', () => {
     });
   });
 
+  it('should clear negotiated protocol version between sessions', async () => {
+    server.urls['http://localhost:4000/mcp'].response = {
+      type: 'error',
+      status: 405,
+    };
+
+    await transport.start();
+
+    (
+      transport as unknown as {
+        setProtocolVersion(protocolVersion: string): void;
+        protocolVersion?: string;
+      }
+    ).setProtocolVersion('2025-06-18');
+
+    expect(
+      (transport as unknown as { protocolVersion?: string }).protocolVersion,
+    ).toBe('2025-06-18');
+
+    await transport.close();
+    expect(
+      (transport as unknown as { protocolVersion?: string }).protocolVersion,
+    ).toBeUndefined();
+
+    await transport.start();
+    expect(
+      (transport as unknown as { protocolVersion?: string }).protocolVersion,
+    ).toBeUndefined();
+  });
+
   it('should handle text/event-stream responses', async () => {
     transport = new HttpMCPTransport({ url: 'http://localhost:4000/stream' });
     const controller = new TestResponseController();

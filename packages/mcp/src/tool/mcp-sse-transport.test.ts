@@ -88,6 +88,47 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 
+  it('should clear negotiated protocol version between sessions', async () => {
+    const firstController = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return {
+            type: 'controlled-stream',
+            controller: firstController,
+          };
+        default:
+          return {
+            type: 'json-value',
+            body: { ok: true },
+          };
+      }
+    };
+
+    const firstConnectPromise = transport.start();
+    firstController.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+    await firstConnectPromise;
+
+    (
+      transport as unknown as {
+        setProtocolVersion(protocolVersion: string): void;
+        protocolVersion?: string;
+      }
+    ).setProtocolVersion('2025-06-18');
+
+    expect(
+      (transport as unknown as { protocolVersion?: string }).protocolVersion,
+    ).toBe('2025-06-18');
+
+    await transport.close();
+    expect(
+      (transport as unknown as { protocolVersion?: string }).protocolVersion,
+    ).toBeUndefined();
+  });
+
   it('should throw if server returns non-200 status', async () => {
     server.urls['http://localhost:3000/sse'].response = {
       type: 'error',

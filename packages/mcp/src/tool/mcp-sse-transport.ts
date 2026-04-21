@@ -90,6 +90,7 @@ export class SseMCPTransport implements MCPTransport {
         return resolve();
       }
 
+      this.protocolVersion = undefined;
       this.abortController = new AbortController();
 
       const establishConnection = async (triedAuth: boolean = false) => {
@@ -222,8 +223,13 @@ export class SseMCPTransport implements MCPTransport {
 
   async close(): Promise<void> {
     this.connected = false;
+    this.protocolVersion = undefined;
     this.sseConnection?.close();
     this.abortController?.abort();
+    this.abortController = undefined;
+    this.endpoint = undefined;
+    this.resourceMetadataUrl = undefined;
+    this.sseConnection = undefined;
     this.onclose?.();
   }
 
