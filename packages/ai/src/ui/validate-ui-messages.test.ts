@@ -794,6 +794,89 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+
+    it('allows dynamic-tool parts when static tool schemas omit the dynamic tool name', async () => {
+      const testTool = {
+        name: 'foo',
+        inputSchema: z.object({ foo: z.string() }),
+        outputSchema: z.object({ result: z.string() }),
+      };
+
+      type TestMessage = UIMessage<
+        never,
+        never,
+        { foo: InferUITool<typeof testTool> }
+      >;
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolName: 'runtime-mcp-tool',
+                toolCallId: 'call-1',
+                state: 'input-available',
+                input: { query: 'docs' },
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messages[0].parts[0]).toMatchObject({
+        type: 'dynamic-tool',
+        toolName: 'runtime-mcp-tool',
+        toolCallId: 'call-1',
+        state: 'input-available',
+        input: { query: 'docs' },
+      });
+    });
+
+    it('rejects dynamic-tool parts with an empty toolCallId when tools are registered', async () => {
+      const testTool = {
+        name: 'foo',
+        inputSchema: z.object({ foo: z.string() }),
+        outputSchema: z.object({ result: z.string() }),
+      };
+
+      type TestMessage = UIMessage<
+        never,
+        never,
+        { foo: InferUITool<typeof testTool> }
+      >;
+
+      await expect(
+        validateUIMessages<TestMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'dynamic-tool',
+                  toolName: 'runtime-mcp-tool',
+                  toolCallId: '',
+                  state: 'input-available',
+                  input: { query: 'docs' },
+                },
+              ],
+            },
+          ],
+          tools: {
+            foo: testTool,
+          },
+        }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`
+        [AI_TypeValidationError: Type validation failed for messages[0].parts[0].toolCallId (runtime-mcp-tool): Value: "".
+        Error message: Tool call ID must not be empty for dynamic tool parts.]
+      `);
+    });
   });
 
   describe('tool parts', () => {
