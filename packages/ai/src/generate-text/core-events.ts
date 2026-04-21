@@ -18,12 +18,12 @@ import type { StandardizedPrompt } from '../prompt/standardize-prompt';
 /**
  * Common model information used across callback events.
  */
-export interface CallbackModelInfo {
+export type CallbackModelInfo = {
   /** The provider identifier (e.g., 'openai', 'anthropic'). */
   readonly provider: string;
   /** The specific model identifier (e.g., 'gpt-4o'). */
   readonly modelId: string;
-}
+};
 
 /**
  * Event passed to the `onStart` callback.
@@ -102,7 +102,6 @@ export type OnStartEvent<
  * Each step represents a single LLM invocation.
  */
 
-// TODO: use as types
 // rename to GenerateTextStepStartEvent
 export type OnStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
@@ -154,7 +153,7 @@ export type OnStepStartEvent<
  * The chunk is either a content part (text-delta, tool-call, etc.) or
  * a stream lifecycle marker (`ai.stream.firstChunk` / `ai.stream.finish`).
  */
-export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
+export type OnChunkEvent<TOOLS extends ToolSet = ToolSet> = {
   readonly chunk:
     | TextStreamPart<TOOLS>
     | {
@@ -163,7 +162,7 @@ export interface OnChunkEvent<TOOLS extends ToolSet = ToolSet> {
         readonly stepNumber: number;
         readonly attributes?: Record<string, unknown>;
       };
-}
+};
 
 /**
  * Event passed to the `onStepFinish` callback.

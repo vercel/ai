@@ -12,7 +12,7 @@ import { ToolOutput } from './tool-output';
  *
  * Called when a tool execution begins, before the tool's `execute` function is invoked.
  */
-export interface ToolExecutionStartEvent<TOOLS extends ToolSet = ToolSet> {
+export type ToolExecutionStartEvent<TOOLS extends ToolSet = ToolSet> = {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -30,7 +30,7 @@ export interface ToolExecutionStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** User-defined context object flowing through the generation. */
   // TODO: restrict the tool context to only that particular tool, and not the entire tool set
   readonly toolContext: InferToolSetContext<TOOLS>;
-}
+};
 
 /**
  * Event passed to the `onToolExecutionEnd` callback.
