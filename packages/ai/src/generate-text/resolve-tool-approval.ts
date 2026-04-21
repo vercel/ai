@@ -32,10 +32,21 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
    */
   toolApproval: ToolApprovalConfiguration<TOOLS> | undefined;
 
-  toolCall: TypedToolCall<TOOLS>; // assuming tool call is valid
+  /**
+   * Valid tool call.
+   */
+  toolCall: TypedToolCall<TOOLS>;
+
+  /**
+   * Messages that were sent to the language model to initiate the response that contained the tool call.
+   */
   messages: ModelMessage[];
+
+  /**
+   * Tool context as defined by the tool's context schema.
+   */
   toolsContext: InferToolSetContext<TOOLS>;
-}): Promise<ToolApprovalStatus> {
+}): Promise<Exclude<ToolApprovalStatus, string>> {
   const toolName = toolCall.toolName;
   const tool = tools?.[toolName];
 
@@ -45,23 +56,28 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
   // user-defined tool approval
   const userDefinedToolApprovalStatus = toolApproval?.[toolName];
   if (userDefinedToolApprovalStatus != null) {
-    return typeof userDefinedToolApprovalStatus === 'function'
-      ? await userDefinedToolApprovalStatus(input, {
-          toolCallId: toolCall.toolCallId,
-          messages,
-          toolContext: await validateToolContext({
-            toolName,
-            context:
-              toolsContext?.[toolName as keyof InferToolSetContext<TOOLS>],
-            contextSchema: tool?.contextSchema,
-          }),
-        })
-      : userDefinedToolApprovalStatus;
+    const approvalStatus: ToolApprovalStatus =
+      typeof userDefinedToolApprovalStatus === 'function'
+        ? await userDefinedToolApprovalStatus(input, {
+            toolCallId: toolCall.toolCallId,
+            messages,
+            toolContext: await validateToolContext({
+              toolName,
+              context:
+                toolsContext?.[toolName as keyof InferToolSetContext<TOOLS>],
+              contextSchema: tool?.contextSchema,
+            }),
+          })
+        : userDefinedToolApprovalStatus;
+
+    return typeof approvalStatus === 'string'
+      ? { type: approvalStatus }
+      : approvalStatus;
   }
 
   // tool-defined approval
   if (tool?.needsApproval == null) {
-    return 'not-applicable';
+    return { type: 'not-applicable' };
   }
 
   const needsApproval =
@@ -78,5 +94,5 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
         })
       : tool.needsApproval;
 
-  return needsApproval ? 'user-approval' : 'not-applicable';
+  return needsApproval ? { type: 'user-approval' } : { type: 'not-applicable' };
 }

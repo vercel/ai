@@ -19,12 +19,12 @@ import {
  */
 export type ToolApprovalStatus =
   | 'not-applicable'
-  | { type: 'not-applicable'; reason?: never }
   | 'approved'
-  | { type: 'approved'; reason?: string }
   | 'denied'
-  | { type: 'denied'; reason?: string }
   | 'user-approval'
+  | { type: 'not-applicable'; reason?: never }
+  | { type: 'approved'; reason?: string }
+  | { type: 'denied'; reason?: string }
   | { type: 'user-approval'; reason?: never };
 
 /**
