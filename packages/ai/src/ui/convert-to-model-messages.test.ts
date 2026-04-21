@@ -1601,6 +1601,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1682,6 +1683,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1696,6 +1698,99 @@ describe('convertToModelMessages', () => {
                 "providerExecuted": undefined,
                 "reason": undefined,
                 "type": "tool-approval-response",
+              },
+            ],
+            "role": "tool",
+          },
+        ]
+      `);
+    });
+
+    it('should preserve automatic approval metadata for approved tool results', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              text: 'What is the weather in Tokyo?',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          parts: [
+            { type: 'step-start' },
+            {
+              approval: {
+                approved: true,
+                id: 'approval-1',
+                isAutomatic: true,
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              output: {
+                weather: 'Sunny',
+              },
+              state: 'output-available',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What is the weather in Tokyo?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "input": {
+                  "city": "Tokyo",
+                },
+                "providerExecuted": undefined,
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-call",
+              },
+              {
+                "approvalId": "approval-1",
+                "isAutomatic": true,
+                "toolCallId": "call-1",
+                "type": "tool-approval-request",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "approvalId": "approval-1",
+                "approved": true,
+                "providerExecuted": undefined,
+                "reason": undefined,
+                "type": "tool-approval-response",
+              },
+              {
+                "output": {
+                  "type": "json",
+                  "value": {
+                    "weather": "Sunny",
+                  },
+                },
+                "toolCallId": "call-1",
+                "toolName": "weather",
+                "type": "tool-result",
               },
             ],
             "role": "tool",
@@ -1768,6 +1863,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1864,6 +1960,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -1953,6 +2050,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -2043,6 +2141,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -2139,6 +2238,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
@@ -2244,6 +2344,7 @@ describe('convertToModelMessages', () => {
               },
               {
                 "approvalId": "approval-1",
+                "isAutomatic": undefined,
                 "toolCallId": "call-1",
                 "type": "tool-approval-request",
               },
