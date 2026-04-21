@@ -85,6 +85,7 @@ import {
 import { toResponseMessages } from './to-response-messages';
 import { ToolApprovalConfiguration } from './tool-approval-configuration';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import { TypedToolCall } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair-function';
 import { TypedToolError } from './tool-error';
@@ -604,6 +605,8 @@ export async function generateText<
     };
     let clientToolCalls: Array<TypedToolCall<TOOLS>> = [];
     let clientToolOutputs: Array<ToolOutput<TOOLS>> = [];
+    let deniedToolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>> =
+      [];
     const steps: GenerateTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>['steps'] =
       [];
 
@@ -746,6 +749,11 @@ export async function generateText<
           string,
           ToolApprovalRequestOutput<TOOLS>
         > = {};
+        const stepToolApprovalResponses: Record<
+          string,
+          ToolApprovalResponseOutput<TOOLS>
+        > = {};
+        const blockedToolCallIds = new Set<string>();
 
         // notify the tools that the tool calls are available:
         for (const toolCall of stepToolCalls) {
@@ -771,20 +779,44 @@ export async function generateText<
             });
           }
 
-          if (
-            (await resolveToolApproval({
-              tools,
-              toolApproval,
-              toolCall,
-              messages: stepInputMessages,
-              toolsContext,
-            })) === 'user-approval'
-          ) {
-            toolApprovalRequests[toolCall.toolCallId] = {
-              type: 'tool-approval-request',
-              approvalId: generateId(),
-              toolCall,
-            };
+          const toolApprovalStatus = await resolveToolApproval({
+            tools,
+            toolApproval,
+            toolCall,
+            messages: stepInputMessages,
+            toolsContext,
+          });
+
+          switch (toolApprovalStatus) {
+            case 'user-approval': {
+              toolApprovalRequests[toolCall.toolCallId] = {
+                type: 'tool-approval-request',
+                approvalId: generateId(),
+                toolCall,
+              };
+              blockedToolCallIds.add(toolCall.toolCallId);
+              break;
+            }
+
+            case 'denied': {
+              const approvalId = generateId();
+
+              toolApprovalRequests[toolCall.toolCallId] = {
+                type: 'tool-approval-request',
+                approvalId,
+                toolCall,
+                isAutomatic: true,
+              };
+              stepToolApprovalResponses[toolCall.toolCallId] = {
+                type: 'tool-approval-response',
+                approvalId,
+                toolCall,
+                approved: false,
+                providerExecuted: toolCall.providerExecuted,
+              };
+              blockedToolCallIds.add(toolCall.toolCallId);
+              break;
+            }
           }
         }
 
@@ -811,6 +843,7 @@ export async function generateText<
         clientToolCalls = stepToolCalls.filter(
           toolCall => !toolCall.providerExecuted,
         );
+        deniedToolApprovalResponses = Object.values(stepToolApprovalResponses);
 
         if (tools != null) {
           clientToolOutputs.push(
@@ -818,7 +851,7 @@ export async function generateText<
               toolCalls: clientToolCalls.filter(
                 toolCall =>
                   !toolCall.invalid &&
-                  toolApprovalRequests[toolCall.toolCallId] == null,
+                  !blockedToolCallIds.has(toolCall.toolCallId),
               ),
               tools,
               telemetry,
@@ -890,6 +923,7 @@ export async function generateText<
           toolCalls: stepToolCalls,
           toolOutputs: clientToolOutputs,
           toolApprovalRequests: Object.values(toolApprovalRequests),
+          toolApprovalResponses: deniedToolApprovalResponses,
           tools,
         });
 
@@ -965,10 +999,11 @@ export async function generateText<
       }
     } while (
       // Continue if:
-      // 1. There are client tool calls that have all been executed, OR
+      // 1. There are client tool calls that have all been executed or denied, OR
       // 2. There are pending deferred results from provider-executed tools
       ((clientToolCalls.length > 0 &&
-        clientToolOutputs.length === clientToolCalls.length) ||
+        clientToolOutputs.length + deniedToolApprovalResponses.length ===
+          clientToolCalls.length) ||
         pendingDeferredToolCalls.size > 0) &&
       // continue until a stop condition is met:
       !(await isStopConditionMet({ stopConditions, steps }))
@@ -1225,12 +1260,14 @@ function asContent<TOOLS extends ToolSet>({
   toolCalls,
   toolOutputs,
   toolApprovalRequests,
+  toolApprovalResponses,
   tools,
 }: {
   content: Array<LanguageModelV4Content>;
   toolCalls: Array<TypedToolCall<TOOLS>>;
   toolOutputs: Array<ToolOutput<TOOLS>>;
   toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
+  toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>>;
   tools: TOOLS | undefined;
 }): Array<ContentPart<TOOLS>> {
   const contentParts: Array<ContentPart<TOOLS>> = [];
@@ -1364,5 +1401,10 @@ function asContent<TOOLS extends ToolSet>({
     }
   }
 
-  return [...contentParts, ...toolOutputs, ...toolApprovalRequests];
+  return [
+    ...contentParts,
+    ...toolOutputs,
+    ...toolApprovalRequests,
+    ...toolApprovalResponses,
+  ];
 }
