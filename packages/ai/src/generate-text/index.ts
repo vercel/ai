@@ -1,10 +1,12 @@
 export type { ContentPart } from './content-part';
 export type {
-  OnChunkEvent,
+  ChunkEvent,
+  GenerateTextEndEvent,
+  GenerateTextStartEvent,
+  GenerateTextStepEndEvent,
+  GenerateTextStepStartEvent,
   OnFinishEvent,
-  OnStartEvent,
   OnStepFinishEvent,
-  OnStepStartEvent,
 } from './core-events';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export {

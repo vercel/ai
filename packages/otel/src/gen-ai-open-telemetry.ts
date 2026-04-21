@@ -12,26 +12,26 @@ import {
   Tracer,
 } from '@opentelemetry/api';
 import type {
-  EmbedFinishEvent,
+  EmbeddingModelCallEndEvent,
   EmbedOnFinishEvent,
   EmbedOnStartEvent,
-  EmbedStartEvent,
+  EmbeddingModelCallStartEvent,
   ObjectOnFinishEvent,
   ObjectOnStartEvent,
   ObjectOnStepFinishEvent,
   ObjectOnStepStartEvent,
-  OnChunkEvent,
-  OnFinishEvent,
-  OnStartEvent,
-  OnStepFinishEvent,
-  OnStepStartEvent,
+  ChunkEvent,
+  GenerateTextEndEvent,
+  GenerateTextStartEvent,
+  GenerateTextStepEndEvent,
+  GenerateTextStepStartEvent,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
   OutputInterface as Output,
-  RerankFinishEvent,
+  RerankingModelCallEndEvent,
   RerankOnFinishEvent,
   RerankOnStartEvent,
-  RerankStartEvent,
+  RerankingModelCallStartEvent,
   InferTelemetryEvent,
   Telemetry,
   TelemetryOptions,
@@ -120,7 +120,7 @@ interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends AISDKContext = AISDKContext,
   OUTPUT extends Output = Output,
-> extends OnStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
+> extends GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
   readonly stepToolChoice?: unknown;
@@ -184,7 +184,7 @@ export class GenAIOpenTelemetry implements Telemetry {
 
   onStart(
     event:
-      | InferTelemetryEvent<OnStartEvent>
+      | InferTelemetryEvent<GenerateTextStartEvent>
       | InferTelemetryEvent<ObjectOnStartEvent>
       | InferTelemetryEvent<EmbedOnStartEvent>
       | InferTelemetryEvent<RerankOnStartEvent>,
@@ -216,10 +216,12 @@ export class GenAIOpenTelemetry implements Telemetry {
       return;
     }
 
-    this.onGenerateStart(event as InferTelemetryEvent<OnStartEvent>);
+    this.onGenerateStart(event as InferTelemetryEvent<GenerateTextStartEvent>);
   }
 
-  private onGenerateStart(event: InferTelemetryEvent<OnStartEvent>): void {
+  private onGenerateStart(
+    event: InferTelemetryEvent<GenerateTextStartEvent>,
+  ): void {
     const telemetry: TelemetryOptions = {
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
@@ -630,7 +632,7 @@ export class GenAIOpenTelemetry implements Telemetry {
     state.toolSpans.delete(event.toolCall.toolCallId);
   }
 
-  onStepFinish(event: OnStepFinishEvent<ToolSet>): void {
+  onStepFinish(event: GenerateTextStepEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan || !state.inferenceSpan) return;
 
@@ -674,7 +676,7 @@ export class GenAIOpenTelemetry implements Telemetry {
 
   onFinish(
     event:
-      | OnFinishEvent<ToolSet>
+      | GenerateTextEndEvent<ToolSet>
       | ObjectOnFinishEvent<unknown>
       | EmbedOnFinishEvent
       | RerankOnFinishEvent,
@@ -703,10 +705,10 @@ export class GenAIOpenTelemetry implements Telemetry {
       return;
     }
 
-    this.onGenerateFinish(event as OnFinishEvent<ToolSet>);
+    this.onGenerateFinish(event as GenerateTextEndEvent<ToolSet>);
   }
 
-  private onGenerateFinish(event: OnFinishEvent<ToolSet>): void {
+  private onGenerateFinish(event: GenerateTextEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -787,7 +789,7 @@ export class GenAIOpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  onEmbedStart(event: EmbedStartEvent): void {
+  onEmbedStart(event: EmbeddingModelCallStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
@@ -814,7 +816,7 @@ export class GenAIOpenTelemetry implements Telemetry {
     });
   }
 
-  onEmbedFinish(event: EmbedFinishEvent): void {
+  onEmbedFinish(event: EmbeddingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state) return;
 
@@ -888,7 +890,7 @@ export class GenAIOpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  onRerankStart(event: RerankStartEvent): void {
+  onRerankStart(event: RerankingModelCallStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
@@ -912,7 +914,7 @@ export class GenAIOpenTelemetry implements Telemetry {
     state.rerankSpan = { span: rerankSpan, context: rerankContext };
   }
 
-  onRerankFinish(event: RerankFinishEvent): void {
+  onRerankFinish(event: RerankingModelCallEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rerankSpan) return;
 
@@ -922,7 +924,7 @@ export class GenAIOpenTelemetry implements Telemetry {
     state.rerankSpan = undefined;
   }
 
-  onChunk(_event: OnChunkEvent<ToolSet>): void {
+  onChunk(_event: ChunkEvent<ToolSet>): void {
     // No-op: streaming chunk events are not part of the GenAI SemConv.
   }
 
