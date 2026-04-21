@@ -87,7 +87,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             toolsContext,
           });
 
-          switch (toolApprovalStatus) {
+          switch (toolApprovalStatus.type) {
             case 'user-approval': {
               controller.enqueue({
                 type: 'tool-approval-request',
@@ -112,6 +112,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
                 approvalId,
                 approved: false,
                 toolCall: chunk,
+                reason: toolApprovalStatus.reason,
                 providerExecuted: chunk.providerExecuted,
               });
 
@@ -132,6 +133,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
                 approvalId,
                 approved: true,
                 toolCall: chunk,
+                reason: toolApprovalStatus.reason,
                 providerExecuted: chunk.providerExecuted,
               });
 

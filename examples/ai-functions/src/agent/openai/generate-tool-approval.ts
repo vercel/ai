@@ -22,7 +22,7 @@ const agent = new ToolLoopAgent({
       }
 
       if (locationLower.includes('new york') || locationLower === 'nyc') {
-        return 'denied';
+        return { type: 'denied', reason: 'blocked by policy' };
       }
 
       return 'user-approval';
@@ -92,6 +92,9 @@ run(async () => {
                     : '\x1b[31mdenied\x1b[0m'
                 }.\n`,
               );
+              if (part.reason != null) {
+                process.stdout.write(`Reason: ${part.reason}\n`);
+              }
             }
             break;
           }

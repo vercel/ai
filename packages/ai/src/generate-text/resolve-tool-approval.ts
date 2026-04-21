@@ -13,7 +13,8 @@ import { validateToolContext } from './validate-tool-context';
 
 /**
  * Resolves the approval state for a tool call by checking user-supplied and tool-defined
- * approval settings. User-defined approval settings take precedence over tool-defined settings.
+ * approval settings, and normalizes the result to the object status shape.
+ * User-defined approval settings take precedence over tool-defined settings.
  * If no approval settings are provided, the tool call does not require approval.
  */
 export async function resolveToolApproval<TOOLS extends ToolSet>({
@@ -23,7 +24,15 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
   messages,
   toolsContext,
 }: {
+  /**
+   * Tools that are available for the model to call.
+   */
   tools: TOOLS | undefined;
+
+  /**
+   * Valid tool call.
+   */
+  toolCall: TypedToolCall<TOOLS>;
 
   /**
    * User-defined approval configuration for tools.
@@ -32,10 +41,16 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
    */
   toolApproval: ToolApprovalConfiguration<TOOLS> | undefined;
 
-  toolCall: TypedToolCall<TOOLS>; // assuming tool call is valid
+  /**
+   * Messages that were sent to the language model to initiate the response that contained the tool call.
+   */
   messages: ModelMessage[];
+
+  /**
+   * Tool context as defined by the tool's context schema.
+   */
   toolsContext: InferToolSetContext<TOOLS>;
-}): Promise<ToolApprovalStatus> {
+}): Promise<Exclude<ToolApprovalStatus, string>> {
   const toolName = toolCall.toolName;
   const tool = tools?.[toolName];
 
@@ -45,23 +60,29 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
   // user-defined tool approval
   const userDefinedToolApprovalStatus = toolApproval?.[toolName];
   if (userDefinedToolApprovalStatus != null) {
-    return typeof userDefinedToolApprovalStatus === 'function'
-      ? await userDefinedToolApprovalStatus(input, {
-          toolCallId: toolCall.toolCallId,
-          messages,
-          toolContext: await validateToolContext({
-            toolName,
-            context:
-              toolsContext?.[toolName as keyof InferToolSetContext<TOOLS>],
-            contextSchema: tool?.contextSchema,
-          }),
-        })
-      : userDefinedToolApprovalStatus;
+    const approvalStatus: ToolApprovalStatus =
+      typeof userDefinedToolApprovalStatus === 'function'
+        ? await userDefinedToolApprovalStatus(input, {
+            toolCallId: toolCall.toolCallId,
+            messages,
+            toolContext: await validateToolContext({
+              toolName,
+              context:
+                toolsContext?.[toolName as keyof InferToolSetContext<TOOLS>],
+              contextSchema: tool?.contextSchema,
+            }),
+          })
+        : userDefinedToolApprovalStatus;
+
+    // normalize the approval status to the object status shape
+    return typeof approvalStatus === 'string'
+      ? { type: approvalStatus }
+      : approvalStatus;
   }
 
   // tool-defined approval
   if (tool?.needsApproval == null) {
-    return 'not-applicable';
+    return { type: 'not-applicable' };
   }
 
   const needsApproval =
@@ -78,5 +99,5 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
         })
       : tool.needsApproval;
 
-  return needsApproval ? 'user-approval' : 'not-applicable';
+  return needsApproval ? { type: 'user-approval' } : { type: 'not-applicable' };
 }
