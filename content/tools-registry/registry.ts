@@ -530,7 +530,7 @@ await browserbase.closeSession();`,
       yarn: 'yarn add @youdotcom-oss/ai-sdk-plugin',
       bun: 'bun add @youdotcom-oss/ai-sdk-plugin',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
 import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
 
 const { text } = await generateText({
@@ -541,7 +541,7 @@ const { text } = await generateText({
     research: youResearch(),
     extract: youContents(),
   },
-  stopWhen: stepCountIs(5),
+  stopWhen: isStepCount(5),
 });
 
 console.log(text);`,
