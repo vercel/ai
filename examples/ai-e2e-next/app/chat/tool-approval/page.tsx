@@ -24,8 +24,9 @@ export default function TestToolApproval() {
       <h1 className="mb-4 text-xl font-bold">Tool Approval Test</h1>
 
       {messages.map(message => (
-        <div key={message.id} className="whitespace-pre-wrap">
-          {message.role === 'user' ? 'User: ' : 'AI: '}
+        <div key={message.id} className="mb-4 whitespace-pre-wrap">
+          <strong>{message.role === 'user' ? 'User: ' : 'AI: '}</strong>
+
           {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
