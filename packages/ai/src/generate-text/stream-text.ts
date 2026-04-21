@@ -2559,6 +2559,10 @@ class DefaultStreamTextResult<
               break;
             }
 
+            case 'tool-approval-response': {
+              throw new Error('not implemented');
+            }
+
             case 'raw': {
               // Raw chunks are not included in UI message streams
               // as they contain provider-specific data for developer use
