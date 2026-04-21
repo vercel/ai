@@ -254,6 +254,225 @@ describe('createExecuteToolsTransformation', () => {
     expect(toolExecuted).toBe(false);
   });
 
+  it('should emit approval request and approved response before executing auto-approved tools', async () => {
+    const execute = vi.fn(async ({ value }: { value: string }) => {
+      return `${value}-approved-result`;
+    });
+
+    const tools = {
+      approvedTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute,
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'approvedTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]);
+
+    const transformedStream = inputStream.pipeThrough(
+      createExecuteToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        toolsContext: {},
+        toolApproval: {
+          approvedTool: 'approved',
+        },
+      }),
+    );
+
+    expect(await convertReadableStreamToArray(transformedStream))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "approvedTool",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "id-0",
+            "isAutomatic": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "approvedTool",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "approvalId": "id-0",
+            "approved": true,
+            "providerExecuted": undefined,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "approvedTool",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-response",
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "type": "model-call-end",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+          {
+            "dynamic": false,
+            "input": {
+              "value": "test",
+            },
+            "output": "test-approved-result",
+            "toolCallId": "call-1",
+            "toolName": "approvedTool",
+            "type": "tool-result",
+          },
+        ]
+      `);
+
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('should emit approval request and denied response without executing auto-denied tools', async () => {
+    let toolExecuted = false;
+
+    const tools = {
+      deniedTool: tool({
+        inputSchema: z.object({ value: z.string() }),
+        execute: async ({ value }) => {
+          toolExecuted = true;
+          return `${value}-denied-result`;
+        },
+      }),
+    };
+
+    const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
+      convertArrayToReadableStream([
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'deniedTool',
+          input: { value: 'test' },
+        },
+        finishChunk,
+      ]);
+
+    const transformedStream = inputStream.pipeThrough(
+      createExecuteToolsTransformation({
+        generateId: mockId({ prefix: 'id' }),
+        tools,
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        timeout: undefined,
+        toolsContext: {},
+        toolApproval: {
+          deniedTool: 'denied',
+        },
+      }),
+    );
+
+    expect(await convertReadableStreamToArray(transformedStream))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "input": {
+              "value": "test",
+            },
+            "toolCallId": "call-1",
+            "toolName": "deniedTool",
+            "type": "tool-call",
+          },
+          {
+            "approvalId": "id-0",
+            "isAutomatic": true,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "deniedTool",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-request",
+          },
+          {
+            "approvalId": "id-0",
+            "approved": false,
+            "providerExecuted": undefined,
+            "toolCall": {
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "deniedTool",
+              "type": "tool-call",
+            },
+            "type": "tool-approval-response",
+          },
+          {
+            "finishReason": "stop",
+            "rawFinishReason": "stop",
+            "type": "model-call-end",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+
+    expect(toolExecuted).toBe(false);
+  });
+
   describe('onToolExecutionStart and onToolExecutionEnd callbacks', () => {
     it('should call onToolExecutionStart before tool execution and onToolExecutionEnd after', async () => {
       const tools = {
@@ -337,9 +556,6 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: { testTool: { value: 'test' } },
-          stepNumber: 2,
-          provider: 'test-provider',
-          modelId: 'test-model',
           onToolExecutionStart: async event => {
             startEvents.push(event);
           },
@@ -358,10 +574,6 @@ describe('createExecuteToolsTransformation', () => {
             "context": {
               "value": "test",
             },
-            "messages": [],
-            "modelId": "test-model",
-            "provider": "test-provider",
-            "stepNumber": 2,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -381,11 +593,7 @@ describe('createExecuteToolsTransformation', () => {
               "value": "test",
             },
             "durationMs": 0,
-            "messages": [],
-            "modelId": "test-model",
             "output": "test-result",
-            "provider": "test-provider",
-            "stepNumber": 2,
             "success": true,
             "toolCall": {
               "input": {
@@ -444,11 +652,7 @@ describe('createExecuteToolsTransformation', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "messages": [],
-            "modelId": undefined,
             "output": "abc-result",
-            "provider": undefined,
-            "stepNumber": undefined,
             "success": true,
             "toolCall": {
               "input": {
@@ -513,10 +717,6 @@ describe('createExecuteToolsTransformation', () => {
             "context": undefined,
             "durationMs": 0,
             "error": [Error: tool failed],
-            "messages": [],
-            "modelId": undefined,
-            "provider": undefined,
-            "stepNumber": undefined,
             "success": false,
             "toolCall": {
               "input": {
@@ -631,10 +831,6 @@ describe('createExecuteToolsTransformation', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "messages": [],
-            "modelId": undefined,
-            "provider": undefined,
-            "stepNumber": undefined,
             "toolCall": {
               "input": {
                 "value": "a",
@@ -647,10 +843,6 @@ describe('createExecuteToolsTransformation', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "messages": [],
-            "modelId": undefined,
-            "provider": undefined,
-            "stepNumber": undefined,
             "toolCall": {
               "input": {
                 "value": "b",
@@ -668,11 +860,7 @@ describe('createExecuteToolsTransformation', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "messages": [],
-            "modelId": undefined,
             "output": "a-result",
-            "provider": undefined,
-            "stepNumber": undefined,
             "success": true,
             "toolCall": {
               "input": {
@@ -687,11 +875,7 @@ describe('createExecuteToolsTransformation', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "messages": [],
-            "modelId": undefined,
             "output": "b-result",
-            "provider": undefined,
-            "stepNumber": undefined,
             "success": true,
             "toolCall": {
               "input": {
@@ -765,11 +949,13 @@ describe('createExecuteToolsTransformation', () => {
 
   describe('tool execution error handling', () => {
     it('should throw TypeValidationError before approval callbacks run', async () => {
+      const needsApproval = vi.fn(() => true);
+
       const tools = {
         guardedTool: tool({
           inputSchema: z.object({ value: z.string() }),
           contextSchema: z.object({ apiKey: z.string() }),
-          needsApproval: true,
+          needsApproval,
           execute: async ({ value }) => `${value}-result`,
         }),
       };
@@ -802,6 +988,7 @@ describe('createExecuteToolsTransformation', () => {
         await convertReadableStreamToArray(transformedStream);
         expect.unreachable('expected stream consumption to throw');
       } catch (error) {
+        expect(needsApproval).not.toHaveBeenCalled();
         expect(TypeValidationError.isInstance(error)).toBe(true);
 
         if (TypeValidationError.isInstance(error)) {

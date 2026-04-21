@@ -585,10 +585,10 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'toolApproval',
-      type: 'Record<TOOLNAME, boolean | ((input, options) => boolean | Promise<boolean>)>',
+      type: 'ToolApprovalConfiguration<TOOLS>',
       isOptional: true,
       description:
-        "Per-tool approval configuration for this call. Each tool can be set to `true` / `false` or to a function that decides dynamically based on the tool input and options such as `toolCallId`, `messages`, and `context`. This setting takes precedence over a tool's `needsApproval` default.",
+        "Per-tool approval configuration for this call. Each tool can be set to `'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'`, or to a function that returns one of those statuses based on the tool input and options such as `toolCallId`, `messages`, and `toolContext`. `'not-applicable'` is the default execution path and runs the tool without approval metadata. Use `'approved'` or `'denied'` when you want explicit automatic approval request/response parts in the output. This setting takes precedence over a tool's `needsApproval` default.",
     },
     {
       name: 'stopWhen',
@@ -3523,7 +3523,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'toUIMessageStream',
       type: '(options?: UIMessageStreamOptions) => AsyncIterableStream<UIMessageChunk>',
       description:
-        'Converts the result to a UI message stream. Returns an AsyncIterableStream that can be used as both an AsyncIterable and a ReadableStream.',
+        'Converts the result to a UI message stream. Returns an AsyncIterableStream that can be used as both an AsyncIterable and a ReadableStream. The stream includes tool approval request and response chunks, including automatic approval metadata when available.',
       properties: [
         {
           type: 'UIMessageStreamOptions',

@@ -397,7 +397,7 @@ export async function POST(req: Request) {
 
 ### Client-Side Approval UI
 
-When a tool requires approval, the tool part state is `approval-requested`. Use `addToolApprovalResponse` to approve or deny:
+When a tool requires manual approval, the tool part state is `approval-requested`. Automatic approvals and denials also flow through the same approval states, but they set `part.approval.isAutomatic === true`, so you can render the status without calling `addToolApprovalResponse`.
 
 ```tsx filename='app/page.tsx'
 'use client';
@@ -414,7 +414,15 @@ export default function Chat() {
           {message.parts.map(part => {
             if (part.type === 'tool-getWeather') {
               switch (part.state) {
-                case 'approval-requested':
+                case 'approval-requested': {
+                  if (part.approval.isAutomatic) {
+                    return (
+                      <div key={part.toolCallId}>
+                        Checking approval for {part.input.city}...
+                      </div>
+                    );
+                  }
+
                   return (
                     <div key={part.toolCallId}>
                       <p>Get weather for {part.input.city}?</p>
@@ -440,10 +448,25 @@ export default function Chat() {
                       </button>
                     </div>
                   );
+                }
+                case 'approval-responded':
+                  return (
+                    <div key={part.toolCallId}>
+                      Weather request for {part.input.city} was
+                      {part.approval.isAutomatic ? ' automatically' : ''}{' '}
+                      {part.approval.approved ? 'approved' : 'denied'}.
+                    </div>
+                  );
                 case 'output-available':
                   return (
                     <div key={part.toolCallId}>
                       Weather in {part.input.city}: {part.output}
+                    </div>
+                  );
+                case 'output-denied':
+                  return (
+                    <div key={part.toolCallId}>
+                      Weather request for {part.input.city} was denied.
                     </div>
                   );
               }
@@ -456,6 +479,8 @@ export default function Chat() {
   );
 }
 ```
+
+Call `addToolApprovalResponse` only for manual approvals. Automatic approval decisions already arrive in the UI stream as `approval-requested` and `approval-responded` states, and denied executions continue to `output-denied`.
 
 ### Auto-Submit After Approval
 

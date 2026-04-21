@@ -8,6 +8,7 @@ import type {
   Arrayable,
   Context,
   InferToolSetContext,
+  ToolApprovalResponse,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -929,6 +930,17 @@ class DefaultStreamTextResult<
           await onError({ error: wrapGatewayError(part.error) });
         }
 
+        if (
+          part.type === 'custom' ||
+          part.type === 'source' ||
+          part.type === 'tool-call' ||
+          part.type === 'tool-approval-request' ||
+          part.type === 'tool-approval-response' ||
+          part.type === 'tool-error'
+        ) {
+          recordedContent.push(part);
+        }
+
         if (part.type === 'text-start') {
           activeTextContent[part.id] = {
             type: 'text',
@@ -1037,27 +1049,7 @@ class DefaultStreamTextResult<
           });
         }
 
-        if (part.type === 'custom') {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'source') {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'tool-call') {
-          recordedContent.push(part);
-        }
-
         if (part.type === 'tool-result' && !part.preliminary) {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'tool-approval-request') {
-          recordedContent.push(part);
-        }
-
-        if (part.type === 'tool-error') {
           recordedContent.push(part);
         }
 
@@ -1404,9 +1396,6 @@ class DefaultStreamTextResult<
                 abortSignal,
                 timeout,
                 toolsContext,
-                stepNumber: recordedSteps.length,
-                provider: model.provider,
-                modelId: model.modelId,
                 onToolExecutionStart: filterNullable(
                   onToolExecutionStart,
                   telemetryDispatcher.onToolExecutionStart as
@@ -1604,12 +1593,9 @@ class DefaultStreamTextResult<
                     activeTools: prepareStepResult?.activeTools ?? activeTools,
                     steps: [...recordedSteps],
                     providerOptions: stepProviderOptions,
-                    timeout,
-                    headers,
-                    stopWhen,
-                    output,
                     runtimeContext,
                     toolsContext,
+                    output,
                     promptMessages,
                     stepTools,
                     stepToolChoice,
@@ -1648,9 +1634,6 @@ class DefaultStreamTextResult<
               toolsContext,
               toolApproval,
               generateId,
-              stepNumber: recordedSteps.length,
-              provider: stepModel.provider,
-              modelId: stepModel.modelId,
               onToolExecutionStart: filterNullable(
                 onToolExecutionStart,
                 telemetryDispatcher.onToolExecutionStart as
@@ -1675,6 +1658,7 @@ class DefaultStreamTextResult<
               : { ...request, body: undefined };
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
+          const stepToolApprovalResponses: ToolApprovalResponse[] = [];
           let warnings: SharedV4Warning[] | undefined;
 
           let stepFinishReason: FinishReason = 'other';
@@ -1728,9 +1712,19 @@ class DefaultStreamTextResult<
 
                   const chunkType = chunk.type;
                   switch (chunkType) {
-                    case 'tool-approval-request':
+                    case 'file':
+                    case 'custom':
+                    case 'source':
                     case 'text-start':
-                    case 'text-end': {
+                    case 'text-end':
+                    case 'reasoning-start':
+                    case 'reasoning-end':
+                    case 'reasoning-delta':
+                    case 'reasoning-file':
+                    case 'tool-input-start':
+                    case 'tool-input-end':
+                    case 'tool-input-delta':
+                    case 'tool-approval-request': {
                       controller.enqueue(chunk);
                       break;
                     }
@@ -1742,26 +1736,16 @@ class DefaultStreamTextResult<
                       break;
                     }
 
-                    case 'reasoning-start':
-                    case 'reasoning-end': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'custom': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'reasoning-delta': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
                     case 'tool-call': {
                       controller.enqueue(chunk);
                       // store tool calls for onFinish callback and toolCalls promise:
                       stepToolCalls.push(chunk);
+                      break;
+                    }
+
+                    case 'tool-approval-response': {
+                      controller.enqueue(chunk);
+                      stepToolApprovalResponses.push(chunk);
                       break;
                     }
 
@@ -1812,24 +1796,6 @@ class DefaultStreamTextResult<
                         },
                       });
 
-                      break;
-                    }
-
-                    case 'file':
-                    case 'reasoning-file': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'source': {
-                      controller.enqueue(chunk);
-                      break;
-                    }
-
-                    case 'tool-input-start':
-                    case 'tool-input-end':
-                    case 'tool-input-delta': {
-                      controller.enqueue(chunk);
                       break;
                     }
 
@@ -1886,6 +1852,11 @@ class DefaultStreamTextResult<
                   const clientToolOutputs = stepToolOutputs.filter(
                     toolOutput => toolOutput.providerExecuted !== true,
                   );
+                  const deniedToolApprovalResponses =
+                    stepToolApprovalResponses.filter(
+                      toolApprovalResponse =>
+                        toolApprovalResponse.approved === false,
+                    );
 
                   // Track provider-executed tool calls that support deferred results.
                   // In programmatic tool calling, a server tool (e.g., code_execution) may
@@ -1929,10 +1900,12 @@ class DefaultStreamTextResult<
 
                   if (
                     // Continue if:
-                    // 1. There are client tool calls that have all been executed, OR
-                    // 2. There are pending deferred results from provider-executed tools
+                    // 1. There are client tool calls that have all been executed or denied, OR
+                    // 2. There are pending deferred results from provider-executed tools, OR
                     ((clientToolCalls.length > 0 &&
-                      clientToolOutputs.length === clientToolCalls.length) ||
+                      clientToolCalls.length ===
+                        clientToolOutputs.length +
+                          deniedToolApprovalResponses.length) ||
                       pendingDeferredToolCalls.size > 0) &&
                     // continue until a stop condition is met:
                     !(await isStopConditionMet({
@@ -2452,6 +2425,22 @@ class DefaultStreamTextResult<
                 type: 'tool-approval-request',
                 approvalId: part.approvalId,
                 toolCallId: part.toolCall.toolCallId,
+                ...(part.isAutomatic != null
+                  ? { isAutomatic: part.isAutomatic }
+                  : {}),
+              });
+              break;
+            }
+
+            case 'tool-approval-response': {
+              controller.enqueue({
+                type: 'tool-approval-response',
+                approvalId: part.approvalId,
+                approved: part.approved,
+                ...(part.reason != null ? { reason: part.reason } : {}),
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
               });
               break;
             }

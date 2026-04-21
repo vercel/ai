@@ -174,21 +174,6 @@ export interface OnStepStartEvent<
   /** Additional provider-specific options for this step. */
   readonly providerOptions: ProviderOptions | undefined;
 
-  /**
-   * Timeout configuration for the generation.
-   * Can be a number (milliseconds) or an object with totalMs, stepMs, chunkMs, toolMs, and per-tool overrides via tools.
-   */
-  readonly timeout: TimeoutConfiguration<TOOLS> | undefined;
-
-  /** Additional HTTP headers sent with the request. */
-  readonly headers: Record<string, string | undefined> | undefined;
-
-  /**
-   * Condition(s) for stopping the generation.
-   * When the condition is an array, any of the conditions can be met to stop.
-   */
-  readonly stopWhen: Arrayable<StopCondition<TOOLS, RUNTIME_CONTEXT>>;
-
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
