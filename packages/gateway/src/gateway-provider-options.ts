@@ -6,6 +6,12 @@ const gatewayProviderOptions = lazySchema(() =>
   zodSchema(
     z.object({
       /**
+       * Controls prompt caching behavior for the selected provider/model.
+       *
+       * Example: `'auto'` enables provider-managed automatic caching when supported.
+       */
+      caching: z.enum(['auto']).optional(),
+      /**
        * Array of provider slugs that are the only ones allowed to be used.
        *
        * Example: `['azure', 'openai']` will only allow Azure and OpenAI to be used.

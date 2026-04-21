@@ -1482,6 +1482,26 @@ describe('GatewayLanguageModel', () => {
       });
     });
 
+    it('should allow caching in provider options', async () => {
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Test response' },
+      });
+
+      await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          gateway: {
+            caching: 'auto',
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.providerOptions).toEqual({
+        gateway: { caching: 'auto' },
+      });
+    });
+
     it('should pass providerTimeouts for doGenerate', async () => {
       prepareJsonResponse({
         content: { type: 'text', text: 'Test response' },
