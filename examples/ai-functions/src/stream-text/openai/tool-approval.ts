@@ -44,16 +44,22 @@ run(async () => {
       // context engineering required to make sure the model does not retry
       // the tool execution if it is not approved for a particular tool call:
       system:
-        'When a particular tool execution is not approved by the user, do not retry it the tool with the same input.' +
-        'Just say that the tool execution was not approved.',
+        'When a tool call was not approved by the user, ' +
+        'do not retry the tool call with the same input.' +
+        'Just say that the tool execution was not approved.' +
+        'You can call a denied tool call with a different input.',
       tools: { weather: weatherTool },
       toolApproval: {
         weather: ({ location }) => {
-          if (location.toLowerCase().includes('san francisco')) {
+          const locationLower = location.toLowerCase();
+          if (
+            locationLower.includes('san francisco') ||
+            locationLower === 'sf'
+          ) {
             return 'approved';
           }
 
-          if (location.toLowerCase().includes('new york')) {
+          if (locationLower.includes('new york') || locationLower === 'nyc') {
             return 'denied';
           }
 
