@@ -147,9 +147,9 @@ const result = await generateText({
 
 `toolApproval` accepts one of four statuses per tool:
 
-- `'not-applicable'`: no approval is required
-- `'approved'`: approve automatically and continue in the same generation
-- `'denied'`: deny automatically and surface a denied tool output
+- `'not-applicable'`: the tool is executed without an approval flow. This is the default behavior.
+- `'approved'`: record an automatic approval by emitting approval request/response parts in the output, then execute the tool
+- `'denied'`: record an automatic denial by emitting approval request/response parts in the output, then surface a denied tool output
 - `'user-approval'`: emit an approval request and wait for an explicit response
 
 `toolApproval` can also be a function per tool, which lets you return one of these statuses dynamically based on the tool input and runtime options such as `toolCallId`, `messages`, and `toolContext`.
@@ -160,7 +160,7 @@ This is useful for tools that perform sensitive operations like executing comman
 
 When a tool requires manual approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the manual approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
 
-Manual approval can come from either tool-level `needsApproval` or call-level `toolApproval` returning `'user-approval'`. If `toolApproval` returns `'approved'` or `'denied'`, the SDK records the decision automatically in the same generation.
+Manual approval can come from either tool-level `needsApproval` or call-level `toolApproval` returning `'user-approval'`. If the tool should just execute normally, use `'not-applicable'` or omit the setting entirely. If `toolApproval` returns `'approved'` or `'denied'`, the SDK records that decision automatically in the same generation by emitting approval request/response parts.
 
 Here's the manual approval flow:
 
@@ -223,7 +223,7 @@ messages.push({ role: 'tool', content: approvals });
 
 Then call `generateText` or `streamText` again with the updated messages. If approved, the tool executes. If denied, the model receives the denial and can respond accordingly.
 
-When approval is handled automatically with `'approved'` or `'denied'`, the result includes a `tool-approval-request` with `isAutomatic: true` followed by a `tool-approval-response`, so you can inspect or render the decision without prompting the user again.
+When the tool should execute without any approval metadata in the output, use `'not-applicable'` or omit `toolApproval`. Use `'approved'` or `'denied'` only when you want the result to include an automatic `tool-approval-request` with `isAutomatic: true` followed by a `tool-approval-response`, so you can inspect or render the decision without prompting the user again.
 
 <Note>
   When a tool execution is denied, consider adding a system instruction like
@@ -257,7 +257,7 @@ const paymentTool = tool({
 
 In this example, only transactions over $1000 require approval. Smaller transactions execute automatically.
 
-You can use a similar function in `toolApproval` when you want to return `'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'` at call time instead of defining the default on the tool itself.
+You can use a similar function in `toolApproval` when you want to return `'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'` at call time instead of defining the default on the tool itself. Return `'not-applicable'` for the normal execution path.
 
 ### Tool Execution Approval with useChat
 
