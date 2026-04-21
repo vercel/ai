@@ -81,6 +81,9 @@ export default function WeatherWithApprovalView({
                 <span className="text-red-600">denied</span>
               )}
               .
+              {invocation.approval.reason != null
+                ? `Reason: ${invocation.approval.reason}`
+                : ''}
             </div>
           )}
           <div className="text-gray-500">
@@ -98,6 +101,9 @@ export default function WeatherWithApprovalView({
           <span className="font-semibold">{invocation.input.city}</span> was
           {invocation.approval.isAutomatic ? ' automatically' : ''}{' '}
           <span className="text-red-600">denied</span>.
+          {invocation.approval.reason != null
+            ? `Reason: ${invocation.approval.reason}`
+            : ''}
         </div>
       );
 

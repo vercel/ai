@@ -20,7 +20,7 @@ export const openaiWeatherToolApprovalAgent = new ToolLoopAgent({
       }
 
       if (cityLower.includes('new york') || cityLower === 'nyc') {
-        return 'denied';
+        return { type: 'denied', reason: 'blocked by policy' };
       }
 
       return 'user-approval';
