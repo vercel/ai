@@ -5801,9 +5801,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(
-        stepStartEvent.steps[stepStartEvent.steps.length - 1].stepNumber,
-      ).toBe(0);
+      expect(stepStartEvent.steps.length).toBe(0);
       expect(stepStartEvent.provider).toBe('mock-provider');
       expect(stepStartEvent.modelId).toBe('mock-model-id');
       expect(stepStartEvent.messages).toEqual([
@@ -5898,8 +5896,8 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(stepStartEvents.length).toBe(2);
-      expect(stepStartEvents[0].steps[0].stepNumber).toBe(0);
-      expect(stepStartEvents[1].steps[1].stepNumber).toBe(1);
+      expect(stepStartEvents[0].steps.length).toBe(0);
+      expect(stepStartEvents[1].steps.length).toBe(1);
     });
 
     it('should be called before doStream on each step', async () => {
@@ -6256,7 +6254,12 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
+            "messages": [
+              {
+                "content": "test-input",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test-arg",
@@ -6268,6 +6271,7 @@ describe('streamText', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           },
         ]
       `);
@@ -6516,9 +6520,12 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6529,6 +6536,9 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
             },
           },
         ]
@@ -6829,12 +6839,13 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
             "durationMs": 0,
-            "output": "test-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6845,6 +6856,19 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "output": "test-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
             },
           },
         ]
@@ -6903,12 +6927,13 @@ describe('streamText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
             "durationMs": 0,
-            "error": [Error: Tool execution failed],
-            "success": false,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6919,6 +6944,19 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "error": [Error: Tool execution failed],
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-error",
             },
           },
         ]

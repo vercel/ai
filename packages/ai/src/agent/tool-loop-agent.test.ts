@@ -960,9 +960,13 @@ describe('ToolLoopAgent', () => {
         }).toMatchInlineSnapshot(`
           {
             "maxOutputTokens": 500,
-            "messages": undefined,
+            "messages": [
+              {
+                "content": "Hello, world!",
+                "role": "user",
+              },
+            ],
             "modelId": "mock-model-id",
-            "prompt": "Hello, world!",
             "provider": "mock-provider",
             "runtimeContext": {
               "userId": "test-user",
@@ -1143,9 +1147,13 @@ describe('ToolLoopAgent', () => {
         }).toMatchInlineSnapshot(`
           {
             "maxOutputTokens": 500,
-            "messages": undefined,
+            "messages": [
+              {
+                "content": "Hello, world!",
+                "role": "user",
+              },
+            ],
             "modelId": "mock-model-id",
-            "prompt": "Hello, world!",
             "provider": "mock-provider",
             "runtimeContext": {
               "userId": "test-user",
@@ -1968,7 +1976,12 @@ describe('ToolLoopAgent', () => {
         expect(event).toMatchInlineSnapshot(`
           {
             "callId": "call-0",
-            "context": undefined,
+            "messages": [
+              {
+                "content": "test",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -1980,6 +1993,7 @@ describe('ToolLoopAgent', () => {
               "toolName": "testTool",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           }
         `);
       });
@@ -2172,7 +2186,12 @@ describe('ToolLoopAgent', () => {
         expect(event).toMatchInlineSnapshot(`
           {
             "callId": "call-1",
-            "context": undefined,
+            "messages": [
+              {
+                "content": "test",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -2184,6 +2203,7 @@ describe('ToolLoopAgent', () => {
               "toolName": "testTool",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           }
         `);
       });
@@ -2383,10 +2403,13 @@ describe('ToolLoopAgent', () => {
         expect(event).toMatchInlineSnapshot(`
           {
             "callId": "call-2",
-            "context": undefined,
             "durationMs": 0,
-            "output": "hello-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "test",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "hello",
@@ -2397,6 +2420,17 @@ describe('ToolLoopAgent', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "hello",
+              },
+              "output": "hello-result",
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-result",
             },
           }
         `);
@@ -2590,10 +2624,13 @@ describe('ToolLoopAgent', () => {
         expect(event).toMatchInlineSnapshot(`
           {
             "callId": "call-3",
-            "context": undefined,
             "durationMs": 0,
-            "output": "hello-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "test",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "hello",
@@ -2604,6 +2641,17 @@ describe('ToolLoopAgent', () => {
               "toolCallId": "call-1",
               "toolName": "testTool",
               "type": "tool-call",
+            },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "hello",
+              },
+              "output": "hello-result",
+              "toolCallId": "call-1",
+              "toolName": "testTool",
+              "type": "tool-result",
             },
           }
         `);

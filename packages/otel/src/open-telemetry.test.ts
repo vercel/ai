@@ -193,7 +193,6 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
-    stepNumber: 0,
     provider: model.provider,
     modelId: model.modelId,
     system: undefined,
@@ -760,10 +759,10 @@ describe('OpenTelemetry', () => {
     it('allows a new step span after finishing a step', () => {
       otelIntegration.onStart!(makeOnStartEvent());
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
+      otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 0 }));
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      otelIntegration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
       expect(tracer.spans).toHaveLength(3);
@@ -1109,12 +1108,12 @@ describe('OpenTelemetry', () => {
     it('creates correct span hierarchy for multi-step generation', () => {
       otelIntegration.onStart!(makeOnStartEvent());
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 0 }));
+      otelIntegration.onStepStart!(makeStepStartEvent());
       otelIntegration.onToolExecutionStart!(makeToolCallStartEvent());
       otelIntegration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 0 }));
 
-      otelIntegration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      otelIntegration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       otelIntegration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
       otelIntegration.onFinish!(makeFinishEvent());

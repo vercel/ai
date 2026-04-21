@@ -1582,7 +1582,6 @@ class DefaultStreamTextResult<
                 await notify({
                   event: {
                     callId,
-                    stepNumber: recordedSteps.length,
                     provider: stepModel.provider,
                     modelId: stepModel.modelId,
                     system: stepSystem,

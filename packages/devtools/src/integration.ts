@@ -234,7 +234,8 @@ export function DevToolsTelemetry(): Telemetry {
         streamChunks: [],
         rawStreamChunks: [],
       };
-      state.stepStates.set(stepStartEvent.stepNumber, stepState);
+      const stepNumber = stepStartEvent.steps.length;
+      state.stepStates.set(stepNumber, stepState);
       activeSteps.set(stepId, stepState);
 
       const prompt = stepStartEvent.promptMessages ?? stepStartEvent.messages;
@@ -242,7 +243,7 @@ export function DevToolsTelemetry(): Telemetry {
       await createStep({
         id: stepId,
         run_id: state.runId,
-        step_number: stepStartEvent.stepNumber + 1,
+        step_number: stepNumber + 1,
         type: state.operationType,
         model_id: stepStartEvent.modelId,
         provider: stepStartEvent.provider ?? null,

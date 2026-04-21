@@ -1655,7 +1655,12 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
+            "messages": [
+              {
+                "content": "test-input",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test-arg",
@@ -1667,6 +1672,7 @@ describe('generateText', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           },
         ]
       `);
@@ -1714,7 +1720,12 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "a",
@@ -1726,10 +1737,16 @@ describe('generateText', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           },
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "b",
@@ -1741,6 +1758,7 @@ describe('generateText', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           },
         ]
       `);
@@ -1888,9 +1906,12 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -1901,6 +1922,9 @@ describe('generateText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
             },
           },
         ]
@@ -1944,10 +1968,13 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
             "durationMs": 0,
-            "output": "test-arg-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test-arg",
@@ -1958,6 +1985,17 @@ describe('generateText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "test-arg",
+              },
+              "output": "test-arg-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
             },
           },
         ]
@@ -2002,10 +2040,13 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
             "durationMs": 0,
-            "error": [Error: tool execution failed],
-            "success": false,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -2016,6 +2057,17 @@ describe('generateText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "error": [Error: tool execution failed],
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-error",
             },
           },
         ]
@@ -2160,12 +2212,13 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
             "durationMs": 0,
-            "output": "test-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -2176,6 +2229,19 @@ describe('generateText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "test",
+              },
+              "output": "test-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
             },
           },
         ]
@@ -2222,12 +2288,13 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": {
-              "context": "test",
-            },
             "durationMs": 0,
-            "error": [Error: Tool execution failed],
-            "success": false,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "test",
@@ -2238,6 +2305,19 @@ describe('generateText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": {
+              "context": "test",
+            },
+            "toolOutput": {
+              "dynamic": false,
+              "error": [Error: Tool execution failed],
+              "input": {
+                "value": "test",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-error",
             },
           },
         ]
@@ -2394,7 +2474,12 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "step0",
@@ -2406,10 +2491,45 @@ describe('generateText', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           },
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "step0",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "step0-result",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "step1",
@@ -2421,6 +2541,7 @@ describe('generateText', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
+            "toolContext": undefined,
           },
         ]
       `);
@@ -2428,10 +2549,13 @@ describe('generateText', () => {
         [
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
             "durationMs": 0,
-            "output": "step0-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "step0",
@@ -2443,13 +2567,56 @@ describe('generateText', () => {
               "toolName": "tool1",
               "type": "tool-call",
             },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "step0",
+              },
+              "output": "step0-result",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
           },
           {
             "callId": "test-telemetry-call-id",
-            "context": undefined,
             "durationMs": 0,
-            "output": "step1-result",
-            "success": true,
+            "messages": [
+              {
+                "content": "prompt",
+                "role": "user",
+              },
+              {
+                "content": [
+                  {
+                    "input": {
+                      "value": "step0",
+                    },
+                    "providerExecuted": undefined,
+                    "providerOptions": undefined,
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-call",
+                  },
+                ],
+                "role": "assistant",
+              },
+              {
+                "content": [
+                  {
+                    "output": {
+                      "type": "text",
+                      "value": "step0-result",
+                    },
+                    "toolCallId": "call-1",
+                    "toolName": "tool1",
+                    "type": "tool-result",
+                  },
+                ],
+                "role": "tool",
+              },
+            ],
             "toolCall": {
               "input": {
                 "value": "step1",
@@ -2460,6 +2627,17 @@ describe('generateText', () => {
               "toolCallId": "call-2",
               "toolName": "tool1",
               "type": "tool-call",
+            },
+            "toolContext": undefined,
+            "toolOutput": {
+              "dynamic": false,
+              "input": {
+                "value": "step1",
+              },
+              "output": "step1-result",
+              "toolCallId": "call-2",
+              "toolName": "tool1",
+              "type": "tool-result",
             },
           },
         ]

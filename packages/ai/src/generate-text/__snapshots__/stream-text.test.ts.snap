@@ -10,12 +10,16 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "headers": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
-  "messages": undefined,
+  "messages": [
+    {
+      "content": "test-input",
+      "role": "user",
+    },
+  ],
   "modelId": "mock-model-id",
   "operationId": "ai.streamText",
   "output": undefined,
   "presencePenalty": undefined,
-  "prompt": "test-input",
   "provider": "mock-provider",
   "providerOptions": undefined,
   "reasoning": undefined,

@@ -668,7 +668,6 @@ export async function generateText<
         await notify({
           event: {
             callId,
-            stepNumber: steps.length,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
             system: stepSystem,

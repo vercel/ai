@@ -177,7 +177,6 @@ function makeOnStartEvent(overrides?: Record<string, unknown>) {
 function makeStepStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
-    stepNumber: 0,
     provider: model.provider,
     modelId: model.modelId,
     system: undefined,
@@ -939,7 +938,7 @@ describe('GenAIOpenTelemetry', () => {
         makeStepFinishEvent({ finishReason: 'tool-calls' }),
       );
 
-      integration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      integration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
       integration.onFinish!(makeFinishEvent());
@@ -1050,7 +1049,7 @@ describe('GenAIOpenTelemetry', () => {
         makeStepFinishEvent({ finishReason: 'tool-calls' }),
       );
 
-      integration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
+      integration.onStepStart!(makeStepStartEvent({ steps: [{}] }));
       integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
       integration.onFinish!(makeFinishEvent());
