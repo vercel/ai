@@ -2453,6 +2453,10 @@ class DefaultStreamTextResult<
               break;
             }
 
+            case 'tool-approval-response': {
+              throw new Error('not implemented');
+            }
+
             case 'tool-result': {
               const dynamic = isDynamic(part);
 
@@ -2557,10 +2561,6 @@ class DefaultStreamTextResult<
 
             case 'tool-input-end': {
               break;
-            }
-
-            case 'tool-approval-response': {
-              throw new Error('not implemented');
             }
 
             case 'raw': {
