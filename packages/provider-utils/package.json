@@ -46,12 +46,8 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
-<<<<<<< HEAD
-    "eventsource-parser": "^3.0.6"
-=======
-    "@workflow/serde": "4.1.0",
-    "eventsource-parser": "^3.0.8"
->>>>>>> 5216bc4eb (fix: upgrade eventsource-parser to 3.0.8 (#14658))
+    "eventsource-parser": "^3.0.8",
+    "@workflow/serde": "4.1.0"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
