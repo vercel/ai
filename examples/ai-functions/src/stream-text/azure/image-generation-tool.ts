@@ -7,7 +7,7 @@ import { convertBase64ToUint8Array } from '../../lib/convert-base64';
 run(async () => {
   const azure = createAzure({
     headers: {
-      'x-ms-oai-image-generation-deployment': 'gpt-image-1', // use your own image model deployment
+      'x-ms-oai-image-generation-deployment': 'gpt-image-2', // use your own image model deployment
     },
   });
 
