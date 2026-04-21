@@ -2449,12 +2449,24 @@ class DefaultStreamTextResult<
                 type: 'tool-approval-request',
                 approvalId: part.approvalId,
                 toolCallId: part.toolCall.toolCallId,
+                ...(part.isAutomatic != null
+                  ? { isAutomatic: part.isAutomatic }
+                  : {}),
               });
               break;
             }
 
             case 'tool-approval-response': {
-              throw new Error('not implemented');
+              controller.enqueue({
+                type: 'tool-approval-response',
+                approvalId: part.approvalId,
+                approved: part.approved,
+                ...(part.reason != null ? { reason: part.reason } : {}),
+                ...(part.providerExecuted != null
+                  ? { providerExecuted: part.providerExecuted }
+                  : {}),
+              });
+              break;
             }
 
             case 'tool-result': {
