@@ -69,28 +69,35 @@ export default function WeatherWithApprovalView({
 
     case 'output-available':
       return (
-        <div className="text-gray-500">
-          {invocation.output.state === 'loading'
-            ? 'Fetching weather information...'
-            : `Weather in ${invocation.input.city}: ${invocation.output.weather}`}
-        </div>
+        <>
+          {invocation.approval && (
+            <div className="text-gray-500">
+              Weather tool execution for{' '}
+              <span className="font-semibold">{invocation.input.city}</span> was
+              {invocation.approval.isAutomatic ? ' automatically' : ''}{' '}
+              {invocation.approval.approved ? (
+                <span className="text-green-600">approved</span>
+              ) : (
+                <span className="text-red-600">denied</span>
+              )}
+              .
+            </div>
+          )}
+          <div className="text-gray-500">
+            {invocation.output.state === 'loading'
+              ? 'Fetching weather information...'
+              : `Weather in ${invocation.input.city}: ${invocation.output.weather}`}
+          </div>
+        </>
       );
 
     case 'output-denied':
-      if (invocation.approval.isAutomatic) {
-        return (
-          <div className="text-gray-500">
-            Weather tool execution for{' '}
-            <span className="font-semibold">{invocation.input.city}</span> was
-            automatically <span className="text-red-600">denied</span>.
-          </div>
-        );
-      }
-
       return (
         <div className="text-gray-500">
-          Weather in {invocation.input.city}:{' '}
-          <span className="text-red-500">Tool execution denied.</span>
+          Weather tool execution for{' '}
+          <span className="font-semibold">{invocation.input.city}</span> was
+          {invocation.approval.isAutomatic ? 'automatically' : ''}{' '}
+          <span className="text-red-600">denied</span>.
         </div>
       );
 
