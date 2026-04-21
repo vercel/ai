@@ -9,12 +9,11 @@ it('should return an empty object when telemetry is disabled', async () => {
   expect(result).toEqual({});
 });
 
-it('should return an empty object when telemetry enablement is undefined', async () => {
+it('should return attributes even when telemetry enablement is undefined', async () => {
   const result = await selectTelemetryAttributes({
-    telemetry: { isEnabled: undefined },
     attributes: { key: 'value' },
   });
-  expect(result).toEqual({});
+  expect(result).toEqual({ key: 'value' });
 });
 
 it('should return attributes with simple values', async () => {

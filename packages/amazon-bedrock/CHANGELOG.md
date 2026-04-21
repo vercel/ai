@@ -1,5 +1,68 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.0-beta.41
+
+### Patch Changes
+
+- ed60b47: fix(provider/amazon-bedrock): fix Anthropic reasoning behavior related to Opus 4.7
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/anthropic@4.0.0-beta.37
+
+## 5.0.0-beta.40
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/anthropic@4.0.0-beta.36
+
+## 5.0.0-beta.39
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/anthropic@4.0.0-beta.35
+
+## 5.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/anthropic@4.0.0-beta.34
+
+## 5.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [832f86f]
+  - @ai-sdk/anthropic@4.0.0-beta.33
+
+## 5.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [ad0b376]
+  - @ai-sdk/anthropic@4.0.0-beta.32
+
+## 5.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/anthropic@4.0.0-beta.31
+
+## 5.0.0-beta.34
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+- Updated dependencies [0d8f107]
+  - @ai-sdk/anthropic@4.0.0-beta.30
+
 ## 5.0.0-beta.33
 
 ### Patch Changes

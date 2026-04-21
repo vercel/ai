@@ -1,5 +1,52 @@
 # @ai-sdk/gateway
 
+## 4.0.0-beta.62
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+
+## 4.0.0-beta.61
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+
+## 4.0.0-beta.60
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+
+## 4.0.0-beta.59
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+
+## 4.0.0-beta.58
+
+### Patch Changes
+
+- 03dc15c: chore(provider/gateway): update gateway model settings files
+
+## 4.0.0-beta.57
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+
+## 4.0.0-beta.56
+
+### Patch Changes
+
+- 0d8f107: feat(provider/anthropic): add support for Opus 4.7 and relevant API enhancements
+
 ## 4.0.0-beta.55
 
 ### Patch Changes

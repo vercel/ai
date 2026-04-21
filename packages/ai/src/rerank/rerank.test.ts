@@ -374,7 +374,7 @@ describe('rerank', () => {
         ],
         query: 'rainy day',
         topN: 3,
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
         },
         _internal: {
@@ -399,7 +399,7 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_telemetry: {
+        telemetry: {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: true,
@@ -414,6 +414,34 @@ describe('rerank', () => {
       expect(startEvent.recordInputs).toBe(false);
       expect(startEvent.recordOutputs).toBe(true);
       expect(startEvent.functionId).toBe('rerank-fn');
+    });
+
+    it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+      let startEvent!: RerankOnStartEvent;
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: false,
+          recordOutputs: true,
+          functionId: 'rerank-fn-deprecated',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent.isEnabled).toBe(true);
+      expect(startEvent.recordInputs).toBe(false);
+      expect(startEvent.recordOutputs).toBe(true);
+      expect(startEvent.functionId).toBe('rerank-fn-deprecated');
     });
 
     it('should include model information', async () => {
@@ -544,7 +572,7 @@ describe('rerank', () => {
         ],
         query: 'rainy day',
         topN: 3,
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
         },
         _internal: {

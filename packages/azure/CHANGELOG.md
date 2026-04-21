@@ -1,5 +1,46 @@
 # @ai-sdk/azure
 
+## 4.0.0-beta.38
+
+### Patch Changes
+
+- Updated dependencies [2e98477]
+- Updated dependencies [bfb756d]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/openai@4.0.0-beta.38
+
+## 4.0.0-beta.37
+
+### Patch Changes
+
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/openai@4.0.0-beta.37
+
+## 4.0.0-beta.36
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/openai@4.0.0-beta.36
+
+## 4.0.0-beta.35
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/openai@4.0.0-beta.35
+
+## 4.0.0-beta.34
+
+### Patch Changes
+
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/openai@4.0.0-beta.34
+
 ## 4.0.0-beta.33
 
 ### Patch Changes

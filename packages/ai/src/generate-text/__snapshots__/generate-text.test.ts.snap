@@ -4,13 +4,12 @@ exports[`generateText > options.experimental_onStart > should send correct infor
 {
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",
-  "context": {},
   "frequencyPenalty": undefined,
   "functionId": "test-function",
   "headers": {
     "user-agent": "ai/0.0.0-test",
   },
-  "isEnabled": undefined,
+  "isEnabled": true,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
@@ -24,6 +23,7 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "reasoning": undefined,
   "recordInputs": undefined,
   "recordOutputs": undefined,
+  "runtimeContext": {},
   "seed": undefined,
   "stopSequences": undefined,
   "stopWhen": [Function],
@@ -32,36 +32,9 @@ exports[`generateText > options.experimental_onStart > should send correct infor
   "timeout": undefined,
   "toolChoice": undefined,
   "tools": undefined,
+  "toolsContext": {},
   "topK": undefined,
   "topP": undefined,
-}
-`;
-
-exports[`generateText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
-{
-  "callId": "test-telemetry-call-id",
-  "context": {},
-  "functionId": undefined,
-  "messages": [
-    {
-      "content": "test-input",
-      "role": "user",
-    },
-  ],
-  "modelId": "mock-model-id",
-  "provider": "mock-provider",
-  "stepNumber": 0,
-  "toolCall": {
-    "input": {
-      "value": "test-arg",
-    },
-    "providerExecuted": undefined,
-    "providerMetadata": undefined,
-    "title": undefined,
-    "toolCallId": "call-1",
-    "toolName": "tool1",
-    "type": "tool-call",
-  },
 }
 `;
 
@@ -74,7 +47,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "type": "text",
     },
   ],
-  "context": {},
   "dynamicToolCalls": [],
   "dynamicToolResults": [],
   "files": [],
@@ -139,6 +111,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
     "modelId": "test-response-model-id",
     "timestamp": 1970-01-01T00:00:10.000Z,
   },
+  "runtimeContext": {},
   "sources": [],
   "staticToolCalls": [],
   "staticToolResults": [],
@@ -169,7 +142,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
           "type": "tool-result",
         },
       ],
-      "context": {},
       "finishReason": "tool-calls",
       "functionId": undefined,
       "model": {
@@ -217,7 +189,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "modelId": "test-response-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "runtimeContext": {},
       "stepNumber": 0,
+      "toolsContext": {},
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokenDetails": {
@@ -245,7 +219,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
           "type": "text",
         },
       ],
-      "context": {},
       "finishReason": "stop",
       "functionId": undefined,
       "model": {
@@ -305,7 +278,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "modelId": "test-response-model-id",
         "timestamp": 1970-01-01T00:00:10.000Z,
       },
+      "runtimeContext": {},
       "stepNumber": 1,
+      "toolsContext": {},
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokenDetails": {
@@ -329,6 +304,7 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
   "text": "Hello, world!",
   "toolCalls": [],
   "toolResults": [],
+  "toolsContext": {},
   "totalUsage": {
     "cachedInputTokens": undefined,
     "inputTokenDetails": {
@@ -393,7 +369,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "type": "tool-result",
       },
     ],
-    "context": {},
     "finishReason": "tool-calls",
     "functionId": undefined,
     "model": {
@@ -441,7 +416,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -469,7 +446,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
         "type": "text",
       },
     ],
-    "context": {},
     "finishReason": "stop",
     "functionId": undefined,
     "model": {
@@ -529,7 +505,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > callb
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -623,7 +601,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
         "type": "tool-result",
       },
     ],
-    "context": {},
     "finishReason": "tool-calls",
     "functionId": undefined,
     "model": {
@@ -671,7 +648,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -699,7 +678,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
         "type": "text",
       },
     ],
-    "context": {},
     "finishReason": "stop",
     "functionId": undefined,
     "model": {
@@ -759,7 +737,9 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result > resul
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -809,9 +789,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "tool-result",
       },
     ],
-    "context": {
-      "context": "state2",
-    },
     "finishReason": "tool-calls",
     "functionId": undefined,
     "model": {
@@ -859,7 +836,11 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {
+      "context": "state2",
+    },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -887,9 +868,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "text",
       },
     ],
-    "context": {
-      "context": "state3",
-    },
     "finishReason": "stop",
     "functionId": undefined,
     "model": {
@@ -949,7 +927,11 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "runtimeContext": {
+      "context": "state3",
+    },
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1043,9 +1025,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "tool-result",
       },
     ],
-    "context": {
-      "context": "state2",
-    },
     "finishReason": "tool-calls",
     "functionId": undefined,
     "model": {
@@ -1093,7 +1072,11 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {
+      "context": "state2",
+    },
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1121,9 +1104,6 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
         "type": "text",
       },
     ],
-    "context": {
-      "context": "state3",
-    },
     "finishReason": "stop",
     "functionId": undefined,
     "model": {
@@ -1183,7 +1163,11 @@ exports[`generateText > options.stopWhen > 2 steps: initial, tool-result with pr
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
+    "runtimeContext": {
+      "context": "state3",
+    },
     "stepNumber": 1,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1655,7 +1639,6 @@ exports[`generateText > result.steps > should add the reasoning from the model r
         "type": "text",
       },
     ],
-    "context": {},
     "finishReason": "stop",
     "functionId": undefined,
     "model": {
@@ -1702,7 +1685,9 @@ exports[`generateText > result.steps > should add the reasoning from the model r
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1755,7 +1740,6 @@ exports[`generateText > result.steps > should contain files 1`] = `
         "type": "file",
       },
     ],
-    "context": {},
     "finishReason": "stop",
     "functionId": undefined,
     "model": {
@@ -1796,7 +1780,9 @@ exports[`generateText > result.steps > should contain files 1`] = `
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {
@@ -1853,7 +1839,6 @@ exports[`generateText > result.steps > should contain sources 1`] = `
         "url": "https://example.com/2",
       },
     ],
-    "context": {},
     "finishReason": "stop",
     "functionId": undefined,
     "model": {
@@ -1882,7 +1867,9 @@ exports[`generateText > result.steps > should contain sources 1`] = `
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "runtimeContext": {},
     "stepNumber": 0,
+    "toolsContext": {},
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokenDetails": {

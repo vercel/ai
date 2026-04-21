@@ -1,5 +1,83 @@
 # @ai-sdk/langchain
 
+## 3.0.0-beta.111
+
+### Patch Changes
+
+- Updated dependencies [f319fde]
+- Updated dependencies [1949571]
+- Updated dependencies [511902c]
+- Updated dependencies [6542d93]
+- Updated dependencies [2e98477]
+- Updated dependencies [876fd3e]
+- Updated dependencies [f32c750]
+  - ai@7.0.0-beta.111
+
+## 3.0.0-beta.110
+
+### Patch Changes
+
+- Updated dependencies [72cb801]
+  - ai@7.0.0-beta.110
+
+## 3.0.0-beta.109
+
+### Patch Changes
+
+- Updated dependencies [ec98264]
+- Updated dependencies [eea8d98]
+- Updated dependencies [75ef93e]
+  - ai@7.0.0-beta.109
+
+## 3.0.0-beta.108
+
+### Patch Changes
+
+- ai@7.0.0-beta.108
+
+## 3.0.0-beta.107
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - ai@7.0.0-beta.107
+
+## 3.0.0-beta.106
+
+### Patch Changes
+
+- ai@7.0.0-beta.106
+
+## 3.0.0-beta.105
+
+### Patch Changes
+
+- Updated dependencies [33d099c]
+  - ai@7.0.0-beta.105
+
+## 3.0.0-beta.104
+
+### Patch Changes
+
+- Updated dependencies [2a74d43]
+  - ai@7.0.0-beta.104
+
+## 3.0.0-beta.103
+
+### Patch Changes
+
+- Updated dependencies [382d53b]
+- Updated dependencies [7bf7d7f]
+- Updated dependencies [c3d4019]
+- Updated dependencies [083947b]
+  - ai@7.0.0-beta.103
+
+## 3.0.0-beta.102
+
+### Patch Changes
+
+- ai@7.0.0-beta.102
+
 ## 3.0.0-beta.101
 
 ### Patch Changes

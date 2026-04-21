@@ -341,10 +341,22 @@ import { isStepCount } from "ai";
 
 const result = await agent.stream({
   messages,
-  maxSteps: 10, // Maximum number of LLM calls
-  stopWhen: isStepCount(5), // Or use stop conditions from AI SDK
+  stopWhen: isStepCount(10), // Stop after 10 LLM calls
 });
 ```
+
+If you want the agent to keep running until it has finished calling tools, you can also use `isLoopFinished()`:
+
+```ts
+import { isLoopFinished } from "ai";
+
+const result = await agent.stream({
+  messages,
+  stopWhen: isLoopFinished(),
+});
+```
+
+`isLoopFinished()` lets the agent run until all tool calls have completed, but you should still pair it with `maxSteps` to avoid runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.
 
 By default, the agent loops until the model stops calling tools (no maximum).
 
@@ -422,11 +434,11 @@ const agent = new WorkflowAgent({
     console.log(`Step ${stepNumber} starting`);
   },
 
-  experimental_onToolCallStart({ toolCall }) {
+  experimental_onToolExecutionStart({ toolCall }) {
     console.log(`Calling tool: ${toolCall.toolName}`);
   },
 
-  experimental_onToolCallFinish({ toolCall, result, error }) {
+  experimental_onToolExecutionEnd({ toolCall, result, error }) {
     console.log(`Tool finished: ${toolCall.toolName}`);
   },
 
@@ -453,6 +465,128 @@ const myAgent = new WorkflowAgent({
 
 export type MyAgentUIMessage = InferWorkflowAgentUIMessage<typeof myAgent>;
 ```
+
+## Migrating from `DurableAgent`
+
+`WorkflowAgent` replaces the Workflow DevKit's [`DurableAgent`](https://workflow-sdk.dev/docs/api-reference/workflow-ai/durable-agent). The two share the same core idea — a durable agent loop that runs inside a workflow — but `WorkflowAgent` moves the class into the AI SDK, tightens typing, and introduces first-class tool approval. If you are using `DurableAgent` today, follow the steps below to switch.
+
+### Change the import and class name
+
+`DurableAgent` was exported from `workflow/ai`. `WorkflowAgent` is exported from `@ai-sdk/workflow`, alongside its helpers.
+
+```diff
+- import { DurableAgent } from 'workflow/ai';
++ import { WorkflowAgent, type ModelCallStreamPart } from '@ai-sdk/workflow';
+
+- const agent = new DurableAgent({
++ const agent = new WorkflowAgent({
+    model: 'anthropic/claude-sonnet-4-6',
+    instructions: 'You are a helpful assistant.',
+    tools: { /* ... */ },
+  });
+```
+
+Install the new package alongside `workflow`:
+
+```bash
+npm install @ai-sdk/workflow
+```
+
+### Write `ModelCallStreamPart`, not `UIMessageChunk`
+
+`DurableAgent` wrote `UIMessageChunk` objects directly to the writable returned by `getWritable()`. `WorkflowAgent` writes the lower-level `ModelCallStreamPart` shape and leaves the conversion to a transform at the response boundary. This keeps the durable stream provider-shaped and avoids baking a UI protocol into the workflow payload.
+
+```diff
+  // Inside the workflow
+  await agent.stream({
+    messages,
+-   writable: getWritable<UIMessageChunk>(),
++   writable: getWritable<ModelCallStreamPart>(),
+  });
+```
+
+```diff
+  // Inside the route handler
++ import { createModelCallToUIChunkTransform } from '@ai-sdk/workflow';
+
+  return createUIMessageStreamResponse({
+-   stream: run.readable,
++   stream: run.readable.pipeThrough(createModelCallToUIChunkTransform()),
+  });
+```
+
+### Replace `maxSteps` with `stopWhen`
+
+`DurableAgent` accepted `maxSteps` directly. `WorkflowAgent` uses the AI SDK's shared `stopWhen` conditions so the same stop logic works across `ToolLoopAgent`, `generateText`, and `streamText`.
+
+```diff
++ import { isStepCount } from 'ai';
+
+  await agent.stream({
+    messages,
+-   maxSteps: 10,
++   stopWhen: isStepCount(10),
+  });
+```
+
+See [Loop Control](/docs/agents/loop-control) for the full list of stop conditions.
+
+### Replace `experimental_output` with `output`
+
+```diff
++ import { Output } from '@ai-sdk/workflow';
+
+  await agent.stream({
+    messages,
+-   experimental_output: Output.object({ schema }),
++   output: Output.object({ schema }),
+  });
+```
+
+The returned value is now on `result.output` (previously `result.experimental_output`).
+
+### Use `needsApproval` for human-in-the-loop tools
+
+With `DurableAgent`, tool approval was implemented by calling a Hook from inside the tool's `execute` function. `WorkflowAgent` makes approval a first-class tool property — the agent emits the approval request, suspends the workflow, and resumes automatically when the user responds.
+
+```diff
+  bookFlight: tool({
+    description: 'Book a flight',
+    inputSchema: z.object({ flightId: z.string() }),
++   needsApproval: true,
+-   execute: async (input) => {
+-     const approved = await waitForApprovalHook(input);
+-     if (!approved) throw new Error('Denied');
+-     return bookFlightStep(input);
+-   },
++   execute: bookFlightStep,
+  }),
+```
+
+`needsApproval` also accepts an async function so you can decide per-input whether approval is required (see [Tool Approval](#tool-approval) above).
+
+### `uiMessages` / `collectUIMessages` is gone
+
+`DurableAgent.stream()` returned accumulated `uiMessages` when `collectUIMessages: true` was set. `WorkflowAgent.stream()` returns `ModelMessage[]` on `result.messages` instead — persist those and convert them at the edge with `convertToModelMessages` / `convertToUIMessages` as needed.
+
+```diff
+  const result = await agent.stream({
+    messages,
+    writable: getWritable<ModelCallStreamPart>(),
+-   collectUIMessages: true,
+  });
+
+- return { uiMessages: result.uiMessages };
++ return { messages: result.messages };
+```
+
+### No `generate()` method
+
+`WorkflowAgent` only exposes `stream()`. If you were calling `agent.generate()`, switch to `stream()` and read `result.messages` / `result.output` once the promise resolves.
+
+### Everything else
+
+Other options carry over with the same names: `prepareStep`, `onStepFinish`, `onFinish`, `onError`, `toolChoice`, `activeTools`, `timeout`, `experimental_context`, `experimental_repairToolCall`, and the usual generation settings (`temperature`, `maxOutputTokens`, `topP`, …). `WorkflowAgent` additionally adds `prepareCall` (runs once before the loop) and the `experimental_onStart` / `experimental_onStepStart` / `experimental_onToolExecutionStart` / `experimental_onToolExecutionEnd` lifecycle callbacks documented above.
 
 ## Next Steps
 

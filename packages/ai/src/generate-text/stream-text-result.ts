@@ -28,6 +28,7 @@ import { ReasoningFileOutput, ReasoningOutput } from './reasoning-output';
 import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolApprovalRequestOutput } from './tool-approval-request-output';
+import { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import { DynamicToolCall, StaticToolCall, TypedToolCall } from './tool-call';
 import { TypedToolError } from './tool-error';
 import { StaticToolOutputDenied } from './tool-output-denied';
@@ -108,7 +109,7 @@ export type ConsumeStreamOptions = {
  */
 export interface StreamTextResult<
   TOOLS extends ToolSet,
-  USER_CONTEXT extends Context,
+  RUNTIME_CONTEXT extends Context,
   OUTPUT extends Output,
 > {
   /**
@@ -238,7 +239,7 @@ export interface StreamTextResult<
    *
    * Automatically consumes the stream.
    */
-  readonly steps: PromiseLike<Array<StepResult<TOOLS, USER_CONTEXT>>>;
+  readonly steps: PromiseLike<Array<StepResult<TOOLS, RUNTIME_CONTEXT>>>;
 
   /**
    * Additional request information from the last step.
@@ -468,6 +469,9 @@ export type TextStreamToolOutputDeniedPart<TOOLS extends ToolSet> = {
 export type TextStreamToolApprovalRequestPart<TOOLS extends ToolSet> =
   ToolApprovalRequestOutput<TOOLS>;
 
+export type TextStreamToolApprovalResponsePart<TOOLS extends ToolSet> =
+  ToolApprovalResponseOutput<TOOLS>;
+
 export type TextStreamStartStepPart = {
   type: 'start-step';
   request: LanguageModelRequestMetadata;
@@ -528,6 +532,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
   | TextStreamToolErrorPart<TOOLS>
   | TextStreamToolOutputDeniedPart<TOOLS>
   | TextStreamToolApprovalRequestPart<TOOLS>
+  | TextStreamToolApprovalResponsePart<TOOLS>
   | TextStreamStartStepPart
   | TextStreamFinishStepPart
   | TextStreamStartPart

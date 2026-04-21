@@ -1,4 +1,4 @@
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { GoogleLanguageModel } from '@ai-sdk/google/internal';
 import {
   Experimental_VideoModelV4,
   ImageModelV4,
@@ -192,7 +192,7 @@ export function createVertex(
   };
 
   const createChatModel = (modelId: GoogleVertexModelId) => {
-    return new GoogleGenerativeAILanguageModel(modelId, {
+    return new GoogleLanguageModel(modelId, {
       ...createConfig('chat'),
       generateId: options.generateId ?? generateId,
       supportedUrls: () => ({

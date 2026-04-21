@@ -156,6 +156,46 @@ describe('XaiResponsesLanguageModel', () => {
         `);
       });
 
+      it('should expose cost_in_usd_ticks in providerMetadata', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 5,
+            cost_in_usd_ticks: 113500,
+          },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          xai: { costInUsdTicks: 113500 },
+        });
+      });
+
+      it('should not include providerMetadata when cost_in_usd_ticks is missing', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata).toBeUndefined();
+      });
+
       it('should extract finish reason from status', async () => {
         prepareJsonResponse({
           id: 'resp_123',
@@ -2804,6 +2844,65 @@ describe('XaiResponsesLanguageModel', () => {
           id: 'id-0',
           url: 'https://example.com',
           title: 'example',
+        });
+      });
+    });
+
+    describe('cost_in_usd_ticks streaming', () => {
+      it('should expose cost_in_usd_ticks in finish providerMetadata', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_text.delta',
+            output_index: 0,
+            content_index: 0,
+            delta: 'Hello',
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'completed',
+              output: [
+                {
+                  type: 'message',
+                  id: 'msg_001',
+                  role: 'assistant',
+                  status: 'completed',
+                  content: [{ type: 'output_text', text: 'Hello' }],
+                },
+              ],
+              usage: {
+                input_tokens: 10,
+                output_tokens: 5,
+                cost_in_usd_ticks: 113500,
+              },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(p => p.type === 'finish');
+
+        expect(finishPart).toMatchObject({
+          type: 'finish',
+          providerMetadata: {
+            xai: { costInUsdTicks: 113500 },
+          },
         });
       });
     });

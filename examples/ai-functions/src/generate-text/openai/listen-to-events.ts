@@ -31,13 +31,13 @@ async function main() {
       console.log('Step:', event.stepNumber);
       console.log('Message count:', event.messages.length);
     },
-    experimental_onToolCallStart: event => {
-      console.log('\n--- onToolCallStart ---');
+    experimental_onToolExecutionStart: event => {
+      console.log('\n--- onToolExecutionStart ---');
       console.log('Tool:', event.toolCall.toolName);
       console.log('Input:', JSON.stringify(event.toolCall.input));
     },
-    experimental_onToolCallFinish: event => {
-      console.log('\n--- onToolCallFinish ---');
+    experimental_onToolExecutionEnd: event => {
+      console.log('\n--- onToolExecutionEnd ---');
       console.log('Tool:', event.toolCall.toolName);
       console.log('Duration:', event.durationMs, 'ms');
       console.log('Success:', event.success);

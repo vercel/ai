@@ -24,7 +24,7 @@ import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
 import {
@@ -164,7 +164,7 @@ export type StreamObjectOnFinishCallback<RESULT> = (event: {
  * - 'enum': The output is an enum.
  * - 'no-schema': The output is not a schema.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -230,10 +230,16 @@ export function streamObject<
       experimental_repairText?: RepairTextFunction;
 
       /**
-       * Optional telemetry configuration (experimental).
+       * Optional telemetry configuration.
        */
+      telemetry?: TelemetryOptions;
 
-      experimental_telemetry?: TelemetrySettings;
+      /**
+       * Optional telemetry configuration.
+       *
+       * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+       */
+      experimental_telemetry?: TelemetryOptions;
 
       /**
        * Custom download function to use for URLs.
@@ -311,7 +317,8 @@ export function streamObject<
     abortSignal,
     headers,
     experimental_repairText: repairText,
-    experimental_telemetry: telemetry,
+    experimental_telemetry,
+    telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
     experimental_onStart: onStart,
@@ -430,7 +437,7 @@ class DefaultStreamObjectResult<
     now,
   }: {
     model: LanguageModel;
-    telemetry: TelemetrySettings | undefined;
+    telemetry: TelemetryOptions | undefined;
     headers: Record<string, string | undefined> | undefined;
     settings: LanguageModelCallOptions;
     maxRetries: number | undefined;
@@ -518,7 +525,7 @@ class DefaultStreamObjectResult<
           schema: jsonSchema as Record<string, unknown> | undefined,
           schemaName,
           schemaDescription,
-          isEnabled: telemetry?.isEnabled,
+          isEnabled: telemetry?.isEnabled ?? true,
           recordInputs: telemetry?.recordInputs,
           recordOutputs: telemetry?.recordOutputs,
           functionId: telemetry?.functionId,

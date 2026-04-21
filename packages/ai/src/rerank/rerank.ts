@@ -4,7 +4,7 @@ import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { RerankingModel } from '../types';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
@@ -28,7 +28,7 @@ const originalGenerateCallId = createIdGenerator({
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  * @param providerOptions - Additional provider-specific options.
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @returns A result object that contains the reranked documents, the reranked indices, and additional information.
  */
@@ -41,7 +41,8 @@ export async function rerank<VALUE extends JSONObject | string>({
   abortSignal,
   headers,
   providerOptions,
-  experimental_telemetry: telemetry,
+  experimental_telemetry,
+  telemetry = experimental_telemetry,
   experimental_onStart: onStart,
   experimental_onFinish: onFinish,
   _internal: { generateCallId = originalGenerateCallId } = {},
@@ -85,9 +86,16 @@ export async function rerank<VALUE extends JSONObject | string>({
   headers?: Record<string, string>;
 
   /**
-   * Optional telemetry configuration (experimental).
+   * Optional telemetry configuration.
    */
-  experimental_telemetry?: TelemetrySettings;
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Optional telemetry configuration.
+   *
+   * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+   */
+  experimental_telemetry?: TelemetryOptions;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -135,7 +143,7 @@ export async function rerank<VALUE extends JSONObject | string>({
         maxRetries: maxRetriesArg ?? 2,
         headers,
         providerOptions,
-        isEnabled: telemetry?.isEnabled,
+        isEnabled: telemetry?.isEnabled ?? true,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,
@@ -158,7 +166,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           timestamp: new Date(),
           modelId: model.modelId,
         },
-        isEnabled: telemetry?.isEnabled,
+        isEnabled: telemetry?.isEnabled ?? true,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,
@@ -199,7 +207,7 @@ export async function rerank<VALUE extends JSONObject | string>({
       maxRetries,
       headers,
       providerOptions,
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
@@ -220,7 +228,7 @@ export async function rerank<VALUE extends JSONObject | string>({
             documentsType: documentsToSend.type,
             query,
             topN,
-            isEnabled: telemetry?.isEnabled,
+            isEnabled: telemetry?.isEnabled ?? true,
             recordInputs: telemetry?.recordInputs,
             recordOutputs: telemetry?.recordOutputs,
             functionId: telemetry?.functionId,
@@ -288,7 +296,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           headers: response?.headers,
           body: response?.body,
         },
-        isEnabled: telemetry?.isEnabled,
+        isEnabled: telemetry?.isEnabled ?? true,
         recordInputs: telemetry?.recordInputs,
         recordOutputs: telemetry?.recordOutputs,
         functionId: telemetry?.functionId,

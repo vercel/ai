@@ -78,8 +78,11 @@ const codeAgent = new ToolLoopAgent({
 ```
 
 You can also require approval before a tool executes. Use `needsApproval` on the
-tool itself for the default behavior, or set `toolNeedsApproval` on the
-`ToolLoopAgent` when approval should be configured per agent:
+tool itself for the default behavior, or set `toolApproval` on the
+`ToolLoopAgent` when approval should be configured per agent. Use
+`'not-applicable'` for the default execution path, `'user-approval'` for
+manual review, or `'approved'` / `'denied'` when you want explicit automatic
+approval records in the output:
 
 ```ts
 const agent = new ToolLoopAgent({
@@ -93,8 +96,8 @@ const agent = new ToolLoopAgent({
       execute: async ({ code }) => ({ output: code }),
     }),
   },
-  toolNeedsApproval: {
-    runCode: true,
+  toolApproval: {
+    runCode: 'user-approval',
   },
 });
 ```
@@ -372,11 +375,11 @@ const result = await myAgent.generate({
     console.log(`Step ${stepNumber} starting`, { model: model.modelId });
   },
 
-  experimental_onToolCallStart({ toolCall }) {
+  experimental_onToolExecutionStart({ toolCall }) {
     console.log(`Tool call starting: ${toolCall.toolName}`);
   },
 
-  experimental_onToolCallFinish({ toolCall, durationMs, success }) {
+  experimental_onToolExecutionEnd({ toolCall, durationMs, success }) {
     console.log(`Tool call finished: ${toolCall.toolName} (${durationMs}ms)`, {
       success,
     });
@@ -402,12 +405,12 @@ const result = await myAgent.generate({
 
 The available lifecycle callbacks are:
 
-- **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, prompt, settings, and context.
+- **`experimental_onStart`**: Called once when the agent operation begins, before any LLM calls. Receives model info, prompt, settings, and `runtimeContext`.
 - **`experimental_onStepStart`**: Called before each step (LLM call). Receives the step number, model, messages being sent, tools, and prior steps.
-- **`experimental_onToolCallStart`**: Called right before a tool's `execute` function runs. Receives the tool call object with tool name, call ID, and input.
-- **`experimental_onToolCallFinish`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `durationMs`, and a `success` discriminator (`output` when successful, `error` when failed).
+- **`experimental_onToolExecutionStart`**: Called right before a tool's `execute` function runs. Receives the tool call object with tool name, call ID, and input.
+- **`experimental_onToolExecutionEnd`**: Called right after a tool's `execute` function completes or errors. Receives the tool call, `durationMs`, and a `success` discriminator (`output` when successful, `error` when failed).
 - **`onStepFinish`**: Called after each step finishes. Receives step results including usage, finish reason, and tool calls.
-- **`onFinish`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and context.
+- **`onFinish`**: Called when all steps are finished and the response is complete. Receives all step results, total usage, and `runtimeContext`.
 
 #### Constructor vs. Method Callbacks
 

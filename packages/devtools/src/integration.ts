@@ -6,7 +6,7 @@ import type {
   ObjectOnStartEvent,
   ObjectOnStepStartEvent,
   ObjectOnStepFinishEvent,
-  TelemetryIntegration,
+  Telemetry,
   ToolSet,
 } from 'ai';
 import {
@@ -93,22 +93,16 @@ function getOperationType(operationId: string): OperationType {
  *
  * Usage:
  * ```ts
- * import { registerTelemetryIntegration } from 'ai';
+ * import { registerTelemetry } from 'ai';
  * import { DevToolsTelemetry } from '@ai-sdk/devtools';
  *
- * registerTelemetryIntegration(DevToolsTelemetry());
+ * registerTelemetry(DevToolsTelemetry());
  * ```
  *
- * Then enable telemetry on your AI SDK calls:
- * ```ts
- * const result = await generateText({
- *   model: openai('gpt-4o'),
- *   prompt: 'Hello!',
- *   experimental_telemetry: { isEnabled: true },
- * });
- * ```
+ * Telemetry is enabled by default — no need to set `telemetry`
+ * unless you want to configure `functionId`, `recordInputs`, or `recordOutputs`.
  */
-export function DevToolsTelemetry(): TelemetryIntegration {
+export function DevToolsTelemetry(): Telemetry {
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
       '@ai-sdk/devtools should not be used in production. ' +
@@ -193,7 +187,7 @@ export function DevToolsTelemetry(): TelemetryIntegration {
     return state;
   }
 
-  const integration: TelemetryIntegration = {
+  const integration: Telemetry = {
     onStart: async event => {
       const operationId = (event as { operationId: string }).operationId;
 

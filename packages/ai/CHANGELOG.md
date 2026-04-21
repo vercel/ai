@@ -1,5 +1,100 @@
 # ai
 
+## 7.0.0-beta.111
+
+### Major Changes
+
+- 1949571: feat(ai): make experimental_telemetry stable
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+
+### Patch Changes
+
+- f319fde: feat(ai): validate tool context against contextSchema at runtime
+
+  Tool execution and approval callbacks now validate each tool's `toolsContext` entry against its `contextSchema`. Invalid tool context now throws `TypeValidationError` with tool-context validation metadata in `error.context`.
+
+- 511902c: skip validation for tool parts in terminal states when tool schema is no longer registered
+- 2e98477: fix: retain stack traces on async errors
+- 876fd3e: fix(ai): limit tool execution time duration to actual tool execution
+- f32c750: refactoring(ai): simplify mergeAbortSignals
+- Updated dependencies [2e98477]
+  - @ai-sdk/provider-utils@5.0.0-beta.26
+  - @ai-sdk/gateway@4.0.0-beta.62
+
+## 7.0.0-beta.110
+
+### Patch Changes
+
+- 72cb801: feat(ai): concurrent event notification
+
+## 7.0.0-beta.109
+
+### Patch Changes
+
+- ec98264: feat(ai): allow multiple integrations to be registered at once
+- eea8d98: refactoring: rename tool execution events
+- 75ef93e: remove the deprecated `experimental_output` alias and document the `output` migration for AI SDK 7
+- Updated dependencies [eea8d98]
+  - @ai-sdk/provider-utils@5.0.0-beta.25
+  - @ai-sdk/gateway@4.0.0-beta.61
+
+## 7.0.0-beta.108
+
+### Patch Changes
+
+- Updated dependencies [f807e45]
+  - @ai-sdk/provider-utils@5.0.0-beta.24
+  - @ai-sdk/gateway@4.0.0-beta.60
+
+## 7.0.0-beta.107
+
+### Patch Changes
+
+- 350ea38: refactoring: introduce Arrayable type
+- Updated dependencies [350ea38]
+  - @ai-sdk/provider-utils@5.0.0-beta.23
+  - @ai-sdk/gateway@4.0.0-beta.59
+
+## 7.0.0-beta.106
+
+### Patch Changes
+
+- Updated dependencies [03dc15c]
+  - @ai-sdk/gateway@4.0.0-beta.58
+
+## 7.0.0-beta.105
+
+### Patch Changes
+
+- 33d099c: fix(ai): omit reasoning-start/end when sendReasoning is false
+
+## 7.0.0-beta.104
+
+### Patch Changes
+
+- 2a74d43: Remove the deprecated `experimental_prepareStep` option from `generateText`.
+
+  Use `prepareStep` instead.
+
+## 7.0.0-beta.103
+
+### Patch Changes
+
+- 382d53b: refactoring: rename context to runtimeContext
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+- c3d4019: chore(ai): rename 'TelemetrySettings' to 'TelemetryOptions'
+- 083947b: feat(ai): separate toolsContext from context
+- Updated dependencies [083947b]
+  - @ai-sdk/provider-utils@5.0.0-beta.22
+  - @ai-sdk/gateway@4.0.0-beta.57
+
+## 7.0.0-beta.102
+
+### Patch Changes
+
+- Updated dependencies [0d8f107]
+  - @ai-sdk/gateway@4.0.0-beta.56
+
 ## 7.0.0-beta.101
 
 ### Patch Changes

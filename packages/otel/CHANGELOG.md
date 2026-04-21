@@ -1,5 +1,92 @@
 # @ai-sdk/otel
 
+## 1.0.0-beta.57
+
+### Major Changes
+
+- 6542d93: feat(ai): change naming nomenclature for `*TelemetryIntegration` to `*Telemetry`
+
+### Patch Changes
+
+- Updated dependencies [f319fde]
+- Updated dependencies [1949571]
+- Updated dependencies [511902c]
+- Updated dependencies [6542d93]
+- Updated dependencies [2e98477]
+- Updated dependencies [876fd3e]
+- Updated dependencies [f32c750]
+  - ai@7.0.0-beta.111
+
+## 1.0.0-beta.56
+
+### Patch Changes
+
+- Updated dependencies [72cb801]
+  - ai@7.0.0-beta.110
+
+## 1.0.0-beta.55
+
+### Patch Changes
+
+- eea8d98: refactoring: rename tool execution events
+- Updated dependencies [ec98264]
+- Updated dependencies [eea8d98]
+- Updated dependencies [75ef93e]
+  - ai@7.0.0-beta.109
+
+## 1.0.0-beta.54
+
+### Patch Changes
+
+- ai@7.0.0-beta.108
+
+## 1.0.0-beta.53
+
+### Patch Changes
+
+- Updated dependencies [350ea38]
+  - ai@7.0.0-beta.107
+
+## 1.0.0-beta.52
+
+### Patch Changes
+
+- ai@7.0.0-beta.106
+
+## 1.0.0-beta.51
+
+### Patch Changes
+
+- Updated dependencies [33d099c]
+  - ai@7.0.0-beta.105
+
+## 1.0.0-beta.50
+
+### Patch Changes
+
+- Updated dependencies [2a74d43]
+  - ai@7.0.0-beta.104
+
+## 1.0.0-beta.49
+
+### Patch Changes
+
+- 382d53b: refactoring: rename context to runtimeContext
+- 7bf7d7f: feat(ai): enable:true for telemetry by default
+- c3d4019: chore(ai): rename 'TelemetrySettings' to 'TelemetryOptions'
+- 083947b: feat(ai): separate toolsContext from context
+- Updated dependencies [382d53b]
+- Updated dependencies [7bf7d7f]
+- Updated dependencies [c3d4019]
+- Updated dependencies [083947b]
+  - ai@7.0.0-beta.103
+
+## 1.0.0-beta.48
+
+### Patch Changes
+
+- ai@7.0.0-beta.102
+
 ## 1.0.0-beta.47
 
 ### Patch Changes

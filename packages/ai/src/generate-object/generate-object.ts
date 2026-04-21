@@ -19,7 +19,7 @@ import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
@@ -98,7 +98,7 @@ const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
  * @param experimental_repairText - A function that attempts to repair the raw output of the model
  * to enable JSON parsing.
  *
- * @param experimental_telemetry - Optional telemetry configuration (experimental).
+ * @param telemetry - Optional telemetry configuration.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -168,10 +168,16 @@ export async function generateObject<
       experimental_repairText?: RepairTextFunction;
 
       /**
-       * Optional telemetry configuration (experimental).
+       * Optional telemetry configuration.
        */
+      telemetry?: TelemetryOptions;
 
-      experimental_telemetry?: TelemetrySettings;
+      /**
+       * Optional telemetry configuration.
+       *
+       * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
+       */
+      experimental_telemetry?: TelemetryOptions;
 
       /**
        * Custom download function to use for URLs.
@@ -230,7 +236,8 @@ export async function generateObject<
     abortSignal,
     headers,
     experimental_repairText: repairText,
-    experimental_telemetry: telemetry,
+    experimental_telemetry,
+    telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
     experimental_onStart: onStart,
@@ -309,7 +316,7 @@ export async function generateObject<
       schema: jsonSchema as Record<string, unknown> | undefined,
       schemaName,
       schemaDescription,
-      isEnabled: telemetry?.isEnabled,
+      isEnabled: telemetry?.isEnabled ?? true,
       recordInputs: telemetry?.recordInputs,
       recordOutputs: telemetry?.recordOutputs,
       functionId: telemetry?.functionId,
