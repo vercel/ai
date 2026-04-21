@@ -18,6 +18,14 @@ const gatewayProviderOptions = lazySchema(() =>
        */
       order: z.array(z.string()).optional(),
       /**
+       * Sort providers by a performance or cost metric before routing.
+       *
+       * - `'cost'`: lowest cost first
+       * - `'ttft'`: lowest time-to-first-token first
+       * - `'tps'`: highest tokens-per-second first
+       */
+      sort: z.enum(['cost', 'ttft', 'tps']).optional(),
+      /**
        * The unique identifier for the end user on behalf of whom the request was made.
        *
        * Used for spend tracking and attribution purposes.

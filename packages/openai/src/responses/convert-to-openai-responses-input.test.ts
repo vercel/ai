@@ -1080,6 +1080,40 @@ describe('convertToOpenAIResponsesInput', () => {
       ]);
     });
 
+    it('should default missing tool call input to an empty object', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                input: undefined,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toMatchInlineSnapshot(`
+        [
+          {
+            "arguments": "{}",
+            "call_id": "call_123",
+            "id": undefined,
+            "name": "search",
+            "type": "function_call",
+          },
+        ]
+      `);
+    });
+
     it('should convert messages with tool call parts that have ids', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -2271,6 +2305,39 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should convert execution-denied tool result to function_call_output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_denied_123',
+                toolName: 'search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_denied_123',
+          output: 'User denied the tool execution',
+        },
+      ]);
+    });
+
     it('should convert single tool result part with multipart that contains text', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -2331,7 +2398,7 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-data',
+                      type: 'file-data',
                       mediaType: 'image/png',
                       data: 'base64_data',
                     },
@@ -2377,8 +2444,9 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-url',
+                      type: 'file-url',
                       url: 'https://example.com/screenshot.png',
+                      mediaType: 'image/png',
                     },
                   ],
                 },
@@ -2473,6 +2541,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     {
                       type: 'file-url',
                       url: 'https://example.com/document.pdf',
+                      mediaType: 'application/pdf',
                     },
                   ],
                 },
@@ -2523,6 +2592,7 @@ describe('convertToOpenAIResponsesInput', () => {
                     {
                       type: 'file-url',
                       url: 'https://example.com/test.pdf',
+                      mediaType: 'application/pdf',
                     },
                   ],
                 },
@@ -2576,7 +2646,7 @@ describe('convertToOpenAIResponsesInput', () => {
                       text: 'The weather in San Francisco is 72°F',
                     },
                     {
-                      type: 'image-data',
+                      type: 'file-data',
                       mediaType: 'image/png',
                       data: 'base64_data',
                     },
@@ -3076,6 +3146,127 @@ describe('convertToOpenAIResponsesInput', () => {
           ],
         }
       `);
+    });
+
+    it('should skip provider-executed execution-denied tool results in assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I need approval before running that tool.',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_denied_123',
+                toolName: 'web_search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+              {
+                type: 'text',
+                text: 'The tool was not run.',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'I need approval before running that tool.',
+              },
+            ],
+            id: undefined,
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'The tool was not run.',
+              },
+            ],
+            id: undefined,
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should skip json-wrapped execution-denied tool results in assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'I need approval before running that tool.',
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'ws_denied_json_123',
+                toolName: 'web_search',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'execution-denied',
+                    reason: 'User denied the tool execution',
+                  },
+                },
+              },
+              {
+                type: 'text',
+                text: 'The tool was not run.',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result).toEqual({
+        input: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'I need approval before running that tool.',
+              },
+            ],
+            id: undefined,
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'The tool was not run.',
+              },
+            ],
+            id: undefined,
+          },
+        ],
+        warnings: [],
+      });
     });
 
     describe('local shell', () => {
@@ -4510,6 +4701,40 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should convert execution-denied custom tool result to custom_tool_call_output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_custom_denied_001',
+                toolName: 'write_sql',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'custom_tool_call_output',
+          call_id: 'call_custom_denied_001',
+          output: 'User denied the tool execution',
+        },
+      ]);
+    });
+
     it('should convert custom tool result content output', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4566,7 +4791,11 @@ describe('convertToOpenAIResponsesInput', () => {
                   type: 'content',
                   value: [
                     { type: 'text', text: 'Here is the file:' },
-                    { type: 'file-url', url: 'https://example.com/test.pdf' },
+                    {
+                      type: 'file-url',
+                      url: 'https://example.com/test.pdf',
+                      mediaType: 'application/pdf',
+                    },
                   ],
                 },
               },

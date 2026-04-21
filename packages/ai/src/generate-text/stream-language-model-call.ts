@@ -12,7 +12,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
-import { CallSettings, Prompt } from '../prompt';
+import { LanguageModelCallOptions } from '../prompt/language-model-call-options';
+import { Prompt } from '../prompt';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
@@ -41,6 +42,7 @@ import {
   TextStreamReasoningFilePart,
   TextStreamTextDeltaPart,
   TextStreamToolApprovalRequestPart,
+  TextStreamToolApprovalResponsePart,
   TextStreamToolCallPart,
   TextStreamToolErrorPart,
   TextStreamToolResultPart,
@@ -69,6 +71,7 @@ export type LanguageModelStreamPart<TOOLS extends ToolSet = ToolSet> =
   | TextStreamFilePart
   | TextStreamReasoningFilePart
   | TextStreamToolApprovalRequestPart<TOOLS>
+  | TextStreamToolApprovalResponsePart<TOOLS>
   | TextStreamToolCallPart<TOOLS>
   | TextStreamToolResultPart<TOOLS>
   | TextStreamToolErrorPart<TOOLS>
@@ -174,6 +177,7 @@ export async function streamLanguageModelCall<
   output?: OUTPUT;
   toolChoice?: ToolChoice<TOOLS>;
   download?: DownloadFunction;
+  abortSignal?: AbortSignal;
   headers?: Record<string, string | undefined>;
   includeRawChunks?: boolean;
   providerOptions?: ProviderOptions;
@@ -191,7 +195,7 @@ export async function streamLanguageModelCall<
     promptMessages: LanguageModelV4Prompt;
   }) => Promise<void> | void;
 } & Prompt &
-  Omit<CallSettings, 'maxRetries'>): Promise<{
+  LanguageModelCallOptions): Promise<{
   stream: AsyncIterableStream<LanguageModelStreamPart<TOOLS>>;
   request?: {
     /**

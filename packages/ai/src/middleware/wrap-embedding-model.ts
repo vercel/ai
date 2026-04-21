@@ -4,9 +4,9 @@ import {
   EmbeddingModelV4CallOptions,
   EmbeddingModelV4Result,
 } from '@ai-sdk/provider';
+import { asArray } from '@ai-sdk/provider-utils';
 import { asEmbeddingModelV4 } from '../model/as-embedding-model-v4';
 import { EmbeddingModelMiddleware } from '../types';
-import { asArray } from '../util/as-array';
 
 /**
  * Wraps an EmbeddingModelV4 instance with middleware functionality.
@@ -77,14 +77,14 @@ const doWrap = ({
       params: EmbeddingModelV4CallOptions,
     ): Promise<EmbeddingModelV4Result> {
       const transformedParams = await doTransform({ params });
-      const doEmbed = async () => model.doEmbed(transformedParams);
+      const doEmbed = async () => await model.doEmbed(transformedParams);
       return wrapEmbed
-        ? wrapEmbed({
+        ? await wrapEmbed({
             doEmbed,
             params: transformedParams,
             model,
           })
-        : doEmbed();
+        : await doEmbed();
     },
   };
 };

@@ -29,13 +29,13 @@ npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources @ai-sdk
 **Step 2.** Create an `instrumentation.ts` file in your project root and register the AI SDK telemetry integration alongside your OTel setup:
 
 ```ts filename="instrumentation.ts"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PostHogTraceExporter } from '@posthog/ai/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 export function register() {
   const sdk = new NodeSDK({
@@ -53,15 +53,14 @@ export function register() {
 
 **Step 3.** Use the AI SDK with telemetry enabled in your route handlers or server actions
 
-```ts highlight="6-12"
+```ts highlight="6-11"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Tell me a fun fact about hedgehogs.',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     functionId: 'my-ai-function',
     metadata: {
       posthog_distinct_id: 'user_123', // optional: links events to a PostHog user
@@ -85,8 +84,8 @@ npm install @posthog/ai @opentelemetry/sdk-node @opentelemetry/resources @ai-sdk
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PostHogTraceExporter } from '@posthog/ai/otel';
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
@@ -98,20 +97,19 @@ const sdk = new NodeSDK({
   }),
 });
 sdk.start();
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 ```
 
-**Step 3.** Use the AI SDK with telemetry enabled
+**Step 3.** Use the AI SDK. Telemetry is captured automatically once the integration is registered:
 
-```ts highlight="6-13"
+```ts highlight="6-12"
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Tell me a fun fact about hedgehogs.',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     functionId: 'my-ai-function',
     metadata: {
       posthog_distinct_id: 'user_123', // optional: links events to a PostHog user
@@ -137,12 +135,11 @@ The integration supports streaming functions like `streamText`. Each streamed ca
 
 Pass `posthog_distinct_id` in the `metadata` field to associate LLM events with a specific user in PostHog. If omitted, events are captured anonymously.
 
-```ts highlight="7"
+```ts highlight="6"
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     metadata: {
       posthog_distinct_id: 'user_123',
     },
@@ -154,12 +151,11 @@ const result = await generateText({
 
 You can disable recording of inputs and outputs by setting `recordInputs` and `recordOutputs` to `false`:
 
-```ts highlight="6-7"
+```ts highlight="5-6"
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Write a short story about a cat.',
-  experimental_telemetry: {
-    isEnabled: true,
+  telemetry: {
     recordInputs: false,
     recordOutputs: false,
   },

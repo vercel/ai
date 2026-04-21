@@ -19,6 +19,9 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
+  serializeModelOptions,
+  WORKFLOW_SERIALIZE,
+  WORKFLOW_DESERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
@@ -40,7 +43,7 @@ import { prepareResponsesTools } from './xai-responses-prepare-tools';
 type XaiResponsesConfig = {
   provider: string;
   baseURL: string | undefined;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
@@ -51,6 +54,20 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
   readonly modelId: XaiResponsesModelId;
 
   private readonly config: XaiResponsesConfig;
+
+  static [WORKFLOW_SERIALIZE](model: XaiResponsesLanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: XaiResponsesModelId;
+    config: XaiResponsesConfig;
+  }) {
+    return new XaiResponsesLanguageModel(options.modelId, options.config);
+  }
 
   constructor(modelId: XaiResponsesModelId, config: XaiResponsesConfig) {
     this.modelId = modelId;
@@ -113,7 +130,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     const { input, inputWarnings } = await convertToXaiResponsesInput({
       prompt,
-      store: true,
+      store: options.store ?? true,
     });
     warnings.push(...inputWarnings);
 
@@ -246,7 +263,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -400,11 +417,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             .filter(text => text && text.length > 0)
             .join('');
 
-          if (reasoningText) {
-            if (part.encrypted_content || part.id) {
-              content.push({
-                type: 'reasoning',
-                text: reasoningText,
+          // condition changed here since encrypted content can now come with empty reasoning text
+          if (reasoningText || part.encrypted_content) {
+            const hasMetadata = part.encrypted_content || part.id;
+            content.push({
+              type: 'reasoning',
+              text: reasoningText,
+              ...(hasMetadata && {
                 providerMetadata: {
                   xai: {
                     ...(part.encrypted_content && {
@@ -413,13 +432,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     ...(part.id && { itemId: part.id }),
                   },
                 },
-              });
-            } else {
-              content.push({
-                type: 'reasoning',
-                text: reasoningText,
-              });
-            }
+              }),
+            });
           }
           break;
         }
@@ -444,6 +458,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
+      ...(response.usage?.cost_in_usd_ticks != null && {
+        providerMetadata: {
+          xai: {
+            costInUsdTicks: response.usage.cost_in_usd_ticks,
+          },
+        },
+      }),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -473,7 +494,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL ?? 'https://api.x.ai/v1'}/responses`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(this.config.headers?.(), options.headers),
       body,
       failedResponseHandler: xaiFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
@@ -489,6 +510,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     };
     let hasFunctionCall = false;
     let usage: LanguageModelV4Usage | undefined = undefined;
+    let costInUsdTicks: number | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -678,6 +700,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
               if (response.usage) {
                 usage = convertXaiResponsesUsage(response.usage);
+                costInUsdTicks = response.usage.cost_in_usd_ticks ?? undefined;
               }
 
               if (event.type === 'response.incomplete') {
@@ -1023,6 +1046,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
+              ...(costInUsdTicks != null && {
+                providerMetadata: {
+                  xai: {
+                    costInUsdTicks,
+                  },
+                },
+              }),
             });
           },
         }),

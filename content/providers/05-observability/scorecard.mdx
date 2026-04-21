@@ -25,11 +25,11 @@ OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer <Your Scorecard API Key>"
 Next, install `@ai-sdk/otel` and create an `instrumentation.ts` file in your project root to initialize OpenTelemetry and register the AI SDK telemetry integration:
 
 ```typescript filename="instrumentation.ts"
-import { registerTelemetryIntegration } from 'ai';
-import { OpenTelemetryIntegration } from '@ai-sdk/otel';
+import { registerTelemetry } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
 import { registerOTel } from '@vercel/otel';
 
-registerTelemetryIntegration(new OpenTelemetryIntegration());
+registerTelemetry(new OpenTelemetry());
 
 export function register() {
   registerOTel({
@@ -38,7 +38,7 @@ export function register() {
 }
 ```
 
-You can then use the `experimental_telemetry` option to enable telemetry on supported AI SDK function calls:
+Once the integration is registered, telemetry is captured automatically for all AI SDK calls:
 
 ```typescript
 import { generateText } from 'ai';
@@ -47,7 +47,6 @@ import { openai } from '@ai-sdk/openai';
 const result = await generateText({
   model: openai('gpt-4o-mini'),
   prompt: 'Tell me a joke',
-  experimental_telemetry: { isEnabled: true },
 });
 ```
 
@@ -58,7 +57,7 @@ After integrating, you'll be able to view in your Scorecard dashboard:
 - **LLM call traces**: Detailed information about each AI SDK call
 - **Performance metrics**: Latency, token usage, and cost tracking
 - **Model information**: Which models and providers were used
-- **Custom metadata**: Any additional context you provide via telemetry
+- **Custom context**: Any additional context you provide via the `context` option
 - **Error tracking**: Failed requests and debugging information
 - **Usage analytics**: Patterns and trends in your LLM usage
 

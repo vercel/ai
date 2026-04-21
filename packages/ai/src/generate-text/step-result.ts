@@ -1,3 +1,8 @@
+import type {
+  Context,
+  InferToolSetContext,
+  ToolSet,
+} from '@ai-sdk/provider-utils';
 import { ReasoningFilePart, ReasoningPart } from '@ai-sdk/provider-utils';
 import {
   CallWarning,
@@ -23,15 +28,13 @@ import {
   StaticToolResult,
   TypedToolResult,
 } from './tool-result';
-import type { GenerationContext } from './generation-context';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 
 /**
  * The result of a single step in the generation process.
  */
 export type StepResult<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
+  RUNTIME_CONTEXT extends Context = Context,
 > = {
   /**
    * Unique identifier for the generation call this step belongs to.
@@ -54,21 +57,14 @@ export type StepResult<
   };
 
   /**
-   * Identifier from telemetry settings for grouping related operations.
+   * Tool context.
    */
-  readonly functionId: string | undefined;
+  readonly toolsContext: InferToolSetContext<TOOLS>;
 
   /**
-   * Additional metadata from telemetry settings.
+   * Runtime context.
    */
-  readonly metadata: Record<string, unknown> | undefined;
-
-  /**
-   * User-defined context object flowing through the generation.
-   *
-   * Experimental (can break in patch releases).
-   */
-  readonly context: CONTEXT;
+  readonly runtimeContext: RUNTIME_CONTEXT;
 
   /**
    * The content that was generated in the last step.
@@ -182,31 +178,35 @@ export type StepResult<
 
 export class DefaultStepResult<
   TOOLS extends ToolSet,
-  CONTEXT extends GenerationContext<TOOLS>,
-> implements StepResult<TOOLS, CONTEXT> {
-  readonly callId: StepResult<TOOLS, CONTEXT>['callId'];
-  readonly stepNumber: StepResult<TOOLS, CONTEXT>['stepNumber'];
-  readonly model: StepResult<TOOLS, CONTEXT>['model'];
-  readonly functionId: StepResult<TOOLS, CONTEXT>['functionId'];
-  readonly metadata: StepResult<TOOLS, CONTEXT>['metadata'];
-  readonly context: StepResult<TOOLS, CONTEXT>['context'];
-  readonly content: StepResult<TOOLS, CONTEXT>['content'];
-  readonly finishReason: StepResult<TOOLS, CONTEXT>['finishReason'];
-  readonly rawFinishReason: StepResult<TOOLS, CONTEXT>['rawFinishReason'];
-  readonly usage: StepResult<TOOLS, CONTEXT>['usage'];
-  readonly warnings: StepResult<TOOLS, CONTEXT>['warnings'];
-  readonly request: StepResult<TOOLS, CONTEXT>['request'];
-  readonly response: StepResult<TOOLS, CONTEXT>['response'];
-  readonly providerMetadata: StepResult<TOOLS, CONTEXT>['providerMetadata'];
+  RUNTIME_CONTEXT extends Context = Context,
+> implements StepResult<TOOLS, RUNTIME_CONTEXT> {
+  readonly callId: StepResult<TOOLS, RUNTIME_CONTEXT>['callId'];
+  readonly stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
+  readonly model: StepResult<TOOLS, RUNTIME_CONTEXT>['model'];
+  readonly toolsContext: StepResult<TOOLS, RUNTIME_CONTEXT>['toolsContext'];
+  readonly runtimeContext: StepResult<TOOLS, RUNTIME_CONTEXT>['runtimeContext'];
+  readonly content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
+  readonly finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
+  readonly rawFinishReason: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['rawFinishReason'];
+  readonly usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+  readonly warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
+  readonly request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
+  readonly response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
+  readonly providerMetadata: StepResult<
+    TOOLS,
+    RUNTIME_CONTEXT
+  >['providerMetadata'];
 
   constructor({
     callId,
     stepNumber,
     provider,
     modelId,
-    functionId,
-    metadata,
-    context,
+    runtimeContext,
+    toolsContext,
     content,
     finishReason,
     rawFinishReason,
@@ -216,28 +216,26 @@ export class DefaultStepResult<
     response,
     providerMetadata,
   }: {
-    callId: StepResult<TOOLS, CONTEXT>['callId'];
-    stepNumber: StepResult<TOOLS, CONTEXT>['stepNumber'];
-    provider: StepResult<TOOLS, CONTEXT>['model']['provider'];
-    modelId: StepResult<TOOLS, CONTEXT>['model']['modelId'];
-    functionId: StepResult<TOOLS, CONTEXT>['functionId'];
-    metadata: StepResult<TOOLS, CONTEXT>['metadata'];
-    context: StepResult<TOOLS, CONTEXT>['context'];
-    content: StepResult<TOOLS, CONTEXT>['content'];
-    finishReason: StepResult<TOOLS, CONTEXT>['finishReason'];
-    rawFinishReason: StepResult<TOOLS, CONTEXT>['rawFinishReason'];
-    usage: StepResult<TOOLS, CONTEXT>['usage'];
-    warnings: StepResult<TOOLS, CONTEXT>['warnings'];
-    request: StepResult<TOOLS, CONTEXT>['request'];
-    response: StepResult<TOOLS, CONTEXT>['response'];
-    providerMetadata: StepResult<TOOLS, CONTEXT>['providerMetadata'];
+    callId: StepResult<TOOLS, RUNTIME_CONTEXT>['callId'];
+    stepNumber: StepResult<TOOLS, RUNTIME_CONTEXT>['stepNumber'];
+    provider: StepResult<TOOLS, RUNTIME_CONTEXT>['model']['provider'];
+    modelId: StepResult<TOOLS, RUNTIME_CONTEXT>['model']['modelId'];
+    runtimeContext: StepResult<TOOLS, RUNTIME_CONTEXT>['runtimeContext'];
+    toolsContext: StepResult<TOOLS, RUNTIME_CONTEXT>['toolsContext'];
+    content: StepResult<TOOLS, RUNTIME_CONTEXT>['content'];
+    finishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['finishReason'];
+    rawFinishReason: StepResult<TOOLS, RUNTIME_CONTEXT>['rawFinishReason'];
+    usage: StepResult<TOOLS, RUNTIME_CONTEXT>['usage'];
+    warnings: StepResult<TOOLS, RUNTIME_CONTEXT>['warnings'];
+    request: StepResult<TOOLS, RUNTIME_CONTEXT>['request'];
+    response: StepResult<TOOLS, RUNTIME_CONTEXT>['response'];
+    providerMetadata: StepResult<TOOLS, RUNTIME_CONTEXT>['providerMetadata'];
   }) {
     this.callId = callId;
     this.stepNumber = stepNumber;
     this.model = { provider, modelId };
-    this.functionId = functionId;
-    this.metadata = metadata;
-    this.context = context;
+    this.runtimeContext = runtimeContext;
+    this.toolsContext = toolsContext;
     this.content = content;
     this.finishReason = finishReason;
     this.rawFinishReason = rawFinishReason;

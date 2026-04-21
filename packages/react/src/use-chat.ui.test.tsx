@@ -33,7 +33,7 @@ const server = createTestServer({
 describe('initial messages', () => {
   setupTestComponent(
     ({ id: idParam }: { id: string }) => {
-      const [id, setId] = React.useState<string>(idParam);
+      const [id, _setId] = React.useState<string>(idParam);
       const {
         messages,
         status,

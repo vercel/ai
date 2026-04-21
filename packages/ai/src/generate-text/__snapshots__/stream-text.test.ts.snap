@@ -4,21 +4,13 @@ exports[`streamText > errors > should swallow error to prevent server crash 1`] 
 
 exports[`streamText > options.experimental_onStart > should send correct information with text prompt 1`] = `
 {
-  "abortSignal": undefined,
   "activeTools": undefined,
   "callId": "test-telemetry-call-id",
-  "context": {},
   "frequencyPenalty": undefined,
-  "functionId": "test-function",
   "headers": undefined,
-  "include": undefined,
-  "isEnabled": undefined,
   "maxOutputTokens": undefined,
   "maxRetries": 2,
   "messages": undefined,
-  "metadata": {
-    "customKey": "customValue",
-  },
   "modelId": "mock-model-id",
   "operationId": "ai.streamText",
   "output": undefined,
@@ -27,8 +19,7 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "provider": "mock-provider",
   "providerOptions": undefined,
   "reasoning": undefined,
-  "recordInputs": undefined,
-  "recordOutputs": undefined,
+  "runtimeContext": {},
   "seed": undefined,
   "stopSequences": undefined,
   "stopWhen": [Function],
@@ -37,38 +28,9 @@ exports[`streamText > options.experimental_onStart > should send correct informa
   "timeout": undefined,
   "toolChoice": undefined,
   "tools": undefined,
+  "toolsContext": {},
   "topK": undefined,
   "topP": undefined,
-}
-`;
-
-exports[`streamText > options.experimental_onToolCallStart > should be called with correct tool name, id, and input 1`] = `
-{
-  "abortSignal": undefined,
-  "callId": "test-telemetry-call-id",
-  "context": {},
-  "functionId": undefined,
-  "messages": [
-    {
-      "content": "test-input",
-      "role": "user",
-    },
-  ],
-  "metadata": undefined,
-  "modelId": "mock-model-id",
-  "provider": "mock-provider",
-  "stepNumber": 0,
-  "toolCall": {
-    "input": {
-      "value": "test-arg",
-    },
-    "providerExecuted": undefined,
-    "providerMetadata": undefined,
-    "title": undefined,
-    "toolCallId": "call-1",
-    "toolName": "tool1",
-    "type": "tool-call",
-  },
 }
 `;
 

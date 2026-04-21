@@ -611,8 +611,9 @@ describe('convertToOpenResponsesInput', () => {
                   type: 'content',
                   value: [
                     {
-                      type: 'image-url',
+                      type: 'file-url',
                       url: 'https://example.com/image.png',
+                      mediaType: 'image/png',
                     },
                   ],
                 },

@@ -1,5 +1,5 @@
 import {
-  createProviderToolFactoryWithOutputSchema,
+  createProviderExecutedToolFactory,
   lazySchema,
   zodSchema,
 } from '@ai-sdk/provider-utils';
@@ -278,16 +278,15 @@ const parallelSearchOutputSchema = lazySchema(() =>
   ),
 );
 
-export const parallelSearchToolFactory =
-  createProviderToolFactoryWithOutputSchema<
-    ParallelSearchInput,
-    ParallelSearchOutput,
-    ParallelSearchConfig
-  >({
-    id: 'gateway.parallel_search',
-    inputSchema: parallelSearchInputSchema,
-    outputSchema: parallelSearchOutputSchema,
-  });
+export const parallelSearchToolFactory = createProviderExecutedToolFactory<
+  ParallelSearchInput,
+  ParallelSearchOutput,
+  ParallelSearchConfig
+>({
+  id: 'gateway.parallel_search',
+  inputSchema: parallelSearchInputSchema,
+  outputSchema: parallelSearchOutputSchema,
+});
 
 export const parallelSearch = (
   config: ParallelSearchConfig = {},

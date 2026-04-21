@@ -63,6 +63,14 @@ import type {
   GoogleImageModelOptions,
   GoogleLanguageModelOptions,
   GoogleVideoModelOptions,
+  GoogleProvider,
+  GoogleGenerativeAIProvider,
+  GoogleProviderSettings,
+  GoogleGenerativeAIProviderSettings,
+  GoogleProviderMetadata,
+  GoogleGenerativeAIProviderMetadata,
+  GoogleVideoModelId,
+  GoogleGenerativeAIVideoModelId,
 } from '@ai-sdk/google';
 import type {
   GoogleVertexImageModelOptions,
@@ -223,6 +231,18 @@ describe('deprecated provider options type aliases', () => {
     });
     it('GoogleGenerativeAIVideoProviderOptions equals GoogleVideoModelOptions', () => {
       expectTypeOf<GoogleGenerativeAIVideoProviderOptions>().toEqualTypeOf<GoogleVideoModelOptions>();
+    });
+    it('GoogleGenerativeAIProvider equals GoogleProvider', () => {
+      expectTypeOf<GoogleGenerativeAIProvider>().toEqualTypeOf<GoogleProvider>();
+    });
+    it('GoogleGenerativeAIProviderSettings equals GoogleProviderSettings', () => {
+      expectTypeOf<GoogleGenerativeAIProviderSettings>().toEqualTypeOf<GoogleProviderSettings>();
+    });
+    it('GoogleGenerativeAIProviderMetadata equals GoogleProviderMetadata', () => {
+      expectTypeOf<GoogleGenerativeAIProviderMetadata>().toEqualTypeOf<GoogleProviderMetadata>();
+    });
+    it('GoogleGenerativeAIVideoModelId equals GoogleVideoModelId', () => {
+      expectTypeOf<GoogleGenerativeAIVideoModelId>().toEqualTypeOf<GoogleVideoModelId>();
     });
   });
 

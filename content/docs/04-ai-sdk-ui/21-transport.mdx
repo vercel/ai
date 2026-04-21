@@ -156,6 +156,44 @@ const transport = new DirectChatTransport({
 
 For complete API details, see the [DirectChatTransport reference](/docs/reference/ai-sdk-ui/direct-chat-transport).
 
+## Workflow Transport
+
+For chat apps built on [Vercel Workflows](/docs/agents/workflow-agent), `WorkflowChatTransport` from `@ai-sdk/workflow` provides automatic stream reconnection. It handles the common scenario where a workflow function times out mid-stream — the transport detects the missing `finish` event and reconnects to resume from where it left off.
+
+```tsx
+import { useChat } from '@ai-sdk/react';
+import { WorkflowChatTransport } from '@ai-sdk/workflow';
+import { useMemo } from 'react';
+
+export default function Chat() {
+  const transport = useMemo(
+    () =>
+      new WorkflowChatTransport({
+        api: '/api/chat',
+        maxConsecutiveErrors: 5,
+        initialStartIndex: -50, // On page refresh, fetch last 50 chunks
+        onChatEnd: ({ chatId, chunkIndex }) => {
+          console.log(`Chat complete: ${chunkIndex} chunks`);
+        },
+      }),
+    [],
+  );
+
+  const { messages, sendMessage } = useChat({ transport });
+
+  // ... render chat UI
+}
+```
+
+Key features:
+
+- **Automatic reconnection**: Detects interrupted streams (no `finish` event) and reconnects via GET to `{api}/{runId}/stream`
+- **Page refresh recovery**: `initialStartIndex` with negative values (e.g., `-50`) fetches only the tail of the stream instead of replaying everything
+- **Configurable retries**: `maxConsecutiveErrors` controls how many consecutive reconnection failures to tolerate
+- **Lifecycle callbacks**: `onChatSendMessage` and `onChatEnd` for tracking chat state
+
+For the full API reference, see [`WorkflowChatTransport`](/docs/reference/ai-sdk-workflow/workflow-chat-transport). For server-side endpoint setup, see the [WorkflowAgent guide](/docs/agents/workflow-agent#resumable-streaming-with-workflowchattransport).
+
 ## Building Custom Transports
 
 To understand how to build your own transport, refer to the source code of the default implementation:

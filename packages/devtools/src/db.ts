@@ -26,7 +26,7 @@ export const notifyServerAsync = async (
     await fetch(`http://localhost:${DEVTOOLS_PORT}/api/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event, timestamp: Date.now() }),
+      body: JSON.stringify({ event, timestamp: Date.now(), dbPath: DB_PATH }),
     });
   } catch {
     // Ignore errors - server might not be running
@@ -36,6 +36,9 @@ export const notifyServerAsync = async (
 export interface Run {
   id: string;
   started_at: string;
+  parent_run_id: string | null;
+  parent_step_id: string | null;
+  function_id: string | null;
 }
 
 export interface Step {
@@ -139,13 +142,31 @@ const saveDb = (db: Database): void => {
 
 /**
  * Reload the database from disk.
- * Used by the viewer server to pick up changes made by the middleware.
+ * Used by the viewer server to pick up changes made by the middleware/integration.
+ * When a remote dbPath is provided (from a notify POST), reads from that path
+ * instead of the local CWD-based path, so the viewer works regardless of where
+ * it was started.
  */
-export const reloadDb = async (): Promise<void> => {
+export const reloadDb = async (remoteDbPath?: string): Promise<void> => {
+  if (remoteDbPath) {
+    try {
+      if (fs.existsSync(remoteDbPath)) {
+        const content = fs.readFileSync(remoteDbPath, 'utf-8');
+        dbCache = JSON.parse(content);
+        return;
+      }
+    } catch {
+      // Fall through to default
+    }
+  }
   dbCache = readDb();
 };
 
-export const createRun = async (id: string): Promise<Run> => {
+export const createRun = async (
+  id: string,
+  parent?: { runId: string; stepId: string },
+  functionId?: string,
+): Promise<Run> => {
   const db = getDb();
   const started_at = new Date().toISOString();
 
@@ -155,7 +176,13 @@ export const createRun = async (id: string): Promise<Run> => {
     return existing;
   }
 
-  const run: Run = { id, started_at };
+  const run: Run = {
+    id,
+    started_at,
+    parent_run_id: parent?.runId ?? null,
+    parent_step_id: parent?.stepId ?? null,
+    function_id: functionId ?? null,
+  };
   db.runs.push(run);
   saveDb(db);
   notifyServer('run');

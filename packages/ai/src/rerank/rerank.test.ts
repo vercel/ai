@@ -374,9 +374,8 @@ describe('rerank', () => {
         ],
         query: 'rainy day',
         topN: 3,
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateCallId: () => 'test-call-id',
@@ -400,23 +399,49 @@ describe('rerank', () => {
           'cloudy day in the mountains',
         ],
         query: 'rainy day',
-        experimental_telemetry: {
+        telemetry: {
           isEnabled: true,
           recordInputs: false,
           recordOutputs: true,
           functionId: 'rerank-fn',
-          metadata: { key: 'val' },
         },
         experimental_onStart: async event => {
           startEvent = event;
         },
       });
 
-      expect(startEvent.isEnabled).toBe(true);
-      expect(startEvent.recordInputs).toBe(false);
-      expect(startEvent.recordOutputs).toBe(true);
-      expect(startEvent.functionId).toBe('rerank-fn');
-      expect(startEvent.metadata).toEqual({ key: 'val' });
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('recordInputs');
+      expect(startEvent).not.toHaveProperty('recordOutputs');
+      expect(startEvent).not.toHaveProperty('functionId');
+    });
+
+    it('should accept deprecated experimental_telemetry as an alias for telemetry', async () => {
+      let startEvent!: RerankOnStartEvent;
+
+      await rerank({
+        model: mockModel,
+        documents: [
+          'sunny day at the beach',
+          'rainy day in the city',
+          'cloudy day in the mountains',
+        ],
+        query: 'rainy day',
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: false,
+          recordOutputs: true,
+          functionId: 'rerank-fn-deprecated',
+        },
+        experimental_onStart: async event => {
+          startEvent = event;
+        },
+      });
+
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('recordInputs');
+      expect(startEvent).not.toHaveProperty('recordOutputs');
+      expect(startEvent).not.toHaveProperty('functionId');
     });
 
     it('should include model information', async () => {
@@ -547,9 +572,8 @@ describe('rerank', () => {
         ],
         query: 'rainy day',
         topN: 3,
-        experimental_telemetry: {
+        telemetry: {
           functionId: 'test-function',
-          metadata: { customKey: 'customValue' },
         },
         _internal: {
           generateCallId: () => 'test-call-id',

@@ -6,35 +6,42 @@ import {
 } from '@ai-sdk/anthropic/internal';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
-vi.mock('@ai-sdk/provider-utils', () => ({
-  loadOptionalSetting: vi.fn().mockImplementation(({ settingValue }) => {
-    // Return undefined for API key to test SigV4 flow
-    if (settingValue === undefined) return undefined;
-    return settingValue;
-  }),
-  loadSetting: vi.fn().mockImplementation(({ settingValue, settingName }) => {
-    if (settingValue) return settingValue;
-    // Return mock values for required settings
-    if (settingName === 'region') return 'us-east-1';
-    if (settingName === 'accessKeyId') return 'mock-access-key';
-    if (settingName === 'secretAccessKey') return 'mock-secret-key';
-    return settingValue;
-  }),
-  withoutTrailingSlash: vi.fn().mockImplementation(url => url),
-  withUserAgentSuffix: vi.fn().mockImplementation((headers, suffix) => ({
-    ...headers,
-    'user-agent': suffix,
-  })),
-  resolve: vi.fn().mockImplementation(async value => {
-    if (typeof value === 'function') return value();
-    return value;
-  }),
-  createJsonErrorResponseHandler: vi.fn(),
-  createProviderToolFactory: vi.fn(),
-  createProviderToolFactoryWithOutputSchema: vi.fn(),
-  lazySchema: vi.fn(),
-  zodSchema: vi.fn(),
-}));
+vi.mock('@ai-sdk/provider-utils', async () => {
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
+  return {
+    WORKFLOW_SERIALIZE: (actual as any).WORKFLOW_SERIALIZE,
+    WORKFLOW_DESERIALIZE: (actual as any).WORKFLOW_DESERIALIZE,
+    serializeModelOptions: (actual as any).serializeModelOptions,
+    loadOptionalSetting: vi.fn().mockImplementation(({ settingValue }) => {
+      // Return undefined for API key to test SigV4 flow
+      if (settingValue === undefined) return undefined;
+      return settingValue;
+    }),
+    loadSetting: vi.fn().mockImplementation(({ settingValue, settingName }) => {
+      if (settingValue) return settingValue;
+      // Return mock values for required settings
+      if (settingName === 'region') return 'us-east-1';
+      if (settingName === 'accessKeyId') return 'mock-access-key';
+      if (settingName === 'secretAccessKey') return 'mock-secret-key';
+      return settingValue;
+    }),
+    withoutTrailingSlash: vi.fn().mockImplementation(url => url),
+    withUserAgentSuffix: vi.fn().mockImplementation((headers, suffix) => ({
+      ...headers,
+      'user-agent': suffix,
+    })),
+    resolve: vi.fn().mockImplementation(async value => {
+      if (typeof value === 'function') return value();
+      return value;
+    }),
+    createJsonErrorResponseHandler: vi.fn(),
+    createProviderDefinedToolFactory: vi.fn(),
+    createProviderDefinedToolFactoryWithOutputSchema: vi.fn(),
+    createProviderExecutedToolFactory: vi.fn(),
+    lazySchema: vi.fn(),
+    zodSchema: vi.fn(),
+  };
+});
 
 vi.mock('@ai-sdk/anthropic/internal', async () => {
   const originalModule = await vi.importActual('@ai-sdk/anthropic/internal');
