@@ -346,7 +346,7 @@ export class GenAIOpenTelemetry implements Telemetry {
         input: () =>
           JSON.stringify(
             formatModelMessages({
-              prompt: undefined,
+              prompt: event.prompt,
               messages: event.messages,
             }),
           ),

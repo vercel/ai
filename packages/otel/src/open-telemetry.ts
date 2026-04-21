@@ -310,6 +310,7 @@ export class OpenTelemetry implements Telemetry {
         input: () =>
           JSON.stringify({
             system: event.system,
+            prompt: event.prompt,
             messages: event.messages,
           }),
       },
