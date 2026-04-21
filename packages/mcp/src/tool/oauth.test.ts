@@ -1577,6 +1577,62 @@ describe('auth function', () => {
     );
   });
 
+  it('uses the negotiated protocol version for OAuth metadata discovery', async () => {
+    mockFetch.mockImplementation((url, options) => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        expect(options?.headers).toEqual({
+          'MCP-Protocol-Version': '2025-06-18',
+        });
+
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://auth.example.com'],
+          }),
+        });
+      }
+
+      if (urlString.includes('/.well-known/oauth-authorization-server')) {
+        expect(options?.headers).toEqual({
+          'MCP-Protocol-Version': '2025-06-18',
+        });
+
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://auth.example.com',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://auth.example.com/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+
+    (mockProvider.clientInformation as Mock).mockResolvedValue({
+      client_id: 'test-client',
+      client_secret: 'test-secret',
+    });
+    (mockProvider.tokens as Mock).mockResolvedValue(undefined);
+    (mockProvider.saveCodeVerifier as Mock).mockResolvedValue(undefined);
+    (mockProvider.redirectToAuthorization as Mock).mockResolvedValue(undefined);
+
+    const result = await auth(mockProvider, {
+      serverUrl: 'https://api.example.com/mcp-server',
+      protocolVersion: '2025-06-18',
+    });
+
+    expect(result).toBe('REDIRECT');
+  });
+
   it('includes resource in token exchange when authorization code is provided', async () => {
     // Mock successful metadata discovery and token exchange - need protected resource metadata
     mockFetch.mockImplementation(url => {

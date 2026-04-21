@@ -835,6 +835,7 @@ export async function auth(
     authorizationCode?: string;
     callbackState?: string;
     scope?: string;
+    protocolVersion?: string;
     resourceMetadataUrl?: URL;
     fetchFn?: FetchFunction;
   },
@@ -895,6 +896,7 @@ async function authInternal(
     authorizationCode,
     callbackState,
     scope,
+    protocolVersion,
     resourceMetadataUrl,
     fetchFn,
   }: {
@@ -902,6 +904,7 @@ async function authInternal(
     authorizationCode?: string;
     callbackState?: string;
     scope?: string;
+    protocolVersion?: string;
     resourceMetadataUrl?: URL;
     fetchFn?: FetchFunction;
   },
@@ -911,7 +914,7 @@ async function authInternal(
   try {
     resourceMetadata = await discoverOAuthProtectedResourceMetadata(
       serverUrl,
-      { resourceMetadataUrl },
+      { protocolVersion, resourceMetadataUrl },
       fetchFn,
     );
     if (
@@ -940,6 +943,7 @@ async function authInternal(
     authorizationServerUrl,
     {
       fetchFn,
+      protocolVersion,
     },
   );
 

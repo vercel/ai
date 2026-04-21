@@ -164,6 +164,7 @@ export class HttpMCPTransport implements MCPTransport {
           try {
             const result = await auth(this.authProvider, {
               serverUrl: this.url,
+              protocolVersion: this.protocolVersion,
               resourceMetadataUrl: this.resourceMetadataUrl,
               fetchFn: this.fetchFn,
             });
@@ -344,6 +345,7 @@ export class HttpMCPTransport implements MCPTransport {
         try {
           const result = await auth(this.authProvider, {
             serverUrl: this.url,
+            protocolVersion: this.protocolVersion,
             resourceMetadataUrl: this.resourceMetadataUrl,
             fetchFn: this.fetchFn,
           });
