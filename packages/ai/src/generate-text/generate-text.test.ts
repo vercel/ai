@@ -1725,6 +1725,7 @@ describe('generateText', () => {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
             "reasoning": [],
+            "responseId": "response-1",
             "text": "Before tool.",
             "toolCalls": [
               {

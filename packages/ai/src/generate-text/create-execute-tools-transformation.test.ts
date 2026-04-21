@@ -326,6 +326,7 @@ describe('createExecuteToolsTransformation', () => {
             "modelId": "test-model",
             "provider": "test-provider",
             "reasoning": [],
+            "responseId": "response-1",
             "text": "Hello ",
             "toolCalls": [
               {

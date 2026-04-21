@@ -574,6 +574,7 @@ export class GenAIOpenTelemetry implements Telemetry {
     state.inferenceSpan.setAttributes(
       selectAttributes(telemetry, {
         'gen_ai.response.finish_reasons': [event.finishReason],
+        'gen_ai.response.id': event.responseId,
         'gen_ai.usage.input_tokens': event.usage.inputTokens,
         'gen_ai.usage.output_tokens': event.usage.outputTokens,
         'gen_ai.usage.cache_read.input_tokens':

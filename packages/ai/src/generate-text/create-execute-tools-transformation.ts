@@ -65,6 +65,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   const modelReasoning: Array<{ text?: string }> = [];
   let modelText = '';
   let responseModelId = modelId ?? '';
+  let responseId = '';
 
   // forward stream
   return new TransformStream<
@@ -149,6 +150,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
 
         case 'model-call-response-metadata': {
           responseModelId = chunk.modelId ?? responseModelId;
+          responseId = chunk.id ?? responseId;
           break;
         }
 
@@ -164,6 +166,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
               reasoning: modelReasoning,
               files: modelFiles,
               toolCalls: modelToolCalls,
+              responseId,
             },
             callbacks: onModelCallEnd,
           });

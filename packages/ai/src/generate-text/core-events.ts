@@ -266,6 +266,9 @@ export interface ModelCallEndEvent<
 
   /** Parsed tool calls emitted by the model call. */
   readonly toolCalls: ReadonlyArray<TypedToolCall<TOOLS>>;
+
+  /** The provider-returned response id for this model call. */
+  readonly responseId: string;
 }
 
 /**

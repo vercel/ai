@@ -241,6 +241,7 @@ function makeModelCallEndEvent(overrides?: Record<string, unknown>) {
     reasoning: [],
     files: [],
     toolCalls: [],
+    responseId: 'test-response-id',
     ...overrides,
   } as Parameters<NonNullable<Telemetry['onModelCallEnd']>>[0];
 }
@@ -568,6 +569,7 @@ describe('GenAIOpenTelemetry', () => {
             "gen_ai.response.finish_reasons": [
               "stop",
             ],
+            "gen_ai.response.id": "test-response-id",
             "gen_ai.usage.input_tokens": 10,
             "gen_ai.usage.output_tokens": 20,
           },
@@ -1163,6 +1165,7 @@ describe('GenAIOpenTelemetry', () => {
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
+              "gen_ai.response.id": "test-response-id",
               "gen_ai.usage.input_tokens": 10,
               "gen_ai.usage.output_tokens": 20,
             },
@@ -1250,6 +1253,7 @@ describe('GenAIOpenTelemetry', () => {
               "gen_ai.response.finish_reasons": [
                 "tool-calls",
               ],
+              "gen_ai.response.id": "test-response-id",
               "gen_ai.usage.input_tokens": 10,
               "gen_ai.usage.output_tokens": 20,
             },
@@ -1291,6 +1295,7 @@ describe('GenAIOpenTelemetry', () => {
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
+              "gen_ai.response.id": "test-response-id",
               "gen_ai.usage.input_tokens": 10,
               "gen_ai.usage.output_tokens": 20,
             },

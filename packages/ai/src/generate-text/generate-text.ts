@@ -828,6 +828,7 @@ export async function generateText<
               .filter(part => part.type === 'file')
               .map(part => part.file),
             toolCalls: stepToolCalls,
+            responseId: currentModelResponse.response.id,
           },
           callbacks: [
             onModelCallEnd,
