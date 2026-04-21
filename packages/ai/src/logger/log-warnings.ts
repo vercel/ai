@@ -103,7 +103,7 @@ let hasLoggedBefore = false;
  */
 export const logWarnings: LogWarningsFunction = options => {
   // if the warnings array is empty, do nothing
-  if (options.warnings.length === 0) {
+  if (options.warnings == null || options.warnings.length === 0) {
     return;
   }
 

@@ -423,6 +423,21 @@ describe('result.warnings', () => {
     expect(result.warnings).toStrictEqual(expectedWarnings);
   });
 
+  it('should default warnings to an empty array when the provider omits them', async () => {
+    const result = await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: null,
+        doEmbed: async () =>
+          ({
+            embeddings: dummyEmbeddings,
+          }) as any,
+      }),
+      values: testValues,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
+  });
+
   it('should aggregate warnings from multiple calls', async () => {
     const warning1: Warning = {
       type: 'other',
@@ -459,6 +474,35 @@ describe('result.warnings', () => {
     });
 
     expect(result.warnings).toStrictEqual([warning1, warning2]);
+  });
+
+  it('should ignore undefined warnings from batched calls', async () => {
+    let callCount = 0;
+
+    const result = await embedMany({
+      model: new MockEmbeddingModelV4({
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async () => {
+          switch (callCount++) {
+            case 0:
+              return {
+                embeddings: dummyEmbeddings.slice(0, 2),
+                warnings: undefined,
+              } as any;
+            case 1:
+              return {
+                embeddings: dummyEmbeddings.slice(2),
+                warnings: undefined,
+              } as any;
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      values: testValues,
+    });
+
+    expect(result.warnings).toStrictEqual([]);
   });
 });
 
