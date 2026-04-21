@@ -510,7 +510,7 @@ export function convertToGoogleGenerativeAIMessages(
                   name: part.toolName,
                   content:
                     output.type === 'execution-denied'
-                      ? (output.reason ?? 'Tool execution denied.')
+                      ? (output.reason ?? 'Tool call execution denied.')
                       : output.value,
                 },
               },

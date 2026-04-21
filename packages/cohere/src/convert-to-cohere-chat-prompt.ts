@@ -163,7 +163,7 @@ export async function convertToCohereChatPrompt(
                   contentValue = output.value;
                   break;
                 case 'execution-denied':
-                  contentValue = output.reason ?? 'Tool execution denied.';
+                  contentValue = output.reason ?? 'Tool call execution denied.';
                   break;
                 case 'content':
                 case 'json':
