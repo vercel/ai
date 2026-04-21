@@ -7,9 +7,6 @@ async function main() {
   const { image } = await generateImage({
     model: openai.image('gpt-image-2'),
     prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
-    providerOptions: {
-      openai: { quality: 'high' },
-    },
   });
 
   await presentImages([image]);
