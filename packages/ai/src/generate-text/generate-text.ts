@@ -452,7 +452,7 @@ export async function generateText<
 
   const callId = generateCallId();
 
-  const unifiedTelemetry = createTelemetryDispatcher({
+  const telemetryDispatcher = createTelemetryDispatcher({
     telemetry,
   });
 
@@ -488,7 +488,7 @@ export async function generateText<
     },
     callbacks: [
       onStart,
-      unifiedTelemetry.onStart as
+      telemetryDispatcher.onStart as
         | undefined
         | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
     ],
@@ -527,7 +527,7 @@ export async function generateText<
             event,
             callbacks: [
               onToolExecutionStart,
-              unifiedTelemetry.onToolExecutionStart as
+              telemetryDispatcher.onToolExecutionStart as
                 | undefined
                 | OnToolExecutionStartCallback<TOOLS>,
             ],
@@ -537,12 +537,12 @@ export async function generateText<
             event,
             callbacks: [
               onToolExecutionEnd,
-              unifiedTelemetry.onToolExecutionEnd as
+              telemetryDispatcher.onToolExecutionEnd as
                 | undefined
                 | OnToolExecutionEndCallback<TOOLS>,
             ],
           }),
-        executeToolInTelemetryContext: unifiedTelemetry.executeTool,
+        executeToolInTelemetryContext: telemetryDispatcher.executeTool,
       });
 
       const toolContent: Array<any> = [];
@@ -690,7 +690,7 @@ export async function generateText<
           },
           callbacks: [
             onStepStart,
-            unifiedTelemetry.onStepStart as
+            telemetryDispatcher.onStepStart as
               | undefined
               | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
           ],
@@ -828,7 +828,7 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolExecutionStart,
-                    unifiedTelemetry.onToolExecutionStart as
+                    telemetryDispatcher.onToolExecutionStart as
                       | undefined
                       | OnToolExecutionStartCallback<TOOLS>,
                   ],
@@ -838,12 +838,12 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolExecutionEnd,
-                    unifiedTelemetry.onToolExecutionEnd as
+                    telemetryDispatcher.onToolExecutionEnd as
                       | undefined
                       | OnToolExecutionEndCallback<TOOLS>,
                   ],
                 }),
-              executeToolInTelemetryContext: unifiedTelemetry.executeTool,
+              executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             })),
           );
         }
@@ -945,7 +945,7 @@ export async function generateText<
           event: currentStepResult,
           callbacks: [
             onStepFinish,
-            unifiedTelemetry.onStepFinish as
+            telemetryDispatcher.onStepFinish as
               | undefined
               | GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>,
           ],
@@ -1014,7 +1014,7 @@ export async function generateText<
       event: onFinishEvent,
       callbacks: [
         onFinish,
-        unifiedTelemetry.onFinish as
+        telemetryDispatcher.onFinish as
           | undefined
           | GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>,
       ],
@@ -1040,7 +1040,7 @@ export async function generateText<
       output: resolvedOutput,
     });
   } catch (error) {
-    await unifiedTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw wrapGatewayError(error);
   }
 }

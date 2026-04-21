@@ -286,7 +286,7 @@ export async function generateObject<
     `ai/${VERSION}`,
   );
 
-  const unifiedTelemetry = createTelemetryDispatcher({
+  const telemetryDispatcher = createTelemetryDispatcher({
     telemetry,
   });
 
@@ -317,7 +317,7 @@ export async function generateObject<
       schemaName,
       schemaDescription,
     },
-    callbacks: [onStart, unifiedTelemetry.onStart],
+    callbacks: [onStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -344,7 +344,7 @@ export async function generateObject<
         headers: headersWithUserAgent,
         promptMessages,
       },
-      callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
+      callbacks: [onStepStart, telemetryDispatcher.onObjectStepStart],
     });
 
     const generateResult = await retry(() =>
@@ -414,7 +414,7 @@ export async function generateObject<
 
     await notify({
       event: stepFinishEvent,
-      callbacks: [onStepFinish, unifiedTelemetry.onObjectStepFinish],
+      callbacks: [onStepFinish, telemetryDispatcher.onObjectStepFinish],
     });
 
     const object = await parseAndValidateObjectResultWithRepair(
@@ -441,7 +441,7 @@ export async function generateObject<
         response,
         providerMetadata: resultProviderMetadata,
       },
-      callbacks: [onFinish, unifiedTelemetry.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     return new DefaultGenerateObjectResult({
@@ -455,7 +455,7 @@ export async function generateObject<
       providerMetadata: resultProviderMetadata,
     });
   } catch (error) {
-    await unifiedTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw wrapGatewayError(error);
   }
 }

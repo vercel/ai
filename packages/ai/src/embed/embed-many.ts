@@ -147,7 +147,7 @@ export async function embedMany({
 
   const callId = generateCallId();
 
-  const unifiedTelemetry = createTelemetryDispatcher({
+  const telemetryDispatcher = createTelemetryDispatcher({
     telemetry,
   });
 
@@ -162,7 +162,7 @@ export async function embedMany({
       headers: headersWithUserAgent,
       providerOptions,
     },
-    callbacks: [onStart, unifiedTelemetry.onStart],
+    callbacks: [onStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -185,7 +185,7 @@ export async function embedMany({
               modelId: model.modelId,
               values,
             },
-            callbacks: [unifiedTelemetry.onEmbedStart],
+            callbacks: [telemetryDispatcher.onEmbedStart],
           });
 
           const modelResponse = await model.doEmbed({
@@ -209,7 +209,7 @@ export async function embedMany({
               embeddings,
               usage,
             },
-            callbacks: [unifiedTelemetry.onEmbedFinish],
+            callbacks: [telemetryDispatcher.onEmbedFinish],
           });
 
           return {
@@ -240,7 +240,7 @@ export async function embedMany({
           providerMetadata,
           response: [response],
         },
-        callbacks: [onFinish, unifiedTelemetry.onFinish],
+        callbacks: [onFinish, telemetryDispatcher.onFinish],
       });
 
       return new DefaultEmbedManyResult({
@@ -287,7 +287,7 @@ export async function embedMany({
                 modelId: model.modelId,
                 values: chunk,
               },
-              callbacks: [unifiedTelemetry.onEmbedStart],
+              callbacks: [telemetryDispatcher.onEmbedStart],
             });
 
             const modelResponse = await model.doEmbed({
@@ -311,7 +311,7 @@ export async function embedMany({
                 embeddings: chunkEmbeddings,
                 usage,
               },
-              callbacks: [unifiedTelemetry.onEmbedFinish],
+              callbacks: [telemetryDispatcher.onEmbedFinish],
             });
 
             return {
@@ -366,7 +366,7 @@ export async function embedMany({
         providerMetadata,
         response: responses,
       },
-      callbacks: [onFinish, unifiedTelemetry.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     return new DefaultEmbedManyResult({
@@ -378,7 +378,7 @@ export async function embedMany({
       responses,
     });
   } catch (error) {
-    await unifiedTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw error;
   }
 }

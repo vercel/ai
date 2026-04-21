@@ -131,7 +131,7 @@ export async function embed({
 
   const callId = generateCallId();
 
-  const unifiedTelemetry = createTelemetryDispatcher({
+  const telemetryDispatcher = createTelemetryDispatcher({
     telemetry,
   });
 
@@ -146,7 +146,7 @@ export async function embed({
       headers: headersWithUserAgent,
       providerOptions,
     },
-    callbacks: [onStart, unifiedTelemetry.onStart],
+    callbacks: [onStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -163,7 +163,7 @@ export async function embed({
             modelId: model.modelId,
             values: [value],
           },
-          callbacks: [unifiedTelemetry.onEmbedStart],
+          callbacks: [telemetryDispatcher.onEmbedStart],
         });
 
         const modelResponse = await model.doEmbed({
@@ -187,7 +187,7 @@ export async function embed({
             embeddings: modelResponse.embeddings,
             usage,
           },
-          callbacks: [unifiedTelemetry.onEmbedFinish],
+          callbacks: [telemetryDispatcher.onEmbedFinish],
         });
 
         return {
@@ -214,7 +214,7 @@ export async function embed({
         providerMetadata,
         response,
       },
-      callbacks: [onFinish, unifiedTelemetry.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     return new DefaultEmbedResult({
@@ -226,7 +226,7 @@ export async function embed({
       response,
     });
   } catch (error) {
-    await unifiedTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw error;
   }
 }

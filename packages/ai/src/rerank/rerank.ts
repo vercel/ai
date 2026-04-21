@@ -126,7 +126,7 @@ export async function rerank<VALUE extends JSONObject | string>({
   const model = resolveRerankingModel(modelArg);
   const callId = generateCallId();
 
-  const unifiedTelemetry = createTelemetryDispatcher({
+  const telemetryDispatcher = createTelemetryDispatcher({
     telemetry,
   });
 
@@ -144,7 +144,7 @@ export async function rerank<VALUE extends JSONObject | string>({
         headers,
         providerOptions,
       },
-      callbacks: [onStart, unifiedTelemetry.onStart],
+      callbacks: [onStart, telemetryDispatcher.onStart],
     });
 
     await notify({
@@ -163,7 +163,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           modelId: model.modelId,
         },
       },
-      callbacks: [onFinish, unifiedTelemetry.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     return new DefaultRerankResult({
@@ -200,7 +200,7 @@ export async function rerank<VALUE extends JSONObject | string>({
       headers,
       providerOptions,
     },
-    callbacks: [onStart, unifiedTelemetry.onStart],
+    callbacks: [onStart, telemetryDispatcher.onStart],
   });
 
   try {
@@ -217,7 +217,7 @@ export async function rerank<VALUE extends JSONObject | string>({
             query,
             topN,
           },
-          callbacks: [unifiedTelemetry.onRerankStart],
+          callbacks: [telemetryDispatcher.onRerankStart],
         });
 
         const modelResponse = await model.doRerank({
@@ -240,7 +240,7 @@ export async function rerank<VALUE extends JSONObject | string>({
             documentsType: documentsToSend.type,
             ranking,
           },
-          callbacks: [unifiedTelemetry.onRerankFinish],
+          callbacks: [telemetryDispatcher.onRerankFinish],
         });
 
         return {
@@ -281,7 +281,7 @@ export async function rerank<VALUE extends JSONObject | string>({
           body: response?.body,
         },
       },
-      callbacks: [onFinish, unifiedTelemetry.onFinish],
+      callbacks: [onFinish, telemetryDispatcher.onFinish],
     });
 
     return new DefaultRerankResult({
@@ -301,7 +301,7 @@ export async function rerank<VALUE extends JSONObject | string>({
       },
     });
   } catch (error) {
-    await unifiedTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw error;
   }
 }
