@@ -110,7 +110,7 @@ tool({
 By default, tools with an `execute` function run automatically as the model calls them. You can require approval before execution in two ways:
 
 - Set `needsApproval` on an individual tool to define its default approval behavior
-- Set `toolApproval` on `generateText` or `streamText` to configure approval for specific tools at call time
+- Set `toolApproval` on `generateText` or `streamText` to configure approval for specific tools at call time using approval statuses
 
 Use `needsApproval` when the tool should usually require approval wherever it is used. Use `toolApproval` when approval depends on the specific request or runtime context. If both are provided, `toolApproval` takes precedence.
 
@@ -139,23 +139,30 @@ const result = await generateText({
   model: __MODEL__,
   tools: { runCommand },
   toolApproval: {
-    runCommand: true,
+    runCommand: 'user-approval',
   },
   prompt: 'Remove the most recent file in the downloads folder',
 });
 ```
 
-`toolApproval` can also be a function per tool, which lets you decide dynamically based on the tool input and runtime options such as `toolCallId`, `messages`, and `context`.
+`toolApproval` accepts one of four statuses per tool:
+
+- `'not-applicable'`: no approval is required
+- `'approved'`: approve automatically and continue in the same generation
+- `'denied'`: deny automatically and surface a denied tool output
+- `'user-approval'`: emit an approval request and wait for an explicit response
+
+`toolApproval` can also be a function per tool, which lets you return one of these statuses dynamically based on the tool input and runtime options such as `toolCallId`, `messages`, and `toolContext`.
 
 This is useful for tools that perform sensitive operations like executing commands, processing payments, modifying data, and more potentially dangerous actions.
 
 ### How It Works
 
-When a tool requires approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
+When a tool requires manual approval, `generateText` and `streamText` don't pause execution. Instead, they complete and return `tool-approval-request` parts in the result content. This means the manual approval flow requires two calls to the model: the first returns the approval request, and the second (after receiving the approval response) either executes the tool or informs the model that approval was denied.
 
-The approval requirement can come from either tool-level `needsApproval` or call-level `toolApproval`.
+Manual approval can come from either tool-level `needsApproval` or call-level `toolApproval` returning `'user-approval'`. If `toolApproval` returns `'approved'` or `'denied'`, the SDK records the decision automatically in the same generation.
 
-Here's the complete flow:
+Here's the manual approval flow:
 
 1. Call `generateText` or `streamText` with approval configured via `needsApproval` or `toolApproval`
 2. The model generates a tool call
@@ -184,7 +191,7 @@ const result = await generateText({
 messages.push(...result.response.messages);
 
 for (const part of result.content) {
-  if (part.type === 'tool-approval-request') {
+  if (part.type === 'tool-approval-request' && !part.isAutomatic) {
     console.log(part.approvalId); // Unique ID for this approval request
     console.log(part.toolCall); // Contains toolName, input, etc.
   }
@@ -199,7 +206,7 @@ import { type ToolApprovalResponse } from 'ai';
 const approvals: ToolApprovalResponse[] = [];
 
 for (const part of result.content) {
-  if (part.type === 'tool-approval-request') {
+  if (part.type === 'tool-approval-request' && !part.isAutomatic) {
     const response: ToolApprovalResponse = {
       type: 'tool-approval-response',
       approvalId: part.approvalId,
@@ -215,6 +222,8 @@ messages.push({ role: 'tool', content: approvals });
 ```
 
 Then call `generateText` or `streamText` again with the updated messages. If approved, the tool executes. If denied, the model receives the denial and can respond accordingly.
+
+When approval is handled automatically with `'approved'` or `'denied'`, the result includes a `tool-approval-request` with `isAutomatic: true` followed by a `tool-approval-response`, so you can inspect or render the decision without prompting the user again.
 
 <Note>
   When a tool execution is denied, consider adding a system instruction like
@@ -248,7 +257,7 @@ const paymentTool = tool({
 
 In this example, only transactions over $1000 require approval. Smaller transactions execute automatically.
 
-You can use the same function shape in `toolApproval` when you want that decision to be defined at call time instead of on the tool itself.
+You can use a similar function in `toolApproval` when you want to return `'not-applicable'`, `'approved'`, `'denied'`, or `'user-approval'` at call time instead of defining the default on the tool itself.
 
 ### Tool Execution Approval with useChat
 
