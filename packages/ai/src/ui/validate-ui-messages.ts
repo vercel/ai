@@ -119,6 +119,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -135,6 +136,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -154,6 +156,7 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -174,6 +177,7 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -191,6 +195,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -228,6 +233,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.never().optional(),
                     reason: z.never().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -243,6 +249,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.boolean(),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
                 z.object({
@@ -261,6 +268,7 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -280,6 +288,7 @@ const uiMessagesSchema = lazySchema(() =>
                       id: z.string(),
                       approved: z.literal(true),
                       reason: z.string().optional(),
+                      isAutomatic: z.boolean().optional(),
                     })
                     .optional(),
                 }),
@@ -296,6 +305,7 @@ const uiMessagesSchema = lazySchema(() =>
                     id: z.string(),
                     approved: z.literal(false),
                     reason: z.string().optional(),
+                    isAutomatic: z.boolean().optional(),
                   }),
                 }),
               ]),
