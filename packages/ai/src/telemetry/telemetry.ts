@@ -1,7 +1,7 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type {
-  EmbedOnFinishEvent,
-  EmbedOnStartEvent,
+  EmbedEndEvent,
+  EmbedStartEvent,
   EmbeddingModelCallEndEvent,
   EmbeddingModelCallStartEvent,
 } from '../embed/embed-events';
@@ -23,8 +23,8 @@ import type {
   ToolExecutionStartEvent,
 } from '../generate-text/tool-execution-events';
 import type {
-  RerankOnFinishEvent,
-  RerankOnStartEvent,
+  RerankEndEvent,
+  RerankStartEvent,
   RerankingModelCallEndEvent,
   RerankingModelCallStartEvent,
 } from '../rerank/rerank-events';
@@ -37,14 +37,14 @@ export type InferTelemetryEvent<EVENT> = EVENT &
 type OperationStartEvent =
   | GenerateTextStartEvent
   | ObjectOnStartEvent
-  | EmbedOnStartEvent
-  | RerankOnStartEvent;
+  | EmbedStartEvent
+  | RerankStartEvent;
 
 type OperationFinishEvent =
   | GenerateTextEndEvent<ToolSet>
   | ObjectOnFinishEvent<unknown>
-  | EmbedOnFinishEvent
-  | RerankOnFinishEvent;
+  | EmbedEndEvent
+  | RerankEndEvent;
 
 export interface TelemetryDispatcher {
   onStart?: Callback<OperationStartEvent>;
