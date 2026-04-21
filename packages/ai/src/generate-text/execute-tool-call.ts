@@ -47,9 +47,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   messages,
   abortSignal,
   timeout,
-  stepNumber,
-  provider,
-  modelId,
   onPreliminaryToolResult,
   onToolExecutionStart,
   onToolExecutionEnd,
@@ -63,9 +60,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   toolsContext: InferToolSetContext<TOOLS>;
   timeout?: TimeoutConfiguration<TOOLS>;
-  stepNumber?: number;
-  provider?: string;
-  modelId?: string;
   onPreliminaryToolResult?: (result: TypedToolResult<TOOLS>) => void;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
@@ -90,11 +84,7 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 
   const baseCallbackEvent = {
     callId,
-    stepNumber,
-    provider,
-    modelId,
     toolCall,
-    messages,
     functionId: telemetry?.functionId,
     context, // TODO rename to toolContext
   };

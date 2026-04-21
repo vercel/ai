@@ -188,12 +188,9 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     activeTools: undefined,
     steps: [],
     providerOptions: undefined,
-    timeout: undefined,
-    headers: undefined,
-    stopWhen: undefined,
-    output: undefined,
     abortSignal: undefined,
     include: undefined,
+    output: undefined,
     functionId: undefined,
     runtimeContext: {},
     toolsContext: {},
@@ -282,16 +279,12 @@ function makeFinishEvent(overrides?: Record<string, unknown>) {
 function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
-    stepNumber: 0,
-    provider: model.provider,
-    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
       toolName: 'myTool',
       input: { query: 'test' },
     },
-    messages: [],
     abortSignal: undefined,
     functionId: undefined,
     context: {},
@@ -306,16 +299,12 @@ function makeToolCallFinishEvent(
 ) {
   const base = {
     callId,
-    stepNumber: 0,
-    provider: model.provider,
-    modelId: model.modelId,
     toolCall: {
       type: 'tool-call' as const,
       toolCallId: 'tool-call-1',
       toolName: 'myTool',
       input: { query: 'test' },
     },
-    messages: [],
     abortSignal: undefined,
     durationMs: 42,
     functionId: undefined,

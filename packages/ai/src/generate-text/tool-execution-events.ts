@@ -1,8 +1,4 @@
-import type {
-  InferToolSetContext,
-  ModelMessage,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
+import type { InferToolSetContext, ToolSet } from '@ai-sdk/provider-utils';
 import { Callback } from '../util/callback';
 import type { TypedToolCall } from './tool-call';
 
@@ -15,20 +11,8 @@ export interface ToolExecutionStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
-  /** Zero-based index of the current step where this tool call occurs. */
-  readonly stepNumber: number | undefined;
-
-  /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string | undefined;
-
-  /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string | undefined;
-
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
-
-  /** The conversation messages available at tool execution time. */
-  readonly messages: Array<ModelMessage>;
 
   /** Identifier from telemetry settings for grouping related operations. */
   readonly functionId: string | undefined;
@@ -47,20 +31,8 @@ export type ToolExecutionEndEvent<TOOLS extends ToolSet = ToolSet> = {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
-  /** Zero-based index of the current step where this tool call occurred. */
-  readonly stepNumber: number | undefined;
-
-  /** The provider identifier (e.g., 'openai', 'anthropic'). */
-  readonly provider: string | undefined;
-
-  /** The specific model identifier (e.g., 'gpt-4o'). */
-  readonly modelId: string | undefined;
-
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
-
-  /** The conversation messages available at tool execution time. */
-  readonly messages: Array<ModelMessage>;
 
   /** Execution time of the tool call in milliseconds. */
   readonly durationMs: number;

@@ -524,9 +524,6 @@ export async function generateText<
         abortSignal: mergedAbortSignal,
         timeout,
         toolsContext,
-        stepNumber: 0,
-        provider: model.provider,
-        modelId: model.modelId,
         onToolExecutionStart: event =>
           notify({
             event,
@@ -683,11 +680,8 @@ export async function generateText<
             activeTools: prepareStepResult?.activeTools ?? activeTools,
             steps: [...steps],
             providerOptions: stepProviderOptions,
-            timeout,
-            headers,
-            stopWhen,
-            output,
             functionId: telemetry?.functionId,
+            output,
             runtimeContext,
             promptMessages,
             stepTools,
@@ -827,9 +821,6 @@ export async function generateText<
               abortSignal: mergedAbortSignal,
               timeout,
               toolsContext,
-              stepNumber: steps.length,
-              provider: stepModel.provider,
-              modelId: stepModel.modelId,
               onToolExecutionStart: event =>
                 notify({
                   event,
@@ -1063,9 +1054,6 @@ async function executeTools<TOOLS extends ToolSet>({
   abortSignal,
   timeout,
   toolsContext,
-  stepNumber,
-  provider,
-  modelId,
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
@@ -1078,9 +1066,6 @@ async function executeTools<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   toolsContext: InferToolSetContext<TOOLS>;
-  stepNumber: number;
-  provider: string;
-  modelId: string;
   onToolExecutionStart?: OnToolExecutionStartCallback<TOOLS>;
   onToolExecutionEnd?: OnToolExecutionEndCallback<TOOLS>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
@@ -1097,9 +1082,6 @@ async function executeTools<TOOLS extends ToolSet>({
           abortSignal,
           timeout,
           toolsContext,
-          stepNumber,
-          provider,
-          modelId,
           onToolExecutionStart,
           onToolExecutionEnd,
           executeToolInTelemetryContext,

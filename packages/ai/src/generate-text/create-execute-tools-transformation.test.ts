@@ -342,9 +342,6 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: { testTool: { value: 'test' } },
-          stepNumber: 2,
-          provider: 'test-provider',
-          modelId: 'test-model',
           onToolExecutionStart: async event => {
             startEvents.push(event);
           },
