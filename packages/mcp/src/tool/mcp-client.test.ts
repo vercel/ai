@@ -13,7 +13,8 @@ import {
   Configuration,
   ElicitationRequestSchema,
 } from './types';
-import { JSONRPCRequest } from './json-rpc-message';
+import { JSONRPCMessage, JSONRPCRequest } from './json-rpc-message';
+import { MCPTransport } from './mcp-transport';
 import {
   beforeEach,
   afterEach,
@@ -922,6 +923,90 @@ describe('MCPClient', () => {
       expect(tools).toBeDefined();
       await client.close();
     }
+  });
+
+  it('should pass negotiated protocol version back to the transport', async () => {
+    const transport = Object.assign(
+      new MockMCPTransport({
+        initializeResult: {
+          protocolVersion: '2025-06-18',
+          serverInfo: {
+            name: 'mock-mcp-server',
+            version: '1.0.0',
+          },
+          capabilities: {
+            tools: {},
+          },
+        },
+      }),
+      {
+        setProtocolVersion: vi.fn(),
+      },
+    );
+
+    client = await createMCPClient({ transport });
+
+    expect(transport.setProtocolVersion).toHaveBeenCalledWith('2025-06-18');
+  });
+
+  it('should use the negotiated protocol version for the initialized notification', async () => {
+    const sentMessages: Array<{
+      message: JSONRPCMessage;
+      protocolVersion?: string;
+    }> = [];
+    let protocolVersion: string | undefined;
+
+    const transport: MCPTransport = {
+      onmessage: undefined,
+      onclose: undefined,
+      onerror: undefined,
+      async start() {},
+      async send(message) {
+        sentMessages.push({ message, protocolVersion });
+
+        if (
+          'method' in message &&
+          'id' in message &&
+          message.method === 'initialize'
+        ) {
+          this.onmessage?.({
+            jsonrpc: '2.0',
+            id: message.id,
+            result: {
+              protocolVersion: '2025-06-18',
+              serverInfo: {
+                name: 'mock-mcp-server',
+                version: '1.0.0',
+              },
+              capabilities: {
+                tools: {},
+              },
+            },
+          });
+        }
+      },
+      async close() {},
+      setProtocolVersion(nextProtocolVersion) {
+        protocolVersion = nextProtocolVersion;
+      },
+    };
+
+    client = await createMCPClient({ transport });
+
+    expect(sentMessages).toMatchObject([
+      {
+        protocolVersion: undefined,
+        message: {
+          method: 'initialize',
+        },
+      },
+      {
+        protocolVersion: '2025-06-18',
+        message: {
+          method: 'notifications/initialized',
+        },
+      },
+    ]);
   });
 
   it('should expose serverInfo from initialization', async () => {

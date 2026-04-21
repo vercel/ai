@@ -14,7 +14,6 @@ import {
   UnauthorizedError,
   auth,
 } from './oauth';
-import { LATEST_PROTOCOL_VERSION } from './types';
 
 /**
  * HTTP MCP transport implementing the Streamable HTTP style.
@@ -27,6 +26,7 @@ export class HttpMCPTransport implements MCPTransport {
   private url: URL;
   private abortController?: AbortController;
   private headers?: Record<string, string>;
+  private protocolVersion?: string;
   private authProvider?: OAuthClientProvider;
   private resourceMetadataUrl?: URL;
   private sessionId?: string;
@@ -74,8 +74,11 @@ export class HttpMCPTransport implements MCPTransport {
     const headers: Record<string, string> = {
       ...this.headers,
       ...base,
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
     };
+
+    if (this.protocolVersion) {
+      headers['mcp-protocol-version'] = this.protocolVersion;
+    }
 
     if (this.sessionId) {
       headers['mcp-session-id'] = this.sessionId;
@@ -93,6 +96,10 @@ export class HttpMCPTransport implements MCPTransport {
       `ai-sdk/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
+  }
+
+  setProtocolVersion(protocolVersion: string): void {
+    this.protocolVersion = protocolVersion;
   }
 
   async start(): Promise<void> {

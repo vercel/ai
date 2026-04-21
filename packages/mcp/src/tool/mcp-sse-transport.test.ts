@@ -5,7 +5,6 @@ import {
 import { MCPClientError } from '../error/mcp-client-error';
 import { SseMCPTransport } from './mcp-sse-transport';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LATEST_PROTOCOL_VERSION } from './types';
 
 describe('SseMCPTransport', () => {
   const server = createTestServer({
@@ -52,9 +51,41 @@ describe('SseMCPTransport', () => {
     expect(server.calls[0].requestMethod).toBe('GET');
     expect(server.calls[0].requestUrl).toBe('http://localhost:3000/sse');
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       accept: 'text/event-stream',
     });
+  });
+
+  it('should send negotiated protocol version on subsequent POST requests', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    const connectPromise = transport.start();
+    controller.write(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+    await connectPromise;
+
+    (
+      transport as unknown as {
+        setProtocolVersion(protocolVersion: string): void;
+      }
+    ).setProtocolVersion('2025-06-18');
+
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'notifications/initialized',
+    });
+
+    expect(server.calls[1].requestHeaders).toEqual({
+      'content-type': 'application/json',
+      'mcp-protocol-version': '2025-06-18',
+    });
+
+    await transport.close();
   });
 
   it('should throw if server returns non-200 status', async () => {
@@ -268,7 +299,6 @@ describe('SseMCPTransport', () => {
 
     // Verify SSE connection headers
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       accept: 'text/event-stream',
       ...customHeaders,
     });
@@ -277,7 +307,6 @@ describe('SseMCPTransport', () => {
     // Verify POST request headers
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       ...customHeaders,
     });
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');

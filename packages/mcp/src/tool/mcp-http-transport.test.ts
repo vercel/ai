@@ -4,7 +4,6 @@ import {
 } from '@ai-sdk/test-server/with-vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HttpMCPTransport } from './mcp-http-transport';
-import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
 
 describe('HttpMCPTransport', () => {
@@ -45,8 +44,56 @@ describe('HttpMCPTransport', () => {
     expect(received).toEqual({ jsonrpc: '2.0', id: 1, result: { ok: true } });
 
     expect(server.calls[1].requestMethod).toBe('POST');
+    expect(server.calls[0].requestHeaders).toEqual({
+      accept: 'text/event-stream',
+    });
     expect(server.calls[1].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      accept: 'application/json, text/event-stream',
+      'content-type': 'application/json',
+    });
+  });
+
+  it('should send negotiated protocol version on subsequent requests', async () => {
+    server.urls['http://localhost:4000/mcp'].response = ({ callNumber }) => {
+      switch (callNumber) {
+        case 0:
+          return { type: 'error', status: 405 };
+        case 1:
+          return {
+            type: 'json-value',
+            body: { jsonrpc: '2.0', id: 1, result: { ok: true } },
+          };
+        case 2:
+          return {
+            type: 'json-value',
+            body: { ok: true },
+          };
+        default:
+          return { type: 'empty', status: 200 };
+      }
+    };
+
+    await transport.start();
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'initialize',
+      id: 1,
+      params: {},
+    });
+
+    (
+      transport as unknown as {
+        setProtocolVersion(protocolVersion: string): void;
+      }
+    ).setProtocolVersion('2025-06-18');
+
+    await transport.send({
+      jsonrpc: '2.0' as const,
+      method: 'notifications/initialized',
+    });
+
+    expect(server.calls[2].requestHeaders).toEqual({
+      'mcp-protocol-version': '2025-06-18',
       accept: 'application/json, text/event-stream',
       'content-type': 'application/json',
     });
@@ -318,7 +365,6 @@ describe('HttpMCPTransport', () => {
     await transport.send(message);
 
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       accept: 'text/event-stream',
       ...customHeaders,
     });
@@ -326,7 +372,6 @@ describe('HttpMCPTransport', () => {
 
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
       accept: 'application/json, text/event-stream',
       ...customHeaders,
     });

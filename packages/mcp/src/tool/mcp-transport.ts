@@ -27,6 +27,12 @@ export interface MCPTransport {
   close(): Promise<void>;
 
   /**
+   * Update the protocol version header used for HTTP-based follow-up requests
+   * after initialization negotiation completes.
+   */
+  setProtocolVersion?(protocolVersion: string): void;
+
+  /**
    * Event handler for transport closure
    */
   onclose?: () => void;
