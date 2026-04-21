@@ -12,9 +12,8 @@ export const groqTranscriptionModelOptions = lazySchema(() =>
     z.object({
       language: z.string().nullish(),
       prompt: z.string().nullish(),
-      responseFormat: z.string().nullish(),
       temperature: z.number().min(0).max(1).nullish(),
-      timestampGranularities: z.array(z.string()).nullish(),
+      timestampGranularities: z.array(z.enum(['word', 'segment'])).nullish(),
     }),
   ),
 );
