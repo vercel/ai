@@ -3547,7 +3547,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'toUIMessageStream',
       type: '(options?: UIMessageStreamOptions) => AsyncIterableStream<UIMessageChunk>',
       description:
-        'Converts the result to a UI message stream. Returns an AsyncIterableStream that can be used as both an AsyncIterable and a ReadableStream.',
+        'Converts the result to a UI message stream. Returns an AsyncIterableStream that can be used as both an AsyncIterable and a ReadableStream. The stream includes tool approval request and response chunks, including automatic approval metadata when available.',
       properties: [
         {
           type: 'UIMessageStreamOptions',
