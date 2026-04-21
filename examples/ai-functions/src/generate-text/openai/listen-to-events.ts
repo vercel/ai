@@ -28,7 +28,7 @@ async function main() {
     },
     experimental_onStepStart: event => {
       console.log('\n--- onStepStart ---');
-      console.log('Step:', event.steps[event.steps.length - 1].stepNumber);
+      console.log('Step:', event.steps.length);
       console.log('Message count:', event.messages.length);
     },
     experimental_onToolExecutionStart: event => {
