@@ -207,15 +207,23 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         ? (googleOptions?.streamFunctionCallArguments ?? false)
         : undefined;
 
+    const sanitizedGoogleToolConfig =
+      isVertexProvider && googleToolConfig?.includeServerSideToolInvocations
+        ? (({
+            includeServerSideToolInvocations: _ignored,
+            ...toolConfig
+          }) => toolConfig)(googleToolConfig)
+        : googleToolConfig;
+
     const toolConfig =
-      googleToolConfig ||
+      sanitizedGoogleToolConfig ||
       streamFunctionCallArguments ||
       googleOptions?.retrievalConfig
         ? {
-            ...googleToolConfig,
+            ...sanitizedGoogleToolConfig,
             ...(streamFunctionCallArguments && {
               functionCallingConfig: {
-                ...googleToolConfig?.functionCallingConfig,
+                ...sanitizedGoogleToolConfig?.functionCallingConfig,
                 streamFunctionCallArguments: true as const,
               },
             }),
