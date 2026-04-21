@@ -14,9 +14,6 @@ export interface ToolExecutionStartEvent<TOOLS extends ToolSet = ToolSet> {
   /** The full tool call object. */
   readonly toolCall: TypedToolCall<TOOLS>;
 
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
   /** User-defined context object flowing through the generation. */
   readonly context: InferToolSetContext<TOOLS>;
 }
@@ -36,9 +33,6 @@ export type ToolExecutionEndEvent<TOOLS extends ToolSet = ToolSet> = {
 
   /** Execution time of the tool call in milliseconds. */
   readonly durationMs: number;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 
   /** User-defined context object flowing through the generation. */
   readonly context: InferToolSetContext<TOOLS>;

@@ -244,12 +244,6 @@ const result = await generateText({
         'Settings for controlling what data is included in step results.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
       name: 'runtimeContext',
       type: 'CONTEXT',
       description:
@@ -359,12 +353,6 @@ const result = await generateText({
         'Settings for controlling what data is included in step results.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
       name: 'runtimeContext',
       type: 'CONTEXT',
       description:
@@ -450,12 +438,6 @@ const result = await generateText({
       name: 'abortSignal',
       type: 'AbortSignal | undefined',
       description: 'Signal for cancelling the operation.',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
     },
     {
       name: 'context',
@@ -548,12 +530,6 @@ const result = await generateText({
       name: 'durationMs',
       type: 'number',
       description: 'Execution time of the tool call in milliseconds.',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
     },
     {
       name: 'context',
@@ -697,12 +673,6 @@ const result = await generateText({
       type: 'LanguageModelResponseMetadata',
       description:
         'Additional response information including id, modelId, timestamp, headers, and messages.',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
     },
     {
       name: 'runtimeContext',
@@ -853,12 +823,6 @@ const result = await generateText({
       description: 'Additional response information from the final step.',
     },
     {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
-    {
       name: 'runtimeContext',
       type: 'CONTEXT',
       description:
@@ -941,12 +905,6 @@ const result = await embed({
       type: 'ProviderOptions | undefined',
       description: 'Additional provider-specific options.',
     },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
   ]}
 />
 
@@ -1016,12 +974,6 @@ const result = await embedMany({
       type: '{ headers?: Record<string, string>; body?: unknown } | Array<{ headers?: Record<string, string>; body?: unknown } | undefined> | undefined',
       description:
         'Response data. A single response for embed, or an array for embedMany (one per chunk).',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
     },
   ]}
 />
@@ -1098,12 +1050,6 @@ const result = await rerank({
       type: 'ProviderOptions | undefined',
       description: 'Additional provider-specific options.',
     },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
-    },
   ]}
 />
 
@@ -1172,12 +1118,6 @@ const result = await rerank({
       name: 'response',
       type: '{ id?: string; timestamp: Date; modelId: string; headers?: Record<string, string>; body?: unknown }',
       description: 'Response data including headers and body.',
-    },
-    {
-      name: 'functionId',
-      type: 'string | undefined',
-      description:
-        'Identifier from telemetry settings for grouping related operations.',
     },
   ]}
 />

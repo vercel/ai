@@ -6,7 +6,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import { TimeoutConfiguration } from '../prompt/request-options';
 import type { Telemetry } from '../telemetry/telemetry';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { executeToolCall } from './execute-tool-call';
 import { resolveToolApproval } from './resolve-tool-approval';
 import { LanguageModelStreamPart } from './stream-language-model-call';
@@ -19,7 +18,6 @@ import {
 
 export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   tools,
-  telemetry,
   callId,
   messages,
   abortSignal,
@@ -32,7 +30,6 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   executeToolInTelemetryContext,
 }: {
   tools: TOOLS | undefined;
-  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
@@ -162,7 +159,6 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
                 const result = await executeToolCall({
                   toolCall,
                   tools,
-                  telemetry,
                   callId,
                   messages,
                   abortSignal,

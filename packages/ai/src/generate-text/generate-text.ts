@@ -37,7 +37,7 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { Telemetry } from '../telemetry/telemetry';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import {
@@ -453,8 +453,8 @@ export async function generateText<
 
   const callId = generateCallId();
 
-  const unifiedTelemetry = createUnifiedTelemetry({
-    integrations: telemetry?.integrations,
+  const telemetryDispatcher = createTelemetryDispatcher({
+    telemetry,
   });
 
   await notify({
@@ -484,16 +484,12 @@ export async function generateText<
       providerOptions,
       stopWhen,
       output,
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
       runtimeContext,
       toolsContext,
     },
     callbacks: [
       onStart,
-      unifiedTelemetry.onStart as
+      telemetryDispatcher.onStart as
         | undefined
         | GenerateTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
     ],
@@ -519,7 +515,6 @@ export async function generateText<
           toolApproval => toolApproval.toolCall,
         ),
         tools: tools as TOOLS,
-        telemetry,
         callId,
         messages: initialMessages,
         abortSignal: mergedAbortSignal,
@@ -530,7 +525,7 @@ export async function generateText<
             event,
             callbacks: [
               onToolExecutionStart,
-              unifiedTelemetry.onToolExecutionStart as
+              telemetryDispatcher.onToolExecutionStart as
                 | undefined
                 | OnToolExecutionStartCallback<TOOLS>,
             ],
@@ -540,12 +535,12 @@ export async function generateText<
             event,
             callbacks: [
               onToolExecutionEnd,
-              unifiedTelemetry.onToolExecutionEnd as
+              telemetryDispatcher.onToolExecutionEnd as
                 | undefined
                 | OnToolExecutionEndCallback<TOOLS>,
             ],
           }),
-        executeToolInTelemetryContext: unifiedTelemetry.executeTool,
+        executeToolInTelemetryContext: telemetryDispatcher.executeTool,
       });
 
       const toolContent: Array<any> = [];
@@ -684,7 +679,6 @@ export async function generateText<
             activeTools: prepareStepResult?.activeTools ?? activeTools,
             steps: [...steps],
             providerOptions: stepProviderOptions,
-            functionId: telemetry?.functionId,
             output,
             runtimeContext,
             promptMessages,
@@ -694,7 +688,7 @@ export async function generateText<
           },
           callbacks: [
             onStepStart,
-            unifiedTelemetry.onStepStart as
+            telemetryDispatcher.onStepStart as
               | undefined
               | GenerateTextOnStepStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
           ],
@@ -873,7 +867,6 @@ export async function generateText<
                   !blockedToolCallIds.has(toolCall.toolCallId),
               ),
               tools,
-              telemetry,
               callId,
               messages: stepInputMessages,
               abortSignal: mergedAbortSignal,
@@ -884,7 +877,7 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolExecutionStart,
-                    unifiedTelemetry.onToolExecutionStart as
+                    telemetryDispatcher.onToolExecutionStart as
                       | undefined
                       | OnToolExecutionStartCallback<TOOLS>,
                   ],
@@ -894,12 +887,12 @@ export async function generateText<
                   event,
                   callbacks: [
                     onToolExecutionEnd,
-                    unifiedTelemetry.onToolExecutionEnd as
+                    telemetryDispatcher.onToolExecutionEnd as
                       | undefined
                       | OnToolExecutionEndCallback<TOOLS>,
                   ],
                 }),
-              executeToolInTelemetryContext: unifiedTelemetry.executeTool,
+              executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             })),
           );
         }
@@ -978,7 +971,6 @@ export async function generateText<
             stepNumber,
             provider: stepModel.provider,
             modelId: stepModel.modelId,
-            functionId: telemetry?.functionId,
             runtimeContext,
             content: stepContent,
             finishReason: currentModelResponse.finishReason.unified,
@@ -1003,7 +995,7 @@ export async function generateText<
           event: currentStepResult,
           callbacks: [
             onStepFinish,
-            unifiedTelemetry.onStepFinish as
+            telemetryDispatcher.onStepFinish as
               | undefined
               | GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>,
           ],
@@ -1044,7 +1036,6 @@ export async function generateText<
       callId,
       stepNumber: lastStep.stepNumber,
       model: lastStep.model,
-      functionId: lastStep.functionId,
       runtimeContext: lastStep.runtimeContext,
       finishReason: lastStep.finishReason,
       rawFinishReason: lastStep.rawFinishReason,
@@ -1074,7 +1065,7 @@ export async function generateText<
       event: onFinishEvent,
       callbacks: [
         onFinish,
-        unifiedTelemetry.onFinish as
+        telemetryDispatcher.onFinish as
           | undefined
           | GenerateTextOnFinishCallback<TOOLS, RUNTIME_CONTEXT>,
       ],
@@ -1100,7 +1091,7 @@ export async function generateText<
       output: resolvedOutput,
     });
   } catch (error) {
-    await unifiedTelemetry.onError?.({ callId, error });
+    await telemetryDispatcher.onError?.({ callId, error });
     throw wrapGatewayError(error);
   }
 }
@@ -1108,7 +1099,6 @@ export async function generateText<
 async function executeTools<TOOLS extends ToolSet>({
   toolCalls,
   tools,
-  telemetry,
   callId,
   messages,
   abortSignal,
@@ -1120,7 +1110,6 @@ async function executeTools<TOOLS extends ToolSet>({
 }: {
   toolCalls: Array<TypedToolCall<TOOLS>>;
   tools: TOOLS;
-  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
@@ -1136,7 +1125,6 @@ async function executeTools<TOOLS extends ToolSet>({
         await executeToolCall({
           toolCall,
           tools,
-          telemetry,
           callId,
           messages,
           abortSignal,

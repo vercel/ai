@@ -70,7 +70,6 @@ describe('createExecuteToolsTransformation', () => {
       createExecuteToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         timeout: undefined,
@@ -148,7 +147,6 @@ describe('createExecuteToolsTransformation', () => {
     const transformedStream = createExecuteToolsTransformation({
       generateId: mockId({ prefix: 'id' }),
       tools,
-      telemetry: undefined,
       callId: 'test-telemetry-call-id',
       messages: [],
       abortSignal: undefined,
@@ -243,7 +241,6 @@ describe('createExecuteToolsTransformation', () => {
       createExecuteToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -284,7 +281,6 @@ describe('createExecuteToolsTransformation', () => {
       createExecuteToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -404,7 +400,6 @@ describe('createExecuteToolsTransformation', () => {
       createExecuteToolsTransformation({
         generateId: mockId({ prefix: 'id' }),
         tools,
-        telemetry: undefined,
         callId: 'test-telemetry-call-id',
         messages: [],
         abortSignal: undefined,
@@ -515,7 +510,6 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
@@ -565,7 +559,6 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
@@ -589,7 +582,6 @@ describe('createExecuteToolsTransformation', () => {
             "context": {
               "value": "test",
             },
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -609,7 +601,6 @@ describe('createExecuteToolsTransformation', () => {
               "value": "test",
             },
             "durationMs": 0,
-            "functionId": undefined,
             "output": "test-result",
             "success": true,
             "toolCall": {
@@ -650,7 +641,6 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
@@ -670,7 +660,6 @@ describe('createExecuteToolsTransformation', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "output": "abc-result",
             "success": true,
             "toolCall": {
@@ -716,7 +705,6 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
@@ -737,7 +725,6 @@ describe('createExecuteToolsTransformation', () => {
             "context": undefined,
             "durationMs": 0,
             "error": [Error: tool failed],
-            "functionId": undefined,
             "success": false,
             "toolCall": {
               "input": {
@@ -778,7 +765,6 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
@@ -832,7 +818,6 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
@@ -854,7 +839,6 @@ describe('createExecuteToolsTransformation', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "a",
@@ -867,7 +851,6 @@ describe('createExecuteToolsTransformation', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "b",
@@ -885,7 +868,6 @@ describe('createExecuteToolsTransformation', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "output": "a-result",
             "success": true,
             "toolCall": {
@@ -901,7 +883,6 @@ describe('createExecuteToolsTransformation', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "output": "b-result",
             "success": true,
             "toolCall": {
@@ -953,7 +934,6 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           timeout: undefined,
@@ -1002,7 +982,6 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           abortSignal: undefined,
@@ -1061,7 +1040,6 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           abortSignal: undefined,
@@ -1148,7 +1126,6 @@ describe('createExecuteToolsTransformation', () => {
         createExecuteToolsTransformation({
           generateId: mockId({ prefix: 'id' }),
           tools,
-          telemetry: undefined,
           callId: 'test-telemetry-call-id',
           messages: [],
           abortSignal: undefined,

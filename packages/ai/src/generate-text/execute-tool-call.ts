@@ -13,7 +13,6 @@ import {
   getToolTimeoutMs,
   TimeoutConfiguration,
 } from '../prompt/request-options';
-import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { notify } from '../util/notify';
 import { now } from '../util/now';
@@ -42,7 +41,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
   toolsContext,
-  telemetry,
   callId,
   messages,
   abortSignal,
@@ -54,7 +52,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
 }: {
   toolCall: TypedToolCall<TOOLS>;
   tools: TOOLS | undefined;
-  telemetry: TelemetryOptions | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
@@ -85,7 +82,6 @@ export async function executeToolCall<TOOLS extends ToolSet>({
   const baseCallbackEvent = {
     callId,
     toolCall,
-    functionId: telemetry?.functionId,
     context, // TODO rename to toolContext
   };
 

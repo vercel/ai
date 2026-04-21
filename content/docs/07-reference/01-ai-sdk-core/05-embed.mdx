@@ -165,12 +165,6 @@ const { embedding } = await embed({
               type: 'ProviderOptions | undefined',
               description: 'Additional provider-specific options.',
             },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
           ],
         },
       ],
@@ -229,12 +223,6 @@ const { embedding } = await embed({
               name: 'response',
               type: '{ headers?: Record<string, string>; body?: unknown } | undefined',
               description: 'Optional response data including headers and body.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
           ],
         },

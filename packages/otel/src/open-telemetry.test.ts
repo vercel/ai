@@ -147,7 +147,6 @@ let callIdCounter = 0;
 
 function telemetryFields() {
   return {
-    isEnabled: true as const,
     recordInputs: undefined,
     recordOutputs: undefined,
     functionId: undefined,
@@ -207,7 +206,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
     abortSignal: undefined,
     output: undefined,
     include: undefined,
-    functionId: undefined,
+    ...telemetryFields(),
     runtimeContext: {},
     promptMessages: undefined,
     stepTools: undefined,
@@ -222,7 +221,7 @@ function makeStepFinishEvent(overrides?: Record<string, unknown>) {
     callId,
     stepNumber: 0,
     model,
-    functionId: undefined,
+    ...telemetryFields(),
     runtimeContext: {},
     content: [{ type: 'text' as const, text: 'Hello world' }],
     text: 'Hello world',
@@ -302,7 +301,7 @@ function makeToolCallStartEvent(overrides?: Record<string, unknown>) {
       input: { query: 'test' },
     },
     abortSignal: undefined,
-    functionId: undefined,
+    ...telemetryFields(),
     context: {},
     toolsContext: {},
     ...overrides,
@@ -323,7 +322,7 @@ function makeToolCallFinishEvent(
     },
     abortSignal: undefined,
     durationMs: 42,
-    functionId: undefined,
+    ...telemetryFields(),
     context: {},
     toolsContext: {},
     ...overrides,
@@ -389,22 +388,6 @@ describe('OpenTelemetry', () => {
       const attrs = getStartSpanAttributes(tracer, 0);
       expect(attrs['ai.operationId']).toBe('ai.generateText');
       expect(attrs['operation.name']).toBe('ai.generateText');
-    });
-
-    it('does not create a span when telemetry is disabled', () => {
-      otelIntegration.onStart!(
-        makeOnStartEvent({
-          isEnabled: false,
-        }),
-      );
-
-      expect(tracer.startSpan).not.toHaveBeenCalled();
-    });
-
-    it('should create a span when isEnabled is not defined explicitly', () => {
-      otelIntegration.onStart?.(makeOnStartEvent({ isEnabled: undefined }));
-
-      expect(tracer.startSpan).toHaveBeenCalled();
     });
 
     it('uses a tracer configured for the call id', () => {

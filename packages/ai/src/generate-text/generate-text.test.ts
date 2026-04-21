@@ -895,8 +895,8 @@ describe('generateText', () => {
         },
       });
 
-      expect(startEvent.isEnabled).toBe(true);
-      expect(startEvent.functionId).toBe('deprecated-fn');
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('functionId');
     });
 
     it('should send correct information with system and messages', async () => {
@@ -1657,7 +1657,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "test-arg",
@@ -1717,7 +1716,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "a",
@@ -1733,7 +1731,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "b",
@@ -1895,7 +1892,6 @@ describe('generateText', () => {
             "context": {
               "context": "test",
             },
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -1951,7 +1947,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "output": "test-arg-result",
             "success": true,
             "toolCall": {
@@ -2011,7 +2006,6 @@ describe('generateText', () => {
             "context": undefined,
             "durationMs": 0,
             "error": [Error: tool execution failed],
-            "functionId": undefined,
             "success": false,
             "toolCall": {
               "input": {
@@ -2171,7 +2165,6 @@ describe('generateText', () => {
               "context": "test",
             },
             "durationMs": 0,
-            "functionId": undefined,
             "output": "test-result",
             "success": true,
             "toolCall": {
@@ -2235,7 +2228,6 @@ describe('generateText', () => {
             },
             "durationMs": 0,
             "error": [Error: Tool execution failed],
-            "functionId": undefined,
             "success": false,
             "toolCall": {
               "input": {
@@ -2404,7 +2396,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "step0",
@@ -2420,7 +2411,6 @@ describe('generateText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "step1",
@@ -2441,7 +2431,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "output": "step0-result",
             "success": true,
             "toolCall": {
@@ -2460,7 +2449,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "output": "step1-result",
             "success": true,
             "toolCall": {
@@ -2560,7 +2548,6 @@ describe('generateText', () => {
           "dynamicToolResults": [],
           "files": [],
           "finishReason": "stop",
-          "functionId": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -2674,7 +2661,6 @@ describe('generateText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -3203,7 +3189,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3282,7 +3267,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3434,7 +3418,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3513,7 +3496,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -3904,7 +3886,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -4003,7 +3984,6 @@ describe('generateText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -7172,7 +7152,6 @@ describe('generateText', () => {
                 },
               ],
               "finishReason": "tool-calls",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",

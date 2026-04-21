@@ -5067,7 +5067,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5210,7 +5209,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5298,7 +5296,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5408,7 +5405,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -5613,8 +5609,8 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(startEvent.isEnabled).toBe(true);
-      expect(startEvent.functionId).toBe('deprecated-fn');
+      expect(startEvent).not.toHaveProperty('isEnabled');
+      expect(startEvent).not.toHaveProperty('functionId');
     });
 
     it('should pass runtimeContext', async () => {
@@ -6074,7 +6070,7 @@ describe('streamText', () => {
       });
     });
 
-    it('should expose functionId from telemetry', async () => {
+    it('should not expose telemetry metadata in onStepStart', async () => {
       let stepStartEvent!: Parameters<
         StreamTextOnStepStartCallback<any, any>
       >[0];
@@ -6093,7 +6089,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(stepStartEvent.functionId).toBe('test-function');
+      expect(stepStartEvent).not.toHaveProperty('functionId');
     });
 
     it('should pass updated toolsContext from prepareStep', async () => {
@@ -6259,7 +6255,6 @@ describe('streamText', () => {
           {
             "callId": "test-telemetry-call-id",
             "context": undefined,
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "test-arg",
@@ -6522,7 +6517,6 @@ describe('streamText', () => {
             "context": {
               "context": "test",
             },
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6835,7 +6829,6 @@ describe('streamText', () => {
               "context": "test",
             },
             "durationMs": 0,
-            "functionId": undefined,
             "output": "test-result",
             "success": true,
             "toolCall": {
@@ -6911,7 +6904,6 @@ describe('streamText', () => {
             },
             "durationMs": 0,
             "error": [Error: Tool execution failed],
-            "functionId": undefined,
             "success": false,
             "toolCall": {
               "input": {
@@ -7385,7 +7377,6 @@ describe('streamText', () => {
           "dynamicToolResults": [],
           "files": [],
           "finishReason": "stop",
-          "functionId": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -7503,7 +7494,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -7700,7 +7690,6 @@ describe('streamText', () => {
           "dynamicToolResults": [],
           "files": [],
           "finishReason": "stop",
-          "functionId": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -7793,7 +7782,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -7975,7 +7963,6 @@ describe('streamText', () => {
             },
           ],
           "finishReason": "stop",
-          "functionId": undefined,
           "model": {
             "modelId": "mock-model-id",
             "provider": "mock-provider",
@@ -8049,7 +8036,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -8686,7 +8672,6 @@ describe('streamText', () => {
               "dynamicToolResults": [],
               "files": [],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -8787,7 +8772,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -8871,7 +8855,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -9032,7 +9015,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9116,7 +9098,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9294,7 +9275,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9378,7 +9358,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -9892,7 +9871,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -9973,7 +9951,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10124,7 +10101,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10205,7 +10181,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10581,7 +10556,6 @@ describe('streamText', () => {
               "dynamicToolResults": [],
               "files": [],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -10682,7 +10656,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10766,7 +10739,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "stop",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -10927,7 +10899,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11011,7 +10982,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11185,7 +11155,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "tool-calls",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11269,7 +11238,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -11607,7 +11575,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -11717,7 +11684,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -13958,7 +13924,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -14463,7 +14428,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -14698,7 +14662,6 @@ describe('streamText', () => {
             "dynamicToolResults": [],
             "files": [],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -14816,7 +14779,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -15047,7 +15009,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -15501,7 +15462,6 @@ describe('streamText', () => {
               },
             ],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -15991,7 +15951,6 @@ describe('streamText', () => {
             "dynamicToolResults": [],
             "files": [],
             "finishReason": "stop",
-            "functionId": undefined,
             "model": {
               "modelId": "mock-model-id",
               "provider": "mock-provider",
@@ -16035,7 +15994,6 @@ describe('streamText', () => {
                   },
                 ],
                 "finishReason": "stop",
-                "functionId": undefined,
                 "model": {
                   "modelId": "mock-model-id",
                   "provider": "mock-provider",
@@ -17132,7 +17090,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",
@@ -17523,7 +17480,6 @@ describe('streamText', () => {
                     },
                   ],
                   "finishReason": "tool-calls",
-                  "functionId": undefined,
                   "model": {
                     "modelId": "mock-model-id",
                     "provider": "mock-provider",
@@ -18581,7 +18537,6 @@ describe('streamText', () => {
                 },
               ],
               "finishReason": "stop",
-              "functionId": undefined,
               "model": {
                 "modelId": "mock-model-id",
                 "provider": "mock-provider",

@@ -32,6 +32,7 @@ import type {
   RerankOnFinishEvent,
   RerankOnStartEvent,
   RerankStartEvent,
+  InferTelemetryEvent,
   Telemetry,
   TelemetryOptions,
   ToolSet,
@@ -183,23 +184,25 @@ export class GenAIOpenTelemetry implements Telemetry {
 
   onStart(
     event:
-      | OnStartEvent
-      | ObjectOnStartEvent
-      | EmbedOnStartEvent
-      | RerankOnStartEvent,
+      | InferTelemetryEvent<OnStartEvent>
+      | InferTelemetryEvent<ObjectOnStartEvent>
+      | InferTelemetryEvent<EmbedOnStartEvent>
+      | InferTelemetryEvent<RerankOnStartEvent>,
   ): void {
-    if (event.isEnabled === false) return;
-
     if (
       event.operationId === 'ai.embed' ||
       event.operationId === 'ai.embedMany'
     ) {
-      this.onEmbedOperationStart(event as EmbedOnStartEvent);
+      this.onEmbedOperationStart(
+        event as InferTelemetryEvent<EmbedOnStartEvent>,
+      );
       return;
     }
 
     if (event.operationId === 'ai.rerank') {
-      this.onRerankOperationStart(event as RerankOnStartEvent);
+      this.onRerankOperationStart(
+        event as InferTelemetryEvent<RerankOnStartEvent>,
+      );
       return;
     }
 
@@ -207,16 +210,17 @@ export class GenAIOpenTelemetry implements Telemetry {
       event.operationId === 'ai.generateObject' ||
       event.operationId === 'ai.streamObject'
     ) {
-      this.onObjectOperationStart(event as ObjectOnStartEvent);
+      this.onObjectOperationStart(
+        event as InferTelemetryEvent<ObjectOnStartEvent>,
+      );
       return;
     }
 
-    this.onGenerateStart(event as OnStartEvent);
+    this.onGenerateStart(event as InferTelemetryEvent<OnStartEvent>);
   }
 
-  private onGenerateStart(event: OnStartEvent): void {
+  private onGenerateStart(event: InferTelemetryEvent<OnStartEvent>): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
@@ -294,9 +298,10 @@ export class GenAIOpenTelemetry implements Telemetry {
     });
   }
 
-  private onObjectOperationStart(event: ObjectOnStartEvent): void {
+  private onObjectOperationStart(
+    event: InferTelemetryEvent<ObjectOnStartEvent>,
+  ): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
@@ -457,9 +462,10 @@ export class GenAIOpenTelemetry implements Telemetry {
     state.inferenceContext = undefined;
   }
 
-  private onEmbedOperationStart(event: EmbedOnStartEvent): void {
+  private onEmbedOperationStart(
+    event: InferTelemetryEvent<EmbedOnStartEvent>,
+  ): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,
@@ -828,9 +834,10 @@ export class GenAIOpenTelemetry implements Telemetry {
     state.embedSpans.delete(event.embedCallId);
   }
 
-  private onRerankOperationStart(event: RerankOnStartEvent): void {
+  private onRerankOperationStart(
+    event: InferTelemetryEvent<RerankOnStartEvent>,
+  ): void {
     const telemetry: TelemetryOptions = {
-      isEnabled: event.isEnabled,
       recordInputs: event.recordInputs,
       recordOutputs: event.recordOutputs,
       functionId: event.functionId,

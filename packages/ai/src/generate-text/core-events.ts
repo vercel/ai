@@ -109,18 +109,6 @@ export interface OnStartEvent<
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Whether telemetry is enabled. Defaults to `true`. */
-  readonly isEnabled: boolean | undefined;
-
-  /** Whether to record inputs in telemetry. Enabled by default. */
-  readonly recordInputs: boolean | undefined;
-
-  /** Whether to record outputs in telemetry. Enabled by default. */
-  readonly recordOutputs: boolean | undefined;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
   /**
    * Tool context.
    */
@@ -189,9 +177,6 @@ export interface OnStepStartEvent<
   /** The output specification for structured outputs, if configured. */
   readonly output: OUTPUT | undefined;
 
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
-
   /**
    * Runtime context. May be updated from `prepareStep` between steps.
    */
@@ -247,7 +232,4 @@ export type OnFinishEvent<
 
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;
-
-  /** Identifier from telemetry settings for grouping related operations. */
-  readonly functionId: string | undefined;
 };

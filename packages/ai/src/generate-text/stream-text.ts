@@ -40,7 +40,7 @@ import {
 } from '../prompt/request-options';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -862,8 +862,8 @@ class DefaultStreamTextResult<
     this.includeRawChunks = includeRawChunks;
     this.tools = tools;
 
-    const unifiedTelemetry = createUnifiedTelemetry({
-      integrations: telemetry?.integrations,
+    const telemetryDispatcher = createTelemetryDispatcher({
+      telemetry,
     });
 
     // promise to ensure that the step has been fully processed by the event processor
@@ -1076,7 +1076,6 @@ class DefaultStreamTextResult<
               stepNumber: recordedSteps.length,
               provider: model.provider,
               modelId: model.modelId,
-              ...callbackTelemetryProps,
               runtimeContext,
               toolsContext,
               content: recordedContent,
@@ -1094,7 +1093,7 @@ class DefaultStreamTextResult<
 
           await notify({
             event: currentStepResult,
-            callbacks: [onStepFinish, unifiedTelemetry.onStepFinish],
+            callbacks: [onStepFinish, telemetryDispatcher.onStepFinish],
           });
 
           logWarnings({
@@ -1158,7 +1157,6 @@ class DefaultStreamTextResult<
               toolsContext: finalStep.toolsContext,
               stepNumber: finalStep.stepNumber,
               model: finalStep.model,
-              functionId: finalStep.functionId,
               runtimeContext: finalStep.runtimeContext,
               finishReason: finalStep.finishReason,
               rawFinishReason: finalStep.rawFinishReason,
@@ -1184,7 +1182,7 @@ class DefaultStreamTextResult<
             },
             callbacks: [
               onFinish,
-              unifiedTelemetry.onFinish as
+              telemetryDispatcher.onFinish as
                 | undefined
                 | StreamTextOnFinishCallback<
                     NoInfer<TOOLS>,
@@ -1296,15 +1294,6 @@ class DefaultStreamTextResult<
     const self = this;
 
     const callId = generateCallId();
-    const callbackTelemetryProps = {
-      functionId: telemetry?.functionId,
-    };
-    const onStartTelemetryProps = {
-      isEnabled: telemetry?.isEnabled ?? true,
-      recordInputs: telemetry?.recordInputs,
-      recordOutputs: telemetry?.recordOutputs,
-      functionId: telemetry?.functionId,
-    };
 
     (async () => {
       const initialPrompt = await standardizePrompt({
@@ -1340,13 +1329,12 @@ class DefaultStreamTextResult<
           providerOptions,
           stopWhen,
           output,
-          ...onStartTelemetryProps,
           runtimeContext,
           toolsContext,
         },
         callbacks: [
           onStart,
-          unifiedTelemetry.onStart as
+          telemetryDispatcher.onStart as
             | undefined
             | StreamTextOnStartCallback<TOOLS, RUNTIME_CONTEXT, OUTPUT>,
         ],
@@ -1403,7 +1391,6 @@ class DefaultStreamTextResult<
               const result = await executeToolCall({
                 toolCall: toolApproval.toolCall,
                 tools,
-                telemetry,
                 callId,
                 messages: initialMessages,
                 abortSignal,
@@ -1411,17 +1398,17 @@ class DefaultStreamTextResult<
                 toolsContext,
                 onToolExecutionStart: filterNullable(
                   onToolExecutionStart,
-                  unifiedTelemetry.onToolExecutionStart as
+                  telemetryDispatcher.onToolExecutionStart as
                     | OnToolExecutionStartCallback<TOOLS>
                     | undefined,
                 ),
                 onToolExecutionEnd: filterNullable(
                   onToolExecutionEnd,
-                  unifiedTelemetry.onToolExecutionEnd as
+                  telemetryDispatcher.onToolExecutionEnd as
                     | OnToolExecutionEndCallback<TOOLS>
                     | undefined,
                 ),
-                executeToolInTelemetryContext: unifiedTelemetry.executeTool,
+                executeToolInTelemetryContext: telemetryDispatcher.executeTool,
                 onPreliminaryToolResult: result => {
                   toolExecutionStepStreamController?.enqueue(result);
                 },
@@ -1606,7 +1593,6 @@ class DefaultStreamTextResult<
                     activeTools: prepareStepResult?.activeTools ?? activeTools,
                     steps: [...recordedSteps],
                     providerOptions: stepProviderOptions,
-                    ...callbackTelemetryProps,
                     runtimeContext,
                     toolsContext,
                     output,
@@ -1616,7 +1602,7 @@ class DefaultStreamTextResult<
                   },
                   callbacks: [
                     onStepStart,
-                    unifiedTelemetry.onStepStart as
+                    telemetryDispatcher.onStepStart as
                       | undefined
                       | StreamTextOnStepStartCallback<
                           TOOLS,
@@ -1641,7 +1627,6 @@ class DefaultStreamTextResult<
           const streamWithToolResults = stream2.pipeThrough(
             createExecuteToolsTransformation({
               tools,
-              telemetry,
               callId,
               messages: stepInputMessages,
               abortSignal,
@@ -1651,17 +1636,17 @@ class DefaultStreamTextResult<
               generateId,
               onToolExecutionStart: filterNullable(
                 onToolExecutionStart,
-                unifiedTelemetry.onToolExecutionStart as
+                telemetryDispatcher.onToolExecutionStart as
                   | OnToolExecutionStartCallback<TOOLS>
                   | undefined,
               ),
               onToolExecutionEnd: filterNullable(
                 onToolExecutionEnd,
-                unifiedTelemetry.onToolExecutionEnd as
+                telemetryDispatcher.onToolExecutionEnd as
                   | OnToolExecutionEndCallback<TOOLS>
                   | undefined,
               ),
-              executeToolInTelemetryContext: unifiedTelemetry.executeTool,
+              executeToolInTelemetryContext: telemetryDispatcher.executeTool,
             }),
           );
 
@@ -1713,7 +1698,7 @@ class DefaultStreamTextResult<
                       warnings: warnings ?? [],
                     });
 
-                    void unifiedTelemetry.onChunk?.({
+                    void telemetryDispatcher.onChunk?.({
                       chunk: {
                         type: 'ai.stream.firstChunk',
                         callId,
@@ -1797,7 +1782,7 @@ class DefaultStreamTextResult<
                       stepRawFinishReason = chunk.rawFinishReason;
                       stepProviderMetadata = chunk.providerMetadata;
                       const msToFinish = now() - stepStartTimestampMs;
-                      void unifiedTelemetry.onChunk?.({
+                      void telemetryDispatcher.onChunk?.({
                         chunk: {
                           type: 'ai.stream.finish',
                           callId,
@@ -1837,7 +1822,7 @@ class DefaultStreamTextResult<
                     chunkType !== 'model-call-end' &&
                     chunkType !== 'model-call-response-metadata'
                   ) {
-                    void unifiedTelemetry.onChunk?.({ chunk });
+                    void telemetryDispatcher.onChunk?.({ chunk });
                   }
                 },
 
@@ -1979,7 +1964,7 @@ class DefaultStreamTextResult<
         usage: createNullLanguageModelUsage(),
       });
     })().catch(async error => {
-      await unifiedTelemetry.onError?.({ callId, error });
+      await telemetryDispatcher.onError?.({ callId, error });
 
       // add an error stream part and close the streams:
       self.addStream(

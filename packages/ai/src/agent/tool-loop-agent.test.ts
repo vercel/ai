@@ -1972,7 +1972,6 @@ describe('ToolLoopAgent', () => {
           {
             "callId": "call-0",
             "context": undefined,
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -2177,7 +2176,6 @@ describe('ToolLoopAgent', () => {
           {
             "callId": "call-1",
             "context": undefined,
-            "functionId": undefined,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -2390,7 +2388,6 @@ describe('ToolLoopAgent', () => {
             "callId": "call-2",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "output": "hello-result",
             "success": true,
             "toolCall": {
@@ -2598,7 +2595,6 @@ describe('ToolLoopAgent', () => {
             "callId": "call-3",
             "context": undefined,
             "durationMs": 0,
-            "functionId": undefined,
             "output": "hello-result",
             "success": true,
             "toolCall": {

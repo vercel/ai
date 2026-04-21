@@ -178,12 +178,6 @@ const { embeddings } = await embedMany({
               type: 'ProviderOptions | undefined',
               description: 'Additional provider-specific options.',
             },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
-            },
           ],
         },
       ],
@@ -245,12 +239,6 @@ const { embeddings } = await embedMany({
               type: 'Array<{ headers?: Record<string, string>; body?: unknown } | undefined>',
               description:
                 'Response data from each embedding call. There may be multiple responses if the request was split into chunks.',
-            },
-            {
-              name: 'functionId',
-              type: 'string | undefined',
-              description:
-                'Identifier from telemetry settings for grouping related operations.',
             },
           ],
         },

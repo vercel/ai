@@ -369,8 +369,8 @@ These are useful for logging, observability, debugging, and custom telemetry.
 const result = await myAgent.generate({
   prompt: 'Research and summarize the latest AI trends',
 
-  experimental_onStart({ model, functionId }) {
-    console.log('Agent started', { model: model.modelId, functionId });
+  experimental_onStart({ model }) {
+    console.log('Agent started', { model: model.modelId });
   },
 
   experimental_onStepStart({ stepNumber, model }) {

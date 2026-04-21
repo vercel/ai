@@ -23,7 +23,7 @@ import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-mode
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
-import { createUnifiedTelemetry } from '../telemetry/create-unified-telemetry';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import { TelemetryOptions } from '../telemetry/telemetry-options';
 import { createTextStreamResponse } from '../text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../text-stream/pipe-text-stream-to-response';
@@ -469,8 +469,8 @@ class DefaultStreamObjectResult<
 
     const callSettings = prepareLanguageModelCallOptions(settings);
 
-    const unifiedTelemetry = createUnifiedTelemetry({
-      integrations: telemetry?.integrations,
+    const telemetryDispatcher = createTelemetryDispatcher({
+      telemetry,
     });
 
     const self = this;
@@ -525,12 +525,8 @@ class DefaultStreamObjectResult<
           schema: jsonSchema as Record<string, unknown> | undefined,
           schemaName,
           schemaDescription,
-          isEnabled: telemetry?.isEnabled ?? true,
-          recordInputs: telemetry?.recordInputs,
-          recordOutputs: telemetry?.recordOutputs,
-          functionId: telemetry?.functionId,
         },
-        callbacks: [onStart, unifiedTelemetry.onStart],
+        callbacks: [onStart, telemetryDispatcher.onStart],
       });
 
       const standardizedPrompt = await standardizePrompt({
@@ -567,10 +563,9 @@ class DefaultStreamObjectResult<
           modelId: model.modelId,
           providerOptions,
           headers,
-          functionId: telemetry?.functionId,
           promptMessages: callOptions.prompt,
         },
-        callbacks: [onStepStart, unifiedTelemetry.onObjectStepStart],
+        callbacks: [onStepStart, telemetryDispatcher.onObjectStepStart],
       });
 
       const transformer: Transformer<
@@ -784,11 +779,10 @@ class DefaultStreamObjectResult<
                       headers: response?.headers,
                     },
                     providerMetadata,
-                    functionId: telemetry?.functionId,
                   },
                   callbacks: [
                     onStepFinish,
-                    unifiedTelemetry.onObjectStepFinish,
+                    telemetryDispatcher.onObjectStepFinish,
                   ],
                 });
 
@@ -807,9 +801,8 @@ class DefaultStreamObjectResult<
                       headers: response?.headers,
                     },
                     providerMetadata,
-                    functionId: telemetry?.functionId,
                   },
-                  callbacks: [onFinish, unifiedTelemetry.onFinish],
+                  callbacks: [onFinish, telemetryDispatcher.onFinish],
                 });
               } catch (error) {
                 controller.enqueue({ type: 'error', error });
@@ -821,7 +814,7 @@ class DefaultStreamObjectResult<
       stitchableStream.addStream(transformedStream);
     })()
       .catch(async error => {
-        await unifiedTelemetry.onError?.({ callId, error });
+        await telemetryDispatcher.onError?.({ callId, error });
 
         stitchableStream.addStream(
           new ReadableStream({
