@@ -300,6 +300,25 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     });
                   }
 
+                  // add synthetic execution-denied result for denied tool approvals
+                  if (
+                    toolPart.state === 'approval-responded' &&
+                    toolPart.approval?.approved === false
+                  ) {
+                    content.push({
+                      type: 'tool-result',
+                      toolCallId: toolPart.toolCallId,
+                      toolName: getToolName(toolPart),
+                      output: {
+                        type: 'execution-denied' as const,
+                        reason: toolPart.approval.reason,
+                      },
+                      ...(toolPart.callProviderMetadata != null
+                        ? { providerOptions: toolPart.callProviderMetadata }
+                        : {}),
+                    });
+                  }
+
                   // For provider-executed tools, the tool result is already in the
                   // assistant content. Skip adding to tool message to avoid duplicates
                   // (which would create orphaned function_call_output entries).
