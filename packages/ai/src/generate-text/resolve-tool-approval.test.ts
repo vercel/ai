@@ -27,10 +27,10 @@ describe('resolveToolApproval', () => {
       toolsContext: {},
     });
 
-    expect(result).toBe('not-applicable');
+    expect(result).toEqual({ type: 'not-applicable' });
   });
 
-  it('returns a user-defined static approval value before checking tool-defined approval', async () => {
+  it('normalizes a user-defined static string approval value before checking tool-defined approval', async () => {
     const toolDefinedNeedsApproval = vi.fn(() => true);
 
     const result = await resolveToolApproval({
@@ -48,8 +48,32 @@ describe('resolveToolApproval', () => {
       toolsContext: {},
     });
 
-    expect(result).toBe('denied');
+    expect(result).toEqual({ type: 'denied' });
     expect(toolDefinedNeedsApproval).not.toHaveBeenCalled();
+  });
+
+  it('passes through a user-defined object approval value including its reason', async () => {
+    const result = await resolveToolApproval({
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+        }),
+      },
+      toolApproval: {
+        weather: {
+          type: 'denied',
+          reason: 'blocked by policy',
+        },
+      },
+      toolCall: createToolCall(),
+      messages: [...messages],
+      toolsContext: {},
+    });
+
+    expect(result).toEqual({
+      type: 'denied',
+      reason: 'blocked by policy',
+    });
   });
 
   it('uses a user-defined approval callback before tool-defined approval', async () => {
@@ -74,7 +98,7 @@ describe('resolveToolApproval', () => {
       },
     });
 
-    expect(result).toBe('approved');
+    expect(result).toEqual({ type: 'approved' });
     expect(userDefinedNeedsApproval).toHaveBeenCalledTimes(1);
     expect(userDefinedNeedsApproval).toHaveBeenCalledWith(
       { city: 'Berlin' },
@@ -85,6 +109,30 @@ describe('resolveToolApproval', () => {
       },
     );
     expect(toolDefinedNeedsApproval).not.toHaveBeenCalled();
+  });
+
+  it('passes through a reason returned by a user-defined approval callback', async () => {
+    const result = await resolveToolApproval({
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+        }),
+      },
+      toolApproval: {
+        weather: vi.fn(() => ({
+          type: 'approved' as const,
+          reason: 'trusted internal tool',
+        })),
+      },
+      toolCall: createToolCall(),
+      messages: [...messages],
+      toolsContext: {},
+    });
+
+    expect(result).toEqual({
+      type: 'approved',
+      reason: 'trusted internal tool',
+    });
   });
 
   it('passes tool input and options to a user-defined approval callback without a context schema', async () => {
@@ -114,6 +162,24 @@ describe('resolveToolApproval', () => {
     );
   });
 
+  it('normalizes a string status returned by a user-defined approval callback', async () => {
+    const result = await resolveToolApproval({
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ city: z.string() }),
+        }),
+      },
+      toolApproval: {
+        weather: vi.fn(() => 'user-approval' as const),
+      },
+      toolCall: createToolCall(),
+      messages: [...messages],
+      toolsContext: {},
+    });
+
+    expect(result).toEqual({ type: 'user-approval' });
+  });
+
   it('maps tool-defined boolean approval to the public approval state', async () => {
     const approvedToolResult = await resolveToolApproval({
       tools: {
@@ -141,8 +207,8 @@ describe('resolveToolApproval', () => {
       toolsContext: {},
     });
 
-    expect(approvedToolResult).toBe('user-approval');
-    expect(notApplicableToolResult).toBe('not-applicable');
+    expect(approvedToolResult).toEqual({ type: 'user-approval' });
+    expect(notApplicableToolResult).toEqual({ type: 'not-applicable' });
   });
 
   it('passes tool input and validated context to a tool-defined approval callback', async () => {
@@ -164,7 +230,7 @@ describe('resolveToolApproval', () => {
       },
     });
 
-    expect(result).toBe('user-approval');
+    expect(result).toEqual({ type: 'user-approval' });
     expect(toolDefinedNeedsApproval).toHaveBeenCalledWith(
       { city: 'Berlin' },
       {
