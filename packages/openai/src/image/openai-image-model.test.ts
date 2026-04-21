@@ -263,7 +263,6 @@ describe('doGenerate', () => {
     expect(requestBody).not.toHaveProperty('response_format');
   });
 
-
   it('should handle null revised_prompt responses', async () => {
     server.urls['https://api.openai.com/v1/images/generations'].response = {
       type: 'json-value',
