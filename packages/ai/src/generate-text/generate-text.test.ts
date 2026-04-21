@@ -8456,7 +8456,10 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: 'denied',
+            tool1: {
+              type: 'denied',
+              reason: 'blocked by policy',
+            },
           },
         });
       });
@@ -8513,7 +8516,7 @@ describe('generateText', () => {
                 "content": [
                   {
                     "output": {
-                      "reason": undefined,
+                      "reason": "blocked by policy",
                       "type": "execution-denied",
                     },
                     "providerOptions": undefined,
@@ -8560,12 +8563,12 @@ describe('generateText', () => {
                   "approvalId": "id-1",
                   "approved": false,
                   "providerExecuted": undefined,
-                  "reason": undefined,
+                  "reason": "blocked by policy",
                   "type": "tool-approval-response",
                 },
                 {
                   "output": {
-                    "reason": undefined,
+                    "reason": "blocked by policy",
                     "type": "execution-denied",
                   },
                   "toolCallId": "call-1",
@@ -8647,7 +8650,10 @@ describe('generateText', () => {
             }),
           },
           toolApproval: {
-            tool1: 'approved',
+            tool1: {
+              type: 'approved',
+              reason: 'trusted internal tool',
+            },
           },
         });
       });
@@ -8758,7 +8764,7 @@ describe('generateText', () => {
                   "approvalId": "id-1",
                   "approved": true,
                   "providerExecuted": undefined,
-                  "reason": undefined,
+                  "reason": "trusted internal tool",
                   "type": "tool-approval-response",
                 },
                 {

@@ -291,7 +291,10 @@ describe('createExecuteToolsTransformation', () => {
         timeout: undefined,
         toolsContext: {},
         toolApproval: {
-          approvedTool: 'approved',
+          approvedTool: {
+            type: 'approved',
+            reason: 'trusted internal tool',
+          },
         },
       }),
     );
@@ -324,6 +327,7 @@ describe('createExecuteToolsTransformation', () => {
             "approvalId": "id-0",
             "approved": true,
             "providerExecuted": undefined,
+            "reason": "trusted internal tool",
             "toolCall": {
               "input": {
                 "value": "test",
@@ -407,7 +411,10 @@ describe('createExecuteToolsTransformation', () => {
         timeout: undefined,
         toolsContext: {},
         toolApproval: {
-          deniedTool: 'denied',
+          deniedTool: {
+            type: 'denied',
+            reason: 'blocked by policy',
+          },
         },
       }),
     );
@@ -440,6 +447,7 @@ describe('createExecuteToolsTransformation', () => {
             "approvalId": "id-0",
             "approved": false,
             "providerExecuted": undefined,
+            "reason": "blocked by policy",
             "toolCall": {
               "input": {
                 "value": "test",

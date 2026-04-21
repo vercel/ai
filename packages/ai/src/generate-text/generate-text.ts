@@ -788,7 +788,7 @@ export async function generateText<
             toolsContext,
           });
 
-          switch (toolApprovalStatus) {
+          switch (toolApprovalStatus.type) {
             case 'user-approval': {
               toolApprovalRequests[toolCall.toolCallId] = {
                 type: 'tool-approval-request',
@@ -813,6 +813,7 @@ export async function generateText<
                 approvalId,
                 toolCall,
                 approved: true,
+                reason: toolApprovalStatus.reason,
                 providerExecuted: toolCall.providerExecuted,
               };
               break;
@@ -832,6 +833,7 @@ export async function generateText<
                 approvalId,
                 toolCall,
                 approved: false,
+                reason: toolApprovalStatus.reason,
                 providerExecuted: toolCall.providerExecuted,
               };
               blockedToolCallIds.add(toolCall.toolCallId);
