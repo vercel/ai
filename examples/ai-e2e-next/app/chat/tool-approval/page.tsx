@@ -6,12 +6,12 @@ import {
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from 'ai';
 import ChatInput from '@/components/chat-input';
-import { WeatherWithApprovalAgentUIMessage } from '@/agent/anthropic/weather-with-approval-agent';
+import { OpenAIWeatherToolApprovalAgentUIMessage } from '@/agent/openai/weather-tool-approval-agent';
 import WeatherWithApprovalView from '@/components/tool/weather-with-approval-view';
 
 export default function TestToolApproval() {
   const { status, sendMessage, messages, addToolApprovalResponse } =
-    useChat<WeatherWithApprovalAgentUIMessage>({
+    useChat<OpenAIWeatherToolApprovalAgentUIMessage>({
       transport: new DefaultChatTransport({ api: '/api/chat/tool-approval' }),
       sendAutomaticallyWhen:
         lastAssistantMessageIsCompleteWithApprovalResponses,
