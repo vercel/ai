@@ -116,6 +116,7 @@ describe('google-vertex-anthropic-provider', () => {
     const customHeaders = { 'Custom-Header': 'custom-value' };
     const provider = createVertexAnthropic({
       project: 'test-project',
+      location: 'test-location',
       headers: customHeaders,
     });
     provider('test-model-id');
@@ -143,7 +144,7 @@ describe('google-vertex-anthropic-provider', () => {
   });
 
   it('should not support URL sources to force base64 conversion', () => {
-    const provider = createVertexAnthropic();
+    const provider = createVertexAnthropic({ location: 'test-location' });
     provider('test-model-id');
 
     // Assert that the model constructor was called with supportedUrls function
@@ -192,6 +193,48 @@ describe('google-vertex-anthropic-provider', () => {
       expect.objectContaining({
         baseURL:
           'https://us-east5-aiplatform.googleapis.com/v1/projects/test-project/locations/us-east5/publishers/anthropic/models',
+        provider: 'vertex.anthropic.messages',
+      }),
+    );
+  });
+
+  it('should use multi-region URL for the `us` location', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+      location: 'us',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        baseURL:
+          'https://aiplatform.us.rep.googleapis.com/v1/projects/test-project/locations/us/publishers/anthropic/models',
+        provider: 'vertex.anthropic.messages',
+      }),
+    );
+  });
+
+  it('should throw a clear error when no location is configured and no baseURL is set', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+    });
+
+    expect(() => provider('test-model-id')).toThrow(/No location was given/);
+  });
+
+  it('should use multi-region URL for the `eu` location', () => {
+    const provider = createVertexAnthropic({
+      project: 'test-project',
+      location: 'eu',
+    });
+    provider('test-model-id');
+
+    expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
+      'test-model-id',
+      expect.objectContaining({
+        baseURL:
+          'https://aiplatform.eu.rep.googleapis.com/v1/projects/test-project/locations/eu/publishers/anthropic/models',
         provider: 'vertex.anthropic.messages',
       }),
     );
