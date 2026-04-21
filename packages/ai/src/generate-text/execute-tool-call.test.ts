@@ -366,6 +366,7 @@ describe('executeToolCall', () => {
             },
             "durationMs": 100,
             "error": [Error: execution failed],
+            "functionId": "test-function",
             "success": false,
             "toolCall": {
               "dynamic": false,
@@ -602,6 +603,7 @@ describe('executeToolCall', () => {
             "context": {
               "key1": "value1",
             },
+            "functionId": "test-function",
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -623,6 +625,7 @@ describe('executeToolCall', () => {
               "key1": "value1",
             },
             "durationMs": 0,
+            "functionId": "test-function",
             "output": "test-result",
             "success": true,
             "toolCall": {
@@ -671,10 +674,6 @@ describe('executeToolCall', () => {
             "durationMs": 0,
             "error": [Error: test error],
             "functionId": undefined,
-            "messages": [],
-            "modelId": undefined,
-            "provider": undefined,
-            "stepNumber": undefined,
             "success": false,
             "toolCall": {
               "dynamic": false,

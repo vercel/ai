@@ -6260,15 +6260,6 @@ describe('streamText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "test-input",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "test-arg",
@@ -6532,15 +6523,6 @@ describe('streamText', () => {
               "context": "test",
             },
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -6854,16 +6836,7 @@ describe('streamText', () => {
             },
             "durationMs": 0,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "test-result",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": true,
             "toolCall": {
               "input": {
@@ -6939,15 +6912,6 @@ describe('streamText', () => {
             "durationMs": 0,
             "error": [Error: Tool execution failed],
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": false,
             "toolCall": {
               "input": {
