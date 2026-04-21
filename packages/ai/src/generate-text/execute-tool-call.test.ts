@@ -221,9 +221,6 @@ describe('executeToolCall', () => {
         messages: [{ role: 'user', content: 'test message' }],
         abortSignal: undefined,
         toolsContext: { testTool: { key1: 'value1' } },
-        stepNumber: 2,
-        provider: 'test-provider',
-        modelId: 'test-model',
         onToolExecutionStart: async event => {
           executionOrder.push('onToolExecutionStart');
           toolExecutionStartEvents.push(event);
@@ -238,15 +235,6 @@ describe('executeToolCall', () => {
               "key1": "value1",
             },
             "functionId": "test-function",
-            "messages": [
-              {
-                "content": "test message",
-                "role": "user",
-              },
-            ],
-            "modelId": "test-model",
-            "provider": "test-provider",
-            "stepNumber": 2,
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -310,9 +298,6 @@ describe('executeToolCall', () => {
         messages: [{ role: 'user', content: 'test message' }],
         abortSignal: undefined,
         toolsContext: { testTool: { key1: 'value1' } },
-        stepNumber: 3,
-        provider: 'test-provider',
-        modelId: 'test-model',
         onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
@@ -327,16 +312,7 @@ describe('executeToolCall', () => {
             },
             "durationMs": 50,
             "functionId": "test-function",
-            "messages": [
-              {
-                "content": "test message",
-                "role": "user",
-              },
-            ],
-            "modelId": "test-model",
             "output": "test-result",
-            "provider": "test-provider",
-            "stepNumber": 3,
             "success": true,
             "toolCall": {
               "dynamic": false,
@@ -376,9 +352,6 @@ describe('executeToolCall', () => {
         messages: [],
         abortSignal: undefined,
         toolsContext: { testTool: { key1: 'value1' } },
-        stepNumber: 1,
-        provider: 'provider-1',
-        modelId: 'model-1',
         onToolExecutionEnd: async event => {
           toolExecutionEndEvents.push(event);
         },
@@ -394,10 +367,6 @@ describe('executeToolCall', () => {
             "durationMs": 100,
             "error": [Error: execution failed],
             "functionId": "test-function",
-            "messages": [],
-            "modelId": "model-1",
-            "provider": "provider-1",
-            "stepNumber": 1,
             "success": false,
             "toolCall": {
               "dynamic": false,
@@ -619,9 +588,6 @@ describe('executeToolCall', () => {
         messages: [{ role: 'user', content: 'hello' }],
         abortSignal: undefined,
         toolsContext: { testTool: { key1: 'value1' } },
-        stepNumber: 2,
-        provider: 'test-provider',
-        modelId: 'test-model',
         onToolExecutionStart: async event => {
           startEvents.push(event);
         },
@@ -638,15 +604,6 @@ describe('executeToolCall', () => {
               "key1": "value1",
             },
             "functionId": "test-function",
-            "messages": [
-              {
-                "content": "hello",
-                "role": "user",
-              },
-            ],
-            "modelId": "test-model",
-            "provider": "test-provider",
-            "stepNumber": 2,
             "toolCall": {
               "dynamic": false,
               "input": {
@@ -669,16 +626,7 @@ describe('executeToolCall', () => {
             },
             "durationMs": 0,
             "functionId": "test-function",
-            "messages": [
-              {
-                "content": "hello",
-                "role": "user",
-              },
-            ],
-            "modelId": "test-model",
             "output": "test-result",
-            "provider": "test-provider",
-            "stepNumber": 2,
             "success": true,
             "toolCall": {
               "dynamic": false,
@@ -726,10 +674,6 @@ describe('executeToolCall', () => {
             "durationMs": 0,
             "error": [Error: test error],
             "functionId": undefined,
-            "messages": [],
-            "modelId": undefined,
-            "provider": undefined,
-            "stepNumber": undefined,
             "success": false,
             "toolCall": {
               "dynamic": false,

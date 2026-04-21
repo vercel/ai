@@ -563,9 +563,6 @@ describe('createExecuteToolsTransformation', () => {
           timeout: undefined,
           abortSignal: undefined,
           toolsContext: { testTool: { value: 'test' } },
-          stepNumber: 2,
-          provider: 'test-provider',
-          modelId: 'test-model',
           onToolExecutionStart: async event => {
             startEvents.push(event);
           },
@@ -585,10 +582,6 @@ describe('createExecuteToolsTransformation', () => {
               "value": "test",
             },
             "functionId": undefined,
-            "messages": [],
-            "modelId": "test-model",
-            "provider": "test-provider",
-            "stepNumber": 2,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -609,11 +602,7 @@ describe('createExecuteToolsTransformation', () => {
             },
             "durationMs": 0,
             "functionId": undefined,
-            "messages": [],
-            "modelId": "test-model",
             "output": "test-result",
-            "provider": "test-provider",
-            "stepNumber": 2,
             "success": true,
             "toolCall": {
               "input": {
@@ -674,11 +663,7 @@ describe('createExecuteToolsTransformation', () => {
             "context": undefined,
             "durationMs": 0,
             "functionId": undefined,
-            "messages": [],
-            "modelId": undefined,
             "output": "abc-result",
-            "provider": undefined,
-            "stepNumber": undefined,
             "success": true,
             "toolCall": {
               "input": {
@@ -745,10 +730,6 @@ describe('createExecuteToolsTransformation', () => {
             "durationMs": 0,
             "error": [Error: tool failed],
             "functionId": undefined,
-            "messages": [],
-            "modelId": undefined,
-            "provider": undefined,
-            "stepNumber": undefined,
             "success": false,
             "toolCall": {
               "input": {
@@ -866,10 +847,6 @@ describe('createExecuteToolsTransformation', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "functionId": undefined,
-            "messages": [],
-            "modelId": undefined,
-            "provider": undefined,
-            "stepNumber": undefined,
             "toolCall": {
               "input": {
                 "value": "a",
@@ -883,10 +860,6 @@ describe('createExecuteToolsTransformation', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "functionId": undefined,
-            "messages": [],
-            "modelId": undefined,
-            "provider": undefined,
-            "stepNumber": undefined,
             "toolCall": {
               "input": {
                 "value": "b",
@@ -905,11 +878,7 @@ describe('createExecuteToolsTransformation', () => {
             "context": undefined,
             "durationMs": 0,
             "functionId": undefined,
-            "messages": [],
-            "modelId": undefined,
             "output": "a-result",
-            "provider": undefined,
-            "stepNumber": undefined,
             "success": true,
             "toolCall": {
               "input": {
@@ -925,11 +894,7 @@ describe('createExecuteToolsTransformation', () => {
             "context": undefined,
             "durationMs": 0,
             "functionId": undefined,
-            "messages": [],
-            "modelId": undefined,
             "output": "b-result",
-            "provider": undefined,
-            "stepNumber": undefined,
             "success": true,
             "toolCall": {
               "input": {

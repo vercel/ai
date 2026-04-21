@@ -1658,15 +1658,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "test-input",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "test-arg",
@@ -1727,15 +1718,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "a",
@@ -1752,15 +1734,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "b",
@@ -1923,15 +1896,6 @@ describe('generateText', () => {
               "context": "test",
             },
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "test",
@@ -1988,16 +1952,7 @@ describe('generateText', () => {
             "context": undefined,
             "durationMs": 0,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "test-arg-result",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": true,
             "toolCall": {
               "input": {
@@ -2057,15 +2012,6 @@ describe('generateText', () => {
             "durationMs": 0,
             "error": [Error: tool execution failed],
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": false,
             "toolCall": {
               "input": {
@@ -2226,16 +2172,7 @@ describe('generateText', () => {
             },
             "durationMs": 0,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "test-result",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": true,
             "toolCall": {
               "input": {
@@ -2299,15 +2236,6 @@ describe('generateText', () => {
             "durationMs": 0,
             "error": [Error: Tool execution failed],
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": false,
             "toolCall": {
               "input": {
@@ -2477,15 +2405,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "toolCall": {
               "input": {
                 "value": "step0",
@@ -2502,44 +2421,6 @@ describe('generateText', () => {
             "callId": "test-telemetry-call-id",
             "context": undefined,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-              {
-                "content": [
-                  {
-                    "input": {
-                      "value": "step0",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-call",
-                  },
-                ],
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "text",
-                      "value": "step0-result",
-                    },
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-result",
-                  },
-                ],
-                "role": "tool",
-              },
-            ],
-            "modelId": "mock-model-id",
-            "provider": "mock-provider",
-            "stepNumber": 1,
             "toolCall": {
               "input": {
                 "value": "step1",
@@ -2561,16 +2442,7 @@ describe('generateText', () => {
             "context": undefined,
             "durationMs": 0,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "step0-result",
-            "provider": "mock-provider",
-            "stepNumber": 0,
             "success": true,
             "toolCall": {
               "input": {
@@ -2589,45 +2461,7 @@ describe('generateText', () => {
             "context": undefined,
             "durationMs": 0,
             "functionId": undefined,
-            "messages": [
-              {
-                "content": "prompt",
-                "role": "user",
-              },
-              {
-                "content": [
-                  {
-                    "input": {
-                      "value": "step0",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-call",
-                  },
-                ],
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "text",
-                      "value": "step0-result",
-                    },
-                    "toolCallId": "call-1",
-                    "toolName": "tool1",
-                    "type": "tool-result",
-                  },
-                ],
-                "role": "tool",
-              },
-            ],
-            "modelId": "mock-model-id",
             "output": "step1-result",
-            "provider": "mock-provider",
-            "stepNumber": 1,
             "success": true,
             "toolCall": {
               "input": {

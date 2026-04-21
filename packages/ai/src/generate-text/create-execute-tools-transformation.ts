@@ -27,9 +27,6 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   toolsContext,
   toolApproval,
   generateId,
-  stepNumber,
-  provider,
-  modelId,
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
@@ -43,9 +40,6 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   toolsContext: InferToolSetContext<TOOLS>;
   toolApproval?: ToolApprovalConfiguration<TOOLS>;
   generateId: IdGenerator;
-  stepNumber?: number;
-  provider?: string;
-  modelId?: string;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
@@ -172,9 +166,6 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
                   abortSignal,
                   timeout,
                   toolsContext,
-                  stepNumber,
-                  provider,
-                  modelId,
                   onToolExecutionStart,
                   onToolExecutionEnd,
                   executeToolInTelemetryContext,
