@@ -1409,9 +1409,6 @@ class DefaultStreamTextResult<
                 abortSignal,
                 timeout,
                 toolsContext,
-                stepNumber: recordedSteps.length,
-                provider: model.provider,
-                modelId: model.modelId,
                 onToolExecutionStart: filterNullable(
                   onToolExecutionStart,
                   unifiedTelemetry.onToolExecutionStart as
@@ -1609,13 +1606,10 @@ class DefaultStreamTextResult<
                     activeTools: prepareStepResult?.activeTools ?? activeTools,
                     steps: [...recordedSteps],
                     providerOptions: stepProviderOptions,
-                    timeout,
-                    headers,
-                    stopWhen,
-                    output,
                     ...callbackTelemetryProps,
                     runtimeContext,
                     toolsContext,
+                    output,
                     promptMessages,
                     stepTools,
                     stepToolChoice,
@@ -1655,9 +1649,6 @@ class DefaultStreamTextResult<
               toolsContext,
               toolApproval,
               generateId,
-              stepNumber: recordedSteps.length,
-              provider: stepModel.provider,
-              modelId: stepModel.modelId,
               onToolExecutionStart: filterNullable(
                 onToolExecutionStart,
                 unifiedTelemetry.onToolExecutionStart as
