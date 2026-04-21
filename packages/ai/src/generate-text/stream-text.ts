@@ -78,7 +78,7 @@ import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import { collectToolApprovals } from './collect-tool-approvals';
 import { ContentPart } from './content-part';
-import { createTextStreamPartToUIMessageChunkTransform } from './create-text-stream-part-to-ui-message-chunk-transform';
+import { toUIMessageChunkStream } from './to-ui-message-chunk-stream';
 import type {
   OnFinishEvent,
   OnStartEvent,
@@ -2231,9 +2231,9 @@ class DefaultStreamTextResult<
   }
 
   /**
-   * @deprecated Use `createTextStreamPartToUIMessageChunkTransform` together
-   *   with `handleUIMessageStreamFinish` instead. This method will be removed
-   *   in the next major release.
+   * @deprecated Use `toUIMessageChunkStream` together with
+   *   `handleUIMessageStreamFinish` instead. This method will be removed in
+   *   the next major release.
    */
   toUIMessageStream<UI_MESSAGE extends UIMessage>(
     options: UIMessageStreamOptions<UI_MESSAGE> = {},
@@ -2255,13 +2255,12 @@ class DefaultStreamTextResult<
 
     return createAsyncIterableStream(
       handleUIMessageStreamFinish<UI_MESSAGE>({
-        stream: this.fullStream.pipeThrough(
-          createTextStreamPartToUIMessageChunkTransform<TOOLS, UI_MESSAGE>({
-            ...options,
-            tools: this.tools,
-            responseMessageId,
-          }),
-        ),
+        stream: toUIMessageChunkStream<TOOLS, UI_MESSAGE>({
+          ...options,
+          stream: this.fullStream,
+          tools: this.tools,
+          responseMessageId,
+        }),
         messageId: responseMessageId ?? generateMessageId?.(),
         originalMessages,
         onFinish,

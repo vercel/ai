@@ -509,19 +509,18 @@ const uiStream = result.toUIMessageStream({
 
 ```tsx filename="AI SDK 7"
 import {
-  createTextStreamPartToUIMessageChunkTransform,
   handleUIMessageStreamFinish,
   streamText,
+  toUIMessageChunkStream,
 } from 'ai';
 
 const result = streamText({ model, prompt });
 
 const uiStream = handleUIMessageStreamFinish({
-  stream: result.fullStream.pipeThrough(
-    createTextStreamPartToUIMessageChunkTransform({
-      tools: result.tools,
-    }),
-  ),
+  stream: toUIMessageChunkStream({
+    stream: result.fullStream,
+    tools: result.tools,
+  }),
   messageId: generateMessageId?.(),
   originalMessages,
   onFinish,

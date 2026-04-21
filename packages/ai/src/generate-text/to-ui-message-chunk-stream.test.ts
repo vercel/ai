@@ -5,8 +5,8 @@ import {
 import { describe, expect, it } from 'vitest';
 import { LanguageModelUsage } from '../types/usage';
 import { UIMessage } from '../ui/ui-messages';
-import { createTextStreamPartToUIMessageChunkTransform } from './create-text-stream-part-to-ui-message-chunk-transform';
 import { TextStreamPart } from './stream-text-result';
+import { toUIMessageChunkStream } from './to-ui-message-chunk-stream';
 
 const testUsage: LanguageModelUsage = {
   inputTokens: 1,
@@ -23,7 +23,7 @@ const testUsage: LanguageModelUsage = {
   },
 };
 
-describe('createTextStreamPartToUIMessageChunkTransform', () => {
+describe('toUIMessageChunkStream', () => {
   it('maps text and lifecycle parts to UI message chunks', async () => {
     const parts: TextStreamPart<{}>[] = [
       { type: 'start' },
@@ -49,11 +49,10 @@ describe('createTextStreamPartToUIMessageChunkTransform', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      convertArrayToReadableStream(parts).pipeThrough(
-        createTextStreamPartToUIMessageChunkTransform<{}, UIMessage>({
-          tools: undefined,
-        }),
-      ),
+      toUIMessageChunkStream<{}, UIMessage>({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+      }),
     );
 
     expect(chunks).toEqual([
@@ -72,12 +71,11 @@ describe('createTextStreamPartToUIMessageChunkTransform', () => {
     const parts: TextStreamPart<{}>[] = [{ type: 'start' }];
 
     const chunks = await convertReadableStreamToArray(
-      convertArrayToReadableStream(parts).pipeThrough(
-        createTextStreamPartToUIMessageChunkTransform<{}, UIMessage>({
-          tools: undefined,
-          responseMessageId: 'msg-123',
-        }),
-      ),
+      toUIMessageChunkStream<{}, UIMessage>({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        responseMessageId: 'msg-123',
+      }),
     );
 
     expect(chunks).toEqual([{ type: 'start', messageId: 'msg-123' }]);
@@ -97,13 +95,12 @@ describe('createTextStreamPartToUIMessageChunkTransform', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      convertArrayToReadableStream(parts).pipeThrough(
-        createTextStreamPartToUIMessageChunkTransform<{}, UIMessage>({
-          tools: undefined,
-          sendStart: false,
-          sendFinish: false,
-        }),
-      ),
+      toUIMessageChunkStream<{}, UIMessage>({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        sendStart: false,
+        sendFinish: false,
+      }),
     );
 
     expect(chunks).toEqual([
@@ -120,12 +117,11 @@ describe('createTextStreamPartToUIMessageChunkTransform', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      convertArrayToReadableStream(parts).pipeThrough(
-        createTextStreamPartToUIMessageChunkTransform<{}, UIMessage>({
-          tools: undefined,
-          sendReasoning: false,
-        }),
-      ),
+      toUIMessageChunkStream<{}, UIMessage>({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        sendReasoning: false,
+      }),
     );
 
     expect(chunks).toEqual([]);
@@ -137,12 +133,11 @@ describe('createTextStreamPartToUIMessageChunkTransform', () => {
     ];
 
     const chunks = await convertReadableStreamToArray(
-      convertArrayToReadableStream(parts).pipeThrough(
-        createTextStreamPartToUIMessageChunkTransform<{}, UIMessage>({
-          tools: undefined,
-          onError: error => `handled: ${(error as Error).message}`,
-        }),
-      ),
+      toUIMessageChunkStream<{}, UIMessage>({
+        stream: convertArrayToReadableStream(parts),
+        tools: undefined,
+        onError: error => `handled: ${(error as Error).message}`,
+      }),
     );
 
     expect(chunks).toEqual([{ type: 'error', errorText: 'handled: boom' }]);

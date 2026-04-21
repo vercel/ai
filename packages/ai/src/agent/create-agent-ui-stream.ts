@@ -1,8 +1,8 @@
 import { getErrorMessage } from '@ai-sdk/provider-utils';
 import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
 import {
-  createTextStreamPartToUIMessageChunkTransform,
   StreamTextTransform,
+  toUIMessageChunkStream,
   UIMessageStreamOptions,
 } from '../generate-text';
 import { Output } from '../generate-text/output';
@@ -107,13 +107,12 @@ export async function createAgentUIStream<
 
   return createAsyncIterableStream(
     handleUIMessageStreamFinish<AgentUIMessage>({
-      stream: result.fullStream.pipeThrough(
-        createTextStreamPartToUIMessageChunkTransform<TOOLS, AgentUIMessage>({
-          ...uiMessageStreamOptions,
-          tools: agent.tools,
-          responseMessageId,
-        }),
-      ),
+      stream: toUIMessageChunkStream<TOOLS, AgentUIMessage>({
+        ...uiMessageStreamOptions,
+        stream: result.fullStream,
+        tools: agent.tools,
+        responseMessageId,
+      }),
       messageId: responseMessageId ?? generateMessageId?.(),
       originalMessages,
       onFinish,

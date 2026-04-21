@@ -328,15 +328,17 @@ export interface StreamTextResult<
    *
    * @returns A UI message stream.
    *
-   * @deprecated Use `createTextStreamPartToUIMessageChunkTransform` together
-   *   with `handleUIMessageStreamFinish` instead. This method will be removed
-   *   in the next major release.
+   * @deprecated Use `toUIMessageChunkStream` together with
+   *   `handleUIMessageStreamFinish` instead. This method will be removed in
+   *   the next major release.
    *
    * ```ts
    * const uiStream = handleUIMessageStreamFinish({
-   *   stream: result.fullStream.pipeThrough(
-   *     createTextStreamPartToUIMessageChunkTransform({ tools, ...options }),
-   *   ),
+   *   stream: toUIMessageChunkStream({
+   *     stream: result.fullStream,
+   *     tools,
+   *     ...options,
+   *   }),
    *   messageId,
    *   originalMessages,
    *   onFinish,
@@ -352,8 +354,7 @@ export interface StreamTextResult<
    * Writes UI message stream output to a Node.js response-like object.
    *
    * @deprecated Use the standalone `pipeUIMessageStreamToResponse` helper from
-   *   `'ai'` instead, passing a stream built with
-   *   `createTextStreamPartToUIMessageChunkTransform` and
+   *   `'ai'` instead, passing a stream built with `toUIMessageChunkStream` and
    *   `handleUIMessageStreamFinish`. This method will be removed in the next
    *   major release.
    */
@@ -382,10 +383,9 @@ export interface StreamTextResult<
    * @returns A response object.
    *
    * @deprecated Use the standalone `createUIMessageStreamResponse` helper
-   *   from `'ai'` instead, passing a stream built with
-   *   `createTextStreamPartToUIMessageChunkTransform` and
-   *   `handleUIMessageStreamFinish`. This method will be removed in the next
-   *   major release.
+   *   from `'ai'` instead, passing a stream built with `toUIMessageChunkStream`
+   *   and `handleUIMessageStreamFinish`. This method will be removed in the
+   *   next major release.
    */
   toUIMessageStreamResponse<UI_MESSAGE extends UIMessage>(
     options?: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE>,

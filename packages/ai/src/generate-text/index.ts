@@ -6,7 +6,6 @@ export type {
   OnStepFinishEvent,
   OnStepStartEvent,
 } from './core-events';
-export { createTextStreamPartToUIMessageChunkTransform } from './create-text-stream-part-to-ui-message-chunk-transform';
 export { filterActiveTools as experimental_filterActiveTools } from './filter-active-tool';
 export {
   generateText,
@@ -62,6 +61,7 @@ export type {
   TextStreamPart,
   UIMessageStreamOptions,
 } from './stream-text-result';
+export { toUIMessageChunkStream } from './to-ui-message-chunk-stream';
 export type { ToolApprovalConfiguration } from './tool-approval-configuration';
 export type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 export type {

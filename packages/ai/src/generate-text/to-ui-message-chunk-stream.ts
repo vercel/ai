@@ -12,17 +12,18 @@ import {
 import { TextStreamPart, UIMessageStreamOptions } from './stream-text-result';
 
 /**
- * Creates a `TransformStream` that converts `TextStreamPart<TOOLS>` chunks
- * (as emitted by `streamText`'s `fullStream`) into `UIMessageChunk`s suitable
- * for UI message streaming.
+ * Converts a stream of `TextStreamPart<TOOLS>` chunks (as emitted by
+ * `streamText`'s `fullStream`) into a stream of `UIMessageChunk`s suitable for
+ * UI message streaming.
  *
  * Compose with `handleUIMessageStreamFinish` to get the same behavior as the
  * (deprecated) `StreamTextResult.toUIMessageStream()` method.
  */
-export function createTextStreamPartToUIMessageChunkTransform<
+export function toUIMessageChunkStream<
   TOOLS extends ToolSet,
   UI_MESSAGE extends UIMessage,
 >({
+  stream,
   tools,
   sendReasoning = true,
   sendSources = false,
@@ -32,6 +33,7 @@ export function createTextStreamPartToUIMessageChunkTransform<
   messageMetadata,
   responseMessageId,
 }: {
+  stream: ReadableStream<TextStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   sendReasoning?: boolean;
   sendSources?: boolean;
@@ -40,7 +42,7 @@ export function createTextStreamPartToUIMessageChunkTransform<
   onError?: (error: unknown) => string;
   messageMetadata?: UIMessageStreamOptions<UI_MESSAGE>['messageMetadata'];
   responseMessageId?: string;
-}): TransformStream<TextStreamPart<TOOLS>, InferUIMessageChunk<UI_MESSAGE>> {
+}): ReadableStream<InferUIMessageChunk<UI_MESSAGE>> {
   // TODO simplify once dynamic is no longer needed for invalid tool inputs
   const isDynamic = (part: { toolName: string; dynamic?: boolean }) => {
     const tool = tools?.[part.toolName];
@@ -53,7 +55,7 @@ export function createTextStreamPartToUIMessageChunkTransform<
     return tool?.type === 'dynamic' ? true : undefined;
   };
 
-  return new TransformStream<
+  const transform = new TransformStream<
     TextStreamPart<TOOLS>,
     UIMessageChunk<
       InferUIMessageMetadata<UI_MESSAGE>,
@@ -388,5 +390,12 @@ export function createTextStreamPartToUIMessageChunkTransform<
         });
       }
     },
-  }) as TransformStream<TextStreamPart<TOOLS>, InferUIMessageChunk<UI_MESSAGE>>;
+  });
+
+  return stream.pipeThrough(
+    transform as TransformStream<
+      TextStreamPart<TOOLS>,
+      InferUIMessageChunk<UI_MESSAGE>
+    >,
+  );
 }
