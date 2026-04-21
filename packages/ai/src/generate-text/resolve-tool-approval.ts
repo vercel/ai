@@ -13,7 +13,8 @@ import { validateToolContext } from './validate-tool-context';
 
 /**
  * Resolves the approval state for a tool call by checking user-supplied and tool-defined
- * approval settings. User-defined approval settings take precedence over tool-defined settings.
+ * approval settings, and normalizes the result to the object status shape.
+ * User-defined approval settings take precedence over tool-defined settings.
  * If no approval settings are provided, the tool call does not require approval.
  */
 export async function resolveToolApproval<TOOLS extends ToolSet>({
