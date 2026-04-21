@@ -96,7 +96,7 @@ export default function WeatherWithApprovalView({
         <div className="text-gray-500">
           Weather tool execution for{' '}
           <span className="font-semibold">{invocation.input.city}</span> was
-          {invocation.approval.isAutomatic ? 'automatically' : ''}{' '}
+          {invocation.approval.isAutomatic ? ' automatically' : ''}{' '}
           <span className="text-red-600">denied</span>.
         </div>
       );
