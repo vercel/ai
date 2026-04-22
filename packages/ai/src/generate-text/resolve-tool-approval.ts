@@ -1,4 +1,5 @@
 import {
+  Context,
   InferToolInput,
   InferToolSetContext,
   ModelMessage,
@@ -17,12 +18,16 @@ import { validateToolContext } from './validate-tool-context';
  * User-defined approval settings take precedence over tool-defined settings.
  * If no approval settings are provided, the tool call does not require approval.
  */
-export async function resolveToolApproval<TOOLS extends ToolSet>({
+export async function resolveToolApproval<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context | unknown | never,
+>({
   tools,
   toolCall,
   toolApproval,
   messages,
   toolsContext,
+  runtimeContext,
 }: {
   /**
    * Tools that are available for the model to call.
@@ -39,7 +44,7 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
    *
    * This configuration takes precedence over tool-defined approval settings.
    */
-  toolApproval: ToolApprovalConfiguration<TOOLS> | undefined;
+  toolApproval: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT> | undefined;
 
   /**
    * Messages that were sent to the language model to initiate the response that contained the tool call.
@@ -50,17 +55,35 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
    * Tool context as defined by the tool's context schema.
    */
   toolsContext: InferToolSetContext<TOOLS>;
-}): Promise<Exclude<ToolApprovalStatus, string>> {
+
+  /**
+   * User-defined runtime context (same as `runtimeContext` on `generateText` / `streamText`).
+   */
+  runtimeContext: RUNTIME_CONTEXT;
+}): Promise<Exclude<ToolApprovalStatus, string | undefined>> {
+  // user-defined generic tool approval
+  if (toolApproval != null && typeof toolApproval === 'function') {
+    return normalizeToolApprovalStatus(
+      await toolApproval({
+        toolCall,
+        tools,
+        toolsContext,
+        messages,
+        runtimeContext,
+      }),
+    );
+  }
+
   const toolName = toolCall.toolName;
   const tool = tools?.[toolName];
 
   // assume that the input has been validated and matches the tool's input schema
   const input = toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>;
 
-  // user-defined tool approval
+  // user-defined per-tool approval
   const userDefinedToolApprovalStatus = toolApproval?.[toolName];
   if (userDefinedToolApprovalStatus != null) {
-    const approvalStatus: ToolApprovalStatus =
+    const approvalStatus: ToolApprovalStatus | undefined =
       typeof userDefinedToolApprovalStatus === 'function'
         ? await userDefinedToolApprovalStatus(input, {
             toolCallId: toolCall.toolCallId,
@@ -71,13 +94,11 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
                 toolsContext?.[toolName as keyof InferToolSetContext<TOOLS>],
               contextSchema: tool?.contextSchema,
             }),
+            runtimeContext,
           })
         : userDefinedToolApprovalStatus;
 
-    // normalize the approval status to the object status shape
-    return typeof approvalStatus === 'string'
-      ? { type: approvalStatus }
-      : approvalStatus;
+    return normalizeToolApprovalStatus(approvalStatus);
   }
 
   // tool-defined approval
@@ -100,4 +121,14 @@ export async function resolveToolApproval<TOOLS extends ToolSet>({
       : tool.needsApproval;
 
   return needsApproval ? { type: 'user-approval' } : { type: 'not-applicable' };
+}
+
+function normalizeToolApprovalStatus(
+  status: ToolApprovalStatus | undefined,
+): Exclude<ToolApprovalStatus, string | undefined> {
+  return status === undefined
+    ? { type: 'not-applicable' }
+    : typeof status === 'string'
+      ? { type: status }
+      : status;
 }
