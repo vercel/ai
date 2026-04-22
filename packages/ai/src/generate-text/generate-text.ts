@@ -1013,6 +1013,16 @@ export async function generateText<
         clientToolOutputs.length + deniedToolApprovalResponses.length ===
           clientToolCalls.length) ||
         pendingDeferredToolCalls.size > 0) &&
+      // Guard: don't continue if the only pending work is deferred
+      // provider-executed tool calls and the last response message is
+      // role:"assistant" — providers like Anthropic reject requests
+      // that end with an assistant message.
+      !(
+        pendingDeferredToolCalls.size > 0 &&
+        clientToolCalls.length === 0 &&
+        responseMessages.length > 0 &&
+        responseMessages[responseMessages.length - 1]?.role === 'assistant'
+      ) &&
       // continue until a stop condition is met:
       !(await isStopConditionMet({ stopConditions, steps }))
     );
