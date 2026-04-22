@@ -329,14 +329,25 @@ export type Tool<
     | ProviderToolProperties
   );
 
+/**
+ * A provider-executed tool is a tool that is executed by the provider.
+ */
 export type ProviderExecutedTool<
   INPUT,
   OUTPUT,
   CONTEXT extends Context | unknown | never,
 > = ToolBase<INPUT, OUTPUT, CONTEXT> &
   ProviderToolProperties & {
+    /**
+     * Flag that indicates whether the tool is executed by the provider.
+     */
     isProviderExecuted: true;
+
+    /**
+     * The schema of the output that the tool produces.
+     */
     outputSchema: FlexibleSchema<OUTPUT>;
+
     execute?: never;
     needsApproval?: never;
   };
