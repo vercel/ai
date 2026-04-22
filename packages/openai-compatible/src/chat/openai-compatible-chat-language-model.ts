@@ -491,6 +491,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             }
 
             if (delta.content) {
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               if (!isActiveText) {
                 controller.enqueue({ type: 'text-start', id: 'txt-0' });
                 isActiveText = true;
@@ -504,6 +512,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             }
 
             if (delta.tool_calls != null) {
+              if (isActiveReasoning) {
+                controller.enqueue({
+                  type: 'reasoning-end',
+                  id: 'reasoning-0',
+                });
+                isActiveReasoning = false;
+              }
+
               for (const toolCallDelta of delta.tool_calls) {
                 const index = toolCallDelta.index;
 
