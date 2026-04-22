@@ -51,6 +51,8 @@ type OperationFinishEvent =
 export interface TelemetryDispatcher {
   onStart?: Callback<OperationStartEvent>;
   onStepStart?: Callback<OnStepStartEvent>;
+  onModelCallStart?: Callback<ModelCallStartEvent>;
+  onModelCallEnd?: Callback<ModelCallEndEvent>;
   onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
   onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
   onChunk?: Callback<OnChunkEvent>;
