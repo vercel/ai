@@ -200,7 +200,7 @@ function makeStepStartEvent(overrides?: Record<string, unknown>) {
   } as Parameters<NonNullable<Telemetry['onStepStart']>>[0];
 }
 
-function makeModelCallStartEvent(overrides?: Record<string, unknown>) {
+function makeLanguageModelCallStartEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
     provider: model.provider,
@@ -208,10 +208,10 @@ function makeModelCallStartEvent(overrides?: Record<string, unknown>) {
     messages: [],
     stepTools: undefined,
     ...overrides,
-  } as Parameters<NonNullable<Telemetry['onModelCallStart']>>[0];
+  } as Parameters<NonNullable<Telemetry['onLanguageModelCallStart']>>[0];
 }
 
-function makeModelCallEndEvent(overrides?: Record<string, unknown>) {
+function makeLanguageModelCallEndEvent(overrides?: Record<string, unknown>) {
   return {
     callId,
     provider: model.provider,
@@ -239,7 +239,7 @@ function makeModelCallEndEvent(overrides?: Record<string, unknown>) {
     toolCalls: [],
     responseId: 'test-response-id',
     ...overrides,
-  } as Parameters<NonNullable<Telemetry['onModelCallEnd']>>[0];
+  } as Parameters<NonNullable<Telemetry['onLanguageModelCallEnd']>>[0];
 }
 
 function makeStepFinishEvent(overrides?: Record<string, unknown>) {
@@ -439,7 +439,7 @@ describe('GenAIOpenTelemetry', () => {
     it('creates agent_step and chat spans with correct attributes', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
 
       expect(tracer.startSpan).toHaveBeenCalledTimes(3);
       expect(serializeSpan(tracer.spans[1], tracer)).toMatchInlineSnapshot(`
@@ -471,8 +471,8 @@ describe('GenAIOpenTelemetry', () => {
     it('sets gen_ai.input.messages when messages are provided', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(
-        makeModelCallStartEvent({
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
           messages: [
             {
               role: 'user',
@@ -507,8 +507,8 @@ describe('GenAIOpenTelemetry', () => {
       ];
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(
-        makeModelCallStartEvent({ stepTools: tools }),
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({ stepTools: tools }),
       );
 
       const attrs = getStartSpanAttributes(tracer, 2);
@@ -531,8 +531,8 @@ describe('GenAIOpenTelemetry', () => {
     it('sets response attributes and token usage on the chat span', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
-      integration.onModelCallEnd!(makeModelCallEndEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent());
 
       expect(serializeSpan(tracer.spans[2], tracer)).toMatchInlineSnapshot(`
@@ -562,8 +562,8 @@ describe('GenAIOpenTelemetry', () => {
     it('formats output messages in SemConv format', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
-      integration.onModelCallEnd!(makeModelCallEndEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent());
 
       const chatSpan = tracer.spans[2];
@@ -589,9 +589,9 @@ describe('GenAIOpenTelemetry', () => {
     it('includes tool calls in output messages', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
-      integration.onModelCallEnd!(
-        makeModelCallEndEvent({
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
           text: undefined,
           toolCalls: [
             {
@@ -646,9 +646,9 @@ describe('GenAIOpenTelemetry', () => {
     it('sets cache token attributes when available', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
-      integration.onModelCallEnd!(
-        makeModelCallEndEvent({
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
           usage: {
             inputTokens: 100,
             outputTokens: 50,
@@ -710,7 +710,7 @@ describe('GenAIOpenTelemetry', () => {
     it('creates an execute_tool span with correct attributes', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
       integration.onToolExecutionStart!(makeToolCallStartEvent());
 
       expect(tracer.spans).toHaveLength(4);
@@ -733,7 +733,7 @@ describe('GenAIOpenTelemetry', () => {
     it('parents chat and execute_tool spans under the same step span', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
       integration.onToolExecutionStart!(makeToolCallStartEvent());
 
       const mock = tracer.startSpan as ReturnType<typeof vi.fn>;
@@ -743,7 +743,7 @@ describe('GenAIOpenTelemetry', () => {
     it('sets gen_ai.tool.call.result on success', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
 
@@ -768,7 +768,7 @@ describe('GenAIOpenTelemetry', () => {
     it('records error on tool failure', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(false));
 
@@ -923,7 +923,7 @@ describe('GenAIOpenTelemetry', () => {
     it('is a no-op for stream chunk events', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
 
       integration.onChunk!({
         chunk: {
@@ -943,7 +943,7 @@ describe('GenAIOpenTelemetry', () => {
     it('does not emit events for stream finish', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
 
       integration.onChunk!({
         chunk: {
@@ -963,7 +963,7 @@ describe('GenAIOpenTelemetry', () => {
     it('records error on root, step, and chat spans', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
 
       integration.onError!({
         callId,
@@ -1012,13 +1012,13 @@ describe('GenAIOpenTelemetry', () => {
       integration.onStart!(makeOnStartEvent());
 
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(
-        makeModelCallStartEvent({
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
           messages: [{ role: 'user', content: 'Hello' }],
         }),
       );
-      integration.onModelCallEnd!(
-        makeModelCallEndEvent({
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
           finishReason: 'tool-calls',
           toolCalls: [
             {
@@ -1049,12 +1049,12 @@ describe('GenAIOpenTelemetry', () => {
       );
 
       integration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
-      integration.onModelCallStart!(
-        makeModelCallStartEvent({
+      integration.onLanguageModelCallStart!(
+        makeLanguageModelCallStartEvent({
           messages: [{ role: 'assistant', content: 'Tool result received' }],
         }),
       );
-      integration.onModelCallEnd!(makeModelCallEndEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
       integration.onFinish!(makeFinishEvent());
@@ -1097,8 +1097,8 @@ describe('GenAIOpenTelemetry', () => {
     it('full trace snapshot for single-step generateText', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
-      integration.onModelCallEnd!(makeModelCallEndEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent());
       integration.onFinish!(makeFinishEvent());
 
@@ -1160,9 +1160,9 @@ describe('GenAIOpenTelemetry', () => {
       integration.onStart!(makeOnStartEvent());
 
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
-      integration.onModelCallEnd!(
-        makeModelCallEndEvent({
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
           finishReason: 'tool-calls',
         }),
       );
@@ -1184,8 +1184,8 @@ describe('GenAIOpenTelemetry', () => {
       );
 
       integration.onStepStart!(makeStepStartEvent({ stepNumber: 1 }));
-      integration.onModelCallStart!(makeModelCallStartEvent());
-      integration.onModelCallEnd!(makeModelCallEndEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onStepFinish!(makeStepFinishEvent({ stepNumber: 1 }));
 
       integration.onFinish!(makeFinishEvent());
@@ -1289,8 +1289,8 @@ describe('GenAIOpenTelemetry', () => {
     it('does not use ai.* attribute prefix anywhere', () => {
       integration.onStart!(makeOnStartEvent());
       integration.onStepStart!(makeStepStartEvent());
-      integration.onModelCallStart!(makeModelCallStartEvent());
-      integration.onModelCallEnd!(makeModelCallEndEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(makeLanguageModelCallEndEvent());
       integration.onToolExecutionStart!(makeToolCallStartEvent());
       integration.onToolExecutionEnd!(makeToolCallFinishEvent(true));
       integration.onStepFinish!(makeStepFinishEvent());

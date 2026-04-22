@@ -44,14 +44,14 @@ const result = await generateText({
         'Called when a step (LLM call) begins, before the provider is called.',
     },
     {
-      name: 'experimental_onModelCallStart',
-      type: '(event: ModelCallStartEvent) => void | Promise<void>',
+      name: 'experimental_onLanguageModelCallStart',
+      type: '(event: LanguageModelCallStartEvent) => void | Promise<void>',
       description:
         'Called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this is scoped to model work only.',
     },
     {
-      name: 'experimental_onModelCallEnd',
-      type: '(event: ModelCallEndEvent) => void | Promise<void>',
+      name: 'experimental_onLanguageModelCallEnd',
+      type: '(event: LanguageModelCallEndEvent) => void | Promise<void>',
       description:
         'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
     },
@@ -80,8 +80,8 @@ const result = await generateText({
 />
 
 For multi-step text generations that use tools, the callback order is typically
-`experimental_onStepStart` -> `experimental_onModelCallStart` ->
-`experimental_onModelCallEnd` -> tool execution callbacks -> `onStepFinish`.
+`experimental_onStepStart` -> `experimental_onLanguageModelCallStart` ->
+`experimental_onLanguageModelCallEnd` -> tool execution callbacks -> `onStepFinish`.
 
 ### `embed` / `embedMany`
 
@@ -383,7 +383,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onModelCallStart`
+#### `experimental_onLanguageModelCallStart`
 
 Called immediately before the provider model call begins. Unlike
 `experimental_onStepStart`, this callback is scoped to model work only and
@@ -393,7 +393,7 @@ excludes any later client-side tool execution.
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'Hello!',
-  experimental_onModelCallStart: event => {
+  experimental_onLanguageModelCallStart: event => {
     console.log('Model call:', event.modelId);
     console.log('Messages:', event.messages.length);
   },
@@ -430,7 +430,7 @@ const result = await generateText({
   ]}
 />
 
-#### `experimental_onModelCallEnd`
+#### `experimental_onLanguageModelCallEnd`
 
 Called after the model response has been normalized and parsed, but before any
 client-side tool execution begins.
@@ -439,7 +439,7 @@ client-side tool execution begins.
 const result = await generateText({
   model: openai('gpt-4o'),
   prompt: 'What is the weather?',
-  experimental_onModelCallEnd: event => {
+  experimental_onLanguageModelCallEnd: event => {
     console.log('Finish reason:', event.finishReason);
     console.log('Tool calls:', event.toolCalls.length);
   },

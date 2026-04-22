@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { TypeValidationError } from '../error';
 import { asLanguageModelUsage } from '../types/usage';
-import { ModelCallEndEvent } from './language-model-events';
+import { LanguageModelCallEndEvent } from './language-model-events';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import { LanguageModelStreamPart } from './stream-language-model-call';
 import {
@@ -483,7 +483,7 @@ describe('createExecuteToolsTransformation', () => {
   });
 
   describe('onToolExecutionStart and onToolExecutionEnd callbacks', () => {
-    it('should call onModelCallEnd before starting tool execution', async () => {
+    it('should call onLanguageModelCallEnd before starting tool execution', async () => {
       const tools = {
         testTool: tool({
           inputSchema: z.object({ value: z.string() }),
@@ -492,7 +492,7 @@ describe('createExecuteToolsTransformation', () => {
       };
 
       const callOrder: string[] = [];
-      const modelCallEndEvents: ModelCallEndEvent<typeof tools>[] = [];
+      const modelCallEndEvents: LanguageModelCallEndEvent<typeof tools>[] = [];
 
       const inputStream: ReadableStream<LanguageModelStreamPart<typeof tools>> =
         convertArrayToReadableStream([
@@ -527,8 +527,8 @@ describe('createExecuteToolsTransformation', () => {
           toolsContext: {},
           provider: 'test-provider',
           modelId: 'test-model',
-          onModelCallEnd: async event => {
-            callOrder.push('onModelCallEnd');
+          onLanguageModelCallEnd: async event => {
+            callOrder.push('onLanguageModelCallEnd');
             modelCallEndEvents.push(event);
           },
           onToolExecutionStart: async () => {
@@ -539,7 +539,10 @@ describe('createExecuteToolsTransformation', () => {
 
       await convertReadableStreamToArray(transformedStream);
 
-      expect(callOrder).toEqual(['onModelCallEnd', 'onToolExecutionStart']);
+      expect(callOrder).toEqual([
+        'onLanguageModelCallEnd',
+        'onToolExecutionStart',
+      ]);
       expect(modelCallEndEvents).toMatchInlineSnapshot(`
         [
           {

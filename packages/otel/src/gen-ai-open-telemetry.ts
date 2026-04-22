@@ -14,8 +14,8 @@ import type {
   EmbedOnFinishEvent,
   EmbedOnStartEvent,
   EmbedStartEvent,
-  ModelCallEndEvent,
-  ModelCallStartEvent,
+  LanguageModelCallEndEvent,
+  LanguageModelCallStartEvent,
   ObjectOnFinishEvent,
   ObjectOnStartEvent,
   ObjectOnStepFinishEvent,
@@ -514,7 +514,7 @@ export class GenAIOpenTelemetry implements Telemetry {
     state.stepContext = trace.setSpan(state.rootContext, state.stepSpan);
   }
 
-  onModelCallStart(event: ModelCallStartEvent): void {
+  onLanguageModelCallStart(event: LanguageModelCallStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepContext) return;
 
@@ -571,7 +571,7 @@ export class GenAIOpenTelemetry implements Telemetry {
     );
   }
 
-  onModelCallEnd(event: ModelCallEndEvent<ToolSet>): void {
+  onLanguageModelCallEnd(event: LanguageModelCallEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.inferenceSpan) return;
 

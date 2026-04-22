@@ -90,8 +90,8 @@ import type {
   OnStepStartEvent,
 } from './core-events';
 import type {
-  OnModelCallEndCallback,
-  OnModelCallStartCallback,
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
 } from './language-model-events';
 import { createExecuteToolsTransformation } from './create-execute-tools-transformation';
 import { executeToolCall } from './execute-tool-call';
@@ -336,8 +336,8 @@ export function streamText<
   onStepFinish,
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
-  experimental_onModelCallStart: onModelCallStart,
-  experimental_onModelCallEnd: onModelCallEnd,
+  experimental_onLanguageModelCallStart: onLanguageModelCallStart,
+  experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
   experimental_onToolExecutionStart: onToolExecutionStart,
   experimental_onToolExecutionEnd: onToolExecutionEnd,
   runtimeContext = {} as RUNTIME_CONTEXT,
@@ -514,13 +514,15 @@ export function streamText<
     /**
      * Callback that is called immediately before the provider model call begins.
      */
-    experimental_onModelCallStart?: OnModelCallStartCallback;
+    experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
     /**
      * Callback that is called after the model response has been normalized and parsed,
      * but before any client-side tool execution begins.
      */
-    experimental_onModelCallEnd?: OnModelCallEndCallback<NoInfer<TOOLS>>;
+    experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
+      NoInfer<TOOLS>
+    >;
 
     /**
      * Callback that is called right before a tool's execute function runs.
@@ -609,8 +611,8 @@ export function streamText<
     onStepFinish,
     onStart,
     onStepStart,
-    onModelCallStart,
-    onModelCallEnd,
+    onLanguageModelCallStart,
+    onLanguageModelCallEnd,
     onToolExecutionStart,
     onToolExecutionEnd,
     now,
@@ -798,8 +800,8 @@ class DefaultStreamTextResult<
     onStepFinish,
     onStart,
     onStepStart,
-    onModelCallStart,
-    onModelCallEnd,
+    onLanguageModelCallStart,
+    onLanguageModelCallEnd,
     onToolExecutionStart,
     onToolExecutionEnd,
     runtimeContext,
@@ -876,8 +878,10 @@ class DefaultStreamTextResult<
           NoInfer<RUNTIME_CONTEXT>,
           NoInfer<OUTPUT>
         >;
-    onModelCallStart: undefined | OnModelCallStartCallback;
-    onModelCallEnd: undefined | OnModelCallEndCallback<NoInfer<TOOLS>>;
+    onLanguageModelCallStart: undefined | OnLanguageModelCallStartCallback;
+    onLanguageModelCallEnd:
+      | undefined
+      | OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
     onToolExecutionStart: undefined | OnToolExecutionStartCallback<TOOLS>;
     onToolExecutionEnd: undefined | OnToolExecutionEndCallback<TOOLS>;
   }) {
@@ -1644,10 +1648,10 @@ class DefaultStreamTextResult<
                     stepTools,
                   },
                   callbacks: [
-                    onModelCallStart,
-                    telemetryDispatcher.onModelCallStart as
+                    onLanguageModelCallStart,
+                    telemetryDispatcher.onLanguageModelCallStart as
                       | undefined
-                      | OnModelCallStartCallback,
+                      | OnLanguageModelCallStartCallback,
                   ],
                 });
               },
@@ -1687,10 +1691,10 @@ class DefaultStreamTextResult<
                   | OnToolExecutionEndCallback<TOOLS>
                   | undefined,
               ),
-              onModelCallEnd: filterNullable(
-                onModelCallEnd,
-                telemetryDispatcher.onModelCallEnd as
-                  | OnModelCallEndCallback<TOOLS>
+              onLanguageModelCallEnd: filterNullable(
+                onLanguageModelCallEnd,
+                telemetryDispatcher.onLanguageModelCallEnd as
+                  | OnLanguageModelCallEndCallback<TOOLS>
                   | undefined,
               ),
               executeToolInTelemetryContext: telemetryDispatcher.executeTool,

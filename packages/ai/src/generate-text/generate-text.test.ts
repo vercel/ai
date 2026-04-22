@@ -26,7 +26,7 @@ import {
 } from 'vitest';
 import { z } from 'zod/v4';
 import {
-  ModelCallEndEvent,
+  LanguageModelCallEndEvent,
   Output,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
@@ -1621,7 +1621,7 @@ describe('generateText', () => {
     });
   });
 
-  describe('options.experimental_onModelCallStart and experimental_onModelCallEnd', () => {
+  describe('options.experimental_onLanguageModelCallStart and experimental_onLanguageModelCallEnd', () => {
     it('should fire the model-call callbacks before tool execution and step finish', async () => {
       const callOrder: string[] = [];
 
@@ -1651,11 +1651,11 @@ describe('generateText', () => {
         experimental_onStepStart: async () => {
           callOrder.push('onStepStart');
         },
-        experimental_onModelCallStart: async () => {
-          callOrder.push('onModelCallStart');
+        experimental_onLanguageModelCallStart: async () => {
+          callOrder.push('onLanguageModelCallStart');
         },
-        experimental_onModelCallEnd: async () => {
-          callOrder.push('onModelCallEnd');
+        experimental_onLanguageModelCallEnd: async () => {
+          callOrder.push('onLanguageModelCallEnd');
         },
         experimental_onToolExecutionStart: async () => {
           callOrder.push('onToolExecutionStart');
@@ -1670,8 +1670,8 @@ describe('generateText', () => {
 
       expect(callOrder).toEqual([
         'onStepStart',
-        'onModelCallStart',
-        'onModelCallEnd',
+        'onLanguageModelCallStart',
+        'onLanguageModelCallEnd',
         'onToolExecutionStart',
         'onToolExecutionEnd',
         'onStepFinish',
@@ -1679,7 +1679,7 @@ describe('generateText', () => {
     });
 
     it('should provide parsed tool calls on model-call end', async () => {
-      const modelCallEndEvents: ModelCallEndEvent<any>[] = [];
+      const modelCallEndEvents: LanguageModelCallEndEvent<any>[] = [];
 
       await generateText({
         model: new MockLanguageModelV4({
@@ -1710,7 +1710,7 @@ describe('generateText', () => {
             execute: async ({ value }) => `${value}-result`,
           }),
         },
-        experimental_onModelCallEnd: async event => {
+        experimental_onLanguageModelCallEnd: async event => {
           modelCallEndEvents.push(event);
         },
         ...defaultSettings(),

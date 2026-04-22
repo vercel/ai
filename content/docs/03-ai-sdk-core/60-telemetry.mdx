@@ -222,14 +222,14 @@ export function myIntegration(): Telemetry {
         'Called when a step (LLM call) begins, before the provider is called.',
     },
     {
-      name: 'onModelCallStart',
-      type: '(event: ModelCallStartEvent) => void | PromiseLike<void>',
+      name: 'onLanguageModelCallStart',
+      type: '(event: LanguageModelCallStartEvent) => void | PromiseLike<void>',
       description:
         'Called immediately before the provider model call begins. Useful for model-only spans or logging.',
     },
     {
-      name: 'onModelCallEnd',
-      type: '(event: ModelCallEndEvent) => void | PromiseLike<void>',
+      name: 'onLanguageModelCallEnd',
+      type: '(event: LanguageModelCallEndEvent) => void | PromiseLike<void>',
       description:
         'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
     },

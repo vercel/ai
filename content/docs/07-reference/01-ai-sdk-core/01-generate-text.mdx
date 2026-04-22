@@ -1170,14 +1170,14 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onModelCallStart',
-      type: '(event: ModelCallStartEvent) => PromiseLike<void> | void',
+      name: 'experimental_onLanguageModelCallStart',
+      type: '(event: LanguageModelCallStartEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called immediately before the provider model call begins. Unlike `experimental_onStepStart`, this callback is scoped to model work only and excludes any later client-side tool execution. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'ModelCallStartEvent',
+          type: 'LanguageModelCallStartEvent',
           parameters: [
             {
               name: 'callId',
@@ -1209,14 +1209,14 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_onModelCallEnd',
-      type: '(event: ModelCallEndEvent) => PromiseLike<void> | void',
+      name: 'experimental_onLanguageModelCallEnd',
+      type: '(event: LanguageModelCallEndEvent) => PromiseLike<void> | void',
       isOptional: true,
       description:
         'Callback that is called after the model response has been normalized and parsed, but before any client-side tool execution begins. Errors thrown in this callback are silently caught and do not break the generation flow. Experimental (can break in patch releases).',
       properties: [
         {
-          type: 'ModelCallEndEvent',
+          type: 'LanguageModelCallEndEvent',
           parameters: [
             {
               name: 'callId',

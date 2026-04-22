@@ -19,10 +19,10 @@ import type {
   OnStepStartEvent,
 } from '../generate-text/core-events';
 import type {
-  ModelCallEndEvent,
-  ModelCallStartEvent,
-  OnModelCallEndCallback,
-  OnModelCallStartCallback,
+  LanguageModelCallEndEvent,
+  LanguageModelCallStartEvent,
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
 } from '../generate-text/language-model-events';
 import type {
   ToolExecutionEndEvent,
@@ -55,8 +55,8 @@ type OperationFinishEvent =
 export interface TelemetryDispatcher {
   onStart?: Callback<OperationStartEvent>;
   onStepStart?: Callback<OnStepStartEvent>;
-  onModelCallStart?: OnModelCallStartCallback;
-  onModelCallEnd?: OnModelCallEndCallback;
+  onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+  onLanguageModelCallEnd?: OnLanguageModelCallEndCallback;
   onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
   onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
   onChunk?: Callback<OnChunkEvent>;
@@ -102,13 +102,17 @@ export interface Telemetry {
    * Unlike `onStepStart`, this callback is scoped to model work only and
    * excludes any later client-side tool execution.
    */
-  onModelCallStart?: Callback<InferTelemetryEvent<ModelCallStartEvent>>;
+  onLanguageModelCallStart?: Callback<
+    InferTelemetryEvent<LanguageModelCallStartEvent>
+  >;
 
   /**
    * Called after the model response has been normalized and parsed, but before
    * any client-side tool execution begins.
    */
-  onModelCallEnd?: Callback<InferTelemetryEvent<ModelCallEndEvent>>;
+  onLanguageModelCallEnd?: Callback<
+    InferTelemetryEvent<LanguageModelCallEndEvent>
+  >;
 
   /**
    * Called when a tool execution begins, before the tool's `execute` function

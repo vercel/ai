@@ -106,8 +106,10 @@ export function createTelemetryDispatcher({
   return {
     onStart: mergeTelemetryCallback('onStart'),
     onStepStart: mergeTelemetryCallback('onStepStart'),
-    onModelCallStart: mergeTelemetryCallback('onModelCallStart'),
-    onModelCallEnd: mergeTelemetryCallback('onModelCallEnd'),
+    onLanguageModelCallStart: mergeTelemetryCallback(
+      'onLanguageModelCallStart',
+    ),
+    onLanguageModelCallEnd: mergeTelemetryCallback('onLanguageModelCallEnd'),
     onToolExecutionStart: mergeTelemetryCallback('onToolExecutionStart'),
     onToolExecutionEnd: mergeTelemetryCallback('onToolExecutionEnd'),
     onChunk: mergeTelemetryCallback('onChunk'),

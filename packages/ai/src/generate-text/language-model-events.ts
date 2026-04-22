@@ -16,12 +16,12 @@ export interface CallbackModelInfo {
 }
 
 /**
- * Event passed to the `onModelCallStart` callback.
+ * Event passed to the `onLanguageModelCallStart` callback.
  *
  * Called immediately before the provider model call begins.
  * Unlike `onStepStart`, this only represents model invocation work.
  */
-export interface ModelCallStartEvent extends CallbackModelInfo {
+export interface LanguageModelCallStartEvent extends CallbackModelInfo {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -33,12 +33,12 @@ export interface ModelCallStartEvent extends CallbackModelInfo {
 }
 
 /**
- * Event passed to the `onModelCallEnd` callback.
+ * Event passed to the `onLanguageModelCallEnd` callback.
  *
  * Called after the model response has been normalized and parsed, but before
  * any client-side tool execution begins.
  */
-export interface ModelCallEndEvent<
+export interface LanguageModelCallEndEvent<
   TOOLS extends ToolSet = ToolSet,
 > extends CallbackModelInfo {
   /** Unique identifier for this generation call, used to correlate events. */
@@ -67,7 +67,7 @@ export interface ModelCallEndEvent<
 }
 
 /**
- * Callback that is set using the `experimental_onModelCallStart` option.
+ * Callback that is set using the `experimental_onLanguageModelCallStart` option.
  *
  * Called immediately before the provider model call begins.
  * Unlike step-start callbacks, this is scoped to model work only and
@@ -75,16 +75,16 @@ export interface ModelCallEndEvent<
  *
  * @param event - The event object containing model-call-specific inputs.
  */
-export type OnModelCallStartCallback = Callback<ModelCallStartEvent>;
+export type OnLanguageModelCallStartCallback =
+  Callback<LanguageModelCallStartEvent>;
 
 /**
- * Callback that is set using the `experimental_onModelCallEnd` option.
+ * Callback that is set using the `experimental_onLanguageModelCallEnd` option.
  *
  * Called after the model response has been normalized and parsed, but before
  * any client-side tool execution begins.
  *
  * @param event - The event object containing model-call-specific outputs.
  */
-export type OnModelCallEndCallback<TOOLS extends ToolSet = ToolSet> = Callback<
-  ModelCallEndEvent<TOOLS>
->;
+export type OnLanguageModelCallEndCallback<TOOLS extends ToolSet = ToolSet> =
+  Callback<LanguageModelCallEndEvent<TOOLS>>;

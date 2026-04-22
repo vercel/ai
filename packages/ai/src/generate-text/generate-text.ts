@@ -66,8 +66,8 @@ import type {
   OnStepStartEvent,
 } from './core-events';
 import type {
-  OnModelCallEndCallback,
-  OnModelCallStartCallback,
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
 } from './language-model-events';
 import { executeToolCall } from './execute-tool-call';
 import { filterActiveTools } from './filter-active-tool';
@@ -257,8 +257,8 @@ export async function generateText<
   } = {},
   experimental_onStart: onStart,
   experimental_onStepStart: onStepStart,
-  experimental_onModelCallStart: onModelCallStart,
-  experimental_onModelCallEnd: onModelCallEnd,
+  experimental_onLanguageModelCallStart: onLanguageModelCallStart,
+  experimental_onLanguageModelCallEnd: onLanguageModelCallEnd,
   experimental_onToolExecutionStart: onToolExecutionStart,
   experimental_onToolExecutionEnd: onToolExecutionEnd,
   onStepFinish,
@@ -369,13 +369,15 @@ export async function generateText<
     /**
      * Callback that is called immediately before the provider model call begins.
      */
-    experimental_onModelCallStart?: OnModelCallStartCallback;
+    experimental_onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
 
     /**
      * Callback that is called after the model response has been normalized and parsed,
      * but before any client-side tool execution begins.
      */
-    experimental_onModelCallEnd?: OnModelCallEndCallback<NoInfer<TOOLS>>;
+    experimental_onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<
+      NoInfer<TOOLS>
+    >;
 
     /**
      * Callback that is called right before a tool's execute function runs.
@@ -721,10 +723,10 @@ export async function generateText<
             stepTools,
           },
           callbacks: [
-            onModelCallStart,
-            telemetryDispatcher.onModelCallStart as
+            onLanguageModelCallStart,
+            telemetryDispatcher.onLanguageModelCallStart as
               | undefined
-              | OnModelCallStartCallback,
+              | OnLanguageModelCallStartCallback,
           ],
         });
 
@@ -808,10 +810,10 @@ export async function generateText<
             responseId: currentModelResponse.response.id,
           },
           callbacks: [
-            onModelCallEnd,
-            telemetryDispatcher.onModelCallEnd as
+            onLanguageModelCallEnd,
+            telemetryDispatcher.onLanguageModelCallEnd as
               | undefined
-              | OnModelCallEndCallback<TOOLS>,
+              | OnLanguageModelCallEndCallback<TOOLS>,
           ],
         });
 
