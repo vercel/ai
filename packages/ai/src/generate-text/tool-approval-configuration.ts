@@ -2,10 +2,13 @@ import {
   Context,
   InferToolContext,
   InferToolInput,
+  InferToolSetContext,
   MaybePromiseLike,
   ModelMessage,
+  ToolExecutionOptions,
   ToolSet,
 } from '@ai-sdk/provider-utils';
+import { TypedToolCall } from '../..';
 
 /**
  * The approval status of a tool configuration. This can be one of the following:
@@ -30,54 +33,68 @@ export type ToolApprovalStatus =
 /**
  * Function that is called to determine if the tool needs approval before it can be executed.
  */
+// Parameters are similar to ToolExecuteFunction (except for the abort signal)
 export type SingleToolApprovalFunction<
   INPUT,
   TOOL_CONTEXT extends Context | unknown | never,
 > = (
   input: INPUT,
-  options: {
-    /**
-     * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
-     */
-    toolCallId: string;
-
-    /**
-     * Tool context as defined by the tool's context schema.
-     * The tool context is specific to the tool and is passed to the tool execution.
-     *
-     * Treat the context object as immutable inside tools.
-     * Mutating the context object can lead to race conditions and unexpected results
-     * when tools are called in parallel.
-     *
-     * If you need to mutate the context, analyze the tool calls and results
-     * in `prepareStep` and update it there.
-     */
-    toolContext: TOOL_CONTEXT;
-
-    /**
-     * Messages that were sent to the language model to initiate the response that contained the tool call.
-     * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
-     */
-    messages: ModelMessage[];
-  },
+  options: Omit<ToolExecutionOptions<TOOL_CONTEXT>, 'abortSignal'>,
 ) => MaybePromiseLike<ToolApprovalStatus>;
+
+/**
+ * Function that is called to determine if a tool call needs approval before it can be executed.
+ */
+export type GenericToolApprovalFunction<
+  TOOLS extends ToolSet,
+  TOOLS_CONTEXT extends InferToolSetContext<TOOLS>,
+> = (options: {
+  /**
+   * The tool call that needs approval.
+   */
+  toolCall: TypedToolCall<TOOLS>;
+
+  /**
+   * All tools that are available for the model to call.
+   */
+  tools: TOOLS;
+
+  /**
+   * Tool context for all tools that are available for the model to call.
+   */
+  toolsContext: TOOLS_CONTEXT;
+
+  /**
+   * Messages that were sent to the language model to initiate the response that contained the tool call.
+   * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
+   */
+  messages: ModelMessage[];
+}) => MaybePromiseLike<ToolApprovalStatus>;
 
 /**
  * Configure whether individual tools require approval before they can run.
  *
- * Each tool can be assigned either an approval status or a function that produces one at runtime.
+ * You can either use a generic function that is called for all tool calls,
+ * or you can use a per-tool function.
+ *
+ * For the per-tool functions, each tool can be assigned either an approval status
+ * or a function that produces an approval status at runtime.
  *
  * The approval status can be one of the following:
  * - 'not-applicable': The tool does not require approval.
  * - 'approved': The tool is automatically approved.
  * - 'denied': The tool is automatically denied.
  * - 'user-approval': The tool requires user approval.
+ *
+ * In addition to the string statuses, you can also use object statuses with a reason property.
  */
-export type ToolApprovalConfiguration<TOOLS extends ToolSet> = {
-  [key in keyof TOOLS]?:
-    | ToolApprovalStatus
-    | SingleToolApprovalFunction<
-        InferToolInput<TOOLS[key]>,
-        InferToolContext<TOOLS[key]>
-      >;
-};
+export type ToolApprovalConfiguration<TOOLS extends ToolSet> =
+  | GenericToolApprovalFunction<TOOLS, InferToolSetContext<TOOLS>>
+  | {
+      [key in keyof TOOLS]?:
+        | ToolApprovalStatus
+        | SingleToolApprovalFunction<
+            InferToolInput<TOOLS[key]>,
+            InferToolContext<TOOLS[key]>
+          >;
+    };
