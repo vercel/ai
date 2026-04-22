@@ -2,10 +2,10 @@ import type {
   GenerateTextStartEvent,
   GenerateTextStepStartEvent,
   GenerateTextStepEndEvent,
-  ChunkEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepStartEvent,
-  ObjectOnStepFinishEvent,
+  StreamTextChunkEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepStartEvent,
+  GenerateObjectStepEndEvent,
   Telemetry,
   ToolSet,
 } from 'ai';
@@ -201,7 +201,7 @@ export function DevToolsTelemetry(): Telemetry {
 
       const startEvent = event as (
         | GenerateTextStartEvent<ToolSet>
-        | ObjectOnStartEvent
+        | GenerateObjectStartEvent
       ) & {
         functionId?: string | undefined;
       };
@@ -272,7 +272,7 @@ export function DevToolsTelemetry(): Telemetry {
     },
 
     onObjectStepStart: async event => {
-      const stepStartEvent = event as ObjectOnStepStartEvent & {
+      const stepStartEvent = event as GenerateObjectStepStartEvent & {
         promptMessages?: unknown[];
       };
 
@@ -316,7 +316,7 @@ export function DevToolsTelemetry(): Telemetry {
     },
 
     onChunk: async event => {
-      const { chunk } = event as ChunkEvent;
+      const { chunk } = event as StreamTextChunkEvent;
 
       if (chunk.type === 'raw') {
         const rawValue = (chunk as { rawValue: unknown }).rawValue;
@@ -412,7 +412,7 @@ export function DevToolsTelemetry(): Telemetry {
     },
 
     onObjectStepFinish: async event => {
-      const stepResult = event as ObjectOnStepFinishEvent;
+      const stepResult = event as GenerateObjectStepEndEvent;
 
       const state = callStates.get(stepResult.callId);
       if (!state) return;

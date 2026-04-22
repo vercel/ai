@@ -8,7 +8,7 @@ import type { Warning } from '../types/warning';
  *
  * Called when the operation begins, before the reranking model is called.
  */
-export interface RerankOnStartEvent {
+export interface RerankStartEvent {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -43,7 +43,7 @@ export interface RerankOnStartEvent {
  *
  * Called when the operation completes, after the reranking model returns.
  */
-export interface RerankOnFinishEvent {
+export interface RerankEndEvent {
   /** Unique identifier for this rerank call, used to correlate events. */
   readonly callId: string;
 
@@ -138,9 +138,3 @@ export interface RerankingModelCallEndEvent {
   /** The ranking results from the model. */
   readonly ranking: Array<{ index: number; relevanceScore: number }>;
 }
-
-/** @deprecated Use `RerankingModelCallStartEvent` instead. */
-export type RerankStartEvent = RerankingModelCallStartEvent;
-
-/** @deprecated Use `RerankingModelCallEndEvent` instead. */
-export type RerankFinishEvent = RerankingModelCallEndEvent;

@@ -195,7 +195,7 @@ export interface GenerateTextStepStartEvent<
  * The chunk is either a content part (text-delta, tool-call, etc.) or
  * a stream lifecycle marker (`ai.stream.firstChunk` / `ai.stream.finish`).
  */
-export interface ChunkEvent<TOOLS extends ToolSet = ToolSet> {
+export interface StreamTextChunkEvent<TOOLS extends ToolSet = ToolSet> {
   readonly chunk:
     | TextStreamPart<TOOLS>
     | {
@@ -233,6 +233,10 @@ export type GenerateTextEndEvent<
   /** Aggregated token usage across all steps. */
   readonly totalUsage: LanguageModelUsage;
 };
+
+/** @deprecated Use `StreamTextChunkEvent` instead. */
+export type ChunkEvent<TOOLS extends ToolSet = ToolSet> =
+  StreamTextChunkEvent<TOOLS>;
 
 /** @deprecated Use `GenerateTextStepEndEvent` instead. */
 export type OnStepFinishEvent<

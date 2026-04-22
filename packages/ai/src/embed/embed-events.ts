@@ -8,7 +8,7 @@ import type { Warning } from '../types/warning';
  *
  * Called when the operation begins, before the embedding model is called.
  */
-export interface EmbedOnStartEvent {
+export interface EmbedStartEvent {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -39,7 +39,7 @@ export interface EmbedOnStartEvent {
  *
  * Called when the operation completes, after the embedding model returns.
  */
-export interface EmbedOnFinishEvent {
+export interface EmbedEndEvent {
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -130,9 +130,3 @@ export interface EmbeddingModelCallEndEvent {
   /** Token usage for this model call. */
   readonly usage: EmbeddingModelUsage;
 }
-
-/** @deprecated Use `EmbeddingModelCallStartEvent` instead. */
-export type EmbedStartEvent = EmbeddingModelCallStartEvent;
-
-/** @deprecated Use `EmbeddingModelCallEndEvent` instead. */
-export type EmbedFinishEvent = EmbeddingModelCallEndEvent;

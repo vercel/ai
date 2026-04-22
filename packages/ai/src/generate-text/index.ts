@@ -1,6 +1,7 @@
 export type { ContentPart } from './content-part';
 export type {
   ChunkEvent,
+  StreamTextChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,

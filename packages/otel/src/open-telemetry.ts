@@ -12,14 +12,14 @@ import {
 } from '@opentelemetry/api';
 import type {
   EmbeddingModelCallEndEvent,
-  EmbedOnFinishEvent,
-  EmbedOnStartEvent,
+  EmbedEndEvent,
+  EmbedStartEvent,
   EmbeddingModelCallStartEvent,
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
-  ChunkEvent,
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
+  StreamTextChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -28,8 +28,8 @@ import type {
   ToolExecutionStartEvent,
   OutputInterface as Output,
   RerankingModelCallEndEvent,
-  RerankOnFinishEvent,
-  RerankOnStartEvent,
+  RerankEndEvent,
+  RerankStartEvent,
   RerankingModelCallStartEvent,
   InferTelemetryEvent,
   Telemetry,
@@ -178,23 +178,21 @@ export class OpenTelemetry implements Telemetry {
   onStart(
     event:
       | InferTelemetryEvent<GenerateTextStartEvent>
-      | InferTelemetryEvent<ObjectOnStartEvent>
-      | InferTelemetryEvent<EmbedOnStartEvent>
-      | InferTelemetryEvent<RerankOnStartEvent>,
+      | InferTelemetryEvent<GenerateObjectStartEvent>
+      | InferTelemetryEvent<EmbedStartEvent>
+      | InferTelemetryEvent<RerankStartEvent>,
   ): void {
     if (
       event.operationId === 'ai.embed' ||
       event.operationId === 'ai.embedMany'
     ) {
-      this.onEmbedOperationStart(
-        event as InferTelemetryEvent<EmbedOnStartEvent>,
-      );
+      this.onEmbedOperationStart(event as InferTelemetryEvent<EmbedStartEvent>);
       return;
     }
 
     if (event.operationId === 'ai.rerank') {
       this.onRerankOperationStart(
-        event as InferTelemetryEvent<RerankOnStartEvent>,
+        event as InferTelemetryEvent<RerankStartEvent>,
       );
       return;
     }
@@ -204,7 +202,7 @@ export class OpenTelemetry implements Telemetry {
       event.operationId === 'ai.streamObject'
     ) {
       this.onObjectOperationStart(
-        event as InferTelemetryEvent<ObjectOnStartEvent>,
+        event as InferTelemetryEvent<GenerateObjectStartEvent>,
       );
       return;
     }
@@ -277,7 +275,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   private onObjectOperationStart(
-    event: InferTelemetryEvent<ObjectOnStartEvent>,
+    event: InferTelemetryEvent<GenerateObjectStartEvent>,
   ): void {
     const telemetry: TelemetryOptions = {
       recordInputs: event.recordInputs,
@@ -344,7 +342,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepStart(event: ObjectOnStepStartEvent): void {
+  onObjectStepStart(event: GenerateObjectStepStartEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
 
@@ -395,7 +393,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepFinish(event: ObjectOnStepFinishEvent): void {
+  onObjectStepFinish(event: GenerateObjectStepEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
@@ -449,7 +447,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   private onEmbedOperationStart(
-    event: InferTelemetryEvent<EmbedOnStartEvent>,
+    event: InferTelemetryEvent<EmbedStartEvent>,
   ): void {
     const telemetry: TelemetryOptions = {
       recordInputs: event.recordInputs,
@@ -719,9 +717,9 @@ export class OpenTelemetry implements Telemetry {
   onFinish(
     event:
       | GenerateTextEndEvent<ToolSet>
-      | ObjectOnFinishEvent<unknown>
-      | EmbedOnFinishEvent
-      | RerankOnFinishEvent,
+      | GenerateObjectEndEvent<unknown>
+      | EmbedEndEvent
+      | RerankEndEvent,
   ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
@@ -730,12 +728,12 @@ export class OpenTelemetry implements Telemetry {
       state.operationId === 'ai.embed' ||
       state.operationId === 'ai.embedMany'
     ) {
-      this.onEmbedOperationFinish(event as EmbedOnFinishEvent);
+      this.onEmbedOperationFinish(event as EmbedEndEvent);
       return;
     }
 
     if (state.operationId === 'ai.rerank') {
-      this.onRerankOperationFinish(event as RerankOnFinishEvent);
+      this.onRerankOperationFinish(event as RerankEndEvent);
       return;
     }
 
@@ -743,7 +741,7 @@ export class OpenTelemetry implements Telemetry {
       state.operationId === 'ai.generateObject' ||
       state.operationId === 'ai.streamObject'
     ) {
-      this.onObjectOperationFinish(event as ObjectOnFinishEvent<unknown>);
+      this.onObjectOperationFinish(event as GenerateObjectEndEvent<unknown>);
       return;
     }
 
@@ -821,7 +819,9 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  private onObjectOperationFinish(event: ObjectOnFinishEvent<unknown>): void {
+  private onObjectOperationFinish(
+    event: GenerateObjectEndEvent<unknown>,
+  ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -850,7 +850,7 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  private onEmbedOperationFinish(event: EmbedOnFinishEvent): void {
+  private onEmbedOperationFinish(event: EmbedEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -934,7 +934,7 @@ export class OpenTelemetry implements Telemetry {
   }
 
   private onRerankOperationStart(
-    event: InferTelemetryEvent<RerankOnStartEvent>,
+    event: InferTelemetryEvent<RerankStartEvent>,
   ): void {
     const telemetry: TelemetryOptions = {
       recordInputs: event.recordInputs,
@@ -982,7 +982,7 @@ export class OpenTelemetry implements Telemetry {
     });
   }
 
-  private onRerankOperationFinish(event: RerankOnFinishEvent): void {
+  private onRerankOperationFinish(event: RerankEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
@@ -1037,7 +1037,7 @@ export class OpenTelemetry implements Telemetry {
     state.rerankSpan = undefined;
   }
 
-  onChunk(event: ChunkEvent<ToolSet>): void {
+  onChunk(event: StreamTextChunkEvent<ToolSet>): void {
     const chunk = event.chunk as {
       type: string;
       callId?: unknown;

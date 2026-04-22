@@ -73,13 +73,13 @@ const result = await generateText({
   content={[
     {
       name: 'experimental_onStart',
-      type: '(event: EmbedOnStartEvent) => void | Promise<void>',
+      type: '(event: EmbedStartEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation begins, before the embedding model is called.',
     },
     {
       name: 'experimental_onFinish',
-      type: '(event: EmbedOnFinishEvent) => void | Promise<void>',
+      type: '(event: EmbedEndEvent) => void | Promise<void>',
       description:
         'Called when the embedding operation completes, after the embedding model returns.',
     },
@@ -92,13 +92,13 @@ const result = await generateText({
   content={[
     {
       name: 'experimental_onStart',
-      type: '(event: RerankOnStartEvent) => void | Promise<void>',
+      type: '(event: RerankStartEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation begins, before the reranking model is called.',
     },
     {
       name: 'experimental_onFinish',
-      type: '(event: RerankOnFinishEvent) => void | Promise<void>',
+      type: '(event: RerankEndEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation completes, after the reranking model returns.',
     },

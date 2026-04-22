@@ -21,7 +21,7 @@ import type { LanguageModelUsage } from '../types/usage';
  *
  * @deprecated
  */
-export interface ObjectOnStartEvent {
+export interface GenerateObjectStartEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -92,7 +92,7 @@ export interface ObjectOnStartEvent {
  *
  * @deprecated
  */
-export interface ObjectOnStepStartEvent {
+export interface GenerateObjectStepStartEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -124,7 +124,7 @@ export interface ObjectOnStepStartEvent {
  *
  * @deprecated
  */
-export interface ObjectOnStepFinishEvent {
+export interface GenerateObjectStepEndEvent {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 
@@ -177,7 +177,7 @@ export interface ObjectOnStepFinishEvent {
  *
  * @deprecated
  */
-export interface ObjectOnFinishEvent<RESULT> {
+export interface GenerateObjectEndEvent<RESULT> {
   /** Unique identifier for this generation call, used to correlate events. */
   readonly callId: string;
 

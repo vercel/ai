@@ -1,18 +1,18 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type {
-  EmbedOnFinishEvent,
-  EmbedOnStartEvent,
+  EmbedEndEvent,
+  EmbedStartEvent,
   EmbeddingModelCallEndEvent,
   EmbeddingModelCallStartEvent,
 } from '../embed/embed-events';
 import type {
-  ObjectOnFinishEvent,
-  ObjectOnStartEvent,
-  ObjectOnStepFinishEvent,
-  ObjectOnStepStartEvent,
+  GenerateObjectEndEvent,
+  GenerateObjectStartEvent,
+  GenerateObjectStepEndEvent,
+  GenerateObjectStepStartEvent,
 } from '../generate-object/structured-output-events';
 import type {
-  ChunkEvent,
+  StreamTextChunkEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
@@ -23,8 +23,8 @@ import type {
   ToolExecutionStartEvent,
 } from '../generate-text/tool-execution-events';
 import type {
-  RerankOnFinishEvent,
-  RerankOnStartEvent,
+  RerankEndEvent,
+  RerankStartEvent,
   RerankingModelCallEndEvent,
   RerankingModelCallStartEvent,
 } from '../rerank/rerank-events';
@@ -36,25 +36,25 @@ export type InferTelemetryEvent<EVENT> = EVENT &
 
 type OperationStartEvent =
   | GenerateTextStartEvent
-  | ObjectOnStartEvent
-  | EmbedOnStartEvent
-  | RerankOnStartEvent;
+  | GenerateObjectStartEvent
+  | EmbedStartEvent
+  | RerankStartEvent;
 
 type OperationFinishEvent =
   | GenerateTextEndEvent<ToolSet>
-  | ObjectOnFinishEvent<unknown>
-  | EmbedOnFinishEvent
-  | RerankOnFinishEvent;
+  | GenerateObjectEndEvent<unknown>
+  | EmbedEndEvent
+  | RerankEndEvent;
 
 export interface TelemetryDispatcher {
   onStart?: Callback<OperationStartEvent>;
   onStepStart?: Callback<GenerateTextStepStartEvent>;
   onToolExecutionStart?: Callback<ToolExecutionStartEvent>;
   onToolExecutionEnd?: Callback<ToolExecutionEndEvent>;
-  onChunk?: Callback<ChunkEvent>;
+  onChunk?: Callback<StreamTextChunkEvent>;
   onStepFinish?: Callback<GenerateTextStepEndEvent>;
-  onObjectStepStart?: Callback<ObjectOnStepStartEvent>;
-  onObjectStepFinish?: Callback<ObjectOnStepFinishEvent>;
+  onObjectStepStart?: Callback<GenerateObjectStepStartEvent>;
+  onObjectStepFinish?: Callback<GenerateObjectStepEndEvent>;
   onEmbedStart?: Callback<EmbeddingModelCallStartEvent>;
   onEmbedFinish?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
@@ -108,7 +108,7 @@ export interface Telemetry {
    * Called for each chunk received during streaming.
    * Only relevant for `streamText` — not called during `generateText`.
    */
-  onChunk?: Callback<ChunkEvent>;
+  onChunk?: Callback<StreamTextChunkEvent>;
 
   /**
    * Called when an individual step (single LLM invocation) completes.
@@ -124,7 +124,9 @@ export interface Telemetry {
    *
    * @deprecated
    */
-  onObjectStepStart?: Callback<InferTelemetryEvent<ObjectOnStepStartEvent>>;
+  onObjectStepStart?: Callback<
+    InferTelemetryEvent<GenerateObjectStepStartEvent>
+  >;
 
   /**
    * Called when an object generation step (single LLM invocation) completes,
@@ -132,7 +134,9 @@ export interface Telemetry {
    *
    * @deprecated
    */
-  onObjectStepFinish?: Callback<InferTelemetryEvent<ObjectOnStepFinishEvent>>;
+  onObjectStepFinish?: Callback<
+    InferTelemetryEvent<GenerateObjectStepEndEvent>
+  >;
 
   /**
    * Called when an individual embedding model call (doEmbed) begins.
