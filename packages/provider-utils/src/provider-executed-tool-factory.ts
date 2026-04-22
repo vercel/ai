@@ -59,14 +59,12 @@ export function createProviderExecutedToolFactory<
       type: 'provider',
       isProviderExecuted: true,
       id,
-      args: args as unknown as ARGS,
+      args,
       inputSchema,
       outputSchema,
       onInputStart,
       onInputDelta,
       onInputAvailable,
       supportsDeferredResults,
-      execute: undefined as never,
-      needsApproval: undefined as never,
     });
 }
