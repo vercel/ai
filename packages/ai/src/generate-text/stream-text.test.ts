@@ -21942,14 +21942,15 @@ describe('streamText', () => {
                 "value": "value-needs-approval",
               },
               "options": {
-                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
                     "role": "user",
                   },
                 ],
+                "runtimeContext": {},
                 "toolCallId": "call-1",
+                "toolContext": undefined,
               },
             },
             {
@@ -21957,14 +21958,15 @@ describe('streamText', () => {
                 "value": "value-no-approval",
               },
               "options": {
-                "context": undefined,
                 "messages": [
                   {
                     "content": "test-input",
                     "role": "user",
                   },
                 ],
+                "runtimeContext": {},
                 "toolCallId": "call-2",
+                "toolContext": undefined,
               },
             },
           ]

@@ -321,7 +321,7 @@ export async function generateText<
      *
      * This configuration takes precedence over tool-defined approval settings.
      */
-    toolApproval?: ToolApprovalConfiguration<TOOLS>;
+    toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
 
     /**
      * Custom download function to use for URLs.
@@ -774,6 +774,7 @@ export async function generateText<
             toolCall,
             messages: stepInputMessages,
             toolsContext,
+            runtimeContext,
           });
 
           switch (toolApprovalStatus.type) {

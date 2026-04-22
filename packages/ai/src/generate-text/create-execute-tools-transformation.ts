@@ -1,4 +1,4 @@
-import type { Arrayable, ToolSet } from '@ai-sdk/provider-utils';
+import type { Arrayable, Context, ToolSet } from '@ai-sdk/provider-utils';
 import {
   IdGenerator,
   InferToolSetContext,
@@ -16,7 +16,10 @@ import {
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
 
-export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
+export function createExecuteToolsTransformation<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context | unknown | never,
+>({
   tools,
   callId,
   messages,
@@ -24,6 +27,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   timeout,
   toolsContext,
   toolApproval,
+  runtimeContext,
   generateId,
   onToolExecutionStart,
   onToolExecutionEnd,
@@ -35,7 +39,8 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
   toolsContext: InferToolSetContext<TOOLS>;
-  toolApproval?: ToolApprovalConfiguration<TOOLS>;
+  toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
+  runtimeContext: RUNTIME_CONTEXT;
   generateId: IdGenerator;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
@@ -82,6 +87,7 @@ export function createExecuteToolsTransformation<TOOLS extends ToolSet>({
             toolApproval,
             messages,
             toolsContext,
+            runtimeContext,
           });
 
           switch (toolApprovalStatus.type) {
